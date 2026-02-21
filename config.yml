@@ -12,7 +12,8 @@ orientation: portrait               # The orientation for mobile devices
 sources:                            # The list of the source code files
     - source/*.cpp
     - source/*.h
-    
+    - source/scenes/*.cpp
+    - source/scenes/*.h
 modules:
     - scene2
 
