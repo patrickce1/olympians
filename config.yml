@@ -1,13 +1,13 @@
 ---
-name:   Hello CUGL                  # The application display name
-short:  Hello                       # A shortened name for reference
-appid:  edu.cornell.gdiac.hello     # Application identifier for Mac, iOS, Android
+name:   Olympians                # The application display name
+short:  Olympians                       # A shortened name for reference
+appid:  edu.cornell.gdiac.olympians    # Application identifier for Mac, iOS, Android
 suffix: GAEE8E6C
 
 build:  build                       # The build directory (targets are each a subdirectory)
 assets: assets                      # The folder with the game assets (do not list asset)
 
-orientation: landscape              # The orientation for mobile devices
+orientation: portrait               # The orientation for mobile devices
 
 sources:                            # The list of the source code files
     - source/*.cpp
