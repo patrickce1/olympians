@@ -44,7 +44,6 @@ using namespace cugl::graphics;
 
 
 /** This is the main application and so we need this macro at the start */
-CU_ROOTCLASS(HelloApp)
 
 // The number of seconds before moving the logo to a new position
 #define TIME_STEP    1
