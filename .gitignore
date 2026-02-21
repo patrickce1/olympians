@@ -1,0 +1,121 @@
+# =========================
+# Local Folders
+# =========================
+/build/
+
+# =========================
+# OS FILES
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE / EDITOR
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =========================
+# ENVIRONMENT VARIABLES
+# =========================
+.env
+.env.*
+*.env
+
+# =========================
+# LOG FILES
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# DEPENDENCIES
+# =========================
+node_modules/
+vendor/
+
+# =========================
+# BUILD OUTPUTS
+# =========================
+dist/
+build/
+out/
+target/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# =========================
+# PYTHON
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc.*
+*.py,cover
+
+# Virtual environments
+venv/
+.env/
+ENV/
+env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# =========================
+# NODE / JAVASCRIPT
+# =========================
+.next/
+.nuxt/
+.cache/
+coverage/
+
+# =========================
+# DATABASE FILES
+# =========================
+*.sqlite3
+*.db
+
+# =========================
+# TEST / COVERAGE
+# =========================
+.coverage
+htmlcov/
+
+# =========================
+# MISC
+# =========================
+*.bak
+*.tmp
+*.temp
+
+# =========================
+# SECRETS / KEYS (VERY IMPORTANT)
+# =========================
+*.pem
+*.key
+*.crt
+secrets.json
+config.json
+
+# =========================
+# DOCKER
+# =========================
+docker-compose.override.yml
+
+# =========================
+# TERRAFORM
+# =========================
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
