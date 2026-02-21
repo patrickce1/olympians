@@ -63,13 +63,10 @@ CU_ROOTCLASS(SceneLoader)
  * causing the application to run.
  */
 void SceneLoader::onStartup() {
-    // Create a scene graph with a locked screen height
-    _scene = Scene2::allocWithHint(0, GAME_HEIGHT);
 
     // Create a sprite batch (and background color) to render the scene
     _batch = SpriteBatch::alloc();
     setClearColor(Color4(229, 229, 229, 255));
-    _scene->setSpriteBatch(_batch);
 
     // Create an asset manager to load all assets
     _assets = AssetManager::alloc();
@@ -90,7 +87,6 @@ void SceneLoader::onStartup() {
 #endif
 
     // Build the scene from these assets
-    buildScene();
     Application::onStartup();
 
     // Create the logger
@@ -128,7 +124,6 @@ void SceneLoader::onShutdown() {
     Logger::close("debug");
 
     // Delete all smart pointers
-    _scene = nullptr;
     _batch = nullptr;
     _assets = nullptr;
 
@@ -154,8 +149,7 @@ void SceneLoader::onShutdown() {
  */
 void SceneLoader::onResize() {
     // When we resize, we have to resize the scene
-    // To see why, comment this out
-    _scene->resizeToHint(0, GAME_HEIGHT);
+    // most likely not needed to be implemented because phones lock in screen size
 }
 
 /**
@@ -171,7 +165,12 @@ void SceneLoader::onResize() {
  * @param dt    The amount of time (in seconds) since the last frame
  */
 void SceneLoader::update(float dt) {
-
+    switch (currentScene) {
+        case GAME:
+            gameScene.update(dt);
+            
+            break;
+    }
 }
 
 /**
@@ -186,16 +185,14 @@ void SceneLoader::update(float dt) {
  */
 void SceneLoader::draw() {
     // This takes care of begin/end
-    _scene->render();
+    switch (currentScene) {
+        case GAME:
+            gameScene.render();
+    }
 }
 
-/**
- * Internal helper to build the scene graph.
- *
- * Scene graphs are not required. You could manage all scenes just like
- * you do in 3152. However, they greatly simplify scene management, and
- * have become standard in most game engines.
- */
-void SceneLoader::buildScene() {
-    Size size = _scene->getSize();
+
+void SceneLoader::updateGameScene(float dt) {
+    gameScene.update(dt);
+    //scene switching logic goes here
 }

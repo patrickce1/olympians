@@ -4,31 +4,34 @@ The loader for assets and other scenes
 #ifndef __SCENE_LOADER_H__
 #define __SCENE_LOADER_H__
 #include <cugl/cugl.h>
+#include "GameScene.h"
 
 /**
  * Scene loader class responsible for loading assets and managing scene transitions
  */
 class SceneLoader : public cugl::Application {
 protected:
+    /*This enum keeps track of which scene/mode we are in right now
+     *Will have to be expanded as we add more scenes
+    */
+    enum State {
+        GAME
+    };
+
+    State currentScene;
+
     /** The loaders to (synchronously) load in assets */
     std::shared_ptr<cugl::AssetManager> _assets;
 
-    /** A scene graph, used to display our 2D scenes */
-    std::shared_ptr<cugl::scene2::Scene2> _scene;
-    /** A 3152 style SpriteBatch to render the scene MOST LIKELY NEEDS CHANGING */
+    /** A 3152 style SpriteBatch to render the scene MOST LIKELY NEEDS CHANGING, I THINK WE'RE NOT SUPPOSED TO USE THIS METHOD? */
     std::shared_ptr<cugl::graphics::SpriteBatch>  _batch;
 
-    /** A logger for debugging */
+    /** A logger for debugging, can be removed if we feel like this is not necessary */
     std::shared_ptr<cugl::Logger> _logger;
 
-    /**
-     * Internal helper to build the scene graph.
-     *
-     * Scene graphs are not required. You could manage all scenes just like
-     * you do in 3152. However, they greatly simplify scene management, and
-     * have become standard in most game engines.
-     */
-    void buildScene();
+    /* All the scenes in the game*/
+    GameScene gameScene;
+    //more scenes to come...
 
 public:
     /**
@@ -119,6 +122,9 @@ public:
      * at all. The default implmentation does nothing.
      */
     virtual void draw() override;
+
+    /*Individual update method for game scene*/
+    void updateGameScene(float dt);
 
 };
 
