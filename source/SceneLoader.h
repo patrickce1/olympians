@@ -1,92 +1,51 @@
-//
-//  HelloApp.h
-//  Basic CUGL Demo
-//
-//  This is the header for the custom application. This is the declaration of 
-//  your root (and in this case only) class.
-//
-//  CUGL MIT License:
-//      This software is provided 'as-is', without any express or implied
-//      warranty.  In no event will the authors be held liable for any damages
-//      arising from the use of this software.
-//
-//      Permission is granted to anyone to use this software for any purpose,
-//      including commercial applications, and to alter it and redistribute it
-//      freely, subject to the following restrictions:
-//
-//      1. The origin of this software must not be misrepresented; you must not
-//      claim that you wrote the original software. If you use this software
-//      in a product, an acknowledgment in the product documentation would be
-//      appreciated but is not required.
-//
-//      2. Altered source versions must be plainly marked as such, and must not
-//      be misrepresented as being the original software.
-//
-//      3. This notice may not be removed or altered from any source distribution.
-//
-//  Author: Walker White
-//  Version: 12/22/25
-//
-#ifndef __HELLO_APP_H__
-#define __HELLO_APP_H__
+#ifndef __SCENE_LOADER_H__
+#define __SCENE_LOADER_H__
 #include <cugl/cugl.h>
+#include "scenes/GameScene.h"
 
 /**
- * Class for a simple Hello World style application
- *
- * The application simply moves the CUGL logo across the screen.  It also
- * provides a button to quit the application.
+ * Scene loader class responsible for loading assets and managing scene transitions
  */
-class HelloApp : public cugl::Application {
+class SceneLoader : public cugl::Application {
 protected:
+    /* This enum keeps track of which scene/mode we are in right now
+     * Will have to be expanded as we add more scenes*/
+    enum State {
+        GAME
+    };
+
+    State currentScene;
+
     /** The loaders to (synchronously) load in assets */
     std::shared_ptr<cugl::AssetManager> _assets;
 
-    /** A scene graph, used to display our 2D scenes */
-    std::shared_ptr<cugl::scene2::Scene2> _scene;
-    /** A 3152 style SpriteBatch to render the scene */
+    /** A 3152 style SpriteBatch to render the scene MOST LIKELY NEEDS CHANGING, I THINK WE'RE NOT SUPPOSED TO USE THIS METHOD? */
     std::shared_ptr<cugl::graphics::SpriteBatch>  _batch;
-    /** A reference to the logo, so that we can move it around */
-    std::shared_ptr<cugl::scene2::SceneNode>  _logo;
 
-    /** A countdown used to move the logo */
-    float _countdown;
-    
-    /** A logger for debugging */
+    /** A logger for debugging, can be removed if we feel like this is not necessary */
     std::shared_ptr<cugl::Logger> _logger;
 
-    /**
-     * Internal helper to build the scene graph.
-     *
-     * Scene graphs are not required. You could manage all scenes just like
-     * you do in 3152. However, they greatly simplify scene management, and
-     * have become standard in most game engines.
-     */
-    void buildScene();
+    /* All the scenes in the game*/
+    GameScene gameScene;
+    //more scenes to come...
 
 public:
     /**
      * Creates, but does not initialize, a new application.
      *
-     * This constructor is where you set all your configuration values such
-     * as the game name, the FPS, and so on. Many of these need to be set
-     * before the backend is initialized.
-     *
-     * With that said, it is unsafe to do anything in this constuctor other than
-     * initialize attributes. That is because this constructor is called before
-     * the backend is initialized, and so much CUGL API calls will fail. Any
-     * initialization that requires access to CUGL must happen in onStartup().
+     * This is configuring things before most of the backend is initialized.
+     * Do NOT use this constructor for anything other than initializing attributes
+     * because most of the cugl backend is not properly initialized at this point
      */
-    HelloApp();
+    SceneLoader();
 
     /**
      * Disposes this application, releasing all resources.
      *
      * This destructor is called by SDL when the application quits. It simply
-     * calls the dispose() method in Application.  There is nothing special to
-     * do here.
+     * calls the dispose() method in Application. 
      */
-    ~HelloApp() { }
+    ~SceneLoader() {}
 
     /**
      * The method called after the backend is initialized.
@@ -127,7 +86,7 @@ public:
      * remains unchanged.
      */
     virtual void onResize() override;
-    
+
     /**
      * The method called to update the application data.
      *
@@ -154,6 +113,9 @@ public:
      */
     virtual void draw() override;
 
+    /*Individual update method for game scene*/
+    void updateGameScene(float dt);
+
 };
 
-#endif /* __HELLO_APP_H__ */
+#endif /* __SCENE_LOADER_H__ */
