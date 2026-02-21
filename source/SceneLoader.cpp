@@ -157,12 +157,14 @@ void SceneLoader::onResize() {
  * at all. The default implmentation does nothing.
  *
  * @param dt    The amount of time (in seconds) since the last frame
+ * 
+ * Scene loader's main job during update is to detect if a switch between scenes is necessary. 
+ * Otherwise, it should maintain the current scene.
  */
 void SceneLoader::update(float dt) {
     switch (currentScene) {
         case GAME:
             gameScene.update(dt);
-            
             break;
     }
 }

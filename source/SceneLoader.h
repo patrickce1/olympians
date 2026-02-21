@@ -1,7 +1,7 @@
 #ifndef __SCENE_LOADER_H__
 #define __SCENE_LOADER_H__
 #include <cugl/cugl.h>
-#include "GameScene.h"
+#include "scenes/GameScene.h"
 
 /**
  * Scene loader class responsible for loading assets and managing scene transitions

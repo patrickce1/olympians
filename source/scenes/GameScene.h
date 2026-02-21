@@ -2,7 +2,6 @@
 #define __GAME_SCENE_H__
 #include <cugl/cugl.h>
 
-
 /**
  * This class represents the core game scene
  * Add things to this class as necessary

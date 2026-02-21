@@ -42,7 +42,6 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 
     // Start up the input handler
     _assets = assets;
-
     Size dimen = getSize();
     
     // The comments are outline of how loading a scene from json should work. This DOES NOT WORK YET. Danielle should set this up
@@ -70,7 +69,6 @@ void GameScene::dispose() {
         _active = false;
     }
 }
-
 
 /**
  * Sets whether the scene is currently active
