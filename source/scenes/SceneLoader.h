@@ -1,6 +1,3 @@
-/*
-The loader for assets and other scenes
-*/  
 #ifndef __SCENE_LOADER_H__
 #define __SCENE_LOADER_H__
 #include <cugl/cugl.h>
@@ -11,9 +8,8 @@ The loader for assets and other scenes
  */
 class SceneLoader : public cugl::Application {
 protected:
-    /*This enum keeps track of which scene/mode we are in right now
-     *Will have to be expanded as we add more scenes
-    */
+    /* This enum keeps track of which scene/mode we are in right now
+     * Will have to be expanded as we add more scenes*/
     enum State {
         GAME
     };
@@ -37,14 +33,9 @@ public:
     /**
      * Creates, but does not initialize, a new application.
      *
-     * This constructor is where you set all your configuration values such
-     * as the game name, the FPS, and so on. Many of these need to be set
-     * before the backend is initialized.
-     *
-     * With that said, it is unsafe to do anything in this constuctor other than
-     * initialize attributes. That is because this constructor is called before
-     * the backend is initialized, and so much CUGL API calls will fail. Any
-     * initialization that requires access to CUGL must happen in onStartup().
+     * This is configuring things before most of the backend is initialized.
+     * Do NOT use this constructor for anything other than initializing attributes
+     * because most of the cugl backend is not properly initialized at this point
      */
     SceneLoader();
 
@@ -52,8 +43,7 @@ public:
      * Disposes this application, releasing all resources.
      *
      * This destructor is called by SDL when the application quits. It simply
-     * calls the dispose() method in Application.  There is nothing special to
-     * do here.
+     * calls the dispose() method in Application. 
      */
     ~SceneLoader() {}
 

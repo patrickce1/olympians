@@ -11,7 +11,7 @@ using namespace std;
 #pragma mark -
 #pragma mark Level Layout
 
-/** Regardless of logo, lock the height to this */
+/** Example height for now, change as needed */
 #define SCENE_HEIGHT  720
 
 
@@ -45,7 +45,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 
     Size dimen = getSize();
     
-    // Acquire the scene built by the asset loader and resize it the scene. DOES NOT WORK YET. NEXT COMMIT!
+    // The comments are outline of how loading a scene from json should work. This DOES NOT WORK YET. Danielle should set this up
+    // Acquire the scene built by the asset loader and resize it the scene. 
     //std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("gameScene");
 
     //scene->setContentSize(dimen);
@@ -54,6 +55,10 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     //addChild(scene);
     setActive(false);
     return true;
+}
+
+void GameScene::update(float dt) {
+    //nothing for now
 }
 
 /**

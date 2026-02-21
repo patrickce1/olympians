@@ -1,24 +1,11 @@
-//
-//  NLMenuScene.h
-//  Network Lab
-//
-//  This class presents the initial menu scene.  It allows the player to
-//  choose to be a host or a client.
-//
-//  Author: Walker White, Aidan Hobler
-//  Version: 2/8/22
-//
 #ifndef __GAME_SCENE_H__
 #define __GAME_SCENE_H__
 #include <cugl/cugl.h>
 
 
 /**
- * This class presents the menu to the player.
- *
- * There is no need for an input controller, as all input is managed by
- * listeners on the scene graph.  We only need getters so that the main
- * application can retrieve the state and communicate it to other scenes.
+ * This class represents the core game scene
+ * Add things to this class as necessary
  */
 class GameScene : public cugl::scene2::Scene2 {
 public:
@@ -32,8 +19,6 @@ public:
 #pragma mark -
 #pragma mark Constructors
     /**
-     * Creates a new  menu scene with the default values.
-     *
      * This constructor does not allocate any objects or start the game.
      * This allows us to use the object without a heap pointer.
      */
@@ -78,6 +63,9 @@ public:
      * @param value whether the scene is currently active
      */
     virtual void setActive(bool value) override;
+
+    //everything that needs to be updated. Anything that isn't a graphics call goes here
+    virtual void update(float dt) override;
 
 };
 

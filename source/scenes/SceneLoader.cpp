@@ -4,11 +4,6 @@
 #include <cugl/core/CUBase.h>
 #include <cugl/core/util/CULogger.h>
 
-// Add support for simple random number generation
-#include <cstdlib>
-#include <ctime>
-#include <vector>
-
 // This keeps us from having to write cugl:: all the time
 using namespace cugl;
 using namespace cugl::scene2;
@@ -148,8 +143,7 @@ void SceneLoader::onShutdown() {
  * remains unchanged.
  */
 void SceneLoader::onResize() {
-    // When we resize, we have to resize the scene
-    // most likely not needed to be implemented because phones lock in screen size
+    // When we resize, we have to resize whichever scene is active
 }
 
 /**
