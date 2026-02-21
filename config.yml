@@ -1,7 +1,7 @@
 ---
-name:   Olympians                # The application display name
+name:   Olympians                       # The application display name
 short:  Olympians                       # A shortened name for reference
-appid:  edu.cornell.gdiac.olympians    # Application identifier for Mac, iOS, Android
+appid:  olympians    # Application identifier for Mac, iOS, Android
 suffix: GAEE8E6C
 
 build:  build                       # The build directory (targets are each a subdirectory)
