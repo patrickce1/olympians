@@ -1,0 +1,28 @@
+{
+  "characters": [
+    {
+      "id": "Percy",
+      "house": "Poseidon",
+      "maxHealth": 5.0,
+      "abilityClass": "Damage Dealer",
+      "specialAbilities": ["whirlpool"],
+      "spritesheetPath": "textures/percy.png"
+    },
+    {
+      "id": "Thalia",
+      "house": "Zeus",
+      "maxHealth": 5.0,
+      "abilityClass": "Damage Dealer",
+      "specialAbilities": ["bolt"],
+      "spritesheetPath": "textures/thalia.png"
+    },
+    {
+      "id": "Meg",
+      "house": "Demeter",
+      "maxHealth": 5.0,
+      "abilityClass": "Healer",
+      "specialAbilities": ["harvest"],
+      "spritesheetPath": "textures/meg.png"
+    },
+  ]
+}
