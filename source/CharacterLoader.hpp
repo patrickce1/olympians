@@ -105,5 +105,4 @@ public:
     }
 };
 
-#endif
-
+#endif /* !__CHARACTER_LOADER_H__ */

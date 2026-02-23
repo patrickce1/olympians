@@ -128,4 +128,4 @@ public:
     template <typename T>
     bool useItem(const item& item, T& target);
 
-#endif
+#endif /* !__PLAYER_H__ */
