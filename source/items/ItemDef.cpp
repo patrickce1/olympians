@@ -48,28 +48,32 @@ ItemDef::House ItemDef::houseFromString(std::string s, House fallback) {
 bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
     if (!json || !json->isObject()) return false;
     if (!json->has("id") || !json->get("id")->isString()) return false;
-    
     _id = json->get("id")->asString();
     if (_id.empty()) return false;
     
+    // Find field from JSON, otherwise use fallback
     _name = (json->has("name") && json->get("name")->isString()) ? json->get("name")->asString() : "";
     _description = (json->has("description") && json->get("description")->isString()) ? json->get("description")->asString() : "";
     _iconKey = (json->has("iconKey") && json->get("iconKey")->isString()) ? json->get("iconKey")->asString() : "";
+    
     if (json->has("type") && json->get("type")->isString()) {
         _type = typeFromString(json->get("type")->asString(), Type::Attack);
     } else {
         _type = Type::Attack;
     }
+    
     if (json->has("rarity") && json->get("rarity")->isString()) {
         _rarity = rarityFromString(json->get("rarity")->asString(), Rarity::Common);
     } else {
         _rarity = Rarity::Common;
     }
+    
     if (json->has("primary") && json->get("primary")->isString()) {
         _primary = houseFromString(json->get("primary")->asString(), House::None);
     } else {
         _primary = House::None;
     }
+    
     if (json->has("secondary") && json->get("secondary")->isString()) {
         _secondary = houseFromString(json->get("secondary")->asString(), House::None);
     } else {

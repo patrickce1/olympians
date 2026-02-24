@@ -22,7 +22,9 @@ public:
     */
     class IdGenerator {
     private:
+        /** Random 32-bit int to represent the game */
         std::uint32_t _gameId = 0;
+        /** Random 32-bit int that counts the number of ItemInstances in a game */
         std::uint32_t _counter = 0;
         
     public:
@@ -69,8 +71,9 @@ public:
     ItemId getId() const { return _id; }
     const std::string& getDefId() const { return _defId; }
     
-    // Used for sharing items
+    /** Convert ItemInstance object to JSON format */
     std::shared_ptr<cugl::JsonValue> toJson() const;
+    /** Convert JSON object to ItemInstance object */
     bool fromJson(const std::shared_ptr<cugl::JsonValue>& json);
 };
 

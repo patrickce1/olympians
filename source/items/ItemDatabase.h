@@ -16,7 +16,7 @@
  */
 class ItemDatabase {
 private:
-    /** Struct to contain ItemDef objects and enable rolling a random ItemDef from the bucket with weights */
+    /** Struct to contain defId objects and enable rolling a random defId from the bucket with weights */
     struct Bucket {
         std::vector<std::string> ids;
         std::vector<double> prefix;
@@ -29,12 +29,16 @@ private:
         }
     };
     
+    /** Collection of ItemDef defs based on their defIds */
     std::unordered_map<std::string, std::shared_ptr<ItemDef>> _defs;
     
+    /** Bucket to contain all defIds so that they may be rolled */
     Bucket _all;
     std::unordered_map<ItemDef::Rarity, Bucket, RarityHash> _byRarity;
     
+    /** Random value holder */
     cugl::Random _rng;
+    /** Only needed if we forget to generate a random seed manually */
     bool _rngReady = false;
     
 private:
