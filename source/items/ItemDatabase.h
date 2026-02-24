@@ -16,6 +16,7 @@
  */
 class ItemDatabase {
 private:
+    /** Struct to contain ItemDef objects and enable rolling a random ItemDef from the bucket with weights */
     struct Bucket {
         std::vector<std::string> ids;
         std::vector<double> prefix;
