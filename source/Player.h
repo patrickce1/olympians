@@ -5,7 +5,7 @@
 #include <cugl/cugl.h>
 #include <string>
 #include <vector>
-#include <CharacterLoader.hpp>
+#include <CharacterLoader.h>
 #include "Items.h"
 /**
  * Model Class representing the Player
