@@ -1,10 +1,3 @@
-//
-//  ItemDatabase.h
-//  olympians
-//
-//  Created by Aiden Joo on 2/24/26.
-//
-
 #ifndef __ITEM_DATABASE_H__
 #define __ITEM_DATABASE_H__
 

@@ -1,10 +1,3 @@
-//
-//  ItemDef.h
-//  olympians
-//
-//  Created by Aiden Joo on 2/22/26.
-//
-
 #ifndef __ITEM_DEF_H__
 #define __ITEM_DEF_H__
 

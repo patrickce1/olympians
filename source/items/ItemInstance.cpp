@@ -1,10 +1,3 @@
-//
-//  ItemInstance.cpp
-//  olympians
-//
-//  Created by Aiden Joo on 2/23/26.
-//
-
 #include "ItemInstance.h"
 
 using namespace cugl;

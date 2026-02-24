@@ -1,10 +1,3 @@
-//
-//  ItemDatabase.cpp
-//  olympians
-//
-//  Created by Aiden Joo on 2/24/26.
-//
-
 #include "ItemDatabase.h"
 
 using namespace cugl;

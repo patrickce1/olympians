@@ -1,10 +1,3 @@
-//
-//  ItemInstance.h
-//  olympians
-//
-//  Created by Aiden Joo on 2/23/26.
-//
-
 #ifndef __ITEM_INSTANCE_H__
 #define __ITEM_INSTANCE_H__
 

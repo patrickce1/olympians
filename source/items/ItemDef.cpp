@@ -1,10 +1,3 @@
-//
-//  ItemDef.cpp
-//  olympians
-//
-//  Created by Aiden Joo on 2/22/26.
-//
-
 #include "ItemDef.h"
 
 using namespace cugl;
