@@ -14,7 +14,6 @@ using namespace std;
 /** Example height for now, change as needed */
 #define SCENE_HEIGHT  852
 
-
 #pragma mark -
 #pragma mark Constructors
 /**

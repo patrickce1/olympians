@@ -17,7 +17,6 @@ CU_ROOTCLASS(SceneLoader)
 #define GAME_WIDTH 393
 #define GAME_HEIGHT 852
 
-
 /**
  * Creates, but does not initialize, a new application.
  *
