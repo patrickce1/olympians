@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <CharacterLoader.hpp>
-#include "Items.hpp"
+#include "Items.h"
 /**
  * Model Class representing the Player
  */
