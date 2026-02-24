@@ -14,9 +14,8 @@ using namespace cugl::graphics;
 CU_ROOTCLASS(SceneLoader)
 
 // The height is a suggestion, but the width is mandatory
-#define GAME_WIDTH 1024
-#define GAME_HEIGHT 576
-
+#define GAME_WIDTH 393
+#define GAME_HEIGHT 852
 
 /**
  * Creates, but does not initialize, a new application.
@@ -69,6 +68,9 @@ void SceneLoader::onStartup() {
     // You have to attach the individual loaders for each asset type
     _assets->attach<Texture>(TextureLoader::alloc()->getHook());
     _assets->attach<Font>(FontLoader::alloc()->getHook());
+    _assets->attach<JsonValue>(JsonLoader::alloc()->getHook());
+    _assets->attach<WidgetValue>(WidgetLoader::alloc()->getHook());
+    _assets->attach<scene2::SceneNode>(Scene2Loader::alloc()->getHook());
 
     // This reads the given JSON file and uses it to load all other assets
     _assets->loadDirectory("json/assets.json");
@@ -81,6 +83,10 @@ void SceneLoader::onStartup() {
     Input::activate<Mouse>();
 #endif
 
+    currentScene = State::GAME;
+    gameScene.init(_assets);
+    gameScene.setSpriteBatch(_batch);
+    
     // Build the scene from these assets
     Application::onStartup();
 

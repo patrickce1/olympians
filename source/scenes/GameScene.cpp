@@ -12,8 +12,7 @@ using namespace std;
 #pragma mark Level Layout
 
 /** Example height for now, change as needed */
-#define SCENE_HEIGHT  720
-
+#define SCENE_HEIGHT  852
 
 #pragma mark -
 #pragma mark Constructors
@@ -46,12 +45,17 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // The comments are outline of how loading a scene from json should work. This DOES NOT WORK YET. Danielle should set this up
     // Acquire the scene built by the asset loader and resize it the scene. 
-    //std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("gameScene");
+    std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("gameScene");
+    
+    if (!scene) {
+        printf("Scene NOT here!");
+        return false;
+    }
 
-    //scene->setContentSize(dimen);
-    //scene->doLayout(); // Repositions the HUD
+    scene->setContentSize(dimen);
+    scene->doLayout(); // Repositions the HUD
    
-    //addChild(scene);
+    addChild(scene);
     setActive(false);
     return true;
 }
