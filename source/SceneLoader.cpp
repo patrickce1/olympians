@@ -14,8 +14,8 @@ using namespace cugl::graphics;
 CU_ROOTCLASS(SceneLoader)
 
 // The height is a suggestion, but the width is mandatory
-#define GAME_WIDTH 1024
-#define GAME_HEIGHT 576
+#define GAME_WIDTH 393
+#define GAME_HEIGHT 852
 
 
 /**
