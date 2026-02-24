@@ -29,20 +29,21 @@ public:
     //Types of actions that the player will be able to use.
     
     enum class Action{
-        NONE,
-        DRAG,
-        DROP_BOSS,
+        NONE, //doing nothing
+        DRAG, //Dragging
+        DROP_BOSS, //dropped in boss zone (attack)
         DROP_ALLY_LEFT, //Heal/support
         DROP_ALLY_RIGHT,
-        PASS_LEFT,
+        PASS_LEFT, //Passed item
         PASS_RIGHT,
-        PAUSE,
+        PAUSE, //Clicked pause
     };
     
-    //Constructors
+    // MARK: - Constructors
     /**Uninitialized Input Controller*/
     InputController() = default;
     
+    //Destroy the inputcontroller
     ~InputController() {
         dispose();
     }
@@ -53,13 +54,15 @@ public:
     void dispose();
     
     /**Scene Control**/
+    //Activate touch controls.
     void setActive(bool active);
-    
+    //Returns whether touch is active monitoring.
     bool isActive() const{
         return _active;
     }
     
-    /**ZONES**/
+    /**ZONES
+     Where players will drag to activate different actions*/
     void setBossZone(cugl::Rect r) {
         _bossZone = r;
     }
@@ -77,16 +80,16 @@ public:
     }
     
     /**Queries**/
+    //Return what the player did
     Action getAction() const {
         return _action;
     }
-    
+    //Seet player action to none.
     void resetAction() {
         _action = Action::NONE;
     }
     
-    //Only meaningful when isDragging == True.
-    //Given in Screen Coordinates
+    //Only meaningful when isDragging == True and Given in Screen Coordinates.
     cugl::Vec2 getDragPos() const {
         return _dragPos;
     }
@@ -94,7 +97,7 @@ public:
     cugl::Vec2 getTouchStart() const {
         return _touchStart;
     }
-    
+    //Return if player is dragging
     bool isDragging() const {
         return _dragging;
     }
@@ -105,7 +108,6 @@ private:
     static constexpr float DRAG_THRESHOLD = 5.0f;
     
     /**STATES**/
-    
     bool _active = false;
     bool _dragging = false;
     Action _action = Action::NONE;
@@ -120,7 +122,7 @@ private:
     cugl::Rect _leftPass;
     cugl::Rect _rightPass;
     
-    float _scale;
+    float _scale; //Used to normalize for different screen sizes
     
     /**The CUGL TOUCHSCREEN**/
     cugl::Touchscreen* _touch = nullptr;
@@ -130,4 +132,4 @@ private:
     void onTouchMoved(const cugl::TouchEvent& event, const cugl::Vec2& previous, bool focus);
     void onTouchEnded(const cugl::TouchEvent& event, bool focus);
 };
-#endif
+#endif // !__INPUT_CONTROLLER_H__

@@ -88,7 +88,7 @@ void SceneLoader::onStartup() {
 
     
     // in SceneLoader::onStartup(), just to verify zones fire
-    _input.init();
+    _input.init(); //The input controller starts.
     
 
     cugl::Rect screen = getDisplayBounds();
@@ -104,7 +104,7 @@ void SceneLoader::onStartup() {
 //    _input.setAllyZoneLeft(cugl::Rect(0, h * 0.3f, w * 0.25f, h * 0.4f));
 //    _input.setAllyZoneRight(cugl::Rect(w * 0.75f, h * 0.3f, w * 0.25f, h * 0.4f));
   
-    _input.setActive(true);
+    _input.setActive(true); //We can actually tap.
     
     CULog("Is active: %d", _input.isActive());
     _input.setBossZone(cugl::Rect(0, 0, w, h * 0.5f));                      // top half
