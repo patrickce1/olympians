@@ -5,8 +5,6 @@
  *
  * @return true if the touchscreen was successfully acquired; false otherwise.
  */
-
-
 bool InputController::init(){
     // Attempt to acquire the touchscreen input device
     _touch = cugl::Input::get<cugl::Touchscreen>();

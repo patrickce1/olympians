@@ -89,21 +89,10 @@ void SceneLoader::onStartup() {
     
     // in SceneLoader::onStartup(), just to verify zones fire
     _input.init(); //The input controller starts.
-    
-
     cugl::Rect screen = getDisplayBounds();
     float w = screen.size.width;
     float h = screen.size.height;
-
-    
-   
-    
     CULog("Screen size: %f x %f", w, h);
-
-//    _input.setBossZone(cugl::Rect(w * 0.25f, h * 0.5f, w * 0.5f, h * 0.4f));
-//    _input.setAllyZoneLeft(cugl::Rect(0, h * 0.3f, w * 0.25f, h * 0.4f));
-//    _input.setAllyZoneRight(cugl::Rect(w * 0.75f, h * 0.3f, w * 0.25f, h * 0.4f));
-  
     _input.setActive(true); //We can actually tap.
     
     CULog("Is active: %d", _input.isActive());
@@ -194,12 +183,7 @@ void SceneLoader::onResize() {
 void SceneLoader::update(float dt) {
     switch (currentScene) {
         case GAME:
-//            CULog("[STATE] dragging: %d, dragPos: (%.1f, %.1f)",
-//                  _input.isDragging(),
-//                  _input.getDragPos().x,
-//                  _input.getDragPos().y);
             InputController::Action action = _input.getAction();
-//            CULog("Touch pos: (%.1f, %.1f)", _input.getTouchStart().x, _input.getTouchStart().y);
                         switch (action) {
                             case InputController::Action::PASS_RIGHT:
                                 CULog("[ACTION] PASS_RIGHT");
