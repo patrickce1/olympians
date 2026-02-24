@@ -2,10 +2,10 @@
 
 using namespace cugl;
 
+/** Clears items from buckets and reinitializes them; buckets contain items of the corresponding rarity */
 void ItemDatabase::clearBuckets() {
     _all = Bucket();
     _byRarity.clear();
-
     _byRarity[ItemDef::Rarity::Common]    = Bucket();
     _byRarity[ItemDef::Rarity::Uncommon]  = Bucket();
     _byRarity[ItemDef::Rarity::Rare]      = Bucket();

@@ -1,6 +1,5 @@
 #ifndef __ITEM_DEF_H__
 #define __ITEM_DEF_H__
-
 #include <cugl/cugl.h>
 #include <string>
 

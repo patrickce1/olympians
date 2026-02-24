@@ -1,6 +1,5 @@
 #ifndef __ITEM_INSTANCE_H__
 #define __ITEM_INSTANCE_H__
-
 #include <cugl/cugl.h>
 #include <cstdint>
 #include <string>

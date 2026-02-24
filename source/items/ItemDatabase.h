@@ -1,13 +1,11 @@
 #ifndef __ITEM_DATABASE_H__
 #define __ITEM_DATABASE_H__
-
 #include <cugl/cugl.h>
 #include <unordered_map>
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <cstdint>
-
 #include "ItemDef.h"
 #include "ItemInstance.h"
 
@@ -41,21 +39,29 @@ private:
 private:
     void clearBuckets();
 
+    /** Returns the probability weight of the given rarity */
     static double rarityBaseWeight(ItemDef::Rarity r);
+    
+    /** Encapsulates weight system in the cpp file */
     static double effectiveWeight(const ItemDef& def) {
         return rarityBaseWeight(def.getRarity());
     }
 
+    /** Add item with the given defId to the corresponding bucket with effWeight */
     void addToBucket(Bucket& bucket, const std::string& defId, double effWeight);
+    
+    /** Roll a random item from the given bucket */
     std::string rollFromBucket(const Bucket& bucket);
     
 public:
     ItemDatabase() = default;
     ~ItemDatabase() = default;
 
+    /** Clears buckets and the item database collection */
     void clear();
 
-    /** Seed options */
+    /** Seed options; seed acts as the starting point for the RNG. The game's seed is generated at random, so it is unlikely
+     that two parties in the same local network generate the same seed and therefore the same RNG pattern. */
     /** Deterministic seed (recommended for host) */
     void seed(std::uint64_t s);
     /** Time-based seed (okay for local) */
@@ -67,8 +73,10 @@ public:
     */
     bool loadFromJson(const std::shared_ptr<cugl::JsonValue>& json);
     
+    /** Returns the definition of the given defId */
     std::shared_ptr<ItemDef> getDef(const std::string& defId) const;
     
+    /** Creates an instance of the item with the given defId, and the instance is given id */
     std::shared_ptr<ItemInstance> createInstance(const std::string& defId,
                                                      ItemInstance::ItemId id) const;
     
