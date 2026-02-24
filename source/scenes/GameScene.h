@@ -13,6 +13,20 @@ public:
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+    
+    std::shared_ptr<cugl::scene2::SceneNode> scene;
+    
+    std::shared_ptr<cugl::scene2::SceneNode> _gameArea;
+    std::shared_ptr<cugl::scene2::SceneNode> _attackArea;
+    std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
+    
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _playerSlots;
+
+    std::shared_ptr<cugl::scene2::SceneNode> _inventory;
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
+
+    int _enemyHP = 100;
+
 
 public:
 #pragma mark -

@@ -14,11 +14,20 @@
         },
         "children": {
             "background_scene": {
-                "type": "Image",
+                "type": "Solid",
                 "data": {
-                    "texture": "background_scene",
+                    "polygon": [
+                        393,
+                        557,
+                        0,
+                        557,
+                        0,
+                        0,
+                        393,
+                        0
+                        ],
+                    "color": "#bfbfbf",
                     "anchor": [0, 0],
-                    "size": [393,557],
                     "angle": 0,
                     "position": [0, 0],
                     "visible": true

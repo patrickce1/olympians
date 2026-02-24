@@ -45,7 +45,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // The comments are outline of how loading a scene from json should work. This DOES NOT WORK YET. Danielle should set this up
     // Acquire the scene built by the asset loader and resize it the scene. 
-    std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("gameScene");
+    scene = _assets->get<scene2::SceneNode>("gameScene");
     
     if (!scene) {
         printf("Scene NOT here!");
@@ -54,6 +54,38 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
+    
+    // Elements setup from assets
+    _gameArea  = scene->getChildByName("game_area");
+    _inventory = scene->getChildByName("inventory");
+    
+    if (_gameArea) {
+
+        _attackArea = _gameArea->getChildByName("attack_area");
+
+        // AI player slots
+        _playerSlots.push_back(_gameArea->getChildByName("player"));
+        _playerSlots.push_back(_gameArea->getChildByName("player_3"));
+        _playerSlots.push_back(_gameArea->getChildByName("player_4"));
+    }
+    
+    if (_attackArea) {
+        // attack_area widget contains:
+        //   "attack_area" (image region for attack input)
+        //   "enemy" (boss widget)
+        _bossNode = _attackArea->getChildByName("enemy");
+    }
+    
+    // static items
+    if (_inventory) {
+        _abilityIcons.push_back(_inventory->getChildByName("heal"));
+        _abilityIcons.push_back(_inventory->getChildByName("heal_2"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack_4"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack_5"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack_6"));
+    }
+    
    
     addChild(scene);
     setActive(false);
@@ -70,6 +102,13 @@ void GameScene::update(float dt) {
 void GameScene::dispose() {
     if (_active) {
         removeAllChildren();
+        _gameArea = nullptr;
+        _inventory = nullptr;
+        _attackArea = nullptr;
+        _bossNode = nullptr;
+
+        _playerSlots.clear();
+        _abilityIcons.clear();
         _active = false;
     }
 }
