@@ -1,0 +1,33 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "data": {
+            "size": [393, 852],
+            "anchor": [0, 0]
+        },
+        "format": {
+            "type": "Anchored"
+        },
+        "children": {
+            "game_area": {
+                "type": "Widget",
+                "data": {
+                    "key": "game_area",
+                    "variables": {}
+                }
+            },
+            "inventory": {
+                "type": "Widget",
+                "data": {
+                    "key": "inventory",
+                    "variables": {}
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom"
+                }
+            }
+        }
+    }
+}

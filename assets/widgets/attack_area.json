@@ -1,0 +1,50 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [0, 0],
+            "size": [263, 385],
+            "angle": 0,
+            "position": [65, 46],
+            "visible": true
+        },
+        "children": {
+            "attack_area": {
+                "type": "Image",
+                "data": {
+                    "texture": "attack_area",
+                    "anchor": [0, 0],
+                    "size": [263, 385],
+                    "angle": 0,
+                    "position": [0, 0],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "enemy": {
+                "type": "Widget",
+                "data": {
+                    "key": "boss",
+                    "variables": {}
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            }
+        }
+    }
+}

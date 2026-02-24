@@ -1,0 +1,92 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [0, 0],
+            "size": [393, 557],
+            "angle": 0,
+            "position": [0, 295],
+            "visible": true
+        },
+        "children": {
+            "background_scene": {
+                "type": "Image",
+                "data": {
+                    "texture": "background_scene",
+                    "anchor": [0, 0],
+                    "size": [393,557],
+                    "angle": 0,
+                    "position": [0, 0],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "attack_area": {
+                "type": "Widget",
+                "data": {
+                    "key": "attack_area",
+                    "variables": {}
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.17,
+                    "y_offset": 0.08
+                }
+            },
+            "player": {
+                "type": "Widget",
+                "data": {
+                    "key": "player_slot",
+                    "variables": {}
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.04,
+                    "y_offset": 0.41
+                }
+            },
+            "player_3": {
+                "type": "Widget",
+                "data": {
+                    "key": "player_slot",
+                    "variables": {}
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.4,
+                    "y_offset": 0.81
+                }
+            },
+            "player_4": {
+                "type": "Widget",
+                "data": {
+                    "key": "player_slot",
+                    "variables": {}
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.76,
+                    "y_offset": 0.41
+                }
+            }
+        }
+    }
+}

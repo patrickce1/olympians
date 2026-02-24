@@ -1,0 +1,54 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0.5,
+                0.5
+            ],
+            "size": [
+                168,
+                168
+            ],
+            "angle": 0,
+            "position": [
+                48,
+                108
+            ],
+            "visible": true
+        },
+        "children": {
+            "enemy": {
+                "type": "Image",
+                "data": {
+                    "texture": "enemy",
+                    "anchor": [
+                        0.5,
+                        0.5
+                    ],
+                    "size": [
+                        168,
+                        168
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            }
+        }
+    }
+}
