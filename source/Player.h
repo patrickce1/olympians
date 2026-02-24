@@ -1,12 +1,12 @@
-//  Player.hpp
+//  Player.h
 #ifndef __PLAYER_H__
 #define __PLAYER_H__
 
 #include <cugl/cugl.h>
 #include <string>
 #include <vector>
-#include <CharacterLoader.hpp>
-#include "Items.hpp"
+#include "CharacterLoader.h"
+#include "Items.h"
 /**
  * Model Class representing the Player
  */
