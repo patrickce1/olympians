@@ -1,4 +1,4 @@
-// CharacterLoader.hpp
+// CharacterLoader.h
 #ifndef __CHARACTER_LOADER_H__
 #define __CHARACTER_LOADER_H__
 
