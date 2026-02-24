@@ -82,8 +82,11 @@ public:
     House getPrimary() const { return _primary; }
     House getSecondary() const { return _secondary; }
     
+    /** Extract Type enum from a string */
     static Type typeFromString(std::string s, Type fallback = Type::Attack);
+    /** Extract Rarity enum from a string */
     static Rarity rarityFromString(std::string s, Rarity fallback = Rarity::Common);
+    /** Extract House enum from a string */
     static House houseFromString(std::string s, House fallback = House::None);
 };
 
