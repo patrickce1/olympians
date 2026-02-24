@@ -12,8 +12,7 @@ using namespace std;
 #pragma mark Level Layout
 
 /** Example height for now, change as needed */
-#define SCENE_HEIGHT  720
-
+#define SCENE_HEIGHT  852
 
 #pragma mark -
 #pragma mark Constructors
