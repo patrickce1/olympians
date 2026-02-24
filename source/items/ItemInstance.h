@@ -40,15 +40,18 @@ public:
         }
         
         ItemId next() {
-            ItemId id = (static_cast<ItemId>(_matchId) << 32) | static_cast<ItemId>(_counter);
+            ItemId id = (static_cast<ItemId>(_gameId) << 32) | static_cast<ItemId>(_counter);
             _counter++;
             return id;
         }
         
         static std::uint32_t randomGameId() {
-            std::uint32_t x = (std::uint32_t)cugl::Timestamp().ellapsedMillis();
-            x ^= (x << 13); x ^= (x >> 17); x ^= (x << 5);
-            return x;
+            cugl::Random rng;
+            if (rng.init()) {
+                return (std::uint32_t)rng.getUint32();
+            }
+            // fallback
+            return 0xA17D1234u;
         }
     };
     
