@@ -69,6 +69,12 @@ public:
     void setAllyZoneRight(cugl::Rect r) {
         _allyRight = r;
     }
+    void setPasssZoneLeft(cugl::Rect r) {
+        _leftPass = r;
+    }
+    void setPassZoneRight(cugl::Rect r) {
+        _rightPass = r;
+    }
     
     /**Queries**/
     Action getAction() const {
@@ -94,9 +100,9 @@ public:
     }
 private:
     /** Minimum horizontal travel (px) to classify a release as a swipe. */
-    static constexpr float SWIPE_THRESHOLD = 150.0f;
+    static constexpr float SWIPE_THRESHOLD = 75.0f;
     /** Minimum travel (px) from touch start before a drag is recognized. */
-    static constexpr float DRAG_THRESHOLD = 10.0f;
+    static constexpr float DRAG_THRESHOLD = 5.0f;
     
     /**STATES**/
     
@@ -113,6 +119,8 @@ private:
     cugl::Rect _allyRight;
     cugl::Rect _leftPass;
     cugl::Rect _rightPass;
+    
+    float _scale;
     
     /**The CUGL TOUCHSCREEN**/
     cugl::Touchscreen* _touch = nullptr;

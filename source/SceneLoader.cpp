@@ -95,6 +95,9 @@ void SceneLoader::onStartup() {
     float w = screen.size.width;
     float h = screen.size.height;
 
+    
+   
+    
     CULog("Screen size: %f x %f", w, h);
 
 //    _input.setBossZone(cugl::Rect(w * 0.25f, h * 0.5f, w * 0.5f, h * 0.4f));
@@ -103,9 +106,13 @@ void SceneLoader::onStartup() {
   
     _input.setActive(true);
     
-    CULog("Input init success: %d", success);
     CULog("Is active: %d", _input.isActive());
-    
+    _input.setBossZone(cugl::Rect(0, 0, w, h * 0.5f));                      // top half
+    _input.setAllyZoneLeft(cugl::Rect(0, h * 0.5f, w * 0.5f, h * 0.5f));   // bottom left quadrant
+    _input.setAllyZoneRight(cugl::Rect(w * 0.5f, h * 0.5f, w * 0.5f, h * 0.5f)); // bottom right quadrant
+    _input.setPasssZoneLeft(cugl::Rect(0, h * 0.5f, w * 0.15f, h * 0.5f));   // bottom left %15 strip
+    _input.setPassZoneRight(cugl::Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)); // bottom right %15 strip
+   
     // Create the logger
     _logger = Logger::open("debug");
 
@@ -187,9 +194,36 @@ void SceneLoader::onResize() {
 void SceneLoader::update(float dt) {
     switch (currentScene) {
         case GAME:
+//            CULog("[STATE] dragging: %d, dragPos: (%.1f, %.1f)",
+//                  _input.isDragging(),
+//                  _input.getDragPos().x,
+//                  _input.getDragPos().y);
+            InputController::Action action = _input.getAction();
+//            CULog("Touch pos: (%.1f, %.1f)", _input.getTouchStart().x, _input.getTouchStart().y);
+                        switch (action) {
+                            case InputController::Action::PASS_RIGHT:
+                                CULog("[ACTION] PASS_RIGHT");
+                                break;
+                            case InputController::Action::PASS_LEFT:
+                                CULog("[ACTION] PASS_LEFT");
+                                break;
+                            case InputController::Action::DROP_BOSS:
+                                CULog("[ACTION] DROP_BOSS");
+                                break;
+                            case InputController::Action::DROP_ALLY_LEFT:
+                                CULog("[ACTION] DROP_ALLY_LEFT");
+                                break;
+                            case InputController::Action::DROP_ALLY_RIGHT:
+                                CULog("[ACTION] DROP_ALLY_RIGHT");
+                                break;
+                            default:
+                                break;
+                        }
             gameScene.update(dt);
             break;
     }
+    _input.resetAction();
+
 }
 
 /**
