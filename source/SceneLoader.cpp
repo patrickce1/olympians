@@ -80,10 +80,32 @@ void SceneLoader::onStartup() {
 #else
     Input::activate<Mouse>();
 #endif
+    
+   
 
     // Build the scene from these assets
     Application::onStartup();
 
+    
+    // in SceneLoader::onStartup(), just to verify zones fire
+    _input.init();
+    
+
+    cugl::Rect screen = getDisplayBounds();
+    float w = screen.size.width;
+    float h = screen.size.height;
+
+    CULog("Screen size: %f x %f", w, h);
+
+//    _input.setBossZone(cugl::Rect(w * 0.25f, h * 0.5f, w * 0.5f, h * 0.4f));
+//    _input.setAllyZoneLeft(cugl::Rect(0, h * 0.3f, w * 0.25f, h * 0.4f));
+//    _input.setAllyZoneRight(cugl::Rect(w * 0.75f, h * 0.3f, w * 0.25f, h * 0.4f));
+  
+    _input.setActive(true);
+    
+    CULog("Input init success: %d", success);
+    CULog("Is active: %d", _input.isActive());
+    
     // Create the logger
     _logger = Logger::open("debug");
 
@@ -116,6 +138,7 @@ void SceneLoader::onStartup() {
  * causing the application to be deleted.
  */
 void SceneLoader::onShutdown() {
+    _input.dispose();
     Logger::close("debug");
 
     // Delete all smart pointers

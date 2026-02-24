@@ -56,7 +56,7 @@ public:
     void setActive(bool active);
     
     bool isActive() const{
-        return _active
+        return _active;
     }
     
     /**ZONES**/
@@ -75,7 +75,7 @@ public:
         return _action;
     }
     
-    void resetAction() const {
+    void resetAction() {
         _action = Action::NONE;
     }
     
@@ -94,9 +94,9 @@ public:
     }
 private:
     /** Minimum horizontal travel (px) to classify a release as a swipe. */
-    static constexpr float SWIPE_THRESHOLD = 150f;
+    static constexpr float SWIPE_THRESHOLD = 150.0f;
     /** Minimum travel (px) from touch start before a drag is recognized. */
-    static constexpr float DRAG_THRESHOLD = 10f;
+    static constexpr float DRAG_THRESHOLD = 10.0f;
     
     /**STATES**/
     
@@ -105,12 +105,14 @@ private:
     Action _action = Action::NONE;
     cugl::TouchID _activeTouchID = -1;
     cugl::Vec2 _touchStart;
-    cugl::Vect2 _dragPos;
+    cugl::Vec2 _dragPos;
     Uint32 _listenerKey = 17;
     
     cugl::Rect _bossZone;
     cugl::Rect _allyLeft;
     cugl::Rect _allyRight;
+    cugl::Rect _leftPass;
+    cugl::Rect _rightPass;
     
     /**The CUGL TOUCHSCREEN**/
     cugl::Touchscreen* _touch = nullptr;
@@ -119,4 +121,5 @@ private:
     void onTouchBegan(const cugl::TouchEvent& event, bool focus);
     void onTouchMoved(const cugl::TouchEvent& event, const cugl::Vec2& previous, bool focus);
     void onTouchEnded(const cugl::TouchEvent& event, bool focus);
-}
+};
+#endif
