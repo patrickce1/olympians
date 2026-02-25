@@ -41,7 +41,6 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 
     // Start up the input handler
     _assets = assets;
-    Size dimen = getSize();
     
     // The comments are outline of how loading a scene from json should work. This DOES NOT WORK YET. Danielle should set this up
     // Acquire the scene built by the asset loader and resize it the scene. 
@@ -51,12 +50,25 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     //scene->doLayout(); // Repositions the HUD
    
     //addChild(scene);
+    
+    
+
+    // CHANGE third argument to data-driven later
+    if (!_itemController.init(_assets)) {
+        CULog("GameScene: failed to initialize ItemController");
+        return false;
+    }
+
     setActive(false);
     return true;
 }
 
 void GameScene::update(float dt) {
-    //nothing for now
+    if (!_active) {
+        return;
+    }
+
+    _itemController.update(dt, _players);
 }
 
 /**
