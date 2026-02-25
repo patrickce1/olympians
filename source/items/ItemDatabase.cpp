@@ -5,13 +5,13 @@ using namespace cugl;
 /** Clears items from buckets and reinitializes them; buckets contain items of the corresponding rarity */
 void ItemDatabase::clearBuckets() {
     _allDefIds = Bucket();
-    _byRarity.clear();
-    _byRarity[ItemDef::Rarity::Common]    = Bucket();
-    _byRarity[ItemDef::Rarity::Uncommon]  = Bucket();
-    _byRarity[ItemDef::Rarity::Rare]      = Bucket();
-    _byRarity[ItemDef::Rarity::Epic]      = Bucket();
-    _byRarity[ItemDef::Rarity::Legendary] = Bucket();
-    _byRarity[ItemDef::Rarity::Divine]    = Bucket();
+    _bucketsByRarity.clear();
+    _bucketsByRarity[ItemDef::Rarity::Common]    = Bucket();
+    _bucketsByRarity[ItemDef::Rarity::Uncommon]  = Bucket();
+    _bucketsByRarity[ItemDef::Rarity::Rare]      = Bucket();
+    _bucketsByRarity[ItemDef::Rarity::Epic]      = Bucket();
+    _bucketsByRarity[ItemDef::Rarity::Legendary] = Bucket();
+    _bucketsByRarity[ItemDef::Rarity::Divine]    = Bucket();
 }
 
 /** Clears buckets and the item database collection */
@@ -173,7 +173,7 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
 
         // Add to spawn buckets if spawnable
         addToBucket(_allDefIds, id, w);
-        addToBucket(_byRarity[def->getRarity()], id, w);
+        addToBucket(_bucketsByRarity[def->getRarity()], id, w);
     }
 
     // Note: _defs may be non-empty even if _allDefs is empty (e.g. all weights 0)
@@ -187,8 +187,8 @@ std::string ItemDatabase::rollRandomDefId() {
 
 /** Weighted roll within a specific rarity bucket (probably not needed) */
 std::string ItemDatabase::rollRandomDefId(ItemDef::Rarity rarity) {
-    auto it = _byRarity.find(rarity);
-    if (it == _byRarity.end()) return "";
+    auto it = _bucketsByRarity.find(rarity);
+    if (it == _bucketsByRarity.end()) return "";
     return rollFromBucket(it->second);
 }
 

@@ -37,7 +37,7 @@ private:
     Bucket _allDefIds;
     
     /** The collection of buckets categorized by rarity */
-    std::unordered_map<ItemDef::Rarity, Bucket, RarityHash> _byRarity;
+    std::unordered_map<ItemDef::Rarity, Bucket, RarityHash> _bucketsByRarity;
     
     /** Data-driven rarity weights */
     std::unordered_map<ItemDef::Rarity, double, RarityHash> _rarityWeights;
