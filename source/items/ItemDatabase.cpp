@@ -43,11 +43,12 @@ std::shared_ptr<ItemInstance> ItemDatabase::createInstance(const std::string& de
 
 void ItemDatabase::resetRarityWeights() {
     _rarityWeights.clear();
-    _rarityWeights[ItemDef::Rarity::Common]    = 1.00;
-    _rarityWeights[ItemDef::Rarity::Uncommon]  = 0.60;
-    _rarityWeights[ItemDef::Rarity::Rare]      = 0.30;
-    _rarityWeights[ItemDef::Rarity::Epic]      = 0.12;
-    _rarityWeights[ItemDef::Rarity::Legendary] = 0.05;
+    _rarityWeights[ItemDef::Rarity::Common]    = 0.45;
+    _rarityWeights[ItemDef::Rarity::Uncommon]  = 0.40;
+    _rarityWeights[ItemDef::Rarity::Rare]      = 0.08;
+    _rarityWeights[ItemDef::Rarity::Epic]      = 0.04;
+    _rarityWeights[ItemDef::Rarity::Legendary] = 0.02;
+    _rarityWeights[ItemDef::Rarity::Divine]    = 0.01;
 }
 
 void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
@@ -72,6 +73,7 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     loadOne("Rare",      ItemDef::Rarity::Rare);
     loadOne("Epic",      ItemDef::Rarity::Epic);
     loadOne("Legendary", ItemDef::Rarity::Legendary);
+    loadOne("Divine",    ItemDef::Rarity::Divine);
 }
 
 
@@ -95,7 +97,7 @@ std::string ItemDatabase::rollFromBucket(const Bucket& bucket) {
 
     if (!_rngReady) {
         // Lazy seed if user forgot to seed explicitly
-        const_cast<ItemDatabase*>(this)->seedWithTime();
+        const_cast<ItemDatabase*>(this)->setStartingPointWithTime();
     }
 
     // r in [0, total)
@@ -116,6 +118,7 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
     if (!json->has("items") || !json->get("items")->isArray()) return false;
 
     clearBuckets();
+    loadRarityWeights(json);
 
     auto arr = json->get("items");
     for (int i = 0; i < arr->size(); i++) {
