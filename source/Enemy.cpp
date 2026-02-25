@@ -1,8 +1,10 @@
 #include "Enemy.h"
 #include <algorithm>
 
+/** Clamps a float to be at least zero. */
 static float clampMinZero(float v) { return v < 0.0f ? 0.0f : v; }
 
+/** Constructs an Enemy instance from loader data and initializes runtime state. */
 Enemy::Enemy(const std::string& enemyId, const EnemyLoader& loader) {
     CUAssertLog(loader.has(enemyId), "Enemy ID not found: %s", enemyId.c_str());
     const EnemyLoader::EnemyDef& def = loader.get(enemyId);
@@ -25,12 +27,17 @@ Enemy::Enemy(const std::string& enemyId, const EnemyLoader& loader) {
     _facing = Facing::DOWN;
 }
 
+/** Returns the definition of the currently active state, or nullptr if missing. */
 const EnemyLoader::StateDef* Enemy::getCurrentStateDef() const {
     auto it = _states.find(_currentState);
     if (it == _states.end()) return nullptr;
     return &it->second;
 }
 
+/**
+ * Attempts to enter a new state, respecting cooldown lockout rules.
+ * Returns TRUE if successfully enters new state.
+ */
 bool Enemy::requestState(const std::string& stateName) {
     if (_states.count(stateName) == 0) return false;
 
@@ -41,12 +48,14 @@ bool Enemy::requestState(const std::string& stateName) {
     return true;
 }
 
+/** Immediately switches to the given state and resets runtime state timers. */
 void Enemy::enterState(const std::string& stateName) {
     _currentState = stateName;
     _stateTime = 0.0f;
     _eventsFiredThisState = false;
 }
 
+/** Advances internal timers and decreases attack cooldown lockout. */
 void Enemy::tick(float dt) {
     if (dt <= 0.0f) return;
 
@@ -54,6 +63,7 @@ void Enemy::tick(float dt) {
     _attackLockout = clampMinZero(_attackLockout - dt);
 }
 
+/** Returns TRUE if the current state has reached its build-up time and can fire events. */
 bool Enemy::readyToFire() const {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return false;
@@ -61,6 +71,7 @@ bool Enemy::readyToFire() const {
     return _stateTime >= st->buildUpTime;
 }
 
+/** Fires all events defined by the current state and queues them for external systems. */
 void Enemy::fireEvents() {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return;
@@ -77,6 +88,7 @@ void Enemy::fireEvents() {
     _eventsFiredThisState = true;
 }
 
+/** Applies the current state's cooldown to prevent immediate re-entry into attack states. */
 void Enemy::applyCooldown() {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return;
@@ -84,6 +96,7 @@ void Enemy::applyCooldown() {
     _attackLockout = std::max(_attackLockout, st->cooldownTime);
 }
 
+/** Returns the state's configured next state, or falls back to "idle" if invalid/missing. */
 std::string Enemy::getNextStateOrIdle() const {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return "idle";
@@ -94,12 +107,14 @@ std::string Enemy::getNextStateOrIdle() const {
     return "idle";
 }
 
+/** Transitions to the current state's configured next state without additional checks. */
 void Enemy::transitionToNextState() {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return;
     enterState(st->nextState);
 }
 
+/** Updates the enemy's state execution, firing events and transitioning when ready. */
 void Enemy::update(float dt) {
 
     tick(dt);
@@ -111,18 +126,20 @@ void Enemy::update(float dt) {
     }
 }
 
+/** Returns all fired events since last call and clears the internal event buffer. */
 std::vector<Enemy::FiredEvent> Enemy::takeFiredEvents() {
     std::vector<FiredEvent> out;
     out.swap(_firedEvents);
     return out;
 }
 
+/** Applies damage to the enemy, clamping health to zero. */
 void Enemy::applyDamage(float amount) {
     if (amount <= 0.0f) return;
-    _currentHealth -= amount;
-    if (_currentHealth < 0.0f) _currentHealth = 0.0f;
+    _currentHealth = clampMinZero(_currentHealth-amount);
 }
 
+/** Heals the enemy, clamping health to its maximum. */
 void Enemy::heal(float amount) {
     if (amount <= 0.0f) return;
     _currentHealth += amount;

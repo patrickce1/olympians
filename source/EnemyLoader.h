@@ -8,40 +8,41 @@
 
 class EnemyLoader {
 public:
+    /** Relative direction of an event target, interpreted against enemy facing */
     enum class RelDir { FRONT, BACK, LEFT, RIGHT, UNKNOWN };
-    enum class EventType { DAMAGE, UNKNOWN }; // can add more types later
+    
+    /** Types of gameplay events a state can emit (can add more later) */
+    enum class EventType { DAMAGE, UNKNOWN };
 
+    /** Definition of a single state event loaded from JSON */
     struct EventDef {
         EventType type = EventType::UNKNOWN;
-
-        RelDir target = RelDir::UNKNOWN; // front/back/left/right relative to facing
+        RelDir target = RelDir::UNKNOWN;
         float amount = 0.0f;
-
         float duration = 0.0f;
     };
 
+    /** Definition of an enemy state loaded from JSON */
     struct StateDef {
         std::string name;
-
         int animationRow = 0;
 
-        // State execution:
+        // Execution flow:
         // enter -> wait buildUpTime -> fire events -> transition to nextState -> apply cooldown lockout
         float buildUpTime = 0.0f; // seconds until events fire
         float cooldownTime = 0.0f; // seconds of lockout AFTER events fire
         std::string nextState; // state to enter immediately after firing events (usually "idle")
-
         std::vector<EventDef> events;
     };
 
+    /** Full enemy definition loaded from JSON */
     struct EnemyDef {
         std::string id;
         std::string name;
         float maxHealth = 0.0f;
-
         std::string spritesheetPath;
 
-        // can be used by combat system later, multiplier for how much incoming damage should be reduced
+        // multiplier for how much incoming damage should be reduced. can be implemented by combat system later
         struct Shields {
             float front = 0.0f;
             float back  = 0.0f;
@@ -53,9 +54,11 @@ public:
     };
 
 private:
+    /** Mapping from enemy id -> enemy definition */
     std::unordered_map<std::string, EnemyDef> _enemies;
 
 private:
+    /** Converts a string into a relative direction enum */
     static RelDir parseRelDir(const std::string& s) {
         if (s == "front") return RelDir::FRONT;
         if (s == "back")  return RelDir::BACK;
@@ -63,7 +66,8 @@ private:
         if (s == "right") return RelDir::RIGHT;
         return RelDir::UNKNOWN;
     }
-
+    
+    /** Converts a string into an event type enum */
     static EventType parseEventType(const std::string& s) {
         if (s == "DAMAGE") return EventType::DAMAGE;
         return EventType::UNKNOWN;
@@ -102,7 +106,7 @@ public:
             def.maxHealth = entry->getFloat("maxHealth");
             def.spritesheetPath= entry->getString("spritesheetPath");
 
-            // defaultShields optional
+            // optional shields
             auto shields = entry->get("defaultShields");
             if (shields) {
                 def.defaultShields.front = shields->getFloat("front", 0.0f);
@@ -111,7 +115,7 @@ public:
                 def.defaultShields.right = shields->getFloat("right", 0.0f);
             }
 
-            // states required. every enemy must at least have "idle" state.
+            // every enemy REQUIRED to at least have "idle" state.
             auto statesObj = entry->get("states");
             CUAssertLog(statesObj && statesObj->isObject(), "Enemy '%s' missing object 'states'", def.id.c_str());
 
@@ -124,9 +128,11 @@ public:
                 sdef.animationRow = st->getInt("animationRow", 0);
                 sdef.buildUpTime = st->getFloat("buildUpTime", 0.0f);
                 sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
+                
+                // Default to idle if nextState not specified
                 sdef.nextState = st->getString("nextState", "idle");
 
-                // optional events for the state (e.g. players taking damage)
+                // optional events (e.g. players taking damage)
                 auto evArr = st->get("events");
                 if (evArr && evArr->isArray()) {
                     for (int j = 0; j < evArr->size(); j++) {
@@ -136,7 +142,7 @@ public:
                         EventDef edef;
                         edef.type = parseEventType(ev->getString("type", ""));
 
-                        // can add more event types later. maybe status effects?
+                        // currently only DAMAGE supported
                         if (edef.type == EventType::DAMAGE) {
                             edef.target = parseRelDir(ev->getString("target", ""));
                             edef.amount = ev->getFloat("amount", 0.0f);
@@ -149,18 +155,31 @@ public:
                 def.states[sdef.name] = sdef;
             }
 
-            // every enemy must have idle
+            // Validate "idle" state exists
             CUAssertLog(def.states.count("idle") > 0,
                         "Enemy '%s' must define an 'idle' state", def.id.c_str());
-
+            
+            // Log loaded enemy
+            CULog("Loaded Enemy: id=%s name=%s maxHealth=%.2f states=%zu sprite=%s",
+                  def.id.c_str(),
+                  def.name.c_str(),
+                  def.maxHealth,
+                  def.states.size(),
+                  def.spritesheetPath.c_str());
+            
             _enemies[def.id] = def;
         }
-
+        
         return true;
     }
-
+    
+    /** Returns true if a definition exists for the given id */
     bool has(const std::string& id) const { return _enemies.count(id) > 0; }
+    
+    /** Returns the enemy definition for the given id (must exist) */
     const EnemyDef& get(const std::string& id) const { return _enemies.at(id); }
+    
+    /** Returns all loaded enemy definitions */
     const std::unordered_map<std::string, EnemyDef>& getAll() const { return _enemies; }
 };
 

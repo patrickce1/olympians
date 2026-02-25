@@ -1,68 +1,51 @@
 {
-  "enemies": [
-      
-      {
-        "id": "dummy",
-        "name": "Dummy",
-        "maxHealth": 10.0,
-
-        "spritesheetPath": "textures/dummy_enemy.png",
-
-        "defaultShields": {
-          "front": 0.0,
-          "back": 0.0,
-          "left": 0.0,
-          "right": 0.0
+    "enemies": [
+        {
+            "id": "dummy",
+            "name": "Dummy",
+            "maxHealth": 10.0,
+            "spritesheetPath": "textures/dummy_enemy.png",
+            "defaultShields": {
+                "front": 0.0,
+                "back": 0.0,
+                "left": 0.0,
+                "right": 0.0
+            },
+            "states": {
+                "idle": {
+                    "animationRow": 0
+                }
+            }
         },
-
-        "initialState": "idle",
-
-        "states": {
-            "idle": {
-                "animationRow": 0
+        {
+            "id": "enemy1",
+            "name": "Enemy 1",
+            "maxHealth": 20.0,
+            "spritesheetPath": "textures/enemy1.png",
+            "defaultShields": {
+                "front": 0.0,
+                "back": 1.0,
+                "left": 0.5,
+                "right": 0.5
+            },
+            "states": {
+                "idle": {
+                    "animationRow": 0
+                },
+                "attack1": {
+                    "animationRow": 1,
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 5.0,
+                    "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": "front",
+                            "amount": 1.0
+                        }
+                    ],
+                    "nextState": "idle"
+                }
             }
         }
-      },
-      
-      
-      {
-        "id": "enemy1",
-        "name": "Enemy 1",
-        "maxHealth": 20.0,
-
-        "spritesheetPath": "textures/enemy1.png",
-
-        "defaultShields": {
-          "front": 0.0,
-          "back": 1.0,
-          "left": 0.5,
-          "right": 0.5
-        },
-      
-      "initialState": "idle",
-
-      "states": {
-          
-        "idle": {
-          "animationRow": 0
-        },
-
-        "attack1": {
-          "animationRow": 1,
-          "buildUpTime": 4.0,
-          "cooldownTime": 5.0,
-          "events": [
-            {
-              "type": "DAMAGE",
-              "target": "front",
-              "amount": 1.0
-            }
-          ],
-          "nextState": "idle"
-        }
-        
-      }
-    }
-    
-  ]
+    ]
 }
