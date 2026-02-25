@@ -72,9 +72,9 @@ public:
     /** Seed options; seed acts as the starting point for the RNG. The game's seed is generated at random, so it is unlikely
      that two parties in the same local network generate the same seed and therefore the same RNG pattern. */
     /** Deterministic seed (recommended for host) */
-    void seed(std::uint64_t s);
+    void setStartingPoint(std::uint64_t s);
     /** Time-based seed (okay for local) */
-    void seedWithTime();
+    void setStartingPointWithTime();
     
     /**
     * Loads item defs from JSON.

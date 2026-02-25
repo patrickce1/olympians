@@ -19,12 +19,12 @@ void ItemDatabase::clear() {
     clearBuckets();
 }
 
-void ItemDatabase::seed(std::uint64_t s) {
+void ItemDatabase::setStartingPoint(std::uint64_t s) {
     _rng.initWithSeed((Uint64)s);
     _rngReady = true;
 }
 
-void ItemDatabase::seedWithTime() {
+void ItemDatabase::setStartingPointWithTime() {
     _rng.init();
     _rngReady = true;
 }
