@@ -4,7 +4,7 @@ using namespace cugl;
 
 /** Clears items from buckets and reinitializes them; buckets contain items of the corresponding rarity */
 void ItemDatabase::clearBuckets() {
-    _all = Bucket();
+    _allDefs = Bucket();
     _byRarity.clear();
     _byRarity[ItemDef::Rarity::Common]    = Bucket();
     _byRarity[ItemDef::Rarity::Uncommon]  = Bucket();
@@ -19,8 +19,8 @@ void ItemDatabase::clear() {
     clearBuckets();
 }
 
-void ItemDatabase::setStartingPoint(std::uint64_t s) {
-    _rng.initWithSeed((Uint64)s);
+void ItemDatabase::setStartingPoint(std::uint64_t seed) {
+    _rng.initWithSeed((Uint64)seed);
     _rngReady = true;
 }
 
@@ -139,17 +139,17 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
         double w = rarityBaseWeight(def->getRarity());
 
         // Add to spawn buckets if spawnable
-        addToBucket(_all, id, w);
+        addToBucket(_allDefs, id, w);
         addToBucket(_byRarity[def->getRarity()], id, w);
     }
 
-    // Note: _defs may be non-empty even if _all is empty (e.g. all weights 0)
+    // Note: _defs may be non-empty even if _allDefs is empty (e.g. all weights 0)
     return !_defs.empty();
 }
 
 /** Roll from all items */
 std::string ItemDatabase::rollRandomDefId() {
-    return rollFromBucket(_all);
+    return rollFromBucket(_allDefs);
 }
 
 /** Roll within a  rarity */
