@@ -34,7 +34,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<ItemDef>> _defs;
     
     /** Bucket to contain all defIds so that they may be rolled */
-    Bucket _allDefs;
+    Bucket _allDefIds;
     
     /** The collection of buckets categorized by rarity */
     std::unordered_map<ItemDef::Rarity, Bucket, RarityHash> _byRarity;
@@ -44,10 +44,12 @@ private:
     
     /** Random value holder */
     cugl::Random _rng;
+    
     /** Only needed if we forget to generate a random seed manually */
     bool _rngReady = false;
     
 private:
+    /** Clears items from buckets and reinitializes them; buckets contain items of the corresponding rarity */
     void clearBuckets();
 
     /** In case of a reset, reset to fallback values */
@@ -59,10 +61,23 @@ private:
     /** Returns the probability weight of the given rarity */
     double rarityBaseWeight(ItemDef::Rarity r) const;
 
-    /** Add item with the given defId to the corresponding bucket with effWeight */
-    void addToBucket(Bucket& bucket, const std::string& defId, double effWeight);
+    /** Add item with the given defId to the corresponding bucket with effectiveWeight
+     *  Total = sum of effective weights of all the defIds addet to the bucket
+     *  Prefix = cummulative sum array of effective weights of added defIds
+     *  Each entry prefix[i] = sum of effectiveWeights[0..i]. Given i is the number of defIds entered.
+     */
+    void addToBucket(Bucket& bucket, const std::string& defId, double effectiveWeight);
     
-    /** Roll a random item from the given bucket */
+    /**
+     * Rolls a random item defID from the given bucket using weighted random selection.
+     *
+     * A random value is sampled uniformly in [0, total) and binary-searched
+     * against the bucket's prefix sum array to select an item proportional
+     * to its weight. Items with higher weights are more likely to be selected.
+     *
+     * @param bucket    The bucket to roll from
+     * @return the defId of the selected item, or "" if the bucket is empty
+     */
     std::string rollFromBucket(const Bucket& bucket);
     
 public:
@@ -74,8 +89,10 @@ public:
 
     /** Seed options; seed acts as the starting point for the RNG. The game's seed is generated at random, so it is unlikely
      that two parties in the same local network generate the same seed and therefore the same RNG pattern. */
+    
     /** Deterministic seed (recommended for host) */
     void setStartingPoint(std::uint64_t seed);
+    
     /** Time-based seed (okay for local) */
     void setStartingPointWithTime();
     

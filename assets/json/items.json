@@ -16,7 +16,8 @@
             "type": "attack",
             "rarity": "divine",
             "primary": "zeus",
-            "secondary": "none"
+            "secondary": "none",
+            "effectiveValue": 1.0
         },
         {
             "id": "apple",
@@ -26,7 +27,8 @@
             "type": "support",
             "rarity": "common",
             "primary": "demeter",
-            "secondary": "none"
+            "secondary": "none",
+            "effectiveValue": 2.0
         },
         {
             "id": "noams_ballista",
@@ -36,7 +38,10 @@
             "type": "attack",
             "rarity": "epic",
             "primary": "ares",
-            "secondary": "none"
+            "secondary": "none",
+            "effectiveValue": 1.5
         }
-    ]
+    ],
+    "itemInterval": 20.0,
+    "itemTimerStart": 5.0
 }

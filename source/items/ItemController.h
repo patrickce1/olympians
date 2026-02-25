@@ -8,25 +8,36 @@
 
 class ItemController {
 private:
+    // Instance of the item Database
     ItemDatabase _itemDb;
+    // Instance of the item ID generator
     ItemInstance::IdGenerator _idGen;
-
-    float _itemInterval = 3.0f;
-    float _itemTimer = 0.0f;
+    // The item interval that determines how long you have to wait till recceiving another item
+    float _itemInterval;
+    // The item timer which tells us how long it has been since players last received an item
+    float _itemTimer;
 
 public:
     ItemController() = default;
 
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets,
-              const std::string& jsonKey = "items",
-              float itemInterval = 3.0f);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::string& jsonKey = "items");
 
+    /**
+     * // Update the item timer and hand out cards
+     * @param dt  time elapsed
+     */
     void update(float dt, std::vector<Player>& players);
 
+    /**
+     * // Gives random items to all players
+     * @param & players the list of all players in the game
+     */
     void giveRandomItemToAll(std::vector<Player>& players);
 
-    bool useItemById(int ownerIndex, Enemy enemy, ItemInstance::ItemId itemId, std::vector<Player>& players);
-
+    /**
+     * // Retrieves the item database
+     * @return the item database
+     */
     const ItemDatabase& getDatabase() const { return _itemDb; }
 };
 

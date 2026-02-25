@@ -3,81 +3,79 @@
 using namespace cugl;
 
 bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
-                          const std::string& jsonKey,
-                          float giveInterval) {
+                          const std::string& jsonKey) {
     if (!assets) {
         return false;
     }
 
+    // Load Items Json from assets
     auto itemsJson = assets->get<JsonValue>(jsonKey);
     if (!itemsJson) {
         CULog("ItemController: missing json asset '%s'", jsonKey.c_str());
         return false;
     }
 
+    // Create Item Database
     if (!_itemDb.loadFromJson(itemsJson)) {
         CULog("ItemController: failed to load item database");
         return false;
     }
-
+    
+    // Read itemInterval from JSON if present, otherwise return error
+    if (itemsJson->has("itemInterval") && itemsJson->get("itemInterval")->isNumber()) {
+        _itemInterval = itemsJson->get("itemInterval")->asFloat();
+    } else {
+        CULogError("No item interval was specified");
+    }
+    
+    // Read itemTimerStart from JSON if present, otherwise return error
+    if (itemsJson->has("itemTimerStart") && itemsJson->get("itemTimerStart")->isNumber()) {
+        _itemTimer = itemsJson->get("itemTimerStart")->asFloat();
+    } else {
+        CULogError("No item interval was specified");
+    }
+    
     _idGen.startGame(ItemInstance::IdGenerator::randomGameId());
     _itemDb.setStartingPointWithTime();
-
-    _giveInterval = giveInterval;
-    _giveTimer = 0.0f;
-
     return true;
 }
 
+// Update the item timer and hand out cards
 void ItemController::update(float dt, std::vector<Player>& players) {
-    _giveTimer += dt;
+    _itemTimer += dt;
 
-    while (_giveTimer >= _giveInterval) {
-        _giveTimer -= _giveInterval;
+    while (_itemTimer >= _itemInterval) {
+        _itemTimer -= _itemInterval;
         giveRandomItemToAll(players);
     }
 }
 
+// Hand out cards to players
 void ItemController::giveRandomItemToAll(std::vector<Player>& players) {
     for (Player& player : players) {
         if (!player.isAlive()) {
             continue;
         }
-
-        std::string defId = _itemDb.rollRandomDefId();
-        if (defId.empty()) {
+        
+        // Gets defId of random items generated
+        std::string itemDefId = _itemDb.rollRandomDefId();
+        if (itemDefId.empty()) {
             continue;
         }
 
-        auto instance = _itemDb.createInstance(defId, _idGen.next());
-        if (!instance) {
+        // Creates instance of generated defId
+        auto itemInstance = _itemDb.createInstance(itemDefId, _idGen.next());
+        if (!itemInstance) {
             continue;
         }
 
-        player.addItem(*instance);
+        player.addItem(*itemInstance);
         CULog("Gave player %d item %s (id=%llu)",
               player.getPlayerNumber(),
-              defId.c_str(),
-              (unsigned long long)instance->getId());
+              itemDefId.c_str(),
+              (unsigned long long)itemInstance->getId());
     }
 }
 
-bool ItemController::useItemById(int ownerIndex, Enemy enemy, ItemInstance::ItemId itemId, std::vector<Player>& players) {
-    if (ownerIndex < 0) {
-        return false;
-    }
-    if (ownerIndex >= (int)players.size()) {
-        return false;
-    }
-    if (!players[ownerIndex].isAlive()) {
-        return false;
-    }
 
-    bool used = players[ownerIndex].useItemById(itemId, enemy);
-    if (used) {
-        CULog("Player %d used an item on enemy. Target health now: %.1f",
-              players[ownerIndex].getPlayerNumber(),
-              players[targetIndex].getCurrentHealth());
-    }
-    return used;
-}
+

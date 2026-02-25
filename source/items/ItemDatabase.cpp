@@ -4,7 +4,7 @@ using namespace cugl;
 
 /** Clears items from buckets and reinitializes them; buckets contain items of the corresponding rarity */
 void ItemDatabase::clearBuckets() {
-    _allDefs = Bucket();
+    _allDefIds = Bucket();
     _byRarity.clear();
     _byRarity[ItemDef::Rarity::Common]    = Bucket();
     _byRarity[ItemDef::Rarity::Uncommon]  = Bucket();
@@ -14,33 +14,41 @@ void ItemDatabase::clearBuckets() {
     _byRarity[ItemDef::Rarity::Divine]    = Bucket();
 }
 
+/** Clears buckets and the item database collection */
 void ItemDatabase::clear() {
     _defs.clear();
     clearBuckets();
 }
 
+/** Seed options; seed acts as the starting point for the RNG. The game's seed is generated at random, so it is unlikely
+ that two parties in the same local network generate the same seed and therefore the same RNG pattern. */
+
+/** Deterministic seed (recommended for host) */
 void ItemDatabase::setStartingPoint(std::uint64_t seed) {
     _rng.initWithSeed((Uint64)seed);
     _rngReady = true;
 }
 
+/** Time-based seed (okay for local) */
 void ItemDatabase::setStartingPointWithTime() {
     _rng.init();
     _rngReady = true;
 }
 
+/** Returns the definition of the given defId */
 std::shared_ptr<ItemDef> ItemDatabase::getDef(const std::string& defId) const {
     auto it = _defs.find(defId);
     return (it == _defs.end() ? nullptr : it->second);
 }
 
+/** Creates an instance of the item with the given defId, and the instance is given id */
 std::shared_ptr<ItemInstance> ItemDatabase::createInstance(const std::string& defId,
                                                            ItemInstance::ItemId id) const {
     if (!getDef(defId)) return nullptr;
     return ItemInstance::alloc(defId, id);
 }
 
-
+/** In case of a reset, reset to fallback values */
 void ItemDatabase::resetRarityWeights() {
     _rarityWeights.clear();
     _rarityWeights[ItemDef::Rarity::Common]    = 0.45;
@@ -51,6 +59,7 @@ void ItemDatabase::resetRarityWeights() {
     _rarityWeights[ItemDef::Rarity::Divine]    = 0.01;
 }
 
+/** Load rarity weights from a JSON */
 void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     resetRarityWeights();
 
@@ -76,22 +85,37 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     loadOne("Divine",    ItemDef::Rarity::Divine);
 }
 
-
+/** Returns the probability weight of the given rarity */
 double ItemDatabase::rarityBaseWeight(ItemDef::Rarity r) const {
     auto it = _rarityWeights.find(r);
     if (it != _rarityWeights.end()) return it->second;
     return 1.0;
 }
 
-void ItemDatabase::addToBucket(Bucket& bucket, const std::string& defId, double effWeight) {
+/** Add item with the given defId to the corresponding bucket with effectiveWeight
+ *  Total = sum of effective weights of all the defIds addet to the bucket
+ *  Prefix = cummulative sum array of effective weights of added defIds
+ *  Each entry prefix[i] = sum of effectiveWeights[0..i]. Given i is the number of defIds entered.
+ */
+void ItemDatabase::addToBucket(Bucket& bucket, const std::string& defId, double effectiveWeight) {
     // Only include spawnable items (effWeight > 0)
-    if (effWeight <= 0.0) return;
+    if (effectiveWeight <= 0.0) return;
 
     bucket.defIds.push_back(defId);
-    bucket.total += effWeight;
+    bucket.total += effectiveWeight;
     bucket.prefix.push_back(bucket.total);
 }
 
+/**
+ * Rolls a random item defID from the given bucket using weighted random selection.
+ *
+ * A random value is sampled uniformly in [0, total) and binary-searched
+ * against the bucket's prefix sum array to select an item proportional
+ * to its weight. Items with higher weights are more likely to be selected.
+ *
+ * @param bucket    The bucket to roll from
+ * @return the defId of the selected item, or "" if the bucket is empty
+ */
 std::string ItemDatabase::rollFromBucket(const Bucket& bucket) {
     if (bucket.defIds.empty() || bucket.total <= 0.0) return "";
 
@@ -100,17 +124,26 @@ std::string ItemDatabase::rollFromBucket(const Bucket& bucket) {
         const_cast<ItemDatabase*>(this)->setStartingPointWithTime();
     }
 
-    // r in [0, total)
-    double r = _rng.getRightOpenDouble(0.0, bucket.total);
+    // Pick a random value in [0, total) — this is our "dart throw" into the weight space
+    double randVal = _rng.getRightOpenDouble(0.0, bucket.total);
 
-    // first prefix > r
-    auto it = std::upper_bound(bucket.prefix.begin(), bucket.prefix.end(), r);
-    std::size_t idx = (std::size_t)std::distance(bucket.prefix.begin(), it);
-    if (idx >= bucket.defIds.size()) idx = bucket.defIds.size() - 1;
+    // Binary search the prefix sum array for the first entry greater than r (std::upper_bound).
+    auto bucketItem = std::upper_bound(bucket.prefix.begin(), bucket.prefix.end(), randVal);
+    
+    // The index of that entry corresponds to the selected item, since each
+    // prefix[i] marks the upper boundary of item i's weight range.
+    std::size_t prefixIdx = (std::size_t)std::distance(bucket.prefix.begin(), bucketItem);
+    
+    // Clamp to valid range as a safety measure against floating point edge cases
+    if (prefixIdx >= bucket.defIds.size()) prefixIdx = bucket.defIds.size() - 1;
 
-    return bucket.defIds[idx];
+    return bucket.defIds[prefixIdx];
 }
 
+/**
+* Loads item defs from JSON.
+* Expected schema: { "items": [ { ...ItemDef... }, ... ] }
+*/
 bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
     clear();
 
@@ -139,7 +172,7 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
         double w = rarityBaseWeight(def->getRarity());
 
         // Add to spawn buckets if spawnable
-        addToBucket(_allDefs, id, w);
+        addToBucket(_allDefIds, id, w);
         addToBucket(_byRarity[def->getRarity()], id, w);
     }
 
@@ -147,12 +180,12 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
     return !_defs.empty();
 }
 
-/** Roll from all items */
+/** Rarity-driven weighted roll across all spawnable items */
 std::string ItemDatabase::rollRandomDefId() {
-    return rollFromBucket(_allDefs);
+    return rollFromBucket(_allDefIds);
 }
 
-/** Roll within a  rarity */
+/** Weighted roll within a specific rarity bucket (probably not needed) */
 std::string ItemDatabase::rollRandomDefId(ItemDef::Rarity rarity) {
     auto it = _byRarity.find(rarity);
     if (it == _byRarity.end()) return "";

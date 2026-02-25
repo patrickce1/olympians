@@ -54,11 +54,14 @@ private:
     /* Rarity of item */
     Rarity _rarity;
     
+    /* Effective value of Item */
+    float _effectiveValue;
+    
     /* Primary House the item belongs to */
-    House _primary;
+    House _primaryHouse;
     
     /* Secondary House the item belongs to (optional) */
-    House _secondary;
+    House _secondaryHouse;
     
 public:
     ItemDef() = default;
@@ -76,11 +79,12 @@ public:
     const std::string& getName() const { return _name; }
     const std::string& getDescription() const { return _description; }
     const std::string& getIconKey() const { return _iconKey; }
+    const float getEffectiveValue() const { return _effectiveValue; }
     
     Type getType() const { return _type; }
     Rarity getRarity() const { return _rarity; }
-    House getPrimary() const { return _primary; }
-    House getSecondary() const { return _secondary; }
+    House getPrimaryHouse() const { return _primaryHouse; }
+    House getSecondaryHouse() const { return _secondaryHouse; }
     
     /** Extract Type enum from a string */
     static Type typeFromString(std::string s, Type fallback = Type::Attack);
@@ -88,6 +92,7 @@ public:
     static Rarity rarityFromString(std::string s, Rarity fallback = Rarity::Common);
     /** Extract House enum from a string */
     static House houseFromString(std::string s, House fallback = House::None);
+    
 };
 
 #endif // __ITEM_DEF_H__

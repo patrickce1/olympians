@@ -59,25 +59,31 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
     if (json->has("type") && json->get("type")->isString()) {
         _type = typeFromString(json->get("type")->asString(), Type::Attack);
     } else {
-        _type = Type::Attack;
+        CULogError("ItemDef '%s': missing or invalid 'type', defaulting to Attack", _id.c_str());
     }
     
     if (json->has("rarity") && json->get("rarity")->isString()) {
         _rarity = rarityFromString(json->get("rarity")->asString(), Rarity::Common);
     } else {
-        _rarity = Rarity::Common;
+        CULogError("ItemDef '%s': missing or invalid 'rarity', defaulting to Common", _id.c_str());
     }
     
-    if (json->has("primary") && json->get("primary")->isString()) {
-        _primary = houseFromString(json->get("primary")->asString(), House::None);
+    if (json->has("primaryHouse") && json->get("primaryHouse")->isString()) {
+        _primaryHouse = houseFromString(json->get("primaryHouse")->asString(), House::None);
     } else {
-        _primary = House::None;
+        CULogError("ItemDef '%s': missing or invalid 'primaryHouse', defaulting to None", _id.c_str());
     }
     
-    if (json->has("secondary") && json->get("secondary")->isString()) {
-        _secondary = houseFromString(json->get("secondary")->asString(), House::None);
+    if (json->has("secondaryHouse") && json->get("secondaryHouse")->isString()) {
+        _secondaryHouse = houseFromString(json->get("secondaryHouse")->asString(), House::None);
     } else {
-        _secondary = House::None;
+        CULogError("ItemDef '%s': missing or invalid 'secondaryHouse', defaulting to None", _id.c_str());
+    }
+    
+    if (json->has("effectiveValue")) {
+        _effectiveValue = json->getFloat("effectiveValue");
+    } else {
+        CULogError("ItemDef '%s': missing 'effectiveValue', defaulting to 0.0", _id.c_str());
     }
     
     return true;

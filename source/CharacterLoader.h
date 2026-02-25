@@ -8,11 +8,6 @@
 
 class CharacterLoader {
     
-private:
-    
-    /** A mapping from characters to characterDef objects indexed by ID's */
-    std::unordered_map<std::string, CharacterDef> _characters;
-    
 public:
     
     /** This is an enum for ability classes*/
@@ -31,6 +26,13 @@ public:
         std::string spritesheetPath;
         std::vector<std::string> specialAbilities;
     };
+    
+private:
+    
+    /** A mapping from characters to characterDef objects indexed by ID's */
+    std::unordered_map<std::string, CharacterDef> _characters;
+    
+public:
     
     /**Returns the respective ability class given a string**/
     AbilityClass parseAbilityClass(const std::string& s) {
@@ -66,8 +68,8 @@ public:
             def.id                = entry->getString("id");
             def.house             = entry->getString("house");
             def.maxHealth         = entry->getFloat("maxHealth");
-            def.abilityClass      = parseAbilityClass(entry->getFloat("abilityClass"));
-            def.spriteSheetPath   = entry->getString("spritesheetPath");
+            def.abilityClass      = parseAbilityClass(entry->getString("abilityClass"));
+            def.spritesheetPath   = entry->getString("spritesheetPath");
             
             //Parsing the special abilities array
             auto specialAbilities = entry->get("specialAbilities");
@@ -106,3 +108,4 @@ public:
 };
 
 #endif /* !__CHARACTER_LOADER_H__ */
+
