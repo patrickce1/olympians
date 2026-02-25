@@ -133,15 +133,11 @@ std::vector<Enemy::FiredEvent> Enemy::takeFiredEvents() {
     return out;
 }
 
-/** Applies damage to the enemy, clamping health to zero. */
-void Enemy::applyDamage(float amount) {
-    if (amount <= 0.0f) return;
-    _currentHealth = clampMinZero(_currentHealth-amount);
-}
-
-/** Heals the enemy, clamping health to its maximum. */
-void Enemy::heal(float amount) {
-    if (amount <= 0.0f) return;
+/** Increases/decreases the enemy health, clamping health to zero or max health. */
+void Enemy::updateHealth(float amount) {
     _currentHealth += amount;
     if (_currentHealth > _maxHealth) _currentHealth = _maxHealth;
+    if (_currentHealth < 0.0f) _currentHealth = 0.0f;
 }
+
+

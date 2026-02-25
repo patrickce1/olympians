@@ -4,6 +4,10 @@
 
 #include "GameScene.h"
 
+#if defined(DEBUG) || defined(_DEBUG)
+void runEnemyTests();
+#endif
+
 using namespace cugl;
 using namespace cugl::scene2;
 using namespace std;
@@ -51,6 +55,15 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     //scene->doLayout(); // Repositions the HUD
    
     //addChild(scene);
+    
+    #if defined(DEBUG) || defined(_DEBUG)
+        static bool didRunTests = false;
+        if (!didRunTests) {
+            didRunTests = true;
+            runEnemyTests();
+        }
+    #endif
+    
     setActive(false);
     return true;
 }

@@ -95,8 +95,7 @@ public:
      */
     std::vector<FiredEvent> takeFiredEvents();
 
-    void applyDamage(float amount);
-    void heal(float amount);
+    void updateHealth(float amount);
 
 private:
     void tick(float dt); // updates timers
