@@ -18,11 +18,12 @@ class ItemDatabase {
 private:
     /** Struct to contain defId objects and enable rolling a random defId from the bucket with weights */
     struct Bucket {
-        std::vector<std::string> ids;
+        std::vector<std::string> defIds;
         std::vector<double> prefix;
         double total = 0.0;
     };
     
+    /** Struct to hash rarity probability weights stored in maps  */
     struct RarityHash {
         std::size_t operator()(ItemDef::Rarity r) const noexcept {
             return static_cast<std::size_t>(r);

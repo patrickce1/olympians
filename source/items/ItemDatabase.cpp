@@ -87,13 +87,13 @@ void ItemDatabase::addToBucket(Bucket& bucket, const std::string& defId, double 
     // Only include spawnable items (effWeight > 0)
     if (effWeight <= 0.0) return;
 
-    bucket.ids.push_back(defId);
+    bucket.defIds.push_back(defId);
     bucket.total += effWeight;
     bucket.prefix.push_back(bucket.total);
 }
 
 std::string ItemDatabase::rollFromBucket(const Bucket& bucket) {
-    if (bucket.ids.empty() || bucket.total <= 0.0) return "";
+    if (bucket.defIds.empty() || bucket.total <= 0.0) return "";
 
     if (!_rngReady) {
         // Lazy seed if user forgot to seed explicitly
@@ -106,9 +106,9 @@ std::string ItemDatabase::rollFromBucket(const Bucket& bucket) {
     // first prefix > r
     auto it = std::upper_bound(bucket.prefix.begin(), bucket.prefix.end(), r);
     std::size_t idx = (std::size_t)std::distance(bucket.prefix.begin(), it);
-    if (idx >= bucket.ids.size()) idx = bucket.ids.size() - 1;
+    if (idx >= bucket.defIds.size()) idx = bucket.defIds.size() - 1;
 
-    return bucket.ids[idx];
+    return bucket.defIds[idx];
 }
 
 bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
