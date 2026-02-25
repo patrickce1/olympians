@@ -4,10 +4,6 @@
 
 #include "GameScene.h"
 
-#if defined(DEBUG) || defined(_DEBUG)
-void runEnemyTests();
-#endif
-
 using namespace cugl;
 using namespace cugl::scene2;
 using namespace std;

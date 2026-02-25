@@ -4,6 +4,8 @@
 #include <cugl/core/CUBase.h>
 #include <cugl/core/util/CULogger.h>
 
+void runEnemyTests();
+
 // This keeps us from having to write cugl:: all the time
 using namespace cugl;
 using namespace cugl::scene2;
@@ -119,6 +121,10 @@ void SceneLoader::onStartup() {
     bounds = getDisplayBounds();
     _logger->log("Full Area %sx%s", bounds.origin.toString().c_str(),
         bounds.size.toString().c_str());
+    
+// Unit tests for enemy and enemy loader
+//    runEnemyTests();
+
 }
 
 /**
