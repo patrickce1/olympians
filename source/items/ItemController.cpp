@@ -23,17 +23,17 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
     _idGen.startGame(ItemInstance::IdGenerator::randomGameId());
     _itemDb.setStartingPointWithTime();
 
-    _giveInterval = giveInterval;
-    _giveTimer = 0.0f;
+    _itemInterval = giveInterval;
+    _itemTimer = 0.0f;
 
     return true;
 }
 
 void ItemController::update(float dt, std::vector<Player>& players) {
-    _giveTimer += dt;
+    _itemTimer += dt;
 
-    while (_giveTimer >= _giveInterval) {
-        _giveTimer -= _giveInterval;
+    while (_itemTimer >= _itemInterval) {
+        _itemTimer -= _itemInterval;
         giveRandomItemToAll(players);
     }
 }
@@ -77,7 +77,7 @@ bool ItemController::useItemById(int ownerIndex, Enemy enemy, ItemInstance::Item
     if (used) {
         CULog("Player %d used an item on enemy. Target health now: %.1f",
               players[ownerIndex].getPlayerNumber(),
-              players[targetIndex].getCurrentHealth());
+              enemy.getCurrentHealth());
     }
     return used;
 }
