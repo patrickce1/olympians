@@ -57,7 +57,7 @@ private:
     /* Primary House the item belongs to */
     House _primary;
     
-    /* Secondary house the item belongs to (optional) */
+    /* Secondary House the item belongs to (optional) */
     House _secondary;
     
 public:
