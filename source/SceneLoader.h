@@ -2,6 +2,7 @@
 #define __SCENE_LOADER_H__
 #include <cugl/cugl.h>
 #include "scenes/GameScene.h"
+#include "InputController.h"
 
 /**
  * Scene loader class responsible for loading assets and managing scene transitions
@@ -24,6 +25,8 @@ protected:
 
     /** A logger for debugging, can be removed if we feel like this is not necessary */
     std::shared_ptr<cugl::Logger> _logger;
+    
+    InputController _input;
 
     /* All the scenes in the game*/
     GameScene gameScene;
