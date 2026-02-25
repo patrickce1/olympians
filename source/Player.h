@@ -50,17 +50,22 @@ public:
 
 #pragma mark Properties
     /**
-     *Returns the inventory of the player
+     * Returns the inventory of the player
      */
-    std::vector<ItemInstance> getInventory() const { return _inventory;}
+    const std::vector<ItemInstance> getInventory() const { return _inventory;}
+
+    /** 
+     * Returns whether player's inventory is not empty
+     */
+    bool hasItems() const { return !_inventory.empty(); }
     
     /**
-     *Returns the player number
+     * Returns the player number
      */
     int getPlayerNumber const { return _playerNumber;}
 
     /**
-     *Returns the player name
+     * Returns the player name
      */
     std::string getPlayerName const { return _playerName;}
 
@@ -70,32 +75,32 @@ public:
     std::string getCharacterName const {return _characterID;}
 
     /**
-     * Retrun the house of the character
+     * Return the house of the character
      */
     std::string getCharacterHouse const {return _house;}
 
     /**
-     *Return the max health of the character/player
+     * Return the max health of the character/player
      */
     float getMaxHealth const {return _maxHealth;}
 
     /**
-     *Return the current health of the character/player
+     * Return the current health of the character/player
      */
     float getCurrentHealth const {return _currentHealth;}
 
     /**
-     *Returns the ability class of the character
+     * Returns the ability class of the character
      */
     AbilityClass getAbilityClass const {return _abilityClass;}
     
     /**
-     *Returns the path of the spritesheet for the character
+     * Returns the path of the spritesheet for the character
      */
     std::string getSpritesheetPath const {return _spritesheetPath;}
 
     /**
-     *Returns the list of the characters special ability items
+     * Returns the list of the characters special ability items
      */
     std::vector<std::string> getSpecialAbilities const {return _specialAbilities;}
 
@@ -115,7 +120,7 @@ public:
     void addItem(const ItemInstance& item);
 
     /**
-     *Returns whether the player is alive or not
+     * Returns whether the player is alive or not
      */
     bool isAlive();
 
@@ -126,6 +131,6 @@ public:
      * @return true if the item was found and removed, false otherwise
      */
     template <typename T>
-    bool useItem(const ItemInstance& item, T& target);
+    bool useItemById(ItemInstance::ItemId itemId, T& target);
 
 #endif /* !__PLAYER_H__ */

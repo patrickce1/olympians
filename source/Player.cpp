@@ -66,11 +66,11 @@ bool Player::isAlive(){
  * @return true if the item was found and used, false otherwise
  */
 template <typename T>
-bool Player::useItem(const ItemInstance& item, T& target) {
+bool Player::useItemById(ItemInstance::ItemId itemId, T& target) {
     for (auto it = _inventory.begin(); it != _inventory.end(); ++it) {
-        if (it->id == item.id) {
-            it->apply(*it, target);
+        if (it->getId() == itemId) {
             _inventory.erase(it);
+            target.updateHealth(-1.0f)
             return true;
         }
     }

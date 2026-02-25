@@ -51,12 +51,23 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     //scene->doLayout(); // Repositions the HUD
    
     //addChild(scene);
+
+    // CHANGE third argument to data-driven later
+    if (!_itemController.init(_assets, "items", 3.0f)) {
+        CULog("GameScene: failed to initialize ItemController");
+        return false;
+    }
+
     setActive(false);
     return true;
 }
 
 void GameScene::update(float dt) {
-    //nothing for now
+    if (!_active) {
+        return;
+    }
+
+    _itemController.update(dt, _players);
 }
 
 /**
