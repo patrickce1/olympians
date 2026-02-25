@@ -37,8 +37,8 @@ void ItemDatabase::setStartingPointWithTime() {
 
 /** Returns the definition of the given defId */
 std::shared_ptr<ItemDef> ItemDatabase::getDef(const std::string& defId) const {
-    auto it = _defs.find(defId);
-    return (it == _defs.end() ? nullptr : it->second);
+    auto itemDef = _defs.find(defId);
+    return (itemDef == _defs.end() ? nullptr : itemDef->second);
 }
 
 /** Creates an instance of the item with the given defId, and the instance is given id */
@@ -87,8 +87,8 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
 
 /** Returns the probability weight of the given rarity */
 double ItemDatabase::rarityBaseWeight(ItemDef::Rarity r) const {
-    auto it = _rarityWeights.find(r);
-    if (it != _rarityWeights.end()) return it->second;
+    auto rarity = _rarityWeights.find(r);
+    if (rarity != _rarityWeights.end()) return rarity->second;
     return 1.0;
 }
 
@@ -187,9 +187,9 @@ std::string ItemDatabase::rollRandomDefId() {
 
 /** Weighted roll within a specific rarity bucket (probably not needed) */
 std::string ItemDatabase::rollRandomDefId(ItemDef::Rarity rarity) {
-    auto it = _bucketsByRarity.find(rarity);
-    if (it == _bucketsByRarity.end()) return "";
-    return rollFromBucket(it->second);
+    auto bucket = _bucketsByRarity.find(rarity);
+    if (bucket == _bucketsByRarity.end()) return "";
+    return rollFromBucket(bucket->second);
 }
 
 /** Just for potential usage */
