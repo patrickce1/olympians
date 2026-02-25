@@ -16,6 +16,9 @@ sources:                            # The list of the source code files
     - source/scenes/*.h
     - tests/**/*.cpp
     - tests/**/*.h
+    - source/items/*.cpp
+    - source/items/*.h
+
 modules:
     - scene2
 

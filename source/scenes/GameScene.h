@@ -1,6 +1,9 @@
 #ifndef __GAME_SCENE_H__
 #define __GAME_SCENE_H__
 #include <cugl/cugl.h>
+#include <vector>
+#include "Player.h"
+#include "ItemController.h"
 
 /**
  * This class represents the core game scene
@@ -13,6 +16,9 @@ public:
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+    std::vector<Player> _players;
+    ItemController _itemController;
+
 
 public:
 #pragma mark -
@@ -26,7 +32,7 @@ public:
     /**
      * Disposes of all (non-static) resources allocated to this mode.
      *
-     * This method is different from dispose() in that it ALSO shuts off any
+     * This method is different from dispose() in that it ALSO shuts off any 
      * static resources, like the input controller.
      */
     ~GameScene() { dispose(); }

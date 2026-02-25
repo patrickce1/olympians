@@ -6,7 +6,7 @@
  * @param characterID         The ID of the character as appears in the JSON
  */
 
-void Player::Player(const std::string& characterId, int playerNumber,
+Player::Player(const std::string& characterId, int playerNumber,
                     const std::string& playerName,
                     const CharacterLoader& loader){
     
@@ -48,7 +48,7 @@ void Player::updateHealth(float delta) {
  * Adds an item to the player's inventory.
  * @param item      The item to add
  */
-void Player::addItem(const Item& item) {
+void Player::addItem(const ItemInstance& item) {
     _inventory.push_back(item);
 }
 
@@ -60,20 +60,37 @@ bool Player::isAlive(){
 }
 
 /**
- * Uses an item from the player's inventory on a target.
- * Calls item.apply() on the target and removes the item if successful.
- * @param item      The item to use
+ * Uses and removes an item from the player's inventory on a target.
+ * @param item        The item to use
  * @param target    The target to apply the item to (Player or Enemy)
+ * @param db             The item database
  * @return true if the item was found and used, false otherwise
  */
 template <typename T>
-bool Player::useItem(const Item& item, T& target) {
-    for (auto it = _inventory.begin(); it != _inventory.end(); ++it) {
-        if (it->id == item.id) {
-            it->apply(*it, target);
-            _inventory.erase(it);
+bool Player::useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
+    for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
+        if (item->getId() == itemId) {
+            std::shared_ptr<ItemDef> def = db.getDef(item->getDefId());
+            if (!def) {
+                CULogError("Player: could not find ItemDef for defId '%s'", item->getDefId().c_str());
+                return false;
+            }
+
+            if constexpr (std::is_same<T, Player>::value) {
+                if (def->getType() == ItemDef::Type::Support) {
+                    target.updateHealth(def->getEffectiveValue());
+                }
+            }
+//            } else if constexpr (std::is_same<T, Enemy>::value) {
+//                if (def->getType() == ItemDef::Type::Attack) {
+//                    target.updateHealth(-def->getEffectiveValue());
+//                }
+//            }
+
+            _inventory.erase(item);
             return true;
         }
     }
     return false;
 }
+
