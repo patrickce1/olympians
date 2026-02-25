@@ -36,6 +36,9 @@ private:
     Bucket _all;
     std::unordered_map<ItemDef::Rarity, Bucket, RarityHash> _byRarity;
     
+    /** Data-driven rarity weights */
+    std::unordered_map<ItemDef::Rarity, double, RarityHash> _rarityWeights;
+    
     /** Random value holder */
     cugl::Random _rng;
     /** Only needed if we forget to generate a random seed manually */
@@ -44,13 +47,14 @@ private:
 private:
     void clearBuckets();
 
-    /** Returns the probability weight of the given rarity */
-    static double rarityBaseWeight(ItemDef::Rarity r);
+    /** In case of a reset, reset to fallback values */
+    void resetRarityWeights();
     
-    /** Encapsulates weight system in the cpp file */
-    static double effectiveWeight(const ItemDef& def) {
-        return rarityBaseWeight(def.getRarity());
-    }
+    /** Load rarity weights from a JSON */
+    void loadRarityWeights(const std::shared_ptr<cugl::JsonValue>& json);
+    
+    /** Returns the probability weight of the given rarity */
+    double rarityBaseWeight(ItemDef::Rarity r) const;
 
     /** Add item with the given defId to the corresponding bucket with effWeight */
     void addToBucket(Bucket& bucket, const std::string& defId, double effWeight);

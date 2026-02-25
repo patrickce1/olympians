@@ -41,17 +41,44 @@ std::shared_ptr<ItemInstance> ItemDatabase::createInstance(const std::string& de
 }
 
 
-double ItemDatabase::rarityBaseWeight(ItemDef::Rarity r) {
-    // Change below to alter rarity weights
-    switch (r) {
-        case ItemDef::Rarity::Common:    return 0.45;
-        case ItemDef::Rarity::Uncommon:  return 0.40;
-        case ItemDef::Rarity::Rare:      return 0.08;
-        case ItemDef::Rarity::Epic:      return 0.04;
-        case ItemDef::Rarity::Legendary: return 0.02;
-        case ItemDef::Rarity::Divine:    return 0.01;
-        default:                         return 1.00;
-    }
+void ItemDatabase::resetRarityWeights() {
+    _rarityWeights.clear();
+    _rarityWeights[ItemDef::Rarity::Common]    = 1.00;
+    _rarityWeights[ItemDef::Rarity::Uncommon]  = 0.60;
+    _rarityWeights[ItemDef::Rarity::Rare]      = 0.30;
+    _rarityWeights[ItemDef::Rarity::Epic]      = 0.12;
+    _rarityWeights[ItemDef::Rarity::Legendary] = 0.05;
+}
+
+void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
+    resetRarityWeights();
+
+    if (!json || !json->isObject()) return;
+    if (!json->has("rarityWeights")) return;
+    if (!json->get("rarityWeights")->isObject()) return;
+
+    auto rw = json->get("rarityWeights");
+
+    auto loadOne = [&](const char* key, ItemDef::Rarity rarity) {
+        if (rw->has(key) && rw->get(key)->isNumber()) {
+            double w = rw->get(key)->asDouble();
+            if (w < 0.0) w = 0.0;
+            _rarityWeights[rarity] = w;
+        }
+    };
+
+    loadOne("Common",    ItemDef::Rarity::Common);
+    loadOne("Uncommon",  ItemDef::Rarity::Uncommon);
+    loadOne("Rare",      ItemDef::Rarity::Rare);
+    loadOne("Epic",      ItemDef::Rarity::Epic);
+    loadOne("Legendary", ItemDef::Rarity::Legendary);
+}
+
+
+double ItemDatabase::rarityBaseWeight(ItemDef::Rarity r) const {
+    auto it = _rarityWeights.find(r);
+    if (it != _rarityWeights.end()) return it->second;
+    return 1.0;
 }
 
 void ItemDatabase::addToBucket(Bucket& bucket, const std::string& defId, double effWeight) {
@@ -106,7 +133,7 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
         _defs[id] = def;
 
         // Rarity-driven spawn weights
-        double w = effectiveWeight(*def);
+        double w = rarityBaseWeight(def->getRarity());
 
         // Add to spawn buckets if spawnable
         addToBucket(_all, id, w);
