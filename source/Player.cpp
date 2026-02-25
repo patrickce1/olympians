@@ -48,7 +48,7 @@ void Player::updateHealth(float delta) {
  * Adds an item to the player's inventory.
  * @param item      The item to add
  */
-void Player::addItem(const Item& item) {
+void Player::addItem(const ItemInstance& item) {
     _inventory.push_back(item);
 }
 
@@ -61,13 +61,12 @@ bool Player::isAlive(){
 
 /**
  * Uses an item from the player's inventory on a target.
- * Calls item.apply() on the target and removes the item if successful.
  * @param item      The item to use
  * @param target    The target to apply the item to (Player or Enemy)
  * @return true if the item was found and used, false otherwise
  */
 template <typename T>
-bool Player::useItem(const Item& item, T& target) {
+bool Player::useItem(const ItemInstance& item, T& target) {
     for (auto it = _inventory.begin(); it != _inventory.end(); ++it) {
         if (it->id == item.id) {
             it->apply(*it, target);

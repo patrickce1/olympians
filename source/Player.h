@@ -6,14 +6,14 @@
 #include <string>
 #include <vector>
 #include "CharacterLoader.h"
-#include "Items.h"
+#include "ItemInstance.h"
 /**
  * Model Class representing the Player
  */
 class Player {
 private:
-    /** The inventory of the player stored as a vector of Item objects*/
-    std::vector<Item> _inventory;
+    /** The inventory of the player stored as a vector of ItemInstance objects*/
+    std::vector<ItemInstance> _inventory;
     /** The player number of this user**/
     int _playerNumber;
     /** The player name*/
@@ -27,7 +27,7 @@ private:
     /** The current health of the character and player*/
     int _currentHealth;
     /** The  ability class of the character*/
-    AbilityClas _abilityClass;
+    AbilityClass _abilityClass;
     /** The spritesheet correlating to this character*/
     std::string _spritesheetPath;
     /** The list of the characters special abilities*/
@@ -52,7 +52,7 @@ public:
     /**
      *Returns the inventory of the player
      */
-    std::vector<Item> getInventory() const { return _inventory;}
+    std::vector<ItemInstance> getInventory() const { return _inventory;}
     
     /**
      *Returns the player number
@@ -112,7 +112,7 @@ public:
      * Adds an item to the player's inventory.
      * @param item      The item to add
      */
-    void addItem(const Item& item);
+    void addItem(const ItemInstance& item);
 
     /**
      *Returns whether the player is alive or not
@@ -126,6 +126,6 @@ public:
      * @return true if the item was found and removed, false otherwise
      */
     template <typename T>
-    bool useItem(const item& item, T& target);
+    bool useItem(const ItemInstance& item, T& target);
 
 #endif /* !__PLAYER_H__ */
