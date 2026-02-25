@@ -18,7 +18,7 @@ protected:
     std::shared_ptr<cugl::AssetManager> _assets;
     std::vector<Player> _players;
     ItemController _itemController;
-    
+
 
 public:
 #pragma mark -
@@ -32,7 +32,7 @@ public:
     /**
      * Disposes of all (non-static) resources allocated to this mode.
      *
-     * This method is different from dispose() in that it ALSO shuts off any
+     * This method is different from dispose() in that it ALSO shuts off any 
      * static resources, like the input controller.
      */
     ~GameScene() { dispose(); }
