@@ -1,0 +1,47 @@
+{
+    "rarityWeights": {
+        "Common": 0.45,
+        "Uncommon": 0.40,
+        "Rare": 0.08,
+        "Epic": 0.04,
+        "Legendary": 0.02,
+        "Divine": 0.01
+    },
+    "items": [
+        {
+            "id": "lightning_bolt",
+            "name": "Lightning Bolt",
+            "description": "A crackling bolt of lightning sent from the king of the gods himself.",
+            "icon": "item_lightning_bolt",
+            "type": "attack",
+            "rarity": "divine",
+            "primary": "zeus",
+            "secondary": "none",
+            "effectiveValue": 1.0
+        },
+        {
+            "id": "apple",
+            "name": "Apple",
+            "description": "Just a plain apple.",
+            "icon": "item_apple",
+            "type": "support",
+            "rarity": "common",
+            "primary": "demeter",
+            "secondary": "none",
+            "effectiveValue": 2.0
+        },
+        {
+            "id": "noams_ballista",
+            "name": "Noam's Ballista",
+            "description": "A ballista constructed by the great Deadalus.",
+            "icon": "item_noams_ballista",
+            "type": "attack",
+            "rarity": "epic",
+            "primary": "ares",
+            "secondary": "none",
+            "effectiveValue": 1.5
+        }
+    ],
+    "itemInterval": 20.0,
+    "itemTimerStart": 5.0
+}

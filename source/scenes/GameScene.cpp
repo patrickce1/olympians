@@ -41,7 +41,6 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 
     // Start up the input handler
     _assets = assets;
-    Size dimen = getSize();
     
     // The comments are outline of how loading a scene from json should work. This DOES NOT WORK YET. Danielle should set this up
     // Acquire the scene built by the asset loader and resize it the scene. 
@@ -86,14 +85,44 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         _abilityIcons.push_back(_inventory->getChildByName("attack_6"));
     }
     
-   
+
     addChild(scene);
+
+    // CHANGE third argument to data-driven later
+    if (!_itemController.init(_assets)) {
+        CULog("GameScene: failed to initialize ItemController");
+        return false;
+    }
+    
+    // Spawn GameScene Enemy
+    const std::string enemyJsonPath = "json/enemies.json";
+    if (!_enemyLoader.loadFromFile(enemyJsonPath)) {
+        CULog("GameScene: failed to load enemies from '%s' (continuing without enemy)",
+              enemyJsonPath.c_str());
+        _enemy.reset();
+    } else {
+        const std::string enemyId = "enemy1";  // or "dummy"
+
+        if (!_enemyLoader.has(enemyId)) {
+            CULog("GameScene: enemy id '%s' not found in '%s' (continuing without enemy)",
+                  enemyId.c_str(), enemyJsonPath.c_str());
+            _enemy.reset();
+        } else {
+            _enemy = std::make_unique<Enemy>(enemyId, _enemyLoader);
+            CULog("GameScene: spawned enemy '%s'", enemyId.c_str());
+        }
+    }
+
     setActive(false);
     return true;
 }
 
 void GameScene::update(float dt) {
-    //nothing for now
+    if (!_active) {
+        return;
+    }
+
+    _itemController.update(dt, _players);
 }
 
 /**
