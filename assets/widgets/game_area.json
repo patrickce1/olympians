@@ -68,10 +68,10 @@
                     "y_offset": 0.41
                 }
             },
-            "player_3": {
+            "player3": {
                 "type": "Widget",
                 "data": {
-                    "key": "player_slot",
+                    "key": "playerSlot",
                     "variables": {}
                 },
                 "layout": {
@@ -82,10 +82,10 @@
                     "y_offset": 0.81
                 }
             },
-            "player_4": {
+            "player4": {
                 "type": "Widget",
                 "data": {
-                    "key": "player_slot",
+                    "key": "playerSlot",
                     "variables": {}
                 },
                 "layout": {
