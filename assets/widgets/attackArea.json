@@ -13,7 +13,7 @@
             "visible": true
         },
         "children": {
-            "attack_area": {
+            "attackArea": {
                 "type": "Image",
                 "data": {
                     "texture": "attack_area",

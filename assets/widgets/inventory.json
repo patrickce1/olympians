@@ -13,7 +13,7 @@
             "visible": true
         },
         "children": {
-            "inventory_background": {
+            "inventoryBackground": {
                 "type": "Image",
                 "data": {
                     "texture": "inventory_background",
@@ -47,7 +47,7 @@
                     "y_offset": 0.66
                 }
             },
-            "heal_2": {
+            "heal2": {
                 "type": "Widget",
                 "data": {
                     "key": "ability",
@@ -79,7 +79,7 @@
                     "y_offset": 0.66
                 }
             },
-            "attack_4": {
+            "attack4": {
                 "type": "Widget",
                 "data": {
                     "key": "ability",
@@ -95,7 +95,7 @@
                     "y_offset": 0.22
                 }
             },
-            "attack_5": {
+            "attack5": {
                 "type": "Widget",
                 "data": {
                     "key": "ability",
@@ -111,7 +111,7 @@
                     "y_offset": 0.5
                 }
             },
-            "attack_6": {
+            "attack6": {
                 "type": "Widget",
                 "data": {
                     "key": "ability",

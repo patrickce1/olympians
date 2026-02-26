@@ -56,17 +56,17 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     scene->doLayout(); // Repositions the HUD
     
     // Elements setup from assets
-    _gameArea  = scene->getChildByName("game_area");
+    _gameArea  = scene->getChildByName("gameArea");
     _inventory = scene->getChildByName("inventory");
     
     if (_gameArea) {
 
-        _attackArea = _gameArea->getChildByName("attack_area");
+        _attackArea = _gameArea->getChildByName("attackArea");
 
         // AI player slots
         _playerSlots.push_back(_gameArea->getChildByName("player"));
-        _playerSlots.push_back(_gameArea->getChildByName("player_3"));
-        _playerSlots.push_back(_gameArea->getChildByName("player_4"));
+        _playerSlots.push_back(_gameArea->getChildByName("player3"));
+        _playerSlots.push_back(_gameArea->getChildByName("player4"));
     }
     
     if (_attackArea) {
@@ -79,11 +79,11 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     // static items
     if (_inventory) {
         _abilityIcons.push_back(_inventory->getChildByName("heal"));
-        _abilityIcons.push_back(_inventory->getChildByName("heal_2"));
+        _abilityIcons.push_back(_inventory->getChildByName("heal2"));
         _abilityIcons.push_back(_inventory->getChildByName("attack"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack_4"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack_5"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack_6"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack4"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack5"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack6"));
     }
     
 

@@ -13,7 +13,7 @@
             "visible": true
         },
         "children": {
-            "background_scene": {
+            "backgroundScene": {
                 "type": "Solid",
                 "data": {
                     "polygon": [
@@ -40,10 +40,10 @@
                     "y_offset": 0
                 }
             },
-            "attack_area": {
+            "attackArea": {
                 "type": "Widget",
                 "data": {
-                    "key": "attack_area",
+                    "key": "attackArea",
                     "variables": {}
                 },
                 "layout": {
@@ -57,7 +57,7 @@
             "player": {
                 "type": "Widget",
                 "data": {
-                    "key": "player_slot",
+                    "key": "playerSlot",
                     "variables": {}
                 },
                 "layout": {

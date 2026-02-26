@@ -59,11 +59,11 @@
     },
     "widgets": {
         "scene":       "widgets/scene.json",
-        "game_area":   "widgets/game_area.json",
+        "gameArea":   "widgets/gameArea.json",
         "inventory":   "widgets/inventory.json",
-        "attack_area": "widgets/attack_area.json",
+        "attackArea": "widgets/attackArea.json",
         "boss":        "widgets/boss.json",
-        "player_slot": "widgets/player_slot.json",
+        "playerSlot": "widgets/playerSlot.json",
         "ability":     "widgets/ability.json"
     },
     "scene2s": {

@@ -10,10 +10,10 @@
             "type": "Anchored"
         },
         "children": {
-            "game_area": {
+            "gameArea": {
                 "type": "Widget",
                 "data": {
-                    "key": "game_area",
+                    "key": "gameArea",
                     "variables": {}
                 }
             },
