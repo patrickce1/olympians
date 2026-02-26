@@ -4,6 +4,7 @@
 
 #include "GameScene.h"
 
+
 using namespace cugl;
 using namespace cugl::scene2;
 using namespace std;
@@ -54,7 +55,10 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
-    
+    for (auto& icon : _abilityIcons) {
+        if (!icon) continue;
+        icon->setAnchor(Vec2(0.5f, 0.5f));
+    }
     // Elements setup from assets
     _gameArea  = scene->getChildByName("gameArea");
     _inventory = scene->getChildByName("inventory");
@@ -115,11 +119,43 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     return true;
 }
 
-void GameScene::update(float dt) {
-    if (!_active) {
-        return;
+void GameScene::update(float dt, InputController& input) {
+    if (!_active) return;
+    
+    if (_activeIcon && (input.touchEnded())){
+        _activeIcon = nullptr;
     }
 
+    if (!_activeIcon && input.isTouching()) {
+        // Flip y since touch is top-left origin, scene is bottom-left origin
+        float h = getSize().height;
+        cugl::Vec2 touchFlipped = cugl::Vec2(input.getTouchStart().x, h - input.getTouchStart().y);
+        cugl::Vec2 touchInInventory = _inventory->parentToNodeCoords(touchFlipped);
+
+        for (auto& icon : _abilityIcons) {
+            if (!icon) continue;
+            cugl::Rect bbox = icon->getBoundingBox();
+//            float padX = bbox.size.width / 2;
+//            float padY = bbox.size.height / 2;
+//            bbox.origin.x -= padX;
+//            bbox.origin.y -= padY;
+//            bbox.size.width += padX * 1;
+//            bbox.size.height += padY * 1.25;
+            if (bbox.contains(touchInInventory)) {
+                _activeIcon = icon;
+                _dragOffset = icon->getPosition() - touchInInventory;
+                break;
+            }
+        }
+    }
+
+    if (_activeIcon && input.isTouching()) {
+        float h = getSize().height;
+        cugl::Vec2 dragFlipped = cugl::Vec2(input.getDragPos().x, h - input.getDragPos().y);
+        cugl::Vec2 dragInInventory = _inventory->parentToNodeCoords(dragFlipped);
+        _activeIcon->setPosition(dragInInventory + _dragOffset);
+    }
+    
     _itemController.update(dt, _players);
 }
 
@@ -158,4 +194,33 @@ void GameScene::setActive(bool value) {
             //deactivate any children that are part of the scene
         }
     }
+}
+
+void GameScene::render() {
+    Scene2::render();
+    
+    auto batch = getSpriteBatch();
+    batch->setPerspective(getCamera()->getCombined());
+    batch->begin();
+    batch->setColor(Color4::RED);
+    
+    for (auto& icon : _abilityIcons) {
+        if (!icon) continue;
+        Rect bbox = icon->getBoundingBox();
+//        float padX = bbox.size.width / 2;
+//        float padY = bbox.size.height / 2;
+//        bbox.origin.x -= padX;
+//        bbox.origin.y -= padY;
+//        bbox.size.width += padX * 1;
+//        bbox.size.height += padY * 1.25;
+////
+//        Vec2 origin = _inventory->nodeToParentCoords(bbox.origin);
+//        Vec2 corner = _inventory->nodeToParentCoords(bbox.origin + bbox.size);
+//        Rect screenBox(origin, Size(corner.x - origin.x, corner.y - origin.y));
+        
+        Path2 path(bbox);
+        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+    }
+    
+    batch->end();
 }

@@ -89,7 +89,8 @@ void SceneLoader::onStartup() {
     currentScene = State::GAME;
     gameScene.init(_assets);
     gameScene.setSpriteBatch(_batch);
-    
+    gameScene.setActive(true);
+
     // Build the scene from these assets
     Application::onStartup();
 
@@ -189,6 +190,7 @@ void SceneLoader::update(float dt) {
     switch (currentScene) {
         case GAME:
             InputController::Action action = _input.getAction();
+
                         switch (action) {
                             case InputController::Action::PASS_RIGHT:
                                 CULog("[ACTION] PASS_RIGHT");
@@ -208,7 +210,7 @@ void SceneLoader::update(float dt) {
                             default:
                                 break;
                         }
-            gameScene.update(dt);
+            gameScene.update(dt,_input);
             break;
     }
     _input.resetAction();
@@ -235,6 +237,6 @@ void SceneLoader::draw() {
 
 
 void SceneLoader::updateGameScene(float dt) {
-    gameScene.update(dt);
+    gameScene.update(dt,_input);
     //scene switching logic goes here
 }

@@ -61,6 +61,8 @@ void ItemController::update(float dt, std::vector<Player>& players) {
         _itemTimer -= _itemInterval;
         giveRandomItemToAll(players);
     }
+    
+    
 }
 
 // Hand out cards to players

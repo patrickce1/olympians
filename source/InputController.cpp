@@ -61,6 +61,7 @@ void InputController::dispose() {
 void InputController::setActive(bool active){
     _active = active;
     if (!active){
+        _touchEnded = true;
         // Cancel any in-progress drag gesture
         _dragging = false;
         _activeTouchID = -1;
@@ -68,6 +69,7 @@ void InputController::setActive(bool active){
         InputController::resetAction();
     }
 }
+
 
 /**
  * Callback invoked when a new touch contact begins.
@@ -89,7 +91,9 @@ void InputController::onTouchBegan(const cugl::TouchEvent &event, bool focus){
     //Determine the id of the event, and find the position of that tap.
     _activeTouchID = event.touch;
     _touchStart = pos;
+    _dragPos = pos;
     _dragging = false;
+    _touchEnded = false;
     _action = Action::NONE;
 }
 
@@ -134,7 +138,7 @@ void InputController::onTouchEnded(const cugl::TouchEvent &event, bool focus){
     
     cugl::Vec2 pos = event.position * _scale;
 
-    if (!_active || event.touch != _activeTouchID){
+    if (event.touch != _activeTouchID){
         return;
     }
     if (_dragging){
@@ -161,5 +165,8 @@ void InputController::onTouchEnded(const cugl::TouchEvent &event, bool focus){
     }
     _activeTouchID = -1;
     _dragging = false;
+    _touchEnded = true;
 }
+
+
 

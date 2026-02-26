@@ -84,9 +84,10 @@ public:
     Action getAction() const {
         return _action;
     }
-    //Seet player action to none.
+    //Seet player action to none. Our touch has not started.
     void resetAction() {
         _action = Action::NONE;
+        _touchEnded = false;
     }
     
     //Only meaningful when isDragging == True and Given in Screen Coordinates.
@@ -101,15 +102,23 @@ public:
     bool isDragging() const {
         return _dragging;
     }
+    //Return if the touch has ended
+    bool touchEnded() const {
+        return _touchEnded;
+    }
+    bool isTouching() const {
+        return _activeTouchID != -1 && !_touchEnded;
+    }
 private:
     /** Minimum horizontal travel (px) to classify a release as a swipe. */
     static constexpr float SWIPE_THRESHOLD = 75.0f;
     /** Minimum travel (px) from touch start before a drag is recognized. */
-    static constexpr float DRAG_THRESHOLD = 5.0f;
+    static constexpr float DRAG_THRESHOLD = 2.0f;
     
     /**STATES**/
     bool _active = false;
     bool _dragging = false;
+    bool _touchEnded = false;
     Action _action = Action::NONE;
     cugl::TouchID _activeTouchID = -1;
     cugl::Vec2 _touchStart;

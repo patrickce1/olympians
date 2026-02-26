@@ -24,8 +24,8 @@
                     "visible": true
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "bottom",
+                    "x_anchor": "bottom",
+                    "y_anchor": "left",
                     "absolute": false,
                     "x_offset": 0,
                     "y_offset": 0
@@ -40,11 +40,11 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "bottom",
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
                     "absolute": false,
-                    "x_offset": 0.13,
-                    "y_offset": 0.66
+                    "x_offset": 0.00,
+                    "y_offset": 0.00
                 }
             },
             "heal2": {
@@ -56,8 +56,8 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "bottom",
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0.2,
                     "y_offset": 0.39
@@ -72,10 +72,10 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "bottom",
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
                     "absolute": false,
-                    "x_offset": 0.36,
+                    "x_offset": 0.1,
                     "y_offset": 0.66
                 }
             },
@@ -88,10 +88,10 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "bottom",
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
                     "absolute": false,
-                    "x_offset": 0.44,
+                    "x_offset": 0.1,
                     "y_offset": 0.22
                 }
             },
@@ -104,10 +104,10 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "bottom",
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
                     "absolute": false,
-                    "x_offset": 0.56,
+                    "x_offset": 0.1,
                     "y_offset": 0.5
                 }
             },
@@ -120,10 +120,10 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "bottom",
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
                     "absolute": false,
-                    "x_offset": 0.73,
+                    "x_offset": 0.2,
                     "y_offset": 0.25
                 }
             }

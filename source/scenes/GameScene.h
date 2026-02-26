@@ -6,6 +6,8 @@
 #include "ItemController.h"
 #include "Enemy.h"
 #include "EnemyLoader.h"
+#include "InputController.h"
+
 
 /**
  * This class represents the core game scene
@@ -35,6 +37,11 @@ protected:
 
     /** The node representing the player's inventory UI container. */
     std::shared_ptr<cugl::scene2::SceneNode> _inventory;
+    
+    /** The node representing the active (placeholder) item that the player is holding**/
+    std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
+    /**Distance that the active item has moved.**/
+    cugl::Vec2 _dragOffset;
 
     /** The collection of item icon nodes displayed in the inventory. */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
@@ -95,8 +102,12 @@ public:
     virtual void setActive(bool value) override;
 
     //everything that needs to be updated. Anything that isn't a graphics call goes here
-    virtual void update(float dt) override;
+    void update(float dt,InputController& input);
+    
+    void render() override;
+
 
 };
+
 
 #endif /* __GAME_SCENE_H__ */
