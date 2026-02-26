@@ -135,7 +135,6 @@ void GameScene::dispose() {
         _inventory = nullptr;
         _attackArea = nullptr;
         _bossNode = nullptr;
-
         _playerSlots.clear();
         _abilityIcons.clear();
         _active = false;
