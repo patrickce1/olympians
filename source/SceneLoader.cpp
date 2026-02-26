@@ -252,9 +252,11 @@ void SceneLoader::draw() {
     // This takes care of begin/end
     switch (_currentScene) {
         case State::LOAD:
+            CULog("DRAWING LOAD");
             _loadingScene->render();
             break;
         case State::GAME:
+            CULog("DRAWING GAME");
             _gameScene.render();
             break;
     }
