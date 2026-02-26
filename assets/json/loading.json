@@ -10,6 +10,89 @@
           "type": "Node",
           "data": {
             "size": [393, 852]
+          },
+          "children": {
+            "bg": {
+              "type": "Button",
+              "data": {
+                "position": [0, 0],
+                "size": [393, 852],
+                "anchor": [0, 0],
+                "up": [10, 18, 36, 255]
+              }
+            },
+            "glowTop": {
+              "type": "Button",
+              "data": {
+                "position": [196.5, 640],
+                "size": [280, 120],
+                "anchor": [0.5, 0.5],
+                "up": [28, 64, 120, 80]
+              }
+            },
+            "glowBottom": {
+              "type": "Button",
+              "data": {
+                "position": [196.5, 250],
+                "size": [240, 90],
+                "anchor": [0.5, 0.5],
+                "up": [20, 50, 95, 55]
+              }
+            },
+            "cardShadow": {
+              "type": "Button",
+              "data": {
+                "position": [202.5, 432],
+                "size": [323, 212],
+                "anchor": [0.5, 0.5],
+                "up": [0, 0, 0, 70]
+              }
+            },
+            "card": {
+              "type": "Button",
+              "data": {
+                "position": [196.5, 440],
+                "size": [323, 212],
+                "anchor": [0.5, 0.5],
+                "up": [18, 28, 48, 235]
+              }
+            },
+            "accentBig": {
+              "type": "Button",
+              "data": {
+                "position": [196.5, 510],
+                "size": [112, 8],
+                "anchor": [0.5, 0.5],
+                "up": [104, 192, 255, 255]
+              }
+            },
+            "accentSmall": {
+              "type": "Button",
+              "data": {
+                "position": [196.5, 492],
+                "size": [176, 4],
+                "anchor": [0.5, 0.5],
+                "up": [60, 110, 170, 255]
+              }
+            },
+            "barTrack": {
+              "type": "Button",
+              "data": {
+                "position": [196.5, 390],
+                "size": [295, 22],
+                "anchor": [0.5, 0.5],
+                "up": [36, 52, 78, 255]
+              }
+            },
+            "barGlow": {
+              "type": "Button",
+              "data": {
+                "position": [196.5, 390],
+                "size": [307, 34],
+                "anchor": [0.5, 0.5],
+                "up": [70, 140, 220, 40]
+              }
+            }
           }
         },
         "after": {
@@ -17,15 +100,44 @@
           "data": {
             "size": [393, 852],
             "visible": false
+          },
+          "children": {
+            "bg": {
+              "type": "Button",
+              "data": {
+                "position": [0, 0],
+                "size": [393, 852],
+                "anchor": [0, 0],
+                "up": [10, 18, 36, 255]
+              }
+            },
+            "readyCard": {
+              "type": "Button",
+              "data": {
+                "position": [196.5, 430],
+                "size": [323, 160],
+                "anchor": [0.5, 0.5],
+                "up": [24, 44, 70, 235]
+              }
+            },
+            "readyAccent": {
+              "type": "Button",
+              "data": {
+                "position": [196.5, 460],
+                "size": [140, 8],
+                "anchor": [0.5, 0.5],
+                "up": [114, 255, 184, 255]
+              }
+            }
           }
         },
         "bar": {
           "type": "Progress",
           "data": {
-            "position": [36, 426],
-            "size": [321, 24],
+            "position": [49, 390],
+            "size": [295, 12],
             "anchor": [0, 0.5],
-            "color": [93, 173, 226, 255]
+            "color": [104, 192, 255, 255]
           }
         },
         "play": {
@@ -33,15 +145,7 @@
           "data": {
             "position": [-1000, -1000],
             "size": [1, 1],
-            "up": "up"
-          },
-          "children": {
-            "up": {
-              "type": "Node",
-              "data": {
-                "size": [1, 1]
-              }
-            }
+            "up": [255, 255, 255, 255]
           }
         }
       }

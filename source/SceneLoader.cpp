@@ -63,7 +63,7 @@ void SceneLoader::onStartup() {
 
     // Create a sprite batch (and background color) to render the scene
     _batch = SpriteBatch::alloc();
-    setClearColor(Color4(229, 229, 229, 255));
+//    setClearColor(Color4(229, 229, 229, 255));
 
     // Create an asset manager to load all assets
     _assets = AssetManager::alloc();
