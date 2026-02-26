@@ -8,6 +8,7 @@
 #include "CharacterLoader.h"
 #include "ItemInstance.h"
 #include "ItemDatabase.h"
+#include "Enemy.h"
 
 
 /**

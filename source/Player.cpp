@@ -81,11 +81,11 @@ bool Player::useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatab
                     target.updateHealth(def->getEffectiveValue());
                 }
             }
-//            } else if constexpr (std::is_same<T, Enemy>::value) {
-//                if (def->getType() == ItemDef::Type::Attack) {
-//                    target.updateHealth(-def->getEffectiveValue());
-//                }
-//            }
+            else if constexpr (std::is_same<T, Enemy>::value) {
+                if (def->getType() == ItemDef::Type::Attack) {
+                    target.updateHealth(-def->getEffectiveValue());
+                }
+            }
 
             _inventory.erase(item);
             return true;
