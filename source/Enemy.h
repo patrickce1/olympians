@@ -45,9 +45,7 @@ private:
     std::string _currentState = "idle";
     float _stateTime = 0.0f;
     bool _eventsFiredThisState = false;
-
     float _attackLockout = 0.0f;
-
     Facing _facing = Facing::DOWN;
 
     // buffer for fired events

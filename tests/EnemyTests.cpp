@@ -2,11 +2,10 @@
 #include <cugl/cugl.h>
 #include <fstream>
 #include <cstdio>
-
 #include "EnemyLoader.h"
 #include "Enemy.h"
 
-
+/** Writes a temporary enemy JSON to be used by the tests. */
 static std::string writeTempJson(const std::string& contents) {
     // Use a location CUGL can reliably read/write at runtime
     std::string dir = cugl::Application::get()->getSaveDirectory();
@@ -21,10 +20,12 @@ static std::string writeTempJson(const std::string& contents) {
     return path;
 }
 
+/** Deletes the temporary JSON. */
 static void removeTempJson(const std::string& path) {
     std::remove(path.c_str());
 }
 
+/** Tests that the JSON is properly parsed into an instance of Enemy. */
 static void testEnemyLoaderParsesBasicDef() {
     CULog("[TEST] testEnemyLoaderParsesBasicDef START");
 
@@ -67,6 +68,7 @@ static void testEnemyLoaderParsesBasicDef() {
     CULog("[TEST] testEnemyLoaderParsesBasicDef PASS");
 }
 
+/** Tests the state transition functionality. Enemy should go from a state to its 'nextState' nad should not be able to go to a new attack state if the cooldown is still active. */
 static void testEnemyStateFlowAndCooldown() {
     CULog("[TEST] testEnemyStateFlowAndCooldown START");
 
@@ -97,7 +99,6 @@ static void testEnemyStateFlowAndCooldown() {
 
     EnemyLoader loader;
     CUAssertLog(loader.loadFromFile(path), "EnemyLoader failed to load JSON");
-
     Enemy enemy("enemy1", loader);
 
     CUAssertLog(enemy.getCurrentStateName() == "idle", "Enemy did not start in idle");
@@ -115,6 +116,7 @@ static void testEnemyStateFlowAndCooldown() {
     CULog("[TEST] testEnemyStateFlowAndCooldown PASS");
 }
 
+/** Tests enemy healing/damage works as intended. Cannot go below zero or above max health. */
 static void testEnemyHealthClamp() {
     CULog("[TEST] testEnemyHealthClamp START");
 
@@ -136,7 +138,6 @@ static void testEnemyHealthClamp() {
 
     EnemyLoader loader;
     CUAssertLog(loader.loadFromFile(path), "EnemyLoader failed to load JSON");
-
     Enemy enemy("dummy", loader);
 
     enemy.updateHealth(-3.0f);
@@ -152,7 +153,8 @@ static void testEnemyHealthClamp() {
 
     CULog("[TEST] testEnemyHealthClamp PASS");
 }
-/** Runs debug-only unit tests for EnemyLoader + Enemy. */
+
+/** Runs  unit tests for EnemyLoader + Enemy. */
 void runEnemyTests() {
     CULog("=== EnemyTests: START ===");
     testEnemyLoaderParsesBasicDef();

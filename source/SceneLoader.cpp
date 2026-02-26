@@ -115,17 +115,12 @@ void SceneLoader::onStartup() {
     Rect bounds = Display::get()->getSafeBounds();
     _logger->log("Safe Area %sx%s", bounds.origin.toString().c_str(),
         bounds.size.toString().c_str());
-
     bounds = getSafeBounds();
     _logger->log("Safe Area %sx%s", bounds.origin.toString().c_str(),
         bounds.size.toString().c_str());
     bounds = getDisplayBounds();
     _logger->log("Full Area %sx%s", bounds.origin.toString().c_str(),
         bounds.size.toString().c_str());
-    
-// Unit tests for enemy and enemy loader
-//    runEnemyTests();
-
 }
 
 /**

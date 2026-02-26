@@ -12,10 +12,8 @@ Enemy::Enemy(const std::string& enemyId, const EnemyLoader& loader) {
     _enemyId = def.id;
     _name = def.name;
     _spritesheetPath = def.spritesheetPath;
-
     _maxHealth = def.maxHealth;
     _currentHealth = def.maxHealth;
-
     _shields = def.defaultShields;
     _states = def.states;
 
@@ -90,10 +88,10 @@ void Enemy::fireEvents() {
 
 /** Applies the current state's cooldown to prevent immediate re-entry into attack states. */
 void Enemy::applyCooldown() {
-    const EnemyLoader::StateDef* st = getCurrentStateDef();
-    if (!st) return;
+    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+    if (!stateDef) return;
 
-    _attackLockout = std::max(_attackLockout, st->cooldownTime);
+    _attackLockout = std::max(_attackLockout, stateDef->cooldownTime);
 }
 
 /** Returns the state's configured next state, or falls back to "idle" if invalid/missing. */
