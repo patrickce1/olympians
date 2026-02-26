@@ -85,11 +85,9 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         _abilityIcons.push_back(_inventory->getChildByName("attack5"));
         _abilityIcons.push_back(_inventory->getChildByName("attack6"));
     }
-    
 
     addChild(scene);
 
-    // CHANGE third argument to data-driven later
     if (!_itemController.init(_assets)) {
         return false;
     }

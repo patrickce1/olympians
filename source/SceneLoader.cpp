@@ -85,8 +85,6 @@ void SceneLoader::onStartup() {
 #else
     Input::activate<Mouse>();
 #endif
-    
-   
 
     currentScene = State::GAME;
     gameScene.init(_assets);
@@ -95,7 +93,6 @@ void SceneLoader::onStartup() {
     // Build the scene from these assets
     Application::onStartup();
 
-    
     // in SceneLoader::onStartup(), just to verify zones fire
     _input.init(); //The input controller starts.
     cugl::Rect screen = getDisplayBounds();
