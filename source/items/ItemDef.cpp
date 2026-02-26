@@ -68,16 +68,16 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
         CULogError("ItemDef '%s': missing or invalid 'rarity', defaulting to Common", _id.c_str());
     }
     
-    if (json->has("primaryHouse") && json->get("primaryHouse")->isString()) {
-        _primaryHouse = houseFromString(json->get("primaryHouse")->asString(), House::None);
+    if (json->has("primary") && json->get("primary")->isString()) {
+        _primaryHouse = houseFromString(json->get("primary")->asString(), House::None);
     } else {
-        CULogError("ItemDef '%s': missing or invalid 'primaryHouse', defaulting to None", _id.c_str());
+        CULogError("ItemDef '%s': missing or invalid 'primary', defaulting to None", _id.c_str());
     }
     
-    if (json->has("secondaryHouse") && json->get("secondaryHouse")->isString()) {
-        _secondaryHouse = houseFromString(json->get("secondaryHouse")->asString(), House::None);
+    if (json->has("secondary") && json->get("secondary")->isString()) {
+        _secondaryHouse = houseFromString(json->get("secondary")->asString(), House::None);
     } else {
-        CULogError("ItemDef '%s': missing or invalid 'secondaryHouse', defaulting to None", _id.c_str());
+        CULogError("ItemDef '%s': missing or invalid 'secondary', defaulting to None", _id.c_str());
     }
     
     if (json->has("effectiveValue")) {
