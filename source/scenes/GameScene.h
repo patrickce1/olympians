@@ -4,6 +4,8 @@
 #include <vector>
 #include "Player.h"
 #include "ItemController.h"
+#include "Enemy.h"
+#include "EnemyLoader.h"
 
 /**
  * This class represents the core game scene
@@ -18,6 +20,8 @@ protected:
     std::shared_ptr<cugl::AssetManager> _assets;
     std::vector<Player> _players;
     ItemController _itemController;
+    EnemyLoader _enemyLoader;
+    std::unique_ptr<Enemy> _enemy;
 
 
 public:

@@ -4,6 +4,9 @@
 #include <cugl/core/CUBase.h>
 #include <cugl/core/util/CULogger.h>
 
+//  Unit tests 
+void runEnemyTests();
+
 // This keeps us from having to write cugl:: all the time
 using namespace cugl;
 using namespace cugl::scene2;
@@ -112,7 +115,6 @@ void SceneLoader::onStartup() {
     Rect bounds = Display::get()->getSafeBounds();
     _logger->log("Safe Area %sx%s", bounds.origin.toString().c_str(),
         bounds.size.toString().c_str());
-
     bounds = getSafeBounds();
     _logger->log("Safe Area %sx%s", bounds.origin.toString().c_str(),
         bounds.size.toString().c_str());

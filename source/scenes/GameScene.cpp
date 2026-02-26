@@ -52,11 +52,29 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     //addChild(scene);
     
     
-
     // CHANGE third argument to data-driven later
     if (!_itemController.init(_assets)) {
         CULog("GameScene: failed to initialize ItemController");
         return false;
+    }
+    
+    // Spawn GameScene Enemy
+    const std::string enemyJsonPath = "json/enemies.json";
+    if (!_enemyLoader.loadFromFile(enemyJsonPath)) {
+        CULog("GameScene: failed to load enemies from '%s' (continuing without enemy)",
+              enemyJsonPath.c_str());
+        _enemy.reset();
+    } else {
+        const std::string enemyId = "enemy1";  // or "dummy"
+
+        if (!_enemyLoader.has(enemyId)) {
+            CULog("GameScene: enemy id '%s' not found in '%s' (continuing without enemy)",
+                  enemyId.c_str(), enemyJsonPath.c_str());
+            _enemy.reset();
+        } else {
+            _enemy = std::make_unique<Enemy>(enemyId, _enemyLoader);
+            CULog("GameScene: spawned enemy '%s'", enemyId.c_str());
+        }
     }
 
     setActive(false);
