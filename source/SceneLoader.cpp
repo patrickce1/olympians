@@ -90,10 +90,6 @@ void SceneLoader::onStartup() {
     _loadingScene->setSpriteBatch(_batch);
     _loadingScene->setActive(true);
     _loadingScene->start();
-    
-//    _gameScene.init(_assets);
-//    _gameScene.setSpriteBatch(_batch);
-    
     _currentScene = State::LOAD;
     
     // Build the scene from these assets
