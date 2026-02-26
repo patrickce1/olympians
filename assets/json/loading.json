@@ -1,0 +1,50 @@
+{
+  "scene2s": {
+    "load": {
+      "type": "Node",
+      "data": {
+        "size": [393, 852]
+      },
+      "children": {
+        "before": {
+          "type": "Node",
+          "data": {
+            "size": [393, 852]
+          }
+        },
+        "after": {
+          "type": "Node",
+          "data": {
+            "size": [393, 852],
+            "visible": false
+          }
+        },
+        "bar": {
+          "type": "Progress",
+          "data": {
+            "position": [36, 426],
+            "size": [321, 24],
+            "anchor": [0, 0.5],
+            "color": [93, 173, 226, 255]
+          }
+        },
+        "play": {
+          "type": "Button",
+          "data": {
+            "position": [-1000, -1000],
+            "size": [1, 1],
+            "up": "up"
+          },
+          "children": {
+            "up": {
+              "type": "Node",
+              "data": {
+                "size": [1, 1]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
