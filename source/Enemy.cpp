@@ -29,9 +29,9 @@ Enemy::Enemy(const std::string& enemyId, const EnemyLoader& loader) {
 
 /** Returns the definition of the currently active state, or nullptr if missing. */
 const EnemyLoader::StateDef* Enemy::getCurrentStateDef() const {
-    auto it = _states.find(_currentState);
-    if (it == _states.end()) return nullptr;
-    return &it->second;
+    auto stateDef = _states.find(_currentState);
+    if (stateDef == _states.end()) return nullptr;
+    return &stateDef->second;
 }
 
 /**

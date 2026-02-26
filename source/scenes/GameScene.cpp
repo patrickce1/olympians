@@ -58,7 +58,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         return false;
     }
     
-    // try to spawn enemy
+    // Spawn GameScene Enemy
     const std::string enemyJsonPath = "json/enemies.json";
     if (!_enemyLoader.loadFromFile(enemyJsonPath)) {
         CULog("GameScene: failed to load enemies from '%s' (continuing without enemy)",

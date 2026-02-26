@@ -4,6 +4,7 @@
 #include <cugl/core/CUBase.h>
 #include <cugl/core/util/CULogger.h>
 
+//  Unit tests 
 void runEnemyTests();
 
 // This keeps us from having to write cugl:: all the time
