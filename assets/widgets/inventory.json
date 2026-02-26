@@ -1,0 +1,132 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [0, 0],
+            "size": [400, 300],
+            "angle": 0,
+            "position": [0, 0],
+            "visible": true
+        },
+        "children": {
+            "inventoryBackground": {
+                "type": "Image",
+                "data": {
+                    "texture": "inventory_background",
+                    "anchor": [0, 0],
+                    "size": [400, 300],
+                    "angle": 0,
+                    "position": [0,0],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "heal": {
+                "type": "Widget",
+                "data": {
+                    "key": "ability",
+                    "variables": {
+                        "texture": "heal"
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.13,
+                    "y_offset": 0.66
+                }
+            },
+            "heal2": {
+                "type": "Widget",
+                "data": {
+                    "key": "ability",
+                    "variables": {
+                        "texture": "heal"
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.2,
+                    "y_offset": 0.39
+                }
+            },
+            "attack": {
+                "type": "Widget",
+                "data": {
+                    "key": "ability",
+                    "variables": {
+                        "texture": "attack"
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.36,
+                    "y_offset": 0.66
+                }
+            },
+            "attack4": {
+                "type": "Widget",
+                "data": {
+                    "key": "ability",
+                    "variables": {
+                        "texture": "attack"
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.44,
+                    "y_offset": 0.22
+                }
+            },
+            "attack5": {
+                "type": "Widget",
+                "data": {
+                    "key": "ability",
+                    "variables": {
+                        "texture": "attack"
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.56,
+                    "y_offset": 0.5
+                }
+            },
+            "attack6": {
+                "type": "Widget",
+                "data": {
+                    "key": "ability",
+                    "variables": {
+                        "texture": "attack"
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.73,
+                    "y_offset": 0.25
+                }
+            }
+        }
+    }
+}

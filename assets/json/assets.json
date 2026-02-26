@@ -21,7 +21,31 @@
 			"magfilter":"linear",
 			"wrapS":    "clamp",
 			"wrapT":    "clamp"
-		}
+		},
+        "background": {
+                   "file": "textures/background-small.png"
+        },
+        "background_scene": {
+            "file": "textures/scene_background.png"
+        },
+        "attack_area": {
+            "file": "textures/attack_area.png"
+        },
+        "enemy": {
+            "file": "textures/enemy.png"
+        },
+        "player": {
+            "file": "textures/player.png"
+        },
+        "inventory_background": {
+            "file": "textures/inventory_background.png"
+        },
+        "heal": {
+            "file": "textures/heal.png"
+        },
+        "attack": {
+            "file": "textures/attack.png"
+        }
 	},
     "fonts": {
         "felt": {
@@ -32,5 +56,26 @@
             "file":     "fonts/Roboto-Bold.ttf",
             "size":     64
         }
+    },
+    "widgets": {
+        "scene":       "widgets/scene.json",
+        "gameArea":   "widgets/gameArea.json",
+        "inventory":   "widgets/inventory.json",
+        "attackArea": "widgets/attackArea.json",
+        "boss":        "widgets/boss.json",
+        "playerSlot": "widgets/playerSlot.json",
+        "ability":     "widgets/ability.json"
+    },
+    "scene2s": {
+        "gameScene": {
+            "type": "Widget",
+            "comment": "Root node of the gameplay scene",
+            "format": { "type": "Anchored" },
+            "data": {
+                "key": "scene",
+                "variables": {}
+            }
+        }
     }
+    
 }

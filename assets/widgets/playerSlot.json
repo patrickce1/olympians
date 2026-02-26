@@ -1,0 +1,54 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0,
+                0
+            ],
+            "size": [
+                77,
+                77
+            ],
+            "angle": 0,
+            "position": [
+                300,
+                228
+            ],
+            "visible": true
+        },
+        "children": {
+            "player": {
+                "type": "Image",
+                "data": {
+                    "texture": "player",
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        77,
+                        77
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            }
+        }
+    }
+}

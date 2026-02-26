@@ -41,20 +41,54 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 
     // Start up the input handler
     _assets = assets;
+    Size dimen = getSize();
     
     // The comments are outline of how loading a scene from json should work. This DOES NOT WORK YET. Danielle should set this up
     // Acquire the scene built by the asset loader and resize it the scene. 
-    //std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("gameScene");
+    scene = _assets->get<scene2::SceneNode>("gameScene");
+    
+    if (!scene) {
+        printf("Scene NOT here!");
+        return false;
+    }
 
-    //scene->setContentSize(dimen);
-    //scene->doLayout(); // Repositions the HUD
-   
-    //addChild(scene);
+    scene->setContentSize(dimen);
+    scene->doLayout(); // Repositions the HUD
     
+    // Elements setup from assets
+    _gameArea  = scene->getChildByName("gameArea");
+    _inventory = scene->getChildByName("inventory");
     
-    // CHANGE third argument to data-driven later
+    if (_gameArea) {
+
+        _attackArea = _gameArea->getChildByName("attackArea");
+
+        // AI player slots
+        _playerSlots.push_back(_gameArea->getChildByName("player"));
+        _playerSlots.push_back(_gameArea->getChildByName("player3"));
+        _playerSlots.push_back(_gameArea->getChildByName("player4"));
+    }
+    
+    if (_attackArea) {
+        // attack_area widget contains:
+        //   "attack_area" (image region for attack input)
+        //   "enemy" (boss widget)
+        _bossNode = _attackArea->getChildByName("enemy");
+    }
+    
+    // static items
+    if (_inventory) {
+        _abilityIcons.push_back(_inventory->getChildByName("heal"));
+        _abilityIcons.push_back(_inventory->getChildByName("heal2"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack4"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack5"));
+        _abilityIcons.push_back(_inventory->getChildByName("attack6"));
+    }
+
+    addChild(scene);
+
     if (!_itemController.init(_assets)) {
-        CULog("GameScene: failed to initialize ItemController");
         return false;
     }
     
@@ -95,6 +129,12 @@ void GameScene::update(float dt) {
 void GameScene::dispose() {
     if (_active) {
         removeAllChildren();
+        _gameArea = nullptr;
+        _inventory = nullptr;
+        _attackArea = nullptr;
+        _bossNode = nullptr;
+        _playerSlots.clear();
+        _abilityIcons.clear();
         _active = false;
     }
 }

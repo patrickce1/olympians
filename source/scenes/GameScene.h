@@ -18,6 +18,27 @@ public:
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+    /** The root scene node for this scene graph. */
+    std::shared_ptr<cugl::scene2::SceneNode> scene;
+
+    /** The node representing the main game area, top half of screen. */
+    std::shared_ptr<cugl::scene2::SceneNode> _gameArea;
+
+    /** The node representing the attack interaction area, the red zone. */
+    std::shared_ptr<cugl::scene2::SceneNode> _attackArea;
+
+    /** The node representing the boss character in the scene, the centerpiece. */
+    std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
+
+    /** The collection of UI slots used to display teammate-related nodes. */
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _playerSlots;
+
+    /** The node representing the player's inventory UI container. */
+    std::shared_ptr<cugl::scene2::SceneNode> _inventory;
+
+    /** The collection of item icon nodes displayed in the inventory. */
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
+
     std::vector<Player> _players;
     ItemController _itemController;
     EnemyLoader _enemyLoader;

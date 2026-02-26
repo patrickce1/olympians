@@ -4,14 +4,25 @@ using namespace cugl;
 
 bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
                           const std::string& jsonKey) {
-    if (!assets) {
+
+    std::string path = "json/items.json";
+
+    auto reader = cugl::JsonReader::alloc(path);
+    if (!reader) {
+        CULog("ItemController: failed to open %s", path.c_str());
         return false;
     }
 
-    // Load Items Json from assets
-    auto itemsJson = assets->get<JsonValue>(jsonKey);
+    auto itemsJson = reader->readJson();
     if (!itemsJson) {
-        CULog("ItemController: missing json asset '%s'", jsonKey.c_str());
+        CULog("ItemController: failed to parse %s", path.c_str());
+        return false;
+    }
+
+    // the item array
+    auto itemArray = itemsJson->get("items");
+    if (!itemArray || !itemArray->isArray()) {
+        CULog("ItemController: items.json missing 'items' array");
         return false;
     }
 
@@ -20,6 +31,7 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
         CULog("ItemController: failed to load item database");
         return false;
     }
+
     
     // Read itemInterval from JSON if present, otherwise return error
     if (itemsJson->has("itemInterval") && itemsJson->get("itemInterval")->isNumber()) {
@@ -27,16 +39,17 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
     } else {
         CULogError("No item interval was specified");
     }
-    
+
     // Read itemTimerStart from JSON if present, otherwise return error
     if (itemsJson->has("itemTimerStart") && itemsJson->get("itemTimerStart")->isNumber()) {
         _itemTimer = itemsJson->get("itemTimerStart")->asFloat();
     } else {
-        CULogError("No item interval was specified");
+        CULogError("No item timer start was specified");
     }
-    
+
     _idGen.startGame(ItemInstance::IdGenerator::randomGameId());
     _itemDb.setStartingPointWithTime();
+
     return true;
 }
 

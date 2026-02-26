@@ -15,8 +15,8 @@
             "icon": "item_lightning_bolt",
             "type": "attack",
             "rarity": "divine",
-            "primary": "zeus",
-            "secondary": "none",
+            "primaryHouse": "zeus",
+            "secondaryHouse": "none",
             "effectiveValue": 1.0
         },
         {
@@ -26,8 +26,8 @@
             "icon": "item_apple",
             "type": "support",
             "rarity": "common",
-            "primary": "demeter",
-            "secondary": "none",
+            "primaryHouse": "demeter",
+            "secondaryHouse": "none",
             "effectiveValue": 2.0
         },
         {
@@ -37,8 +37,8 @@
             "icon": "item_noams_ballista",
             "type": "attack",
             "rarity": "epic",
-            "primary": "ares",
-            "secondary": "none",
+            "primaryHouse": "ares",
+            "secondaryHouse": "none",
             "effectiveValue": 1.5
         }
     ],

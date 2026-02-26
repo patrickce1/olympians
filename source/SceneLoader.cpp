@@ -71,6 +71,9 @@ void SceneLoader::onStartup() {
     // You have to attach the individual loaders for each asset type
     _assets->attach<Texture>(TextureLoader::alloc()->getHook());
     _assets->attach<Font>(FontLoader::alloc()->getHook());
+    _assets->attach<JsonValue>(JsonLoader::alloc()->getHook());
+    _assets->attach<WidgetValue>(WidgetLoader::alloc()->getHook());
+    _assets->attach<scene2::SceneNode>(Scene2Loader::alloc()->getHook());
 
     // This reads the given JSON file and uses it to load all other assets
     _assets->loadDirectory("json/assets.json");
@@ -82,13 +85,14 @@ void SceneLoader::onStartup() {
 #else
     Input::activate<Mouse>();
 #endif
-    
-   
 
+    currentScene = State::GAME;
+    gameScene.init(_assets);
+    gameScene.setSpriteBatch(_batch);
+    
     // Build the scene from these assets
     Application::onStartup();
 
-    
     // in SceneLoader::onStartup(), just to verify zones fire
     _input.init(); //The input controller starts.
     cugl::Rect screen = getDisplayBounds();
