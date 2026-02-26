@@ -5,8 +5,6 @@ using namespace cugl;
 bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
                           const std::string& jsonKey) {
 
-    (void)assets; // unused since we load directly from file
-
     std::string path = "json/items.json";
 
     auto reader = cugl::JsonReader::alloc(path);
@@ -15,36 +13,36 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
         return false;
     }
 
-    auto json = reader->readJson();
-    if (!json) {
+    auto itemsJson = reader->readJson();
+    if (!itemsJson) {
         CULog("ItemController: failed to parse %s", path.c_str());
         return false;
     }
 
     // the item array
-    auto itemArray = json->get("items");
+    auto itemArray = itemsJson->get("items");
     if (!itemArray || !itemArray->isArray()) {
         CULog("ItemController: items.json missing 'items' array");
         return false;
     }
 
     // Create Item Database
-    if (!_itemDb.loadFromJson(json)) {
+    if (!_itemDb.loadFromJson(itemsJson)) {
         CULog("ItemController: failed to load item database");
         return false;
     }
 
     
     // Read itemInterval from JSON if present, otherwise return error
-    if (json->has("itemInterval") && json->get("itemInterval")->isNumber()) {
-        _itemInterval = json->getFloat("itemInterval", _itemInterval);
+    if (itemsJson->has("itemInterval") && itemsJson->get("itemInterval")->isNumber()) {
+        _itemInterval = itemsJson->getFloat("itemInterval", _itemInterval);
     } else {
         CULogError("No item interval was specified");
     }
 
     // Read itemTimerStart from JSON if present, otherwise return error
-    if (json->has("itemTimerStart") && json->get("itemTimerStart")->isNumber()) {
-        _itemTimer = json->getFloat("itemTimerStart", _itemTimer);
+    if (itemsJson->has("itemTimerStart") && itemsJson->get("itemTimerStart")->isNumber()) {
+        _itemTimer = itemsJson->getFloat("itemTimerStart", _itemTimer);
     } else {
         CULogError("No item timer start was specified");
     }
