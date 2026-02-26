@@ -151,7 +151,7 @@ void SceneLoader::onShutdown() {
     Logger::close("debug");
 
     // Delete all smart pointers
-    _logger = nullptr;
+//    _logger = nullptr;
     _batch = nullptr;
     _assets = nullptr;
 
