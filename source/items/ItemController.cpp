@@ -35,14 +35,14 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
     
     // Read itemInterval from JSON if present, otherwise return error
     if (itemsJson->has("itemInterval") && itemsJson->get("itemInterval")->isNumber()) {
-        _itemInterval = itemsJson->getFloat("itemInterval");
+        _itemInterval = itemsJson->get("itemInterval")->asFloat();
     } else {
         CULogError("No item interval was specified");
     }
 
     // Read itemTimerStart from JSON if present, otherwise return error
     if (itemsJson->has("itemTimerStart") && itemsJson->get("itemTimerStart")->isNumber()) {
-        _itemTimer = itemsJson->getFloat("itemTimerStart");
+        _itemTimer = itemsJson->get("itemTimerStart")->asFloat();
     } else {
         CULogError("No item timer start was specified");
     }
