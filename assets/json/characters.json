@@ -23,6 +23,6 @@
       "abilityClass": "Healer",
       "specialAbilities": ["harvest"],
       "spritesheetPath": "textures/meg.png"
-    },
+    }
   ]
 }

@@ -38,12 +38,27 @@ protected:
 
     /** The collection of item icon nodes displayed in the inventory. */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
-
+    
+    /** A vector array of players and playerAI's. */
     std::vector<Player> _players;
+    
+    /** AI controllers for bot-controlled players, stored as base class pointers
+     *  to allow mixed difficulty levels in the same collection */
+    std::vector<std::unique_ptr<PlayerAI>> _playerAIs;
+    
+    /** The index into _players of the human-controlled player */
+    int _humanPlayerIndex = 0;
+    
+    /** Handles touch input for the human player */
+    InputController _input;
+    
+    /** An instance of the itemController*/
     ItemController _itemController;
+    
     EnemyLoader _enemyLoader;
+    
+    /** An instance of the enemy  */
     std::unique_ptr<Enemy> _enemy;
-
 
 public:
 #pragma mark -
@@ -93,6 +108,33 @@ public:
      * @param value whether the scene is currently active
      */
     virtual void setActive(bool value) override;
+    
+    /**
+     * Handles the human player dropping an item on the boss zone to attack.
+     */
+    void handleAttack();
+
+    /**
+     * Handles the human player dropping an item on the left ally zone to support.
+     */
+    void handleSupportLeft();
+
+    /**
+     * Handles the human player dropping an item on the right ally zone to support.
+     */
+    void handleSupportRight();
+
+    /**
+     * Handles the human player passing an item to the left neighbor.
+     */
+    void handlePassLeft();
+
+    /**
+     * Handles the human player passing an item to the right neighbor.
+     */
+    void handlePassRight();
+    
+    
 
     //everything that needs to be updated. Anything that isn't a graphics call goes here
     virtual void update(float dt) override;

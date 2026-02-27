@@ -37,6 +37,10 @@ private:
     std::string _spritesheetPath;
     /** The list of the characters special abilities*/
     std::vector<std::string> _specialAbilities;
+    /** The player to the left of this player, or nullptr if none */
+    Player* _leftPlayer = nullptr;
+    /** The player to the right of this player, or nullptr if none */
+    Player* _rightPlayer = nullptr;
     
 public:
     /**
@@ -108,6 +112,16 @@ public:
      */
     std::vector<std::string> getSpecialAbilities() const { return _specialAbilities; }
     
+    /**
+     * Returns the player to the left of this player, or nullptr if none.
+     */
+    Player* getLeftPlayer() const { return _leftPlayer; }
+
+    /**
+     * Returns the player to the right of this player, or nullptr if none.
+     */
+    Player* getRightPlayer() const { return _rightPlayer; }
+    
 #pragma mark Gameplay
     /**
      * Updates the current health of the player by the given delta.
@@ -126,7 +140,7 @@ public:
     /**
      * Returns whether the player is alive or not
      */
-    bool isAlive();
+    bool isAlive() const;
     
     /**
      * Uses  an item from the player's inventory by item id.
@@ -144,6 +158,18 @@ public:
      * @return true if the item was found and removed, false otherwise
      */
     void removeItemById(ItemInstance::ItemId itemId);
+    
+    /**
+     * Sets the player to the left of this player.
+     * @param player    The player to the left, or nullptr to clear.
+     */
+    void setLeftPlayer(Player* player) { _leftPlayer = player; }
+
+    /**
+     * Sets the player to the right of this player.
+     * @param player    The player to the right, or nullptr to clear.
+     */
+    void setRightPlayer(Player* player) { _rightPlayer = player; }
     
 };
 #endif /* !__PLAYER_H__ */
