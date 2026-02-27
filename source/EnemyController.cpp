@@ -60,7 +60,7 @@ void EnemyController::maybeRetargetOnIdleEntry(std::shared_ptr<Enemy> enemy, con
 /** Checks whether the enemy has just entered idle on this frame. */
 void EnemyController::handleIdleEntryIfNeeded(const std::string& prevState, const std::string& curState, std::shared_ptr<Enemy>& enemy, const std::vector<Player>& players) {
     if (curState == "idle" && prevState != "idle") {
-        maybeRetargetOnIdleEntry(enemy,players);
+        maybeRetargetOnIdleEntry(enemy, players);
     }
 }
 
@@ -89,7 +89,6 @@ std::string EnemyController::chooseNextAttackState(std::shared_ptr<Enemy>& enemy
 void EnemyController::enterIdle(std::shared_ptr<Enemy>& enemy, std::vector<Player>& players) {
     CULog("EnemyController: Forcing enemy '%s' to idle", enemy->getId().c_str());
     enemy->requestState("idle");
-    _lastStateSeen = "__forced_idle__";
 
     ensureTargetIndexInRange(players);
     maybeRetargetOnIdleEntry(enemy, players);
@@ -121,8 +120,6 @@ void EnemyController::update(float dt, std::shared_ptr<Enemy>& enemy, std::vecto
             cur = enemy->getCurrentStateName();
         }
     }
-
-    _lastStateSeen = enemy->getCurrentStateName();
 }
 
 /** Resolves the fired events (if any) of the enemy on this frame. Removes the processed events from the buffer. */

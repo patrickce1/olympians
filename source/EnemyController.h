@@ -25,13 +25,14 @@ public:
 
     int getTargetIndex() const { return _targetIndex; }
 
-    void enterIdle(std::shared_ptr<Enemy>& enemy, std::vector<Player>& players);
-    void update(float dt, std::shared_ptr<Enemy>& enemy, std::vector<Player>& players);
+    void enterIdle(const std::shared_ptr<Enemy>& enemy,
+                   const std::vector<Player>& players);
+    void update(float dt,
+                const std::shared_ptr<Enemy>& enemy,
+                const std::vector<Player>& players);
 
 private:
     int _targetIndex = -1;
-    std::string _lastStateSeen;
-
     cugl::Random _rng;
 
 private:
@@ -42,19 +43,20 @@ private:
 
     void handleIdleEntryIfNeeded(const std::string& prevState,
                                  const std::string& curState,
-                                 std::shared_ptr<Enemy>& enemy, 
+                                 const std::shared_ptr<Enemy>& enemy,
                                  const std::vector<Player>& players);
 
-    void maybeRetargetOnIdleEntry(std::shared_ptr<Enemy> enemy, const std::vector<Player>& players);
+    void maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy,
+                                  const std::vector<Player>& players);
 
-    std::string chooseNextAttackState(std::shared_ptr<Enemy>& enemy);
+    std::string chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
 
-    void resolveEnemyEvents(std::shared_ptr<Enemy>& enemy,
-                            std::vector<Player>& players,
+    void resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy,
+                            const std::vector<Player>& players,
                             const std::vector<Enemy::FiredEvent>& events);
 
-    void resolveDamageEvent(std::shared_ptr<Enemy>& enemy,
-                            std::vector<Player>& players,
+    void resolveDamageEvent(const std::shared_ptr<Enemy>& enemy,
+                            const std::vector<Player>& players,
                             const Enemy::FiredEvent& fe);
 };
 

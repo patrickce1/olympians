@@ -5,7 +5,7 @@
 
 using namespace cugl;
 
-/** Returns true if the enemy initializes succesfully. */
+/** Returns true if the enemy initializes successfully. */
 bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     static EnemyLoader sLoader;
     static bool sLoaded = false;
@@ -43,9 +43,11 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
         CULog("Enemy '%s' missing idle state", enemyId.c_str());
         return false;
     }
+    enterState("idle");
 
     _attackLockout = 0.0f;
     _retargetLikelihood = def.ai.retargetLikelihood;
+    
     
     return true;
 }
@@ -59,14 +61,14 @@ const EnemyLoader::StateDef* Enemy::getCurrentStateDef() const {
 
 /** Returns true if successfully enters requested state. False and idle otherwise. */
 bool Enemy::requestState(const std::string& stateName) {
-    if (_states.count(stateName) == 0) return false;    // State doesnt exist
+    if (_states.count(stateName) == 0) return false;    // State doesn't exist
     if (_attackLockout > 0.0f && stateName != "idle") return false; // Lockout is active, only allow idle
 
     enterState(stateName);
     return true;
 }
 
-/** Immeadiately enters the state and resets timers. */
+/** Immediately enters the state and resets timers. */
 void Enemy::enterState(const std::string& stateName) {
     _currentState = stateName;
     _stateTime = 0.0f;
