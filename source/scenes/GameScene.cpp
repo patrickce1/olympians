@@ -121,6 +121,7 @@ void GameScene::update(float dt) {
     }
 
     _itemController.update(dt, _players);
+    syncInventoryWidgets();
 }
 
 /**
@@ -158,4 +159,21 @@ void GameScene::setActive(bool value) {
             //deactivate any children that are part of the scene
         }
     }
+}
+
+std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
+    auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
+    if (!itemDef) return nullptr;
+
+    const std::string textureKey =
+        (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
+
+    auto texture = _assets->get<Texture>(textureKey);
+    if (!texture) return nullptr;
+
+    auto widget = scene2::PolygonNode::allocWithTexture(texture);
+    widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
+    widget->setAnchor(Vec2::ANCHOR_CENTER);
+    widget->setContentSize(Size(64, 64));
+    return widget;
 }

@@ -56,7 +56,7 @@ public:
     /**
      * Returns the inventory of the player
      */
-    const std::vector<ItemInstance> getInventory() const { return _inventory;}
+    const std::vector<ItemInstance>& getInventory() const { return _inventory;}
     
     /**
      * Returns whether player's inventory is not empty

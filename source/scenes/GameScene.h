@@ -2,6 +2,7 @@
 #define __GAME_SCENE_H__
 #include <cugl/cugl.h>
 #include <vector>
+#include <unordered_map>
 #include "Player.h"
 #include "ItemController.h"
 #include "Enemy.h"
@@ -38,6 +39,9 @@ protected:
 
     /** The collection of item icon nodes displayed in the inventory. */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
+    
+    /** The collection of item widgets mapping itemId to its corresponding widget */
+    std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
     std::vector<Player> _players;
     ItemController _itemController;
@@ -96,6 +100,14 @@ public:
 
     //everything that needs to be updated. Anything that isn't a graphics call goes here
     virtual void update(float dt) override;
+    
+    /** Create and return an item Widget with a given ItemInstance */
+    std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
+    
+    /** Return the world position for a given inventory 'slot,' so that items spawn in designated spots */
+    cugl::Vec2 getInventorySlotPosition(std::size_t slot) const;
+    
+    void syncInventoryWidgets();
 
 };
 
