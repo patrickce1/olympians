@@ -76,7 +76,9 @@ public:
      * Disposes of all (non-static) resources allocated to this mode.
      */
     void dispose() override;
-    
+    /**
+     * Resets the scene.
+     */
     void reset() override;
     
     std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
