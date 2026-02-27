@@ -168,10 +168,8 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     const std::string textureKey =
         (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
 
-    auto texture = _assets->get<Texture>(textureKey);
-    if (!texture) return nullptr;
-
-    auto widget = scene2::PolygonNode::allocWithTexture(texture);
+    auto widget = scene2::Widget::allocWithAssets(_assets, "ability", {{"texture", textureKey}});
+    
     widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
     widget->setAnchor(Vec2::ANCHOR_CENTER);
     widget->setContentSize(Size(64, 64));
