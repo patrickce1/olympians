@@ -23,7 +23,6 @@ class EnemyController {
 public:
     EnemyController();
 
-    void setTargetSwitchChanceOnIdle(float chance01) { _targetSwitchChanceOnIdle = chance01; }
     int getTargetIndex() const { return _targetIndex; }
 
     void enterIdle(std::shared_ptr<Enemy>& enemy, std::vector<Player>& players);
@@ -31,7 +30,6 @@ public:
 
 private:
     int _targetIndex = -1;
-    float _targetSwitchChanceOnIdle = 0.0f;
     std::string _lastStateSeen;
 
     cugl::Random _rng;
@@ -44,9 +42,10 @@ private:
 
     void handleIdleEntryIfNeeded(const std::string& prevState,
                                  const std::string& curState,
+                                 std::shared_ptr<Enemy>& enemy, 
                                  const std::vector<Player>& players);
 
-    void maybeRetargetOnIdleEntry(const std::vector<Player>& players);
+    void maybeRetargetOnIdleEntry(std::shared_ptr<Enemy> enemy, const std::vector<Player>& players);
 
     std::string chooseNextAttackState(std::shared_ptr<Enemy>& enemy);
 

@@ -98,7 +98,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         CULog("Failed to initialize enemy");
         return false;
     }
-    
+    CULog("GameScene: Enemy initialized id='%s'", _enemy->getId().c_str());
+
     setActive(false);
     return true;
 }
@@ -109,8 +110,8 @@ void GameScene::update(float dt) {
     }
 
     _itemController.update(dt, _players);
-    
-    if (_enemy && _enemy->isAlive()) {
+
+    if (_enemy->isAlive()) {
         _enemyController.update(dt, _enemy, _players);
     }
     
@@ -146,6 +147,7 @@ void GameScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             //put anything that needs to be activated as part of the scene
+            _enemyController.enterIdle(_enemy, _players);
         }
         else {
             //deactivate any children that are part of the scene

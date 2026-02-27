@@ -30,12 +30,17 @@ public:
         std::vector<EventDef> events;
     };
 
+    struct AIConfig {
+        float retargetLikelihood = 0.0f;
+    };
+
+    AIConfig ai;
     struct EnemyDef {
         std::string id;
         std::string name;
         float maxHealth = 0.0f;
         std::string spritesheetPath;
-
+        AIConfig ai;
         std::unordered_map<std::string, StateDef> states;
     };
 
@@ -81,13 +86,18 @@ public:
                 sdef.name = st->_key;
                 sdef.animationRow = st->getInt("animationRow", 0);
 
-                // NEW: tag (optional)
                 sdef.tag = st->getString("tag", "");
 
                 sdef.buildUpTime  = st->getFloat("buildUpTime", 0.0f);
                 sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
                 sdef.nextState    = st->getString("nextState", "idle");
 
+                auto aiObj = entry->get("ai");
+                if (aiObj && aiObj->isObject()) {
+                    def.ai.retargetLikelihood =
+                        aiObj->getFloat("retargetLikelihood", 0.0f);
+                }
+                
                 auto evArr = st->get("events");
                 if (evArr && evArr->isArray()) {
                     for (int j = 0; j < evArr->size(); j++) {

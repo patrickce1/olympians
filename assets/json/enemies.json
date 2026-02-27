@@ -5,6 +5,9 @@
             "name": "Enemy 1",
             "maxHealth": 20.0,
             "spritesheetPath": "textures/enemy1.png",
+            "ai": {
+                "retargetLikelihood": 0.5
+            },
             "states": {
                 "idle": {
                     "tag": "idle",
@@ -16,6 +19,39 @@
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 1.0
+                        }
+                    ],
+                    "nextState": "attack1_p2"
+                },
+                "attack1_p2": {
+                    "tag": "follow_up",
+                    "animationRow": 2,
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 5.0,
+                    "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 1.0
+                        }
+                    ],
+                    "nextState": "idle"
+                },
+                "attack2": {
+                    "tag": "attack",
+                    "animationRow": 3,
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 5.0,
+                    "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 1.0
+                        },
                         {
                             "type": "DAMAGE",
                             "target": 0,
