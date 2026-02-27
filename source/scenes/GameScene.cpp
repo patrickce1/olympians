@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "GameScene.h"
+#include "Enemy.h"
 
 using namespace cugl;
 using namespace cugl::scene2;
@@ -91,26 +92,13 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     if (!_itemController.init(_assets)) {
         return false;
     }
-    
-    // Spawn GameScene Enemy
-    const std::string enemyJsonPath = "json/enemies.json";
-    if (!_enemyLoader.loadFromFile(enemyJsonPath)) {
-        CULog("GameScene: failed to load enemies from '%s' (continuing without enemy)",
-              enemyJsonPath.c_str());
-        _enemy.reset();
-    } else {
-        const std::string enemyId = "enemy1";  // or "dummy"
 
-        if (!_enemyLoader.has(enemyId)) {
-            CULog("GameScene: enemy id '%s' not found in '%s' (continuing without enemy)",
-                  enemyId.c_str(), enemyJsonPath.c_str());
-            _enemy.reset();
-        } else {
-            _enemy = std::make_unique<Enemy>(enemyId, _enemyLoader);
-            CULog("GameScene: spawned enemy '%s'", enemyId.c_str());
-        }
+    _enemy = std::make_shared<Enemy>();
+    if (!_enemy->init("enemy1", "json/enemies.json")) {
+        CULog("Failed to initialize enemy");
+        return false;
     }
-
+    
     setActive(false);
     return true;
 }
@@ -121,6 +109,11 @@ void GameScene::update(float dt) {
     }
 
     _itemController.update(dt, _players);
+    
+    if (_enemy && _enemy->isAlive()) {
+        _enemyController.update(dt, _enemy, _players);
+    }
+    
 }
 
 /**

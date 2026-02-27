@@ -1,7 +1,7 @@
+// Enemy.h
 #ifndef __ENEMY_H__
 #define __ENEMY_H__
 
-#include <cugl/cugl.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -9,23 +9,17 @@
 
 /**
  * Enemy runtime instance.
- * - Holds health, facing, current state
- * - Runs state execution timing (buildUp -> fire -> next + cooldown lockout)
- * - Queues fired events for combat system to resolve
+ * - Holds health + current state
+ * - Runs state timing (buildUp -> fire events once -> nextState -> cooldown lockout)
+ * - Queues fired events for EnemyController to resolve onto players
  *
- * AI chooses states by calling requestState().
- * Combat consumes events via takeFiredEvents().
+ * Enemy does NOT choose behavior. External code calls requestState().
  */
 class Enemy {
 public:
-
-    enum class Facing { UP=0, RIGHT=1, DOWN=2, LEFT=3 };
-
     struct FiredEvent {
-        EnemyLoader::EventDef def; // what to do (damage/effect/etc.)
-        EnemyLoader::RelDir target; // relative direction (front/back/left/right)
-        Facing facingAtFire; // facing snapshot at moment of firing
-        std::string stateName; // which state fired this event (useful for debugging)
+        EnemyLoader::EventDef def;   // type, target offset, amount, etc.
+        std::string stateName;       // state that fired this event (debug)
     };
 
 private:
@@ -36,26 +30,22 @@ private:
     float _maxHealth = 0.0f;
     float _currentHealth = 0.0f;
 
-    //  shields are stored but not used yet
-    EnemyLoader::EnemyDef::Shields _shields;
-
-    // State definitions (from loader)
     std::unordered_map<std::string, EnemyLoader::StateDef> _states;
 
     std::string _currentState = "idle";
     float _stateTime = 0.0f;
     bool _eventsFiredThisState = false;
-    float _attackLockout = 0.0f;
-    Facing _facing = Facing::DOWN;
 
-    // buffer for fired events
+    // Blocks starting non-idle states while > 0
+    float _attackLockout = 0.0f;
+
     std::vector<FiredEvent> _firedEvents;
 
 public:
     Enemy() = default;
-    Enemy(const std::string& enemyId, const EnemyLoader& loader);
+    
+    bool init(const std::string& enemyId, const std::string& jsonPath);
 
-#pragma mark Accessors
     const std::string& getId() const { return _enemyId; }
     const std::string& getName() const { return _name; }
     const std::string& getSpritesheetPath() const { return _spritesheetPath; }
@@ -64,45 +54,32 @@ public:
     float getCurrentHealth() const { return _currentHealth; }
     bool isAlive() const { return _currentHealth > 0.0f; }
 
-    Facing getFacing() const { return _facing; }
-    void setFacing(Facing f) { _facing = f; }
-
     const std::string& getCurrentStateName() const { return _currentState; }
     const EnemyLoader::StateDef* getCurrentStateDef() const;
 
     float getAttackLockoutRemaining() const { return _attackLockout; }
     bool canStartNonIdleState() const { return _attackLockout <= 0.0f; }
 
-    const EnemyLoader::EnemyDef::Shields& getShields() const { return _shields; }
+    // Expose state defs so controller can pick attacks by tag
+    const std::unordered_map<std::string, EnemyLoader::StateDef>& getStates() const { return _states; }
 
-#pragma mark Gameplay
-    /**
-     * AI-facing: attempts to enter a new state.
-     * - While lockout is active, only "idle" is allowed.
-     */
     bool requestState(const std::string& stateName);
-
-    /**
-     * Ticks state execution:
-     * enter state -> wait buildUpTime -> fire events -> go to nextState -> apply cooldown lockout
-     */
     void update(float dt);
 
-    /**
-     * Returns and clears fired events since last call.
-     */
     std::vector<FiredEvent> takeFiredEvents();
 
-    void updateHealth(float amount);
+    // Positive heals, negative damages; clamps to [0, maxHealth]
+    void updateHealth(float delta);
 
 private:
-    void tick(float dt); // updates timers
-    bool readyToFire() const; // checks buildUp vs stateTime
-    void fireEvents(); // queues events and sets fired flag
-    void applyCooldown(); // applies lockout from current state
-    std::string getNextStateOrIdle() const; // validates nextState
-    void transitionToNextState(); //  performs the transition
-    void enterState(const std::string& stateName); // resets state execution vars
+    void enterState(const std::string& stateName);
+    void tick(float dt);
+    bool readyToFire() const;
+    void fireEvents();
+    void applyCooldown();
+    std::string getNextStateOrIdle() const;
+
+    static float clampMinZero(float v) { return v < 0.0f ? 0.0f : v; }
 };
 
 #endif /* !__ENEMY_H__ */

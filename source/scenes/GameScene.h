@@ -5,7 +5,7 @@
 #include "Player.h"
 #include "ItemController.h"
 #include "Enemy.h"
-#include "EnemyLoader.h"
+#include "EnemyController.h"
 
 /**
  * This class represents the core game scene
@@ -41,8 +41,8 @@ protected:
 
     std::vector<Player> _players;
     ItemController _itemController;
-    EnemyLoader _enemyLoader;
-    std::unique_ptr<Enemy> _enemy;
+    std::shared_ptr<Enemy> _enemy;
+    EnemyController _enemyController;
 
 
 public:
