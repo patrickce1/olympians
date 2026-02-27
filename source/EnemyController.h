@@ -26,10 +26,10 @@ public:
     int getTargetIndex() const { return _targetIndex; }
 
     void enterIdle(const std::shared_ptr<Enemy>& enemy,
-                   const std::vector<Player>& players);
+                   std::vector<Player>& players);
     void update(float dt,
                 const std::shared_ptr<Enemy>& enemy,
-                const std::vector<Player>& players);
+                std::vector<Player>& players);
 
 private:
     int _targetIndex = -1;
@@ -39,24 +39,24 @@ private:
     int randomIndex(int n);
     int wrapIndex(int i, int n) const;
 
-    void ensureTargetIndexInRange(const std::vector<Player>& players);
+    void ensureTargetIndexInRange(std::vector<Player>& players);
 
     void handleIdleEntryIfNeeded(const std::string& prevState,
                                  const std::string& curState,
                                  const std::shared_ptr<Enemy>& enemy,
-                                 const std::vector<Player>& players);
+                                 std::vector<Player>& players);
 
     void maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy,
-                                  const std::vector<Player>& players);
+                                  std::vector<Player>& players);
 
     std::string chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
 
     void resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy,
-                            const std::vector<Player>& players,
+                            std::vector<Player>& players,
                             const std::vector<Enemy::FiredEvent>& events);
 
     void resolveDamageEvent(const std::shared_ptr<Enemy>& enemy,
-                            const std::vector<Player>& players,
+                            std::vector<Player>& players,
                             const Enemy::FiredEvent& fe);
 };
 

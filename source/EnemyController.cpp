@@ -29,7 +29,7 @@ int EnemyController::wrapIndex(int i, int n) const {
 }
 
 /** Validates enemy target is in the range of the number of players. */
-void EnemyController::ensureTargetIndexInRange(const std::vector<Player>& players) {
+void EnemyController::ensureTargetIndexInRange(std::vector<Player>& players) {
     int n = (int)players.size();
     if (n <= 0) {
         _targetIndex = -1;
@@ -41,7 +41,7 @@ void EnemyController::ensureTargetIndexInRange(const std::vector<Player>& player
 }
 
 /** Upon entering idle state, this function possibly chooses a new target for the enemy. */
-void EnemyController::maybeRetargetOnIdleEntry(std::shared_ptr<Enemy> enemy, const std::vector<Player>& players) {
+void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy, std::vector<Player>& players) {
     float chance = clamp01(enemy->getRetargetLikelihood());
     if (chance <= 0.0f) return;
 
@@ -58,14 +58,14 @@ void EnemyController::maybeRetargetOnIdleEntry(std::shared_ptr<Enemy> enemy, con
 }
 
 /** Checks whether the enemy has just entered idle on this frame. */
-void EnemyController::handleIdleEntryIfNeeded(const std::string& prevState, const std::string& curState, std::shared_ptr<Enemy>& enemy, const std::vector<Player>& players) {
+void EnemyController::handleIdleEntryIfNeeded(const std::string& prevState, const std::string& curState, const std::shared_ptr<Enemy>& enemy, std::vector<Player>& players) {
     if (curState == "idle" && prevState != "idle") {
         maybeRetargetOnIdleEntry(enemy, players);
     }
 }
 
 /** Chooses the next state tagged with "attack" for the enemy to enter. */
-std::string EnemyController::chooseNextAttackState(std::shared_ptr<Enemy>& enemy) {
+std::string EnemyController::chooseNextAttackState(const std::shared_ptr<Enemy>& enemy) {
     std::vector<std::string> attacks;
 
     const auto& states = enemy->getStates();
@@ -86,7 +86,7 @@ std::string EnemyController::chooseNextAttackState(std::shared_ptr<Enemy>& enemy
     return attacks[idx];
 }
 
-void EnemyController::enterIdle(std::shared_ptr<Enemy>& enemy, std::vector<Player>& players) {
+void EnemyController::enterIdle(const std::shared_ptr<Enemy>& enemy, std::vector<Player>& players) {
     CULog("EnemyController: Forcing enemy '%s' to idle", enemy->getId().c_str());
     enemy->requestState("idle");
 
@@ -95,7 +95,7 @@ void EnemyController::enterIdle(std::shared_ptr<Enemy>& enemy, std::vector<Playe
 }
 
 /** Main update loop for enemy controller. Handles state changes and attack events. */
-void EnemyController::update(float dt, std::shared_ptr<Enemy>& enemy, std::vector<Player>& players) {
+void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std::vector<Player>& players) {
 
     std::string prev = enemy->getCurrentStateName();
 
@@ -123,7 +123,7 @@ void EnemyController::update(float dt, std::shared_ptr<Enemy>& enemy, std::vecto
 }
 
 /** Resolves the fired events (if any) of the enemy on this frame. Removes the processed events from the buffer. */
-void EnemyController::resolveEnemyEvents(std::shared_ptr<Enemy>& enemy, std::vector<Player>& players, const std::vector<Enemy::FiredEvent>& events) {
+void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, std::vector<Player>& players, const std::vector<Enemy::FiredEvent>& events) {
     CULog("EnemyController: Resolving %zu events for enemy '%s'", events.size(), enemy->getId().c_str());
     for (const auto& fe : events) {
         switch (fe.def.type) {
@@ -138,7 +138,7 @@ void EnemyController::resolveEnemyEvents(std::shared_ptr<Enemy>& enemy, std::vec
 }
 
 /** Deals damage to the targeted players from a damage event. */
-void EnemyController::resolveDamageEvent(std::shared_ptr<Enemy>& enemy, std::vector<Player>& players, const Enemy::FiredEvent& fe) {
+void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, std::vector<Player>& players, const Enemy::FiredEvent& fe) {
 
     int n = (int)players.size();
     if (n <= 0) {
