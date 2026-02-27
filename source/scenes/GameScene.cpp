@@ -55,13 +55,12 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
-    for (auto& icon : _abilityIcons) {
-        if (!icon) continue;
-        icon->setAnchor(Vec2(0.5f, 0.5f));
-    }
+
     // Elements setup from assets
     _gameArea  = scene->getChildByName("gameArea");
     _inventory = scene->getChildByName("inventory");
+    _resetBtn = scene->getChildByName("resetButton");
+
     
     if (_gameArea) {
 
@@ -89,6 +88,10 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         _abilityIcons.push_back(_inventory->getChildByName("attack5"));
         _abilityIcons.push_back(_inventory->getChildByName("attack6"));
     }
+    for (auto& icon : _abilityIcons) {
+            if (!icon) continue;
+            _abilityOriginalPos.push_back(icon->getPosition());
+        }
 
     addChild(scene);
 
@@ -122,8 +125,36 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
     
-    if (_activeIcon && (input.touchEnded())){
+    if (input.touchEnded() && !_activeIcon && _resetBtn) {
+        float h = getSize().height;
+        Vec2 touchFlipped(input.getTouchStart().x, h - input.getTouchStart().y);
+        Rect bbox = _resetBtn->getBoundingBox();
+        CULog("Reset bbox(%f,%f,%f,%f) touch(%f,%f)",
+              bbox.origin.x, bbox.origin.y, bbox.size.width, bbox.size.height,
+              touchFlipped.x, touchFlipped.y);
+        if (bbox.contains(touchFlipped)) {
+            CULog("Reset button tapped!");
+            reset();
+        }
+    }
+    
+    if (_activeIcon && input.touchEnded()) {
+        InputController::Action action = input.getAction();
+        
+        if (action != InputController::Action::NONE && action != InputController::Action::DRAG) {
+            _glowAction = action;
+            _glowTimer = _glowDuration;
+            _activeIcon->setVisible(false);
+        }
+        
         _activeIcon = nullptr;
+    }
+
+    if (_glowTimer > 0) {
+        _glowTimer -= dt;
+        if (_glowTimer <= 0) {
+            _glowAction = InputController::Action::NONE;
+        }
     }
 
     if (!_activeIcon && input.isTouching()) {
@@ -135,6 +166,8 @@ void GameScene::update(float dt, InputController& input) {
         for (auto& icon : _abilityIcons) {
             if (!icon) continue;
             cugl::Rect bbox = icon->getBoundingBox();
+            bbox.origin.y += bbox.size.height / 2;
+
 //            float padX = bbox.size.width / 2;
 //            float padY = bbox.size.height / 2;
 //            bbox.origin.x -= padX;
@@ -202,25 +235,49 @@ void GameScene::render() {
     auto batch = getSpriteBatch();
     batch->setPerspective(getCamera()->getCombined());
     batch->begin();
-    batch->setColor(Color4::RED);
     
-    for (auto& icon : _abilityIcons) {
-        if (!icon) continue;
-        Rect bbox = icon->getBoundingBox();
-//        float padX = bbox.size.width / 2;
-//        float padY = bbox.size.height / 2;
-//        bbox.origin.x -= padX;
-//        bbox.origin.y -= padY;
-//        bbox.size.width += padX * 1;
-//        bbox.size.height += padY * 1.25;
-////
-//        Vec2 origin = _inventory->nodeToParentCoords(bbox.origin);
-//        Vec2 corner = _inventory->nodeToParentCoords(bbox.origin + bbox.size);
-//        Rect screenBox(origin, Size(corner.x - origin.x, corner.y - origin.y));
-        
+    float w = getSize().width;
+    float h = getSize().height;
+    
+    std::vector<std::pair<InputController::Action, Rect>> zones = {
+        {InputController::Action::DROP_BOSS,       Rect(w * 0.15f, 0,        w * 0.7f,  h * 0.5f)},
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         0,        w * 0.15f, h * 0.5f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)},
+        {InputController::Action::PASS_LEFT,       Rect(0,         h * 0.5f, w * 0.15f, h * 0.5f)},
+        {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)},
+    };
+    if (_resetBtn) {
+        Rect bbox = _resetBtn->getBoundingBox();
         Path2 path(bbox);
+        batch->setColor(Color4(0, 255, 0, 150));
+        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+    }
+    for (auto& [action, rect] : zones) {
+        Rect flipped(rect.origin.x, h - rect.origin.y - rect.size.height,
+                     rect.size.width, rect.size.height);
+        Path2 path(flipped);
+        
+        if (action == _glowAction && _glowTimer > 0) {
+            float t = _glowTimer / _glowDuration;
+            Uint8 alpha = (Uint8)(150 * t);
+            batch->setColor(Color4(0, 255, 0, alpha));
+            batch->fill(path, Vec2::ZERO, Affine2::IDENTITY);
+        }
+        
+        batch->setColor(Color4(0, 255, 0, 80));
         batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
     }
     
     batch->end();
+}
+void GameScene::reset() {
+    for (int i = 0; i < _abilityIcons.size(); i++) {
+        if (!_abilityIcons[i]) continue;
+        _abilityIcons[i]->setVisible(true);
+        _abilityIcons[i]->setPosition(_abilityOriginalPos[i]);
+    }
+    
+    _activeIcon = nullptr;
+    _glowAction = InputController::Action::NONE;
+    _glowTimer = 0;
 }

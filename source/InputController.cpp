@@ -83,6 +83,7 @@ void InputController::setActive(bool active){
  * Focus is unused
  */
 void InputController::onTouchBegan(const cugl::TouchEvent &event, bool focus){
+    _touchStartTime = event.timestamp;
     cugl::Vec2 pos = event.position * _scale;
     //inactive input or we are already tracking.
     if (!_active or _activeTouchID != -1) {
@@ -144,6 +145,7 @@ void InputController::onTouchEnded(const cugl::TouchEvent &event, bool focus){
     if (_dragging){
         float dx = pos.x - _touchStart.x;
         float dy = pos.y - _touchStart.y;
+        float elapsed = event.timestamp.ellapsedMillis(_touchStartTime);
         //Classify as a horizontal swipe if displacement dominates vertically and exceeds the swipe threshold.
         //A horizontal swipe (Maybe we need to add velocity so that not all horizontal swipes pass.
         if (std::abs(dx) > SWIPE_THRESHOLD && std::abs(dx) > std::abs(dy)){

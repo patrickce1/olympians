@@ -76,7 +76,7 @@
                     "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0.1,
-                    "y_offset": 0.66
+                    "y_offset": 0.3
                 }
             },
             "attack4": {
@@ -108,7 +108,7 @@
                     "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0.1,
-                    "y_offset": 0.5
+                    "y_offset": 0.1
                 }
             },
             "attack6": {

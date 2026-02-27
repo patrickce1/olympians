@@ -50,7 +50,10 @@ protected:
     ItemController _itemController;
     EnemyLoader _enemyLoader;
     std::unique_ptr<Enemy> _enemy;
-
+    
+    InputController::Action _glowAction = InputController::Action::NONE;
+    float _glowTimer = 0;
+    float _glowDuration = 0.3f;
 
 public:
 #pragma mark -
@@ -73,7 +76,14 @@ public:
      * Disposes of all (non-static) resources allocated to this mode.
      */
     void dispose() override;
+    
+    void reset() override;
+    
+    std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
 
+
+    std::vector<cugl::Vec2> _abilityOriginalPos;
+    
     /**
      * Initializes the controller contents.
      *
