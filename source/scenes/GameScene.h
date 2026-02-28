@@ -121,5 +121,4 @@ public:
 
 };
 
-
 #endif /* __GAME_SCENE_H__ */
