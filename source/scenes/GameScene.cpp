@@ -45,19 +45,19 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // The comments are outline of how loading a scene from json should work. This DOES NOT WORK YET. Danielle should set this up
     // Acquire the scene built by the asset loader and resize it the scene. 
-    scene = _assets->get<scene2::SceneNode>("gameScene");
+    _scene = _assets->get<scene2::SceneNode>("gameScene");
     
-    if (!scene) {
+    if (!_scene) {
         printf("Scene NOT here!");
         return false;
     }
 
-    scene->setContentSize(dimen);
-    scene->doLayout(); // Repositions the HUD
+    _scene->setContentSize(dimen);
+    _scene->doLayout(); // Repositions the HUD
     
     // Elements setup from assets
-    _gameArea  = scene->getChildByName("gameArea");
-    _inventory = scene->getChildByName("inventory");
+    _gameArea  = _scene->getChildByName("gameArea");
+    _inventory = _scene->getChildByName("inventory");
     
     if (_gameArea) {
 
@@ -77,16 +77,16 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     }
     
     // static items
-    if (_inventory) {
-        _abilityIcons.push_back(_inventory->getChildByName("heal"));
-        _abilityIcons.push_back(_inventory->getChildByName("heal2"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack4"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack5"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack6"));
-    }
+//    if (_inventory) {
+//        _abilityIcons.push_back(_inventory->getChildByName("heal"));
+//        _abilityIcons.push_back(_inventory->getChildByName("heal2"));
+//        _abilityIcons.push_back(_inventory->getChildByName("attack"));
+//        _abilityIcons.push_back(_inventory->getChildByName("attack4"));
+//        _abilityIcons.push_back(_inventory->getChildByName("attack5"));
+//        _abilityIcons.push_back(_inventory->getChildByName("attack6"));
+//    }
 
-    addChild(scene);
+    addChild(_scene);
 
     if (!_itemController.init(_assets)) {
         return false;
@@ -162,16 +162,72 @@ void GameScene::setActive(bool value) {
 }
 
 std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
+    CULog("[createItemWidget] Entered");
     auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
     if (!itemDef) return nullptr;
 
     const std::string textureKey =
         (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
-
-    auto widget = scene2::Widget::allocWithAssets(_assets, "ability", {{"texture", textureKey}});
     
+    auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
+    if (!texture) return nullptr;
+    
+    auto widget = PolygonNode::allocWithTexture(texture);
+    
+    widget->setContentSize(Size(64,64));
+    widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
     widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
-    widget->setAnchor(Vec2::ANCHOR_CENTER);
-    widget->setContentSize(Size(64, 64));
+    _inventory->addChild(widget);
+    CULog("[Item] Created widget");
     return widget;
+}
+
+cugl::Vec2 GameScene::getInitialInventoryPosition() const {
+    cugl::Size size = _inventory->getContentSize();
+    return cugl::Vec2(size.width * 0.5f, size.height * 0.5f);
+}
+
+void GameScene::syncInventoryWidgets() {
+    CULog("[syncInventoryWidgets] entered");
+    if (!_inventory) {
+        return;
+    }
+
+    if (_localPlayerIndex >= _players.size()) {
+        return;
+    }
+    
+    const Player& localPlayer = _players[_localPlayerIndex];
+    
+    std::unordered_set<ItemInstance::ItemId> liveIds;
+    
+    for (const ItemInstance& item : localPlayer.getInventory()) {
+        ItemInstance::ItemId id = item.getId();
+        liveIds.insert(id);
+        
+        auto found = _itemWidgets.find(id);
+        if (found == _itemWidgets.end()) {
+            CULog("[syncInventoryWidgets] new Widget");
+            auto widget = createItemWidget(item);
+            if (!widget) {
+                continue;
+            }
+            
+            widget->setPosition(getInitialInventoryPosition());
+            
+            _inventory->addChild(widget);
+            _itemWidgets.emplace(id, widget);
+        }
+    }
+    
+    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end(); ) {
+        if (liveIds.find(it->first) == liveIds.end()) {
+            if (it->second) {
+                _inventory->removeChild(it->second);
+            }
+            it = _itemWidgets.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }

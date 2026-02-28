@@ -58,6 +58,7 @@ void ItemController::update(float dt, std::vector<Player>& players) {
     _itemTimer += dt;
 
     while (_itemTimer >= _itemInterval) {
+        CULog("[ItemController] Time to give items");
         _itemTimer -= _itemInterval;
         giveRandomItemToAll(players);
     }
@@ -67,18 +68,21 @@ void ItemController::update(float dt, std::vector<Player>& players) {
 void ItemController::giveRandomItemToAll(std::vector<Player>& players) {
     for (Player& player : players) {
         if (!player.isAlive()) {
+            CULog("[ItemController] Player is not alive");
             continue;
         }
         
         // Gets defId of random items generated
         std::string itemDefId = _itemDb.rollRandomDefId();
         if (itemDefId.empty()) {
+            CULog("[ItemController] DefId is empty");
             continue;
         }
 
         // Creates instance of generated defId
         auto itemInstance = _itemDb.createInstance(itemDefId, _idGen.next());
         if (!itemInstance) {
+            CULog("[ItemController] Failed to create itemInstance");
             continue;
         }
 

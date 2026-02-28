@@ -20,7 +20,7 @@ protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
     /** The root scene node for this scene graph. */
-    std::shared_ptr<cugl::scene2::SceneNode> scene;
+    std::shared_ptr<cugl::scene2::SceneNode> _scene;
 
     /** The node representing the main game area, top half of screen. */
     std::shared_ptr<cugl::scene2::SceneNode> _gameArea;
@@ -42,6 +42,8 @@ protected:
     
     /** The collection of item widgets mapping itemId to its corresponding widget */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
+    
+    std::size_t _localPlayerIndex = 0;
 
     std::vector<Player> _players;
     ItemController _itemController;
@@ -104,8 +106,8 @@ public:
     /** Create and return an item Widget with a given ItemInstance */
     std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
     
-    /** Return the world position for a given inventory 'slot,' so that items spawn in designated spots */
-    cugl::Vec2 getInventorySlotPosition(std::size_t slot) const;
+    /** Return the world position for an item widget's initial inventory position */
+    cugl::Vec2 getInitialInventoryPosition() const;
     
     void syncInventoryWidgets();
 
