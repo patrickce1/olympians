@@ -86,9 +86,9 @@ void SceneLoader::onStartup() {
     Input::activate<Mouse>();
 #endif
 
-    gameScene.init(_assets);
-    gameScene.setSpriteBatch(_batch);
-    gameScene.setActive(true);
+    _gameScene.init(_assets);
+    _gameScene.setSpriteBatch(_batch);
+    _gameScene.setActive(true);
 
     _loadingScene = scene2::LoadingScene::alloc(_assets, "json/assets.json");
     _loadingScene->setSpriteBatch(_batch);
