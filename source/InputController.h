@@ -114,8 +114,8 @@ private:
     static constexpr float SWIPE_THRESHOLD = 75.0f;
     /** Minimum travel (px) from touch start before a drag is recognized. */
     static constexpr float DRAG_THRESHOLD = 2.0f;
+    /**The timestamp representing when a touch started*/
     cugl::Timestamp _touchStartTime;
-    float SWIPE_MAX_DURATION = 300.0f; // milliseconds
     
     /**STATES**/
     bool _active = false;
