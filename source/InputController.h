@@ -84,7 +84,7 @@ public:
     Action getAction() const {
         return _action;
     }
-    //Seet player action to none. Our touch has not started.
+    //Set player action to none. Our touch has not started.
     void resetAction() {
         _action = Action::NONE;
         _touchEnded = false;
