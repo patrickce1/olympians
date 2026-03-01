@@ -66,12 +66,14 @@ void ItemController::update(float dt, Player* player) {
 // Hand out a card to the player
 void ItemController::giveRandomItem(Player* player) {
     if (!player->isAlive()) {
+        CULog("[ItemController] Player is not alive");
         return;
     }
         
     // Gets defId of the random item generated
     std::string itemDefId = _itemDb.rollRandomDefId();
     if (itemDefId.empty()) {
+        CULog("[ItemController] DefId is empty");
         return;
     }
 
@@ -83,10 +85,6 @@ void ItemController::giveRandomItem(Player* player) {
     }
 
     player->addItem(*itemInstance);
-    CULog("Gave player %d item %s (id=%llu)",
-        player->getPlayerNumber(),
-        itemDefId.c_str(),
-        (unsigned long long)itemInstance->getId());
 }
 
 
