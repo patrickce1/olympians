@@ -87,6 +87,15 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 //    }
 
     addChild(_scene);
+    
+    const std::string characterJsonPath = "json/characters.json";
+    if (!_characterLoader.loadFromFile(characterJsonPath)) {
+        CULog("Failed to load characters.json");
+        return false;
+    }
+    
+    _players.emplace_back("Apollo", 1, "Player 1", _characterLoader);
+    _player = &_players.back();
 
     if (!_itemController.init(_assets)) {
         return false;
@@ -120,7 +129,7 @@ void GameScene::update(float dt) {
         return;
     }
 
-    _itemController.update(dt, _players);
+    _itemController.update(dt, _player);
     syncInventoryWidgets();
 }
 
@@ -189,19 +198,13 @@ cugl::Vec2 GameScene::getInitialInventoryPosition() const {
 
 void GameScene::syncInventoryWidgets() {
     CULog("[syncInventoryWidgets] entered");
-    if (!_inventory) {
+    if (!_inventory || !_player) {
         return;
     }
-
-    if (_localPlayerIndex >= _players.size()) {
-        return;
-    }
-    
-    const Player& localPlayer = _players[_localPlayerIndex];
     
     std::unordered_set<ItemInstance::ItemId> liveIds;
     
-    for (const ItemInstance& item : localPlayer.getInventory()) {
+    for (const ItemInstance& item : _player->getInventory()) {
         ItemInstance::ItemId id = item.getId();
         liveIds.insert(id);
         

@@ -40,7 +40,7 @@ private:
     
 public:
     /**
-     *Creates a player instance giiven a character ID
+     *Creates a player instance given a character ID
      * @param characterId         The ID of the character as appears in the JSON
      */
     Player(const std::string& characterId, int playerNumber,

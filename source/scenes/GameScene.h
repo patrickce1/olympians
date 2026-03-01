@@ -7,6 +7,7 @@
 #include "ItemController.h"
 #include "Enemy.h"
 #include "EnemyLoader.h"
+#include "CharacterLoader.h"
 
 /**
  * This class represents the core game scene
@@ -43,7 +44,9 @@ protected:
     /** The collection of item widgets mapping itemId to its corresponding widget */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
     
-    std::size_t _localPlayerIndex = 0;
+    CharacterLoader _characterLoader;
+    Player* _player = nullptr;
+    
 
     std::vector<Player> _players;
     ItemController _itemController;

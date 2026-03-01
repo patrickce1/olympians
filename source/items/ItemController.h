@@ -26,13 +26,13 @@ public:
      * // Update the item timer and hand out cards
      * @param dt  time elapsed
      */
-    void update(float dt, std::vector<Player>& players);
+    void update(float dt, Player* player);
 
     /**
-     * // Gives random items to all players
-     * @param & players the list of all players in the game
+     * // Gives random item to player
+     * @param & player The player of the game
      */
-    void giveRandomItemToAll(std::vector<Player>& players);
+    void giveRandomItem(Player* player);
 
     /**
      * // Retrieves the item database
