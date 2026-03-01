@@ -112,6 +112,7 @@ public:
     /** Return the world position for an item widget's initial inventory position */
     cugl::Vec2 getInitialInventoryPosition() const;
     
+    /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
 
 };

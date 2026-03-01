@@ -170,6 +170,7 @@ void GameScene::setActive(bool value) {
     }
 }
 
+/** Create and return an item Widget with a given ItemInstance */
 std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
 //    CULog("[createItemWidget] Entered");
     auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
@@ -191,11 +192,13 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     return widget;
 }
 
+/** Return the world position for an item widget's initial inventory position */
 cugl::Vec2 GameScene::getInitialInventoryPosition() const {
     cugl::Size size = _inventory->getContentSize();
     return cugl::Vec2(size.width * 0.5f, size.height * 0.5f);
 }
 
+/** Sync player inventory and item widgets displayed on screen */
 void GameScene::syncInventoryWidgets() {
 //    CULog("[syncInventoryWidgets] entered");
     if (!_inventory || !_player) {
