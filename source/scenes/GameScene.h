@@ -44,13 +44,22 @@ protected:
     /** The collection of item widgets mapping itemId to its corresponding widget */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
     
+    /** The character loader to load in player characters for this GameScene instance */
     CharacterLoader _characterLoader;
+    
+    /** The player belonging to this GameScene instance */
     Player* _player = nullptr;
     
-
+    /** The collection of players in this party */
     std::vector<Player> _players;
+    
+    /** The ItemController for this GameScene instance*/
     ItemController _itemController;
+    
+    /** The enemy loader to load in the enemies for this GameScene instance */
     EnemyLoader _enemyLoader;
+    
+    /** The current enemy that the players are facing */
     std::unique_ptr<Enemy> _enemy;
 
 
