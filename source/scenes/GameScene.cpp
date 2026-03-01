@@ -94,7 +94,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         return false;
     }
     
-    _players.emplace_back("Apollo", 1, "Player 1", _characterLoader);
+    _players.emplace_back("Percy", 1, "Player 1", _characterLoader);
     _player = &_players.back();
 
     if (!_itemController.init(_assets)) {
@@ -218,7 +218,6 @@ void GameScene::syncInventoryWidgets() {
             
             widget->setPosition(getInitialInventoryPosition());
             
-            _inventory->addChild(widget);
             _itemWidgets.emplace(id, widget);
         }
     }

@@ -53,10 +53,12 @@ public:
         if (!reader) return false;
         
         // Reads in the Json values
+        CULog("[Loader] reading JSON");
         auto json = reader->readJson();
         if (!json) return false;
         
         // Gets the character object from JSON
+        CULog("[Loader] getting charArray from characters");
         auto charArray = json->get("characters");
         if (!charArray) return false;
         
@@ -65,11 +67,17 @@ public:
             auto entry = charArray->get(i);
             CharacterDef def;
             
+            CULog("[Loader] starting parse");
             def.id                = entry->getString("id");
+            CULog("[Loader] id retrieved");
             def.house             = entry->getString("house");
+            CULog("[Loader] house retrieved");
             def.maxHealth         = entry->getFloat("maxHealth");
+            CULog("[Loader] health retrieved");
             def.abilityClass      = parseAbilityClass(entry->getString("abilityClass"));
+            CULog("[Loader] ability retrieved");
             def.spritesheetPath   = entry->getString("spritesheetPath");
+            CULog("[Loader] sprite retrieved");
             
             //Parsing the special abilities array
             auto specialAbilities = entry->get("specialAbilities");
