@@ -63,13 +63,13 @@ void ItemController::update(float dt, Player* player) {
     }
 }
 
-// Hand out cards to players
+// Hand out a card to the player
 void ItemController::giveRandomItem(Player* player) {
     if (!player->isAlive()) {
         return;
     }
         
-    // Gets defId of random items generated
+    // Gets defId of the random item generated
     std::string itemDefId = _itemDb.rollRandomDefId();
     if (itemDefId.empty()) {
         return;
