@@ -172,7 +172,6 @@ void GameScene::setActive(bool value) {
 
 /** Create and return an item Widget with a given ItemInstance */
 std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
-//    CULog("[createItemWidget] Entered");
     auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
     if (!itemDef) return nullptr;
 
@@ -188,7 +187,6 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
     widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
     _inventory->addChild(widget);
-//    CULog("[Item] Created widget");
     return widget;
 }
 
@@ -200,7 +198,6 @@ cugl::Vec2 GameScene::getInitialInventoryPosition() const {
 
 /** Sync player inventory and item widgets displayed on screen */
 void GameScene::syncInventoryWidgets() {
-//    CULog("[syncInventoryWidgets] entered");
     if (!_inventory || !_player) {
         return;
     }
@@ -213,7 +210,6 @@ void GameScene::syncInventoryWidgets() {
         
         auto found = _itemWidgets.find(id);
         if (found == _itemWidgets.end()) {
-//            CULog("[syncInventoryWidgets] new Widget");
             auto widget = createItemWidget(item);
             if (!widget) {
                 continue;
