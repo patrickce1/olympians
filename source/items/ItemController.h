@@ -12,7 +12,7 @@ private:
     ItemDatabase _itemDb;
     // Instance of the item ID generator
     ItemInstance::IdGenerator _idGen;
-    // The item interval that determines how long you have to wait till recceiving another item
+    // The item interval that determines how long you have to wait till receiving another item
     float _itemInterval;
     // The item timer which tells us how long it has been since players last received an item
     float _itemTimer;
@@ -23,7 +23,7 @@ public:
     bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::string& jsonKey = "items");
 
     /**
-     * // Update the item timer and hand out cards
+     * // Update the item timer and hand out a card
      * @param dt  time elapsed
      */
     void update(float dt, Player* player);
