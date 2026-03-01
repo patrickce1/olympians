@@ -53,7 +53,7 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
     return true;
 }
 
-// Update the item timer and hand out cards
+// Update the item timer and hand out a card
 void ItemController::update(float dt, Player* player) {
     _itemTimer += dt;
 
