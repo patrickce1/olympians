@@ -40,7 +40,7 @@ private:
     
 public:
     /**
-     *Creates a player instance giiven a character ID
+     *Creates a player instance given a character ID
      * @param characterId         The ID of the character as appears in the JSON
      */
     Player(const std::string& characterId, int playerNumber,
@@ -56,7 +56,7 @@ public:
     /**
      * Returns the inventory of the player
      */
-    const std::vector<ItemInstance> getInventory() const { return _inventory;}
+    const std::vector<ItemInstance>& getInventory() const { return _inventory;}
     
     /**
      * Returns whether player's inventory is not empty

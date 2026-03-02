@@ -2,10 +2,12 @@
 #define __GAME_SCENE_H__
 #include <cugl/cugl.h>
 #include <vector>
+#include <unordered_map>
 #include "Player.h"
 #include "ItemController.h"
 #include "Enemy.h"
 #include "EnemyLoader.h"
+#include "CharacterLoader.h"
 
 /**
  * This class represents the core game scene
@@ -19,7 +21,7 @@ protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
     /** The root scene node for this scene graph. */
-    std::shared_ptr<cugl::scene2::SceneNode> scene;
+    std::shared_ptr<cugl::scene2::SceneNode> _scene;
 
     /** The node representing the main game area, top half of screen. */
     std::shared_ptr<cugl::scene2::SceneNode> _gameArea;
@@ -38,10 +40,26 @@ protected:
 
     /** The collection of item icon nodes displayed in the inventory. */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
-
+    
+    /** The collection of item widgets mapping itemId to its corresponding widget */
+    std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
+    
+    /** The character loader to load in player characters for this GameScene instance */
+    CharacterLoader _characterLoader;
+    
+    /** The player belonging to this GameScene instance */
+    Player* _player = nullptr;
+    
+    /** The collection of players in this party */
     std::vector<Player> _players;
+    
+    /** The ItemController for this GameScene instance*/
     ItemController _itemController;
+    
+    /** The enemy loader to load in the enemies for this GameScene instance */
     EnemyLoader _enemyLoader;
+    
+    /** The current enemy that the players are facing */
     std::unique_ptr<Enemy> _enemy;
 
 
@@ -96,6 +114,15 @@ public:
 
     //everything that needs to be updated. Anything that isn't a graphics call goes here
     virtual void update(float dt) override;
+    
+    /** Create and return an item Widget with a given ItemInstance */
+    std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
+    
+    /** Return the world position for an item widget's initial inventory position */
+    cugl::Vec2 getInitialInventoryPosition() const;
+    
+    /** Sync player inventory and item widgets displayed on screen */
+    void syncInventoryWidgets();
 
 };
 

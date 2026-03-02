@@ -16,13 +16,13 @@ Player::Player(const std::string& characterId, int playerNumber,
     const CharacterLoader::CharacterDef& def = loader.get(characterId);
 
     // Load from CharacterDef
-    _characterId     = def.id;
-    _house           = def.house;
-    _maxHealth       = def.maxHealth;
-    _currentHealth   = def.maxHealth;
-    _abilityClass    = def.abilityClass;
-    _spritesheetPath = def.spritesheetPath;
-    _specialAbilities= def.specialAbilities;
+    _characterId      = def.id;
+    _house            = def.house;
+    _maxHealth        = def.maxHealth;
+    _currentHealth    = def.maxHealth;
+    _abilityClass     = def.abilityClass;
+    _spritesheetPath  = def.spritesheetPath;
+    _specialAbilities = def.specialAbilities;
 
     // Set player-specific info
     _playerNumber = playerNumber;

@@ -45,19 +45,19 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // The comments are outline of how loading a scene from json should work. This DOES NOT WORK YET. Danielle should set this up
     // Acquire the scene built by the asset loader and resize it the scene. 
-    scene = _assets->get<scene2::SceneNode>("gameScene");
+    _scene = _assets->get<scene2::SceneNode>("gameScene");
     
-    if (!scene) {
+    if (!_scene) {
         printf("Scene NOT here!");
         return false;
     }
 
-    scene->setContentSize(dimen);
-    scene->doLayout(); // Repositions the HUD
+    _scene->setContentSize(dimen);
+    _scene->doLayout(); // Repositions the HUD
     
     // Elements setup from assets
-    _gameArea  = scene->getChildByName("gameArea");
-    _inventory = scene->getChildByName("inventory");
+    _gameArea  = _scene->getChildByName("gameArea");
+    _inventory = _scene->getChildByName("inventory");
     
     if (_gameArea) {
 
@@ -75,18 +75,17 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         //   "enemy" (boss widget)
         _bossNode = _attackArea->getChildByName("enemy");
     }
-    
-    // static items
-    if (_inventory) {
-        _abilityIcons.push_back(_inventory->getChildByName("heal"));
-        _abilityIcons.push_back(_inventory->getChildByName("heal2"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack4"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack5"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack6"));
-    }
 
-    addChild(scene);
+    addChild(_scene);
+    
+    const std::string characterJsonPath = "json/characters.json";
+    if (!_characterLoader.loadFromFile(characterJsonPath)) {
+        CULog("Failed to load characters.json");
+        return false;
+    }
+    
+    _players.emplace_back("Percy", 1, "Player 1", _characterLoader);
+    _player = &_players.back();
 
     if (!_itemController.init(_assets)) {
         return false;
@@ -120,7 +119,8 @@ void GameScene::update(float dt) {
         return;
     }
 
-    _itemController.update(dt, _players);
+    _itemController.update(dt, _player);
+    syncInventoryWidgets();
 }
 
 /**
@@ -156,6 +156,69 @@ void GameScene::setActive(bool value) {
         }
         else {
             //deactivate any children that are part of the scene
+        }
+    }
+}
+
+/** Create and return an item Widget with a given ItemInstance */
+std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
+    auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
+    if (!itemDef) return nullptr;
+
+    const std::string textureKey =
+        (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
+    
+    auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
+    if (!texture) return nullptr;
+    
+    auto widget = PolygonNode::allocWithTexture(texture);
+    
+    widget->setContentSize(Size(64,64));
+    widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
+    widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
+    _inventory->addChild(widget);
+    return widget;
+}
+
+/** Return the world position for an item widget's initial inventory position */
+cugl::Vec2 GameScene::getInitialInventoryPosition() const {
+    cugl::Size size = _inventory->getContentSize();
+    return cugl::Vec2(size.width * 0.5f, size.height * 0.5f);
+}
+
+/** Sync player inventory and item widgets displayed on screen */
+void GameScene::syncInventoryWidgets() {
+    if (!_inventory || !_player) {
+        return;
+    }
+    
+    std::unordered_set<ItemInstance::ItemId> liveIds;
+    
+    for (const ItemInstance& item : _player->getInventory()) {
+        ItemInstance::ItemId id = item.getId();
+        liveIds.insert(id);
+        
+        auto found = _itemWidgets.find(id);
+        if (found == _itemWidgets.end()) {
+            auto widget = createItemWidget(item);
+            if (!widget) {
+                continue;
+            }
+            
+            widget->setPosition(getInitialInventoryPosition());
+            
+            _itemWidgets.emplace(id, widget);
+        }
+    }
+    
+    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end(); ) {
+        if (liveIds.find(it->first) == liveIds.end()) {
+            if (it->second) {
+                _inventory->removeChild(it->second);
+            }
+            it = _itemWidgets.erase(it);
+        } else {
+            ++it;
         }
     }
 }

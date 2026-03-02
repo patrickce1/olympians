@@ -64,7 +64,6 @@ public:
         for (int i = 0; i < charArray->size(); i++) {
             auto entry = charArray->get(i);
             CharacterDef def;
-            
             def.id                = entry->getString("id");
             def.house             = entry->getString("house");
             def.maxHealth         = entry->getFloat("maxHealth");
