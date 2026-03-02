@@ -70,7 +70,6 @@ void InputController::setActive(bool active){
     }
 }
 
-
 /**
  * Callback invoked when a new touch contact begins.
  *
@@ -169,6 +168,4 @@ void InputController::onTouchEnded(const cugl::TouchEvent &event, bool focus){
     _dragging = false;
     _touchEnded = true;
 }
-
-
 

@@ -8,7 +8,6 @@
 #include "EnemyLoader.h"
 #include "InputController.h"
 
-
 /**
  * This class represents the core game scene
  * Add things to this class as necessary
@@ -86,7 +85,6 @@ public:
     
     std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
 
-
     std::vector<cugl::Vec2> _abilityOriginalPos;
     
     /**
@@ -120,7 +118,6 @@ public:
     void update(float dt,InputController& input);
     
     void render() override;
-
 
 };
 
