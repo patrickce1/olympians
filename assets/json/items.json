@@ -42,6 +42,6 @@
             "effectiveValue": 1.5
         }
     ],
-    "itemInterval": 20.0,
+    "itemInterval": 10.0,
     "itemTimerStart": 5.0
 }
