@@ -8,7 +8,6 @@
 #include "EnemyLoader.h"
 #include "InputController.h"
 
-
 /**
  * This class represents the core game scene
  * Add things to this class as necessary
