@@ -116,7 +116,6 @@ public:
     
     void render() override;
 
-
 };
 
 #endif /* __GAME_SCENE_H__ */
