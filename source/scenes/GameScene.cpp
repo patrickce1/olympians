@@ -149,20 +149,21 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
  */
 void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
+    float height = getSize().height;
+
 
     // --- Reset button tap detection ---
     // Only check when no icon is being dragged, touch just ended, and the button exists
     if (input.touchEnded() && !_activeIcon && _resetBtn) {
         // Flip the touch Y coordinate: touch origin is top-left, scene origin is bottom-left
-        float h = getSize().height;
-        Vec2 touchFlipped(input.getTouchStart().x, h - input.getTouchStart().y);
+        Vec2 touchFlipped(input.getTouchStart().x, height - input.getTouchStart().y);
 
-        Rect bbox = _resetBtn->getBoundingBox();
-        CULog("Reset bbox(%f,%f,%f,%f) touch(%f,%f)",
-              bbox.origin.x, bbox.origin.y, bbox.size.width, bbox.size.height,
+        Rect boundingBox = _resetBtn->getBoundingBox();
+        CULog("Reset boundingBox(%f,%f,%f,%f) touch(%f,%f)",
+              boundingBox.origin.x, boundingBox.origin.y, boundingBox.size.width, boundingBox.size.height,
               touchFlipped.x, touchFlipped.y);
 
-        if (bbox.contains(touchFlipped)) {
+        if (boundingBox.contains(touchFlipped)) {
             CULog("Reset button tapped!");
             reset();
         }
@@ -196,18 +197,17 @@ void GameScene::update(float dt, InputController& input) {
     // --- Drag initiation: first touch on an inventory icon ---
     if (!_activeIcon && input.isTouching()) {
         // Convert touch position from screen (top-left origin) to scene (bottom-left origin)
-        float h = getSize().height;
-        cugl::Vec2 touchFlipped    = cugl::Vec2(input.getTouchStart().x, h - input.getTouchStart().y);
+        cugl::Vec2 touchFlipped    = cugl::Vec2(input.getTouchStart().x, height - input.getTouchStart().y);
         // Further convert into the inventory node's local coordinate space
         cugl::Vec2 touchInInventory = _inventory->parentToNodeCoords(touchFlipped);
 
         // Hit-test each ability icon to see if the touch landed on one
         for (auto& icon : _abilityIcons) {
             if (!icon) continue;
-            cugl::Rect bbox = icon->getBoundingBox();
+            cugl::Rect boundingBox = icon->getBoundingBox();
             // Shift the bounding box up by half its height (manual anchor correction)
-            bbox.origin.y += bbox.size.height / 2;
-            if (bbox.contains(touchInInventory)) {
+            boundingBox.origin.y += boundingBox.size.height / 2;
+            if (boundingBox.contains(touchInInventory)) {
                 _activeIcon = icon;
                 // Store the offset between the icon center and the touch point
                 // so the icon doesn't "snap" its center to the finger
@@ -219,8 +219,7 @@ void GameScene::update(float dt, InputController& input) {
 
     // --- Drag tracking: move the active icon to follow the finger ---
     if (_activeIcon && input.isTouching()) {
-        float h = getSize().height;
-        cugl::Vec2 dragFlipped     = cugl::Vec2(input.getDragPos().x, h - input.getDragPos().y);
+        cugl::Vec2 dragFlipped     = cugl::Vec2(input.getDragPos().x, height - input.getDragPos().y);
         cugl::Vec2 dragInInventory = _inventory->parentToNodeCoords(dragFlipped);
         // Apply the stored offset so the icon moves smoothly relative to the initial grab point
         _activeIcon->setPosition(dragInInventory + _dragOffset);
@@ -311,8 +310,8 @@ void GameScene::render() {
 
     // Debug outline around the reset button
     if (_resetBtn) {
-        Rect bbox = _resetBtn->getBoundingBox();
-        Path2 path(bbox);
+        Rect boundingBox = _resetBtn->getBoundingBox();
+        Path2 path(boundingBox);
         batch->setColor(Color4(0, 255, 0, 150));
         batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
     }
@@ -326,8 +325,8 @@ void GameScene::render() {
 
         // If this zone matches the active glow, draw a fading filled overlay
         if (action == _glowAction && _glowTimer > 0) {
-            float t = _glowTimer / _glowDuration;    // Normalized time remaining [1 → 0]
-            Uint8 alpha = (Uint8)(150 * t);           // Fade from 150 → 0 alpha
+            float timeRemaining = _glowTimer / _glowDuration;    // Normalized time remaining [1 → 0]
+            Uint8 alpha = (Uint8)(150 * timeRemaining);           // Fade from 150 → 0 alpha
             batch->setColor(Color4(0, 255, 0, alpha));
             batch->fill(path, Vec2::ZERO, Affine2::IDENTITY);
         }

@@ -212,26 +212,25 @@ void SceneLoader::update(float dt) {
             break;
         case State::GAME:
             InputController::Action action = _input.getAction();
-
-                        switch (action) {
-                            case InputController::Action::PASS_RIGHT:
-                                CULog("[ACTION] PASS_RIGHT");
-                                break;
-                            case InputController::Action::PASS_LEFT:
-                                CULog("[ACTION] PASS_LEFT");
-                                break;
-                            case InputController::Action::DROP_BOSS:
-                                CULog("[ACTION] DROP_BOSS");
-                                break;
-                            case InputController::Action::DROP_ALLY_LEFT:
-                                CULog("[ACTION] DROP_ALLY_LEFT");
-                                break;
-                            case InputController::Action::DROP_ALLY_RIGHT:
-                                CULog("[ACTION] DROP_ALLY_RIGHT");
-                                break;
-                            default:
-                                break;
-                        }
+            switch (action) {
+                case InputController::Action::PASS_RIGHT:
+                    CULog("[ACTION] PASS_RIGHT");
+                    break;
+                case InputController::Action::PASS_LEFT:
+                    CULog("[ACTION] PASS_LEFT");
+                    break;
+                case InputController::Action::DROP_BOSS:
+                    CULog("[ACTION] DROP_BOSS");
+                    break;
+                case InputController::Action::DROP_ALLY_LEFT:
+                    CULog("[ACTION] DROP_ALLY_LEFT");
+                    break;
+                case InputController::Action::DROP_ALLY_RIGHT:
+                    CULog("[ACTION] DROP_ALLY_RIGHT");
+                    break;
+                default:
+                    break;
+            }
             _gameScene.update(dt,_input);
             break;
     }
