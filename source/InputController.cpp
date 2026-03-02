@@ -70,7 +70,6 @@ void InputController::setActive(bool active){
     }
 }
 
-
 /**
  * Callback invoked when a new touch contact begins.
  *
