@@ -169,4 +169,3 @@ void InputController::onTouchEnded(const cugl::TouchEvent &event, bool focus){
     _touchEnded = true;
 }
 
-
