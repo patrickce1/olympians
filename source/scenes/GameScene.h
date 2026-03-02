@@ -52,6 +52,13 @@ protected:
     
     /** The collection of players in this party */
     std::vector<Player> _players;
+  
+    /** AI controllers for bot-controlled players, stored as base class pointers
+     *  to allow mixed difficulty levels in the same collection */
+    std::vector<std::unique_ptr<PlayerAI>> _playerAIs;
+    
+    /** Handles touch input for the human player */
+    InputController _input;
     
     /** The ItemController for this GameScene instance*/
     ItemController _itemController;
@@ -61,7 +68,6 @@ protected:
     
     /** The current enemy that the players are facing */
     std::unique_ptr<Enemy> _enemy;
-
 
 public:
 #pragma mark -
@@ -111,6 +117,33 @@ public:
      * @param value whether the scene is currently active
      */
     virtual void setActive(bool value) override;
+    
+    /**
+     * Handles the human player dropping an item on the boss zone to attack.
+     */
+    void handleAttack();
+
+    /**
+     * Handles the human player dropping an item on the left ally zone to support.
+     */
+    void handleSupportLeft();
+
+    /**
+     * Handles the human player dropping an item on the right ally zone to support.
+     */
+    void handleSupportRight();
+
+    /**
+     * Handles the human player passing an item to the left neighbor.
+     */
+    void handlePassLeft();
+
+    /**
+     * Handles the human player passing an item to the right neighbor.
+     */
+    void handlePassRight();
+    
+    
 
     //everything that needs to be updated. Anything that isn't a graphics call goes here
     virtual void update(float dt) override;

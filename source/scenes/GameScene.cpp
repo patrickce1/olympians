@@ -1,6 +1,9 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
+#include "InputController.h"
+#include "EasyPlayerAI.h"
+#include "CharacterLoader.h"
 
 #include "GameScene.h"
 
@@ -114,13 +117,102 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     return true;
 }
 
+/**
+ * Handles the human player dropping an item on the boss zone to attack.
+ */
+void GameScene::handleAttack() {
+    if (!_enemy) return;
+    Player& human = _players[_humanPlayerIndex];
+    for (const ItemInstance& item : human.getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Attack) {
+            human.useItemById(item.getId(), *_enemy, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the human player dropping an item on the left ally zone to support.
+ */
+void GameScene::handleSupportLeft() {
+    Player* target = _players[_humanPlayerIndex].getLeftPlayer();
+    if (!target || !target->isAlive()) return;
+    Player& human = _players[_humanPlayerIndex];
+    for (const ItemInstance& item : human.getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Support) {
+            human.useItemById(item.getId(), *target, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the human player dropping an item on the right ally zone to support.
+ */
+void GameScene::handleSupportRight() {
+    Player* target = _players[_humanPlayerIndex].getRightPlayer();
+    if (!target || !target->isAlive()) return;
+    Player& human = _players[_humanPlayerIndex];
+    for (const ItemInstance& item : human.getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Support) {
+            human.useItemById(item.getId(), *target, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the human player passing an item to the left neighbor.
+ */
+void GameScene::handlePassLeft() {
+    Player& human = _players[_humanPlayerIndex];
+    Player* target = human.getLeftPlayer();
+    if (!target || !target->isAlive() || human.getInventory().empty()) return;
+    ItemInstance item = human.getInventory()[0];
+    human.removeItemById(item.getId());
+    target->addItem(item);
+}
+
+/**
+ * Handles the human player passing an item to the right neighbor.
+ */
+void GameScene::handlePassRight() {
+    Player& human = _players[_humanPlayerIndex];
+    Player* target = human.getRightPlayer();
+    if (!target || !target->isAlive() || human.getInventory().empty()) return;
+    ItemInstance item = human.getInventory()[0];
+    human.removeItemById(item.getId());
+    target->addItem(item);
+}
+
 void GameScene::update(float dt) {
     if (!_active) {
         return;
     }
 
-    _itemController.update(dt, _player);
+    _itemController.update(dt, _players);
     syncInventoryWidgets();
+    
+    if (_players[_humanPlayerIndex].isAlive()) {
+        switch (_input.getAction()) {
+            case InputController::Action::DROP_BOSS:       handleAttack();       break;
+            case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft();  break;
+            case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(); break;
+            case InputController::Action::PASS_LEFT:       handlePassLeft();     break;
+            case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
+            default: break;
+        }
+        _input.resetAction();
+    }
+
+    if (_enemy) {
+        for (auto& ai : _playerAIs) {
+            ai->update(dt, *_enemy, _itemController);
+        }
+    }
 }
 
 /**

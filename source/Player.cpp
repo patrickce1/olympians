@@ -55,7 +55,7 @@ void Player::addItem(const ItemInstance& item) {
 /**
  *Returns whether the player is alive or not
  */
-bool Player::isAlive(){
+bool Player::isAlive() const{
     return _currentHealth > 0;
 }
 
