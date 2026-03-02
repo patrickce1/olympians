@@ -261,7 +261,6 @@ void SceneLoader::draw() {
     }
 }
 
-
 void SceneLoader::updateGameScene(float dt) {
     _gameScene.update(dt,_input);
     //scene switching logic goes here
