@@ -53,39 +53,39 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
     return true;
 }
 
-// Update the item timer and hand out cards
-void ItemController::update(float dt, std::vector<Player>& players) {
+// Update the item timer and hand out a card
+void ItemController::update(float dt, Player* player) {
     _itemTimer += dt;
 
     while (_itemTimer >= _itemInterval) {
         _itemTimer -= _itemInterval;
-        giveRandomItemToAll(players);
+        giveRandomItem(player);
     }
 }
 
-// Hand out cards to players
-void ItemController::giveRandomItemToAll(std::vector<Player>& players) {
-    for (Player& player : players) {
-        if (!player.isAlive()) {
-            continue;
-        }
+// Hand out a card to the player
+void ItemController::giveRandomItem(Player* player) {
+    if (!player->isAlive()) {
+        CULog("[ItemController] Player is not alive");
+        return;
+    }
         
-        // Gets defId of random items generated
-        std::string itemDefId = _itemDb.rollRandomDefId();
-        if (itemDefId.empty()) {
-            continue;
-        }
-
-        // Creates instance of generated defId
-        auto itemInstance = _itemDb.createInstance(itemDefId, _idGen.next());
-        if (!itemInstance) {
-            continue;
-        }
-
-        player.addItem(*itemInstance);
-        CULog("Gave player %d item %s (id=%llu)",
-              player.getPlayerNumber(),
-              itemDefId.c_str(),
-              (unsigned long long)itemInstance->getId());
+    // Gets defId of the random item generated
+    std::string itemDefId = _itemDb.rollRandomDefId();
+    if (itemDefId.empty()) {
+        CULog("[ItemController] DefId is empty");
+        return;
     }
+
+    // Creates instance of generated defId
+    auto itemInstance = _itemDb.createInstance(itemDefId, _idGen.next());
+    if (!itemInstance) {
+        CULog("[ItemController] Failed to create itemInstance");
+        return;
+    }
+
+    player->addItem(*itemInstance);
 }
+
+
+
