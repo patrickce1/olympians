@@ -51,8 +51,11 @@ protected:
     EnemyLoader _enemyLoader;
     std::unique_ptr<Enemy> _enemy;
     
+    /** The Action corresponding to the zone that should glow once the player performs that action**/
     InputController::Action _glowAction = InputController::Action::NONE;
+    /**Internal clock to measure how long we have been glowing**/
     float _glowTimer = 0;
+    /**How long that a region that glows should glow for at maximum.**/
     float _glowDuration = 0.3f;
 
 public:
