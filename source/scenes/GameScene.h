@@ -82,7 +82,6 @@ public:
     
     std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
 
-
     std::vector<cugl::Vec2> _abilityOriginalPos;
     
     /**
