@@ -75,16 +75,6 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         //   "enemy" (boss widget)
         _bossNode = _attackArea->getChildByName("enemy");
     }
-    
-    // static items
-//    if (_inventory) {
-//        _abilityIcons.push_back(_inventory->getChildByName("heal"));
-//        _abilityIcons.push_back(_inventory->getChildByName("heal2"));
-//        _abilityIcons.push_back(_inventory->getChildByName("attack"));
-//        _abilityIcons.push_back(_inventory->getChildByName("attack4"));
-//        _abilityIcons.push_back(_inventory->getChildByName("attack5"));
-//        _abilityIcons.push_back(_inventory->getChildByName("attack6"));
-//    }
 
     addChild(_scene);
     
