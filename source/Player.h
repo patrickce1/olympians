@@ -9,6 +9,7 @@
 #include "ItemInstance.h"
 #include "ItemDatabase.h"
 #include "Enemy.h"
+#include <type_traits>
 
 
 /**
@@ -148,7 +149,32 @@ public:
      * @return true if the item was found and used, false otherwise
      */
     template <typename T>
-    bool useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db);
+    bool useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
+        for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
+            if (item->getId() == itemId) {
+                std::shared_ptr<ItemDef> def = db.getDef(item->getDefId());
+                if (!def) {
+                    CULogError("Player: could not find ItemDef for defId '%s'", item->getDefId().c_str());
+                    return false;
+                }
+
+                if constexpr (std::is_same<T, Player>::value) {
+                    if (def->getType() == ItemDef::Type::Support) {
+                        target.updateHealth(def->getEffectiveValue());
+                    }
+                }
+                else if constexpr (std::is_same<T, Enemy>::value) {
+                    if (def->getType() == ItemDef::Type::Attack) {
+                        target.updateHealth(-def->getEffectiveValue());
+                    }
+                }
+
+                _inventory.erase(item);
+                return true;
+            }
+        }
+        return false;
+    }
     
     
     /**
@@ -173,3 +199,4 @@ public:
     
 };
 #endif /* !__PLAYER_H__ */
+

@@ -4,10 +4,13 @@
 #include <vector>
 #include <unordered_map>
 #include "Player.h"
+#include "InputController.h"
 #include "ItemController.h"
 #include "Enemy.h"
 #include "EnemyLoader.h"
 #include "CharacterLoader.h"
+#include "PlayerAI.h"
+#include "EasyPlayerAI.h"
 
 /**
  * This class represents the core game scene
@@ -47,8 +50,8 @@ protected:
     /** The character loader to load in player characters for this GameScene instance */
     CharacterLoader _characterLoader;
     
-    /** The player belonging to this GameScene instance */
-    Player* _player = nullptr;
+    /** Pointer to the player belonging to the local machine. Set once in init(), never reallocated. */
+    Player* _localPlayer = nullptr;
     
     /** The collection of players in this party */
     std::vector<Player> _players;
@@ -118,6 +121,10 @@ public:
      */
     virtual void setActive(bool value) override;
     
+    /**
+     * Called after the network session and assigns all local machines to a network-given player slot
+     */
+    void setLocalPlayer(int assignedIndex);
     /**
      * Handles the human player dropping an item on the boss zone to attack.
      */

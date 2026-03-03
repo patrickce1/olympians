@@ -20,6 +20,8 @@ sources:                            # The list of the source code files
     - source/items/*.h
     - source/playerAI/*.cpp
     - source/playerAI/*.h
+    - source/tests/*.cpp
+    - source/tests/*.h
 
 modules:
     - scene2
