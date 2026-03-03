@@ -3,8 +3,9 @@
 /**
  * Reads the "easyPlayerAI" sub-object from playerAI.json and loads shared fields.
  */
-bool EasyPlayerAI::init(Player* player, const ItemDatabase& db,
-                        const std::string& path) {
+bool EasyPlayerAI::init(Player* player, const ItemDatabase& db, const std::string& path) {
+    
+    //initialize json reader
     auto reader = cugl::JsonReader::alloc(path);
     if (!reader) {
         CULogError("EasyPlayerAI::init — failed to open %s", path.c_str());

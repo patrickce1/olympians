@@ -91,7 +91,6 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     // Create Player Array for all real players
     _players.emplace_back("Percy", 1, "Player 1", _characterLoader);
     
-    
     // --- Circular neighbor linking ---
     // Links all 4 players in a ring: 0 <-> 1 <-> 2 <-> 3 <-> 0
     // Neighbors are used by both the human pass actions and AI support/pass logic.
