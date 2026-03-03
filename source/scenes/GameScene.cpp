@@ -11,8 +11,7 @@ using namespace std;
 #pragma mark -
 #pragma mark Level Layout
 
-/** The fixed height used to scale the scene; width adjusts to maintain aspect ratio */
-#define SCENE_HEIGHT  852
+/** Use native display bounds for a 1:1 scene coordinate space */
 
 #pragma mark -
 #pragma mark Constructors
@@ -21,7 +20,6 @@ using namespace std;
  * Initializes the controller contents and sets up the game scene.
  *
  * This method builds the scene graph from pre-loaded JSON assets, wires up
- * references to key UI nodes (game area, inventory bar, ability icons,
  * player slots, boss node, reset button), initializes the item controller
  * and enemy loader, and leaves the scene inactive until explicitly activated.
  *
@@ -36,8 +34,10 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     if (assets == nullptr) {
         return false;
     }
-    // Initialize the base Scene2 with a locked height (width scales to device aspect ratio)
-    if (!Scene2::initWithHint(Size(0, SCENE_HEIGHT))) {
+    // Initialize the base Scene2 using the native display bounds for 1:1 scaling
+    cugl::Rect bounds = Application::get()->getDisplayBounds();
+    Size sceneSize(bounds.size.width, bounds.size.height);
+    if (!Scene2::initWithHint(sceneSize)) {
         return false;
     }
     

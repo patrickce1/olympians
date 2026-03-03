@@ -16,10 +16,6 @@ using namespace cugl::graphics;
 /** This is the main application and so we need this macro at the start */
 CU_ROOTCLASS(SceneLoader)
 
-// The height is a suggestion, but the width is mandatory
-#define GAME_WIDTH 393
-#define GAME_HEIGHT 852
-
 /**
  * Creates, but does not initialize, a new application.
  *
@@ -40,8 +36,9 @@ CU_ROOTCLASS(SceneLoader)
     setResizable(true);     // Ignored on mobile
     setVSync(true);         // Generally a good idea to prevent choppiness
 
-    // This one can MAYBE reassigned after launch
-    setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+    // This one can MAYBE reassigned after launch; use native device bounds for 1:1
+    cugl::Rect bounds = getDisplayBounds();
+    setDisplaySize((int)bounds.size.width, (int)bounds.size.height);
 
     // This can always be reset
     setFPS(120.0);

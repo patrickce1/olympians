@@ -15,6 +15,7 @@ bool InputController::init(){
     cugl::Rect full = cugl::Application::get()->getDisplayBounds();
     cugl::Rect drawable = cugl::Application::get()->getDrawableBounds();
     _scale = full.size.width / drawable.size.width;
+    CULog("LOGICAL SCALE: %f",_scale);
     // Acquire a unique listener key for registering/unregistering callbacks
     _listenerKey = _touch->acquireKey();
     
