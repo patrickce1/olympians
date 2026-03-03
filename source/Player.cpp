@@ -16,13 +16,13 @@ Player::Player(const std::string& characterId, int playerNumber,
     const CharacterLoader::CharacterDef& def = loader.get(characterId);
 
     // Load from CharacterDef
-    _characterId     = def.id;
-    _house           = def.house;
-    _maxHealth       = def.maxHealth;
-    _currentHealth   = def.maxHealth;
-    _abilityClass    = def.abilityClass;
-    _spritesheetPath = def.spritesheetPath;
-    _specialAbilities= def.specialAbilities;
+    _characterId      = def.id;
+    _house            = def.house;
+    _maxHealth        = def.maxHealth;
+    _currentHealth    = def.maxHealth;
+    _abilityClass     = def.abilityClass;
+    _spritesheetPath  = def.spritesheetPath;
+    _specialAbilities = def.specialAbilities;
 
     // Set player-specific info
     _playerNumber = playerNumber;
@@ -45,6 +45,21 @@ void Player::updateHealth(float delta) {
 }
 
 /**
+ * Removes  an item from the player's inventory by item id.
+ * @param item    The item to remove
+ * @param target    The target to apply the item to (Player or Enemy)
+ * @return true if the item was found and removed, false otherwise
+ */
+void Player::removeItemById(ItemInstance::ItemId itemId) {
+    for (auto it = _inventory.begin(); it != _inventory.end(); ++it) {
+        if (it->getId() == itemId) {
+            _inventory.erase(it);
+            break;
+        }
+    }
+}
+
+/**
  * Adds an item to the player's inventory.
  * @param item      The item to add
  */
@@ -55,42 +70,7 @@ void Player::addItem(const ItemInstance& item) {
 /**
  *Returns whether the player is alive or not
  */
-bool Player::isAlive(){
+bool Player::isAlive() const{
     return _currentHealth > 0;
-}
-
-/**
- * Uses and removes an item from the player's inventory on a target.
- * @param item        The item to use
- * @param target    The target to apply the item to (Player or Enemy)
- * @param db             The item database
- * @return true if the item was found and used, false otherwise
- */
-template <typename T>
-bool Player::useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
-    for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
-        if (item->getId() == itemId) {
-            std::shared_ptr<ItemDef> def = db.getDef(item->getDefId());
-            if (!def) {
-                CULogError("Player: could not find ItemDef for defId '%s'", item->getDefId().c_str());
-                return false;
-            }
-
-            if constexpr (std::is_same<T, Player>::value) {
-                if (def->getType() == ItemDef::Type::Support) {
-                    target.updateHealth(def->getEffectiveValue());
-                }
-            }
-            else if constexpr (std::is_same<T, Enemy>::value) {
-                if (def->getType() == ItemDef::Type::Attack) {
-                    target.updateHealth(-def->getEffectiveValue());
-                }
-            }
-
-            _inventory.erase(item);
-            return true;
-        }
-    }
-    return false;
 }
 

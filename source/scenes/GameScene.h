@@ -2,10 +2,15 @@
 #define __GAME_SCENE_H__
 #include <cugl/cugl.h>
 #include <vector>
+#include <unordered_map>
 #include "Player.h"
+#include "InputController.h"
 #include "ItemController.h"
 #include "Enemy.h"
 #include "EnemyController.h"
+#include "CharacterLoader.h"
+#include "PlayerAI.h"
+#include "EasyPlayerAI.h"
 
 /**
  * This class represents the core game scene
@@ -19,7 +24,7 @@ protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
     /** The root scene node for this scene graph. */
-    std::shared_ptr<cugl::scene2::SceneNode> scene;
+    std::shared_ptr<cugl::scene2::SceneNode> _scene;
 
     /** The node representing the main game area, top half of screen. */
     std::shared_ptr<cugl::scene2::SceneNode> _gameArea;
@@ -38,9 +43,30 @@ protected:
 
     /** The collection of item icon nodes displayed in the inventory. */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
-
+    
+    /** The collection of item widgets mapping itemId to its corresponding widget */
+    std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
+    
+    /** The character loader to load in player characters for this GameScene instance */
+    CharacterLoader _characterLoader;
+    
+    /** Pointer to the player belonging to the local machine. Set once in init(), never reallocated. */
+    Player* _localPlayer = nullptr;
+    
+    /** The collection of players in this party */
     std::vector<Player> _players;
+  
+    /** AI controllers for bot-controlled players, stored as base class pointers
+     *  to allow mixed difficulty levels in the same collection */
+    std::vector<std::unique_ptr<PlayerAI>> _playerAIs;
+    
+    /** Handles touch input for the human player */
+    InputController _input;
+    
+    /** The ItemController for this GameScene instance*/
     ItemController _itemController;
+
+    /** The enemy for this scene and its controller */
     std::shared_ptr<Enemy> _enemy;
     EnemyController _enemyController;
 
@@ -93,9 +119,49 @@ public:
      * @param value whether the scene is currently active
      */
     virtual void setActive(bool value) override;
+    
+    /**
+     * Called after the network session and assigns all local machines to a network-given player slot
+     */
+    void setLocalPlayer(int assignedIndex);
+    /**
+     * Handles the human player dropping an item on the boss zone to attack.
+     */
+    void handleAttack();
+
+    /**
+     * Handles the human player dropping an item on the left ally zone to support.
+     */
+    void handleSupportLeft();
+
+    /**
+     * Handles the human player dropping an item on the right ally zone to support.
+     */
+    void handleSupportRight();
+
+    /**
+     * Handles the human player passing an item to the left neighbor.
+     */
+    void handlePassLeft();
+
+    /**
+     * Handles the human player passing an item to the right neighbor.
+     */
+    void handlePassRight();
+    
+    
 
     //everything that needs to be updated. Anything that isn't a graphics call goes here
     virtual void update(float dt) override;
+    
+    /** Create and return an item Widget with a given ItemInstance */
+    std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
+    
+    /** Return the world position for an item widget's initial inventory position */
+    cugl::Vec2 getInitialInventoryPosition() const;
+    
+    /** Sync player inventory and item widgets displayed on screen */
+    void syncInventoryWidgets();
 
 };
 

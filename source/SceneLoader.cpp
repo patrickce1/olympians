@@ -32,7 +32,7 @@ CU_ROOTCLASS(SceneLoader)
  * the backend is initialized, and so much CUGL API calls will fail. Any
  * initialization that requires access to CUGL must happen in onStartup().
  */
-    SceneLoader::SceneLoader() : Application() {
+    SceneLoader::SceneLoader() : Application(), _currentScene(State::LOAD) {
     // Pre-launch configuration. Nothing here can be reassigned later.
     setName("Olympians");
     setOrganization("Greek Frog Studios");
@@ -63,7 +63,7 @@ void SceneLoader::onStartup() {
 
     // Create a sprite batch (and background color) to render the scene
     _batch = SpriteBatch::alloc();
-    setClearColor(Color4(229, 229, 229, 255));
+//    setClearColor(Color4(229, 229, 229, 255));
 
     // Create an asset manager to load all assets
     _assets = AssetManager::alloc();
@@ -76,7 +76,7 @@ void SceneLoader::onStartup() {
     _assets->attach<scene2::SceneNode>(Scene2Loader::alloc()->getHook());
 
     // This reads the given JSON file and uses it to load all other assets
-    _assets->loadDirectory("json/assets.json");
+    _assets->loadDirectory("json/loading.json");
 
     // Activate mouse or touch screen input as appropriate
     // We have to do this BEFORE the scene, because the scene has a button
@@ -86,9 +86,11 @@ void SceneLoader::onStartup() {
     Input::activate<Mouse>();
 #endif
 
-    currentScene = State::GAME;
-    gameScene.init(_assets);
-    gameScene.setSpriteBatch(_batch);
+    _loadingScene = scene2::LoadingScene::alloc(_assets, "json/assets.json");
+    _loadingScene->setSpriteBatch(_batch);
+    _loadingScene->setActive(true);
+    _loadingScene->start();
+    _currentScene = State::LOAD;
     
     // Build the scene from these assets
     Application::onStartup();
@@ -125,6 +127,15 @@ void SceneLoader::onStartup() {
     bounds = getDisplayBounds();
     _logger->log("Full Area %sx%s", bounds.origin.toString().c_str(),
         bounds.size.toString().c_str());
+    
+    // ── Run unit tests ──────────────────────────
+//    PlayerTests::runAll(
+//        "json/characters.json",
+//        "json/items.json",
+//        "json/enemies.json",
+//        "json/playerAI.json"
+//    );
+
 }
 
 /**
@@ -140,6 +151,8 @@ void SceneLoader::onStartup() {
  */
 void SceneLoader::onShutdown() {
     _input.dispose();
+    _gameScene.dispose();
+    _loadingScene = nullptr;
     Logger::close("debug");
 
     // Delete all smart pointers
@@ -186,8 +199,23 @@ void SceneLoader::onResize() {
  * Otherwise, it should maintain the current scene.
  */
 void SceneLoader::update(float dt) {
-    switch (currentScene) {
-        case GAME:
+    switch (_currentScene) {
+        case State::LOAD:
+            _loadingScene->update(dt);
+            
+            if (_loadingScene->isPending()) {
+                CULog("Assets finished loading. Initializing GameScene...");
+
+                _gameScene.init(_assets);
+                _gameScene.setSpriteBatch(_batch);
+                _gameScene.setActive(true);
+
+                _loadingScene->setActive(false);
+                _currentScene = State::GAME;
+            }
+            
+            break;
+        case State::GAME:
             InputController::Action action = _input.getAction();
                         switch (action) {
                             case InputController::Action::PASS_RIGHT:
@@ -208,7 +236,7 @@ void SceneLoader::update(float dt) {
                             default:
                                 break;
                         }
-            gameScene.update(dt);
+            _gameScene.update(dt);
             break;
     }
     _input.resetAction();
@@ -227,14 +255,18 @@ void SceneLoader::update(float dt) {
  */
 void SceneLoader::draw() {
     // This takes care of begin/end
-    switch (currentScene) {
-        case GAME:
-            gameScene.render();
+    switch (_currentScene) {
+        case State::LOAD:
+            _loadingScene->render();
+            break;
+        case State::GAME:
+            _gameScene.render();
+            break;
     }
 }
 
 
 void SceneLoader::updateGameScene(float dt) {
-    gameScene.update(dt);
+    _gameScene.update(dt);
     //scene switching logic goes here
 }

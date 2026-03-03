@@ -3,6 +3,7 @@
 #include <cugl/cugl.h>
 #include "scenes/GameScene.h"
 #include "InputController.h"
+#include "PlayerTests.h"
 
 /**
  * Scene loader class responsible for loading assets and managing scene transitions
@@ -11,11 +12,12 @@ class SceneLoader : public cugl::Application {
 protected:
     /* This enum keeps track of which scene/mode we are in right now
      * Will have to be expanded as we add more scenes*/
-    enum State {
+    enum class State {
+        LOAD,
         GAME
     };
 
-    State currentScene;
+    State _currentScene;
 
     /** The loaders to (synchronously) load in assets */
     std::shared_ptr<cugl::AssetManager> _assets;
@@ -29,7 +31,8 @@ protected:
     InputController _input;
 
     /* All the scenes in the game*/
-    GameScene gameScene;
+    std::shared_ptr<cugl::scene2::LoadingScene> _loadingScene;
+    GameScene _gameScene;
     //more scenes to come...
 
 public:

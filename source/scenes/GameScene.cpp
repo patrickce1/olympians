@@ -1,6 +1,10 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
+#include "InputController.h"
+#include "PlayerAI.h"
+#include "EasyPlayerAI.h"
+#include "CharacterLoader.h"
 
 #include "GameScene.h"
 #include "Enemy.h"
@@ -46,19 +50,19 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // The comments are outline of how loading a scene from json should work. This DOES NOT WORK YET. Danielle should set this up
     // Acquire the scene built by the asset loader and resize it the scene. 
-    scene = _assets->get<scene2::SceneNode>("gameScene");
+    _scene = _assets->get<scene2::SceneNode>("gameScene");
     
-    if (!scene) {
+    if (!_scene) {
         printf("Scene NOT here!");
         return false;
     }
 
-    scene->setContentSize(dimen);
-    scene->doLayout(); // Repositions the HUD
+    _scene->setContentSize(dimen);
+    _scene->doLayout(); // Repositions the HUD
     
     // Elements setup from assets
-    _gameArea  = scene->getChildByName("gameArea");
-    _inventory = scene->getChildByName("inventory");
+    _gameArea  = _scene->getChildByName("gameArea");
+    _inventory = _scene->getChildByName("inventory");
     
     if (_gameArea) {
 
@@ -76,25 +80,41 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         //   "enemy" (boss widget)
         _bossNode = _attackArea->getChildByName("enemy");
     }
-    
-    // static items
-    if (_inventory) {
-        _abilityIcons.push_back(_inventory->getChildByName("heal"));
-        _abilityIcons.push_back(_inventory->getChildByName("heal2"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack4"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack5"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack6"));
-    }
 
-    addChild(scene);
+    addChild(_scene);
+    
+    const std::string characterJsonPath = "json/characters.json";
+    if (!_characterLoader.loadFromFile(characterJsonPath)) {
+        CULog("Failed to load characters.json");
+        return false;
+    }
+    
+    // Create Player Array for all real players
+    _players.emplace_back("Percy", 1, "Player 1", _characterLoader);
+    
+    // --- Circular neighbor linking ---
+    // Links all 4 players in a ring: 0 <-> 1 <-> 2 <-> 3 <-> 0
+    // Neighbors are used by both the human pass actions and AI support/pass logic.
+    //NOTE: ONLY HOST SHOULD RUN THIS-- IMPORTANT FOR NETWORKING
+    const int playerCount = (int)_players.size();
+    for (int i = 0; i < playerCount; i++) {
+        int leftIdx  = (i - 1 + playerCount) % playerCount;
+        int rightIdx = (i + 1) % playerCount;
+        _players[i].setLeftPlayer(&_players[leftIdx]);
+        _players[i].setRightPlayer(&_players[rightIdx]);
+    }
+    
+    // Sets the local player for this GameScene instance using an assigned index
+    // Note: Changes with networking
+    setLocalPlayer(0);
 
     if (!_itemController.init(_assets)) {
         return false;
     }
 
+    const std::string enemyJsonPath = "json/enemies.json";
     _enemy = std::make_shared<Enemy>();
-    if (!_enemy->init("enemy1", "json/enemies.json")) {
+    if (!_enemy->init("enemy1", enemyJsonPath)) {
         CULog("Failed to initialize enemy");
         return false;
     }
@@ -104,17 +124,115 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     return true;
 }
 
+// Called after the network session and assigns all local machines to a network-given player slot
+void GameScene::setLocalPlayer(int assignedIndex) {
+    CUAssertLog(assignedIndex >= 0 && assignedIndex < (int)_players.size(),
+                "Assigned index out of range");
+    _localPlayer = &_players[assignedIndex];
+}
+
+/**
+ * Handles the local player dropping an item on the boss zone to attack.
+ */
+void GameScene::handleAttack() {
+    if (!_enemy) return;
+    
+    for (const ItemInstance& item : _localPlayer -> getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Attack) {
+            _localPlayer -> useItemById(item.getId(), *_enemy, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the local player dropping an item on the left ally zone to support.
+ */
+void GameScene::handleSupportLeft() {
+    Player* target = _localPlayer -> getLeftPlayer();
+    if (!target || !target->isAlive()) return;
+    
+    for (const ItemInstance& item : _localPlayer -> getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Support) {
+            _localPlayer -> useItemById(item.getId(), *target, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the human player dropping an item on the right ally zone to support.
+ */
+void GameScene::handleSupportRight() {
+    Player* target = _localPlayer -> getRightPlayer();
+    if (!target || !target->isAlive()) return;
+    
+    for (const ItemInstance& item : _localPlayer -> getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Support) {
+            _localPlayer -> useItemById(item.getId(), *target, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the human player passing an item to the left neighbor.
+ */
+void GameScene::handlePassLeft() {
+    Player* target = _localPlayer -> getLeftPlayer();
+    
+    if (!target || !target->isAlive() || _localPlayer -> getInventory().empty()) return;
+    ItemInstance item = _localPlayer -> getInventory()[0];
+    _localPlayer -> removeItemById(item.getId());
+    target->addItem(item);
+}
+
+/**
+ * Handles the human player passing an item to the right neighbor.
+ */
+void GameScene::handlePassRight() {
+    Player* target = _localPlayer -> getRightPlayer();
+    
+    if (!target || !target->isAlive() || _localPlayer -> getInventory().empty()) return;
+    ItemInstance item = _localPlayer -> getInventory()[0];
+    _localPlayer -> removeItemById(item.getId());
+    target->addItem(item);
+}
+
 void GameScene::update(float dt) {
     if (!_active) {
         return;
     }
 
-    _itemController.update(dt, _players);
 
+    _itemController.update(dt, _localPlayer);
+    syncInventoryWidgets();
+    
+    if (_localPlayer -> isAlive()) {
+        switch (_input.getAction()) {
+            case InputController::Action::DROP_BOSS:       handleAttack();       break;
+            case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft();  break;
+            case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(); break;
+            case InputController::Action::PASS_LEFT:       handlePassLeft();     break;
+            case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
+            default: break;
+        }
+        _input.resetAction();
+    }
+    
     if (_enemy->isAlive()) {
         _enemyController.update(dt, _enemy, _players);
     }
     
+    if (_enemy) {
+        for (auto& ai : _playerAIs) {
+            ai->update(dt, *_enemy, _itemController);
+        }
+    }
+
 }
 
 /**
@@ -151,6 +269,69 @@ void GameScene::setActive(bool value) {
         }
         else {
             //deactivate any children that are part of the scene
+        }
+    }
+}
+
+/** Create and return an item Widget with a given ItemInstance */
+std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
+    auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
+    if (!itemDef) return nullptr;
+
+    const std::string textureKey =
+        (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
+    
+    auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
+    if (!texture) return nullptr;
+    
+    auto widget = PolygonNode::allocWithTexture(texture);
+    
+    widget->setContentSize(Size(64,64));
+    widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
+    widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
+    _inventory->addChild(widget);
+    return widget;
+}
+
+/** Return the world position for an item widget's initial inventory position */
+cugl::Vec2 GameScene::getInitialInventoryPosition() const {
+    cugl::Size size = _inventory->getContentSize();
+    return cugl::Vec2(size.width * 0.5f, size.height * 0.5f);
+}
+
+/** Sync player inventory and item widgets displayed on screen */
+void GameScene::syncInventoryWidgets() {
+    if (!_inventory || !_localPlayer) {
+        return;
+    }
+    
+    std::unordered_set<ItemInstance::ItemId> liveIds;
+    
+    for (const ItemInstance& item : _localPlayer->getInventory()) {
+        ItemInstance::ItemId id = item.getId();
+        liveIds.insert(id);
+        
+        auto found = _itemWidgets.find(id);
+        if (found == _itemWidgets.end()) {
+            auto widget = createItemWidget(item);
+            if (!widget) {
+                continue;
+            }
+            
+            widget->setPosition(getInitialInventoryPosition());
+            
+            _itemWidgets.emplace(id, widget);
+        }
+    }
+    
+    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end(); ) {
+        if (liveIds.find(it->first) == liveIds.end()) {
+            if (it->second) {
+                _inventory->removeChild(it->second);
+            }
+            it = _itemWidgets.erase(it);
+        } else {
+            ++it;
         }
     }
 }
