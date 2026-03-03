@@ -127,6 +127,15 @@ void SceneLoader::onStartup() {
     bounds = getDisplayBounds();
     _logger->log("Full Area %sx%s", bounds.origin.toString().c_str(),
         bounds.size.toString().c_str());
+    
+    // ── Run unit tests ──────────────────────────
+//    PlayerTests::runAll(
+//        "json/characters.json",
+//        "json/items.json",
+//        "json/enemies.json",
+//        "json/playerAI.json"
+//    );
+
 }
 
 /**

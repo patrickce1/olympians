@@ -1,6 +1,10 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
+#include "InputController.h"
+#include "PlayerAI.h"
+#include "EasyPlayerAI.h"
+#include "CharacterLoader.h"
 
 #include "GameScene.h"
 
@@ -84,8 +88,24 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         return false;
     }
     
+    // Create Player Array for all real players
     _players.emplace_back("Percy", 1, "Player 1", _characterLoader);
-    _player = &_players.back();
+    
+    // --- Circular neighbor linking ---
+    // Links all 4 players in a ring: 0 <-> 1 <-> 2 <-> 3 <-> 0
+    // Neighbors are used by both the human pass actions and AI support/pass logic.
+    //NOTE: ONLY HOST SHOULD RUN THIS-- IMPORTANT FOR NETWORKING
+    const int playerCount = (int)_players.size();
+    for (int i = 0; i < playerCount; i++) {
+        int leftIdx  = (i - 1 + playerCount) % playerCount;
+        int rightIdx = (i + 1) % playerCount;
+        _players[i].setLeftPlayer(&_players[leftIdx]);
+        _players[i].setRightPlayer(&_players[rightIdx]);
+    }
+    
+    // Sets the local player for this GameScene instance using an assigned index
+    // Note: Changes with networking
+    setLocalPlayer(0);
 
     if (!_itemController.init(_assets)) {
         return false;
@@ -98,7 +118,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
               enemyJsonPath.c_str());
         _enemy.reset();
     } else {
-        const std::string enemyId = "enemy1";  // or "dummy"
+        const std::string enemyId = "enemy1";
 
         if (!_enemyLoader.has(enemyId)) {
             CULog("GameScene: enemy id '%s' not found in '%s' (continuing without enemy)",
@@ -114,13 +134,109 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     return true;
 }
 
+// Called after the network session and assigns all local machines to a network-given player slot
+void GameScene::setLocalPlayer(int assignedIndex) {
+    CUAssertLog(assignedIndex >= 0 && assignedIndex < (int)_players.size(),
+                "Assigned index out of range");
+    _localPlayer = &_players[assignedIndex];
+}
+
+/**
+ * Handles the local player dropping an item on the boss zone to attack.
+ */
+void GameScene::handleAttack() {
+    if (!_enemy) return;
+    
+    for (const ItemInstance& item : _localPlayer -> getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Attack) {
+            _localPlayer -> useItemById(item.getId(), *_enemy, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the local player dropping an item on the left ally zone to support.
+ */
+void GameScene::handleSupportLeft() {
+    Player* target = _localPlayer -> getLeftPlayer();
+    if (!target || !target->isAlive()) return;
+    
+    for (const ItemInstance& item : _localPlayer -> getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Support) {
+            _localPlayer -> useItemById(item.getId(), *target, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the human player dropping an item on the right ally zone to support.
+ */
+void GameScene::handleSupportRight() {
+    Player* target = _localPlayer -> getRightPlayer();
+    if (!target || !target->isAlive()) return;
+    
+    for (const ItemInstance& item : _localPlayer -> getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Support) {
+            _localPlayer -> useItemById(item.getId(), *target, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the human player passing an item to the left neighbor.
+ */
+void GameScene::handlePassLeft() {
+    Player* target = _localPlayer -> getLeftPlayer();
+    
+    if (!target || !target->isAlive() || _localPlayer -> getInventory().empty()) return;
+    ItemInstance item = _localPlayer -> getInventory()[0];
+    _localPlayer -> removeItemById(item.getId());
+    target->addItem(item);
+}
+
+/**
+ * Handles the human player passing an item to the right neighbor.
+ */
+void GameScene::handlePassRight() {
+    Player* target = _localPlayer -> getRightPlayer();
+    
+    if (!target || !target->isAlive() || _localPlayer -> getInventory().empty()) return;
+    ItemInstance item = _localPlayer -> getInventory()[0];
+    _localPlayer -> removeItemById(item.getId());
+    target->addItem(item);
+}
+
 void GameScene::update(float dt) {
     if (!_active) {
         return;
     }
 
-    _itemController.update(dt, _player);
+    _itemController.update(dt, _localPlayer);
     syncInventoryWidgets();
+    
+    if (_localPlayer -> isAlive()) {
+        switch (_input.getAction()) {
+            case InputController::Action::DROP_BOSS:       handleAttack();       break;
+            case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft();  break;
+            case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(); break;
+            case InputController::Action::PASS_LEFT:       handlePassLeft();     break;
+            case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
+            default: break;
+        }
+        _input.resetAction();
+    }
+
+    if (_enemy) {
+        for (auto& ai : _playerAIs) {
+            ai->update(dt, *_enemy, _itemController);
+        }
+    }
 }
 
 /**
@@ -188,13 +304,13 @@ cugl::Vec2 GameScene::getInitialInventoryPosition() const {
 
 /** Sync player inventory and item widgets displayed on screen */
 void GameScene::syncInventoryWidgets() {
-    if (!_inventory || !_player) {
+    if (!_inventory || !_localPlayer) {
         return;
     }
     
     std::unordered_set<ItemInstance::ItemId> liveIds;
     
-    for (const ItemInstance& item : _player->getInventory()) {
+    for (const ItemInstance& item : _localPlayer->getInventory()) {
         ItemInstance::ItemId id = item.getId();
         liveIds.insert(id);
         
