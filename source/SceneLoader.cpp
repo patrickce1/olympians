@@ -3,6 +3,7 @@
 #include "SceneLoader.h"
 #include <cugl/core/CUBase.h>
 #include <cugl/core/util/CULogger.h>
+#include <algorithm>
 
 //  Unit tests 
 void runEnemyTests();
@@ -15,7 +16,9 @@ using namespace cugl::graphics;
 
 /** This is the main application and so we need this macro at the start */
 CU_ROOTCLASS(SceneLoader)
-
+// Design-space resolution for portrait layout; actual device may be larger
+#define GAME_WIDTH 393
+#define GAME_HEIGHT 852
 /**
  * Creates, but does not initialize, a new application.
  *
@@ -38,8 +41,8 @@ CU_ROOTCLASS(SceneLoader)
 
     // This one can MAYBE reassigned after launch; use native device bounds for 1:1
     cugl::Rect bounds = getDisplayBounds();
-    setDisplaySize((int)bounds.size.width, (int)bounds.size.height);
-
+    // Use native device size; virtual scaling handled in onStartup
+    setDisplaySize(GAME_WIDTH,GAME_HEIGHT);
     // This can always be reset
     setFPS(120.0);
 }
@@ -112,7 +115,8 @@ void SceneLoader::onStartup() {
     _input.setAllyZoneRight(cugl::Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f));
     _input.setPasssZoneLeft(cugl::Rect(0, 0, w * 0.15f, h * 0.5f));
     _input.setPassZoneRight(cugl::Rect(w * 0.85f, 0, w * 0.15f, h * 0.5f));
-   
+
+    
     // Create the logger
     _logger = Logger::open("debug");
 
