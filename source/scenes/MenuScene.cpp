@@ -50,6 +50,7 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         return false;
     }
 
+    // Give play button a function
     _playButton->addListener([this](const std::string&, bool down) {
         if (!down) {
             CULog("MenuScene: Play pressed");
@@ -57,6 +58,7 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         }
     });
 
+    // Give settings button a function
     _settingsButton->addListener([this](const std::string&, bool down) {
         if (!down) {
             CULog("MenuScene: Settings pressed (placeholder)");
@@ -64,6 +66,7 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         }
     });
 
+    // Give items button a function
     _itemsButton->addListener([this](const std::string&, bool down) {
         if (!down) {
             CULog("MenuScene: Items pressed (placeholder)");
