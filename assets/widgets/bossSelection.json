@@ -1,0 +1,91 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Float",
+            "x_alignment": "left",
+            "y_alignment": "middle",
+            "orientation": "horizontal"
+        },
+        "data": {
+            "anchor": [
+                0,
+                1
+            ],
+            "size": [
+                580,
+                354.6
+            ],
+            "angle": 0,
+            "position": [
+                -93,
+                292.4
+            ],
+            "visible": true
+        },
+        "children": {
+            "dummy": {
+                "type": "Widget",
+                "data": {
+                    "key": "roleCard",
+                    "variables": {
+                    }
+                },
+                "layout": {
+                    "priority": 0,
+                    "padding": [
+                        0,
+                        0,
+                        24.16666603088379,
+                        0
+                    ]
+                }
+            },
+            "cerberus": {
+                "type": "Widget",
+                "data": {
+                    "key": "roleCard",
+                    "variables": {
+                        "name" : "CERBERUS",
+                        "description": "Hades’ companion gone rogue..."
+                    }
+                },
+                "layout": {
+                    "priority": 1,
+                    "padding": [
+                        0,
+                        0,
+                        24.16666603088379,
+                        0
+                    ]
+                }
+            },
+            "enemy1": {
+                "type": "Widget",
+                "data": {
+                    "key": "roleCard",
+                    "variables": {
+                    }
+                },
+                "layout": {
+                    "priority": 2,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            }
+         
+        },
+        "layout": {
+            "x_anchor": "left",
+            "y_anchor": "top",
+            "absolute": false,
+            "x_offset": -0.22,
+            "y_offset": -0.24
+        }
+    }
+}

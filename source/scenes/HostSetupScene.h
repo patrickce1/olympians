@@ -42,6 +42,7 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _backout;
     /** The player label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _hostName;
+    
     /** The boss selection node list */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _items;
     int _currentIndex = 1;
@@ -54,6 +55,7 @@ protected:
     bool _isAnimating = false;
     float _slideDuration = 0.3f;
     cugl::Vec2 _slideTarget = cugl::Vec2();
+    
     
     
     /** The current status */
