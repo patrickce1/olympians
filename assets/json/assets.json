@@ -51,6 +51,18 @@
         },
         "back 1": {
             "file": "textures/back 1.png"
+        },
+        "leftarrow": {
+            "file": "textures/leftarrow.png"
+        },
+        "rightarrow": {
+            "file": "textures/rightarrow.png"
+        },
+        "bossPoster": {
+            "file": "textures/bossPoster.png"
+        },
+        "place-bossPoster": {
+            "file": "textures/place-bossPoster.png"
         }
 	},
     "fonts": {
@@ -69,6 +81,14 @@
         "gideon romanRegular24": {
             "file": "fonts/GideonRoman-Regular.ttf",
             "size": 24
+        },
+        "gideon romanRegular16": {
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 16
+        },
+        "gideon romanRegular10": {
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 10
         }
     },
     "widgets": {
@@ -80,7 +100,8 @@
         "playerSlot": "widgets/playerSlot.json",
         "ability":     "widgets/ability.json",
         "client": "widgets/client.json",
-        "textfield": "widgets/elements/textfield.json"
+        "textfield": "widgets/elements/textfield.json",
+        "hostSetup": "widgets/hostSetup.json"
     },
     "scene2s": {
         "gameScene": {
@@ -98,6 +119,15 @@
             "format": { "type": "Anchored" },
             "data": {
                 "key": "client",
+                "variables": {}
+            }
+        },
+        "hostSetupScene": {
+            "type": "Widget",
+            "comment": "Root node of the host setup network scene",
+            "format": { "type": "Anchored" },
+            "data" : {
+                "key": "hostSetup",
                 "variables": {}
             }
         }

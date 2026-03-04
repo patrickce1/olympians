@@ -22,6 +22,39 @@
             "visible": true
         },
         "children": {
+            "background": {
+                "type": "Solid",
+                "data": {
+                    "polygon": [
+                        400,
+                        852,
+                        0,
+                        852,
+                        0,
+                        0,
+                        400,
+                        0
+                    ],
+                    "color": "#ffffffff",
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true,
+                    "angle": 0
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
             "start": {
                 "type": "Button",
                 "format": {
@@ -143,199 +176,20 @@
                 }
             },
             "hostName": {
-                "type": "Node",
-                "format": {
-                    "type": "Anchored"
-                },
+                "type": "Widget",
                 "data": {
-                    "anchor": [
-                        0,
-                        1
-                    ],
-                    "size": [
-                        116,
-                        53
-                    ],
-                    "angle": 0,
-                    "position": [
-                        57,
-                        166
-                    ],
-                    "visible": true
-                },
-                "children": {
-                    "textBox": {
-                        "type": "Node",
-                        "format": {
-                            "type": "Anchored"
-                        },
-                        "data": {
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "angle": 0,
-                            "size": [
-                                280,
-                                53
-                            ],
-                            "position": [
-                                0,
-                                0
-                            ],
-                            "visible": true
-                        },
-                        "children": {
-                            "fill": {
-                                "type": "Solid",
-                                "data": {
-                                    "polygon": [
-                                        280,
-                                        47,
-                                        278.24,
-                                        51.24,
-                                        274,
-                                        53,
-                                        6,
-                                        53,
-                                        1.76,
-                                        51.24,
-                                        0,
-                                        47,
-                                        0,
-                                        6,
-                                        1.76,
-                                        1.76,
-                                        6,
-                                        0,
-                                        274,
-                                        0,
-                                        278.24,
-                                        1.76,
-                                        280,
-                                        6
-                                    ],
-                                    "color": "#e4e4e4ff",
-                                    "anchor": [
-                                        0.5,
-                                        0.5
-                                    ],
-                                    "position": [
-                                        0,
-                                        0
-                                    ],
-                                    "visible": true
-                                },
-                                "layout": {
-                                    "x_anchor": "center",
-                                    "y_anchor": "middle"
-                                }
-                            },
-                            "stroke": {
-                                "type": "Path",
-                                "data": {
-                                    "color": "#000000ff",
-                                    "path": {
-                                        "vertices": [
-                                            279.5,
-                                            47,
-                                            277.89,
-                                            50.89,
-                                            274,
-                                            52.5,
-                                            5.5,
-                                            52.5,
-                                            1.61,
-                                            50.89,
-                                            0,
-                                            47,
-                                            0,
-                                            5.5,
-                                            1.61,
-                                            1.61,
-                                            5.5,
-                                            0,
-                                            274,
-                                            0,
-                                            277.89,
-                                            1.61,
-                                            279.5,
-                                            5.5
-                                        ],
-                                        "closed": true
-                                    },
-                                    "stroke": 1,
-                                    "joint": "square",
-                                    "anchor": [
-                                        0.5,
-                                        0.5
-                                    ],
-                                    "position": [
-                                        0,
-                                        0
-                                    ],
-                                    "visible": true
-                                },
-                                "layout": {
-                                    "x_anchor": "center",
-                                    "y_anchor": "middle"
-                                }
-                            }
-                        },
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
-                            "absolute": false,
-                            "x_offset": 0,
-                            "y_offset": 0
-                        }
-                    },
-                    "Enter Name": {
-                        "type": "Label",
-                        "data": {
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "size": [
-                                134,
-                                29
-                            ],
-                            "position": [
-                                10,
-                                12
-                            ],
-                            "angle": 0,
-                            "visible": true,
-                            "font": "gideon romanRegular24",
-                            "text": "Enter Name",
-                            "foreground": "#9a9a9aff",
-                            "background": "#00000000",
-                            "padding": [
-                                0,
-                                0,
-                                0,
-                                0
-                            ],
-                            "valign": "top",
-                            "halign": "left"
-                        },
-                        "children": {},
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
-                            "absolute": false,
-                            "x_offset": 0.09,
-                            "y_offset": -0.23
-                        }
+                    "key": "textfield",
+                    "variables": {
+                        "text": ""
                     }
                 },
                 "layout": {
+                    "priority": 0,
                     "x_anchor": "left",
-                    "y_anchor": "top",
+                    "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": 0.15,
-                    "y_offset": -0.74
+                    "x_offset": 0.5,
+                    "y_offset": 0.22
                 }
             },
             "Role Carousel": {
@@ -388,7 +242,7 @@
                             "bossPoster": {
                                 "type": "Image",
                                 "data": {
-                                    "texture": "bossPoster",
+                                    "texture": "place-bossPoster",
                                     "anchor": [
                                         0,
                                         1
@@ -644,7 +498,7 @@
                             "bossPoster": {
                                 "type": "Image",
                                 "data": {
-                                    "texture": "bossPoster",
+                                    "texture": "place-bossPoster",
                                     "anchor": [
                                         0,
                                         1
@@ -686,7 +540,7 @@
                                     "angle": 0,
                                     "visible": true,
                                     "font": "gideon romanRegular10",
-                                    "text": "Hades’ companion gone rogue, defeat it and bring him back to Hell. Attacks.....Defenses....",
+                                    "text": "Hades’ companion gone rogue...",
                                     "foreground": "#ffffffff",
                                     "background": "#00000000",
                                     "padding": [
@@ -939,7 +793,7 @@
                             "bossPoster": {
                                 "type": "Image",
                                 "data": {
-                                    "texture": "bossPoster",
+                                    "texture": "place-bossPoster",
                                     "anchor": [
                                         0,
                                         1

@@ -156,6 +156,7 @@ void SceneLoader::onShutdown() {
     _input.dispose();
     _gameScene.dispose();
     _clientScene.dispose();
+    _hostSetupScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
 
@@ -216,16 +217,22 @@ void SceneLoader::update(float dt) {
                 _gameScene.setSpriteBatch(_batch);
                 _clientScene.init(_assets);
                 _clientScene.setSpriteBatch(_batch);
-                _clientScene.setActive(true);
+                _hostSetupScene.init(_assets);
+                _hostSetupScene.setSpriteBatch(_batch);
+                _hostSetupScene.setActive(true);
+//                _clientScene.setActive(true);
 //                _gameScene.setActive(true);
 
                 _loadingScene->setActive(false);
-                _currentScene = State::CLIENT;
+                _currentScene = State::HOSTSETUP;
             }
             
             break;
         case State::CLIENT:
             _clientScene.update(dt);
+            break;
+        case State::HOSTSETUP:
+            _hostSetupScene.update(dt);
             break;
         case State::GAME:
             InputController::Action action = _input.getAction();
@@ -270,6 +277,9 @@ void SceneLoader::draw() {
     switch (_currentScene) {
         case State::LOAD:
             _loadingScene->render();
+            break;
+        case State::HOSTSETUP:
+            _hostSetupScene.render();
             break;
         case State::CLIENT:
             _clientScene.render();

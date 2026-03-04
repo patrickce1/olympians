@@ -3,6 +3,7 @@
 #include <cugl/cugl.h>
 #include "scenes/GameScene.h"
 #include "scenes/ClientScene.h"
+#include "scenes/HostSetupScene.h"
 #include "InputController.h"
 #include "PlayerTests.h"
 
@@ -15,6 +16,7 @@ protected:
      * Will have to be expanded as we add more scenes*/
     enum class State {
         LOAD,
+        HOSTSETUP,
         CLIENT,
         GAME
     };
@@ -36,6 +38,7 @@ protected:
     std::shared_ptr<cugl::scene2::LoadingScene> _loadingScene;
     GameScene _gameScene;
     ClientScene _clientScene;
+    HostSetupScene _hostSetupScene;
     //more scenes to come...
 
 public:
