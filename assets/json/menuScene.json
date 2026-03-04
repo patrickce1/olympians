@@ -209,7 +209,7 @@
                                 "angle": 0,
                                 "visible": true,
                                 "font": "menuLabel",
-                                "text": "Play",
+                                "text": "Host Game",
                                 "foreground": "#000000ff",
                                 "background": "#00000000",
                                 "padding": [
@@ -331,7 +331,7 @@
                                 "angle": 0,
                                 "visible": true,
                                 "font": "menuLabel",
-                                "text": "Settings",
+                                "text": "Join Game",
                                 "foreground": "#000000ff",
                                 "background": "#00000000",
                                 "padding": [
@@ -453,7 +453,7 @@
                                 "angle": 0,
                                 "visible": true,
                                 "font": "menuLabel",
-                                "text": "Items",
+                                "text": "Settings",
                                 "foreground": "#000000ff",
                                 "background": "#00000000",
                                 "padding": [
