@@ -84,6 +84,9 @@ public:
     Action getAction() const {
         return _action;
     }
+    void setAction(Action action) {
+        _action = action;
+    }
     //Set player action to none. Our touch has not started.
     void resetAction() {
         _action = Action::NONE;
@@ -106,9 +109,14 @@ public:
     bool touchEnded() const {
         return _touchEnded;
     }
+    //Return where the touch ended
+    cugl::Vec2 getReleasePosition() const {
+        return _releasePosition;
+    }
     bool isTouching() const {
         return _activeTouchID != -1 && !_touchEnded;
     }
+    
 private:
     /** Minimum horizontal travel (px) to classify a release as a swipe. */
     static constexpr float SWIPE_THRESHOLD = 75.0f;
@@ -124,6 +132,7 @@ private:
     Action _action = Action::NONE;
     cugl::TouchID _activeTouchID = -1;
     cugl::Vec2 _touchStart;
+    cugl::Vec2 _releasePosition;
     cugl::Vec2 _dragPos;
     Uint32 _listenerKey = 17;
     
