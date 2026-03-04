@@ -58,8 +58,17 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     _startgame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.start"));
     _backout = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.back"));
     _hostName = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
-    _leftButton = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.leftarrow"));
-    _rightButton = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.rightarrow"));
+    _leftButton = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.leftscroll"));
+    _rightButton = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.rightscroll"));
+    
+    _container = _assets->get<scene2::SceneNode>("hostSetupScene.Role Carousel");
+    
+    if (_container) {
+        // Three placeholder bosses
+        _items.push_back(_container->getChild(0));
+        _items.push_back(_container->getChild(1));
+        _items.push_back(_container->getChild(2));
+    }
     
     _status = Status::WAIT;
     
@@ -75,6 +84,14 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         if (down) {
             _status = Status::ABORT;
         }
+    });
+    
+    _leftButton->addListener([this](const std::string& name, bool down){
+        if (!down) slideTo(_currentIndex - 1);
+    });
+
+    _rightButton->addListener([this](const std::string& name, bool down){
+        if (!down) slideTo(_currentIndex + 1);
     });
     
     std::shared_ptr<cugl::scene2::Label> placeName = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("hostSetupScene.hostName.placeholder"));
@@ -113,16 +130,22 @@ void HostSetupScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = WAIT;
+            _leftButton->activate();
+            _rightButton->activate();
             _hostName->activate();
 //            configureStartButton();
             _backout->activate();
         } else {
             _startgame->deactivate();
+            _leftButton->deactivate();
+            _rightButton->deactivate();
             _backout->deactivate();
             _hostName->deactivate();
             // If any were pressed, reset them
             _startgame->setDown(false);
             _backout->setDown(false);
+            _leftButton->setDown(false);
+            _rightButton->setDown(false);
         }
     }
 }
@@ -155,6 +178,17 @@ void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, c
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void HostSetupScene::update(float timestep) {
+    if (_isAnimating) {
+           Vec2 current = _container->getPosition();
+           Vec2 next = current.lerp(_slideTarget, 0.2f); // 0.2 = smoothing factor
+
+           if (current.distance(_slideTarget) < 1.0f) {
+               _container->setPosition(_slideTarget);
+               _isAnimating = false;
+           } else {
+               _container->setPosition(next);
+           }
+       }
 }
 
 
@@ -167,4 +201,24 @@ void HostSetupScene::update(float timestep) {
 void HostSetupScene::configureStartButton() {
     updateText(_startgame,"Start Game");
     _startgame->activate();
+}
+
+void HostSetupScene::slideTo(int newIndex) {
+    if (_isAnimating) return;
+    if (newIndex < 0 || newIndex >= _items.size()) return;
+
+    _isAnimating = true;
+    
+    float shiftAmount = 177.22f + 24.17f; // = 201.39f per item
+    
+    int deltaIndex = newIndex - _currentIndex;
+
+    Vec2 currentPos = _container->getPosition();
+
+    float targetX = currentPos.x - (deltaIndex * shiftAmount);
+
+    _slideTarget = Vec2(targetX, currentPos.y);
+
+    _currentIndex = newIndex;
+
 }

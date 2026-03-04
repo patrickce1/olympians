@@ -44,12 +44,16 @@ protected:
     std::shared_ptr<cugl::scene2::TextField> _hostName;
     /** The boss selection node list */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _items;
-    int _currentIndex = 0;
+    int _currentIndex = 1;
     /** The boss selction navigation buttons */
     std::shared_ptr<cugl::scene2::Button> _leftButton;
     std::shared_ptr<cugl::scene2::Button> _rightButton;
     /** The boss selection container **/
     std::shared_ptr<cugl::scene2::SceneNode> _container; // holds items
+    
+    bool _isAnimating = false;
+    float _slideDuration = 0.3f;
+    cugl::Vec2 _slideTarget = cugl::Vec2();
     
     
     /** The current status */
@@ -147,6 +151,8 @@ private:
      * networking.
      */
     void configureStartButton();
+    
+    void slideTo(int index);
     
 
     
