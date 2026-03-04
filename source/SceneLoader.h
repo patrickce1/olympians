@@ -4,6 +4,7 @@
 #include "scenes/GameScene.h"
 #include "scenes/ClientScene.h"
 #include "scenes/HostSetupScene.h"
+#include "scenes/MenuScene.h"
 #include "InputController.h"
 #include "PlayerTests.h"
 
@@ -18,6 +19,7 @@ protected:
         LOAD,
         HOSTSETUP,
         CLIENT,
+        MENU,
         GAME
     };
 
@@ -36,6 +38,7 @@ protected:
 
     /* All the scenes in the game*/
     std::shared_ptr<cugl::scene2::LoadingScene> _loadingScene;
+    MenuScene _menuScene;
     GameScene _gameScene;
     ClientScene _clientScene;
     HostSetupScene _hostSetupScene;

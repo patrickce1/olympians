@@ -157,6 +157,7 @@ void SceneLoader::onShutdown() {
     _gameScene.dispose();
     _clientScene.dispose();
     _hostSetupScene.dispose();
+    _menuScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
 
@@ -209,24 +210,57 @@ void SceneLoader::update(float dt) {
     switch (_currentScene) {
         case State::LOAD:
             _loadingScene->update(dt);
-            
+
             if (_loadingScene->isPending()) {
-                CULog("Assets finished loading. Initializing GameScene...");
+                CULog("Assets finished loading. Initializing MenuScene...");
 
-                _gameScene.init(_assets);
-                _gameScene.setSpriteBatch(_batch);
-                _clientScene.init(_assets);
-                _clientScene.setSpriteBatch(_batch);
-                _hostSetupScene.init(_assets);
-                _hostSetupScene.setSpriteBatch(_batch);
-                _hostSetupScene.setActive(true);
-//                _clientScene.setActive(true);
-//                _gameScene.setActive(true);
-
-                _loadingScene->setActive(false);
-                _currentScene = State::HOSTSETUP;
+//                 _gameScene.init(_assets);
+//                 _gameScene.setSpriteBatch(_batch);
+//                 _clientScene.init(_assets);
+//                 _clientScene.setSpriteBatch(_batch);
+//                 _hostSetupScene.init(_assets);
+//                 _hostSetupScene.setSpriteBatch(_batch);
+//                 _hostSetupScene.setActive(true);
+// //                _clientScene.setActive(true);
+// //                _gameScene.setActive(true);
+//
+//                 _loadingScene->setActive(false);
+//                 _currentScene = State::HOSTSETUP;
+                if (_menuScene.init(_assets)) {
+                    _menuScene.setSpriteBatch(_batch);
+                    _menuScene.setActive(true);
+                    _loadingScene->setActive(false);
+                    _currentScene = State::MENU;
+                } else {
+                    CULog("Failed to initialize MenuScene");
+                }
             }
-            
+
+            break;
+        case State::MENU:
+            _menuScene.update(dt);
+            switch (_menuScene.consumeAction()) {
+                case MenuScene::Action::START_GAME:
+                    CULog("Transitioning to GameScene...");
+                    if (_gameScene.init(_assets)) {
+                        _gameScene.setSpriteBatch(_batch);
+                        _gameScene.setActive(true);
+                        _menuScene.setActive(false);
+                        _currentScene = State::GAME;
+                    } else {
+                        CULog("Failed to initialize GameScene");
+                    }
+                    break;
+                case MenuScene::Action::OPEN_SETTINGS:
+                    CULog("SettingsScene placeholder pressed");
+                    break;
+                case MenuScene::Action::OPEN_ITEMS:
+                    CULog("ItemsScene placeholder pressed");
+                    break;
+                case MenuScene::Action::NONE:
+                default:
+                    break;
+            }
             break;
         case State::CLIENT:
             _clientScene.update(dt);
@@ -283,6 +317,9 @@ void SceneLoader::draw() {
             break;
         case State::CLIENT:
             _clientScene.render();
+            break;
+        case State::MENU:
+            _menuScene.render();
             break;
         case State::GAME:
             _gameScene.render();

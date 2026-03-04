@@ -87,8 +87,16 @@
             "size": 16
         },
         "gideon romanRegular10": {
-            "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 10
+          "file": "fonts/GideonRoman-Regular.ttf",
+          "size": 10
+        },
+        "menuTitle": {
+            "file":     "fonts/Roboto-Bold.ttf",
+            "size":     72
+        },
+        "menuLabel": {
+            "file":     "fonts/Roboto-Bold.ttf",
+            "size":     42
         }
     },
     "widgets": {
@@ -103,7 +111,8 @@
         "textfield": "widgets/elements/textfield.json",
         "hostSetup": "widgets/hostSetup.json",
         "roleCard": "widgets/elements/roleCard.json",
-        "bossSelection": "widgets/bossSelection.json"
+        "bossSelection": "widgets/bossSelection.json",
+        "menuScene":   "json/menuScene.json"
     },
     "scene2s": {
         "gameScene": {
@@ -125,14 +134,22 @@
             }
         },
         "hostSetupScene": {
+          "type": "Widget",
+          "comment": "Root node of the host setup network scene",
+          "format": { "type": "Anchored" },
+          "data": {
+            "key": "hostSetup",
+            "variables": {}
+          }
+        },
+        "menuScene": {
             "type": "Widget",
-            "comment": "Root node of the host setup network scene",
+            "comment": "Root node of the main menu scene",
             "format": { "type": "Anchored" },
-            "data" : {
-                "key": "hostSetup",
+            "data": {
+                "key": "menuScene",
                 "variables": {}
             }
         }
     }
-    
 }

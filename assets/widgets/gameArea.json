@@ -7,7 +7,7 @@
         },
         "data": {
             "anchor": [0, 0],
-            "size": [393, 557],
+            "size": [400, 557],
             "angle": 0,
             "position": [0, 295],
             "visible": true
@@ -17,13 +17,13 @@
                 "type": "Solid",
                 "data": {
                     "polygon": [
-                        393,
+                        400,
                         557,
                         0,
                         557,
                         0,
                         0,
-                        393,
+                        400,
                         0
                         ],
                     "color": "#bfbfbf",
