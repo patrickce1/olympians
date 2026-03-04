@@ -5,6 +5,16 @@ using namespace cugl::scene2;
 
 #define MENU_HEIGHT 852
 
+/**
+ * Initializes this scene from loaded assets.
+ *
+ * Expected assets include a Scene2 node named `menuScene` containing child
+ * buttons `play`, `settings`, and `items` under a `menu` node.
+ *
+ * @param assets    The loaded asset manager
+ *
+ * @return true if initialization succeeds; false otherwise.
+ */
 bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     CULog("[MenuScene] starting init.");
     if (assets == nullptr) {
@@ -72,6 +82,12 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     return true;
 }
 
+/**
+ * Disposes all resources allocated by this scene.
+ *
+ * This clears the scene graph references, button handles, and any queued
+ * menu action.
+ */
 void MenuScene::dispose() {
     removeAllChildren();
     _playButton = nullptr;
@@ -83,6 +99,14 @@ void MenuScene::dispose() {
     _active = false;
 }
 
+/**
+ * Sets whether this scene is currently active.
+ *
+ * When active, menu buttons receive input. When inactive, they are
+ * explicitly deactivated.
+ *
+ * @param value whether this scene should be active
+ */
 void MenuScene::setActive(bool value) {
     if (isActive() == value) {
         return;
@@ -112,6 +136,14 @@ void MenuScene::setActive(bool value) {
     }
 }
 
+/**
+ * Updates this scene.
+ *
+ * This scene uses event listeners for button input, so update currently
+ * performs no per-frame logic beyond activity checks.
+ *
+ * @param dt    The elapsed time since the previous frame, in seconds
+ */
 void MenuScene::update(float dt) {
     if (!_active) {
         return;
@@ -119,6 +151,14 @@ void MenuScene::update(float dt) {
     (void)dt;
 }
 
+/**
+ * Returns and clears the pending menu action.
+ *
+ * This allows `SceneLoader` to consume a one-shot transition request from
+ * this scene each frame.
+ *
+ * @return the queued action, or Action::NONE if no action is pending
+ */
 MenuScene::Action MenuScene::consumeAction() {
     Action action = _nextAction;
     _nextAction = Action::NONE;
