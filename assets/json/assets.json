@@ -91,8 +91,8 @@
           "size": 10
         },
         "menuTitle": {
-            "file":     "fonts/Roboto-Bold.ttf",
-            "size":     72
+            "file":     "fonts/GideonRoman-Regular.ttf",
+            "size":     60
         },
         "menuLabel": {
             "file":     "fonts/Roboto-Bold.ttf",
