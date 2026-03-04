@@ -45,6 +45,12 @@
         },
         "attack": {
             "file": "textures/attack.png"
+        },
+        "indicator": {
+            "file": "textures/indicator.png"
+        },
+        "back 1": {
+            "file": "textures/back 1.png"
         }
 	},
     "fonts": {
@@ -73,7 +79,8 @@
         "boss":        "widgets/boss.json",
         "playerSlot": "widgets/playerSlot.json",
         "ability":     "widgets/ability.json",
-        "client": "widgets/client.json"
+        "client": "widgets/client.json",
+        "textfield": "widgets/elements/textfield.json"
     },
     "scene2s": {
         "gameScene": {
