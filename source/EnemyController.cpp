@@ -17,15 +17,15 @@ int EnemyController::wrapIndex(int i, int n) const {
 }
 
 /** Returns true if there are any living players. */
-bool anyPlayersAlive(const std::vector<Player>& players) {
+bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
     for (const auto& p : players) {
-        if (p.isAlive()) return true;
+        if (p->isAlive()) return true;
     }
     return false;
 }
 
 /** Upon entering idle state, this function possibly chooses a new target for the enemy. */
-void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy, std::vector<Player>& players) {
+void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy, std::vector<std::shared_ptr<Player>>& players) {
     float chance = enemy->getRetargetLikelihood();
     if (chance <= 0.0f) return;
     if (chance > 1.0f) chance = 1.0f;
@@ -38,7 +38,7 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
     std::vector<int> living;
     living.reserve(n);
     for (int i = 0; i < n; i++) {
-        if (players[i].isAlive()) living.push_back(i);
+        if (players[i]->isAlive()) living.push_back(i);
     }
 
     // BASE CASE: All players dead
@@ -49,7 +49,7 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
     }
 
     // BASE CASE: If current target is dead or invalid, force it onto a living target (no probability)
-    bool curValid = (_targetIndex >= 0 && _targetIndex < n && players[_targetIndex].isAlive());
+    bool curValid = (_targetIndex >= 0 && _targetIndex < n && players[_targetIndex]->isAlive());
     if (!curValid) {
         const int pick = (int)(_rng.getUint32() % (Uint32)living.size());
         CULog("[EnemyController] Target: Player[%d] -> Player[%d] (Current target was invalid/dead)", _targetIndex, living[pick]);
@@ -80,7 +80,7 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
 }
 
 /** Checks whether the enemy has just entered idle on this frame. */
-void EnemyController::handleIdleEntryIfNeeded(const std::string& prevState, const std::string& curState, const std::shared_ptr<Enemy>& enemy, std::vector<Player>& players) {
+void EnemyController::handleIdleEntryIfNeeded(const std::string& prevState, const std::string& curState, const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
     if (curState == "idle" && prevState != "idle") {
         maybeRetargetOnIdleEntry(enemy, players);
     }
@@ -107,14 +107,14 @@ std::string EnemyController::chooseNextAttackState(const std::shared_ptr<Enemy>&
     return attacks[idx];
 }
 
-void EnemyController::enterIdle(const std::shared_ptr<Enemy>& enemy, std::vector<Player>& players) {
+void EnemyController::enterIdle(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
     CULog("[EnemyController] State: '%s' (Idle)", enemy->getId().c_str());
     enemy->requestState("idle");
     maybeRetargetOnIdleEntry(enemy, players);
 }
 
 /** Main update loop for enemy controller. Handles state changes and attack events. */
-void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std::vector<Player>& players) {
+void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
 
     std::string prev = enemy->getCurrentStateName();
     
@@ -141,7 +141,7 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
 }
 
 /** Resolves the fired events (if any) of the enemy on this frame. Removes the processed events from the buffer. */
-void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, std::vector<Player>& players, const std::vector<Enemy::FiredEvent>& events) {
+void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players, const std::vector<Enemy::FiredEvent>& events) {
     for (const auto& fe : events) {
         switch (fe.def.type) {
             case EnemyLoader::EventType::DAMAGE:
@@ -155,7 +155,7 @@ void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, st
 }
 
 /** Deals damage to the targeted players from a damage event. */
-void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, std::vector<Player>& players, const Enemy::FiredEvent& fe) {
+void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players, const Enemy::FiredEvent& fe) {
 
     int n = (int)players.size();
     if (n <= 0) {
@@ -167,20 +167,20 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
     int victim = wrapIndex(_targetIndex + offset, n);
     
     // Victim was killed before event completed
-    if (!players[victim].isAlive()) {
+    if (!players[victim]->isAlive()) {
         CULog("[EnemyController] Event: Enemy '%s', state '%s', Player[%d] was already dead",
               enemy->getId().c_str(),
               fe.stateName.c_str(),
               victim);
     } else {
         float damage = fe.def.amount;
-        players[victim].updateHealth(-damage);
+        players[victim]->updateHealth(-damage);
 
         CULog("[EnemyController] Event: Enemy '%s', state '%s', DAMAGE %.1f, Player[%d] Health -> %.1f",
               enemy->getId().c_str(),
               fe.stateName.c_str(),
               damage,
               victim,
-              players[victim].getCurrentHealth());
+              players[victim]->getCurrentHealth());
     }
 }

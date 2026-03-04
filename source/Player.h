@@ -123,6 +123,11 @@ public:
      */
     Player* getRightPlayer() const { return _rightPlayer; }
     
+    /**
+     * Returns whether this player is AI or not.
+     */
+    virtual bool isAI() const { return false; }
+    
 #pragma mark Gameplay
     /**
      * Updates the current health of the player by the given delta.
