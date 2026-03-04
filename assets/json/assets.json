@@ -45,6 +45,9 @@
         },
         "attack": {
             "file": "textures/attack.png"
+        },
+	"server": {
+            "file": "json/server.json"
         }
 	},
     "fonts": {

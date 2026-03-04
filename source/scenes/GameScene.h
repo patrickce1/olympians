@@ -72,6 +72,9 @@ protected:
     /** The current enemy that the players are facing */
     std::unique_ptr<Enemy> _enemy;
 
+    /** Keeps track of whether or not we are the host */
+    bool _host;
+
 public:
 #pragma mark -
 #pragma mark Constructors

@@ -217,6 +217,11 @@ void GameScene::update(float dt) {
         return;
     }
 
+    if (_host) {
+        //if we are the host, do host-exlucisve updates that will get sent out
+        //example: boss behavior
+    }
+
     _itemController.update(dt, _localPlayer);
     syncInventoryWidgets();
     
