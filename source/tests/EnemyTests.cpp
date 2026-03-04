@@ -50,19 +50,20 @@ CharacterLoader loadCharacters(const std::string& charactersJsonPath) {
     return loader;
 }
 
-std::vector<Player> makePlayersRing(const CharacterLoader& loader,
-                                   const std::string& characterId,
-                                   int count) {
-    std::vector<Player> players;
+std::vector<std::shared_ptr<Player>> makePlayersRing(const CharacterLoader& loader,
+                                                     const std::string& characterId,
+                                                     int count) {
+    std::vector<std::shared_ptr<Player>> players;
+    players.reserve(count);
     for (int i = 0; i < count; i++) {
         std::string name = "Player " + std::to_string(i + 1);
-        players.emplace_back(characterId, i + 1, name, loader);
+        players.push_back(std::make_shared<Player>(characterId, i + 1, name, loader));
     }
 
     const int n = (int)players.size();
     for (int i = 0; i < n; i++) {
-        players[i].setLeftPlayer (&players[(i - 1 + n) % n]);
-        players[i].setRightPlayer(&players[(i + 1)     % n]);
+        players[i]->setLeftPlayer (players[(i - 1 + n) % n].get());
+        players[i]->setRightPlayer(players[(i + 1)     % n].get());
     }
     return players;
 }
@@ -123,10 +124,6 @@ bool stepUntilFire(const std::shared_ptr<Enemy>& enemy,
 /**
  * Walks the configured nextState chain starting from startState, returning the first state
  * in the chain that has cooldownTime > 0. Returns "" if none found or chain loops.
- *
- * This matches your design:
- * - intermediate phases can have cooldownTime=0 (combo continuation)
- * - lockout should kick in on the final phase (cooldownTime>0)
  */
 std::string findFirstCooldownStateInChain(const std::shared_ptr<Enemy>& enemy,
                                          const std::string& startState) {
@@ -145,23 +142,20 @@ std::string findFirstCooldownStateInChain(const std::shared_ptr<Enemy>& enemy,
         if (it == states.end()) return "";
         if (it->second.cooldownTime > 0.0f) return cur;
 
-        // follow next
         std::string next = it->second.nextState;
         if (next.empty()) next = "idle";
         if (states.count(next) == 0) next = "idle";
 
-        if (next == "idle") {
-            return "";
-        }
+        if (next == "idle") return "";
         cur = next;
     }
 
     return "";
 }
 
-bool anyPlayersAlive(const std::vector<Player>& players) {
+bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
     for (const auto& p : players) {
-        if (p.isAlive()) return true;
+        if (p->isAlive()) return true;
     }
     return false;
 }
@@ -255,7 +249,7 @@ static void testEnemyCooldownBlocksNonIdle(const std::string& enemiesJsonPath) {
     expect(!allowedNow, "cooldown: non-idle state blocked during lockout");
 
     bool becameReady = false;
-    for (int i = 0; i < 120; i++) { // up to 60s at 0.5
+    for (int i = 0; i < 120; i++) {
         enemy->update(0.5f);
         if (enemy->canStartNonIdleState()) { becameReady = true; break; }
     }
@@ -298,7 +292,6 @@ static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPat
     if (!enemy) return;
 
     EnemyController controller;
-
     enemy->requestState("idle");
 
     bool leftIdle = false;
@@ -315,9 +308,8 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
     CharacterLoader loader = loadCharacters(charactersJsonPath);
     auto players = makePlayersRing(loader, "Percy", 4);
 
-    // Kill everyone
     for (auto& p : players) {
-        p.updateHealth(-999999.0f);
+        p->updateHealth(-999999.0f);
     }
     expect(!anyPlayersAlive(players), "controller(noLiving): all players confirmed dead");
 
@@ -325,7 +317,6 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
     if (!enemy) return;
 
     EnemyController controller;
-
     enemy->requestState("idle");
 
     bool everLeftIdle = false;
@@ -349,14 +340,14 @@ static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonP
 
     std::vector<float> before;
     before.reserve(players.size());
-    for (auto& p : players) before.push_back(p.getCurrentHealth());
+    for (auto& p : players) before.push_back(p->getCurrentHealth());
 
     bool damagedSomeone = false;
-    for (int i = 0; i < 240; i++) { // combos + 4s buildUpTime
+    for (int i = 0; i < 240; i++) {
         controller.update(0.5f, enemy, players);
 
         for (size_t k = 0; k < players.size(); k++) {
-            if (players[k].getCurrentHealth() < before[k]) {
+            if (players[k]->getCurrentHealth() < before[k]) {
                 damagedSomeone = true;
                 break;
             }

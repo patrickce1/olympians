@@ -53,12 +53,13 @@ protected:
     /** Pointer to the player belonging to the local machine. Set once in init(), never reallocated. */
     Player* _localPlayer = nullptr;
     
-    /** The collection of players in this party */
-    std::vector<Player> _players;
-  
-    /** AI controllers for bot-controlled players, stored as base class pointers
-     *  to allow mixed difficulty levels in the same collection */
-    std::vector<std::unique_ptr<PlayerAI>> _playerAIs;
+    /**
+     * All players in this party — both human-controlled (Player) and
+     * AI-controlled (PlayerAI) — stored polymorphically as shared_ptr<Player>.
+     * Index 0 is the human player; indices 1+ are AI bots.
+     * PlayerAI must inherit from Player for virtual dispatch to work.
+     */
+    std::vector<std::shared_ptr<Player>> _players;
     
     /** Handles touch input for the human player */
     InputController _input;

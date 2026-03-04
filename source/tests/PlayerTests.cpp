@@ -63,13 +63,7 @@ void printHand(const Player& p) {
 }
 
 // ── Loaders ─────────────────────────────────
-// Each loader mirrors exactly how ItemController::init() reads JSON,
-// using cugl::JsonReader::alloc → readJson().
 
-/**
- * Loads an ItemDatabase from a JSON file, exactly as ItemController does.
- * Returns an empty (invalid) database and logs an error on failure.
- */
 ItemDatabase loadDatabase(const std::string& itemsJsonPath) {
     ItemDatabase db;
 
@@ -89,13 +83,10 @@ ItemDatabase loadDatabase(const std::string& itemsJsonPath) {
         CULogError("PlayerTests: ItemDatabase::loadFromJson failed for '%s'", itemsJsonPath.c_str());
     }
 
-    db.setStartingPointWithTime(); // mirror ItemController::init seeding
+    db.setStartingPointWithTime();
     return db;
 }
 
-/**
- * Loads a CharacterLoader from a JSON file, mirroring GameScene::init.
- */
 CharacterLoader loadCharacters(const std::string& charactersJsonPath) {
     CharacterLoader loader;
     if (!loader.loadFromFile(charactersJsonPath)) {
@@ -104,23 +95,17 @@ CharacterLoader loadCharacters(const std::string& charactersJsonPath) {
     return loader;
 }
 
-/**
- * Loads an Enemy from a JSON file for use as an attack target.
- * Returns a default-constructed Enemy (not alive) on failure.
- */
 Enemy loadEnemy(const std::string& enemiesJsonPath, const std::string& enemyId) {
     Enemy enemy;
     if (!enemy.init(enemyId, enemiesJsonPath)) {
         CULogError("PlayerTests: enemy init failed for id '%s' from '%s'",
                    enemyId.c_str(), enemiesJsonPath.c_str());
-        return Enemy(); // invalid
+        return Enemy();
     }
     return enemy;
 }
 
 // ── Item creation helper ─────────────────────
-// ItemInstance has no public constructor — must use ItemInstance::alloc(defId, id).
-// We keep a local counter so tests don't need an IdGenerator.
 
 static ItemInstance::ItemId _testIdCounter = 1000;
 
@@ -132,30 +117,30 @@ ItemInstance makeItem(const std::string& defId) {
 
 // ── Player factories ─────────────────────────
 
-std::vector<Player> makeTwoPlayers(const CharacterLoader& loader,
-                                   const std::string& characterId) {
-    std::vector<Player> players;
-    players.emplace_back(characterId, 1, "Player 1", loader);
-    players.emplace_back(characterId, 2, "Player 2", loader);
-    players[0].setRightPlayer(&players[1]);
-    players[0].setLeftPlayer (&players[1]);
-    players[1].setRightPlayer(&players[0]);
-    players[1].setLeftPlayer (&players[0]);
+std::vector<std::shared_ptr<Player>> makeTwoPlayers(const CharacterLoader& loader,
+                                                    const std::string& characterId) {
+    std::vector<std::shared_ptr<Player>> players;
+    players.push_back(std::make_shared<Player>(characterId, 1, "Player 1", loader));
+    players.push_back(std::make_shared<Player>(characterId, 2, "Player 2", loader));
+    players[0]->setRightPlayer(players[1].get());
+    players[0]->setLeftPlayer (players[1].get());
+    players[1]->setRightPlayer(players[0].get());
+    players[1]->setLeftPlayer (players[0].get());
     return players;
 }
 
-std::vector<Player> makeFourPlayers(const CharacterLoader& loader,
-                                    const std::string& characterId) {
-    std::vector<Player> players;
-    players.emplace_back(characterId, 1, "Player 1", loader);
-    players.emplace_back(characterId, 2, "Player 2", loader);
-    players.emplace_back(characterId, 3, "Player 3", loader);
-    players.emplace_back(characterId, 4, "Player 4", loader);
+std::vector<std::shared_ptr<Player>> makeFourPlayers(const CharacterLoader& loader,
+                                                     const std::string& characterId) {
+    std::vector<std::shared_ptr<Player>> players;
+    players.push_back(std::make_shared<Player>(characterId, 1, "Player 1", loader));
+    players.push_back(std::make_shared<Player>(characterId, 2, "Player 2", loader));
+    players.push_back(std::make_shared<Player>(characterId, 3, "Player 3", loader));
+    players.push_back(std::make_shared<Player>(characterId, 4, "Player 4", loader));
 
     const int n = (int)players.size();
     for (int i = 0; i < n; i++) {
-        players[i].setLeftPlayer (&players[(i - 1 + n) % n]);
-        players[i].setRightPlayer(&players[(i + 1)     % n]);
+        players[i]->setLeftPlayer (players[(i - 1 + n) % n].get());
+        players[i]->setRightPlayer(players[(i + 1)     % n].get());
     }
     return players;
 }
@@ -170,7 +155,7 @@ std::string firstDefIdOfType(const ItemDatabase& db, ItemDef::Type type) {
     return "";
 }
 
-}
+} // namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 1 — Inventory basics
@@ -179,15 +164,15 @@ std::string firstDefIdOfType(const ItemDatabase& db, ItemDef::Type type) {
 static void testInventoryStartsEmpty(const CharacterLoader& loader,
                                      const std::string& characterId) {
     auto players = makeTwoPlayers(loader, characterId);
-    expect(players[0].getInventory().empty(), "Inventory starts empty");
+    expect(players[0]->getInventory().empty(), "Inventory starts empty");
 }
 
 static void testAddItemIncreasesCount(const CharacterLoader& loader,
                                       const std::string& characterId,
                                       const std::string& attackDefId) {
     auto players = makeTwoPlayers(loader, characterId);
-    players[0].addItem(makeItem(attackDefId));
-    expect(players[0].getInventory().size() == 1,
+    players[0]->addItem(makeItem(attackDefId));
+    expect(players[0]->getInventory().size() == 1,
            "addItem: inventory count increases to 1");
 }
 
@@ -196,9 +181,9 @@ static void testRemoveItemDecreasesCount(const CharacterLoader& loader,
                                          const std::string& attackDefId) {
     auto players  = makeTwoPlayers(loader, characterId);
     ItemInstance item = makeItem(attackDefId);
-    players[0].addItem(item);
-    players[0].removeItemById(item.getId());
-    expect(players[0].getInventory().empty(),
+    players[0]->addItem(item);
+    players[0]->removeItemById(item.getId());
+    expect(players[0]->getInventory().empty(),
            "removeItemById: inventory count drops to 0");
 }
 
@@ -207,10 +192,10 @@ static void testRemoveNonexistentItemIsNoop(const CharacterLoader& loader,
                                             const std::string& attackDefId) {
     auto players  = makeTwoPlayers(loader, characterId);
     ItemInstance item = makeItem(attackDefId);
-    players[0].addItem(item);
-    players[0].removeItemById(item.getId() + 99999);  // bogus id
-    expect(players[0].getInventory().size() == 1,
-           "removeItemById: does nothing hen no id match, real items untouched");
+    players[0]->addItem(item);
+    players[0]->removeItemById(item.getId() + 99999);  // bogus id
+    expect(players[0]->getInventory().size() == 1,
+           "removeItemById: does nothing when no id match, real items untouched");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -224,14 +209,14 @@ static void testPrintHands(const CharacterLoader& loader,
     CULog("── printHands ────────────────────────────");
     auto players = makeFourPlayers(loader, characterId);
 
-    players[0].addItem(makeItem(attackDefId));
-    players[0].addItem(makeItem(supportDefId));
-    players[1].addItem(makeItem(attackDefId));
-    players[2].addItem(makeItem(supportDefId));
-    players[2].addItem(makeItem(supportDefId));
+    players[0]->addItem(makeItem(attackDefId));
+    players[0]->addItem(makeItem(supportDefId));
+    players[1]->addItem(makeItem(attackDefId));
+    players[2]->addItem(makeItem(supportDefId));
+    players[2]->addItem(makeItem(supportDefId));
     // players[3] intentionally empty
 
-    for (const Player& p : players) printHand(p);
+    for (const auto& p : players) printHand(*p);
     CULog("──────────────────────────────────────────");
     expect(true, "printHands: ran without crash");
 }
@@ -244,61 +229,59 @@ static void testPassRightMovesItem(const CharacterLoader& loader,
                                    const std::string& characterId,
                                    const std::string& attackDefId) {
     auto players = makeTwoPlayers(loader, characterId);
-    players[0].addItem(makeItem(attackDefId));
+    players[0]->addItem(makeItem(attackDefId));
 
-    // Mirror handlePassRight from GameScene
-    Player*      target = players[0].getRightPlayer();
-    ItemInstance item   = players[0].getInventory()[0];
-    players[0].removeItemById(item.getId());
+    Player*      target = players[0]->getRightPlayer();
+    ItemInstance item   = players[0]->getInventory()[0];
+    players[0]->removeItemById(item.getId());
     target->addItem(item);
 
     CULog("── passRight ─────────────────────────────");
-    printHand(players[0]);
-    printHand(players[1]);
+    printHand(*players[0]);
+    printHand(*players[1]);
 
-    expect(players[0].getInventory().empty(),       "passRight: sender inventory is empty");
-    expect(players[1].getInventory().size() == 1,   "passRight: receiver has 1 item");
-    expect(players[1].getInventory()[0].getDefId() == attackDefId,
-                                                    "passRight: received item has correct defId");
+    expect(players[0]->getInventory().empty(),       "passRight: sender inventory is empty");
+    expect(players[1]->getInventory().size() == 1,   "passRight: receiver has 1 item");
+    expect(players[1]->getInventory()[0].getDefId() == attackDefId,
+                                                     "passRight: received item has correct defId");
 }
 
 static void testPassLeftMovesItem(const CharacterLoader& loader,
                                   const std::string& characterId,
                                   const std::string& supportDefId) {
     auto players = makeTwoPlayers(loader, characterId);
-    players[0].addItem(makeItem(supportDefId));
+    players[0]->addItem(makeItem(supportDefId));
 
-    Player*      target = players[0].getLeftPlayer();
-    ItemInstance item   = players[0].getInventory()[0];
-    players[0].removeItemById(item.getId());
+    Player*      target = players[0]->getLeftPlayer();
+    ItemInstance item   = players[0]->getInventory()[0];
+    players[0]->removeItemById(item.getId());
     target->addItem(item);
 
     CULog("── passLeft ──────────────────────────────");
-    printHand(players[0]);
-    printHand(players[1]);
+    printHand(*players[0]);
+    printHand(*players[1]);
 
-    expect(players[0].getInventory().empty(),     "passLeft: sender inventory is empty");
-    expect(players[1].getInventory().size() == 1, "passLeft: receiver has 1 item");
+    expect(players[0]->getInventory().empty(),     "passLeft: sender inventory is empty");
+    expect(players[1]->getInventory().size() == 1, "passLeft: receiver has 1 item");
 }
 
 static void testPassToDeadPlayerIsNoop(const CharacterLoader& loader,
                                        const std::string& characterId,
                                        const std::string& attackDefId) {
     auto players = makeTwoPlayers(loader, characterId);
-    players[1].updateHealth(-999999.0f);
-    expect(!players[1].isAlive(), "passToDeadPlayer: target confirmed dead");
+    players[1]->updateHealth(-999999.0f);
+    expect(!players[1]->isAlive(), "passToDeadPlayer: target confirmed dead");
 
-    players[0].addItem(makeItem(attackDefId));
+    players[0]->addItem(makeItem(attackDefId));
 
-    // Mirror the guard in handlePassRight
-    Player* target = players[0].getRightPlayer();
+    Player* target = players[0]->getRightPlayer();
     if (target && target->isAlive()) {
-        ItemInstance item = players[0].getInventory()[0];
-        players[0].removeItemById(item.getId());
+        ItemInstance item = players[0]->getInventory()[0];
+        players[0]->removeItemById(item.getId());
         target->addItem(item);
     }
 
-    expect(players[0].getInventory().size() == 1,
+    expect(players[0]->getInventory().size() == 1,
            "passToDeadPlayer: item stays with sender");
 }
 
@@ -306,11 +289,11 @@ static void testCircularPassAroundRing(const CharacterLoader& loader,
                                        const std::string& characterId,
                                        const std::string& attackDefId) {
     auto players = makeFourPlayers(loader, characterId);
-    players[0].addItem(makeItem(attackDefId));
+    players[0]->addItem(makeItem(attackDefId));
 
     // Pass rightward once per player — 4 passes returns item to Player 0
     for (int step = 0; step < 4; step++) {
-        Player& current = players[step % 4];
+        auto& current = *players[step % 4];
         if (!current.getInventory().empty()) {
             Player*      target = current.getRightPlayer();
             ItemInstance item   = current.getInventory()[0];
@@ -320,13 +303,13 @@ static void testCircularPassAroundRing(const CharacterLoader& loader,
     }
 
     CULog("── circularPass (4 passes) ───────────────");
-    for (const Player& p : players) printHand(p);
+    for (const auto& p : players) printHand(*p);
 
-    expect(players[0].getInventory().size() == 1,
+    expect(players[0]->getInventory().size() == 1,
            "circularPass: item returns to origin after full loop");
-    expect(players[1].getInventory().empty() &&
-           players[2].getInventory().empty() &&
-           players[3].getInventory().empty(),
+    expect(players[1]->getInventory().empty() &&
+           players[2]->getInventory().empty() &&
+           players[3]->getInventory().empty(),
            "circularPass: only origin player holds the item");
 }
 
@@ -341,12 +324,12 @@ static void testUseAttackItemDamagesEnemy(const CharacterLoader& loader,
                                           const std::string& attackDefId) {
     auto players   = makeTwoPlayers(loader, characterId);
     float hpBefore = enemy.getCurrentHealth();
-    players[0].addItem(makeItem(attackDefId));
+    players[0]->addItem(makeItem(attackDefId));
 
-    for (const ItemInstance& item : players[0].getInventory()) {
+    for (const ItemInstance& item : players[0]->getInventory()) {
         auto def = db.getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
-            players[0].useItemById(item.getId(), enemy, db);
+            players[0]->useItemById(item.getId(), enemy, db);
             break;
         }
     }
@@ -354,8 +337,8 @@ static void testUseAttackItemDamagesEnemy(const CharacterLoader& loader,
     CULog("── attackEnemy: hp %.1f → %.1f ───────────",
           hpBefore, enemy.getCurrentHealth());
 
-    expect(enemy.getCurrentHealth() < hpBefore,  "useAttackItem: enemy hp decreased");
-    expect(players[0].getInventory().empty(),     "useAttackItem: item consumed from inventory");
+    expect(enemy.getCurrentHealth() < hpBefore,   "useAttackItem: enemy hp decreased");
+    expect(players[0]->getInventory().empty(),     "useAttackItem: item consumed from inventory");
 }
 
 static void testUseSupportItemHealsAlly(const CharacterLoader& loader,
@@ -363,24 +346,24 @@ static void testUseSupportItemHealsAlly(const CharacterLoader& loader,
                                         const ItemDatabase& db,
                                         const std::string& supportDefId) {
     auto players = makeTwoPlayers(loader, characterId);
-    players[1].updateHealth(-20.0f);
-    float hpBefore = players[1].getCurrentHealth();
+    players[1]->updateHealth(-20.0f);
+    float hpBefore = players[1]->getCurrentHealth();
 
-    players[0].addItem(makeItem(supportDefId));
+    players[0]->addItem(makeItem(supportDefId));
 
-    for (const ItemInstance& item : players[0].getInventory()) {
+    for (const ItemInstance& item : players[0]->getInventory()) {
         auto def = db.getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            players[0].useItemById(item.getId(), players[1], db);
+            players[0]->useItemById(item.getId(), *players[1], db);
             break;
         }
     }
 
     CULog("── healAlly: hp %.1f → %.1f ──────────────",
-          hpBefore, players[1].getCurrentHealth());
+          hpBefore, players[1]->getCurrentHealth());
 
-    expect(players[1].getCurrentHealth() > hpBefore, "useSupportItem: ally hp increased");
-    expect(players[0].getInventory().empty(),         "useSupportItem: item consumed from inventory");
+    expect(players[1]->getCurrentHealth() > hpBefore, "useSupportItem: ally hp increased");
+    expect(players[0]->getInventory().empty(),         "useSupportItem: item consumed from inventory");
 }
 
 static void testUseAttackItemOnAllyIsNoop(const CharacterLoader& loader,
@@ -388,13 +371,13 @@ static void testUseAttackItemOnAllyIsNoop(const CharacterLoader& loader,
                                           const ItemDatabase& db,
                                           const std::string& attackDefId) {
     auto players   = makeTwoPlayers(loader, characterId);
-    float hpBefore = players[1].getCurrentHealth();
-    players[0].addItem(makeItem(attackDefId));
-    players[0].useItemById(players[0].getInventory()[0].getId(), players[1], db);
+    float hpBefore = players[1]->getCurrentHealth();
+    players[0]->addItem(makeItem(attackDefId));
+    players[0]->useItemById(players[0]->getInventory()[0].getId(), *players[1], db);
 
-    expect(players[1].getCurrentHealth() == hpBefore,
+    expect(players[1]->getCurrentHealth() == hpBefore,
            "useAttackItemOnAlly: attack item does not affect ally hp");
-    expect(players[0].getInventory().empty(),
+    expect(players[0]->getInventory().empty(),
            "useAttackItemOnAlly: item is still consumed");
 }
 
@@ -405,12 +388,12 @@ static void testUseSupportItemOnEnemyIsNoop(const CharacterLoader& loader,
                                              const std::string& supportDefId) {
     auto players   = makeTwoPlayers(loader, characterId);
     float hpBefore = enemy.getCurrentHealth();
-    players[0].addItem(makeItem(supportDefId));
-    players[0].useItemById(players[0].getInventory()[0].getId(), enemy, db);
+    players[0]->addItem(makeItem(supportDefId));
+    players[0]->useItemById(players[0]->getInventory()[0].getId(), enemy, db);
 
     expect(enemy.getCurrentHealth() == hpBefore,
            "useSupportItemOnEnemy: support item does not affect enemy hp");
-    expect(players[0].getInventory().empty(),
+    expect(players[0]->getInventory().empty(),
            "useSupportItemOnEnemy: item is still consumed");
 }
 
@@ -425,13 +408,14 @@ static void testAIIdleWithEmptyInventory(const CharacterLoader& loader,
                                           const std::string& aiConfigPath) {
     auto players = makeFourPlayers(loader, characterId);
 
-    auto ai = std::make_unique<EasyPlayerAI>();
-    ai->init(&players[1], db, aiConfigPath);
+    // players[1] is an EasyPlayerAI — construct it directly as one
+    auto ai = std::make_shared<EasyPlayerAI>(characterId, 2, "Player 2", loader);
+    if (!ai->init(db, aiConfigPath)) return;
 
     ItemController items;
     for (int i = 0; i < 10; i++) ai->update(0.5f, enemy, items);
 
-    expect(players[1].getInventory().empty(),
+    expect(ai->getInventory().empty(),
            "AI idle: inventory stays empty");
     expect(ai->getState() == PlayerAI::State::IDLE ||
            ai->getState() == PlayerAI::State::PASS,
@@ -444,12 +428,15 @@ static void testAIActsOnAttackItem(const CharacterLoader& loader,
                                     Enemy& enemy,
                                     const std::string& aiConfigPath,
                                     const std::string& attackDefId) {
-    auto players   = makeFourPlayers(loader, characterId);
-    float hpBefore = enemy.getCurrentHealth();
-    players[1].addItem(makeItem(attackDefId));
+    auto players = makeFourPlayers(loader, characterId);
 
-    auto ai = std::make_unique<EasyPlayerAI>();
-    ai->init(&players[1], db, aiConfigPath);
+    auto ai = std::make_shared<EasyPlayerAI>(characterId, 2, "Player 2", loader);
+    ai->setLeftPlayer (players[0].get());
+    ai->setRightPlayer(players[2].get());
+    if (!ai->init(db, aiConfigPath)) return;
+
+    float hpBefore = enemy.getCurrentHealth();
+    ai->addItem(makeItem(attackDefId));
 
     ItemController items;
     for (int i = 0; i < 20; i++) ai->update(0.5f, enemy, items);
@@ -457,8 +444,7 @@ static void testAIActsOnAttackItem(const CharacterLoader& loader,
     CULog("── AI attackTest: enemy hp %.1f → %.1f ───",
           hpBefore, enemy.getCurrentHealth());
 
-    // AI may attack or pass — either way the item should leave inventory
-    expect(players[1].getInventory().empty(),
+    expect(ai->getInventory().empty(),
            "AI attack: item was consumed or passed after ticks");
 }
 
@@ -470,22 +456,24 @@ static void testAIHealsInjuredNeighbor(const CharacterLoader& loader,
                                         const std::string& supportDefId) {
     auto players = makeFourPlayers(loader, characterId);
 
-    // Bring Player 0 (left neighbor of Player 1) below 50% — below default healThreshold
-    players[0].updateHealth(-(players[0].getMaxHealth() * 0.6f));
-    float neighborHpBefore = players[0].getCurrentHealth();
+    auto ai = std::make_shared<EasyPlayerAI>(characterId, 2, "Player 2", loader);
+    ai->setLeftPlayer (players[0].get());
+    ai->setRightPlayer(players[2].get());
+    if (!ai->init(db, aiConfigPath)) return;
 
-    players[1].addItem(makeItem(supportDefId));
+    // Bring left neighbor below 50% — below default healThreshold
+    players[0]->updateHealth(-(players[0]->getMaxHealth() * 0.6f));
+    float neighborHpBefore = players[0]->getCurrentHealth();
 
-    auto ai = std::make_unique<EasyPlayerAI>();
-    ai->init(&players[1], db, aiConfigPath);
+    ai->addItem(makeItem(supportDefId));
 
     ItemController items;
     for (int i = 0; i < 20; i++) ai->update(0.5f, enemy, items);
 
     CULog("── AI healTest: neighbor hp %.1f → %.1f ──",
-          neighborHpBefore, players[0].getCurrentHealth());
+          neighborHpBefore, players[0]->getCurrentHealth());
 
-    expect(players[0].getCurrentHealth() >= neighborHpBefore,
+    expect(players[0]->getCurrentHealth() >= neighborHpBefore,
            "AI heal: injured neighbor hp did not decrease after AI ticks");
 }
 
@@ -497,23 +485,27 @@ static void testAIPassesWhenNoHealTarget(const CharacterLoader& loader,
                                           const std::string& supportDefId) {
     auto players = makeFourPlayers(loader, characterId);
 
-    // All neighbors at full health → canSupport() false, canAttack() false → PASS
-    players[1].addItem(makeItem(supportDefId));
+    auto ai = std::make_shared<EasyPlayerAI>(characterId, 2, "Player 2", loader);
+    ai->setLeftPlayer (players[0].get());
+    ai->setRightPlayer(players[2].get());
+    if (!ai->init(db, aiConfigPath)) return;
 
-    auto ai = std::make_unique<EasyPlayerAI>();
-    ai->init(&players[1], db, aiConfigPath);
+    // All neighbors at full health → canSupport() false, canAttack() false → PASS
+    ai->addItem(makeItem(supportDefId));
 
     ItemController items;
     for (int i = 0; i < 20; i++) ai->update(0.5f, enemy, items);
 
-    bool itemPassedToNeighbor = players[0].getInventory().size() == 1 ||
-                                players[2].getInventory().size() == 1;
+    bool itemPassedToNeighbor = players[0]->getInventory().size() == 1 ||
+                                players[2]->getInventory().size() == 1;
 
     CULog("── AI passTest ───────────────────────────");
-    for (const Player& p : players) printHand(p);
+    printHand(*players[0]);
+    printHand(*ai);
+    printHand(*players[2]);
 
-    expect(players[1].getInventory().empty(),
-           "AI pass: support item left Player 1's inventory");
+    expect(ai->getInventory().empty(),
+           "AI pass: support item left AI player's inventory");
     expect(itemPassedToNeighbor,
            "AI pass: item arrived at a neighbor");
 }
@@ -534,15 +526,12 @@ void PlayerTests::runAll(const std::string& charactersJsonPath,
     CULog("  PlayerTests::runAll");
     CULog("═════════════════════════════════════════");
 
-    // ── Load shared fixtures — mirrors GameScene::init / ItemController::init ──
     CharacterLoader loader = loadCharacters(charactersJsonPath);
     ItemDatabase    db     = loadDatabase(itemsJsonPath);
     Enemy           enemy  = loadEnemy(enemiesJsonPath, "enemy1");
 
-    // Resolve defIds from the real database so tests aren't hard-coded to item names
     const std::string attackDefId  = firstDefIdOfType(db, ItemDef::Type::Attack);
     const std::string supportDefId = firstDefIdOfType(db, ItemDef::Type::Support);
-    // TODO: replace "Percy" with a real characterId from your characters.json
     const std::string characterId  = "Percy";
 
     if (attackDefId.empty())  CULogError("PlayerTests: no Attack item found in '%s'",  itemsJsonPath.c_str());
