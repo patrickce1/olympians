@@ -3,6 +3,7 @@
         "size"   : ["data", "size"],
         "anchor" : ["data", "anchor"],
         "text"   : ["children","text","data","text"],
+        "placetext": ["children","placeholder","text"],
         "font"   : ["children","text","data","font"],
         "halign" : ["children","text","data","halign"],
         "valign" : ["children","text","data","valign"],
@@ -40,6 +41,24 @@
                     "y_offset" : 2,
                     "absolute" : true
                     
+                }
+            },
+            "placeholder": {
+                "type": "Label",
+                "data": {
+                    "anchor": [0.5, 0.5],
+                    "font": "gideon romanRegular24",
+                    "text": "",
+                    "halign": "left",
+                    "valign": "middle",
+                    "foreground": "#808080ff"
+                },
+                "layout": {
+                    "x_anchor": "fill",
+                    "y_anchor": "fill",
+                    "x_offset": 15,
+                    "y_offset": 2,
+                    "absolute": true
                 }
             },
             "frame": {

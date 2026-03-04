@@ -51,30 +51,26 @@ bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
     
-//    _entergame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("client.enter"));
-//    _backout = nullptr;
-//    _gameid = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("client.textfields.textfieldpin.text"));
-//    _playerid = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("client.textfields.textfieldname.text"));
-//    
-    _status = Status::IDLE;
+    _entergame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.enter"));
+    _backout = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.back"));
+    _gameid = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.text"));
+    _playerid = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.text"));
     
-//    _backout->addListener([this](const std::string& name, bool down) {
-//        if (down) {
-//            // disconnect, part of networking
-//            _status = Status::ABORT;
-//        }
-//    });
-//
-//    _entergame->addListener([=,this](const std::string& name, bool down) {
-//        if (down) {
-//            // This will call the _gameid listener
-//            _gameid->releaseFocus();
-//        }
-//    });
-//    
-//    _gameid->addExitListener([this](const std::string& name, const std::string& value) {
-////        connect(value);
-//    });
+    std::shared_ptr<cugl::scene2::Label> placeID = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.placeholder"));
+    placeID->setText("Enter Game ID");
+    
+    _gameid->addTypeListener([this, placeID](const std::string& name, const std::string& value) {
+        placeID->setVisible(value.empty());
+    });
+    
+    std::shared_ptr<cugl::scene2::Label> placeName = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.placeholder"));
+    placeName->setText("Enter Name");
+    
+    _playerid->addTypeListener([this, placeName](const std::string& name, const std::string& value) {
+        placeName->setVisible(value.empty());
+    });
+    
+    _status = Status::IDLE;
     
     addChild(scene);
     setActive(false);
@@ -105,17 +101,17 @@ void ClientScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = IDLE;
-//            _gameid->activate();
-//            _backout->activate();
-//            _playerid->activate();
+            _gameid->activate();
+            _backout->activate();
+            _playerid->activate();
             // Don't reset the room id
         } else {
-//            _gameid->deactivate();
-//            _entergame->deactivate();
-//            _backout->deactivate();
-//            // If any were pressed, reset them
-//            _entergame->setDown(false);
-//            _backout->setDown(false);
+            _gameid->deactivate();
+            _entergame->deactivate();
+            _backout->deactivate();
+            // If any were pressed, reset them
+            _entergame->setDown(false);
+            _backout->setDown(false);
         }
     }
 }

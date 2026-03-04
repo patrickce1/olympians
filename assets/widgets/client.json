@@ -179,8 +179,7 @@
                         "data": {
                             "key": "textfield",
                             "variables": {
-                                "text": "Enter Game ID",
-                                "foreground": "#8a8a8a"
+                                "text": ""
                             }
                         },
                         "layout": {
@@ -193,8 +192,7 @@
                         "data": {
                             "key": "textfield",
                             "variables": {
-                                "text": "Enter Name",
-                                "foreground": "#8a8a8a"
+                                "text": ""
                             }
                         },
                         "layout": {

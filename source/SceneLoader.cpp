@@ -85,6 +85,9 @@ void SceneLoader::onStartup() {
 #else
     Input::activate<Mouse>();
 #endif
+    Input::activate<Keyboard>();
+    Input::activate<TextInput>();
+
 
     _loadingScene = scene2::LoadingScene::alloc(_assets, "json/assets.json");
     _loadingScene->setSpriteBatch(_batch);
@@ -166,6 +169,8 @@ void SceneLoader::onShutdown() {
 #else
     Input::deactivate<Mouse>();
 #endif
+    Input::deactivate<TextInput>();
+    Input::deactivate<Keyboard>();
     Application::onShutdown();
 }
 
