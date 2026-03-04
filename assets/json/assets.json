@@ -55,6 +55,14 @@
         "sans": {
             "file":     "fonts/Roboto-Bold.ttf",
             "size":     64
+        },
+        "gideon romanRegular20": {
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 20
+        },
+        "gideon romanRegular24": {
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 24
         }
     },
     "widgets": {
@@ -64,7 +72,8 @@
         "attackArea": "widgets/attackArea.json",
         "boss":        "widgets/boss.json",
         "playerSlot": "widgets/playerSlot.json",
-        "ability":     "widgets/ability.json"
+        "ability":     "widgets/ability.json",
+        "client": "widgets/client.json"
     },
     "scene2s": {
         "gameScene": {
@@ -73,6 +82,15 @@
             "format": { "type": "Anchored" },
             "data": {
                 "key": "scene",
+                "variables": {}
+            }
+        },
+        "clientScene": {
+            "type": "Widget",
+            "comment": "Root node of the client network scene",
+            "format": { "type": "Anchored" },
+            "data": {
+                "key": "client",
                 "variables": {}
             }
         }
