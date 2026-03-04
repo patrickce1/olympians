@@ -17,7 +17,7 @@
                     "tag": "attack",
                     "animationRow": 1,
                     "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
+                    "cooldownTime": 0.0,
                     "events": [
                         {
                             "type": "DAMAGE",

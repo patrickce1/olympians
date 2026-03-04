@@ -68,6 +68,13 @@ bool Enemy::requestState(const std::string& stateName) {
     return true;
 }
 
+/** Sets the enemy retarget likelihood. Only used for testing, should normally be defined in enemies JSON. */
+void Enemy::setRetargetLikelihood(float v) {
+    if (v < 0.0f) v = 0.0f;
+    if (v > 1.0f) v = 1.0f;
+    _retargetLikelihood = v;
+}
+
 /** Immediately enters the state and resets timers. */
 void Enemy::enterState(const std::string& stateName) {
     _currentState = stateName;
@@ -79,7 +86,7 @@ void Enemy::enterState(const std::string& stateName) {
 void Enemy::tick(float dt) {
     if (dt <= 0.0f) return;
     _stateTime += dt;
-    _attackLockout = clampMinZero(_attackLockout - dt);
+    _attackLockout = (_attackLockout - dt < 0.0f) ? 0.0f : _attackLockout - dt;
 }
 
 /** Returns true if buildUp time has passed and events have not yet fired in this state. */

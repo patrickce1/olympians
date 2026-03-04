@@ -15,7 +15,6 @@
 #include "PlayerTests.h"
 #include "Player.h"
 #include "Enemy.h"
-#include "EnemyLoader.h"
 #include "EasyPlayerAI.h"
 #include "ItemDatabase.h"
 #include "ItemDef.h"
@@ -110,16 +109,13 @@ CharacterLoader loadCharacters(const std::string& charactersJsonPath) {
  * Returns a default-constructed Enemy (not alive) on failure.
  */
 Enemy loadEnemy(const std::string& enemiesJsonPath, const std::string& enemyId) {
-    EnemyLoader loader;
-    if (!loader.loadFromFile(enemiesJsonPath)) {
-        CULogError("PlayerTests: failed to load enemies from '%s'", enemiesJsonPath.c_str());
-        return Enemy();
+    Enemy enemy;
+    if (!enemy.init(enemyId, enemiesJsonPath)) {
+        CULogError("PlayerTests: enemy init failed for id '%s' from '%s'",
+                   enemyId.c_str(), enemiesJsonPath.c_str());
+        return Enemy(); // invalid
     }
-    if (!loader.has(enemyId)) {
-        CULogError("PlayerTests: enemy id '%s' not found in '%s'", enemyId.c_str(), enemiesJsonPath.c_str());
-        return Enemy();
-    }
-    return Enemy(enemyId, loader);
+    return enemy;
 }
 
 // ── Item creation helper ─────────────────────

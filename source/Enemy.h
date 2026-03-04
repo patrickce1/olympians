@@ -61,6 +61,7 @@ public:
     float getAttackLockoutRemaining() const { return _attackLockout; }
     bool canStartNonIdleState() const { return _attackLockout <= 0.0f; }
     float getRetargetLikelihood() const { return _retargetLikelihood; }
+    void  setRetargetLikelihood(float v);
     
     // Expose state defs so controller can pick attacks by tag
     const std::unordered_map<std::string, EnemyLoader::StateDef>& getStates() const { return _states; }
@@ -80,8 +81,6 @@ private:
     void fireEvents();
     void applyCooldown();
     std::string getNextStateOrIdle() const;
-
-    static float clampMinZero(float v) { return v < 0.0f ? 0.0f : v; }
 };
 
 #endif /* !__ENEMY_H__ */

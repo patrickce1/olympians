@@ -129,12 +129,17 @@ void SceneLoader::onStartup() {
         bounds.size.toString().c_str());
     
     // ── Run unit tests ──────────────────────────
-//    PlayerTests::runAll(
-//        "json/characters.json",
-//        "json/items.json",
-//        "json/enemies.json",
-//        "json/playerAI.json"
-//    );
+    PlayerTests::runAll(
+        "json/characters.json",
+        "json/items.json",
+        "json/enemies.json",
+        "json/playerAI.json"
+    );
+    
+    EnemyTests::runAll(
+        "json/enemies.json",
+        "json/characters.json"
+    );
 
 }
 
