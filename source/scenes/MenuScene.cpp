@@ -16,7 +16,6 @@ using namespace cugl::scene2;
  * @return true if initialization succeeds; false otherwise.
  */
 bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
-    CULog("[MenuScene] starting init.");
     if (assets == nullptr) {
         return false;
     }
@@ -25,14 +24,11 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     }
 
     _assets = assets;
-    CULog("[MenuScene] assets loaded.");
     _scene = _assets->get<scene2::SceneNode>("menuScene");
     if (!_scene) {
         CULog("MenuScene: missing scene2 asset 'menuScene'");
         return false;
     }
-    
-    CULog("[MenuScene] menuScene.json received.");
 
     _scene->setContentSize(getSize());
     _scene->doLayout();
@@ -42,8 +38,6 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         CULog("MenuScene: missing node 'menu'");
         return false;
     }
-    
-    CULog("[MenuScene] child menu loaded.");
 
     _playButton = std::dynamic_pointer_cast<Button>(menuNode->getChildByName("play"));
     _settingsButton = std::dynamic_pointer_cast<Button>(menuNode->getChildByName("settings"));
@@ -53,8 +47,6 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         CULog("MenuScene: expected buttons 'play', 'settings', and 'items'");
         return false;
     }
-    
-    CULog("[MenuScene] buttons loaded.");
 
     _playButton->addListener([this](const std::string&, bool down) {
         if (!down) {
