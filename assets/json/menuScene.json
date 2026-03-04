@@ -241,7 +241,7 @@
                         ]
                     }
                 },
-                "settings": {
+                "join": {
                     "type": "Button",
                     "format": {
                         "type": "Anchored"
@@ -313,7 +313,7 @@
                                 "y_offset": 0
                             }
                         },
-                        "Settings": {
+                        "Join": {
                             "type": "Label",
                             "data": {
                                 "anchor": [
@@ -363,7 +363,7 @@
                         ]
                     }
                 },
-                "items": {
+                "settings": {
                     "type": "Button",
                     "format": {
                         "type": "Anchored"
@@ -435,7 +435,7 @@
                                 "y_offset": 0
                             }
                         },
-                        "Items": {
+                        "Settings": {
                             "type": "Label",
                             "data": {
                                 "anchor": [

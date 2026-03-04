@@ -214,18 +214,6 @@ void SceneLoader::update(float dt) {
             if (_loadingScene->isPending()) {
                 CULog("Assets finished loading. Initializing MenuScene...");
 
-//                 _gameScene.init(_assets);
-//                 _gameScene.setSpriteBatch(_batch);
-//                 _clientScene.init(_assets);
-//                 _clientScene.setSpriteBatch(_batch);
-//                 _hostSetupScene.init(_assets);
-//                 _hostSetupScene.setSpriteBatch(_batch);
-//                 _hostSetupScene.setActive(true);
-// //                _clientScene.setActive(true);
-// //                _gameScene.setActive(true);
-//
-//                 _loadingScene->setActive(false);
-//                 _currentScene = State::HOSTSETUP;
                 if (_menuScene.init(_assets)) {
                     _menuScene.setSpriteBatch(_batch);
                     _menuScene.setActive(true);
@@ -234,6 +222,24 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize MenuScene");
                 }
+                
+                if (_hostSetupScene.init(_assets)) {
+                    _hostSetupScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize HostSetupScene");
+                }
+                
+                if (_clientScene.init(_assets)) {
+                    _clientScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize ClientScene");
+                }
+                
+                if (_gameScene.init(_assets)) {
+                    _gameScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize GameScene");
+                }
             }
 
             break;
@@ -241,21 +247,19 @@ void SceneLoader::update(float dt) {
             _menuScene.update(dt);
             switch (_menuScene.consumeAction()) {
                 case MenuScene::Action::START_GAME:
-                    CULog("Transitioning to GameScene...");
-                    if (_gameScene.init(_assets)) {
-                        _gameScene.setSpriteBatch(_batch);
-                        _gameScene.setActive(true);
-                        _menuScene.setActive(false);
-                        _currentScene = State::GAME;
-                    } else {
-                        CULog("Failed to initialize GameScene");
-                    }
+                    CULog("Transitioning to HostSetupScene...");
+                    _hostSetupScene.setActive(true);
+                    _menuScene.setActive(false);
+                    _currentScene = State::HOSTSETUP;
                     break;
                 case MenuScene::Action::OPEN_SETTINGS:
                     CULog("SettingsScene placeholder pressed");
                     break;
-                case MenuScene::Action::OPEN_ITEMS:
-                    CULog("ItemsScene placeholder pressed");
+                case MenuScene::Action::JOIN_GAME:
+                    CULog("Transitioning to ClientScene...");
+                    _clientScene.setActive(true);
+                    _menuScene.setActive(false);
+                    _currentScene = State::CLIENT;
                     break;
                 case MenuScene::Action::NONE:
                 default:
@@ -264,9 +268,35 @@ void SceneLoader::update(float dt) {
             break;
         case State::CLIENT:
             _clientScene.update(dt);
+            switch (_clientScene.getStatus()) {
+                case ClientScene::Status::ABORT:
+                    CULog("Transitioning to MenuScene...");
+                    _menuScene.setActive(true);
+                    _clientScene.setActive(false);
+                    _currentScene = State::MENU;
+                    break;
+                default:
+                    break;
+            }
             break;
         case State::HOSTSETUP:
             _hostSetupScene.update(dt);
+            switch (_hostSetupScene.getStatus()) {
+                case HostSetupScene::Status::START:
+                    CULog("Transitioning to GameScene...");
+                    _gameScene.setActive(true);
+                    _hostSetupScene.setActive(false);
+                    _currentScene = State::GAME;
+                    break;
+                case HostSetupScene::Status::ABORT:
+                    CULog("Transitioning to MenuScene...");
+                    _menuScene.setActive(true);
+                    _hostSetupScene.setActive(false);
+                    _currentScene = State::MENU;
+                    break;
+                default:
+                    break;
+            }
             break;
         case State::GAME:
             InputController::Action action = _input.getAction();

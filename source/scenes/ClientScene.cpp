@@ -56,6 +56,19 @@ bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     _gameid = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.text"));
     _playerid = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.text"));
     
+    _entergame->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::START;  // transition to lobby scene
+
+        }
+    });
+    
+    _backout->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::ABORT;
+        }
+    });
+    
     std::shared_ptr<cugl::scene2::Label> placeID = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.placeholder"));
     placeID->setText("Enter Game ID");
     
