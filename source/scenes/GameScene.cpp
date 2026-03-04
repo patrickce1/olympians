@@ -159,17 +159,13 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
      */
     void GameScene::update(float dt, InputController& input) {
         if (!_active) return;
-        float height = getSize().height;
-        
-        
         // --- Reset button tap detection ---
         // Only check when no icon is being dragged, touch just ended, and the button exists
         if (input.touchEnded() && !_activeIcon && _resetBtn) {
-            // Flip the touch Y coordinate: touch origin is top-left, scene origin is bottom-left
-            Vec2 touchFlipped(input.getTouchStart().x, height - input.getTouchStart().y);
-            
+            Vec2 touchScene = input.getTouchStart();
+
             Rect boundingBox = _resetBtn->getBoundingBox();
-            if (boundingBox.contains(touchFlipped)) {
+            if (boundingBox.contains(touchScene)) {
                 CULog("Reset button tapped!");
                 reset();
             }
@@ -199,20 +195,27 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
                 _glowAction = InputController::Action::NONE; // Clear the glow once expired
             }
         }
+
+        // --- Debug pointer tracking ---
+        if (input.isTouching()) {
+            Vec2 current = input.isDragging() ? input.getDragPos() : input.getTouchStart();
+            _debugPointerScene = current;
+            _hasDebugPointer   = true;
+        } else {
+            _hasDebugPointer = false;
+        }
         
         // --- Drag initiation: first touch on an inventory icon ---
         if (!_activeIcon && input.isTouching()) {
-            // Convert touch position from screen (top-left origin) to scene (bottom-left origin)
-            cugl::Vec2 touchFlipped    = cugl::Vec2(input.getTouchStart().x, height - input.getTouchStart().y);
-            // Further convert into the inventory node's local coordinate space
-            cugl::Vec2 touchInInventory = _inventory->parentToNodeCoords(touchFlipped);
+            // Convert touch into the inventory node's local coordinate space
+            cugl::Vec2 touchScene       = input.getTouchStart();
+            cugl::Vec2 touchInInventory = _inventory->parentToNodeCoords(touchScene);
             
             // Hit-test each ability icon to see if the touch landed on one
             for (auto& icon : _abilityIcons) {
                 if (!icon) continue;
                 cugl::Rect boundingBox = icon->getBoundingBox();
                 // Shift the bounding box up by half its height (manual anchor correction)
-                boundingBox.origin.y += boundingBox.size.height / 2;
                 if (boundingBox.contains(touchInInventory)) {
                     _activeIcon = icon;
                     // Store the offset between the icon center and the touch point
@@ -225,8 +228,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         
         // --- Drag tracking: move the active icon to follow the finger ---
         if (_activeIcon && input.isTouching()) {
-            cugl::Vec2 dragFlipped     = cugl::Vec2(input.getDragPos().x, height - input.getDragPos().y);
-            cugl::Vec2 dragInInventory = _inventory->parentToNodeCoords(dragFlipped);
+            cugl::Vec2 dragScene       = input.getDragPos();
+            cugl::Vec2 dragInInventory = _inventory->parentToNodeCoords(dragScene);
             // Apply the stored offset so the icon moves smoothly relative to the initial grab point
             _activeIcon->setPosition(dragInInventory + _dragOffset);
         }
@@ -297,8 +300,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
      *  - A filled green glow that fades out over the zone matching the most
      *    recent successful drop action.
      *
-     * The zones use a flipped Y coordinate system to match the scene's
-     * bottom-left origin against the batch's top-left drawing convention.
+     * The zones use scene coordinates (bottom-left origin) directly because
+     * the sprite batch already uses the scene camera.
      */
     void GameScene::render() {
         // First, render the standard scene graph (all SceneNode children)
@@ -313,18 +316,18 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         float h = getSize().height;
         
         // Define the five interactive drop zones as (Action, Rect) pairs.
-        // Rects are specified in scene coordinates (bottom-left origin).
+        // Rects match InputController zones (scene coordinates, bottom-left origin, top half)
         std::vector<std::pair<InputController::Action, Rect>> zones = {
-            // Boss target: wide central strip covering the bottom half
-            {InputController::Action::DROP_BOSS,       Rect(w * 0.15f, 0,        w * 0.7f,  h * 0.5f)},
-            // Left ally: narrow left column, bottom half
-            {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         0,        w * 0.15f, h * 0.5f)},
-            // Right ally: narrow right column, bottom half
-            {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)},
-            // Pass left: narrow left column, top half
-            {InputController::Action::PASS_LEFT,       Rect(0,         h * 0.5f, w * 0.15f, h * 0.5f)},
-            // Pass right: narrow right column, top half
-            {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)},
+            // Boss target: wide central strip covering the top half
+            {InputController::Action::DROP_BOSS,       Rect(w * 0.15f, h * 0.5f, w * 0.7f,  h * 0.5f)},
+            // Left ally: narrow left column, top half
+            {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.5f, w * 0.15f, h * 0.5f)},
+            // Right ally: narrow right column, top half
+            {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)},
+            // Pass left: narrow left column, bottom half
+            {InputController::Action::PASS_LEFT,       Rect(0,         0,        w * 0.15f, h * 0.5f)},
+            // Pass right: narrow right column, bottom half
+            {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)},
         };
         
         // Debug outline around the reset button
@@ -337,10 +340,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         
         // Draw each drop zone
         for (auto& [action, rect] : zones) {
-            // Flip the rect's Y origin for the batch's top-left coordinate system
-            Rect flipped(rect.origin.x, h - rect.origin.y - rect.size.height,
-                         rect.size.width, rect.size.height);
-            Path2 path(flipped);
+            Path2 path(rect);
             
             // If this zone matches the active glow, draw a fading filled overlay
             if (action == _glowAction && _glowTimer > 0) {
@@ -352,6 +352,28 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
             
             // Always draw a faint green outline for every zone
             batch->setColor(Color4(0, 255, 0, 80));
+            batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+        }
+
+        // Debug: outline ability icon bounding boxes
+        batch->setColor(Color4(255, 0, 255, 140));
+        for (auto& icon : _abilityIcons) {
+            if (!icon || !icon->isVisible()) continue;
+            Rect box = icon->getBoundingBox();
+            Path2 path(box);
+            batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+        }
+
+        // Debug: show current pointer position
+        if (_hasDebugPointer) {
+            Rect p(_debugPointerScene.x - 6.0f, _debugPointerScene.y - 6.0f, 12.0f, 12.0f);
+            // Flip for debug visualization because the batch renders with a top-left origin
+            // Rect flipped(p.origin.x, h - p.origin.y - p.size.height,
+            //              p.size.width, p.size.height);
+            Path2 path(p);
+            batch->setColor(Color4(255, 0, 0, 200));
+            batch->fill(path, Vec2::ZERO, Affine2::IDENTITY);
+            batch->setColor(Color4(255, 255, 255, 200));
             batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
         }
         

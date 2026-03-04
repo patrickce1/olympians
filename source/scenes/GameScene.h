@@ -75,6 +75,11 @@ protected:
     /**How long that a region that glows should glow for at maximum.**/
     float _glowDuration = 0.3f;
 
+    /** Debug: latest pointer position in scene coordinates */
+    cugl::Vec2 _debugPointerScene = cugl::Vec2::ZERO;
+    /** Debug: whether a pointer is currently active */
+    bool _hasDebugPointer = false;
+
 public:
 #pragma mark -
 #pragma mark Constructors

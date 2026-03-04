@@ -85,6 +85,8 @@ void InputController::setActive(bool active){
 void InputController::onTouchBegan(const cugl::TouchEvent &event, bool focus){
     _touchStartTime = event.timestamp;
     cugl::Vec2 pos = event.position * _scale;
+    // Convert to scene coordinates (bottom-left origin)
+    pos.y = cugl::Application::get()->getDisplayBounds().size.height - pos.y;
     //inactive input or we are already tracking.
     if (!_active or _activeTouchID != -1) {
         return;
@@ -113,6 +115,8 @@ void InputController::onTouchBegan(const cugl::TouchEvent &event, bool focus){
 void InputController::onTouchMoved(const cugl::TouchEvent &event, const cugl::Vec2 &previous, bool focus){
     //Determine the position in phone coordinates
     cugl::Vec2 pos = event.position * _scale;
+    // Convert to scene coordinates (bottom-left origin)
+    pos.y = cugl::Application::get()->getDisplayBounds().size.height - pos.y;
     if (!_active || event.touch != _activeTouchID){ //We are not ready for a touch.
         return;
     }
@@ -138,6 +142,8 @@ void InputController::onTouchMoved(const cugl::TouchEvent &event, const cugl::Ve
 void InputController::onTouchEnded(const cugl::TouchEvent &event, bool focus){
     
     cugl::Vec2 pos = event.position * _scale;
+    // Convert to scene coordinates (bottom-left origin)
+    pos.y = cugl::Application::get()->getDisplayBounds().size.height - pos.y;
 
     if (event.touch != _activeTouchID){
         return;
