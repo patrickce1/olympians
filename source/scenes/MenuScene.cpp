@@ -23,6 +23,7 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         return false;
     }
 
+    // Retrieve menuScene.json
     _assets = assets;
     _scene = _assets->get<scene2::SceneNode>("menuScene");
     if (!_scene) {
@@ -39,6 +40,7 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         return false;
     }
 
+    // Retrieve and set up buttons
     _playButton = std::dynamic_pointer_cast<Button>(menuNode->getChildByName("play"));
     _settingsButton = std::dynamic_pointer_cast<Button>(menuNode->getChildByName("settings"));
     _itemsButton = std::dynamic_pointer_cast<Button>(menuNode->getChildByName("items"));
