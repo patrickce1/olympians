@@ -17,7 +17,7 @@ using namespace std;
 #pragma mark Level Layout
 
 /** Example height for now, change as needed */
-#define SCENE_HEIGHT  852
+#define SCENE_HEIGHT 852
 
 #pragma mark -
 #pragma mark Constructors
@@ -88,14 +88,19 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         CULog("Failed to load characters.json");
         return false;
     }
-    
-    // Create Player Array for all real players
+
+    // Create Player Array — 1 human + 3 bots, all in one vector so
+    // EnemyController can target any of them.
+    _players.reserve(4);
     _players.emplace_back("Percy", 1, "Player 1", _characterLoader);
-    
+    _players.emplace_back("Percy", 2, "Player 2", _characterLoader);
+    _players.emplace_back("Percy", 3, "Player 3", _characterLoader);
+    _players.emplace_back("Percy", 4, "Player 4", _characterLoader);
+
     // --- Circular neighbor linking ---
     // Links all 4 players in a ring: 0 <-> 1 <-> 2 <-> 3 <-> 0
     // Neighbors are used by both the human pass actions and AI support/pass logic.
-    //NOTE: ONLY HOST SHOULD RUN THIS-- IMPORTANT FOR NETWORKING
+    // NOTE: ONLY HOST SHOULD RUN THIS-- IMPORTANT FOR NETWORKING
     const int playerCount = (int)_players.size();
     for (int i = 0; i < playerCount; i++) {
         int leftIdx  = (i - 1 + playerCount) % playerCount;
@@ -120,6 +125,22 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     }
     CULog("GameScene: Enemy initialized id='%s'", _enemy->getId().c_str());
 
+    // Initialize AI controllers for bot players (indices 1, 2, 3).
+    // Their _player pointers reference entries in _players, so enemy
+    // damage to those entries is immediately visible to the AI.
+    const std::string aiConfigPath = "json/playerAI.json";
+    for (int i = 1; i < (int)_players.size(); i++)
+    {
+        auto ai = std::make_unique<EasyPlayerAI>();
+        if (!ai->init(&_players[i], _itemController.getDatabase(), aiConfigPath))
+        {
+            CULog("Failed to initialize AI for player %d", i);
+            return false;
+        }
+        _playerAIs.push_back(std::move(ai));
+        CULog("Initialized AI for player %d", i);
+    }
+
     setActive(false);
     return true;
 }
@@ -141,6 +162,7 @@ void GameScene::handleAttack() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
             _localPlayer -> useItemById(item.getId(), *_enemy, _itemController.getDatabase());
+            CULog("Player attacked enemy '%s' with item %llu", _enemy->getId().c_str(), (unsigned long long)item.getId());
             return;
         }
     }
@@ -157,6 +179,7 @@ void GameScene::handleSupportLeft() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             _localPlayer -> useItemById(item.getId(), *target, _itemController.getDatabase());
+            CULog("Player supported left ally with item %llu", (unsigned long long)item.getId());
             return;
         }
     }
@@ -173,6 +196,7 @@ void GameScene::handleSupportRight() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             _localPlayer -> useItemById(item.getId(), *target, _itemController.getDatabase());
+            CULog("Player supported right ally with item %llu", (unsigned long long)item.getId());
             return;
         }
     }
@@ -188,6 +212,7 @@ void GameScene::handlePassLeft() {
     ItemInstance item = _localPlayer -> getInventory()[0];
     _localPlayer -> removeItemById(item.getId());
     target->addItem(item);
+    CULog("Player passed item %llu to left ally", (unsigned long long)item.getId());
 }
 
 /**
@@ -200,13 +225,13 @@ void GameScene::handlePassRight() {
     ItemInstance item = _localPlayer -> getInventory()[0];
     _localPlayer -> removeItemById(item.getId());
     target->addItem(item);
+    CULog("Player passed item %llu to right ally", (unsigned long long)item.getId());
 }
 
 void GameScene::update(float dt) {
     if (!_active) {
         return;
     }
-
 
     _itemController.update(dt, _localPlayer);
     syncInventoryWidgets();
@@ -225,14 +250,11 @@ void GameScene::update(float dt) {
     
     if (_enemy->isAlive()) {
         _enemyController.update(dt, _enemy, _players);
-    }
-    
-    if (_enemy) {
-        for (auto& ai : _playerAIs) {
-            ai->update(dt, *_enemy, _itemController);
+        
+        for (size_t i = 0; i < _playerAIs.size(); ++i) {
+            _playerAIs[i]->update(dt, *_enemy, _itemController);
         }
     }
-
 }
 
 /**
@@ -335,3 +357,4 @@ void GameScene::syncInventoryWidgets() {
         }
     }
 }
+
