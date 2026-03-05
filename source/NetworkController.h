@@ -8,20 +8,10 @@ class NetworkController {
 public:
 
 	enum Status {
-        //idk
-		IDLE,
-
-        //Waiting on connection
-        JOIN,
-
-        //Game is starting
-        WAIT,
-
-        //Game got aborted
-        START,
-
-        //idk
-        ABORT
+        FAILED,
+        WAITING,
+        CONNECTED
+        //more to come as networking expands, such as START or ONGOING
 	};
     
      /**
@@ -59,6 +49,11 @@ public:
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
 
+     /**
+      * Checks what the status of the connection is currently
+     */
+    Status checkConnection();
+
     /**
     * Connects to the game server as specified in the assets file
     *
@@ -83,12 +78,20 @@ public:
     /*Disconnects the player. If it's the host, moves the host*/
     void disconnect();
 
-    /*TODO: Add more functions that relate to sending updates out
-    We need to figure out as a team how we want to represent updates
-    to game state across players. One could be more atomic updated like
-    sendDamage(), another would be as a big batch to send out an updated
-    state of the world according to our view
-    */
+    /*Returns the number of players connected to the current room*/
+    int numPlayers();
+
+    /*Because the original host can disconnect, this is used to keep track of host migration*/
+    bool isHost();
+
+    /* Outline for future atomic update-style functions */
+    //void broadcastDamange(float damange);
+    //void passItem(Item item, Player player);
+    //void broadcastHeal(float heal, Player player);
+    //GameState recieveUpdate();
+
+    
+
 
 protected:
 	std::shared_ptr<cugl::netcode::NetcodeConnection> _network;
