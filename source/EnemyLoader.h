@@ -20,10 +20,7 @@ public:
     struct StateDef {
         std::string name;
         int animationRow = 0;
-
-        // tag to categorize states ("idle", "attack", "defense", etc.)
         std::string tag;
-
         float buildUpTime = 0.0f;
         float cooldownTime = 0.0f;
         std::string nextState;
@@ -85,9 +82,7 @@ public:
                 StateDef sdef;
                 sdef.name = st->_key;
                 sdef.animationRow = st->getInt("animationRow", 0);
-
                 sdef.tag = st->getString("tag", "");
-
                 sdef.buildUpTime  = st->getFloat("buildUpTime", 0.0f);
                 sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
                 sdef.nextState    = st->getString("nextState", "idle");
@@ -112,7 +107,6 @@ public:
                             edef.amount = ev->getFloat("amount", 0.0f);
                             edef.duration = ev->getFloat("duration", 0.0f);
                         }
-
                         sdef.events.push_back(edef);
                     }
                 }
@@ -132,7 +126,6 @@ public:
 
             _enemies[def.id] = def;
         }
-
         return true;
     }
 

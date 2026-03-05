@@ -191,6 +191,7 @@ protected:
      */
     virtual void actPass() = 0;
     
+    /** Returns true if the player is an instance of PlayerAI (Always true for this class)*/
     bool isAI() const override { return true; }
 };
 

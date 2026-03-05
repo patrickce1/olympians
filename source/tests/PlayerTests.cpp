@@ -31,6 +31,7 @@ namespace {
 int _passed = 0;
 int _failed = 0;
 
+/** Assertion helper: logs [PASS]/[FAIL] and updates counters. */
 void expect(bool condition, const std::string& label) {
     if (condition) {
         CULog("[PASS] %s", label.c_str());
@@ -41,13 +42,14 @@ void expect(bool condition, const std::string& label) {
     }
 }
 
+/** Prints a summary line with total passed/failed counts. */
 void printSummary() {
     CULog("─────────────────────────────────────────");
     CULog("  %d passed   %d failed", _passed, _failed);
     CULog("─────────────────────────────────────────");
 }
 
-// Prints every item in a player's hand to CULog — purely for visual debugging
+/** Prints every item in a player's hand to CULog (visual debugging aid). */
 void printHand(const Player& p) {
     const auto& inv = p.getInventory();
     CULog("  [%s] hand (%zu item(s)):", p.getPlayerName().c_str(), inv.size());
@@ -62,8 +64,7 @@ void printHand(const Player& p) {
     }
 }
 
-// ── Loaders ─────────────────────────────────
-
+/** Loads the ItemDatabase from the given items JSON path and seeds time. */
 ItemDatabase loadDatabase(const std::string& itemsJsonPath) {
     ItemDatabase db;
 
@@ -87,6 +88,7 @@ ItemDatabase loadDatabase(const std::string& itemsJsonPath) {
     return db;
 }
 
+/** Loads character definitions from the given JSON path for use in tests. */
 CharacterLoader loadCharacters(const std::string& charactersJsonPath) {
     CharacterLoader loader;
     if (!loader.loadFromFile(charactersJsonPath)) {
@@ -95,6 +97,7 @@ CharacterLoader loadCharacters(const std::string& charactersJsonPath) {
     return loader;
 }
 
+/** Loads and returns an Enemy by id from the enemies JSON; logs errors on failure. */
 Enemy loadEnemy(const std::string& enemiesJsonPath, const std::string& enemyId) {
     Enemy enemy;
     if (!enemy.init(enemyId, enemiesJsonPath)) {
@@ -109,6 +112,7 @@ Enemy loadEnemy(const std::string& enemiesJsonPath, const std::string& enemyId) 
 
 static ItemInstance::ItemId _testIdCounter = 1000;
 
+/** Creates an ItemInstance with a unique test id for the given defId. */
 ItemInstance makeItem(const std::string& defId) {
     auto inst = ItemInstance::alloc(defId, _testIdCounter++);
     CUAssertLog(inst != nullptr, "PlayerTests: makeItem failed for defId '%s'", defId.c_str());
@@ -117,6 +121,7 @@ ItemInstance makeItem(const std::string& defId) {
 
 // ── Player factories ─────────────────────────
 
+/** Creates two players and wires them as each other's left/right neighbors. */
 std::vector<std::shared_ptr<Player>> makeTwoPlayers(const CharacterLoader& loader,
                                                     const std::string& characterId) {
     std::vector<std::shared_ptr<Player>> players;
@@ -129,6 +134,7 @@ std::vector<std::shared_ptr<Player>> makeTwoPlayers(const CharacterLoader& loade
     return players;
 }
 
+/** Creates four players arranged in a ring and wires neighbor pointers. */
 std::vector<std::shared_ptr<Player>> makeFourPlayers(const CharacterLoader& loader,
                                                      const std::string& characterId) {
     std::vector<std::shared_ptr<Player>> players;
@@ -147,6 +153,7 @@ std::vector<std::shared_ptr<Player>> makeFourPlayers(const CharacterLoader& load
 
 // ── Utility: first defId of a given type ────
 
+/** Returns the first item defId in the database that matches the given type, or empty. */
 std::string firstDefIdOfType(const ItemDatabase& db, ItemDef::Type type) {
     for (const std::string& id : db.getAllDefIds()) {
         auto def = db.getDef(id);
@@ -161,12 +168,14 @@ std::string firstDefIdOfType(const ItemDatabase& db, ItemDef::Type type) {
 // SECTION 1 — Inventory basics
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Verifies a new player's inventory starts empty. */
 static void testInventoryStartsEmpty(const CharacterLoader& loader,
                                      const std::string& characterId) {
     auto players = makeTwoPlayers(loader, characterId);
     expect(players[0]->getInventory().empty(), "Inventory starts empty");
 }
 
+/** Ensures addItem increases the inventory count. */
 static void testAddItemIncreasesCount(const CharacterLoader& loader,
                                       const std::string& characterId,
                                       const std::string& attackDefId) {
@@ -176,6 +185,7 @@ static void testAddItemIncreasesCount(const CharacterLoader& loader,
            "addItem: inventory count increases to 1");
 }
 
+/** Ensures removeItemById decreases the inventory count when the id exists. */
 static void testRemoveItemDecreasesCount(const CharacterLoader& loader,
                                          const std::string& characterId,
                                          const std::string& attackDefId) {
@@ -187,6 +197,7 @@ static void testRemoveItemDecreasesCount(const CharacterLoader& loader,
            "removeItemById: inventory count drops to 0");
 }
 
+/** Confirms removing a non-existent item id does nothing to the inventory. */
 static void testRemoveNonexistentItemIsNoop(const CharacterLoader& loader,
                                             const std::string& characterId,
                                             const std::string& attackDefId) {
@@ -202,6 +213,7 @@ static void testRemoveNonexistentItemIsNoop(const CharacterLoader& loader,
 // SECTION 2 — Print hands (visual / debug)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Prints sample hands for visual verification; should run without crashing. */
 static void testPrintHands(const CharacterLoader& loader,
                             const std::string& characterId,
                             const std::string& attackDefId,
@@ -225,6 +237,7 @@ static void testPrintHands(const CharacterLoader& loader,
 // SECTION 3 — Card passing
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Verifies passing to the right moves the item to the neighbor and empties sender. */
 static void testPassRightMovesItem(const CharacterLoader& loader,
                                    const std::string& characterId,
                                    const std::string& attackDefId) {
@@ -246,6 +259,7 @@ static void testPassRightMovesItem(const CharacterLoader& loader,
                                                      "passRight: received item has correct defId");
 }
 
+/** Verifies passing to the left moves the item to the neighbor and empties sender. */
 static void testPassLeftMovesItem(const CharacterLoader& loader,
                                   const std::string& characterId,
                                   const std::string& supportDefId) {
@@ -265,6 +279,7 @@ static void testPassLeftMovesItem(const CharacterLoader& loader,
     expect(players[1]->getInventory().size() == 1, "passLeft: receiver has 1 item");
 }
 
+/** Confirms passing to a dead player is a no-op and the item remains with sender. */
 static void testPassToDeadPlayerIsNoop(const CharacterLoader& loader,
                                        const std::string& characterId,
                                        const std::string& attackDefId) {
@@ -285,6 +300,7 @@ static void testPassToDeadPlayerIsNoop(const CharacterLoader& loader,
            "passToDeadPlayer: item stays with sender");
 }
 
+/** Ensures an item passed around four players returns to the origin after a full loop. */
 static void testCircularPassAroundRing(const CharacterLoader& loader,
                                        const std::string& characterId,
                                        const std::string& attackDefId) {
@@ -317,6 +333,7 @@ static void testCircularPassAroundRing(const CharacterLoader& loader,
 // SECTION 4 — Card usage (attack and support)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Checks using an attack item reduces enemy hp and consumes the item. */
 static void testUseAttackItemDamagesEnemy(const CharacterLoader& loader,
                                           const std::string& characterId,
                                           const ItemDatabase& db,
@@ -341,6 +358,7 @@ static void testUseAttackItemDamagesEnemy(const CharacterLoader& loader,
     expect(players[0]->getInventory().empty(),     "useAttackItem: item consumed from inventory");
 }
 
+/** Checks using a support item heals an ally and consumes the item. */
 static void testUseSupportItemHealsAlly(const CharacterLoader& loader,
                                         const std::string& characterId,
                                         const ItemDatabase& db,
@@ -366,6 +384,7 @@ static void testUseSupportItemHealsAlly(const CharacterLoader& loader,
     expect(players[0]->getInventory().empty(),         "useSupportItem: item consumed from inventory");
 }
 
+/** Validates attack items used on allies do not change ally hp but are consumed. */
 static void testUseAttackItemOnAllyIsNoop(const CharacterLoader& loader,
                                           const std::string& characterId,
                                           const ItemDatabase& db,
@@ -381,6 +400,7 @@ static void testUseAttackItemOnAllyIsNoop(const CharacterLoader& loader,
            "useAttackItemOnAlly: item is still consumed");
 }
 
+/** Validates support items used on enemies do not change enemy hp but are consumed. */
 static void testUseSupportItemOnEnemyIsNoop(const CharacterLoader& loader,
                                              const std::string& characterId,
                                              const ItemDatabase& db,
@@ -401,6 +421,7 @@ static void testUseSupportItemOnEnemyIsNoop(const CharacterLoader& loader,
 // SECTION 5 — AI behavior
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Ensures AI with empty inventory idles/passes and does not enter attack/support states. */
 static void testAIIdleWithEmptyInventory(const CharacterLoader& loader,
                                           const std::string& characterId,
                                           const ItemDatabase& db,
@@ -422,6 +443,7 @@ static void testAIIdleWithEmptyInventory(const CharacterLoader& loader,
            "AI idle: state is IDLE or PASS (not ATTACK/SUPPORT)");
 }
 
+/** Verifies AI consumes or passes an attack item after some ticks. */
 static void testAIActsOnAttackItem(const CharacterLoader& loader,
                                     const std::string& characterId,
                                     const ItemDatabase& db,
@@ -448,6 +470,7 @@ static void testAIActsOnAttackItem(const CharacterLoader& loader,
            "AI attack: item was consumed or passed after ticks");
 }
 
+/** Confirms AI heals an injured neighbor when holding a support item. */
 static void testAIHealsInjuredNeighbor(const CharacterLoader& loader,
                                         const std::string& characterId,
                                         const ItemDatabase& db,
@@ -477,6 +500,7 @@ static void testAIHealsInjuredNeighbor(const CharacterLoader& loader,
            "AI heal: injured neighbor hp did not decrease after AI ticks");
 }
 
+/** Ensures AI passes a support item to a neighbor when no heal target is available. */
 static void testAIPassesWhenNoHealTarget(const CharacterLoader& loader,
                                           const std::string& characterId,
                                           const ItemDatabase& db,
@@ -514,6 +538,7 @@ static void testAIPassesWhenNoHealTarget(const CharacterLoader& loader,
 // Entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Test harness entry point: runs all Player tests and prints a summary. */
 void PlayerTests::runAll(const std::string& charactersJsonPath,
                          const std::string& itemsJsonPath,
                          const std::string& enemiesJsonPath,
@@ -572,3 +597,4 @@ void PlayerTests::runAll(const std::string& charactersJsonPath,
 
     printSummary();
 }
+

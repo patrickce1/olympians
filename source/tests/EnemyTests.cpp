@@ -17,11 +17,15 @@
 #include <cugl/cugl.h>
 #include <unordered_set>
 
+// ─────────────────────────────────────────────
+// Internal helpers — not exposed in the header
+// ─────────────────────────────────────────────
 namespace {
 
 int _passed = 0;
 int _failed = 0;
 
+/** Assertion helper: logs [PASS]/[FAIL] and updates counters. */
 void expect(bool condition, const std::string& label) {
     if (condition) {
         CULog("[PASS] %s", label.c_str());
@@ -32,16 +36,14 @@ void expect(bool condition, const std::string& label) {
     }
 }
 
+/** Prints a summary line with total passed/failed counts. */
 void printSummary() {
     CULog("─────────────────────────────────────────");
     CULog("  %d passed   %d failed", _passed, _failed);
     CULog("─────────────────────────────────────────");
 }
 
-// ─────────────────────────────────────────────
-// Fixtures / helpers
-// ─────────────────────────────────────────────
-
+/** Loads character definitions from the given JSON path for use in tests. */
 CharacterLoader loadCharacters(const std::string& charactersJsonPath) {
     CharacterLoader loader;
     if (!loader.loadFromFile(charactersJsonPath)) {
@@ -50,6 +52,7 @@ CharacterLoader loadCharacters(const std::string& charactersJsonPath) {
     return loader;
 }
 
+/** Creates N players in a ring topology and wires left/right neighbors. */
 std::vector<std::shared_ptr<Player>> makePlayersRing(const CharacterLoader& loader,
                                                      const std::string& characterId,
                                                      int count) {
@@ -68,6 +71,7 @@ std::vector<std::shared_ptr<Player>> makePlayersRing(const CharacterLoader& load
     return players;
 }
 
+/** Convenience to construct and initialize an Enemy; asserts init success. */
 std::shared_ptr<Enemy> makeEnemy(const std::string& enemiesJsonPath,
                                  const std::string& enemyId) {
     auto e = std::make_shared<Enemy>();
@@ -76,6 +80,7 @@ std::shared_ptr<Enemy> makeEnemy(const std::string& enemiesJsonPath,
     return ok ? e : nullptr;
 }
 
+/** Returns the name of the first state tagged as "attack", or empty if none. */
 std::string firstAttackStateName(const std::shared_ptr<Enemy>& enemy) {
     if (!enemy) return "";
     const auto& states = enemy->getStates();
@@ -87,6 +92,7 @@ std::string firstAttackStateName(const std::shared_ptr<Enemy>& enemy) {
     return "";
 }
 
+/** Resolves a state's configured nextState, falling back to "idle" when missing/invalid. */
 std::string expectedNextOrIdle(const std::shared_ptr<Enemy>& enemy,
                                const std::string& stateName) {
     if (!enemy) return "idle";
@@ -99,10 +105,7 @@ std::string expectedNextOrIdle(const std::shared_ptr<Enemy>& enemy,
     return "idle";
 }
 
-/**
- * Advances the enemy until it fires at least one event (or times out).
- * Returns true if events fired; fills firedEventsOut and preserves enemy state after the fire.
- */
+/** Advances the enemy in fixed dt steps until at least one event fires (or times out). */
 bool stepUntilFire(const std::shared_ptr<Enemy>& enemy,
                    float dtStep,
                    int maxSteps,
@@ -121,10 +124,7 @@ bool stepUntilFire(const std::shared_ptr<Enemy>& enemy,
     return false;
 }
 
-/**
- * Walks the configured nextState chain starting from startState, returning the first state
- * in the chain that has cooldownTime > 0. Returns "" if none found or chain loops.
- */
+/** Follows nextState links from startState and returns the first with cooldownTime>0 (or empty). */
 std::string findFirstCooldownStateInChain(const std::shared_ptr<Enemy>& enemy,
                                          const std::string& startState) {
     if (!enemy) return "";
@@ -153,6 +153,7 @@ std::string findFirstCooldownStateInChain(const std::shared_ptr<Enemy>& enemy,
     return "";
 }
 
+/** Returns true if any player in the list is still alive. */
 bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
     for (const auto& p : players) {
         if (p->isAlive()) return true;
@@ -166,6 +167,7 @@ bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
 // SECTION 1 — Init
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Verifies Enemy::init populates core fields, starts at full health in "idle", and has an "idle" state. */
 static void testEnemyInitSetsCoreFields(const std::string& enemiesJsonPath) {
     auto enemy = std::make_shared<Enemy>();
     bool ok = enemy->init("enemy1", enemiesJsonPath);
@@ -185,6 +187,7 @@ static void testEnemyInitSetsCoreFields(const std::string& enemiesJsonPath) {
 // SECTION 2 — Enemy state timing (buildUp → fire → next + cooldown)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Ensures an attack state fires events only after build-up and then transitions to its next (or idle). */
 static void testEnemyFiresEventsAfterBuildUp(const std::string& enemiesJsonPath) {
     auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
     if (!enemy) return;
@@ -212,6 +215,7 @@ static void testEnemyFiresEventsAfterBuildUp(const std::string& enemiesJsonPath)
            "stateTiming: transitions to nextState (or idle fallback) after firing");
 }
 
+/** Confirms cooldown states apply a lockout that prevents starting non-idle states until it expires. */
 static void testEnemyCooldownBlocksNonIdle(const std::string& enemiesJsonPath) {
     auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
     if (!enemy) return;
@@ -263,6 +267,7 @@ static void testEnemyCooldownBlocksNonIdle(const std::string& enemiesJsonPath) {
 // SECTION 3 — Health clamping
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Checks health updates clamp to [0, max] and apply normal subtraction within bounds. */
 static void testEnemyHealthClamp(const std::string& enemiesJsonPath) {
     auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
     if (!enemy) return;
@@ -283,6 +288,7 @@ static void testEnemyHealthClamp(const std::string& enemiesJsonPath) {
 // SECTION 4 — EnemyController mechanics (attack selection + damage offsets)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Validates EnemyController will initiate an attack from idle when players are alive. */
 static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPath,
                                                const std::string& charactersJsonPath) {
     CharacterLoader loader = loadCharacters(charactersJsonPath);
@@ -303,6 +309,7 @@ static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPat
     expect(leftIdle, "controller: when idle and unlocked, starts an attack state");
 }
 
+/** Verifies controller remains in idle and does not attack when all players are dead. */
 static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& enemiesJsonPath,
                                                          const std::string& charactersJsonPath) {
     CharacterLoader loader = loadCharacters(charactersJsonPath);
@@ -328,6 +335,7 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
     expect(!everLeftIdle, "controller(noLiving): stays idle (does not start attacks)");
 }
 
+/** Confirms DAMAGE events processed by the controller reduce at least one player's health. */
 static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonPath,
                                                  const std::string& charactersJsonPath) {
     CharacterLoader loader = loadCharacters(charactersJsonPath);
@@ -362,6 +370,7 @@ static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonP
 // Entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Test harness entry point: runs all sections and prints a summary. */
 void EnemyTests::runAll(const std::string& enemiesJsonPath,
                         const std::string& charactersJsonPath) {
     _passed = 0;
@@ -391,3 +400,4 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
 
     printSummary();
 }
+

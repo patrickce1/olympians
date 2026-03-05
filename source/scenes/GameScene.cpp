@@ -198,7 +198,6 @@ void GameScene::handleSupportRight() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             _localPlayer->useItemById(item.getId(), *target, _itemController.getDatabase());
-            CULog("Player supported right ally with item %llu", (unsigned long long)item.getId());
             return;
         }
     }
@@ -214,7 +213,6 @@ void GameScene::handlePassLeft() {
     ItemInstance item = _localPlayer->getInventory()[0];
     _localPlayer->removeItemById(item.getId());
     target->addItem(item);
-    CULog("Player passed item %llu to left ally", (unsigned long long)item.getId());
 }
 
 /**
@@ -227,7 +225,6 @@ void GameScene::handlePassRight() {
     ItemInstance item = _localPlayer->getInventory()[0];
     _localPlayer->removeItemById(item.getId());
     target->addItem(item);
-    CULog("Player passed item %llu to right ally", (unsigned long long)item.getId());
 }
 
 void GameScene::update(float dt) {
