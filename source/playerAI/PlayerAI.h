@@ -2,10 +2,10 @@
 #define __PLAYER_AI_H__
 
 #include <cugl/cugl.h>
-#include "Player.h"
-#include "Enemy.h"
-#include "ItemController.h"
-#include "ItemDatabase.h"
+#include "../Player.h"
+#include "../Enemy.h"
+#include "../items/ItemController.h"
+#include "../items/ItemDatabase.h"
 
 /**
  * Abstract base class for all AI difficulty levels.

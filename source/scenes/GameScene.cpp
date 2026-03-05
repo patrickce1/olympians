@@ -1,10 +1,10 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
-#include "InputController.h"
-#include "PlayerAI.h"
-#include "EasyPlayerAI.h"
-#include "CharacterLoader.h"
+#include "../InputController.h"
+#include "../playerAI/PlayerAI.h"
+#include "../playerAI/EasyPlayerAI.h"
+#include "../CharacterLoader.h"
 
 #include "GameScene.h"
 

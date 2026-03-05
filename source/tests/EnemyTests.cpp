@@ -2,8 +2,8 @@
 #include <cugl/cugl.h>
 #include <fstream>
 #include <cstdio>
-#include "EnemyLoader.h"
-#include "Enemy.h"
+#include "../EnemyLoader.h"
+#include "../Enemy.h"
 
 /** Writes a temporary enemy JSON to be used by the tests. */
 static std::string writeTempJson(const std::string& contents) {
