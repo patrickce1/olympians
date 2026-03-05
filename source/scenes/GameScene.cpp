@@ -182,7 +182,6 @@ void GameScene::handleSupportLeft() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             _localPlayer->useItemById(item.getId(), *target, _itemController.getDatabase());
-            CULog("Player supported left ally with item %llu", (unsigned long long)item.getId());
             return;
         }
     }
