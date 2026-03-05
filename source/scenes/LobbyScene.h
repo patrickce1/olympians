@@ -135,6 +135,6 @@ private:
 
 };
 
-#endif /* __GAME_SCENE_H__ */
+#endif /* __LOBBY_SCENE_H__ */
 
 

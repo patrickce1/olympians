@@ -38,7 +38,7 @@ public:
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
-
+    
     /** Menu buttons. **/
     /** The menu button for entering a game */
     std::shared_ptr<cugl::scene2::Button> _entergame;
@@ -52,7 +52,7 @@ protected:
     
     /** The current status */
     Status _status;
-
+    
 public:
 #pragma mark -
 #pragma mark Constructors
@@ -92,7 +92,7 @@ public:
      * @return true if the controller is initialized properly, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
-
+    
     /**
      * Sets whether the scene is currently active
      *
@@ -103,7 +103,7 @@ public:
      * @param value whether the scene is currently active
      */
     virtual void setActive(bool value) override;
-
+    
     /**
      * Returns the scene status.
      *
@@ -122,7 +122,7 @@ public:
      * @param timestep  The amount of time (in seconds) since the last frame
      */
     void update(float timestep) override;
-
+    
 private:
     /**
      * Updates the text in the given button.
@@ -137,21 +137,7 @@ private:
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
     
-//    /**
-//     * Connects to the game server as specified in the assets file
-//     *
-//     * The {@link #init} method set the configuration data. This method simply uses
-//     * this to create a new {@Link NetworkConnection}. It also immediately calls
-//     * {@link #checkConnection} to determine the scene state.
-//     *
-//     * @param room  The room ID to use
-//     *
-//     * @return true if the connection was successful
-//     */
-//    bool connect(const std::string room);
-
-
 };
 
-#endif /* __GAME_SCENE_H__ */
+#endif /* __CLIENT_SCENE_H__ */
 

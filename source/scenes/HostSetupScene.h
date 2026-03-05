@@ -154,10 +154,19 @@ private:
      */
     void configureStartButton();
     
+    /**
+     * Initiates a slide animation to center the item at `newIndex`.
+     *
+     * Does nothing if an animation is already in progress or if the
+     * index is out of bounds. Otherwise computes the target container
+     * position and stores it in `_slideTarget`.
+     *
+     * @param newIndex The index of the item to slide to.
+     */
     void slideTo(int index);
     
 
     
 };
 
-#endif /* __HOST_SCENE_H__ */
+#endif /* __HOST_SETUP_SCENE_H__ */

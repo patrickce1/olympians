@@ -51,7 +51,7 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     scene->doLayout(); // Repositions the HUD
     
     _entergame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.start"));
-    _backout = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.back"));
+    _backout = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.back"));
     _gameid = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("lobbyScene.header.gameId"));
     
     _entergame->addListener([this](const std::string& name, bool down) {

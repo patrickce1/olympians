@@ -61,7 +61,7 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.leftscroll"));
     _rightButton = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.rightscroll"));
     
-    _container = _assets->get<scene2::SceneNode>("hostSetupScene.Role Carousel");
+    _container = _assets->get<scene2::SceneNode>("hostSetupScene.roleCarousel");
     
     if (_container) {
         // Three placeholder bosses
@@ -202,22 +202,28 @@ void HostSetupScene::configureStartButton() {
     _startgame->activate();
 }
 
+/**
+ * Initiates a slide animation to center the item at `newIndex`.
+ *
+ * Does nothing if an animation is already in progress or if the
+ * index is out of bounds. Otherwise computes the target container
+ * position and stores it in `_slideTarget`.
+ *
+ * @param newIndex The index of the item to slide to.
+ */
 void HostSetupScene::slideTo(int newIndex) {
     if (_isAnimating) return;
     if (newIndex < 0 || newIndex >= _items.size()) return;
 
     _isAnimating = true;
     
-    float shiftAmount = 177.22f + 24.17f; // = 201.39f per item
+    float shiftAmount = 177.22f + 24; // = 201.22f per item
     
     int deltaIndex = newIndex - _currentIndex;
-
     Vec2 currentPos = _container->getPosition();
-
     float targetX = currentPos.x - (deltaIndex * shiftAmount);
-
+    
     _slideTarget = Vec2(targetX, currentPos.y);
-
     _currentIndex = newIndex;
 
 }

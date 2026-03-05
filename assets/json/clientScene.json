@@ -23,13 +23,13 @@
                 "type": "Solid",
                 "data": {
                     "polygon": [
-                        400,
+                        800,
                         852,
                         0,
                         852,
                         0,
                         0,
-                        400,
+                        800,
                         0
                     ],
                     "color": "#ffffffff",
