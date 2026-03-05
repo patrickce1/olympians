@@ -47,7 +47,7 @@
                 "data": {
                     "key": "roleCard",
                     "variables": {
-                        "name" : "CERBERUS",
+                        "name" : "CERBERUS"
                     }
                 },
                 "layout": {
