@@ -48,7 +48,6 @@
                     "key": "roleCard",
                     "variables": {
                         "name" : "CERBERUS",
-                        "description": "Hades’ companion gone rogue..."
                     }
                 },
                 "layout": {

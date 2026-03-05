@@ -36,7 +36,7 @@ protected:
     /** The button for entering a game */
     std::shared_ptr<cugl::scene2::Button> _entergame;
     /** The back button for the menu scene */
-//    std::shared_ptr<cugl::scene2::Button> _backout;
+    std::shared_ptr<cugl::scene2::Button> _backout;
     /** The game id label */
     std::shared_ptr<cugl::scene2::Label> _gameid;
     /** Circular boss image (maybe button)*/

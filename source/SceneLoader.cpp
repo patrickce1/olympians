@@ -319,6 +319,12 @@ void SceneLoader::update(float dt) {
                     _lobbyScene.setActive(false);
                     _currentScene = State::GAME;
                     break;
+                case LobbyScene::Status::ABORT:
+                    CULog("Transitioning to MenuScene...");
+                    _menuScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::MENU;
+                    break;
                 default:
                     break;;
             }

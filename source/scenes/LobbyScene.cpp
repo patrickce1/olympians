@@ -51,7 +51,7 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     scene->doLayout(); // Repositions the HUD
     
     _entergame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.start"));
-//    _backout = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.back"));
+    _backout = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.back"));
     _gameid = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("lobbyScene.header.gameId"));
     
     _entergame->addListener([this](const std::string& name, bool down) {
@@ -60,11 +60,11 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         }
     });
     
-//    _backout->addListener([this](const std::string& name, bool down) {
-//        if (down) {
-//            _status = Status::ABORT;
-//        }
-//    });
+    _backout->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::ABORT;
+        }
+    });
     
     _status = Status::IDLE;
     
@@ -98,13 +98,13 @@ void LobbyScene::setActive(bool value) {
         if (value) {
             _status = IDLE;
             _entergame->activate();
-//            _backout->activate();
+            _backout->activate();
         } else {
-//            _backout->deactivate();
+            _backout->deactivate();
             // If any were pressed, reset them
             _entergame->deactivate();
             _entergame->setDown(false);
-//            _backout->setDown(false);
+            _backout->setDown(false);
         }
     }
 }
