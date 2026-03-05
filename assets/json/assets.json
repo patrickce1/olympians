@@ -63,6 +63,12 @@
         },
         "place-bossPoster": {
             "file": "textures/place-bossPoster.png"
+        },
+        "bossCircle": {
+            "file": "textures/bossCircle.png"
+        },
+        "playerIcon": {
+            "file": "textures/playerIcon.png"
         }
 	},
     "fonts": {
@@ -90,6 +96,10 @@
           "file": "fonts/GideonRoman-Regular.ttf",
           "size": 10
         },
+        "gideon romanRegular48": {
+          "file": "fonts/GideonRoman-Regular.ttf",
+          "size": 48
+        },
         "menuTitle": {
             "file":     "fonts/GideonRoman-Regular.ttf",
             "size":     60
@@ -112,7 +122,8 @@
         "hostSetup": "widgets/hostSetup.json",
         "roleCard": "widgets/elements/roleCard.json",
         "bossSelection": "widgets/bossSelection.json",
-        "menuScene":   "json/menuScene.json"
+        "menuScene":   "json/menuScene.json",
+        "lobbyScene": "json/lobbyScene.json"
     },
     "scene2s": {
         "gameScene": {
@@ -141,6 +152,15 @@
             "key": "hostSetup",
             "variables": {}
           }
+        },
+        "lobbyScene": {
+            "type": "Widget",
+            "comment": "Root node of the lobby scene",
+            "format": { "type": "Anchored" },
+            "data": {
+                "key": "lobbyScene",
+                "variables": {}
+            }
         },
         "menuScene": {
             "type": "Widget",

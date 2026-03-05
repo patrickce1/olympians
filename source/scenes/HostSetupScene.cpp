@@ -73,6 +73,11 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     _status = Status::WAIT;
     
     // Program the buttons
+    _startgame->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::START;
+        }
+    });
     _backout->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;

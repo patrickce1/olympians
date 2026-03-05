@@ -59,7 +59,6 @@ bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     _entergame->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::START;  // transition to lobby scene
-
         }
     });
     
@@ -114,6 +113,7 @@ void ClientScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = IDLE;
+            _entergame->activate();
             _gameid->activate();
             _backout->activate();
             _playerid->activate();

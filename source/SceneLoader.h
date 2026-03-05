@@ -5,6 +5,7 @@
 #include "scenes/ClientScene.h"
 #include "scenes/HostSetupScene.h"
 #include "scenes/MenuScene.h"
+#include "scenes/LobbyScene.h"
 #include "InputController.h"
 #include "PlayerTests.h"
 
@@ -19,6 +20,7 @@ protected:
         LOAD,
         HOSTSETUP,
         CLIENT,
+        LOBBY,
         MENU,
         GAME
     };
@@ -42,6 +44,7 @@ protected:
     GameScene _gameScene;
     ClientScene _clientScene;
     HostSetupScene _hostSetupScene;
+    LobbyScene _lobbyScene;
     //more scenes to come...
 
 public:

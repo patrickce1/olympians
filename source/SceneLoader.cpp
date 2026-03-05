@@ -158,6 +158,7 @@ void SceneLoader::onShutdown() {
     _clientScene.dispose();
     _hostSetupScene.dispose();
     _menuScene.dispose();
+    _lobbyScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
 
@@ -240,6 +241,11 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize GameScene");
                 }
+                if (_lobbyScene.init(_assets)) {
+                    _lobbyScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize LobbyScene");
+                }
             }
 
             break;
@@ -269,6 +275,12 @@ void SceneLoader::update(float dt) {
         case State::CLIENT:
             _clientScene.update(dt);
             switch (_clientScene.getStatus()) {
+                case ClientScene::Status::START:
+                    CULog("Transitioning to LobbyScene...");
+                    _lobbyScene.setActive(true);
+                    _clientScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
                 case ClientScene::Status::ABORT:
                     CULog("Transitioning to MenuScene...");
                     _menuScene.setActive(true);
@@ -283,10 +295,10 @@ void SceneLoader::update(float dt) {
             _hostSetupScene.update(dt);
             switch (_hostSetupScene.getStatus()) {
                 case HostSetupScene::Status::START:
-                    CULog("Transitioning to GameScene...");
-                    _gameScene.setActive(true);
+                    CULog("Transitioning to LobbyScene...");
+                    _lobbyScene.setActive(true);
                     _hostSetupScene.setActive(false);
-                    _currentScene = State::GAME;
+                    _currentScene = State::LOBBY;
                     break;
                 case HostSetupScene::Status::ABORT:
                     CULog("Transitioning to MenuScene...");
@@ -296,6 +308,19 @@ void SceneLoader::update(float dt) {
                     break;
                 default:
                     break;
+            }
+            break;
+        case State::LOBBY:
+            _lobbyScene.update(dt);
+            switch (_lobbyScene.getStatus()) {
+                case LobbyScene::Status::START:
+                    CULog("Transitioning to GameScene...");
+                    _gameScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::GAME;
+                    break;
+                default:
+                    break;;
             }
             break;
         case State::GAME:
@@ -347,6 +372,9 @@ void SceneLoader::draw() {
             break;
         case State::CLIENT:
             _clientScene.render();
+            break;
+        case State::LOBBY:
+            _lobbyScene.render();
             break;
         case State::MENU:
             _menuScene.render();
