@@ -152,6 +152,7 @@ void SceneLoader::onStartup() {
 void SceneLoader::onShutdown() {
     _input.dispose();
     _gameScene.dispose();
+    _menuScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
 
@@ -202,18 +203,45 @@ void SceneLoader::update(float dt) {
     switch (_currentScene) {
         case State::LOAD:
             _loadingScene->update(dt);
-            
+
             if (_loadingScene->isPending()) {
-                CULog("Assets finished loading. Initializing GameScene...");
+                CULog("Assets finished loading. Initializing MenuScene...");
 
-                _gameScene.init(_assets);
-                _gameScene.setSpriteBatch(_batch);
-                _gameScene.setActive(true);
-
-                _loadingScene->setActive(false);
-                _currentScene = State::GAME;
+                if (_menuScene.init(_assets)) {
+                    _menuScene.setSpriteBatch(_batch);
+                    _menuScene.setActive(true);
+                    _loadingScene->setActive(false);
+                    _currentScene = State::MENU;
+                } else {
+                    CULog("Failed to initialize MenuScene");
+                }
             }
-            
+
+            break;
+        case State::MENU:
+            _menuScene.update(dt);
+            switch (_menuScene.consumeAction()) {
+                case MenuScene::Action::START_GAME:
+                    CULog("Transitioning to GameScene...");
+                    if (_gameScene.init(_assets)) {
+                        _gameScene.setSpriteBatch(_batch);
+                        _gameScene.setActive(true);
+                        _menuScene.setActive(false);
+                        _currentScene = State::GAME;
+                    } else {
+                        CULog("Failed to initialize GameScene");
+                    }
+                    break;
+                case MenuScene::Action::OPEN_SETTINGS:
+                    CULog("SettingsScene placeholder pressed");
+                    break;
+                case MenuScene::Action::OPEN_ITEMS:
+                    CULog("ItemsScene placeholder pressed");
+                    break;
+                case MenuScene::Action::NONE:
+                default:
+                    break;
+            }
             break;
         case State::GAME:
             InputController::Action action = _input.getAction();
@@ -258,6 +286,9 @@ void SceneLoader::draw() {
     switch (_currentScene) {
         case State::LOAD:
             _loadingScene->render();
+            break;
+        case State::MENU:
+            _menuScene.render();
             break;
         case State::GAME:
             _gameScene.render();
