@@ -1,7 +1,8 @@
 {
     "variables": {
         "name" : ["children","title", "children", "BOSS", "data", "text"],
-        "description" : ["children", "bossDescription", "data", "text"]
+        "description" : ["children", "bossDescription", "data", "text"],
+        "image": ["children", "bossPoster", "data", "texture"]
     },
     "contents": {
         "type": "Node",
