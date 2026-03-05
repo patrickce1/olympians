@@ -45,9 +45,6 @@
         },
         "attack": {
             "file": "textures/attack.png"
-        },
-	"server": {
-            "file": "json/server.json"
         }
 	},
     "fonts": {
@@ -67,6 +64,9 @@
             "file":     "fonts/Roboto-Bold.ttf",
             "size":     42
         }
+    },
+    "jsons": {
+        "server": "json/server.json"
     },
     "widgets": {
         "scene":       "widgets/scene.json",

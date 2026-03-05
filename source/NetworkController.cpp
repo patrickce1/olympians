@@ -62,7 +62,7 @@ static std::string hex2dec(const std::string hex) {
 /*MAIN FUNCTIONS*/
 
 bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) {
-	auto json = assets->get<JsonValue>("server")->get("file");
+	auto json = assets->get<JsonValue>("server");
 	_config.set(json);
 	return true;
 }
