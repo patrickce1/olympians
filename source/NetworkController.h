@@ -50,7 +50,8 @@ public:
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
 
      /**
-      * Checks what the status of the connection is currently
+      * Checks what the status of the connection is currently. 
+      * Check the Status enum to check what each returned value means
      */
     Status checkConnection();
 
@@ -58,18 +59,17 @@ public:
     * Connects to the game server as specified in the assets file
     *
     * The {@link #init} method set the configuration data. This method simply uses
-    * this to create a new {@Link NetworkConnection}. It also immediately calls
-    * {@link #checkConnection} to determine the scene state.
+    * this to create a new {@Link NetworkConnection}. 
     *
     * @param room  The room ID to use
     *
-    * @return true if the connection was successful
+    * To check the status of the connection, use {@link #checkConnection()}
     */
-    bool joinRoom(const std::string room);
+    void joinRoom(const std::string room);
 
     /*Creates a lobby for other players to join, 
     IMPORTANT: the program could be still negotiating connection
-    by the end of the function, so don't assume the lobby is created after running hostRoom()*/
+    by the end of the function. Use {@link #checkConnection()} to ensure status of connection*/
     void hostRoom();
 
     /*Returns a string with the room id if the room exists. Nullptr otherwise*/
@@ -78,8 +78,9 @@ public:
     /*Disconnects the player. If it's the host, moves the host*/
     void disconnect();
 
-    /*Returns the number of players connected to the current room*/
-    int numPlayers();
+    /*Need to add some functions related to getting info about players for waiting in the lobby.
+      However, I can't figure the exact nature of the info we need to send until I get Danielle's pr
+    */
 
     /*Because the original host can disconnect, this is used to keep track of host migration*/
     bool isHost();
@@ -103,7 +104,7 @@ protected:
 
 
 private:
-	
+	//nothing for now
 };
 
 

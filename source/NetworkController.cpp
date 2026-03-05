@@ -16,10 +16,7 @@ using namespace std;
  * Converts a decimal string to a hexadecimal string
  *
  * This function assumes that the string is a decimal number less
- * than 65535, and therefore converts to a hexadecimal string of four
- * characters or less (as is the case with the lobby server). We
- * pad the hexadecimal string with leading 0s to bring it to four
- * characters exactly.
+ * than 65535.
  *
  * @param dec the decimal string to convert
  *
@@ -27,7 +24,7 @@ using namespace std;
  */
 static std::string dec2hex(const std::string dec) {
 	Uint32 value = strtool::stou32(dec);
-	if (value >= 655366) {
+	if (value >= 65535) {
 		value = 0;
 	}
 	return strtool::to_hexstring(value, 4);
@@ -70,7 +67,7 @@ bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) 
 	return true;
 }
 
-bool NetworkController::joinRoom(const std::string room) {
+void NetworkController::joinRoom(const std::string room) {
 	_network = NetcodeConnection::alloc(_config, dec2hex(room));
 	_network->open();
 }
@@ -81,11 +78,13 @@ void NetworkController::hostRoom() {
 }
 
 std::string NetworkController::getRoom() {
+	if (!_network) { return "nullstr"; }
 	return hex2dec(_network->getRoom());
 }
 
 void NetworkController::disconnect() {
 	_network->close();
+	_network = nullptr;
 }
 
 void NetworkController::dispose() {
@@ -98,6 +97,8 @@ bool NetworkController::isHost() {
 }
 
 NetworkController::Status NetworkController::checkConnection() {
+	if (!_network) { return FAILED; }
+
 	switch (_network->getState()) {
 		case NetcodeConnection::State::NEGOTIATING:
 			return Status::WAITING;
