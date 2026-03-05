@@ -12,7 +12,7 @@ public:
 
     struct EventDef {
         EventType type = EventType::UNKNOWN;
-        int target = 0;            // relative index offset
+        int target = 0;                            // relative index offset
         float amount = 0.0f;
         float duration = 0.0f;
     };
