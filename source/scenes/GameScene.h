@@ -3,14 +3,14 @@
 #include <cugl/cugl.h>
 #include <vector>
 #include <unordered_map>
-#include "Player.h"
-#include "InputController.h"
-#include "ItemController.h"
-#include "Enemy.h"
-#include "EnemyLoader.h"
-#include "CharacterLoader.h"
-#include "PlayerAI.h"
-#include "EasyPlayerAI.h"
+#include "../Player.h"
+#include "../InputController.h"
+#include "../items/ItemController.h"
+#include "../Enemy.h"
+#include "../EnemyController.h"
+#include "../CharacterLoader.h"
+#include "../playerAI/PlayerAI.h"
+#include "../playerAI/EasyPlayerAI.h"
 
 /**
  * This class represents the core game scene
@@ -53,24 +53,24 @@ protected:
     /** Pointer to the player belonging to the local machine. Set once in init(), never reallocated. */
     Player* _localPlayer = nullptr;
     
-    /** The collection of players in this party */
-    std::vector<Player> _players;
-  
-    /** AI controllers for bot-controlled players, stored as base class pointers
-     *  to allow mixed difficulty levels in the same collection */
-    std::vector<std::unique_ptr<PlayerAI>> _playerAIs;
+    /**
+     * All players in this party — both human-controlled (Player) and
+     * AI-controlled (PlayerAI) — stored polymorphically as shared_ptr<Player>.
+     * Index 0 is the human player; indices 1+ are AI bots.
+     * PlayerAI must inherit from Player for virtual dispatch to work.
+     */
+    std::vector<std::shared_ptr<Player>> _players;
     
     /** Handles touch input for the human player */
     InputController _input;
     
     /** The ItemController for this GameScene instance*/
     ItemController _itemController;
-    
-    /** The enemy loader to load in the enemies for this GameScene instance */
-    EnemyLoader _enemyLoader;
-    
-    /** The current enemy that the players are facing */
-    std::unique_ptr<Enemy> _enemy;
+
+    /** The enemy for this scene and its controller */
+    std::shared_ptr<Enemy> _enemy;
+    EnemyController _enemyController;
+
 
 public:
 #pragma mark -

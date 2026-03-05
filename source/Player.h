@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 #include "CharacterLoader.h"
-#include "ItemInstance.h"
-#include "ItemDatabase.h"
+#include "items/ItemInstance.h"
+#include "items/ItemDatabase.h"
 #include "Enemy.h"
 #include <type_traits>
 
@@ -122,6 +122,11 @@ public:
      * Returns the player to the right of this player, or nullptr if none.
      */
     Player* getRightPlayer() const { return _rightPlayer; }
+    
+    /**
+     * Returns whether this player is AI or not.
+     */
+    virtual bool isAI() const { return false; }
     
 #pragma mark Gameplay
     /**

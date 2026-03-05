@@ -135,6 +135,11 @@ void SceneLoader::onStartup() {
 //        "json/enemies.json",
 //        "json/playerAI.json"
 //    );
+//    
+//    EnemyTests::runAll(
+//        "json/enemies.json",
+//        "json/characters.json"
+//    );
 
 }
 
