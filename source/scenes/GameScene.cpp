@@ -81,23 +81,6 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         _bossNode = _attackArea->getChildByName("enemy");
     }
     
-    // ----- Inventory ability icons -----
-    if (_inventory) {
-        // Collect all six ability icons (2 heals + 4 attacks) from the inventory bar
-        _abilityIcons.push_back(_inventory->getChildByName("heal"));
-        _abilityIcons.push_back(_inventory->getChildByName("heal2"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack4"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack5"));
-        _abilityIcons.push_back(_inventory->getChildByName("attack6"));
-
-        // Record each icon's starting position so we can restore them on reset
-        for (auto& icon : _abilityIcons) {
-            if (icon) {
-                _abilityOriginalPos.push_back(icon->getPosition());
-            }
-        }
-    }
     
     // Attach the fully-constructed scene graph to this Scene2
     addChild(_scene);
@@ -177,10 +160,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         
         // --- Zone classification: convert positions to world space and classify action ---
         if (_activeIcon && input.touchEnded()) {
-            Vec2 startWorld   = screenToWorldCoords(input.getTouchStart());
             Vec2 releaseWorld = screenToWorldCoords(input.getReleasePosition());
-            float w = getSize().width;
-            float h = getSize().height;
             
             InputController::Action finalAction = InputController::Action::NONE;
             
@@ -248,14 +228,14 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
             Vec2 touchPosScreen = screenToWorldCoords(touchPosRaw);
             
             // Hit-test each ability icon to see if the touch landed on one
-            for (auto& icon : _abilityIcons) {
-                if (!icon) continue;
-                cugl::Rect boundingBox = icon->getBoundingBox();
+            for (auto& [id,widget] : _itemWidgets) {
+                if (!widget) continue;
+                cugl::Rect boundingBox = widget->getBoundingBox();
                 if (boundingBox.contains(touchPosScreen)) {
-                _activeIcon = icon;
+                _activeIcon = widget;
                 // Store the offset between the icon center and the touch point
                 // so the icon doesn't "snap" its center to the finger
-                _dragOffset = icon->getPosition() - touchPosScreen;
+                _dragOffset = widget->getPosition() - touchPosScreen;
                 break;
             }
             }
@@ -327,7 +307,6 @@ void GameScene::resolveAction(InputController::Action action){
             _attackArea  = nullptr;
             _bossNode    = nullptr;
             _playerSlots.clear();
-            _abilityIcons.clear();
             _active = false;
         }
     }
@@ -400,9 +379,9 @@ void GameScene::resolveAction(InputController::Action action){
 
         // Debug: outline ability icon bounding boxes
         batch->setColor(Color4(255, 0, 255, 140));
-        for (auto& icon : _abilityIcons) {
-            if (!icon || !icon->isVisible()) continue;
-            Rect box = icon->getBoundingBox();
+        for (auto& [id,widget] : _itemWidgets) {
+            if (!widget || !widget->isVisible()) continue;
+            Rect box = widget->getBoundingBox();
             Path2 path(box);
             batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
         }
@@ -427,15 +406,21 @@ void GameScene::resolveAction(InputController::Action action){
      * clears the glow effect, and restores every icon to its initial state.
      */
 void GameScene::reset() {
-    for (int i = 0; i < _abilityIcons.size(); i++) {
-        if (!_abilityIcons[i]) continue;
-        _abilityIcons[i]->setVisible(true);                  // Un-hide consumed icons
-        _abilityIcons[i]->setPosition(_abilityOriginalPos[i]); // Snap back to starting position
-    }
-    
     _activeIcon = nullptr;                          // Cancel any in-progress drag
     _glowAction = InputController::Action::NONE;    // Clear the glow action
     _glowTimer  = 0;                                // Stop the glow timer
+    for (auto& [id, widget] : _itemWidgets) {
+            if (widget != nullptr && _inventory != nullptr) {
+                _inventory->removeChild(widget);
+            }
+        }
+
+        // 3. Clear the tracking map
+        _itemWidgets.clear();
+
+   
+
+        CULog("GameScene: All items cleared and inventory reset.");
 }
     /** Create and return an item Widget with a given ItemInstance */
     std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {

@@ -143,9 +143,7 @@ private:
     cugl::Rect _allyRight;
     cugl::Rect _leftPass;
     cugl::Rect _rightPass;
-    
-    float _scale; //Used to normalize for different screen sizes
-    
+        
     /**The CUGL TOUCHSCREEN**/
     cugl::Touchscreen* _touch = nullptr;
     

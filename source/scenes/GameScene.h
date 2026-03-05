@@ -47,8 +47,8 @@ protected:
     /**Distance that the active item has moved.**/
     cugl::Vec2 _dragOffset;
 
-    /** The collection of item icon nodes displayed in the inventory. */
-    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
+    // /** The collection of item icon nodes displayed in the inventory. */
+    // std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
     
     /** The collection of item widgets mapping itemId to its corresponding widget */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
