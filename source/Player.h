@@ -9,7 +9,6 @@
 #include "ItemInstance.h"
 #include "ItemDatabase.h"
 #include "Enemy.h"
-#include <type_traits>
 
 
 /**
@@ -38,10 +37,6 @@ private:
     std::string _spritesheetPath;
     /** The list of the characters special abilities*/
     std::vector<std::string> _specialAbilities;
-    /** The player to the left of this player, or nullptr if none */
-    Player* _leftPlayer = nullptr;
-    /** The player to the right of this player, or nullptr if none */
-    Player* _rightPlayer = nullptr;
     
 public:
     /**
@@ -113,16 +108,6 @@ public:
      */
     std::vector<std::string> getSpecialAbilities() const { return _specialAbilities; }
     
-    /**
-     * Returns the player to the left of this player, or nullptr if none.
-     */
-    Player* getLeftPlayer() const { return _leftPlayer; }
-
-    /**
-     * Returns the player to the right of this player, or nullptr if none.
-     */
-    Player* getRightPlayer() const { return _rightPlayer; }
-    
 #pragma mark Gameplay
     /**
      * Updates the current health of the player by the given delta.
@@ -141,7 +126,7 @@ public:
     /**
      * Returns whether the player is alive or not
      */
-    bool isAlive() const;
+    bool isAlive();
     
     /**
      * Uses  an item from the player's inventory by item id.
@@ -149,32 +134,7 @@ public:
      * @return true if the item was found and used, false otherwise
      */
     template <typename T>
-    bool useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
-        for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
-            if (item->getId() == itemId) {
-                std::shared_ptr<ItemDef> def = db.getDef(item->getDefId());
-                if (!def) {
-                    CULogError("Player: could not find ItemDef for defId '%s'", item->getDefId().c_str());
-                    return false;
-                }
-
-                if constexpr (std::is_same<T, Player>::value) {
-                    if (def->getType() == ItemDef::Type::Support) {
-                        target.updateHealth(def->getEffectiveValue());
-                    }
-                }
-                else if constexpr (std::is_same<T, Enemy>::value) {
-                    if (def->getType() == ItemDef::Type::Attack) {
-                        target.updateHealth(-def->getEffectiveValue());
-                    }
-                }
-
-                _inventory.erase(item);
-                return true;
-            }
-        }
-        return false;
-    }
+    bool useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db);
     
     
     /**
@@ -185,18 +145,5 @@ public:
      */
     void removeItemById(ItemInstance::ItemId itemId);
     
-    /**
-     * Sets the player to the left of this player.
-     * @param player    The player to the left, or nullptr to clear.
-     */
-    void setLeftPlayer(Player* player) { _leftPlayer = player; }
-
-    /**
-     * Sets the player to the right of this player.
-     * @param player    The player to the right, or nullptr to clear.
-     */
-    void setRightPlayer(Player* player) { _rightPlayer = player; }
-    
 };
 #endif /* !__PLAYER_H__ */
-

@@ -55,14 +55,6 @@
         "sans": {
             "file":     "fonts/Roboto-Bold.ttf",
             "size":     64
-        },
-        "menuTitle": {
-            "file":     "fonts/Roboto-Bold.ttf",
-            "size":     72
-        },
-        "menuLabel": {
-            "file":     "fonts/Roboto-Bold.ttf",
-            "size":     42
         }
     },
     "widgets": {
@@ -72,8 +64,7 @@
         "attackArea": "widgets/attackArea.json",
         "boss":        "widgets/boss.json",
         "playerSlot": "widgets/playerSlot.json",
-        "ability":     "widgets/ability.json",
-        "menuScene":   "json/menuScene.json"
+        "ability":     "widgets/ability.json"
     },
     "scene2s": {
         "gameScene": {
@@ -84,15 +75,7 @@
                 "key": "scene",
                 "variables": {}
             }
-        },
-        "menuScene": {
-            "type": "Widget",
-            "comment": "Root node of the main menu scene",
-            "format": { "type": "Anchored" },
-            "data": {
-                "key": "menuScene",
-                "variables": {}
-            }
         }
     }
+    
 }

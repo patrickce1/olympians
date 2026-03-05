@@ -2,9 +2,7 @@
 #define __SCENE_LOADER_H__
 #include <cugl/cugl.h>
 #include "scenes/GameScene.h"
-#include "scenes/MenuScene.h"
 #include "InputController.h"
-#include "PlayerTests.h"
 
 /**
  * Scene loader class responsible for loading assets and managing scene transitions
@@ -15,7 +13,6 @@ protected:
      * Will have to be expanded as we add more scenes*/
     enum class State {
         LOAD,
-        MENU,
         GAME
     };
 
@@ -34,7 +31,6 @@ protected:
 
     /* All the scenes in the game*/
     std::shared_ptr<cugl::scene2::LoadingScene> _loadingScene;
-    MenuScene _menuScene;
     GameScene _gameScene;
     //more scenes to come...
 
