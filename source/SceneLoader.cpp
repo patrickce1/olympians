@@ -108,15 +108,6 @@ void SceneLoader::onStartup() {
     _input.setActive(true); //We can actually tap.
     
     CULog("Is active: %d", _input.isActive());
-    // Define zones in scene coordinates (origin at bottom-left)
-    // Top half hosts boss/ally interactions; bottom half for passes
-    _input.setBossZone(cugl::Rect(w * 0.15f, h * 0.5f, w * 0.7f, h * 0.5f));
-    _input.setAllyZoneLeft(cugl::Rect(0, h * 0.5f, w * 0.15f, h * 0.5f));
-    _input.setAllyZoneRight(cugl::Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f));
-    _input.setPasssZoneLeft(cugl::Rect(0, 0, w * 0.15f, h * 0.5f));
-    _input.setPassZoneRight(cugl::Rect(w * 0.85f, 0, w * 0.15f, h * 0.5f));
-
-    
     // Create the logger
     _logger = Logger::open("debug");
 

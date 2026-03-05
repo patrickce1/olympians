@@ -39,6 +39,9 @@ protected:
     /** The node representing the player's inventory UI container. */
     std::shared_ptr<cugl::scene2::SceneNode> _inventory;
     
+    /** The vector representing the various zones on screen.*/
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _zones;
+    
     /** The node representing the active (placeholder) item that the player is holding**/
     std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
     /**Distance that the active item has moved.**/
@@ -106,8 +109,10 @@ public:
      */
     void reset() override;
     
+    /**The button allowing for a reset on the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
-
+    
+    /**The original locations of the abilities. */
     std::vector<cugl::Vec2> _abilityOriginalPos;
     
     /**
@@ -143,6 +148,9 @@ public:
     void render() override;
     virtual void update(float dt) override;
     
+    /**Resolves the action recently passed from the controller**/
+    void resolveAction(InputController::Action action);
+    
     /** Create and return an item Widget with a given ItemInstance */
     std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
     
@@ -151,7 +159,5 @@ public:
     
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
-
 };
-
 #endif /* __GAME_SCENE_H__ */

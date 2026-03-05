@@ -124,6 +124,8 @@ private:
     static constexpr float DRAG_THRESHOLD = 2.0f;
     /**The timestamp representing when a touch started*/
     cugl::Timestamp _touchStartTime;
+    /**How long we have been touching the screen after starting.**/
+    float _touchDuration;
     
     /**STATES**/
     bool _active = false;

@@ -15,6 +15,7 @@ using namespace std;
 
 #pragma mark -
 #pragma mark Constructors
+#define GAME_HEIGHT 852
 
 /**
  * Initializes the controller contents and sets up the game scene.
@@ -34,25 +35,27 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     if (assets == nullptr) {
         return false;
     }
-    // Initialize the base Scene2 using the native display bounds for 1:1 scaling
-    cugl::Rect bounds = Application::get()->getDisplayBounds();
-    Size sceneSize(bounds.size.width, bounds.size.height);
-    if (!Scene2::initWithHint(sceneSize)) {
+    else if (!Scene2::initWithHint(Size(0, GAME_HEIGHT))){
         return false;
     }
-    
     // Cache the asset manager and retrieve the computed scene dimensions
     _assets = assets;
     Size dimen = getSize();
-    
+    float w = dimen.width;
+    float h = dimen.height;
+    _zones = {
+            {InputController::Action::DROP_BOSS,       Rect(w * 0.15f, h * 0.5f, w * 0.7f,  h * 0.5f)},
+            {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.5f, w * 0.15f, h * 0.5f)},
+            {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)},
+            {InputController::Action::PASS_LEFT,       Rect(0,         0,        w * 0.15f, h * 0.5f)},
+            {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)}
+        };
     // Acquire the scene built by the asset loader and resize it to the scene.
     _scene = _assets->get<scene2::SceneNode>("gameScene");
-    
     if (!_scene) {
         CULog("Scene NOT here!");
         return false;
     }
-    
     _scene->setContentSize(dimen);
     _scene->doLayout(); // Repositions the HUD
     
@@ -162,15 +165,49 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         // --- Reset button tap detection ---
         // Only check when no icon is being dragged, touch just ended, and the button exists
         if (input.touchEnded() && !_activeIcon && _resetBtn) {
-            Vec2 touchScene = input.getTouchStart();
+            Vec2 touchPosRaw = input.getTouchStart();
+            Vec2 touchPosScreen = screenToWorldCoords(touchPosRaw);
 
             Rect boundingBox = _resetBtn->getBoundingBox();
-            if (boundingBox.contains(touchScene)) {
+            if (boundingBox.contains(touchPosScreen)) {
                 CULog("Reset button tapped!");
                 reset();
             }
         }
         
+        // --- Zone classification: convert positions to world space and classify action ---
+        if (_activeIcon && input.touchEnded()) {
+            Vec2 startWorld   = screenToWorldCoords(input.getTouchStart());
+            Vec2 releaseWorld = screenToWorldCoords(input.getReleasePosition());
+            float w = getSize().width;
+            float h = getSize().height;
+            
+            InputController::Action finalAction = InputController::Action::NONE;
+            
+            for (const auto& pair : _zones){
+                if (pair.second.contains(releaseWorld)){
+                    finalAction = pair.first;
+                    break;
+                }
+            }
+            
+            if (finalAction != InputController::Action::NONE) {
+                    resolveAction(finalAction);         // Trigger the CULog and logic
+                    _glowAction = finalAction;          // Start the visual glow
+                    _glowTimer  = _glowDuration;
+                if (_activeIcon != nullptr){
+                    _activeIcon->setVisible(false); // Consume the icon
+                }
+                } else {
+                    // Optional: snap the icon back to original position if missed
+//                    reset();
+                }
+                
+                _activeIcon = nullptr;
+        }
+        if (input.touchEnded()){
+            input.resetAction();
+        }
         // --- Drop resolution: touch ended while dragging an icon ---
         if (_activeIcon && input.touchEnded()) {
             InputController::Action action = input.getAction();
@@ -198,7 +235,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 
         // --- Debug pointer tracking ---
         if (input.isTouching()) {
-            Vec2 current = input.isDragging() ? input.getDragPos() : input.getTouchStart();
+            Vec2 current = input.isDragging() ? screenToWorldCoords(input.getDragPos()) : screenToWorldCoords(input.getTouchStart());
             _debugPointerScene = current;
             _hasDebugPointer   = true;
         } else {
@@ -206,32 +243,28 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         }
         
         // --- Drag initiation: first touch on an inventory icon ---
-        if (!_activeIcon && input.isTouching()) {
-            // Convert touch into the inventory node's local coordinate space
-            cugl::Vec2 touchScene       = input.getTouchStart();
-            cugl::Vec2 touchInInventory = _inventory->parentToNodeCoords(touchScene);
+        if (!_activeIcon && input.isDragging()) {
+            Vec2 touchPosRaw = input.getTouchStart();
+            Vec2 touchPosScreen = screenToWorldCoords(touchPosRaw);
             
             // Hit-test each ability icon to see if the touch landed on one
             for (auto& icon : _abilityIcons) {
                 if (!icon) continue;
                 cugl::Rect boundingBox = icon->getBoundingBox();
-                // Shift the bounding box up by half its height (manual anchor correction)
-                if (boundingBox.contains(touchInInventory)) {
-                    _activeIcon = icon;
-                    // Store the offset between the icon center and the touch point
-                    // so the icon doesn't "snap" its center to the finger
-                    _dragOffset = icon->getPosition() - touchInInventory;
-                    break;
-                }
+                if (boundingBox.contains(touchPosScreen)) {
+                _activeIcon = icon;
+                // Store the offset between the icon center and the touch point
+                // so the icon doesn't "snap" its center to the finger
+                _dragOffset = icon->getPosition() - touchPosScreen;
+                break;
+            }
             }
         }
         
         // --- Drag tracking: move the active icon to follow the finger ---
         if (_activeIcon && input.isTouching()) {
-            cugl::Vec2 dragScene       = input.getDragPos();
-            cugl::Vec2 dragInInventory = _inventory->parentToNodeCoords(dragScene);
-            // Apply the stored offset so the icon moves smoothly relative to the initial grab point
-            _activeIcon->setPosition(dragInInventory + _dragOffset);
+            cugl::Vec2 dragScene       = screenToWorldCoords(input.getDragPos());
+            _activeIcon->setPosition(dragScene + _dragOffset);
         }
         
         // Forward to the item controller for any item-related per-frame logic
@@ -250,6 +283,35 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     void GameScene::update(float dt) {
         // This method is not used - the two-parameter version is called from SceneLoader
     }
+
+void GameScene::resolveAction(InputController::Action action){
+    switch (action){
+        case InputController::Action::DROP_BOSS:
+            CULog("boss drop");
+            break;
+        case InputController::Action::DROP_ALLY_LEFT:
+            CULog("ally drop left");
+            break;
+        case InputController::Action::DROP_ALLY_RIGHT:
+            CULog("ally drop right");
+            break;
+        case InputController::Action::PASS_LEFT:
+            CULog("pass left");
+            break;
+        case InputController::Action::PASS_RIGHT:
+            CULog("pass right");
+            break;
+        case InputController::Action::DRAG:
+            CULog("Dragging");
+            break;
+        case InputController::Action::NONE:
+            CULog("Nothing");
+            break;
+        case InputController::Action::PAUSE:
+            CULog("Nothing");
+            break;
+    }
+}
     
     /**
      * Disposes of all (non-static) resources allocated to this scene.
@@ -311,25 +373,6 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         auto batch = getSpriteBatch();
         batch->setPerspective(getCamera()->getCombined());
         batch->begin();
-        
-        float w = getSize().width;
-        float h = getSize().height;
-        
-        // Define the five interactive drop zones as (Action, Rect) pairs.
-        // Rects match InputController zones (scene coordinates, bottom-left origin, top half)
-        std::vector<std::pair<InputController::Action, Rect>> zones = {
-            // Boss target: wide central strip covering the top half
-            {InputController::Action::DROP_BOSS,       Rect(w * 0.15f, h * 0.5f, w * 0.7f,  h * 0.5f)},
-            // Left ally: narrow left column, top half
-            {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.5f, w * 0.15f, h * 0.5f)},
-            // Right ally: narrow right column, top half
-            {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)},
-            // Pass left: narrow left column, bottom half
-            {InputController::Action::PASS_LEFT,       Rect(0,         0,        w * 0.15f, h * 0.5f)},
-            // Pass right: narrow right column, bottom half
-            {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)},
-        };
-        
         // Debug outline around the reset button
         if (_resetBtn) {
             Rect boundingBox = _resetBtn->getBoundingBox();
@@ -339,7 +382,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         }
         
         // Draw each drop zone
-        for (auto& [action, rect] : zones) {
+        for (auto& [action, rect] : _zones) {
             Path2 path(rect);
             
             // If this zone matches the active glow, draw a fading filled overlay
@@ -367,9 +410,6 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         // Debug: show current pointer position
         if (_hasDebugPointer) {
             Rect p(_debugPointerScene.x - 6.0f, _debugPointerScene.y - 6.0f, 12.0f, 12.0f);
-            // Flip for debug visualization because the batch renders with a top-left origin
-            // Rect flipped(p.origin.x, h - p.origin.y - p.size.height,
-            //              p.size.width, p.size.height);
             Path2 path(p);
             batch->setColor(Color4(255, 0, 0, 200));
             batch->fill(path, Vec2::ZERO, Affine2::IDENTITY);

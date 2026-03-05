@@ -1,4 +1,13 @@
 #include "InputController.h"
+#include <cugl/cugl.h>
+#include <iostream>
+#include <sstream>
+
+
+using namespace cugl;
+using namespace cugl::scene2;
+using namespace std;
+
 /**
  * Initializes the InputController by acquiring the touchscreen device
  * and registering touch event listeners.
@@ -11,11 +20,6 @@ bool InputController::init(){
     if (!_touch){
         return false;
     }
-    //Necessary to work on phones, convert to the phones space dimensions.
-    cugl::Rect full = cugl::Application::get()->getDisplayBounds();
-    cugl::Rect drawable = cugl::Application::get()->getDrawableBounds();
-    _scale = full.size.width / drawable.size.width;
-    CULog("LOGICAL SCALE: %f",_scale);
     // Acquire a unique listener key for registering/unregistering callbacks
     _listenerKey = _touch->acquireKey();
     
@@ -84,17 +88,14 @@ void InputController::setActive(bool active){
  */
 void InputController::onTouchBegan(const cugl::TouchEvent &event, bool focus){
     _touchStartTime = event.timestamp;
-    cugl::Vec2 pos = event.position * _scale;
-    // Convert to scene coordinates (bottom-left origin)
-    pos.y = cugl::Application::get()->getDisplayBounds().size.height - pos.y;
     //inactive input or we are already tracking.
     if (!_active or _activeTouchID != -1) {
         return;
     }
     //Determine the id of the event, and find the position of that tap.
     _activeTouchID = event.touch;
-    _touchStart = pos;
-    _dragPos = pos;
+    _touchStart = event.position;
+    _dragPos = event.position;
     _dragging = false;
     _touchEnded = false;
     _action = Action::NONE;
@@ -113,18 +114,15 @@ void InputController::onTouchBegan(const cugl::TouchEvent &event, bool focus){
  * Focus is unused
  */
 void InputController::onTouchMoved(const cugl::TouchEvent &event, const cugl::Vec2 &previous, bool focus){
-    //Determine the position in phone coordinates
-    cugl::Vec2 pos = event.position * _scale;
-    // Convert to scene coordinates (bottom-left origin)
-    pos.y = cugl::Application::get()->getDisplayBounds().size.height - pos.y;
+    
     if (!_active || event.touch != _activeTouchID){ //We are not ready for a touch.
         return;
     }
-    if (!_dragging && pos.distance(_touchStart)> DRAG_THRESHOLD){
+    if (!_dragging && event.position.distance(_touchStart)> DRAG_THRESHOLD){
         _dragging = true; //Set to dragging if the finger has moved enough pixels, and not already dragging.
     }
     if (_dragging){
-        _dragPos = pos; //Maintain that we are dragging, and track updated position.
+        _dragPos = event.position; //Maintain that we are dragging, and track updated position.
         _action = Action::DRAG;
     }
 }
@@ -140,39 +138,14 @@ void InputController::onTouchMoved(const cugl::TouchEvent &event, const cugl::Ve
  * focus is unused
  */
 void InputController::onTouchEnded(const cugl::TouchEvent &event, bool focus){
-    
-    cugl::Vec2 pos = event.position * _scale;
-    // Convert to scene coordinates (bottom-left origin)
-    pos.y = cugl::Application::get()->getDisplayBounds().size.height - pos.y;
-
     if (event.touch != _activeTouchID){
         return;
     }
-    if (_dragging){
-        float dx = pos.x - _touchStart.x;
-        float dy = pos.y - _touchStart.y;
-        float elapsed = event.timestamp.ellapsedMillis(_touchStartTime);
-        //Classify as a horizontal swipe if displacement dominates vertically and exceeds the swipe threshold.
-        //A horizontal swipe (Maybe we need to add velocity so that not all horizontal swipes pass.
-        if (std::abs(dx) > SWIPE_THRESHOLD && std::abs(dx) > std::abs(dy)){
-            if (dx > 0 && _rightPass.contains(pos)){
-                _action = Action::PASS_RIGHT;
-            }
-            else if (dx < 0 && _leftPass.contains(pos)){
-                _action = Action::PASS_LEFT;
-            }
-        } else if (_bossZone.contains(pos)){
-            _action = Action::DROP_BOSS;
-        } else if (_allyLeft.contains(pos)){
-            _action = Action::DROP_ALLY_LEFT;
-        } else if (_allyRight.contains(pos)){
-            _action = Action::DROP_ALLY_RIGHT;
-        } else {
-            _action = Action::NONE;
-        }
-    }
+    _touchEnded = true;
+    _touchDuration = event.timestamp.ellapsedMillis(_touchStartTime);
+    // Store raw screen positions only. GameScene converts to world space and classifies all actions.
+    _releasePosition = event.position;
     _activeTouchID = -1;
     _dragging = false;
-    _touchEnded = true;
 }
 
