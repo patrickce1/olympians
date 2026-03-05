@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 #include "CharacterLoader.h"
-#include "ItemInstance.h"
-#include "ItemDatabase.h"
+#include "items/ItemInstance.h"
+#include "items/ItemDatabase.h"
 #include "Enemy.h"
 #include <type_traits>
 

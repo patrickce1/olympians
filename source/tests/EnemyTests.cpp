@@ -10,10 +10,10 @@
 //     EnemyTests::runAll("json/enemies.json", "json/characters.json");
 
 #include "EnemyTests.h"
-#include "Enemy.h"
-#include "EnemyController.h"
-#include "Player.h"
-#include "CharacterLoader.h"
+#include "../Enemy.h"
+#include "../EnemyController.h"
+#include "../Player.h"
+#include "../CharacterLoader.h"
 #include <cugl/cugl.h>
 #include <unordered_set>
 

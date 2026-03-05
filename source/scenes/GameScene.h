@@ -3,14 +3,14 @@
 #include <cugl/cugl.h>
 #include <vector>
 #include <unordered_map>
-#include "Player.h"
-#include "InputController.h"
-#include "ItemController.h"
-#include "Enemy.h"
-#include "EnemyController.h"
-#include "CharacterLoader.h"
-#include "PlayerAI.h"
-#include "EasyPlayerAI.h"
+#include "../Player.h"
+#include "../InputController.h"
+#include "../items/ItemController.h"
+#include "../Enemy.h"
+#include "../EnemyController.h"
+#include "../CharacterLoader.h"
+#include "../playerAI/PlayerAI.h"
+#include "../playerAI/EasyPlayerAI.h"
 
 /**
  * This class represents the core game scene

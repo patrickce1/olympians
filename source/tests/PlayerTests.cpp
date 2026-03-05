@@ -13,14 +13,14 @@
 //                         "assets/json/playerAI.json");
 
 #include "PlayerTests.h"
-#include "Player.h"
-#include "Enemy.h"
-#include "EasyPlayerAI.h"
-#include "ItemDatabase.h"
-#include "ItemDef.h"
-#include "ItemInstance.h"
-#include "ItemController.h"
-#include "CharacterLoader.h"
+#include "../Player.h"
+#include "../Enemy.h"
+#include "../playerAI/EasyPlayerAI.h"
+#include "../items/ItemDatabase.h"
+#include "../items/ItemDef.h"
+#include "../items/ItemInstance.h"
+#include "../items/ItemController.h"
+#include "../CharacterLoader.h"
 #include <cugl/cugl.h>
 
 // ─────────────────────────────────────────────

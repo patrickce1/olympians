@@ -1,12 +1,12 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
-#include "InputController.h"
-#include "PlayerAI.h"
-#include "EasyPlayerAI.h"
-#include "CharacterLoader.h"
 #include "GameScene.h"
-#include "Enemy.h"
+#include "../InputController.h"
+#include "../playerAI/PlayerAI.h"
+#include "../playerAI/EasyPlayerAI.h"
+#include "../CharacterLoader.h"
+#include "../Enemy.h"
 
 using namespace cugl;
 using namespace cugl::scene2;
