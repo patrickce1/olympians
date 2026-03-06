@@ -3,14 +3,12 @@
 #include <cugl/cugl.h>
 #include <vector>
 #include <unordered_map>
-#include "../Player.h"
-#include "../InputController.h"
-#include "../items/ItemController.h"
-#include "../Enemy.h"
-#include "../EnemyController.h"
-#include "../CharacterLoader.h"
-#include "../playerAI/PlayerAI.h"
-#include "../playerAI/EasyPlayerAI.h"
+#include "Player.h"
+#include "ItemController.h"
+#include "Enemy.h"
+#include "EnemyLoader.h"
+#include "InputController.h"
+#include "CharacterLoader.h"
 
 /**
  * This class represents the core game scene
@@ -48,6 +46,9 @@ protected:
     std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
     /**Distance that the active item has moved.**/
     cugl::Vec2 _dragOffset;
+
+    // /** The collection of item icon nodes displayed in the inventory. */
+    // std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
     
     /** The collection of item widgets mapping itemId to its corresponding widget */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
@@ -58,41 +59,29 @@ protected:
     /** The player belonging to this GameScene instance */
     Player* _player = nullptr;
     
+    /** The collection of players in this party */
+    std::vector<Player> _players;
+    
+    /** The ItemController for this GameScene instance*/
+    ItemController _itemController;
+    
     /** The enemy loader to load in the enemies for this GameScene instance */
     EnemyLoader _enemyLoader;
     
+    /** The current enemy that the players are facing */
+    std::unique_ptr<Enemy> _enemy;
+    
     /** The Action corresponding to the zone that should glow once the player performs that action**/
     InputController::Action _glowAction = InputController::Action::NONE;
-    
     /**Internal clock to measure how long we have been glowing**/
     float _glowTimer = 0;
-    
     /**How long that a region that glows should glow for at maximum.**/
     float _glowDuration = 0.3f;
 
     /** Debug: latest pointer position in scene coordinates */
     cugl::Vec2 _debugPointerScene = cugl::Vec2::ZERO;
-    
     /** Debug: whether a pointer is currently active */
     bool _hasDebugPointer = false;
-
-    /**
-     * All players in this party — both human-controlled (Player) and
-     * AI-controlled (PlayerAI) — stored polymorphically as shared_ptr<Player>.
-     * Index 0 is the human player; indices 1+ are AI bots.
-     * PlayerAI must inherit from Player for virtual dispatch to work.
-     */
-    std::vector<std::shared_ptr<Player>> _players;
-    
-    /** Handles touch input for the human player */
-    InputController _input;
-    
-    /** The ItemController for this GameScene instance*/
-    ItemController _itemController;
-
-    /** The enemy for this scene and its controller */
-    std::shared_ptr<Enemy> _enemy;
-    EnemyController _enemyController;
 
 public:
 #pragma mark -
