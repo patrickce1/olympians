@@ -3,6 +3,8 @@
 #include <cugl/cugl.h>
 #include "scenes/GameScene.h"
 #include "InputController.h"
+#include "PlayerTests.h"
+#include "EnemyTests.h"
 
 /**
  * Scene loader class responsible for loading assets and managing scene transitions
