@@ -597,4 +597,3 @@ void PlayerTests::runAll(const std::string& charactersJsonPath,
 
     printSummary();
 }
-
