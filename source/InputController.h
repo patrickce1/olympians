@@ -214,9 +214,6 @@ public:
 
 private:
 
-    /** Minimum horizontal travel (px) to classify a release as a pass swipe. */
-    static constexpr float SWIPE_THRESHOLD = 75.0f;
-
     /** Minimum travel (px) from touch start before a drag is recognised. */
     static constexpr float DRAG_THRESHOLD = 2.0f;
 
