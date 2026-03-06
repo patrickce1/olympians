@@ -1,11 +1,5 @@
 //Implementation of SceneLoader
-
 #include "SceneLoader.h"
-#include <cugl/core/CUBase.h>
-#include <cugl/core/util/CULogger.h>
-
-//  Unit tests 
-void runEnemyTests();
 
 // This keeps us from having to write cugl:: all the time
 using namespace cugl;
@@ -100,19 +94,11 @@ void SceneLoader::onStartup() {
 
     // in SceneLoader::onStartup(), just to verify zones fire
     _input.init(); //The input controller starts.
-    cugl::Rect screen = getDisplayBounds();
-    float w = screen.size.width;
-    float h = screen.size.height;
-    CULog("Screen size: %f x %f", w, h);
+    
     _input.setActive(true); //We can actually tap.
     
-    CULog("Is active: %d", _input.isActive());
-    _input.setBossZone(cugl::Rect(w * 0.15f, 0, w * 0.7f, h * 0.5f)); // top middle (between ally zones)
-    _input.setAllyZoneLeft(cugl::Rect(0, 0, w * 0.15f, h * 0.5f)); // top left 15% strip
-    _input.setAllyZoneRight(cugl::Rect(w * 0.85f, 0, w * 0.15f, h * 0.5f)); // top right 15% strip
-    _input.setPasssZoneLeft(cugl::Rect(0, h * 0.5f, w * 0.15f, h * 0.5f));   // bottom left %15 strip
-    _input.setPassZoneRight(cugl::Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)); // bottom right %15 strip
-   
+    CULog("Input is active: %d", _input.isActive());
+
     // Create the logger
     _logger = Logger::open("debug");
 
@@ -137,6 +123,11 @@ void SceneLoader::onStartup() {
 //        "json/items.json",
 //        "json/enemies.json",
 //        "json/playerAI.json"
+//    );
+//
+//    EnemyTests::runAll(
+//        "json/enemies.json",
+//        "json/characters.json"
 //    );
 
 }
@@ -203,8 +194,8 @@ void SceneLoader::onResize() {
  * at all. The default implmentation does nothing.
  *
  * @param dt    The amount of time (in seconds) since the last frame
- * 
- * Scene loader's main job during update is to detect if a switch between scenes is necessary. 
+ *
+ * Scene loader's main job during update is to detect if a switch between scenes is necessary.
  * Otherwise, it should maintain the current scene.
  */
 void SceneLoader::update(float dt) {
@@ -331,26 +322,26 @@ void SceneLoader::update(float dt) {
             break;
         case State::GAME:
             InputController::Action action = _input.getAction();
-                        switch (action) {
-                            case InputController::Action::PASS_RIGHT:
-                                CULog("[ACTION] PASS_RIGHT");
-                                break;
-                            case InputController::Action::PASS_LEFT:
-                                CULog("[ACTION] PASS_LEFT");
-                                break;
-                            case InputController::Action::DROP_BOSS:
-                                CULog("[ACTION] DROP_BOSS");
-                                break;
-                            case InputController::Action::DROP_ALLY_LEFT:
-                                CULog("[ACTION] DROP_ALLY_LEFT");
-                                break;
-                            case InputController::Action::DROP_ALLY_RIGHT:
-                                CULog("[ACTION] DROP_ALLY_RIGHT");
-                                break;
-                            default:
-                                break;
-                        }
-            _gameScene.update(dt);
+                switch (action) {
+                    case InputController::Action::PASS_RIGHT:
+                        CULog("[ACTION] PASS_RIGHT");
+                        break;
+                    case InputController::Action::PASS_LEFT:
+                        CULog("[ACTION] PASS_LEFT");
+                        break;
+                    case InputController::Action::DROP_BOSS:
+                        CULog("[ACTION] DROP_BOSS");
+                        break;
+                    case InputController::Action::DROP_ALLY_LEFT:
+                        CULog("[ACTION] DROP_ALLY_LEFT");
+                        break;
+                    case InputController::Action::DROP_ALLY_RIGHT:
+                        CULog("[ACTION] DROP_ALLY_RIGHT");
+                        break;
+                    default:
+                        break;
+                }
+            _gameScene.update(dt, _input);
             break;
     }
     _input.resetAction();
@@ -393,6 +384,6 @@ void SceneLoader::draw() {
 
 
 void SceneLoader::updateGameScene(float dt) {
-    _gameScene.update(dt);
+    _gameScene.update(dt, _input);
     //scene switching logic goes here
 }

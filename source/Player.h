@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 #include "CharacterLoader.h"
-#include "ItemInstance.h"
-#include "ItemDatabase.h"
+#include "items/ItemInstance.h"
+#include "items/ItemDatabase.h"
 #include "Enemy.h"
 #include <type_traits>
 
@@ -123,6 +123,11 @@ public:
      */
     Player* getRightPlayer() const { return _rightPlayer; }
     
+    /**
+     * Returns whether this player is AI or not.
+     */
+    virtual bool isAI() const { return false; }
+    
 #pragma mark Gameplay
     /**
      * Updates the current health of the player by the given delta.
@@ -176,6 +181,16 @@ public:
         return false;
     }
     
+    /**
+     * Removes all items from the player's inventory.
+     *
+     * Called when the scene resets to ensure no stale items persist
+     * into the next round. Any widgets synced from this inventory
+     * will be removed on the next syncInventoryWidgets() call.
+     */
+    void clearInventory() {
+        _inventory.clear();
+    }
     
     /**
      * Removes  an item from the player's inventory by item id.

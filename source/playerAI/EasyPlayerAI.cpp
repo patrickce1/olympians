@@ -3,9 +3,7 @@
 /**
  * Reads the "easyPlayerAI" sub-object from playerAI.json and loads shared fields.
  */
-bool EasyPlayerAI::init(Player* player, const ItemDatabase& db, const std::string& path) {
-    
-    //initialize json reader
+bool EasyPlayerAI::init(const ItemDatabase& db, const std::string& path) {
     auto reader = cugl::JsonReader::alloc(path);
     if (!reader) {
         CULogError("EasyPlayerAI::init — failed to open %s", path.c_str());
@@ -18,14 +16,12 @@ bool EasyPlayerAI::init(Player* player, const ItemDatabase& db, const std::strin
         return false;
     }
 
-    // Read the easyPlayerAI sub-object
     auto config = json->get("easyPlayerAI");
     if (!config) {
         CULogError("EasyPlayerAI::init — missing 'easyPlayerAI' block in %s", path.c_str());
         return false;
     }
 
-    _player = player;
     _db = &db;
     _thinkTimer = 0.0f;
 
@@ -64,11 +60,9 @@ bool EasyPlayerAI::init(Player* player, const ItemDatabase& db, const std::strin
 
 /**
  * Returns whether the AI has at least one attack item in its inventory.
- *
- * @return true if an attack item is available, false otherwise.
  */
 bool EasyPlayerAI::canAttack() const {
-    for (const ItemInstance& item : _player->getInventory()) {
+    for (const ItemInstance& item : getInventory()) {
         auto def = _db->getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) return true;
     }
@@ -78,13 +72,10 @@ bool EasyPlayerAI::canAttack() const {
 /**
  * Returns whether the AI has a support item AND at least one neighbor
  * (left or right) is alive and below _healThreshold.
- *
- * @return true if a support action is viable, false otherwise.
  */
 bool EasyPlayerAI::canSupport() const {
-    // Check we have a support item
     bool hasSupportItem = false;
-    for (const ItemInstance& item : _player->getInventory()) {
+    for (const ItemInstance& item : getInventory()) {
         auto def = _db->getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             hasSupportItem = true;
@@ -93,13 +84,12 @@ bool EasyPlayerAI::canSupport() const {
     }
     if (!hasSupportItem) return false;
 
-    // Check if either neighbor needs healing
     auto needsHeal = [&](Player* p) {
         return p && p->isAlive() &&
                p->getCurrentHealth() / p->getMaxHealth() < _healThreshold;
     };
 
-    return needsHeal(_player->getLeftPlayer()) || needsHeal(_player->getRightPlayer());
+    return needsHeal(getLeftPlayer()) || needsHeal(getRightPlayer());
 }
 
 /**
@@ -107,20 +97,14 @@ bool EasyPlayerAI::canSupport() const {
  * and aggressionWeight vs supportWeight.
  */
 EasyPlayerAI::State EasyPlayerAI::evaluate(const Enemy& enemy) {
-    // Remain idle if inventory is empty
-    if (!_player || _player->getInventory().empty()) return State::IDLE;
+    if (getInventory().empty()) return State::IDLE;
 
-    // Pass a card if you cannot attack or support
     if (!canAttack() && !canSupport()) return State::PASS;
 
     float totalWeight = 0.0f;
     if (canAttack())  totalWeight += _aggressionWeight;
     if (canSupport()) totalWeight += _supportWeight;
 
-    // Roll a random value in [0, totalWeight). The weights carve this range into
-    // adjacent segments — ATTACK owns [0, aggressionWeight) and SUPPORT owns
-    // [aggressionWeight, totalWeight). Whichever segment the roll lands in wins,
-    // so larger weights mean larger segments and higher probability of selection.
     float roll = static_cast<float>(rand()) / RAND_MAX * totalWeight;
 
     if (canAttack() && roll < _aggressionWeight) {
@@ -136,7 +120,7 @@ EasyPlayerAI::State EasyPlayerAI::evaluate(const Enemy& enemy) {
 void EasyPlayerAI::actAttack(Enemy& enemy, ItemController& items) {
     std::vector<ItemInstance::ItemId> attackItems;
 
-    for (const ItemInstance& item : _player->getInventory()) {
+    for (const ItemInstance& item : getInventory()) {
         auto def = _db->getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
             attackItems.push_back(item.getId());
@@ -145,9 +129,8 @@ void EasyPlayerAI::actAttack(Enemy& enemy, ItemController& items) {
 
     if (attackItems.empty()) return;
 
-    // Pick a random attack item
     ItemInstance::ItemId chosen = attackItems[rand() % attackItems.size()];
-    _player->useItemById(chosen, enemy, *_db);
+    useItemById(chosen, enemy, *_db);
 }
 
 /**
@@ -155,7 +138,6 @@ void EasyPlayerAI::actAttack(Enemy& enemy, ItemController& items) {
  * support item to use on them.
  */
 void EasyPlayerAI::actSupport(ItemController& items) {
-    // Pick the most injured neighbor
     Player* target = nullptr;
     float lowestRatio = _healThreshold;
 
@@ -168,14 +150,13 @@ void EasyPlayerAI::actSupport(ItemController& items) {
         }
     };
 
-    check(_player->getLeftPlayer());
-    check(_player->getRightPlayer());
+    check(getLeftPlayer());
+    check(getRightPlayer());
 
     if (!target) return;
 
-    // Collect support items and pick one at random
     std::vector<ItemInstance::ItemId> supportItems;
-    for (const ItemInstance& item : _player->getInventory()) {
+    for (const ItemInstance& item : getInventory()) {
         auto def = _db->getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             supportItems.push_back(item.getId());
@@ -185,29 +166,27 @@ void EasyPlayerAI::actSupport(ItemController& items) {
     if (supportItems.empty()) return;
 
     ItemInstance::ItemId chosen = supportItems[rand() % supportItems.size()];
-    _player->useItemById(chosen, *target, *_db);
+    useItemById(chosen, *target, *_db);
 }
 
 /**
  * Picks a random item and passes it to a random alive neighbor.
  */
 void EasyPlayerAI::actPass() {
-    if (_player->getInventory().empty()) return;
+    if (getInventory().empty()) return;
 
-    // Collect alive neighbors
     std::vector<Player*> targets;
-    if (_player->getLeftPlayer()  && _player->getLeftPlayer()->isAlive())
-        targets.push_back(_player->getLeftPlayer());
-    if (_player->getRightPlayer() && _player->getRightPlayer()->isAlive())
-        targets.push_back(_player->getRightPlayer());
+    if (getLeftPlayer()  && getLeftPlayer()->isAlive())
+        targets.push_back(getLeftPlayer());
+    if (getRightPlayer() && getRightPlayer()->isAlive())
+        targets.push_back(getRightPlayer());
 
     if (targets.empty()) return;
 
-    // Pick a random item and a random neighbor to pass to
-    const auto& inventory = _player->getInventory();
+    const auto& inventory = getInventory();
     ItemInstance item     = inventory[rand() % inventory.size()];
     Player* chosenTarget  = targets[rand() % targets.size()];
 
-    _player->removeItemById(item.getId());
+    removeItemById(item.getId());
     chosenTarget->addItem(item);
 }
