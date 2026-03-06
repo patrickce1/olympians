@@ -42,9 +42,15 @@ bool InputController::init(){
     }
     
     if (_mouse){
+        
+        
         // Acquire a unique listener key for registering/unregistering callbacks from the mouse.
         _mouseListenerKey = _mouse->acquireKey();
         
+        //This enum is used to represent how sensative this device is to movement.
+        //Movement events can be extremely prolific, especially if they do not require a button press. This enum is used limit how often these events received.
+        _mouse->setPointerAwareness(cugl::Mouse::PointerAwareness::DRAG);
+
         // Register callback for when the mouse is clicked
         bool ok = _mouse->addPressListener(_mouseListenerKey, [this](const MouseEvent& event, Uint8 clicks, bool focus) {
             onMousePressed(event, clicks, focus);
@@ -52,14 +58,18 @@ bool InputController::init(){
         CULog("Mouse press listener registered: %s", ok ? "yes" : "no");
         
         // Register callback for when the mouse is being dragged
-        _mouse->addDragListener(_mouseListenerKey, [this](const MouseEvent& event, const Vec2& previous, bool focus) {
+        ok =_mouse->addDragListener(_mouseListenerKey, [this](const MouseEvent& event, const Vec2& previous, bool focus) {
             onMouseDragged(event, previous, focus);
         });
+        CULog("Mouse drag listener registered: %s", ok ? "yes" : "no");
+
         
         // Register callback for when the mouse is released
-        _mouse->addReleaseListener(_mouseListenerKey, [this](const MouseEvent& event, Uint8 clicks, bool focus) {
+        ok =_mouse->addReleaseListener(_mouseListenerKey, [this](const MouseEvent& event, Uint8 clicks, bool focus) {
             onMouseReleased(event, clicks, focus);
         });
+        CULog("Mouse release listener registered: %s", ok ? "yes" : "no");
+
     }
     
     return true;
@@ -196,6 +206,7 @@ void InputController::onTouchEnded(const cugl::TouchEvent &event, bool focus){
  * @param focus   Whether the listener currently has focus (unused).
  */
 void InputController::onMousePressed(const cugl::MouseEvent& event, Uint8 clicks, bool focus) {
+    CULog("onMousePressed fired: active=%d mouseDown=%d", _active, _mouseDown);
     if (!_active || _mouseDown) {
         return;
     }
@@ -220,7 +231,11 @@ void InputController::onMousePressed(const cugl::MouseEvent& event, Uint8 clicks
  * @param focus     Whether the listener currently has focus (unused).
  */
 void InputController::onMouseDragged(const cugl::MouseEvent& event, const cugl::Vec2& previous, bool focus) {
-    if (!_active || !_mouseDown) {
+    CULog("onMouseDragged: pos=(%.1f,%.1f) start=(%.1f,%.1f) dist=%.1f threshold=%.1f",
+        event.position.x, event.position.y,
+        _touchStart.x, _touchStart.y,
+        event.position.distance(_touchStart),
+        DRAG_THRESHOLD);    if (!_active || !_mouseDown) {
         return;
     }
     if (!_dragging && event.position.distance(_touchStart) > DRAG_THRESHOLD) {
@@ -244,6 +259,7 @@ void InputController::onMouseDragged(const cugl::MouseEvent& event, const cugl::
  * @param focus   Whether the listener currently has focus (unused).
  */
 void InputController::onMouseReleased(const cugl::MouseEvent& event, Uint8 clicks, bool focus) {
+    CULog("onMouseReleased fired: mouseDown=%d", _mouseDown);
     if (!_mouseDown) {
         return;
     }

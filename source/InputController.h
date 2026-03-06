@@ -195,6 +195,13 @@ public:
     bool isTouching() const { return _activeTouchID != -1 && !_touchEnded; }
 
     /**
+     * Returns whether the mouse is currently clicked and has not yet stopped.
+     *
+     * @return true if the user is currently clicking their mouse..
+     */
+    bool isMouseDown() const { return _mouseDown; }
+    
+    /**
      * Overrides the current action with the given value.
      * Prefer resetAction() for clearing after consumption.
      *
