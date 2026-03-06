@@ -261,7 +261,7 @@ void GameScene::update(float dt) {
         return;
     }
 
-    // --- Reset button tap detection ---
+    / --- Reset button tap detection ---
     // Only check when no icon is being dragged, touch just ended, and the button exists
     if (_input.touchEnded() && !_activeIcon && _resetBtn) {
         Vec2 touchPosRaw = _input.getTouchStart();
@@ -301,11 +301,9 @@ void GameScene::update(float dt) {
             
             _activeIcon = nullptr;
     }
-    
     if (_input.touchEnded()){
         _input.resetAction();
     }
-    
     // --- Drop resolution: touch ended while dragging an icon ---
     if (_activeIcon && _input.touchEnded()) {
         InputController::Action action = _input.getAction();

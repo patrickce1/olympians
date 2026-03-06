@@ -5,7 +5,6 @@
 #include "InputController.h"
 #include "PlayerTests.h"
 #include "EnemyTests.h"
-#include <unordered_set>
 
 /**
  * Scene loader class responsible for loading assets and managing scene transitions

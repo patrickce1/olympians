@@ -40,9 +40,14 @@ protected:
 
     /** The node representing the player's inventory UI container. */
     std::shared_ptr<cugl::scene2::SceneNode> _inventory;
-
-    /** The collection of item icon nodes displayed in the inventory. */
-    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
+    
+    /** The vector representing the various zones on screen.*/
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _zones;
+    
+    /** The node representing the active (placeholder) item that the player is holding**/
+    std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
+    /**Distance that the active item has moved.**/
+    cugl::Vec2 _dragOffset;
     
     /** The collection of item widgets mapping itemId to its corresponding widget */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
@@ -50,9 +55,27 @@ protected:
     /** The character loader to load in player characters for this GameScene instance */
     CharacterLoader _characterLoader;
     
-    /** Pointer to the player belonging to the local machine. Set once in init(), never reallocated. */
-    Player* _localPlayer = nullptr;
+    /** The player belonging to this GameScene instance */
+    Player* _player = nullptr;
     
+    /** The enemy loader to load in the enemies for this GameScene instance */
+    EnemyLoader _enemyLoader;
+    
+    /** The Action corresponding to the zone that should glow once the player performs that action**/
+    InputController::Action _glowAction = InputController::Action::NONE;
+    
+    /**Internal clock to measure how long we have been glowing**/
+    float _glowTimer = 0;
+    
+    /**How long that a region that glows should glow for at maximum.**/
+    float _glowDuration = 0.3f;
+
+    /** Debug: latest pointer position in scene coordinates */
+    cugl::Vec2 _debugPointerScene = cugl::Vec2::ZERO;
+    
+    /** Debug: whether a pointer is currently active */
+    bool _hasDebugPointer = false;
+
     /**
      * All players in this party — both human-controlled (Player) and
      * AI-controlled (PlayerAI) — stored polymorphically as shared_ptr<Player>.
@@ -70,31 +93,6 @@ protected:
     /** The enemy for this scene and its controller */
     std::shared_ptr<Enemy> _enemy;
     EnemyController _enemyController;
-    
-    /** The vector representing the various zones on screen.*/
-    std::vector<std::pair<InputController::Action, cugl::Rect>> _zones;
-    
-    /** The node representing the active (placeholder) item that the player is holding**/
-    std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
-    
-    /**Distance that the active item has moved.**/
-    cugl::Vec2 _dragOffset;
-    
-    /** The Action corresponding to the zone that should glow once the player performs that action**/
-    InputController::Action _glowAction = InputController::Action::NONE;
-    
-    /**Internal clock to measure how long we have been glowing**/
-    float _glowTimer = 0;
-    
-    /**How long that a region that glows should glow for at maximum.**/
-    float _glowDuration = 0.3f;
-
-    /** Debug: latest pointer position in scene coordinates */
-    cugl::Vec2 _debugPointerScene = cugl::Vec2::ZERO;
-    
-    /** Debug: whether a pointer is currently active */
-    bool _hasDebugPointer = false;
-
 
 public:
 #pragma mark -
@@ -108,7 +106,7 @@ public:
     /**
      * Disposes of all (non-static) resources allocated to this mode.
      *
-     * This method is different from dispose() in that it ALSO shuts off any
+     * This method is different from dispose() in that it ALSO shuts off any 
      * static resources, like the input controller.
      */
     ~GameScene() { dispose(); }
@@ -117,7 +115,17 @@ public:
      * Disposes of all (non-static) resources allocated to this mode.
      */
     void dispose() override;
-
+    /**
+     * Resets the scene.
+     */
+    void reset() override;
+    
+    /**The button allowing for a reset on the scene. */
+    std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
+    
+    /**The original locations of the abilities. */
+    std::vector<cugl::Vec2> _abilityOriginalPos;
+    
     /**
      * Initializes the controller contents.
      *
@@ -144,56 +152,12 @@ public:
      * @param value whether the scene is currently active
      */
     virtual void setActive(bool value) override;
-    
-    /**
-     * Called after the network session and assigns all local machines to a network-given player slot
-     */
-    void setLocalPlayer(int assignedIndex);
-    /**
-     * Handles the human player dropping an item on the boss zone to attack.
-     */
-    void handleAttack();
-
-    /**
-     * Handles the human player dropping an item on the left ally zone to support.
-     */
-    void handleSupportLeft();
-
-    /**
-     * Handles the human player dropping an item on the right ally zone to support.
-     */
-    void handleSupportRight();
-
-    /**
-     * Handles the human player passing an item to the left neighbor.
-     */
-    void handlePassLeft();
-
-    /**
-     * Handles the human player passing an item to the right neighbor.
-     */
-    void handlePassRight();
-    
-    
 
     //everything that needs to be updated. Anything that isn't a graphics call goes here
-    virtual void update(float dt) override;
+    void update(float dt,InputController& input);
     
-    /**
-    * Resets the scene.
-    */
-    void reset() override;
-    
-    /**
-    * Render mode for the scenes debug mode identifiers.
-    */
     void render() override;
-    
-    /**The button allowing for a reset on the scene. */
-    std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
-    
-    /**The original locations of the abilities. */
-    std::vector<cugl::Vec2> _abilityOriginalPos;
+    virtual void update(float dt) override;
     
     /**Resolves the action recently passed from the controller**/
     void resolveAction(InputController::Action action);
@@ -206,7 +170,5 @@ public:
     
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
-
 };
-
 #endif /* __GAME_SCENE_H__ */

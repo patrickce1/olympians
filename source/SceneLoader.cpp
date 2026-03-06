@@ -239,7 +239,7 @@ void SceneLoader::update(float dt) {
                 default:
                     break;
             }
-            _gameScene.update(dt);
+            _gameScene.update(dt,_input);
             break;
     }
     _input.resetAction();
@@ -269,6 +269,6 @@ void SceneLoader::draw() {
 }
 
 void SceneLoader::updateGameScene(float dt) {
-    _gameScene.update(dt);
+    _gameScene.update(dt,_input);
     //scene switching logic goes here
 }
