@@ -181,6 +181,16 @@ public:
         return false;
     }
     
+    /**
+     * Removes all items from the player's inventory.
+     *
+     * Called when the scene resets to ensure no stale items persist
+     * into the next round. Any widgets synced from this inventory
+     * will be removed on the next syncInventoryWidgets() call.
+     */
+    void clearInventory() {
+        _inventory.clear();
+    }
     
     /**
      * Removes  an item from the player's inventory by item id.
