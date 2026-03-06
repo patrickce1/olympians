@@ -1,6 +1,12 @@
 #ifndef __INPUT_CONTROLLER_H__
 #define __INPUT_CONTROLLER_H__
 #include <cugl/cugl.h>
+#include <iostream>
+#include <sstream>
+
+using namespace cugl;
+using namespace cugl::scene2;
+using namespace std;
 
 /**
  * Controller that handles all player touch input for the gameplay scene.
@@ -56,6 +62,7 @@ public:
     /**Scene Control**/
     //Activate touch controls.
     void setActive(bool active);
+    
     //Returns whether touch is active monitoring.
     bool isActive() const{
         return _active;
@@ -79,33 +86,64 @@ public:
         _rightPass = r;
     }
     
-    /**Queries**/
     //Return what the player did
     Action getAction() const {
         return _action;
     }
-    //Seet player action to none.
-    void resetAction() {
-        _action = Action::NONE;
+    
+    //Return if the touch has ended
+    bool touchEnded() const {
+        return _touchEnded;
     }
     
     //Only meaningful when isDragging == True and Given in Screen Coordinates.
     cugl::Vec2 getDragPos() const {
         return _dragPos;
     }
+    
     //Original location of the drag start.
     cugl::Vec2 getTouchStart() const {
         return _touchStart;
     }
+    
     //Return if player is dragging
     bool isDragging() const {
         return _dragging;
     }
+    
+    //Return where the touch ended
+    cugl::Vec2 getReleasePosition() const {
+        return _releasePosition;
+    }
+    
+    //Returns whether user is touching
+    bool isTouching() const {
+        return _activeTouchID != -1 && !_touchEnded;
+    }
+    
+    //Set player action to none. Our touch has not started.
+    void setAction(Action action) {
+        _action = action;
+    }
+    
+    //Set player action to none.
+    void resetAction() {
+        _action = Action::NONE;
+        _touchEnded = false;
+    }
+    
 private:
     /** Minimum horizontal travel (px) to classify a release as a swipe. */
     static constexpr float SWIPE_THRESHOLD = 75.0f;
+    
     /** Minimum travel (px) from touch start before a drag is recognized. */
-    static constexpr float DRAG_THRESHOLD = 5.0f;
+    static constexpr float DRAG_THRESHOLD = 2.0f;
+    
+    /**The timestamp representing when a touch started*/
+    cugl::Timestamp _touchStartTime;
+    
+    /**How long we have been touching the screen after starting.**/
+    float _touchDuration;
     
     /**STATES**/
     bool _active = false;
@@ -113,6 +151,8 @@ private:
     Action _action = Action::NONE;
     cugl::TouchID _activeTouchID = -1;
     cugl::Vec2 _touchStart;
+    bool _touchEnded = false;
+    cugl::Vec2 _releasePosition;
     cugl::Vec2 _dragPos;
     Uint32 _listenerKey = 17;
     
@@ -121,6 +161,7 @@ private:
     cugl::Rect _allyRight;
     cugl::Rect _leftPass;
     cugl::Rect _rightPass;
+    
     
     float _scale; //Used to normalize for different screen sizes
     

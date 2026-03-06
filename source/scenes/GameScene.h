@@ -41,11 +41,38 @@ protected:
     /** The node representing the player's inventory UI container. */
     std::shared_ptr<cugl::scene2::SceneNode> _inventory;
 
-    /** The collection of item icon nodes displayed in the inventory. */
-    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _abilityIcons;
-    
     /** The collection of item widgets mapping itemId to its corresponding widget */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
+    
+    /** The vector representing the various zones on screen.*/
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _inputZones;
+    
+    /**The button allowing for a reset on the scene. */
+    std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
+    
+    /** The node representing the active (placeholder) item that the player is holding**/
+    std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
+    
+    /**Distance that the active item has moved.**/
+    cugl::Vec2 _dragOffset;
+    
+    /** The Action corresponding to the zone that should glow once the player performs that action**/
+    InputController::Action _glowAction = InputController::Action::NONE;
+    
+    /**The original locations of the abilities. */
+    std::vector<cugl::Vec2> _abilityOriginalPos;
+    
+    /**Internal clock to measure how long we have been glowing**/
+    float _glowTimer = 0;
+    
+    /**How long that a region that glows should glow for at maximum.**/
+    float _glowDuration = 0.3f;
+
+    /** Debug: latest pointer position in scene coordinates */
+    cugl::Vec2 _debugPointerScene = cugl::Vec2::ZERO;
+    
+    /** Debug: whether a pointer is currently active */
+    bool _hasDebugPointer = false;
     
     /** The character loader to load in player characters for this GameScene instance */
     CharacterLoader _characterLoader;
@@ -60,9 +87,6 @@ protected:
      * PlayerAI must inherit from Player for virtual dispatch to work.
      */
     std::vector<std::shared_ptr<Player>> _players;
-    
-    /** Handles touch input for the human player */
-    InputController _input;
     
     /** The ItemController for this GameScene instance*/
     ItemController _itemController;
@@ -84,7 +108,7 @@ public:
     /**
      * Disposes of all (non-static) resources allocated to this mode.
      *
-     * This method is different from dispose() in that it ALSO shuts off any 
+     * This method is different from dispose() in that it ALSO shuts off any
      * static resources, like the input controller.
      */
     ~GameScene() { dispose(); }
@@ -150,10 +174,125 @@ public:
      */
     void handlePassRight();
     
-    
+    /**
+     * Dispatches the local player's current input action to the appropriate
+     * handler method and resets the action afterwards.
+     * No-op if the local player is not alive.
+     *
+     * @param input  The active input controller from SceneLoader.
+     */
+    void handlePlayerActions(InputController& input);
 
-    //everything that needs to be updated. Anything that isn't a graphics call goes here
-    virtual void update(float dt) override;
+    /**
+     * Updates the enemy controller and ticks all AI-controlled players.
+     * Uses dynamic_cast for virtual dispatch so any PlayerAI subclass is
+     * handled correctly. Should only be called by the host.
+     *
+     * @param dt  Delta time in seconds since the last frame.
+     */
+    void updateEnemyAndAI(float dt);
+    
+    /**
+     * Checks if the reset button was tapped and resets the scene if so.
+     * Only fires when no icon is being dragged and a touch just ended.
+     *
+     * @param input  The active input controller from SceneLoader.
+     */
+    void handleResetButton(InputController& input);
+
+    /**
+     * Resolves a drag-and-drop release by classifying the release position
+     * into a drop zone and triggering the appropriate action and glow effect.
+     * Clears the active icon after resolution.
+     *
+     * @param input  The active input controller from SceneLoader.
+     */
+    void handleDropResolution(InputController& input);
+
+    /**
+     * Ticks down the glow timer each frame. Once expired, clears the active
+     * glow action so the visual feedback stops rendering.
+     *
+     * @param dt  Delta time in seconds since the last frame.
+     */
+    void tickGlowTimer(float dt);
+
+    /**
+     * Tracks the current pointer position in scene coordinates for debug rendering.
+     * Sets _hasDebugPointer to false when no touch is active.
+     *
+     * @param input  The active input controller from SceneLoader.
+     */
+    void updateDebugPointer(InputController& input);
+
+    /**
+     * Hit-tests inventory item widgets against the initial touch position.
+     * If a touch begins on a widget, begins dragging it and stores the
+     * offset so the icon doesn't snap its center to the finger.
+     *
+     * @param input  The active input controller from SceneLoader.
+     */
+    void handleDragInitiation(InputController& input);
+
+    /**
+     * Moves the active dragged icon to follow the finger each frame.
+     * Applies the stored drag offset so movement feels natural.
+     *
+     * @param input  The active input controller from SceneLoader.
+     */
+    void handleDragTracking(InputController& input);
+    
+    /**
+     * Logs the action that was resolved from a drag-and-drop gesture.
+     *
+     * Called after a successful drop zone classification to confirm which
+     * action was triggered. Currently logs each case for debugging purposes —
+     * replace CULog calls with real game logic as each action is implemented.
+     *
+     * @param action  The action to resolve, as classified by the drop zone hit-test.
+     */
+    void resolveAction(InputController::Action action);
+    
+    /**
+     * Processes one frame of game logic.
+     *
+     * Accepts the SceneLoader's input controller directly so no copy or
+     * secondary member is needed. Delegates to focused helper methods for
+     * each responsibility:
+     *  1. Reset button tap detection.
+     *  2. Drag-and-drop release zone classification.
+     *  3. Glow timer decay.
+     *  4. Debug pointer tracking.
+     *  5. Drag initiation hit-testing.
+     *  6. Active icon position tracking.
+     *  7. Item controller and inventory sync.
+     *  8. Local player action dispatch.
+     *  9. Enemy and AI update.
+     *
+     * @param dt     Delta time in seconds since the last frame.
+     * @param input  The active input controller owned by SceneLoader.
+     */
+    void update(float dt, InputController& input);
+    
+    /**
+     * Custom render pass drawn after the standard scene graph render.
+     *
+     * Draws translucent debug/gameplay overlays using the sprite batch:
+     *  - A green outline around the reset button for visual debugging.
+     *  - Five rectangular drop zones covering the upper half of the screen
+     *    (boss center, ally left/right, pass left/right), each outlined in green.
+     *  - A filled green glow that fades out over the zone matching the most
+     *    recent successful drop action.
+     *
+     * The zones use scene coordinates (bottom-left origin) directly because
+     * the sprite batch already uses the scene camera.
+     */
+    void render() override;
+    
+    /**
+     * Resets the scene.
+     */
+    void reset() override;
     
     /** Create and return an item Widget with a given ItemInstance */
     std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
