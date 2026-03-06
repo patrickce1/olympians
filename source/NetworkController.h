@@ -3,16 +3,49 @@
 #define __NETWORKING_CONTROLLER__
 
 #include <cugl/cugl.h>
+#include "items/ItemDef.h"
+
+
+/*
+The networking controller creates an abstraction for sending messages over the network.
+
+It handles sending and recieving bytes of data and decoding them into easy to read structs. 
+
+It does not handle actually updating the state of the game. It is up to the individual scenes to update themselves based on
+the messages that they extract from the NetworkController.
+*/
 
 class NetworkController {
 public:
+    /*
+    Types of messages we can recieve
+    */
+    struct AttackMessage {
+        float damage;
+    };
+
+    struct HealMessage {
+        float heal;
+        std::string playerID;
+    };
+
+    struct PassMessage {
+        std::string itemID;
+        std::string playerID;
+    };
+
+
+
+
 
 	enum Status {
         FAILED,
         WAITING,
-        CONNECTED
-        //more to come as networking expands, such as START or ONGOING
+        CONNECTED,
+        STARTED,
+        ONGOING
 	};
+    
     
      /**
       * Creates a new host scene with the default values.
@@ -49,11 +82,14 @@ public:
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
 
-     /**
-      * Checks what the status of the connection is currently. 
-      * Check the Status enum to check what each returned value means
+    /**
+      Basic functions.
      */
     Status checkConnection();
+    void getNetworkUpdates();
+    void clearQueues();
+
+     
 
     /**
     * Connects to the game server as specified in the assets file
@@ -85,26 +121,64 @@ public:
     /*Because the original host can disconnect, this is used to keep track of host migration*/
     bool isHost();
 
-    /* Outline for future atomic update-style functions */
-    //void broadcastDamange(float damange);
-    //void passItem(Item item, Player player);
-    //void broadcastHeal(float heal, Player player);
-    //GameState recieveUpdate();
-
+    /* Atomic update-style functions */
+    void broadcastDamange(float damageAmount);
+    void passItem(const std::string& itemDefID, std::string playerID);
+    void broadcastHeal(float healAmount, std::string playerID);
     
+
+    /*
+    Functions for getting
+    */
+    //GameState getUpdatedState();
+
 
 
 protected:
+    //This enum is used internally by this class to figure out how to decode the data recieved over the network
+    
+    //These enum types are made explicit because we send the enums over as integers, and we don't want to take any
+    //chances for different compilers deciding to assign different numbers to these
+    enum MessageType {
+        BOSS_DAMAGE = 0,
+        PLAYER_HEAL = 1,
+        PLAYER_PASS = 2,
+        GAME_UPDATE = 3
+    };
+
+
+    /*
+    BELOW IS THE SPECIFICATION FOR HOW DATA IS ORGANIZED BASED ON MESSAGE TYPE
+    BOSS_DAMAGE
+        This type of message includes data about what damage was dealt to the boss.
+        The data payload for this is just an integer representing how much damage was done to the boss.
+    PLAYER_HEAL
+        This type of message includes data about what player was healed and for how much health
+    PLAYER_PASS
+        This type of message includes data about what player was sent
+    GAME_UPDATE
+        This is the biggest type of message sent over the network. The host sends out this message to tell players of the new world state.
+        How this payload
+    */
+
 	std::shared_ptr<cugl::netcode::NetcodeConnection> _network;
+    cugl::netcode::NetcodeSerializer _serializer;
+    cugl::netcode::NetcodeDeserializer _deserializer;
+
     std::string _gameid;
     Status _status;
 
     /** The network configuration */
     cugl::netcode::NetcodeConfig _config;
+    
 
 
 private:
-	//nothing for now
+    //Lists that keep track of the
+    std::queue<AttackMessage> attacks;
+    std::vector<PassMessage> pass;
+    std::vector<HealMessage> heal;
+    //GameState state;
 };
 
 
