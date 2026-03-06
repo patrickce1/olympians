@@ -119,3 +119,55 @@ NetworkController::Status NetworkController::checkConnection() {
 	}
 	return FAILED;
 }
+
+void NetworkController::handleMessage(const std::string& senderID, const std::vector<std::byte>& message) {
+	_deserializer.receive(message);
+	int msgCode = _deserializer.readSint32();
+	switch (msgCode) {
+		case MessageType::BOSS_DAMAGE:
+			break;
+		case MessageType::PLAYER_HEAL:
+			break;
+		case MessageType::PLAYER_PASS:
+			break;
+	}
+}
+
+void NetworkController::getNetworkUpdates() {
+	if (_network) {
+		_network->receive([this](const std::string source,
+			const std::vector<std::byte>& data) {
+				handleMessage(source, data);
+			});
+		checkConnection();
+	}
+}
+
+void NetworkController::clearQueues() {
+	attacks.clear();
+	heals.clear();
+	passes.clear();
+}
+
+void NetworkController::broadcastDamage(float damage) {
+	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
+	_serializer.writeFloat(damage);
+	_network->sendToHost(_serializer.serialize());
+	_serializer.reset();
+}
+
+void NetworkController::broadcastHeal(float heal, const std::string& playerID) {
+	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
+	_serializer.writeFloat(heal);
+	_serializer.writeString(playerID);
+	_network->sendToHost(_serializer.serialize());
+	_serializer.reset();
+}
+
+void NetworkController::passItem(const std::string& itemDefID, const std::string& playerID) {
+	_serializer.writeSint32(MessageType::PLAYER_PASS);
+	_serializer.writeString(itemDefID);
+	_serializer.writeString(playerID);
+	_network->sendToHost(_serializer.serialize());
+	_serializer.reset();
+}

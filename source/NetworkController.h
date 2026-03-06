@@ -34,10 +34,6 @@ public:
         std::string playerID;
     };
 
-
-
-
-
 	enum Status {
         FAILED,
         WAITING,
@@ -122,9 +118,9 @@ public:
     bool isHost();
 
     /* Atomic update-style functions */
-    void broadcastDamange(float damageAmount);
-    void passItem(const std::string& itemDefID, std::string playerID);
-    void broadcastHeal(float healAmount, std::string playerID);
+    void broadcastDamage(float damageAmount);
+    void passItem(const std::string& itemDefID, const std::string& playerID);
+    void broadcastHeal(float healAmount, const std::string& playerID);
     
 
     /*
@@ -175,10 +171,13 @@ protected:
 
 private:
     //Lists that keep track of the
-    std::queue<AttackMessage> attacks;
-    std::vector<PassMessage> pass;
-    std::vector<HealMessage> heal;
+    std::vector<AttackMessage> attacks;
+    std::vector<PassMessage> passes;
+    std::vector<HealMessage> heals;
     //GameState state;
+
+    void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);
+
 };
 
 
