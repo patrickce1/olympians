@@ -1,6 +1,9 @@
 #include <cugl/cugl.h>
+#include <algorithm>
 #include <iostream>
+#include <random>
 #include <sstream>
+#include <unordered_set>
 #include "GameScene.h"
 #include "../InputController.h"
 #include "../playerAI/PlayerAI.h"
@@ -319,10 +322,19 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     return widget;
 }
 
-/** Return the world position for an item widget's initial inventory position */
-cugl::Vec2 GameScene::getInitialInventoryPosition() const {
-    cugl::Size size = _inventory->getContentSize();
-    return cugl::Vec2(size.width * 0.5f, size.height * 0.5f);
+/** Return a random in-bounds inventory position for a newly spawned item widget */
+cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size& widgetSize) const {
+    const cugl::Size inventorySize = _inventory->getContentSize();
+
+    const float maxX = std::max(0.0f, inventorySize.width - widgetSize.width);
+    const float maxY = std::max(0.0f, inventorySize.height - widgetSize.height);
+
+    std::random_device rd;
+    std::mt19937 rng(rd());
+    std::uniform_real_distribution<float> xDist(0.0f, maxX);
+    std::uniform_real_distribution<float> yDist(0.0f, maxY);
+
+    return cugl::Vec2(xDist(rng), yDist(rng));
 }
 
 /** Sync player inventory and item widgets displayed on screen */
@@ -330,24 +342,24 @@ void GameScene::syncInventoryWidgets() {
     if (!_inventory || !_localPlayer) {
         return;
     }
-    
+
     std::unordered_set<ItemInstance::ItemId> liveIds;
-    
+
     for (const ItemInstance& item : _localPlayer->getInventory()) {
         ItemInstance::ItemId id = item.getId();
         liveIds.insert(id);
-        
+
         auto found = _itemWidgets.find(id);
         if (found == _itemWidgets.end()) {
             auto widget = createItemWidget(item);
             if (!widget) {
                 continue;
             }
-            widget->setPosition(getInitialInventoryPosition());
+            widget->setPosition(getRandomInventoryPosition(widget->getContentSize()));
             _itemWidgets.emplace(id, widget);
         }
     }
-    
+
     for (auto it = _itemWidgets.begin(); it != _itemWidgets.end(); ) {
         if (liveIds.find(it->first) == liveIds.end()) {
             if (it->second) {

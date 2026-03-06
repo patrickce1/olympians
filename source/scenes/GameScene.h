@@ -158,8 +158,8 @@ public:
     /** Create and return an item Widget with a given ItemInstance */
     std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
     
-    /** Return the world position for an item widget's initial inventory position */
-    cugl::Vec2 getInitialInventoryPosition() const;
+    /** Return a random valid inventory position for a newly spawned item widget */
+    cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
     
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
