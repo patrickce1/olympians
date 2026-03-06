@@ -76,13 +76,15 @@ void ItemController::update(float dt, Player* player) {
     }
 }
 
-// Hand out a card to the player
+// Hand out an item to the player
 void ItemController::giveRandomItem(Player* player) {
+    // Check if player is alive
     if (!player->isAlive()) {
         CULog("[ItemController] Player is not alive");
         return;
     }
 
+    // Check if player has too many items
     if (player->getInventory().size() >= _maxInventorySpawnItems) {
         CULog("[ItemController] Spawn skipped: inventory size %zu is at or above cap %zu",
               player->getInventory().size(), _maxInventorySpawnItems);
