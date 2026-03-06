@@ -7,6 +7,8 @@
 #include "PlayerTests.h"
 #include "EnemyTests.h"
 #include <algorithm>
+#include <cugl/core/CUBase.h>
+#include <cugl/core/util/CULogger.h>
 
 /**
  * Scene loader class responsible for loading assets and managing scene transitions

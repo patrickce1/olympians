@@ -6,7 +6,6 @@
  *
  * @return true if the touchscreen was successfully acquired; false otherwise.
  */
-
 bool InputController::init(){
     
     // Attempt to acquire the touchscreen input device
@@ -39,7 +38,6 @@ bool InputController::init(){
  *
  * Removes all registered touch event listeners and clears the touchscreen
  */
-
 void InputController::dispose() {
     if (_touch){
         // Unregister all touch event listeners using the acquire key
@@ -58,7 +56,6 @@ void InputController::dispose() {
  *
  * @param active  true to enable input processing; false to disable it.
  */
-
 void InputController::setActive(bool active){
     _active = active;
     if (!active){
@@ -110,7 +107,6 @@ void InputController::onTouchBegan(const cugl::TouchEvent &event, bool focus){
  * @param focus     Whether the application currently has input focus.
  * Focus is unused
  */
-
 void InputController::onTouchMoved(const cugl::TouchEvent &event, const cugl::Vec2 &previous, bool focus){
     
     if (!_active || event.touch != _activeTouchID){ //We are not ready for a touch.
@@ -136,7 +132,6 @@ void InputController::onTouchMoved(const cugl::TouchEvent &event, const cugl::Ve
  * @param focus  Whether the application currently has input focus.
  * focus is unused
  */
-
 void InputController::onTouchEnded(const cugl::TouchEvent &event, bool focus){
     if (event.touch != _activeTouchID){
         return;

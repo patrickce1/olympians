@@ -1,11 +1,5 @@
 //Implementation of SceneLoader
-
 #include "SceneLoader.h"
-#include <cugl/core/CUBase.h>
-#include <cugl/core/util/CULogger.h>
-
-//  Unit tests
-void runEnemyTests();
 
 // This keeps us from having to write cugl:: all the time
 using namespace cugl;
@@ -97,15 +91,11 @@ void SceneLoader::onStartup() {
 
     // in SceneLoader::onStartup(), just to verify zones fire
     _input.init(); //The input controller starts.
-    cugl::Rect screen = getDisplayBounds();
-    float w = screen.size.width;
-    float h = screen.size.height;
-    CULog("Screen size: %f x %f", w, h);
+    
     _input.setActive(true); //We can actually tap.
     
-    CULog("Is active: %d", _input.isActive());
+    CULog("Input is active: %d", _input.isActive());
 
-   
     // Create the logger
     _logger = Logger::open("debug");
 

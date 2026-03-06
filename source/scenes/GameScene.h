@@ -91,8 +91,10 @@ protected:
     /** The ItemController for this GameScene instance*/
     ItemController _itemController;
 
-    /** The enemy for this scene and its controller */
+    /** The enemy for this scene */
     std::shared_ptr<Enemy> _enemy;
+    
+    /** The controller for the enmey in this scene */
     EnemyController _enemyController;
 
 
@@ -254,6 +256,34 @@ public:
     void resolveAction(InputController::Action action);
     
     /**
+     * Creates a scene node widget for the given item and adds it to the
+     * inventory container. The widget's texture is chosen based on whether
+     * the item is an attack or support type.
+     *
+     * @param item  The item instance to create a widget for.
+     * @return      The newly created scene node, or nullptr if the item
+     *              definition or texture could not be found.
+     */
+    std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
+
+    /**
+     * Returns the initial world position for a newly created item widget
+     * inside the inventory container. Widgets are placed at the center
+     * of the inventory node when first added.
+     *
+     * @return  The center position of the inventory node in world coordinates.
+     */
+    cugl::Vec2 getInitialInventoryPosition() const;
+
+    /**
+     * Synchronizes the on-screen item widgets with the local player's
+     * current inventory. Creates widgets for any items that are new,
+     * and removes widgets for any items that have been consumed or passed.
+     * Called every frame from update().
+     */
+    void syncInventoryWidgets();
+    
+    /**
      * Processes one frame of game logic.
      *
      * Accepts the SceneLoader's input controller directly so no copy or
@@ -293,16 +323,6 @@ public:
      * Resets the scene.
      */
     void reset() override;
-    
-    /** Create and return an item Widget with a given ItemInstance */
-    std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
-    
-    /** Return the world position for an item widget's initial inventory position */
-    cugl::Vec2 getInitialInventoryPosition() const;
-    
-    /** Sync player inventory and item widgets displayed on screen */
-    void syncInventoryWidgets();
-
 };
 
 #endif /* __GAME_SCENE_H__ */
