@@ -305,14 +305,45 @@ public:
     void update(float dt, InputController& input);
     
     /**
-     * Custom render pass drawn after the standard scene graph render.
+     * Draws a green debug outline around the reset button's bounding box.
+     * Only draws if the reset button node exists in the scene graph.
      *
-     * Draws translucent debug/gameplay overlays using the sprite batch:
-     *  - A green outline around the reset button for visual debugging.
-     *  - Five rectangular drop zones covering the upper half of the screen
-     *    (boss center, ally left/right, pass left/right), each outlined in green.
-     *  - A filled green glow that fades out over the zone matching the most
-     *    recent successful drop action.
+     * @param batch  The active sprite batch to draw into.
+     */
+    void renderResetButton(cugl::graphics::SpriteBatch* batch);
+
+    /**
+     * Draws a faint green outline for every input zone, plus a fading
+     * filled green overlay on whichever zone most recently received a drop.
+     * The fill alpha decays over _glowDuration seconds.
+     *
+     * @param batch  The active sprite batch to draw into.
+     */
+    void renderDropZones(cugl::graphics::SpriteBatch* batch);
+
+    /**
+     * Draws a magenta outline around each visible item widget's bounding box.
+     * Useful for verifying hit-test regions during development.
+     *
+     * @param batch  The active sprite batch to draw into.
+     */
+    void renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch);
+
+    /**
+     * Draws a small red filled square at the current pointer position,
+     * outlined in white. Only draws when a touch is active.
+     *
+     * @param batch  The active sprite batch to draw into.
+     */
+    void renderPointerDebug(cugl::graphics::SpriteBatch* batch);
+
+    /**
+     * Custom render pass drawn after the standard scene graph render.
+     * Delegates to focused helper methods for each overlay:
+     *  1. Reset button debug outline.
+     *  2. Drop zone outlines and glow effect.
+     *  3. Item widget bounding box outlines.
+     *  4. Current pointer position indicator.
      *
      * The zones use scene coordinates (bottom-left origin) directly because
      * the sprite batch already uses the scene camera.

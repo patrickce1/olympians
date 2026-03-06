@@ -193,14 +193,14 @@ void GameScene::reset() {
             _inventory->removeChild(widget);
         }
     }
-    // 3. Clear the tracking map
+    
+    // Clear the item widgets
     _itemWidgets.clear();
     
     if (_localPlayer) {
         _localPlayer->clearInventory();
     }
 }
-
 
 /**
  * Resolves a drag-and-drop release by classifying the release position
@@ -515,70 +515,100 @@ void GameScene::dispose() {
 }
 
 /**
- * Custom render pass drawn after the standard scene graph render.
+ * Draws a green debug outline around the reset button's bounding box.
+ * Only draws if the reset button node exists in the scene graph.
  *
- * Draws translucent debug/gameplay overlays using the sprite batch:
- *  - A green outline around the reset button for visual debugging.
- *  - Five rectangular drop zones covering the upper half of the screen
- *    (boss center, ally left/right, pass left/right), each outlined in green.
- *  - A filled green glow that fades out over the zone matching the most
- *    recent successful drop action.
- *
- * The zones use scene coordinates (bottom-left origin) directly because
- * the sprite batch already uses the scene camera.
+ * @param batch  The active sprite batch to draw into.
  */
-void GameScene::render() {
-    // First, render the standard scene graph (all SceneNode children)
-    Scene2::render();
-    
-    // Begin a custom overlay pass using the scene's shared sprite batch
-    auto batch = getSpriteBatch();
-    batch->setPerspective(getCamera()->getCombined());
-    batch->begin();
-    // Debug outline around the reset button
-    if (_resetBtn) {
-        Rect boundingBox = _resetBtn->getBoundingBox();
-        Path2 path(boundingBox);
-        batch->setColor(Color4(0, 255, 0, 150));
-        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
-    }
-    
-    // Draw each drop zone
+void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
+    if (!_resetBtn) return;
+    Rect boundingBox = _resetBtn->getBoundingBox();
+    Path2 path(boundingBox);
+    batch->setColor(Color4(0, 255, 0, 150));
+    batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+}
+
+/**
+ * Draws a faint green outline for every input zone, plus a fading
+ * filled green overlay on whichever zone most recently received a drop.
+ * The fill alpha decays over _glowDuration seconds.
+ *
+ * @param batch  The active sprite batch to draw into.
+ */
+void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
     for (auto& [action, rect] : _inputZones) {
         Path2 path(rect);
-        
-        // If this zone matches the active glow, draw a fading filled overlay
+
         if (action == _glowAction && _glowTimer > 0) {
-            float timeRemaining = _glowTimer / _glowDuration;    // Normalized time remaining [1 → 0]
-            Uint8 alpha = (Uint8)(150 * timeRemaining);           // Fade from 150 → 0 alpha
+            float timeRemaining = _glowTimer / _glowDuration;
+            Uint8 alpha = (Uint8)(150 * timeRemaining);
             batch->setColor(Color4(0, 255, 0, alpha));
             batch->fill(path, Vec2::ZERO, Affine2::IDENTITY);
         }
-        
-        // Always draw a faint green outline for every zone
+
         batch->setColor(Color4(0, 255, 0, 80));
         batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
     }
+}
 
-    // Debug: outline ability icon bounding boxes
+/**
+ * Draws a magenta outline around each visible item widget's bounding box.
+ * Useful for verifying hit-test regions during development.
+ *
+ * @param batch  The active sprite batch to draw into.
+ */
+void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch) {
     batch->setColor(Color4(255, 0, 255, 140));
-    for (auto& [id,widget] : _itemWidgets) {
+    for (auto& [id, widget] : _itemWidgets) {
         if (!widget || !widget->isVisible()) continue;
         Rect box = widget->getBoundingBox();
         Path2 path(box);
         batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
     }
+}
 
-    // Debug: show current pointer position
-    if (_hasDebugPointer) {
-        Rect p(_debugPointerScene.x - 6.0f, _debugPointerScene.y - 6.0f, 12.0f, 12.0f);
-        Path2 path(p);
-        batch->setColor(Color4(255, 0, 0, 200));
-        batch->fill(path, Vec2::ZERO, Affine2::IDENTITY);
-        batch->setColor(Color4(255, 255, 255, 200));
-        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
-    }
-    
+/**
+ * Draws a small red filled square at the current pointer position,
+ * outlined in white. Only draws when a touch is active.
+ *
+ * @param batch  The active sprite batch to draw into.
+ */
+void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch* batch) {
+    if (!_hasDebugPointer) return;
+    Rect p(_debugPointerScene.x - 6.0f, _debugPointerScene.y - 6.0f, 12.0f, 12.0f);
+    Path2 path(p);
+    batch->setColor(Color4(255, 0, 0, 200));
+    batch->fill(path, Vec2::ZERO, Affine2::IDENTITY);
+    batch->setColor(Color4(255, 255, 255, 200));
+    batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+}
+
+/**
+ * Custom render pass drawn after the standard scene graph render.
+ *
+ * Draws translucent debug/gameplay overlays using the sprite batch:
+ *  - A green outline around the reset button for visual debugging.
+ *  - Five rectangular drop zones, each outlined in green.
+ *  - A filled green glow that fades out over the zone matching the most
+ *    recent successful drop action.
+ *  - Magenta outlines around visible item widget bounding boxes.
+ *  - A red square at the current pointer position.
+ *
+ * The zones use scene coordinates (bottom-left origin) directly because
+ * the sprite batch already uses the scene camera.
+ */
+void GameScene::render() {
+    Scene2::render();
+
+    auto batch = getSpriteBatch();
+    batch->setPerspective(getCamera()->getCombined());
+    batch->begin();
+
+    renderResetButton(batch.get());
+    renderDropZones(batch.get());
+    renderItemWidgetDebug(batch.get());
+    renderPointerDebug(batch.get());
+
     batch->end();
 }
 
