@@ -2,11 +2,6 @@
 #include <iostream>
 #include <sstream>
 #include "GameScene.h"
-#include "../InputController.h"
-#include "../playerAI/PlayerAI.h"
-#include "../playerAI/EasyPlayerAI.h"
-#include "../CharacterLoader.h"
-#include "../Enemy.h"
 
 using namespace cugl;
 using namespace cugl::scene2;
@@ -20,34 +15,13 @@ using namespace std;
 
 #pragma mark -
 #pragma mark Constructors
-/**
- * Initializes the controller contents, and starts the game
- *
- * In previous labs, this method "started" the scene.  But in this
- * case, we only use to initialize the scene user interface.  We
- * do not activate the user interface yet, as an active user
- * interface will still receive input EVEN WHEN IT IS HIDDEN.
- *
- * That is why we have the method {@link #setActive}.
- *
- * @param assets    The (loaded) assets for this game mode
- *
- * @return true if the controller is initialized properly, false otherwise.
- */
-bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
-    // Initialize the scene to a locked width
-    if (assets == nullptr) {
-        return false;
-    }
-    else if (!Scene2::initWithHint(Size(0, SCENE_HEIGHT))) {
-        return false;
-    }
 
-    // Start up the input handler
-    _assets = assets;
+/**
+ * Builds the five rectangular input zones from the current scene dimensions.
+ * Must be called after Scene2::initWithHint() so getSize() is valid.
+ */
+void GameScene::initInputZones() {
     Size dimen = getSize();
-    
-    // Get game input zones
     float w = dimen.width;
     float h = dimen.height;
     _inputZones = {
@@ -57,103 +31,92 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         {InputController::Action::PASS_LEFT,       Rect(0,         0,        w * 0.15f, h * 0.5f)},
         {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)}
     };
-    
-    // Acquire the scene built by the asset loader and resize it the scene.
+}
+
+/**
+ * Loads the scene graph from assets, resizes it to the current scene
+ * dimensions, and wires up all named child node references.
+ * Must be called after _assets is assigned and Scene2::initWithHint() succeeds.
+ *
+ * @return true if the root scene node was found in the asset manager.
+ */
+bool GameScene::initSceneGraph() {
+    Size dimen = getSize();
+
     _scene = _assets->get<scene2::SceneNode>("gameScene");
-    
     if (!_scene) {
         CULogError("Scene NOT here!");
         return false;
     }
 
     _scene->setContentSize(dimen);
-    _scene->doLayout(); // Repositions the HUD
-    
-    // Elements setup from assets
+    _scene->doLayout();
+
     _gameArea  = _scene->getChildByName("gameArea");
     _inventory = _scene->getChildByName("inventory");
     _resetBtn  = _scene->getChildByName("resetButton");
-    
+
     if (_gameArea) {
         _attackArea = _gameArea->getChildByName("attackArea");
-
         _playerSlots.push_back(_gameArea->getChildByName("player"));
         _playerSlots.push_back(_gameArea->getChildByName("player3"));
         _playerSlots.push_back(_gameArea->getChildByName("player4"));
     }
-    
+
     if (_attackArea) {
         _bossNode = _attackArea->getChildByName("enemy");
     }
 
     addChild(_scene);
-    
-    const std::string characterJsonPath = "json/characters.json";
-    if (!_characterLoader.loadFromFile(characterJsonPath)) {
-        CULog("Failed to load characters.json");
-        return false;
-    }
+    return true;
+}
 
-    // --- Build the player array ---
-    // Index 0: human-controlled Player.
-    // Indices 1-3: AI-controlled EasyPlayerAI (inherits PlayerAI -> Player).
-    // All stored as shared_ptr<Player> so EnemyController, neighbor links,
-    // and any other system that iterates _players works uniformly.
-    _players.reserve(4);
-
-    // Human player
-    auto humanPlayer = std::make_shared<Player>("Percy", 1, "Player 1", _characterLoader);
-    _players.push_back(humanPlayer);
-
-    // AI players — EasyPlayerAI is constructed but NOT yet init()'d here
-    // because init() needs the ItemController database which is set up below.
-    for (int i = 1; i <= 3; i++) {
-        auto aiPlayer = std::make_shared<EasyPlayerAI>("Percy", i + 1,
-                                                       "Player " + std::to_string(i + 1),
-                                                       _characterLoader);
-        _players.push_back(aiPlayer);
-    }
-
-    // --- Circular neighbor linking ---
-    // Links all 4 players in a ring: 0 <-> 1 <-> 2 <-> 3 <-> 0
-    const int playerCount = (int)_players.size();
-    for (int i = 0; i < playerCount; i++) {
-        int leftIdx  = (i - 1 + playerCount) % playerCount;
-        int rightIdx = (i + 1) % playerCount;
-        _players[i]->setLeftPlayer(_players[leftIdx].get());
-        _players[i]->setRightPlayer(_players[rightIdx].get());
-    }
-
-    // Sets the local player for this GameScene instance using an assigned index.
-    // NOTE: ONLY HOST SHOULD RUN THIS — IMPORTANT FOR NETWORKING.
-    setLocalPlayer(0);
-
+/**
+ * Initialises the ItemController and GameState.
+ * ItemController must be initialised first because GameState::init()
+ * needs the item database to finish setting up AI players.
+ *
+ * @return true if both systems initialised successfully.
+ */
+bool GameScene::initGameSystems() {
     if (!_itemController.init(_assets)) {
         return false;
     }
-
-    const std::string enemyJsonPath = "json/enemies.json";
-    _enemy = std::make_shared<Enemy>();
-    if (!_enemy->init("enemy1", enemyJsonPath)) {
-        CULog("Failed to initialize enemy");
+    if (!_gameState.init(_itemController)) {
         return false;
     }
-    CULog("GameScene: Enemy initialized id='%s'", _enemy->getId().c_str());
+    return true;
+}
 
-    // Finish initializing AI players now that _itemController is ready.
-    // We cast each shared_ptr<Player> back to PlayerAI* for the AI-specific init().
-    const std::string aiConfigPath = "json/playerAI.json";
-    for (int i = 1; i < playerCount; i++) {
-        auto* ai = dynamic_cast<PlayerAI*>(_players[i].get());
-        if (!ai) {
-            CULog("Player %d is not a PlayerAI — skipping AI init", i);
-            continue;
-        }
-        if (!ai->init(_itemController.getDatabase(), aiConfigPath)) {
-            CULog("Failed to initialize AI for player %d", i);
-            return false;
-        }
-        CULog("Initialized AI for player %d", i);
+/**
+ * Initialises the scene graph and all game systems.
+ *
+ * Builds the scene graph from the asset manager, initialises the
+ * ItemController, and delegates world-state construction (players,
+ * enemy, AI) to GameState::init(). Does not activate the scene —
+ * call setActive(true) when ready to receive input.
+ *
+ * @param assets  The loaded asset manager.
+ * @return true if initialisation succeeded, false otherwise.
+ */
+bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+    if (assets == nullptr) {
+        return false;
+    }
+    if (!Scene2::initWithHint(Size(0, SCENE_HEIGHT))) {
+        return false;
+    }
+
+    _assets = assets;
+
+    initInputZones();
+
+    if (!initSceneGraph()) {
+        return false;
+    }
+
+    if (!initGameSystems()) {
+        return false;
     }
 
     setActive(false);
@@ -161,53 +124,203 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 }
 
 /**
- * Checks if the reset button was tapped and resets the scene if so.
- * Only fires when no icon is being dragged and a touch just ended.
- *
- * Uses the input parameter passed from SceneLoader.
+ * Disposes of all (non-static) resources allocated to this mode.
+ */
+void GameScene::dispose() {
+    if (_active) {
+        removeAllChildren();
+        _gameArea   = nullptr;
+        _inventory  = nullptr;
+        _attackArea = nullptr;
+        _bossNode   = nullptr;
+        _playerSlots.clear();
+        _gameState.dispose();
+        _active = false;
+    }
+}
+
+/**
+ * Activates or deactivates the scene and its UI.
+ * Calls reset() and enters the idle enemy state on activation.
+ */
+void GameScene::setActive(bool value) {
+    if (isActive() != value) {
+        Scene2::setActive(value);
+        if (value) {
+            reset();
+            _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
+        }
+    }
+}
+
+/**
+ * Resets the scene to its start-of-round state.
+ * Clears all item widgets, cancels any active drag, resets the glow
+ * effect, and clears every player's inventory via GameState::reset().
+ */
+void GameScene::reset() {
+    _activeIcon = nullptr;
+    _glowAction = InputController::Action::NONE;
+    _glowTimer  = 0;
+
+    for (auto& [id, widget] : _itemWidgets) {
+        if (widget && _inventory) {
+            _inventory->removeChild(widget);
+        }
+    }
+    _itemWidgets.clear();
+
+    // Delegate inventory clearing to the model.
+    _gameState.reset();
+}
+
+#pragma mark -
+#pragma mark Player Assignment
+
+/**
+ * Assigns the local player slot for this machine.
+ * Delegates to GameState::setLocalPlayer().
+ */
+void GameScene::setLocalPlayer(int assignedIndex) {
+    _gameState.setLocalPlayer(assignedIndex);
+}
+
+#pragma mark -
+#pragma mark Action Handlers
+
+/**
+ * Handles the local player dropping an attack item on the boss zone.
+ */
+void GameScene::handleAttack() {
+    auto enemy       = _gameState.getEnemy();
+    Player* local    = _gameState.getLocalPlayer();
+    if (!enemy || !local) return;
+
+    for (const ItemInstance& item : local->getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Attack) {
+            local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+            CULog("Player attacked enemy '%s' with item %llu",
+                  enemy->getId().c_str(), (unsigned long long)item.getId());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the local player dropping a support item on the left ally zone.
+ */
+void GameScene::handleSupportLeft() {
+    Player* local  = _gameState.getLocalPlayer();
+    Player* target = local ? local->getLeftPlayer() : nullptr;
+    if (!target || !target->isAlive()) return;
+
+    for (const ItemInstance& item : local->getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Support) {
+            local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Handles the local player dropping a support item on the right ally zone.
+ */
+void GameScene::handleSupportRight() {
+    Player* local  = _gameState.getLocalPlayer();
+    Player* target = local ? local->getRightPlayer() : nullptr;
+    if (!target || !target->isAlive()) return;
+
+    for (const ItemInstance& item : local->getInventory()) {
+        auto def = _itemController.getDatabase().getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Support) {
+            local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            return;
+        }
+    }
+}
+
+/**
+ * Passes the first item in the local player's inventory to the left neighbour.
+ */
+void GameScene::handlePassLeft() {
+    Player* local  = _gameState.getLocalPlayer();
+    Player* target = local ? local->getLeftPlayer() : nullptr;
+    if (!target || !target->isAlive() || local->getInventory().empty()) return;
+
+    ItemInstance item = local->getInventory()[0];
+    local->removeItemById(item.getId());
+    target->addItem(item);
+}
+
+/**
+ * Passes the first item in the local player's inventory to the right neighbour.
+ */
+void GameScene::handlePassRight() {
+    Player* local  = _gameState.getLocalPlayer();
+    Player* target = local ? local->getRightPlayer() : nullptr;
+    if (!target || !target->isAlive() || local->getInventory().empty()) return;
+
+    ItemInstance item = local->getInventory()[0];
+    local->removeItemById(item.getId());
+    target->addItem(item);
+}
+
+/**
+ * Dispatches the resolved drop-zone action to the appropriate handler
+ * and resets the input action afterwards.
+ */
+void GameScene::handlePlayerActions(InputController& input) {
+    Player* local = _gameState.getLocalPlayer();
+    if (!local || !local->isAlive()) return;
+
+    switch (input.getAction()) {
+        case InputController::Action::DROP_BOSS:       handleAttack();       break;
+        case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft();  break;
+        case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(); break;
+        case InputController::Action::PASS_LEFT:       handlePassLeft();     break;
+        case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
+        default: break;
+    }
+    input.resetAction();
+}
+
+#pragma mark -
+#pragma mark Update Helpers
+
+/**
+ * Ticks the enemy controller and all AI-controlled players forward by one frame.
+ */
+void GameScene::updateEnemyAndAI(float dt) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy || !enemy->isAlive()) return;
+
+    _enemyController.update(dt, enemy, _gameState.getPlayers());
+
+    for (auto& player : _gameState.getPlayers()) {
+        if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
+            ai->update(dt, *enemy, _itemController);
+        }
+    }
+}
+
+/**
+ * Checks whether the reset button was tapped and calls reset() if so.
  */
 void GameScene::handleResetButton(InputController& input) {
     if (!input.touchEnded() || _activeIcon || !_resetBtn) return;
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
-    Rect boundingBox = _resetBtn->getBoundingBox();
-
-    if (boundingBox.contains(touchPosScreen)) {
+    if (_resetBtn->getBoundingBox().contains(touchPosScreen)) {
         CULog("Reset button tapped!");
         reset();
     }
 }
 
 /**
- * Resets all ability icons to their original positions and visibility.
- *
- * Called when the player taps the reset button. Cancels any active drag,
- * clears the glow effect, and restores every icon to its initial state.
- */
-void GameScene::reset() {
-    _activeIcon = nullptr;                          // Cancel any in-progress drag
-    _glowAction = InputController::Action::NONE;    // Clear the glow action
-    _glowTimer  = 0;                                // Stop the glow timer
-    for (auto& [id, widget] : _itemWidgets) {
-        if (widget != nullptr && _inventory != nullptr) {
-            _inventory->removeChild(widget);
-        }
-    }
-    
-    // Clear the item widgets
-    _itemWidgets.clear();
-    
-    if (_localPlayer) {
-        _localPlayer->clearInventory();
-    }
-}
-
-/**
- * Resolves a drag-and-drop release by classifying the release position
- * into a drop zone and triggering the appropriate action and glow effect.
- * Clears the active icon after resolution.
- *
- * Uses the input parameter passed from SceneLoader.
+ * Classifies a drag-and-drop release into a drop zone, triggers the
+ * appropriate action and glow effect, then clears the active icon.
  */
 void GameScene::handleDropResolution(InputController& input) {
     if (!_activeIcon || !input.touchEnded()) return;
@@ -235,14 +348,11 @@ void GameScene::handleDropResolution(InputController& input) {
 }
 
 /**
- * Ticks down the glow timer each frame. Once expired, clears the active
- * glow action so the visual feedback stops rendering.
- *
- * @param dt  Delta time in seconds since the last frame.
+ * Decrements the glow timer each frame. Clears the active glow action
+ * once the timer expires.
  */
 void GameScene::tickGlowTimer(float dt) {
     if (_glowTimer <= 0) return;
-
     _glowTimer -= dt;
     if (_glowTimer <= 0) {
         _glowAction = InputController::Action::NONE;
@@ -250,50 +360,7 @@ void GameScene::tickGlowTimer(float dt) {
 }
 
 /**
- * Dispatches the local player's current input action to the appropriate
- * handler (attack, support, or pass). Resets the action after handling.
- * Does nothing if the local player is not alive.
- */
-void GameScene::handlePlayerActions(InputController& input) {
-    if (!_localPlayer->isAlive()) return;
-
-    switch (input.getAction()) {
-        case InputController::Action::DROP_BOSS:       handleAttack();       break;
-        case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft();  break;
-        case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(); break;
-        case InputController::Action::PASS_LEFT:       handlePassLeft();     break;
-        case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
-        default: break;
-    }
-    input.resetAction();
-}
-
-/**
- * Ticks the enemy controller and all AI players forward by one frame.
- * The enemy controller handles enemy behaviour and attacks against players.
- * Each AI player is updated via virtual dispatch, so any PlayerAI subclass
- * is handled correctly regardless of which slot it occupies.
- * Should only be called by the host in a networked session.
- *
- * @param dt  Delta time in seconds since the last frame.
- */
-void GameScene::updateEnemyAndAI(float dt) {
-    if (!_enemy->isAlive()) return;
-
-    _enemyController.update(dt, _enemy, _players);
-
-    for (auto& player : _players) {
-        if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
-            ai->update(dt, *_enemy, _itemController);
-        }
-    }
-}
-
-/**
- * Tracks the current pointer position in scene coordinates for debug rendering.
- * Sets _hasDebugPointer to false when no touch is active.
- *
- * Uses the input parameter passed from SceneLoader.
+ * Updates the debug pointer position in scene coordinates.
  */
 void GameScene::updateDebugPointer(InputController& input) {
     if (!input.isTouching()) {
@@ -310,11 +377,7 @@ void GameScene::updateDebugPointer(InputController& input) {
 }
 
 /**
- * Hit-tests inventory item widgets against the initial touch position.
- * If a touch begins on a widget, begins dragging it and stores the
- * offset so the icon doesn't snap its center to the finger.
- *
- * Uses the input parameter passed from SceneLoader.
+ * Hit-tests item widgets against the initial touch position.
  */
 void GameScene::handleDragInitiation(InputController& input) {
     if (_activeIcon || !input.isDragging()) return;
@@ -332,10 +395,7 @@ void GameScene::handleDragInitiation(InputController& input) {
 }
 
 /**
- * Moves the active dragged icon to follow the finger each frame.
- * Applies the stored drag offset so movement feels natural.
- *
- * Uses the input parameter passed from SceneLoader.
+ * Moves the active dragged icon to follow the current touch position.
  */
 void GameScene::handleDragTracking(InputController& input) {
     if (!_activeIcon || (!input.isTouching() && !input.isMouseDown())) return;
@@ -344,136 +404,27 @@ void GameScene::handleDragTracking(InputController& input) {
     _activeIcon->setPosition(dragScene + _dragOffset);
 }
 
-// Called after the network session and assigns all local machines to a network-given player slot
-void GameScene::setLocalPlayer(int assignedIndex) {
-    CUAssertLog(assignedIndex >= 0 && assignedIndex < (int)_players.size(),
-                "Assigned index out of range");
-    _localPlayer = _players[assignedIndex].get();
-}
-
 /**
- * Handles the local player dropping an item on the boss zone to attack.
+ * Logs the resolved drop-zone action for debugging.
  */
-void GameScene::handleAttack() {
-    if (!_enemy) return;
-    
-    for (const ItemInstance& item : _localPlayer->getInventory()) {
-        auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Attack) {
-            _localPlayer->useItemById(item.getId(), *_enemy, _itemController.getDatabase());
-            CULog("Player attacked enemy '%s' with item %llu", _enemy->getId().c_str(), (unsigned long long)item.getId());
-            return;
-        }
+void GameScene::resolveAction(InputController::Action action) {
+    switch (action) {
+        case InputController::Action::DROP_BOSS:       CULog("boss drop");      break;
+        case InputController::Action::DROP_ALLY_LEFT:  CULog("ally drop left"); break;
+        case InputController::Action::DROP_ALLY_RIGHT: CULog("ally drop right");break;
+        case InputController::Action::PASS_LEFT:       CULog("pass left");      break;
+        case InputController::Action::PASS_RIGHT:      CULog("pass right");     break;
+        case InputController::Action::DRAG:            CULog("Dragging");       break;
+        case InputController::Action::NONE:            CULog("Nothing");        break;
+        case InputController::Action::PAUSE:           CULog("Nothing");        break;
     }
 }
 
-/**
- * Handles the local player dropping an item on the left ally zone to support.
- */
-void GameScene::handleSupportLeft() {
-    Player* target = _localPlayer->getLeftPlayer();
-    if (!target || !target->isAlive()) return;
-    
-    for (const ItemInstance& item : _localPlayer->getInventory()) {
-        auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Support) {
-            _localPlayer->useItemById(item.getId(), *target, _itemController.getDatabase());
-            return;
-        }
-    }
-}
-
-/**
- * Handles the human player dropping an item on the right ally zone to support.
- */
-void GameScene::handleSupportRight() {
-    Player* target = _localPlayer->getRightPlayer();
-    if (!target || !target->isAlive()) return;
-    
-    for (const ItemInstance& item : _localPlayer->getInventory()) {
-        auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Support) {
-            _localPlayer->useItemById(item.getId(), *target, _itemController.getDatabase());
-            return;
-        }
-    }
-}
-
-/**
- * Handles the human player passing an item to the left neighbor.
- */
-void GameScene::handlePassLeft() {
-    Player* target = _localPlayer->getLeftPlayer();
-    
-    if (!target || !target->isAlive() || _localPlayer->getInventory().empty()) return;
-    ItemInstance item = _localPlayer->getInventory()[0];
-    _localPlayer->removeItemById(item.getId());
-    target->addItem(item);
-}
-
-/**
- * Handles the human player passing an item to the right neighbor.
- */
-void GameScene::handlePassRight() {
-    Player* target = _localPlayer->getRightPlayer();
-    
-    if (!target || !target->isAlive() || _localPlayer->getInventory().empty()) return;
-    ItemInstance item = _localPlayer->getInventory()[0];
-    _localPlayer->removeItemById(item.getId());
-    target->addItem(item);
-}
-
-/**
- * Logs the action that was resolved from a drag-and-drop gesture.
- *
- * Called after a successful drop zone classification to confirm which
- * action was triggered. Currently logs each case for debugging purposes —
- * replace CULog calls with real game logic as each action is implemented.
- *
- * @param action  The action to resolve, as classified by the drop zone hit-test.
- */
-void GameScene::resolveAction(InputController::Action action){
-    switch (action){
-        case InputController::Action::DROP_BOSS:
-            CULog("boss drop");
-            break;
-        case InputController::Action::DROP_ALLY_LEFT:
-            CULog("ally drop left");
-            break;
-        case InputController::Action::DROP_ALLY_RIGHT:
-            CULog("ally drop right");
-            break;
-        case InputController::Action::PASS_LEFT:
-            CULog("pass left");
-            break;
-        case InputController::Action::PASS_RIGHT:
-            CULog("pass right");
-            break;
-        case InputController::Action::DRAG:
-            CULog("Dragging");
-            break;
-        case InputController::Action::NONE:
-            CULog("Nothing");
-            break;
-        case InputController::Action::PAUSE:
-            CULog("Nothing");
-            break;
-    }
-}
+#pragma mark -
+#pragma mark Update
 
 /**
  * Processes one frame of game logic.
- *
- * Delegates to focused helper methods for each responsibility:
- *  1. Reset button tap detection.
- *  2. Drag-and-drop release zone classification.
- *  3. Glow timer decay.
- *  4. Debug pointer tracking.
- *  5. Drag initiation hit-testing.
- *  6. Active icon position tracking.
- *  7. Item controller and inventory sync.
- *
- * @param dt  Delta time in seconds since the last frame.
  */
 void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
@@ -490,36 +441,76 @@ void GameScene::update(float dt, InputController& input) {
     handleDragInitiation(input);
     handleDragTracking(input);
 
-    _itemController.update(dt, _localPlayer);
+    _itemController.update(dt, _gameState.getLocalPlayer());
     syncInventoryWidgets();
 
     handlePlayerActions(input);
     updateEnemyAndAI(dt);
 }
 
-/**
- * Disposes of all (non-static) resources allocated to this mode.
- */
-void GameScene::dispose() {
-    if (_active) {
-        removeAllChildren();
-        _gameArea = nullptr;
-        _inventory = nullptr;
-        _attackArea = nullptr;
-        _bossNode = nullptr;
-        _playerSlots.clear();
-        _players.clear(); // shared_ptrs released; objects destroyed if no other owners
-        _localPlayer = nullptr;
-        _active = false;
+#pragma mark -
+#pragma mark Inventory UI
+
+/** Creates a scene-node widget for the given item and adds it to the inventory container. */
+std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
+    auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
+    if (!itemDef) return nullptr;
+
+    const std::string textureKey =
+        (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
+
+    auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
+    if (!texture) return nullptr;
+
+    auto widget = PolygonNode::allocWithTexture(texture);
+    widget->setContentSize(Size(64, 64));
+    widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
+    widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
+    _inventory->addChild(widget);
+    return widget;
+}
+
+/** Returns the centre of the inventory node in world coordinates. */
+cugl::Vec2 GameScene::getInitialInventoryPosition() const {
+    cugl::Size size = _inventory->getContentSize();
+    return cugl::Vec2(size.width * 0.5f, size.height * 0.5f);
+}
+
+/** Synchronises on-screen item widgets with the local player's current inventory. */
+void GameScene::syncInventoryWidgets() {
+    Player* local = _gameState.getLocalPlayer();
+    if (!_inventory || !local) return;
+
+    std::unordered_set<ItemInstance::ItemId> liveIds;
+
+    for (const ItemInstance& item : local->getInventory()) {
+        ItemInstance::ItemId id = item.getId();
+        liveIds.insert(id);
+
+        if (_itemWidgets.find(id) == _itemWidgets.end()) {
+            auto widget = createItemWidget(item);
+            if (!widget) continue;
+            widget->setPosition(getInitialInventoryPosition());
+            _itemWidgets.emplace(id, widget);
+        }
+    }
+
+    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end(); ) {
+        if (liveIds.find(it->first) == liveIds.end()) {
+            if (it->second) {
+                _inventory->removeChild(it->second);
+            }
+            it = _itemWidgets.erase(it);
+        } else {
+            ++it;
+        }
     }
 }
 
-/**
- * Draws a green debug outline around the reset button's bounding box.
- * Only draws if the reset button node exists in the scene graph.
- *
- * @param batch  The active sprite batch to draw into.
- */
+#pragma mark -
+#pragma mark Render
+
+/** Draws a green debug outline around the reset button's bounding box. */
 void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
     if (!_resetBtn) return;
     Rect boundingBox = _resetBtn->getBoundingBox();
@@ -528,51 +519,32 @@ void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
     batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
 }
 
-/**
- * Draws a faint green outline for every input zone, plus a fading
- * filled green overlay on whichever zone most recently received a drop.
- * The fill alpha decays over _glowDuration seconds.
- *
- * @param batch  The active sprite batch to draw into.
- */
+/** Draws zone outlines and a fading glow on the last successfully used zone. */
 void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
     for (auto& [action, rect] : _inputZones) {
         Path2 path(rect);
-
         if (action == _glowAction && _glowTimer > 0) {
-            float timeRemaining = _glowTimer / _glowDuration;
-            Uint8 alpha = (Uint8)(150 * timeRemaining);
+            float t = _glowTimer / _glowDuration;
+            Uint8 alpha = (Uint8)(150 * t);
             batch->setColor(Color4(0, 255, 0, alpha));
             batch->fill(path, Vec2::ZERO, Affine2::IDENTITY);
         }
-
         batch->setColor(Color4(0, 255, 0, 80));
         batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
     }
 }
 
-/**
- * Draws a magenta outline around each visible item widget's bounding box.
- * Useful for verifying hit-test regions during development.
- *
- * @param batch  The active sprite batch to draw into.
- */
+/** Draws a magenta outline around each visible item widget's bounding box. */
 void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch) {
     batch->setColor(Color4(255, 0, 255, 140));
     for (auto& [id, widget] : _itemWidgets) {
         if (!widget || !widget->isVisible()) continue;
-        Rect box = widget->getBoundingBox();
-        Path2 path(box);
+        Path2 path(widget->getBoundingBox());
         batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
     }
 }
 
-/**
- * Draws a small red filled square at the current pointer position,
- * outlined in white. Only draws when a touch is active.
- *
- * @param batch  The active sprite batch to draw into.
- */
+/** Draws a small red square at the current touch position. */
 void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch* batch) {
     if (!_hasDebugPointer) return;
     Rect p(_debugPointerScene.x - 6.0f, _debugPointerScene.y - 6.0f, 12.0f, 12.0f);
@@ -585,17 +557,6 @@ void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch* batch) {
 
 /**
  * Custom render pass drawn after the standard scene graph render.
- *
- * Draws translucent debug/gameplay overlays using the sprite batch:
- *  - A green outline around the reset button for visual debugging.
- *  - Five rectangular drop zones, each outlined in green.
- *  - A filled green glow that fades out over the zone matching the most
- *    recent successful drop action.
- *  - Magenta outlines around visible item widget bounding boxes.
- *  - A red square at the current pointer position.
- *
- * The zones use scene coordinates (bottom-left origin) directly because
- * the sprite batch already uses the scene camera.
  */
 void GameScene::render() {
     Scene2::render();
@@ -610,90 +571,4 @@ void GameScene::render() {
     renderPointerDebug(batch.get());
 
     batch->end();
-}
-
-/**
- * Sets whether the scene is currently active
- *
- * This method should be used to toggle all the UI elements.  Buttons
- * should be activated when it is made active and deactivated when
- * it is not.
- *
- * @param value whether the scene is currently active
- */
-void GameScene::setActive(bool value) {
-    if (isActive() != value) {
-        Scene2::setActive(value);
-        if (value) {
-            //put anything that needs to be activated as part of the scene
-            reset();
-            _enemyController.enterIdle(_enemy, _players);
-        }
-        else {
-            //deactivate any children that are part of the scene
-        }
-    }
-}
-
-/** Create and return an item Widget with a given ItemInstance */
-std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
-    auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
-    if (!itemDef) return nullptr;
-
-    const std::string textureKey =
-    (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
-
-    auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
-    if (!texture) return nullptr;
-
-    auto widget = PolygonNode::allocWithTexture(texture);
-
-    widget->setContentSize(Size(64,64));
-    widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
-    widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
-    _inventory->addChild(widget);
-    return widget;
-}
-
-/** Return the world position for an item widget's initial inventory position */
-cugl::Vec2 GameScene::getInitialInventoryPosition() const {
-    cugl::Size size = _inventory->getContentSize();
-    return cugl::Vec2(size.width * 0.5f, size.height * 0.5f);
-}
-
-/** Sync player inventory and item widgets displayed on screen */
-void GameScene::syncInventoryWidgets() {
-    if (!_inventory || !_localPlayer) {
-        return;
-    }
-    
-    std::unordered_set<ItemInstance::ItemId> liveIds;
-    
-    for (const ItemInstance& item : _localPlayer->getInventory()) {
-        ItemInstance::ItemId id = item.getId();
-        liveIds.insert(id);
-        
-        auto found = _itemWidgets.find(id);
-        if (found == _itemWidgets.end()) {
-            auto widget = createItemWidget(item);
-            if (!widget) {
-                continue;
-            }
-            
-            widget->setPosition(getInitialInventoryPosition());
-            
-            _itemWidgets.emplace(id, widget);
-        }
-    }
-    
-    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end(); ) {
-        if (liveIds.find(it->first) == liveIds.end()) {
-            if (it->second) {
-                _inventory->removeChild(it->second);
-            }
-            it = _itemWidgets.erase(it);
-        } else {
-            ++it;
-        }
-    }
 }
