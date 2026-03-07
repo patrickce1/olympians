@@ -1,359 +1,392 @@
 #ifndef __GAME_SCENE_H__
 #define __GAME_SCENE_H__
+
 #include <cugl/cugl.h>
 #include <vector>
 #include <unordered_map>
-#include "../Player.h"
 #include "../InputController.h"
 #include "../items/ItemController.h"
-#include "../Enemy.h"
 #include "../EnemyController.h"
-#include "../CharacterLoader.h"
-#include "../playerAI/PlayerAI.h"
-#include "../playerAI/EasyPlayerAI.h"
+#include "GameState.h"
 
 /**
- * This class represents the core game scene
- * Add things to this class as necessary
+ * Controller for the core game scene.
+ *
+ * GameScene is a pure controller: it owns the scene graph, handles input,
+ * drives rendering, and delegates all world-state reads and writes to its
+ * GameState member. GameScene holds no game-world data itself — if a field
+ * describes what is happening in the world (player health, enemy position,
+ * inventories) it lives in GameState, not here.
+ *
+ * This separation makes it straightforward to broadcast a read-only
+ * GameState snapshot over the network without touching any rendering code.
  */
 class GameScene : public cugl::scene2::Scene2 {
-public:
-    /*getters that represent game state should go here*/
-
 protected:
+
+#pragma mark - Scene Graph Nodes
+
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+
     /** The root scene node for this scene graph. */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
 
-    /** The node representing the main game area, top half of screen. */
+    /** The node representing the main game area (top half of screen). */
     std::shared_ptr<cugl::scene2::SceneNode> _gameArea;
 
-    /** The node representing the attack interaction area, the red zone. */
+    /** The node representing the attack interaction area (the red zone). */
     std::shared_ptr<cugl::scene2::SceneNode> _attackArea;
 
-    /** The node representing the boss character in the scene, the centerpiece. */
+    /** The node representing the boss character in the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
 
-    /** The collection of UI slots used to display teammate-related nodes. */
+    /** UI slots used to display each teammate's avatar. */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _playerSlots;
 
-    /** The node representing the player's inventory UI container. */
+    /** The player's inventory UI container node. */
     std::shared_ptr<cugl::scene2::SceneNode> _inventory;
 
-    /** The collection of item widgets mapping itemId to its corresponding widget */
+    /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
-    
-    /** The vector representing the various zones on screen.*/
+
+    /** Input zones: each entry maps an Action to the screen Rect that triggers it. */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _inputZones;
-    
-    /**The button allowing for a reset on the scene. */
+
+    /** The reset button node. */
     std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
-    
-    /** The node representing the active (placeholder) item that the player is holding**/
+
+#pragma mark - Drag State
+
+    /** The scene node currently being dragged by the player, or nullptr. */
     std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
-    
-    /**Distance that the active item has moved.**/
+
+    /** Offset from the icon's origin to the touch point, applied during drag. */
     cugl::Vec2 _dragOffset;
-    
-    /** The Action corresponding to the zone that should glow once the player performs that action**/
+
+#pragma mark - Glow Effect State
+
+    /** The drop zone action whose region should currently glow. */
     InputController::Action _glowAction = InputController::Action::NONE;
-    
-    /**The original locations of the abilities. */
-    std::vector<cugl::Vec2> _abilityOriginalPos;
-    
-    /**Internal clock to measure how long we have been glowing**/
+
+    /** Seconds remaining on the active glow effect; 0 means no glow. */
     float _glowTimer = 0;
-    
-    /**How long that a region that glows should glow for at maximum.**/
+
+    /** Maximum duration of a glow effect in seconds. */
     float _glowDuration = 0.3f;
 
-    /** Debug: latest pointer position in scene coordinates */
+#pragma mark - Debug State
+
+    /** Latest pointer position in scene coordinates, for debug rendering. */
     cugl::Vec2 _debugPointerScene = cugl::Vec2::ZERO;
-    
-    /** Debug: whether a pointer is currently active */
+
+    /** True while a touch is active and the debug pointer should be drawn. */
     bool _hasDebugPointer = false;
-    
-    /** The character loader to load in player characters for this GameScene instance */
-    CharacterLoader _characterLoader;
-    
-    /** Pointer to the player belonging to the local machine. Set once in init(), never reallocated. */
-    Player* _localPlayer = nullptr;
-    
-    /**
-     * All players in this party — both human-controlled (Player) and
-     * AI-controlled (PlayerAI) — stored polymorphically as shared_ptr<Player>.
-     * Index 0 is the human player; indices 1+ are AI bots.
-     * PlayerAI must inherit from Player for virtual dispatch to work.
-     */
-    std::vector<std::shared_ptr<Player>> _players;
-    
-    /** The ItemController for this GameScene instance*/
+
+#pragma mark - Controllers
+
+    /** Manages item spawning, timers, and the item definition database. */
     ItemController _itemController;
 
-    /** The enemy for this scene */
-    std::shared_ptr<Enemy> _enemy;
-    
-    /** The controller for the enmey in this scene */
+    /** Drives enemy behaviour and resolves enemy attacks against players. */
     EnemyController _enemyController;
 
+#pragma mark - World State
+
+    /**
+     * The authoritative game-world model.
+     *
+     * All player data (health, inventory, neighbour links), enemy data, and
+     * player-ID mappings live here. GameScene reads and mutates world state
+     * exclusively through this object so that the state can later be
+     * serialised and broadcast over the network without touching any
+     * rendering or input code.
+     */
+    GameState _gameState;
 
 public:
-#pragma mark -
-#pragma mark Constructors
+
+#pragma mark - Constructors
+
     /**
-     * This constructor does not allocate any objects or start the game.
-     * This allows us to use the object without a heap pointer.
+     * Constructs an uninitialised GameScene.
+     * No heap allocation occurs until init() is called.
      */
     GameScene() : cugl::scene2::Scene2() {}
 
     /**
-     * Disposes of all (non-static) resources allocated to this mode.
-     *
-     * This method is different from dispose() in that it ALSO shuts off any
-     * static resources, like the input controller.
+     * Destructs the GameScene, disposing all owned resources.
      */
     ~GameScene() { dispose(); }
+
+#pragma mark - Lifecycle
 
     /**
      * Disposes of all (non-static) resources allocated to this mode.
      */
     void dispose() override;
+    
+    /**
+     * Builds the five rectangular input zones from the current scene dimensions.
+     * Must be called after Scene2::initWithHint() so getSize() is valid.
+     */
+    void initInputZones();
 
     /**
-     * Initializes the controller contents.
+     * Loads the scene graph from assets, resizes it to the current scene
+     * dimensions, and wires up all named child node references
+     * (_scene, _gameArea, _inventory, _resetBtn, _attackArea, _bossNode, _playerSlots).
+     * Must be called after _assets is assigned and Scene2::initWithHint() succeeds.
      *
-     * In previous labs, this method "started" the scene.  But in this
-     * case, we only use to initialize the scene user interface.  We
-     * do not activate the user interface yet, as an active user
-     * interface will still receive input EVEN WHEN IT IS HIDDEN.
+     * @return true if the root scene node was found in the asset manager.
+     */
+    bool initSceneGraph();
+
+    /**
+     * Initialises the ItemController and GameState.
+     * ItemController must be initialised first because GameState::init()
+     * needs the item database to finish setting up AI players.
      *
-     * That is why we have the method {@link #setActive}.
+     * @return true if both systems initialised successfully.
+     */
+    bool initGameSystems();
+
+    /**
+     * Initialises the scene graph and all game systems.
      *
-     * @param assets    The (loaded) assets for this game mode
+     * Builds the scene graph from the asset manager, initialises the
+     * ItemController, and delegates world-state construction (players,
+     * enemy, AI) to GameState::init(). Does not activate the scene —
+     * call setActive(true) when ready to receive input.
      *
-     * @return true if the controller is initialized properly, false otherwise.
+     * @param assets  The loaded asset manager.
+     * @return true if initialisation succeeded, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
 
     /**
-     * Sets whether the scene is currently active
+     * Activates or deactivates the scene and its UI.
+     * Calls reset() and enters the idle enemy state on activation.
      *
-     * This method should be used to toggle all the UI elements.  Buttons
-     * should be activated when it is made active and deactivated when
-     * it is not.
-     *
-     * @param value whether the scene is currently active
+     * @param value  true to activate, false to deactivate.
      */
     virtual void setActive(bool value) override;
-    
+
     /**
-     * Called after the network session and assigns all local machines to a network-given player slot
+     * Resets the scene to its start-of-round state.
+     * Clears all item widgets, cancels any active drag, resets the glow
+     * effect, and clears every player's inventory via GameState::reset().
+     */
+    void reset() override;
+
+#pragma mark - Player Assignment
+
+    /**
+     * Assigns the local player slot for this machine.
+     * Delegates to GameState::setLocalPlayer(). Should be called by the
+     * host after network lobby slot assignment.
+     *
+     * @param assignedIndex  Zero-based index into the player array.
      */
     void setLocalPlayer(int assignedIndex);
+
+#pragma mark - Action Handlers
+
     /**
-     * Handles the human player dropping an item on the boss zone to attack.
+     * Handles the local player dropping an attack item on the boss zone.
+     * Finds the first attack item in the local player's inventory and
+     * applies it to the enemy.
      */
     void handleAttack();
 
     /**
-     * Handles the human player dropping an item on the left ally zone to support.
+     * Handles the local player dropping a support item on the left ally zone.
+     * Finds the first support item and applies it to the left neighbour.
      */
     void handleSupportLeft();
 
     /**
-     * Handles the human player dropping an item on the right ally zone to support.
+     * Handles the local player dropping a support item on the right ally zone.
+     * Finds the first support item and applies it to the right neighbour.
      */
     void handleSupportRight();
 
     /**
-     * Handles the human player passing an item to the left neighbor.
+     * Passes the first item in the local player's inventory to the left neighbour.
      */
     void handlePassLeft();
 
     /**
-     * Handles the human player passing an item to the right neighbor.
+     * Passes the first item in the local player's inventory to the right neighbour.
      */
     void handlePassRight();
-    
+
     /**
-     * Dispatches the local player's current input action to the appropriate
-     * handler method and resets the action afterwards.
+     * Dispatches the resolved drop-zone action to the appropriate handler
+     * and resets the input action afterwards.
      * No-op if the local player is not alive.
      *
-     * @param input  The active input controller from SceneLoader.
+     * @param input  The active input controller.
      */
     void handlePlayerActions(InputController& input);
 
+#pragma mark - Update Helpers
+
     /**
-     * Updates the enemy controller and ticks all AI-controlled players.
-     * Uses dynamic_cast for virtual dispatch so any PlayerAI subclass is
-     * handled correctly. Should only be called by the host.
+     * Ticks the enemy controller and all AI-controlled players forward by
+     * one frame. Uses dynamic_cast for correct virtual dispatch across all
+     * PlayerAI subclasses. Should only run on the host in a networked session.
      *
-     * @param dt  Delta time in seconds since the last frame.
+     * @param dt  Delta time in seconds.
      */
     void updateEnemyAndAI(float dt);
-    
+
     /**
-     * Checks if the reset button was tapped and resets the scene if so.
+     * Checks whether the reset button was tapped and calls reset() if so.
      * Only fires when no icon is being dragged and a touch just ended.
      *
-     * @param input  The active input controller from SceneLoader.
+     * @param input  The active input controller.
      */
     void handleResetButton(InputController& input);
 
     /**
-     * Resolves a drag-and-drop release by classifying the release position
-     * into a drop zone and triggering the appropriate action and glow effect.
-     * Clears the active icon after resolution.
+     * Classifies a drag-and-drop release into a drop zone, triggers the
+     * appropriate action and glow effect, then clears the active icon.
      *
-     * @param input  The active input controller from SceneLoader.
+     * @param input  The active input controller.
      */
     void handleDropResolution(InputController& input);
 
     /**
-     * Ticks down the glow timer each frame. Once expired, clears the active
-     * glow action so the visual feedback stops rendering.
+     * Decrements the glow timer each frame. Clears the active glow action
+     * once the timer expires.
      *
-     * @param dt  Delta time in seconds since the last frame.
+     * @param dt  Delta time in seconds.
      */
     void tickGlowTimer(float dt);
 
     /**
-     * Tracks the current pointer position in scene coordinates for debug rendering.
+     * Updates the debug pointer position in scene coordinates.
      * Sets _hasDebugPointer to false when no touch is active.
      *
-     * @param input  The active input controller from SceneLoader.
+     * @param input  The active input controller.
      */
     void updateDebugPointer(InputController& input);
 
     /**
-     * Hit-tests inventory item widgets against the initial touch position.
-     * If a touch begins on a widget, begins dragging it and stores the
-     * offset so the icon doesn't snap its center to the finger.
+     * Hit-tests item widgets against the initial touch position.
+     * Begins a drag and records the offset if a widget is hit.
      *
-     * @param input  The active input controller from SceneLoader.
+     * @param input  The active input controller.
      */
     void handleDragInitiation(InputController& input);
 
     /**
-     * Moves the active dragged icon to follow the finger each frame.
-     * Applies the stored drag offset so movement feels natural.
+     * Moves the active dragged icon to follow the current touch position.
+     * Applies _dragOffset so the icon does not snap to the finger centre.
      *
-     * @param input  The active input controller from SceneLoader.
+     * @param input  The active input controller.
      */
     void handleDragTracking(InputController& input);
-    
+
     /**
-     * Logs the action that was resolved from a drag-and-drop gesture.
+     * Logs the resolved drop-zone action for debugging.
+     * Replace CULog calls with real game logic as features are implemented.
      *
-     * Called after a successful drop zone classification to confirm which
-     * action was triggered. Currently logs each case for debugging purposes —
-     * replace CULog calls with real game logic as each action is implemented.
-     *
-     * @param action  The action to resolve, as classified by the drop zone hit-test.
+     * @param action  The action resolved from the drop-zone hit-test.
      */
     void resolveAction(InputController::Action action);
-    
+
+#pragma mark - Inventory UI
+
     /**
-     * Creates a scene node widget for the given item and adds it to the
-     * inventory container. The widget's texture is chosen based on whether
-     * the item is an attack or support type.
+     * Creates a scene-node widget for the given item and adds it to the
+     * inventory container. Texture is chosen by item type (attack or support).
      *
-     * @param item  The item instance to create a widget for.
-     * @return      The newly created scene node, or nullptr if the item
-     *              definition or texture could not be found.
+     * @param item  The item instance to represent.
+     * @return      The new widget node, or nullptr if assets were missing.
      */
     std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
 
     /**
-     * Returns the initial world position for a newly created item widget
-     * inside the inventory container. Widgets are placed at the center
-     * of the inventory node when first added.
+     * Returns the initial world position for a new item widget inside the
+     * inventory container (the centre of the inventory node).
      *
-     * @return  The center position of the inventory node in world coordinates.
+     * @return  Centre of the inventory node in world coordinates.
      */
     cugl::Vec2 getInitialInventoryPosition() const;
 
     /**
-     * Synchronizes the on-screen item widgets with the local player's
-     * current inventory. Creates widgets for any items that are new,
-     * and removes widgets for any items that have been consumed or passed.
-     * Called every frame from update().
+     * Synchronises on-screen item widgets with the local player's current
+     * inventory. Creates widgets for new items and removes widgets for
+     * consumed or passed items. Called every frame from update().
      */
     void syncInventoryWidgets();
-    
+
+#pragma mark - Update & Render
+
     /**
      * Processes one frame of game logic.
      *
-     * Accepts the SceneLoader's input controller directly so no copy or
-     * secondary member is needed. Delegates to focused helper methods for
-     * each responsibility:
+     * Delegates to focused helper methods in this order:
      *  1. Reset button tap detection.
      *  2. Drag-and-drop release zone classification.
      *  3. Glow timer decay.
      *  4. Debug pointer tracking.
      *  5. Drag initiation hit-testing.
      *  6. Active icon position tracking.
-     *  7. Item controller and inventory sync.
+     *  7. Item controller update and inventory widget sync.
      *  8. Local player action dispatch.
-     *  9. Enemy and AI update.
+     *  9. Enemy and AI tick.
      *
-     * @param dt     Delta time in seconds since the last frame.
-     * @param input  The active input controller owned by SceneLoader.
+     * @param dt     Delta time in seconds.
+     * @param input  The input controller owned by SceneLoader.
      */
     void update(float dt, InputController& input);
-    
+
     /**
      * Draws a green debug outline around the reset button's bounding box.
-     * Only draws if the reset button node exists in the scene graph.
      *
-     * @param batch  The active sprite batch to draw into.
+     * @param batch  The active sprite batch.
      */
     void renderResetButton(cugl::graphics::SpriteBatch* batch);
 
     /**
-     * Draws a faint green outline for every input zone, plus a fading
-     * filled green overlay on whichever zone most recently received a drop.
-     * The fill alpha decays over _glowDuration seconds.
+     * Draws a faint green outline around every input zone. Draws a fading
+     * filled overlay on the zone matching the most recent successful drop.
      *
-     * @param batch  The active sprite batch to draw into.
+     * @param batch  The active sprite batch.
      */
     void renderDropZones(cugl::graphics::SpriteBatch* batch);
 
     /**
      * Draws a magenta outline around each visible item widget's bounding box.
-     * Useful for verifying hit-test regions during development.
      *
-     * @param batch  The active sprite batch to draw into.
+     * @param batch  The active sprite batch.
      */
     void renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch);
 
     /**
-     * Draws a small red filled square at the current pointer position,
-     * outlined in white. Only draws when a touch is active.
+     * Draws a small red square at the current touch position.
+     * Only draws when _hasDebugPointer is true.
      *
-     * @param batch  The active sprite batch to draw into.
+     * @param batch  The active sprite batch.
      */
     void renderPointerDebug(cugl::graphics::SpriteBatch* batch);
 
     /**
      * Custom render pass drawn after the standard scene graph render.
-     * Delegates to focused helper methods for each overlay:
+     *
+     * Draws translucent debug/gameplay overlays:
      *  1. Reset button debug outline.
      *  2. Drop zone outlines and glow effect.
      *  3. Item widget bounding box outlines.
      *  4. Current pointer position indicator.
      *
-     * The zones use scene coordinates (bottom-left origin) directly because
-     * the sprite batch already uses the scene camera.
+     * All coordinates are in scene space (bottom-left origin) because the
+     * sprite batch is already configured with the scene camera.
      */
     void render() override;
-    
-    /**
-     * Resets the scene.
-     */
-    void reset() override;
 };
 
 #endif /* __GAME_SCENE_H__ */
