@@ -1,12 +1,9 @@
-//
-//  HostScene.h
-//  olympians
-//
-//  Created by Danielle Imogu on 3/4/26.
-//
 #ifndef __HOST_SETUP_SCENE_H__
 #define __HOST_SETUP_SCENE_H__
+
 #include <cugl/cugl.h>
+#include <iostream>
+#include <sstream>
 #include <vector>
 
 /**
@@ -37,26 +34,37 @@ protected:
     std::shared_ptr<cugl::AssetManager> _assets;
 
     /** The menu button for starting a game */
-    std::shared_ptr<cugl::scene2::Button> _startgame;
+    std::shared_ptr<cugl::scene2::Button> _startGame;
+    
     /** The back button for the menu scene */
-    std::shared_ptr<cugl::scene2::Button> _backout;
+    std::shared_ptr<cugl::scene2::Button> _backOut;
+    
     /** The player label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _hostName;
     
     /** The boss selection node list */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _items;
+    
+    /** The current index of the boss shown in the boss selection screen*/
     int _currentIndex = 1;
-    /** The boss selction navigation buttons */
+    
+    /** The boss selection navigation left button */
     std::shared_ptr<cugl::scene2::Button> _leftButton;
+    
+    /** The boss selection navigation right button */
     std::shared_ptr<cugl::scene2::Button> _rightButton;
+    
     /** The boss selection container **/
     std::shared_ptr<cugl::scene2::SceneNode> _container; // holds items
     
+    /** Whether the boss selection screen is sliding to another index */
     bool _isAnimating = false;
+    
+    /** How long sliding to new boss index takes */
     float _slideDuration = 0.3f;
+    
+    /** The vector target position of the selection container */
     cugl::Vec2 _slideTarget = cugl::Vec2();
-    
-    
     
     /** The current status */
     Status _status;
@@ -164,9 +172,6 @@ private:
      * @param newIndex The index of the item to slide to.
      */
     void slideTo(int index);
-    
-
-    
 };
 
 #endif /* __HOST_SETUP_SCENE_H__ */

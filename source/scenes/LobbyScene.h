@@ -1,12 +1,9 @@
-//
-//  LobbyScene.h
-//  olympians
-//
-//  Created by Danielle Imogu on 3/4/26.
-//
 #ifndef __LOBBY_SCENE_H__
 #define __LOBBY_SCENE_H__
+
 #include <cugl/cugl.h>
+#include <iostream>
+#include <sstream>
 
 /**
  * This class provides the interface to join an existing game.
@@ -34,16 +31,19 @@ protected:
     std::shared_ptr<cugl::AssetManager> _assets;
 
     /** The button for entering a game */
-    std::shared_ptr<cugl::scene2::Button> _entergame;
+    std::shared_ptr<cugl::scene2::Button> _enterGame;
+    
     /** The back button for the menu scene */
-    std::shared_ptr<cugl::scene2::Button> _backout;
+    std::shared_ptr<cugl::scene2::Button> _backOut;
+    
     /** The game id label */
-    std::shared_ptr<cugl::scene2::Label> _gameid;
+    std::shared_ptr<cugl::scene2::Label> _gameId;
+    
     /** Circular boss image (maybe button)*/
     std::shared_ptr<cugl::scene2::SceneNode> _bossImage;
+    
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
-    
     
     /** The current status */
     Status _status;
@@ -132,9 +132,6 @@ private:
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
 
-
 };
 
 #endif /* __LOBBY_SCENE_H__ */
-
-

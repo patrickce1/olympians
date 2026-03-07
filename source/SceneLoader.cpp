@@ -82,7 +82,6 @@ void SceneLoader::onStartup() {
     Input::activate<Keyboard>();
     Input::activate<TextInput>();
 
-
     _loadingScene = scene2::LoadingScene::alloc(_assets, "json/assets.json");
     _loadingScene->setSpriteBatch(_batch);
     _loadingScene->setActive(true);
@@ -232,13 +231,13 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize GameScene");
                 }
+                
                 if (_lobbyScene.init(_assets)) {
                     _lobbyScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize LobbyScene");
                 }
             }
-
             break;
         case State::MENU:
             _menuScene.update(dt);

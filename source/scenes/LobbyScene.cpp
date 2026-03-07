@@ -1,13 +1,3 @@
-//
-//  LobbyScene.cpp
-//  olympians
-//
-//  Created by Danielle Imogu on 3/4/26.
-//
-#include <cugl/cugl.h>
-#include <iostream>
-#include <sstream>
-
 #include "LobbyScene.h"
 
 using namespace cugl;
@@ -50,17 +40,17 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
     
-    _entergame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.start"));
-    _backout = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.back"));
-    _gameid = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("lobbyScene.header.gameId"));
+    _enterGame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.start"));
+    _backOut = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.back"));
+    _gameId = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("lobbyScene.header.gameId"));
     
-    _entergame->addListener([this](const std::string& name, bool down) {
+    _enterGame->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::START;
         }
     });
     
-    _backout->addListener([this](const std::string& name, bool down) {
+    _backOut->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
         }
@@ -97,14 +87,15 @@ void LobbyScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = IDLE;
-            _entergame->activate();
-            _backout->activate();
+            _enterGame->activate();
+            _backOut->activate();
         } else {
-            _backout->deactivate();
+            _backOut->deactivate();
+            _enterGame->deactivate();
+            
             // If any were pressed, reset them
-            _entergame->deactivate();
-            _entergame->setDown(false);
-            _backout->setDown(false);
+            _enterGame->setDown(false);
+            _backOut->setDown(false);
         }
     }
 }

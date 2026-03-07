@@ -1,13 +1,3 @@
-//
-//  HostSetupScene.cpp
-//  olympians
-//
-//  Created by Danielle Imogu on 3/4/26.
-//
-#include <cugl/cugl.h>
-#include <iostream>
-#include <sstream>
-
 #include "HostSetupScene.h"
 
 using namespace cugl;
@@ -19,6 +9,8 @@ using namespace std;
 
 /** Regardless of logo, lock the height to this */
 #define SCENE_HEIGHT  852
+/** Role card width */
+#define ROLE_CARD_WIDTH 177.22
 
 
 #pragma mark -
@@ -55,8 +47,8 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
 
-    _startgame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.start"));
-    _backout = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.back"));
+    _startGame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.start"));
+    _backOut = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.back"));
     _hostName = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.leftscroll"));
     _rightButton = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.rightscroll"));
@@ -73,12 +65,12 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     _status = Status::WAIT;
     
     // Program the buttons
-    _startgame->addListener([this](const std::string& name, bool down) {
+    _startGame->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::START;
         }
     });
-    _backout->addListener([this](const std::string& name, bool down) {
+    _backOut->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
         }
@@ -128,27 +120,26 @@ void HostSetupScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = WAIT;
-            _startgame->activate();
+            _startGame->activate();
             _leftButton->activate();
             _rightButton->activate();
             _hostName->activate();
-//            configureStartButton();
-            _backout->activate();
+            _backOut->activate();
         } else {
-            _startgame->deactivate();
+            _startGame->deactivate();
             _leftButton->deactivate();
             _rightButton->deactivate();
-            _backout->deactivate();
+            _backOut->deactivate();
             _hostName->deactivate();
+            
             // If any were pressed, reset them
-            _startgame->setDown(false);
-            _backout->setDown(false);
+            _startGame->setDown(false);
+            _backOut->setDown(false);
             _leftButton->setDown(false);
             _rightButton->setDown(false);
         }
     }
 }
-
 
 /**
  * Updates the text in the given button.
@@ -167,8 +158,6 @@ void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, c
 
 }
 
-#pragma mark -
-#pragma mark Student Methods
 /**
  * The method called to update the scene.
  *
@@ -178,18 +167,17 @@ void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, c
  */
 void HostSetupScene::update(float timestep) {
     if (_isAnimating) {
-           Vec2 current = _container->getPosition();
-           Vec2 next = current.lerp(_slideTarget, 0.2f); // 0.2 = smoothing factor
+        Vec2 current = _container->getPosition();
+        Vec2 next = current.lerp(_slideTarget, 0.2f); // 0.2 = smoothing factor
 
-           if (current.distance(_slideTarget) < 1.0f) {
-               _container->setPosition(_slideTarget);
-               _isAnimating = false;
-           } else {
-               _container->setPosition(next);
-           }
-       }
+        if (current.distance(_slideTarget) < 1.0f) {
+            _container->setPosition(_slideTarget);
+            _isAnimating = false;
+        } else {
+            _container->setPosition(next);
+        }
+    }
 }
-
 
 /**
  * Reconfigures the start button for this scene
@@ -198,8 +186,8 @@ void HostSetupScene::update(float timestep) {
  * networking.
  */
 void HostSetupScene::configureStartButton() {
-    updateText(_startgame,"Start Game");
-    _startgame->activate();
+    updateText(_startGame,"Start Game");
+    _startGame->activate();
 }
 
 /**
@@ -216,8 +204,8 @@ void HostSetupScene::slideTo(int newIndex) {
     if (newIndex < 0 || newIndex >= _items.size()) return;
 
     _isAnimating = true;
-    
-    float shiftAmount = 177.22f + 24; // = 201.22f per item
+
+    float shiftAmount = ROLE_CARD_WIDTH + 24;
     
     int deltaIndex = newIndex - _currentIndex;
     Vec2 currentPos = _container->getPosition();

@@ -1,11 +1,6 @@
-//
-//  ClientScene.h
-//  olympians
-//
-//  Created by Danielle Imogu on 3/3/26.
-//
 #ifndef __CLIENT_SCENE_H__
 #define __CLIENT_SCENE_H__
+
 #include <cugl/cugl.h>
 
 /**
@@ -41,14 +36,13 @@ protected:
     
     /** Menu buttons. **/
     /** The menu button for entering a game */
-    std::shared_ptr<cugl::scene2::Button> _entergame;
+    std::shared_ptr<cugl::scene2::Button> _enterGame;
     /** The back button for the menu scene */
-    std::shared_ptr<cugl::scene2::Button> _backout;
+    std::shared_ptr<cugl::scene2::Button> _backOut;
     /** The game id label (for updating) */
-    std::shared_ptr<cugl::scene2::TextField> _gameid;
+    std::shared_ptr<cugl::scene2::TextField> _gameId;
     /** The game id label (for updating) */
-    std::shared_ptr<cugl::scene2::TextField> _playerid;
-    
+    std::shared_ptr<cugl::scene2::TextField> _playerId;
     
     /** The current status */
     Status _status;
@@ -140,4 +134,3 @@ private:
 };
 
 #endif /* __CLIENT_SCENE_H__ */
-
