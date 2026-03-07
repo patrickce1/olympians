@@ -2,10 +2,6 @@
 #include <iostream>
 #include <sstream>
 #include "GameScene.h"
-#include "../InputController.h"
-#include "../playerAI/PlayerAI.h"
-#include "../playerAI/EasyPlayerAI.h"
-#include "../Enemy.h"
 
 using namespace cugl;
 using namespace cugl::scene2;
