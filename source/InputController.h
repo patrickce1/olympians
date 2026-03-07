@@ -195,6 +195,13 @@ public:
     bool isTouching() const { return _activeTouchID != -1 && !_touchEnded; }
 
     /**
+     * Returns whether the mouse is currently clicked and has not yet stopped.
+     *
+     * @return true if the user is currently clicking their mouse..
+     */
+    bool isMouseDown() const { return _mouseDown; }
+    
+    /**
      * Overrides the current action with the given value.
      * Prefer resetAction() for clearing after consumption.
      *
@@ -227,6 +234,9 @@ private:
 
     /** Whether this controller is actively processing input. */
     bool _active = false;
+    
+    /** Whether the mouse is clicked on this frame.**/
+    bool _mouseDown = false;
 
     /** Whether the tracked touch has been promoted to a drag gesture. */
     bool _dragging = false;
@@ -250,7 +260,10 @@ private:
     cugl::Vec2 _dragPos;
 
     /** Unique key used to register and unregister touch event listeners. */
-    Uint32 _listenerKey = 17;
+    Uint32 _touchListenerKey = 17;
+    
+    /** Unique key used to register and unregister mouse event listeners. */
+    Uint32 _mouseListenerKey = 18;
 
     // ----- Drop and swipe zones -----
 
@@ -277,6 +290,9 @@ private:
 
     /** Pointer to the CUGL Touchscreen device. Not owned by this class. */
     cugl::Touchscreen* _touch = nullptr;
+    
+    /** Pointer to the Mouse device. */
+    cugl::Mouse* _mouse = nullptr;
 
     // ----- Touch event callbacks -----
 
@@ -309,6 +325,39 @@ private:
      * @param focus  Whether the application currently has input focus (unused).
      */
     void onTouchEnded(const cugl::TouchEvent& event, bool focus);
+    
+    // ----- Mouse event callbacks -----
+
+    /**
+     * Called when a mouse button is pressed.
+     * Records the starting position and begins tracking the drag.
+     *
+     * @param event   The mouse event containing the button and position.
+     * @param clicks  The number of recent clicks including this one (unused).
+     * @param focus   Whether the listener currently has focus (unused).
+     */
+    void onMousePressed(const cugl::MouseEvent& event, Uint8 clicks, bool focus);
+    /**
+     * Called when the mouse is dragged (moved with a button held).
+     * Promotes the gesture to a drag once movement exceeds DRAG_THRESHOLD,
+     * then continuously updates the drag position.
+     *
+     * @param event     The mouse event containing the current position.
+     * @param previous  The position of the mouse in the previous frame.
+     * @param focus     Whether the listener currently has focus (unused).
+     */
+    void onMouseDragged(const cugl::MouseEvent& event, const cugl::Vec2& previous, bool focus);
+
+    /**
+     * Called when a mouse button is released.
+     * Classifies the completed gesture as a swipe, zone drop, or tap,
+     * sets _action and _releasePosition accordingly, and clears tracking state.
+     *
+     * @param event   The mouse event containing the final position.
+     * @param clicks  The number of recent clicks including this one (unused).
+     * @param focus   Whether the listener currently has focus (unused).
+     */
+    void onMouseReleased(const cugl::MouseEvent& event, Uint8 clicks, bool focus);
 };
 
 #endif // !__INPUT_CONTROLLER_H__
