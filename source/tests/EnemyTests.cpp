@@ -1,165 +1,403 @@
-// tests/EnemyTests.cpp
+// EnemyTests.cpp
+// Unit tests for Enemy + EnemyController state flow + event resolution.
+//
+// HOW TO RUN:
+//   Call EnemyTests::runAll() from your app startup AFTER cugl is initialized
+//   but BEFORE the game loop starts, e.g. in AppDelegate::onStartup().
+//   All results print via CULog as [PASS] or [FAIL]. Remove the call before shipping.
+//
+//   Example:
+//     EnemyTests::runAll("json/enemies.json", "json/characters.json");
+
+#include "EnemyTests.h"
+#include "../Enemy.h"
+#include "../EnemyController.h"
+#include "../Player.h"
+#include "../CharacterLoader.h"
 #include <cugl/cugl.h>
-#include <fstream>
-#include <cstdio>
-#include "EnemyLoader.h"
-#include "Enemy.h"
+#include <unordered_set>
 
-/** Writes a temporary enemy JSON to be used by the tests. */
-static std::string writeTempJson(const std::string& contents) {
-    // Use a location CUGL can reliably read/write at runtime
-    std::string dir = cugl::Application::get()->getSaveDirectory();
-    std::string path = dir + "enemy_test_temp.json";
+// ─────────────────────────────────────────────
+// Internal helpers — not exposed in the header
+// ─────────────────────────────────────────────
+namespace {
 
-    std::ofstream out(path);
-    CUAssertLog(out.is_open(), "Could not open temp JSON file for writing: %s", path.c_str());
-    out << contents;
-    out.close();
+int _passed = 0;
+int _failed = 0;
 
-    CULog("Wrote temp enemy test JSON to: %s", path.c_str());
-    return path;
+/** Assertion helper: logs [PASS]/[FAIL] and updates counters. */
+void expect(bool condition, const std::string& label) {
+    if (condition) {
+        CULog("[PASS] %s", label.c_str());
+        _passed++;
+    } else {
+        CULog("[FAIL] %s", label.c_str());
+        _failed++;
+    }
 }
 
-/** Deletes the temporary JSON. */
-static void removeTempJson(const std::string& path) {
-    std::remove(path.c_str());
+/** Prints a summary line with total passed/failed counts. */
+void printSummary() {
+    CULog("─────────────────────────────────────────");
+    CULog("  %d passed   %d failed", _passed, _failed);
+    CULog("─────────────────────────────────────────");
 }
 
-/** Tests that the JSON is properly parsed into an instance of Enemy. */
-static void testEnemyLoaderParsesBasicDef() {
-    CULog("[TEST] testEnemyLoaderParsesBasicDef START");
+/** Loads character definitions from the given JSON path for use in tests. */
+CharacterLoader loadCharacters(const std::string& charactersJsonPath) {
+    CharacterLoader loader;
+    if (!loader.loadFromFile(charactersJsonPath)) {
+        CULogError("EnemyTests: failed to load characters from '%s'", charactersJsonPath.c_str());
+    }
+    return loader;
+}
 
-    const std::string json = R"JSON(
-{
-  "enemies": [
-    {
-      "id": "enemy1",
-      "name": "Enemy 1",
-      "maxHealth": 20.0,
-      "spritesheetPath": "textures/enemy1.png",
-      "defaultShields": { "front": 0.0, "back": 1.0, "left": 0.5, "right": 0.5 },
-      "states": {
-        "idle": { "animationRow": 0 },
-        "attack1": {
-          "animationRow": 1,
-          "buildUpTime": 1.0,
-          "cooldownTime": 2.0,
-          "events": [ { "type": "DAMAGE", "target": "front", "amount": 3.0 } ],
-          "nextState": "idle"
+/** Creates N players in a ring topology and wires left/right neighbors. */
+std::vector<std::shared_ptr<Player>> makePlayersRing(const CharacterLoader& loader,
+                                                     const std::string& characterId,
+                                                     int count) {
+    std::vector<std::shared_ptr<Player>> players;
+    players.reserve(count);
+    for (int i = 0; i < count; i++) {
+        std::string name = "Player " + std::to_string(i + 1);
+        players.push_back(std::make_shared<Player>(characterId, i + 1, name, loader));
+    }
+
+    const int n = (int)players.size();
+    for (int i = 0; i < n; i++) {
+        players[i]->setLeftPlayer (players[(i - 1 + n) % n].get());
+        players[i]->setRightPlayer(players[(i + 1)     % n].get());
+    }
+    return players;
+}
+
+/** Convenience to construct and initialize an Enemy; asserts init success. */
+std::shared_ptr<Enemy> makeEnemy(const std::string& enemiesJsonPath,
+                                 const std::string& enemyId) {
+    auto e = std::make_shared<Enemy>();
+    bool ok = e->init(enemyId, enemiesJsonPath);
+    expect(ok, "Enemy::init succeeds for '" + enemyId + "'");
+    return ok ? e : nullptr;
+}
+
+/** Returns the name of the first state tagged as "attack", or empty if none. */
+std::string firstAttackStateName(const std::shared_ptr<Enemy>& enemy) {
+    if (!enemy) return "";
+    const auto& states = enemy->getStates();
+    for (const auto& kv : states) {
+        const auto& name = kv.first;
+        const auto& def  = kv.second;
+        if (def.tag == "attack") return name;
+    }
+    return "";
+}
+
+/** Resolves a state's configured nextState, falling back to "idle" when missing/invalid. */
+std::string expectedNextOrIdle(const std::shared_ptr<Enemy>& enemy,
+                               const std::string& stateName) {
+    if (!enemy) return "idle";
+    const auto& states = enemy->getStates();
+    auto it = states.find(stateName);
+    if (it == states.end()) return "idle";
+
+    const std::string& next = it->second.nextState;
+    if (!next.empty() && states.count(next) > 0) return next;
+    return "idle";
+}
+
+/** Advances the enemy in fixed dt steps until at least one event fires (or times out). */
+bool stepUntilFire(const std::shared_ptr<Enemy>& enemy,
+                   float dtStep,
+                   int maxSteps,
+                   std::vector<Enemy::FiredEvent>& firedEventsOut) {
+    firedEventsOut.clear();
+    if (!enemy) return false;
+
+    for (int i = 0; i < maxSteps; i++) {
+        enemy->update(dtStep);
+        auto ev = enemy->takeFiredEvents();
+        if (!ev.empty()) {
+            firedEventsOut = std::move(ev);
+            return true;
         }
-      }
     }
-  ]
-}
-)JSON";
-
-    const std::string path = writeTempJson(json);
-
-    EnemyLoader loader;
-    CUAssertLog(loader.loadFromFile(path), "EnemyLoader failed to load JSON");
-
-    CUAssertLog(loader.has("enemy1"), "EnemyLoader missing enemy1 after load");
-
-    const auto& def = loader.get("enemy1");
-    CUAssertLog(def.maxHealth == 20.0f, "Enemy maxHealth mismatch");
-
-    removeTempJson(path);
-
-    CULog("[TEST] testEnemyLoaderParsesBasicDef PASS");
+    return false;
 }
 
-/** Tests the state transition functionality. Enemy should go from a state to its 'nextState' nad should not be able to go to a new attack state if the cooldown is still active. */
-static void testEnemyStateFlowAndCooldown() {
-    CULog("[TEST] testEnemyStateFlowAndCooldown START");
+/** Follows nextState links from startState and returns the first with cooldownTime>0 (or empty). */
+std::string findFirstCooldownStateInChain(const std::shared_ptr<Enemy>& enemy,
+                                         const std::string& startState) {
+    if (!enemy) return "";
+    const auto& states = enemy->getStates();
+    if (states.count(startState) == 0) return "";
 
-    const std::string json = R"JSON(
-{
-  "enemies": [
-    {
-      "id": "enemy1",
-      "name": "Enemy 1",
-      "maxHealth": 20.0,
-      "spritesheetPath": "textures/enemy1.png",
-      "states": {
-        "idle": { "animationRow": 0 },
-        "attack1": {
-          "animationRow": 1,
-          "buildUpTime": 1.0,
-          "cooldownTime": 2.0,
-          "events": [ { "type": "DAMAGE", "target": "front", "amount": 3.0 } ],
-          "nextState": "idle"
+    std::unordered_set<std::string> seen;
+    std::string cur = startState;
+
+    for (int hops = 0; hops < 32; hops++) {
+        if (seen.count(cur) > 0) return ""; // loop
+        seen.insert(cur);
+
+        auto it = states.find(cur);
+        if (it == states.end()) return "";
+        if (it->second.cooldownTime > 0.0f) return cur;
+
+        std::string next = it->second.nextState;
+        if (next.empty()) next = "idle";
+        if (states.count(next) == 0) next = "idle";
+
+        if (next == "idle") return "";
+        cur = next;
+    }
+
+    return "";
+}
+
+/** Returns true if any player in the list is still alive. */
+bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
+    for (const auto& p : players) {
+        if (p->isAlive()) return true;
+    }
+    return false;
+}
+
+} // namespace
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 1 — Init
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Verifies Enemy::init populates core fields, starts at full health in "idle", and has an "idle" state. */
+static void testEnemyInitSetsCoreFields(const std::string& enemiesJsonPath) {
+    auto enemy = std::make_shared<Enemy>();
+    bool ok = enemy->init("enemy1", enemiesJsonPath);
+
+    expect(ok, "init: returns true");
+    if (!ok) return;
+
+    expect(enemy->getId() == "enemy1", "init: id set");
+    expect(!enemy->getName().empty(), "init: name set");
+    expect(enemy->getMaxHealth() > 0.0f, "init: maxHealth > 0");
+    expect(enemy->getCurrentHealth() == enemy->getMaxHealth(), "init: currentHealth starts at max");
+    expect(enemy->getCurrentStateName() == "idle", "init: starts in idle");
+    expect(enemy->getStates().count("idle") > 0, "init: states include idle");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 2 — Enemy state timing (buildUp → fire → next + cooldown)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Ensures an attack state fires events only after build-up and then transitions to its next (or idle). */
+static void testEnemyFiresEventsAfterBuildUp(const std::string& enemiesJsonPath) {
+    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    if (!enemy) return;
+
+    std::string attack = firstAttackStateName(enemy);
+    expect(!attack.empty(), "stateTiming: found at least 1 attack-tagged state");
+    if (attack.empty()) return;
+
+    bool entered = enemy->requestState(attack);
+    expect(entered, "stateTiming: requestState enters attack");
+    expect(enemy->getCurrentStateName() == attack, "stateTiming: current state is attack");
+
+    enemy->update(0.5f);
+    expect(enemy->takeFiredEvents().empty(), "stateTiming: no events before buildUpTime");
+
+    const std::string expectedNext = expectedNextOrIdle(enemy, attack);
+
+    std::vector<Enemy::FiredEvent> fired;
+    bool didFire = stepUntilFire(enemy, /*dtStep=*/0.5f, /*maxSteps=*/120, fired);
+    expect(didFire, "stateTiming: eventually fires events after buildUpTime");
+    if (!didFire) return;
+
+    expect(fired.size() >= 1, "stateTiming: fired >= 1 event");
+    expect(enemy->getCurrentStateName() == expectedNext,
+           "stateTiming: transitions to nextState (or idle fallback) after firing");
+}
+
+/** Confirms cooldown states apply a lockout that prevents starting non-idle states until it expires. */
+static void testEnemyCooldownBlocksNonIdle(const std::string& enemiesJsonPath) {
+    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    if (!enemy) return;
+
+    std::string attack = firstAttackStateName(enemy);
+    if (attack.empty()) { expect(false, "cooldown: missing attack state"); return; }
+
+    std::string cooldownState = findFirstCooldownStateInChain(enemy, attack);
+    expect(!cooldownState.empty(),
+           "cooldown: found a cooldownTime>0 state in the attack chain");
+    if (cooldownState.empty()) return;
+
+    enemy->requestState(attack);
+
+    bool firedCooldownPhase = false;
+    for (int phase = 0; phase < 8; phase++) {
+        std::string stateThatWillFire = enemy->getCurrentStateName();
+        std::vector<Enemy::FiredEvent> fired;
+
+        bool didFire = stepUntilFire(enemy, 0.5f, 240, fired);
+        expect(didFire, "cooldown: phase fires at least one event");
+        if (!didFire) return;
+
+        if (stateThatWillFire == cooldownState) {
+            firedCooldownPhase = true;
+            break;
         }
-      }
     }
-  ]
-}
-)JSON";
+    expect(firedCooldownPhase, "cooldown: reached and fired the cooldown-applying phase");
+    if (!firedCooldownPhase) return;
 
-    const std::string path = writeTempJson(json);
+    expect(!enemy->canStartNonIdleState(), "cooldown: lockout active after cooldown phase fires");
 
-    EnemyLoader loader;
-    CUAssertLog(loader.loadFromFile(path), "EnemyLoader failed to load JSON");
-    Enemy enemy("enemy1", loader);
+    bool allowedNow = enemy->requestState(attack);
+    expect(!allowedNow, "cooldown: non-idle state blocked during lockout");
 
-    CUAssertLog(enemy.getCurrentStateName() == "idle", "Enemy did not start in idle");
-    CUAssertLog(enemy.requestState("attack1"), "Failed to enter attack1");
-
-    enemy.update(1.1f);
-
-    auto events = enemy.takeFiredEvents();
-    CUAssertLog(events.size() == 1, "Expected exactly 1 fired event");
-
-    CUAssertLog(enemy.getCurrentStateName() == "idle", "Enemy did not return to idle");
-
-    removeTempJson(path);
-
-    CULog("[TEST] testEnemyStateFlowAndCooldown PASS");
-}
-
-/** Tests enemy healing/damage works as intended. Cannot go below zero or above max health. */
-static void testEnemyHealthClamp() {
-    CULog("[TEST] testEnemyHealthClamp START");
-
-    const std::string json = R"JSON(
-{
-  "enemies": [
-    {
-      "id": "dummy",
-      "name": "Dummy",
-      "maxHealth": 10.0,
-      "spritesheetPath": "textures/dummy_enemy.png",
-      "states": { "idle": { "animationRow": 0 } }
+    bool becameReady = false;
+    for (int i = 0; i < 120; i++) {
+        enemy->update(0.5f);
+        if (enemy->canStartNonIdleState()) { becameReady = true; break; }
     }
-  ]
-}
-)JSON";
-
-    const std::string path = writeTempJson(json);
-
-    EnemyLoader loader;
-    CUAssertLog(loader.loadFromFile(path), "EnemyLoader failed to load JSON");
-    Enemy enemy("dummy", loader);
-
-    enemy.updateHealth(-3.0f);
-    CUAssertLog(enemy.getCurrentHealth() == 7.0f, "Damage application mismatch");
-
-    enemy.updateHealth(-100.0f);
-    CUAssertLog(enemy.getCurrentHealth() == 0.0f, "Health should clamp at 0");
-
-    enemy.updateHealth(100.0f);
-    CUAssertLog(enemy.getCurrentHealth() == 10.0f, "Health should clamp at max");
-
-    removeTempJson(path);
-
-    CULog("[TEST] testEnemyHealthClamp PASS");
+    expect(becameReady, "cooldown: lockout eventually ends");
+    if (becameReady) {
+        expect(enemy->requestState(attack), "cooldown: attack allowed after lockout ends");
+    }
 }
 
-/** Runs  unit tests for EnemyLoader + Enemy. */
-void runEnemyTests() {
-    CULog("=== EnemyTests: START ===");
-    testEnemyLoaderParsesBasicDef();
-    testEnemyStateFlowAndCooldown();
-    testEnemyHealthClamp();
-    CULog("=== EnemyTests: PASS ===");
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 3 — Health clamping
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Checks health updates clamp to [0, max] and apply normal subtraction within bounds. */
+static void testEnemyHealthClamp(const std::string& enemiesJsonPath) {
+    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    if (!enemy) return;
+
+    float maxHp = enemy->getMaxHealth();
+
+    enemy->updateHealth(-999999.0f);
+    expect(enemy->getCurrentHealth() == 0.0f, "health: clamps at 0");
+
+    enemy->updateHealth(+999999.0f);
+    expect(enemy->getCurrentHealth() == maxHp, "health: clamps at max");
+
+    enemy->updateHealth(-1.0f);
+    expect(enemy->getCurrentHealth() == maxHp - 1.0f, "health: subtracts normally");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 4 — EnemyController mechanics (attack selection + damage offsets)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Validates EnemyController will initiate an attack from idle when players are alive. */
+static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPath,
+                                               const std::string& charactersJsonPath) {
+    CharacterLoader loader = loadCharacters(charactersJsonPath);
+    auto players = makePlayersRing(loader, "Percy", 4);
+
+    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    if (!enemy) return;
+
+    EnemyController controller;
+    enemy->requestState("idle");
+
+    bool leftIdle = false;
+    for (int i = 0; i < 40; i++) {
+        controller.update(0.5f, enemy, players);
+        if (enemy->getCurrentStateName() != "idle") { leftIdle = true; break; }
+    }
+
+    expect(leftIdle, "controller: when idle and unlocked, starts an attack state");
+}
+
+/** Verifies controller remains in idle and does not attack when all players are dead. */
+static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& enemiesJsonPath,
+                                                         const std::string& charactersJsonPath) {
+    CharacterLoader loader = loadCharacters(charactersJsonPath);
+    auto players = makePlayersRing(loader, "Percy", 4);
+
+    for (auto& p : players) {
+        p->updateHealth(-999999.0f);
+    }
+    expect(!anyPlayersAlive(players), "controller(noLiving): all players confirmed dead");
+
+    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    if (!enemy) return;
+
+    EnemyController controller;
+    enemy->requestState("idle");
+
+    bool everLeftIdle = false;
+    for (int i = 0; i < 40; i++) {
+        controller.update(0.5f, enemy, players);
+        if (enemy->getCurrentStateName() != "idle") { everLeftIdle = true; break; }
+    }
+
+    expect(!everLeftIdle, "controller(noLiving): stays idle (does not start attacks)");
+}
+
+/** Confirms DAMAGE events processed by the controller reduce at least one player's health. */
+static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonPath,
+                                                 const std::string& charactersJsonPath) {
+    CharacterLoader loader = loadCharacters(charactersJsonPath);
+    auto players = makePlayersRing(loader, "Percy", 4);
+
+    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    if (!enemy) return;
+
+    EnemyController controller;
+
+    std::vector<float> before;
+    before.reserve(players.size());
+    for (auto& p : players) before.push_back(p->getCurrentHealth());
+
+    bool damagedSomeone = false;
+    for (int i = 0; i < 240; i++) {
+        controller.update(0.5f, enemy, players);
+
+        for (size_t k = 0; k < players.size(); k++) {
+            if (players[k]->getCurrentHealth() < before[k]) {
+                damagedSomeone = true;
+                break;
+            }
+        }
+        if (damagedSomeone) break;
+    }
+
+    expect(damagedSomeone, "controller: resolves DAMAGE events and reduces some player's hp");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Entry point
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Test harness entry point: runs all sections and prints a summary. */
+void EnemyTests::runAll(const std::string& enemiesJsonPath,
+                        const std::string& charactersJsonPath) {
+    _passed = 0;
+    _failed = 0;
+
+    CULog("═════════════════════════════════════════");
+    CULog("  EnemyTests::runAll");
+    CULog("═════════════════════════════════════════");
+    CULog("  enemiesJsonPath    : %s", enemiesJsonPath.c_str());
+    CULog("  charactersJsonPath : %s", charactersJsonPath.c_str());
+    CULog("─────────────────────────────────────────");
+
+    CULog("── Section 1: Init ──────────────────────");
+    testEnemyInitSetsCoreFields(enemiesJsonPath);
+
+    CULog("── Section 2: State timing ──────────────");
+    testEnemyFiresEventsAfterBuildUp(enemiesJsonPath);
+    testEnemyCooldownBlocksNonIdle(enemiesJsonPath);
+
+    CULog("── Section 3: Health clamp ──────────────");
+    testEnemyHealthClamp(enemiesJsonPath);
+
+    CULog("── Section 4: Controller mechanics ──────");
+    testControllerStartsAttackFromIdle(enemiesJsonPath, charactersJsonPath);
+    testControllerDoesNotAttackWhenAllPlayersDead(enemiesJsonPath, charactersJsonPath);
+    testControllerDamageEventHitsSomeone(enemiesJsonPath, charactersJsonPath);
+
+    printSummary();
 }
 

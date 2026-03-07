@@ -32,7 +32,7 @@
  *   std::vector<std::unique_ptr<PlayerAI>> _aiControllers;
  * allowing mixed difficulty levels in the same collection.
  */
-class PlayerAI {
+class PlayerAI : public Player {
 public:
 
     /**
@@ -53,9 +53,6 @@ public:
     };
 
 protected:
-
-    /** The bot-controlled player. Not owned by this controller — do not delete. */
-    Player* _player = nullptr;
 
     /** The current FSM state of this AI controller. */
     State _state = State::IDLE;
@@ -93,8 +90,20 @@ protected:
 
 public:
 
-    /** Constructs an uninitialized PlayerAI. Call init() before use. */
-    PlayerAI() = default;
+    /**
+     * Constructs a PlayerAI, forwarding all arguments to the Player base constructor.
+     * Required because Player has no default constructor.
+     *
+     * @param characterId   The character ID as it appears in characters.json
+     * @param playerNumber  The assigned player slot number
+     * @param playerName    Display name for this player
+     * @param loader        The CharacterLoader used to populate stats
+     */
+    PlayerAI(const std::string& characterId,
+             int playerNumber,
+             const std::string& playerName,
+             const CharacterLoader& loader)
+        : Player(characterId, playerNumber, playerName, loader) {}
 
     /**
      * Virtual destructor — required for safe polymorphic deletion of subclasses
@@ -103,7 +112,7 @@ public:
     virtual ~PlayerAI() = default;
 
     /**
-     * Initializes the AI controller with a player, item database, and JSON config.
+     * Initializes the AI controller with an item database and JSON config.
      *
      * Loads shared parameters (thinkInterval, aggressionWeight, supportWeight,
      * healThreshold) from the config. Returns false if any field is missing.
@@ -111,13 +120,11 @@ public:
      * Subclasses that override init() should call PlayerAI::init() first to
      * ensure shared fields are populated before reading their own fields.
      *
-     * @param player    Pointer to the Player this controller will drive. Must not be null.
      * @param db        Read-only reference to the item database for item lookups.
      * @param path      Path to the shared playerAI.json config file.
      * @return true if initialization succeeded, false otherwise.
      */
-    virtual bool init(Player* player, const ItemDatabase& db,
-                      const std::string& path);
+    virtual bool init(const ItemDatabase& db, const std::string& path);
 
     /**
      * Steps the AI forward by one frame.
@@ -183,6 +190,9 @@ protected:
      * Target must be the left or right neighbor.
      */
     virtual void actPass() = 0;
+    
+    /** Returns true if the player is an instance of PlayerAI (Always true for this class)*/
+    bool isAI() const override { return true; }
 };
 
 #endif /* __PLAYER_AI_H__ */

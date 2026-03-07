@@ -1,67 +1,95 @@
+// Enemy.cpp
 #include "Enemy.h"
 #include <algorithm>
+#include <cugl/cugl.h>
 
-/** Clamps a float to be at least zero. */
-static float clampMinZero(float v) { return v < 0.0f ? 0.0f : v; }
+using namespace cugl;
 
-/** Constructs an Enemy instance from loader data and initializes runtime state. */
-Enemy::Enemy(const std::string& enemyId, const EnemyLoader& loader) {
-    CUAssertLog(loader.has(enemyId), "Enemy ID not found: %s", enemyId.c_str());
-    const EnemyLoader::EnemyDef& def = loader.get(enemyId);
+/** Returns true if the enemy initializes successfully. */
+bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
+    static EnemyLoader sLoader;
+    static bool sLoaded = false;
+    static std::string sLoadedPath;
+
+    if (!sLoaded) {
+        if (!sLoader.loadFromFile(jsonPath)) {
+            CULog("Failed to load enemy JSON: %s", jsonPath.c_str());
+            return false;
+        }
+        sLoaded = true;
+        sLoadedPath = jsonPath;
+    }
+
+    if (sLoadedPath != jsonPath) {
+        CULog("Enemy JSON already loaded from different path");
+        return false;
+    }
+
+    if (!sLoader.has(enemyId)) {
+        CULog("Enemy ID not found: %s", enemyId.c_str());
+        return false;
+    }
+
+    const EnemyLoader::EnemyDef& def = sLoader.get(enemyId);
 
     _enemyId = def.id;
     _name = def.name;
     _spritesheetPath = def.spritesheetPath;
     _maxHealth = def.maxHealth;
     _currentHealth = def.maxHealth;
-    _shields = def.defaultShields;
     _states = def.states;
 
-    CUAssertLog(_states.count("idle") > 0, "Enemy '%s' must define 'idle'", _enemyId.c_str()); // assert there is an idle state
-
-    // always start idle
+    if (_states.count("idle") == 0) {
+        CULog("Enemy '%s' missing idle state", enemyId.c_str());
+        return false;
+    }
     enterState("idle");
+
     _attackLockout = 0.0f;
-    _facing = Facing::DOWN;
+    _retargetLikelihood = def.ai.retargetLikelihood;
+    
+    
+    return true;
 }
 
-/** Returns the definition of the currently active state, or nullptr if missing. */
+/** Returns the current state that the enemy is in. */
 const EnemyLoader::StateDef* Enemy::getCurrentStateDef() const {
-    auto stateDef = _states.find(_currentState);
-    if (stateDef == _states.end()) return nullptr;
-    return &stateDef->second;
+    auto cur = _states.find(_currentState);
+    if (cur == _states.end()) return nullptr;
+    return &cur->second;
 }
 
-/**
- * Attempts to enter a new state, respecting cooldown lockout rules.
- * Returns TRUE if successfully enters new state.
- */
+/** Returns true if successfully enters requested state. False and idle otherwise. */
 bool Enemy::requestState(const std::string& stateName) {
-    if (_states.count(stateName) == 0) return false;
-
-    // While lockout is active, only allow idle.
-    if (_attackLockout > 0.0f && stateName != "idle") return false;
+    if (_states.count(stateName) == 0) return false;    // State doesn't exist
+    if (_attackLockout > 0.0f && stateName != "idle") return false; // Lockout is active, only allow idle
 
     enterState(stateName);
     return true;
 }
 
-/** Immediately switches to the given state and resets runtime state timers. */
+/** Sets the enemy retarget likelihood. Only used for testing, should normally be defined in enemies JSON. */
+void Enemy::setRetargetLikelihood(float v) {
+    if (v < 0.0f) v = 0.0f;
+    if (v > 1.0f) v = 1.0f;
+    _retargetLikelihood = v;
+}
+
+/** Immediately enters the state and resets timers. */
 void Enemy::enterState(const std::string& stateName) {
     _currentState = stateName;
     _stateTime = 0.0f;
     _eventsFiredThisState = false;
 }
 
-/** Advances internal timers and decreases attack cooldown lockout. */
+/** Updates timers.*/
 void Enemy::tick(float dt) {
     if (dt <= 0.0f) return;
-
     _stateTime += dt;
-    _attackLockout = clampMinZero(_attackLockout - dt);
+    _attackLockout = (_attackLockout - dt < 0.0f) ? 0.0f : _attackLockout - dt;
 }
 
-/** Returns TRUE if the current state has reached its build-up time and can fire events. */
+/** Returns true if buildUp time has passed and events have not yet fired in this state. */
 bool Enemy::readyToFire() const {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return false;
@@ -69,7 +97,7 @@ bool Enemy::readyToFire() const {
     return _stateTime >= st->buildUpTime;
 }
 
-/** Fires all events defined by the current state and queues them for external systems. */
+/** Fires events from this state, adding them to the events buffer. */
 void Enemy::fireEvents() {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return;
@@ -77,8 +105,6 @@ void Enemy::fireEvents() {
     for (const auto& ev : st->events) {
         FiredEvent fe;
         fe.def = ev;
-        fe.target = ev.target;
-        fe.facingAtFire = _facing;
         fe.stateName = st->name;
         _firedEvents.push_back(fe);
     }
@@ -86,35 +112,26 @@ void Enemy::fireEvents() {
     _eventsFiredThisState = true;
 }
 
-/** Applies the current state's cooldown to prevent immediate re-entry into attack states. */
+/** Sets the cooldown timer based on the current state of the enemy. */
 void Enemy::applyCooldown() {
-    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
-    if (!stateDef) return;
-
-    _attackLockout = std::max(_attackLockout, stateDef->cooldownTime);
+    const EnemyLoader::StateDef* st = getCurrentStateDef();
+    if (!st) return;
+    _attackLockout = std::max(_attackLockout, st->cooldownTime);
 }
 
-/** Returns the state's configured next state, or falls back to "idle" if invalid/missing. */
+/** Returns the next state if defined by current state or "idle" by default. */
 std::string Enemy::getNextStateOrIdle() const {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return "idle";
 
-    if (!st->nextState.empty() && _states.count(st->nextState) > 0)
+    if (!st->nextState.empty() && _states.count(st->nextState) > 0) {
         return st->nextState;
-
+    }
     return "idle";
 }
 
-/** Transitions to the current state's configured next state without additional checks. */
-void Enemy::transitionToNextState() {
-    const EnemyLoader::StateDef* st = getCurrentStateDef();
-    if (!st) return;
-    enterState(st->nextState);
-}
-
-/** Updates the enemy's state execution, firing events and transitioning when ready. */
+/** Main update loop for enemy. Handles firing events, applying cooldown, transition to next state. */
 void Enemy::update(float dt) {
-
     tick(dt);
 
     if (readyToFire()) {
@@ -124,18 +141,16 @@ void Enemy::update(float dt) {
     }
 }
 
-/** Returns all fired events since last call and clears the internal event buffer. */
+/** Return contents of current event buffer and clears it.*/
 std::vector<Enemy::FiredEvent> Enemy::takeFiredEvents() {
     std::vector<FiredEvent> out;
     out.swap(_firedEvents);
     return out;
 }
 
-/** Increases/decreases the enemy health, clamping health to zero or max health. */
-void Enemy::updateHealth(float amount) {
-    _currentHealth += amount;
+/** Updates the enemy's health. Positive delta heals, negative damages. */
+void Enemy::updateHealth(float delta) {
+    _currentHealth += delta;
     if (_currentHealth > _maxHealth) _currentHealth = _maxHealth;
     if (_currentHealth < 0.0f) _currentHealth = 0.0f;
 }
-
-
