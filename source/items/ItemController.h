@@ -5,7 +5,7 @@
 #include <vector>
 #include "ItemDatabase.h"
 #include "ItemInstance.h"
-#include "Player.h"
+#include "../Player.h"
 
 class ItemController {
 private:
