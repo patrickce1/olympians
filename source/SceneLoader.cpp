@@ -79,6 +79,8 @@ void SceneLoader::onStartup() {
 #else
     Input::activate<Mouse>();
 #endif
+    Input::activate<Keyboard>();
+    Input::activate<TextInput>();
 
     _loadingScene = scene2::LoadingScene::alloc(_assets, "json/assets.json");
     _loadingScene->setSpriteBatch(_batch);
@@ -143,7 +145,10 @@ void SceneLoader::onStartup() {
 void SceneLoader::onShutdown() {
     _input.dispose();
     _gameScene.dispose();
+    _clientScene.dispose();
+    _hostSetupScene.dispose();
     _menuScene.dispose();
+    _lobbyScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
 
@@ -157,6 +162,8 @@ void SceneLoader::onShutdown() {
 #else
     Input::deactivate<Mouse>();
 #endif
+    Input::deactivate<TextInput>();
+    Input::deactivate<Keyboard>();
     Application::onShutdown();
 }
 
@@ -206,32 +213,110 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize MenuScene");
                 }
+                
+                if (_hostSetupScene.init(_assets)) {
+                    _hostSetupScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize HostSetupScene");
+                }
+                
+                if (_clientScene.init(_assets)) {
+                    _clientScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize ClientScene");
+                }
+                
+                if (_gameScene.init(_assets)) {
+                    _gameScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize GameScene");
+                }
+                
+                if (_lobbyScene.init(_assets)) {
+                    _lobbyScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize LobbyScene");
+                }
             }
-
             break;
         case State::MENU:
             _menuScene.update(dt);
             switch (_menuScene.consumeAction()) {
                 case MenuScene::Action::START_GAME:
-                    CULog("Transitioning to GameScene...");
-                    if (_gameScene.init(_assets)) {
-                        _gameScene.setSpriteBatch(_batch);
-                        _gameScene.setActive(true);
-                        _menuScene.setActive(false);
-                        _currentScene = State::GAME;
-                    } else {
-                        CULog("Failed to initialize GameScene");
-                    }
+                    CULog("Transitioning to HostSetupScene...");
+                    _hostSetupScene.setActive(true);
+                    _menuScene.setActive(false);
+                    _currentScene = State::HOSTSETUP;
                     break;
                 case MenuScene::Action::OPEN_SETTINGS:
                     CULog("SettingsScene placeholder pressed");
                     break;
-                case MenuScene::Action::OPEN_ITEMS:
-                    CULog("ItemsScene placeholder pressed");
+                case MenuScene::Action::JOIN_GAME:
+                    CULog("Transitioning to ClientScene...");
+                    _clientScene.setActive(true);
+                    _menuScene.setActive(false);
+                    _currentScene = State::CLIENT;
                     break;
                 case MenuScene::Action::NONE:
                 default:
                     break;
+            }
+            break;
+        case State::CLIENT:
+            _clientScene.update(dt);
+            switch (_clientScene.getStatus()) {
+                case ClientScene::Status::START:
+                    CULog("Transitioning to LobbyScene...");
+                    _lobbyScene.setActive(true);
+                    _clientScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                case ClientScene::Status::ABORT:
+                    CULog("Transitioning to MenuScene...");
+                    _menuScene.setActive(true);
+                    _clientScene.setActive(false);
+                    _currentScene = State::MENU;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case State::HOSTSETUP:
+            _hostSetupScene.update(dt);
+            switch (_hostSetupScene.getStatus()) {
+                case HostSetupScene::Status::START:
+                    CULog("Transitioning to LobbyScene...");
+                    _lobbyScene.setActive(true);
+                    _hostSetupScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                case HostSetupScene::Status::ABORT:
+                    CULog("Transitioning to MenuScene...");
+                    _menuScene.setActive(true);
+                    _hostSetupScene.setActive(false);
+                    _currentScene = State::MENU;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case State::LOBBY:
+            _lobbyScene.update(dt);
+            switch (_lobbyScene.getStatus()) {
+                case LobbyScene::Status::START:
+                    CULog("Transitioning to GameScene...");
+                    _gameScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::GAME;
+                    break;
+                case LobbyScene::Status::ABORT:
+                    CULog("Transitioning to MenuScene...");
+                    _menuScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::MENU;
+                    break;
+                default:
+                    break;;
             }
             break;
         case State::GAME:
@@ -277,6 +362,15 @@ void SceneLoader::draw() {
     switch (_currentScene) {
         case State::LOAD:
             _loadingScene->render();
+            break;
+        case State::HOSTSETUP:
+            _hostSetupScene.render();
+            break;
+        case State::CLIENT:
+            _clientScene.render();
+            break;
+        case State::LOBBY:
+            _lobbyScene.render();
             break;
         case State::MENU:
             _menuScene.render();
