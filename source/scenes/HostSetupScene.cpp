@@ -189,7 +189,6 @@ void HostSetupScene::setActive(bool value) {
 void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, const std::string text) {
     auto label = std::dynamic_pointer_cast<scene2::Label>(button->getChildByName("up")->getChildByName("label"));
     label->setText(text);
-
 }
 
 /**
