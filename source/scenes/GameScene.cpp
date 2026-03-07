@@ -402,7 +402,7 @@ void GameScene::handleDragInitiation(InputController& input) {
  * Moves the active dragged icon to follow the current touch position.
  */
 void GameScene::handleDragTracking(InputController& input) {
-    if (!_activeIcon || !input.isTouching()) return;
+    if (!_activeIcon || (!input.isTouching() && !input.isMouseDown())) return;
     Vec2 dragScene = screenToWorldCoords(input.getDragPos());
     _activeIcon->setPosition(dragScene + _dragOffset);
 }
