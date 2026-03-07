@@ -592,14 +592,15 @@ cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size &widgetSize) c
 /** Synchronises on-screen item widgets with the local player's current inventory. */
 void GameScene::syncInventoryWidgets()
 {
-    if (!_inventory || !_localPlayer)
+    Player* local = _gameState.getLocalPlayer();
+    if (!_inventory || !local)
     {
         return;
     }
 
     std::unordered_set<ItemInstance::ItemId> liveIds;
 
-    for (const ItemInstance &item : _localPlayer->getInventory())
+    for (const ItemInstance &item : local->getInventory())
     {
         ItemInstance::ItemId id = item.getId();
         liveIds.insert(id);
