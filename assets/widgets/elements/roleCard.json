@@ -1,0 +1,293 @@
+{
+    "variables": {
+        "name" : ["children","title", "children", "BOSS", "data", "text"],
+        "description" : ["children", "bossDescription", "data", "text"],
+        "image": ["children", "bossPoster", "data", "texture"]
+    },
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0,
+                0
+            ],
+            "size": [
+                177.22,
+                354.6
+            ],
+            "angle": 0,
+            "position": [
+                0,
+                0
+            ],
+            "visible": true
+        },
+        "children": {
+            "bossPoster": {
+                "type": "Image",
+                "data": {
+                    "texture": "place-bossPoster",
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        177.22,
+                        349.07
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        8.69
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0.01
+                }
+            },
+            "bossDescription": {
+                "type": "Label",
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        152,
+                        36
+                    ],
+                    "position": [
+                        12.611328125,
+                        38.765625
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "font": "gideon romanRegular10",
+                    "text": "",
+                    "foreground": "#000000ff",
+                    "background": "#00000000",
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "valign": "top",
+                    "halign": "center"
+                },
+                "children": {},
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.07,
+                    "y_offset": -0.79
+                }
+            },
+            "title": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        112,
+                        29
+                    ],
+                    "angle": 0,
+                    "position": [
+                        32.61,
+                        -0.23
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "background": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Anchored"
+                        },
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "angle": 0,
+                            "size": [
+                                112,
+                                29
+                            ],
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "fill": {
+                                "type": "Solid",
+                                "data": {
+                                    "polygon": [
+                                        112,
+                                        26.31,
+                                        111.21,
+                                        28.21,
+                                        109.31,
+                                        29,
+                                        2.69,
+                                        29,
+                                        0.79,
+                                        28.21,
+                                        0,
+                                        26.31,
+                                        0,
+                                        2.69,
+                                        0.79,
+                                        0.79,
+                                        2.69,
+                                        0,
+                                        109.31,
+                                        0,
+                                        111.21,
+                                        0.79,
+                                        112,
+                                        2.69
+                                    ],
+                                    "color": "#c9c9c9ff",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            },
+                            "stroke": {
+                                "type": "Path",
+                                "data": {
+                                    "color": "#9a9a9aff",
+                                    "path": {
+                                        "vertices": [
+                                            111.83,
+                                            26.31,
+                                            111.09,
+                                            28.09,
+                                            109.31,
+                                            28.83,
+                                            2.52,
+                                            28.83,
+                                            0.74,
+                                            28.09,
+                                            0,
+                                            26.31,
+                                            0,
+                                            2.52,
+                                            0.74,
+                                            0.74,
+                                            2.52,
+                                            0,
+                                            109.31,
+                                            0,
+                                            111.09,
+                                            0.74,
+                                            111.83,
+                                            2.52
+                                        ],
+                                        "closed": true
+                                    },
+                                    "stroke": 0.6700000166893005,
+                                    "joint": "square",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "BOSS": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                112,
+                                19
+                            ],
+                            "position": [
+                                0,
+                                4
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular16",
+                            "text": "BOSS",
+                            "foreground": "#000000ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.21
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.18,
+                    "y_offset": -0.92
+                }
+            }
+        }
+    }
+}
