@@ -124,12 +124,31 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 	_deserializer.receive(message);
 	int msgCode = _deserializer.readSint32();
 	switch (msgCode) {
-		case MessageType::BOSS_DAMAGE:
+		case MessageType::BOSS_DAMAGE: {
+			float damage = _deserializer.readFloat();
+			AttackMessage attackMsg;
+			attackMsg.damage = damage;
+			attacks.push_back(attackMsg);
 			break;
-		case MessageType::PLAYER_HEAL:
+		}
+		case MessageType::PLAYER_HEAL: {
+			float heal = _deserializer.readFloat();
+			std::string healRecieverID = _deserializer.readString();
+			HealMessage healMsg;
+			healMsg.heal = heal;
+			healMsg.playerID = healRecieverID;
+			heals.push_back(healMsg);
 			break;
-		case MessageType::PLAYER_PASS:
+		}
+		case MessageType::PLAYER_PASS: {
+			std::string itemID = _deserializer.readString();
+			std::string passRecieverID = _deserializer.readString();
+			PassMessage passMsg;
+			passMsg.itemID = itemID;
+			passMsg.playerID = passRecieverID;
+			passes.push_back(passMsg);
 			break;
+		}
 	}
 }
 
