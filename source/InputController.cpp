@@ -43,7 +43,6 @@ bool InputController::init(){
     
     if (_mouse){
         
-        
         // Acquire a unique listener key for registering/unregistering callbacks from the mouse.
         _mouseListenerKey = _mouse->acquireKey();
         
