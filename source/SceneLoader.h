@@ -7,8 +7,8 @@
 #include "scenes/MenuScene.h"
 #include "scenes/LobbyScene.h"
 #include "InputController.h"
-#include "PlayerTests.h"
-#include "EnemyTests.h"
+#include "tests/PlayerTests.h"
+#include "tests/EnemyTests.h"
 #include <algorithm>
 #include <cugl/core/CUBase.h>
 #include <cugl/core/util/CULogger.h>
