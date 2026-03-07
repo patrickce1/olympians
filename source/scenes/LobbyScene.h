@@ -4,6 +4,7 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
+#include "../NetworkController.h"
 
 /**
  * This class provides the interface to join an existing game.
@@ -29,6 +30,9 @@ public:
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+
+    /** The network controller shared across all scenes*/
+    std::shared_ptr<NetworkController> _network;
 
     /** The button for entering a game */
     std::shared_ptr<cugl::scene2::Button> _enterGame;
@@ -86,7 +90,7 @@ public:
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
     
     /**
      * Retrieves and stores references to the lobby UI elements.

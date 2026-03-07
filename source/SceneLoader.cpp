@@ -62,6 +62,8 @@ void SceneLoader::onStartup() {
     // Create an asset manager to load all assets
     _assets = AssetManager::alloc();
 
+    _network = std::make_shared<NetworkController>();
+
     // You have to attach the individual loaders for each asset type
     _assets->attach<Texture>(TextureLoader::alloc()->getHook());
     _assets->attach<Font>(FontLoader::alloc()->getHook());
@@ -90,11 +92,14 @@ void SceneLoader::onStartup() {
     
     // Build the scene from these assets
     Application::onStartup();
+    netcode::NetworkLayer::start(netcode::NetworkLayer::Log::INFO);
 
     // in SceneLoader::onStartup(), just to verify zones fire
     _input.init(); //The input controller starts.
     
     _input.setActive(true); //We can actually tap.
+
+
     
     CULog("Input is active: %d", _input.isActive());
 
@@ -151,6 +156,7 @@ void SceneLoader::onShutdown() {
     _lobbyScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
+    netcode::NetworkLayer::stop();
 
     // Delete all smart pointers
     _batch = nullptr;
@@ -198,12 +204,15 @@ void SceneLoader::onResize() {
  * Otherwise, it should maintain the current scene.
  */
 void SceneLoader::update(float dt) {
+    
     switch (_currentScene) {
         case State::LOAD:
             _loadingScene->update(dt);
 
             if (_loadingScene->isPending()) {
                 CULog("Assets finished loading. Initializing MenuScene...");
+
+                _network->init(_assets); //assets loaded, load network controller
 
                 if (_menuScene.init(_assets)) {
                     _menuScene.setSpriteBatch(_batch);
@@ -214,13 +223,13 @@ void SceneLoader::update(float dt) {
                     CULog("Failed to initialize MenuScene");
                 }
                 
-                if (_hostSetupScene.init(_assets)) {
+                if (_hostSetupScene.init(_assets, _network)) {
                     _hostSetupScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize HostSetupScene");
                 }
                 
-                if (_clientScene.init(_assets)) {
+                if (_clientScene.init(_assets, _network)) {
                     _clientScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize ClientScene");
@@ -232,7 +241,7 @@ void SceneLoader::update(float dt) {
                     CULog("Failed to initialize GameScene");
                 }
                 
-                if (_lobbyScene.init(_assets)) {
+                if (_lobbyScene.init(_assets, _network)) {
                     _lobbyScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize LobbyScene");

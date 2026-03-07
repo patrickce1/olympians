@@ -8,7 +8,8 @@
 #include "scenes/LobbyScene.h"
 #include "InputController.h"
 #include "tests/PlayerTests.h"
-#include "EnemyTests.h"
+#include "tests/EnemyTests.h"
+#include "NetworkController.h"
 #include <algorithm>
 #include <cugl/core/CUBase.h>
 #include <cugl/core/util/CULogger.h>
@@ -41,6 +42,8 @@ protected:
     std::shared_ptr<cugl::Logger> _logger;
     
     InputController _input;
+
+    std::shared_ptr<NetworkController> _network;
 
     /* All the scenes in the game*/
     std::shared_ptr<cugl::scene2::LoadingScene> _loadingScene;

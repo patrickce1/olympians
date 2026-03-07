@@ -22,7 +22,7 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -32,6 +32,7 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // Start up the input handler
     _assets = assets;
+    _network = networkController;
 
     Size dimen = getSize();
     
@@ -66,7 +67,7 @@ void LobbyScene::setupUI() {
         _assets->get<scene2::SceneNode>("lobbyScene.back"));
 
     _gameId = std::dynamic_pointer_cast<scene2::Label>(
-        _assets->get<scene2::SceneNode>("lobbyScene.header.gameId"));
+        _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
 }
 
 /**
@@ -134,6 +135,10 @@ void LobbyScene::setActive(bool value) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void LobbyScene::update(float timestep) {
+    if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
+        _gameId->setText(_network->getRoom());
+    }
+    
     // IMPLEMENT ME
 
 }

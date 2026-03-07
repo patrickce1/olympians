@@ -62,10 +62,13 @@ static std::string hex2dec(const std::string hex) {
 /*MAIN FUNCTIONS*/
 
 bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+	if (assets == nullptr) {
+		return false;
+	}
 	auto json = assets->get<JsonValue>("server");
 	_config.set(json);
-	_serializer = NetcodeSerializer::NetcodeSerializer();
-	_deserializer = NetcodeDeserializer::NetcodeDeserializer();
+	_serializer = NetcodeSerializer();
+	_deserializer = NetcodeDeserializer();
 	return true;
 }
 

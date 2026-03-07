@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include "../NetworkController.h"
 
 /**
  * This class provides the interface to make a new game.
@@ -32,6 +33,9 @@ public:
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+
+    /** The network controller shared across all scenes*/
+    std::shared_ptr<NetworkController> _network;
 
     /** The menu button for starting a game */
     std::shared_ptr<cugl::scene2::Button> _startGame;
@@ -107,7 +111,7 @@ public:
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
     
     /**
      * Retrieves and stores references to the host setup UI elements.

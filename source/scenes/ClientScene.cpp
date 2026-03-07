@@ -22,7 +22,7 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -32,6 +32,7 @@ bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // Start up the input handler
     _assets = assets;
+    _network = networkController;
     
     Size dimen = getSize();
     
@@ -100,7 +101,18 @@ void ClientScene::setupListeners() {
 
     _enterGame->addListener([this](const std::string& name, bool down) {
         if (down) {
-            _status = Status::START;
+            _network->joinRoom(_gameId->getText());
+
+            if (_network->checkConnection() == NetworkController::Status::CONNECTED ||
+                _network->checkConnection() == NetworkController::Status::WAITING) {
+                _status = Status::START;
+            }
+            else {
+                //some pop-up saying connection failed idk...
+                //for now changing the text in the box but we should change this
+                _gameId->setText("failed");
+            }
+            
         }
     });
 
