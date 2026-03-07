@@ -1,11 +1,5 @@
 //Implementation of SceneLoader
-
 #include "SceneLoader.h"
-#include <cugl/core/CUBase.h>
-#include <cugl/core/util/CULogger.h>
-
-//  Unit tests 
-void runEnemyTests();
 
 // This keeps us from having to write cugl:: all the time
 using namespace cugl;
@@ -85,6 +79,8 @@ void SceneLoader::onStartup() {
 #else
     Input::activate<Mouse>();
 #endif
+    Input::activate<Keyboard>();
+    Input::activate<TextInput>();
 
     _loadingScene = scene2::LoadingScene::alloc(_assets, "json/assets.json");
     _loadingScene->setSpriteBatch(_batch);
@@ -97,19 +93,11 @@ void SceneLoader::onStartup() {
 
     // in SceneLoader::onStartup(), just to verify zones fire
     _input.init(); //The input controller starts.
-    cugl::Rect screen = getDisplayBounds();
-    float w = screen.size.width;
-    float h = screen.size.height;
-    CULog("Screen size: %f x %f", w, h);
+    
     _input.setActive(true); //We can actually tap.
     
-    CULog("Is active: %d", _input.isActive());
-    _input.setBossZone(cugl::Rect(w * 0.15f, 0, w * 0.7f, h * 0.5f)); // top middle (between ally zones)
-    _input.setAllyZoneLeft(cugl::Rect(0, 0, w * 0.15f, h * 0.5f)); // top left 15% strip
-    _input.setAllyZoneRight(cugl::Rect(w * 0.85f, 0, w * 0.15f, h * 0.5f)); // top right 15% strip
-    _input.setPasssZoneLeft(cugl::Rect(0, h * 0.5f, w * 0.15f, h * 0.5f));   // bottom left %15 strip
-    _input.setPassZoneRight(cugl::Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)); // bottom right %15 strip
-   
+    CULog("Input is active: %d", _input.isActive());
+
     // Create the logger
     _logger = Logger::open("debug");
 
@@ -135,6 +123,11 @@ void SceneLoader::onStartup() {
 //        "json/enemies.json",
 //        "json/playerAI.json"
 //    );
+//
+//    EnemyTests::runAll(
+//        "json/enemies.json",
+//        "json/characters.json"
+//    );
 
 }
 
@@ -152,7 +145,10 @@ void SceneLoader::onStartup() {
 void SceneLoader::onShutdown() {
     _input.dispose();
     _gameScene.dispose();
+    _clientScene.dispose();
+    _hostSetupScene.dispose();
     _menuScene.dispose();
+    _lobbyScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
 
@@ -166,6 +162,8 @@ void SceneLoader::onShutdown() {
 #else
     Input::deactivate<Mouse>();
 #endif
+    Input::deactivate<TextInput>();
+    Input::deactivate<Keyboard>();
     Application::onShutdown();
 }
 
@@ -195,8 +193,8 @@ void SceneLoader::onResize() {
  * at all. The default implmentation does nothing.
  *
  * @param dt    The amount of time (in seconds) since the last frame
- * 
- * Scene loader's main job during update is to detect if a switch between scenes is necessary. 
+ *
+ * Scene loader's main job during update is to detect if a switch between scenes is necessary.
  * Otherwise, it should maintain the current scene.
  */
 void SceneLoader::update(float dt) {
@@ -215,56 +213,134 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize MenuScene");
                 }
+                
+                if (_hostSetupScene.init(_assets)) {
+                    _hostSetupScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize HostSetupScene");
+                }
+                
+                if (_clientScene.init(_assets)) {
+                    _clientScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize ClientScene");
+                }
+                
+                if (_gameScene.init(_assets)) {
+                    _gameScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize GameScene");
+                }
+                
+                if (_lobbyScene.init(_assets)) {
+                    _lobbyScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize LobbyScene");
+                }
             }
-
             break;
         case State::MENU:
             _menuScene.update(dt);
             switch (_menuScene.consumeAction()) {
                 case MenuScene::Action::START_GAME:
-                    CULog("Transitioning to GameScene...");
-                    if (_gameScene.init(_assets)) {
-                        _gameScene.setSpriteBatch(_batch);
-                        _gameScene.setActive(true);
-                        _menuScene.setActive(false);
-                        _currentScene = State::GAME;
-                    } else {
-                        CULog("Failed to initialize GameScene");
-                    }
+                    CULog("Transitioning to HostSetupScene...");
+                    _hostSetupScene.setActive(true);
+                    _menuScene.setActive(false);
+                    _currentScene = State::HOSTSETUP;
                     break;
                 case MenuScene::Action::OPEN_SETTINGS:
                     CULog("SettingsScene placeholder pressed");
                     break;
-                case MenuScene::Action::OPEN_ITEMS:
-                    CULog("ItemsScene placeholder pressed");
+                case MenuScene::Action::JOIN_GAME:
+                    CULog("Transitioning to ClientScene...");
+                    _clientScene.setActive(true);
+                    _menuScene.setActive(false);
+                    _currentScene = State::CLIENT;
                     break;
                 case MenuScene::Action::NONE:
                 default:
                     break;
             }
             break;
+        case State::CLIENT:
+            _clientScene.update(dt);
+            switch (_clientScene.getStatus()) {
+                case ClientScene::Status::START:
+                    CULog("Transitioning to LobbyScene...");
+                    _lobbyScene.setActive(true);
+                    _clientScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                case ClientScene::Status::ABORT:
+                    CULog("Transitioning to MenuScene...");
+                    _menuScene.setActive(true);
+                    _clientScene.setActive(false);
+                    _currentScene = State::MENU;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case State::HOSTSETUP:
+            _hostSetupScene.update(dt);
+            switch (_hostSetupScene.getStatus()) {
+                case HostSetupScene::Status::START:
+                    CULog("Transitioning to LobbyScene...");
+                    _lobbyScene.setActive(true);
+                    _hostSetupScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                case HostSetupScene::Status::ABORT:
+                    CULog("Transitioning to MenuScene...");
+                    _menuScene.setActive(true);
+                    _hostSetupScene.setActive(false);
+                    _currentScene = State::MENU;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case State::LOBBY:
+            _lobbyScene.update(dt);
+            switch (_lobbyScene.getStatus()) {
+                case LobbyScene::Status::START:
+                    CULog("Transitioning to GameScene...");
+                    _gameScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::GAME;
+                    break;
+                case LobbyScene::Status::ABORT:
+                    CULog("Transitioning to MenuScene...");
+                    _menuScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::MENU;
+                    break;
+                default:
+                    break;;
+            }
+            break;
         case State::GAME:
             InputController::Action action = _input.getAction();
-                        switch (action) {
-                            case InputController::Action::PASS_RIGHT:
-                                CULog("[ACTION] PASS_RIGHT");
-                                break;
-                            case InputController::Action::PASS_LEFT:
-                                CULog("[ACTION] PASS_LEFT");
-                                break;
-                            case InputController::Action::DROP_BOSS:
-                                CULog("[ACTION] DROP_BOSS");
-                                break;
-                            case InputController::Action::DROP_ALLY_LEFT:
-                                CULog("[ACTION] DROP_ALLY_LEFT");
-                                break;
-                            case InputController::Action::DROP_ALLY_RIGHT:
-                                CULog("[ACTION] DROP_ALLY_RIGHT");
-                                break;
-                            default:
-                                break;
-                        }
-            _gameScene.update(dt);
+                switch (action) {
+                    case InputController::Action::PASS_RIGHT:
+                        CULog("[ACTION] PASS_RIGHT");
+                        break;
+                    case InputController::Action::PASS_LEFT:
+                        CULog("[ACTION] PASS_LEFT");
+                        break;
+                    case InputController::Action::DROP_BOSS:
+                        CULog("[ACTION] DROP_BOSS");
+                        break;
+                    case InputController::Action::DROP_ALLY_LEFT:
+                        CULog("[ACTION] DROP_ALLY_LEFT");
+                        break;
+                    case InputController::Action::DROP_ALLY_RIGHT:
+                        CULog("[ACTION] DROP_ALLY_RIGHT");
+                        break;
+                    default:
+                        break;
+                }
+            _gameScene.update(dt, _input);
             break;
     }
     _input.resetAction();
@@ -287,6 +363,15 @@ void SceneLoader::draw() {
         case State::LOAD:
             _loadingScene->render();
             break;
+        case State::HOSTSETUP:
+            _hostSetupScene.render();
+            break;
+        case State::CLIENT:
+            _clientScene.render();
+            break;
+        case State::LOBBY:
+            _lobbyScene.render();
+            break;
         case State::MENU:
             _menuScene.render();
             break;
@@ -298,6 +383,6 @@ void SceneLoader::draw() {
 
 
 void SceneLoader::updateGameScene(float dt) {
-    _gameScene.update(dt);
+    _gameScene.update(dt, _input);
     //scene switching logic goes here
 }

@@ -1,0 +1,822 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0,
+                0
+            ],
+            "size": [
+                393,
+                852
+            ],
+            "angle": 0,
+            "position": [
+                0,
+                0
+            ],
+            "visible": true
+        },
+        "children": {
+            "background": {
+                "type": "Solid",
+                "data": {
+                    "polygon": [
+                        800,
+                        852,
+                        0,
+                        852,
+                        0,
+                        0,
+                        800,
+                        0
+                    ],
+                    "color": "#ffffffff",
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true,
+                    "angle": 0
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "header": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        192,
+                        82
+                    ],
+                    "angle": 0,
+                    "position": [
+                        29,
+                        736
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "gameID": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                192,
+                                58
+                            ],
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular48",
+                            "text": "########",
+                            "foreground": "#000000ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "left"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.29
+                        }
+                    },
+                    "Your Game Pin": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                137,
+                                24
+                            ],
+                            "position": [
+                                0,
+                                52
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular20",
+                            "text": "Your Game Pin",
+                            "foreground": "#000000ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "left"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.07
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.15,
+                    "y_offset": -0.04
+                }
+            },
+            "start": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        300,
+                        53
+                    ],
+                    "angle": 0,
+                    "position": [
+                        47,
+                        64
+                    ],
+                    "visible": true,
+                    "upnode": "Rectangle 29"
+                },
+                "children": {
+                    "Rectangle 29": {
+                        "type": "Solid",
+                        "data": {
+                            "polygon": [
+                                300,
+                                47,
+                                298.24,
+                                51.24,
+                                294,
+                                53,
+                                6,
+                                53,
+                                1.76,
+                                51.24,
+                                0,
+                                47,
+                                0,
+                                6,
+                                1.76,
+                                1.76,
+                                6,
+                                0,
+                                294,
+                                0,
+                                298.24,
+                                1.76,
+                                300,
+                                6
+                            ],
+                            "color": "#c9c9c9ff",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true,
+                            "angle": 0
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "Begin Quest": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                133,
+                                29
+                            ],
+                            "position": [
+                                83,
+                                12
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular24",
+                            "text": "Begin Quest",
+                            "foreground": "#000000ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.12,
+                    "y_offset": -0.86
+                }
+            },
+            "tableArea": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        338.85,
+                        382.85
+                    ],
+                    "angle": 0,
+                    "position": [
+                        27,
+                        263.15
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "bossCircle": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "bossCircle",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                229,
+                                229
+                            ],
+                            "angle": 0,
+                            "position": [
+                                56,
+                                77.85
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.17,
+                            "y_offset": -0.2
+                        }
+                    },
+                    "playerCard4": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "center",
+                            "y_alignment": "middle",
+                            "orientation": "vertical"
+                        },
+                        "data": {
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                85,
+                                106
+                            ],
+                            "angle": 0,
+                            "position": [
+                                128,
+                                277
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "username": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        85,
+                                        19
+                                    ],
+                                    "position": [
+                                        42.5,
+                                        9.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "gideon romanRegular16",
+                                    "text": "Waiting...",
+                                    "foreground": "#000000ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "center"
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        2,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            },
+                            "playerIcon": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "playerIcon",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        85,
+                                        85
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        42.5,
+                                        63.5
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.38,
+                            "y_offset": 0.72
+                        }
+                    },
+                    "playerCard3": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "left",
+                            "y_alignment": "bottom",
+                            "orientation": "vertical"
+                        },
+                        "data": {
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                85,
+                                106
+                            ],
+                            "angle": 0,
+                            "position": [
+                                128,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "playerIcon": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "playerIcon",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        85,
+                                        85
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        42.5,
+                                        42.5
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        2,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            },
+                            "username": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        85,
+                                        19
+                                    ],
+                                    "position": [
+                                        42.5,
+                                        96.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "gideon romanRegular16",
+                                    "text": "Waiting...",
+                                    "foreground": "#000000ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "center"
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.38,
+                            "y_offset": 0
+                        }
+                    },
+                    "playerCard2": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "left",
+                            "y_alignment": "bottom",
+                            "orientation": "vertical"
+                        },
+                        "data": {
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                85,
+                                106
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                126
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "playerIcon": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "playerIcon",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        85,
+                                        85
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        42.5,
+                                        42.5
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        2,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            },
+                            "username": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        85,
+                                        19
+                                    ],
+                                    "position": [
+                                        42.5,
+                                        96.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "gideon romanRegular16",
+                                    "text": "Waiting...",
+                                    "foreground": "#000000ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "center"
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0.33
+                        }
+                    },
+                    "playerCard": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "left",
+                            "y_alignment": "bottom",
+                            "orientation": "vertical"
+                        },
+                        "data": {
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                85,
+                                106
+                            ],
+                            "angle": 0,
+                            "position": [
+                                254,
+                                126
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "playerIcon": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "playerIcon",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        85,
+                                        85
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        42.5,
+                                        42.5
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        2,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            },
+                            "username": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        85,
+                                        19
+                                    ],
+                                    "position": [
+                                        42.5,
+                                        96.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "gideon romanRegular16",
+                                    "text": "Waiting...",
+                                    "foreground": "#000000ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "center"
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.75,
+                            "y_offset": 0.33
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.07,
+                    "y_offset": 0.31
+                }
+            },
+            "back": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                    0,
+                    1
+                    ],
+                    "size": [
+                    8.83,
+                    15
+                    ],
+                    "angle": 0,
+                    "position": [
+                    28,
+                    788
+                    ],
+                    "visible": true,
+                    "upnode": "back 1"
+                    },
+                "children": {
+                    "back 1": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "back 1",
+                            "anchor": [
+                            0,
+                            1
+                            ],
+                            "size": [
+                            9,
+                            15
+                            ],
+                            "angle": 0,
+                            "position": [
+                            0,
+                            0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.07,
+                    "y_offset": -0.06
+                }
+            }
+        }
+    }
+}
