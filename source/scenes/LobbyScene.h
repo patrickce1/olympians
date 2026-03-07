@@ -87,6 +87,23 @@ public:
      * @return true if the controller is initialized properly, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    
+    /**
+     * Retrieves and stores references to the lobby UI elements.
+     *
+     * This method looks up important UI components from the scene graph,
+     * including the start button, back button, and game ID label, and stores
+     * them for later interaction.
+     */
+    void setupUI();
+    
+    /**
+     * Attaches input listeners to the lobby UI buttons.
+     *
+     * This method assigns button callbacks that update the lobby scene status
+     * when the user presses the start or back buttons.
+     */
+    void setupListeners();
 
     /**
      * Sets whether the scene is currently active

@@ -47,35 +47,80 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
 
-    _startGame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.start"));
-    _backOut = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.back"));
-    _hostName = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
-    _leftButton = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.leftscroll"));
-    _rightButton = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("hostSetupScene.rightscroll"));
+    setupUI();
+    setupListeners();
     
+    _status = Status::WAIT;
+    
+    addChild(scene);
+    setActive(false);
+    return true;
+}
+
+/**
+ * Retrieves and stores references to the host setup UI elements.
+ *
+ * This method looks up UI components from the scene graph including the
+ * start button, back button, host name text field, carousel navigation
+ * buttons, and the role carousel container. It also initializes the
+ * carousel item list and configures the placeholder label.
+ */
+void HostSetupScene::setupUI() {
+
+    _startGame = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("hostSetupScene.start"));
+
+    _backOut = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("hostSetupScene.back"));
+
+    _hostName = std::dynamic_pointer_cast<scene2::TextField>(
+        _assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
+
+    _leftButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("hostSetupScene.leftscroll"));
+
+    _rightButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("hostSetupScene.rightscroll"));
+
     _container = _assets->get<scene2::SceneNode>("hostSetupScene.roleCarousel");
-    
+
     if (_container) {
-        // Three placeholder bosses
         _items.push_back(_container->getChild(0));
         _items.push_back(_container->getChild(1));
         _items.push_back(_container->getChild(2));
     }
+
+    std::shared_ptr<cugl::scene2::Label> placeName =
+        std::dynamic_pointer_cast<scene2::Label>(
+            _assets->get<scene2::SceneNode>("hostSetupScene.hostName.placeholder"));
+
+    placeName->setText("Enter Name");
+
+    _hostName->addTypeListener([placeName](const std::string& name, const std::string& value) {
+        placeName->setVisible(value.empty());
+    });
+}
+
+/**
+ * Attaches input listeners to the host setup buttons.
+ *
+ * This method assigns callbacks for starting the game, returning to the
+ * previous menu, and navigating the role selection carousel.
+ */
+void HostSetupScene::setupListeners() {
     
-    _status = Status::WAIT;
-    
-    // Program the buttons
     _startGame->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::START;
         }
     });
+
     _backOut->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
         }
     });
-    
+
     _leftButton->addListener([this](const std::string& name, bool down){
         if (!down) slideTo(_currentIndex - 1);
     });
@@ -83,17 +128,6 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     _rightButton->addListener([this](const std::string& name, bool down){
         if (!down) slideTo(_currentIndex + 1);
     });
-    
-    std::shared_ptr<cugl::scene2::Label> placeName = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("hostSetupScene.hostName.placeholder"));
-    placeName->setText("Enter Name");
-    
-    _hostName->addTypeListener([this, placeName](const std::string& name, const std::string& value) {
-        placeName->setVisible(value.empty());
-    });
-    
-    addChild(scene);
-    setActive(false);
-    return true;
 }
 
 /**

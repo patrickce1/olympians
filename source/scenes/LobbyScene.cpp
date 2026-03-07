@@ -32,7 +32,7 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // Start up the input handler
     _assets = assets;
-    
+
     Size dimen = getSize();
     
     std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("lobbyScene");
@@ -40,27 +40,53 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
     
-    _enterGame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.start"));
-    _backOut = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.back"));
-    _gameId = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("lobbyScene.header.gameId"));
-    
-    _enterGame->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            _status = Status::START;
-        }
-    });
-    
-    _backOut->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            _status = Status::ABORT;
-        }
-    });
+    // Setup UI and listeners
+    setupUI();
+    setupListeners();
     
     _status = Status::IDLE;
     
     addChild(scene);
     setActive(false);
     return true;
+}
+
+/**
+ * Retrieves and stores references to the lobby UI elements.
+ *
+ * This method looks up important UI components from the scene graph,
+ * including the start button, back button, and game ID label, and stores
+ * them for later interaction.
+ */
+void LobbyScene::setupUI() {
+    _enterGame = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("lobbyScene.start"));
+
+    _backOut = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("lobbyScene.back"));
+
+    _gameId = std::dynamic_pointer_cast<scene2::Label>(
+        _assets->get<scene2::SceneNode>("lobbyScene.header.gameId"));
+}
+
+/**
+ * Attaches input listeners to the lobby UI buttons.
+ *
+ * This method assigns button callbacks that update the lobby scene status
+ * when the user presses the start or back buttons.
+ */
+void LobbyScene::setupListeners() {
+    _enterGame->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::START;
+        }
+    });
+
+    _backOut->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::ABORT;
+        }
+    });
 }
 
 /**

@@ -88,6 +88,24 @@ public:
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
     
     /**
+     * Retrieves and stores references to the client scene UI elements.
+     *
+     * This method looks up UI components from the scene graph including the
+     * enter button, back button, game ID text field, and player name text field.
+     * It also initializes the placeholder labels for the input fields.
+     */
+    void setupUI();
+    
+    /**
+     * Attaches input listeners to the client scene UI controls.
+     *
+     * This method assigns callbacks for entering the game or returning to the
+     * previous menu. It also attaches typing listeners to the game ID and player
+     * name text fields to toggle the visibility of their placeholder labels.
+     */
+    void setupListeners();
+    
+    /**
      * Sets whether the scene is currently active
      *
      * This method should be used to toggle all the UI elements.  Buttons

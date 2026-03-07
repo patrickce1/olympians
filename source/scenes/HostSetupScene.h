@@ -110,6 +110,24 @@ public:
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
     
     /**
+     * Retrieves and stores references to the host setup UI elements.
+     *
+     * This method looks up UI components from the scene graph including the
+     * start button, back button, host name text field, carousel navigation
+     * buttons, and the role carousel container. It also initializes the
+     * carousel item list and configures the placeholder label.
+     */
+    void setupUI();
+    
+    /**
+     * Attaches input listeners to the host setup buttons.
+     *
+     * This method assigns callbacks for starting the game, returning to the
+     * previous menu, and navigating the role selection carousel.
+     */
+    void setupListeners();
+    
+    /**
      * Sets whether the scene is currently active
      *
      * This method should be used to toggle all the UI elements.  Buttons

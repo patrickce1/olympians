@@ -12,10 +12,10 @@ using namespace std;
 
 
 /**
- * Initializes the controller contents, and starts the game
+ * Initializes the scene contents, and starts the game
  *
  * The constructor does not allocate any objects or memory.  This allows
- * us to have a non-pointer reference to this controller, reducing our
+ * us to have a non-pointer reference to this scene, reducing our
  * memory allocation.  Instead, allocation happens in this method.
  *
  * @param assets    The (loaded) assets for this game mode
@@ -39,43 +39,76 @@ bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
-    
-    _enterGame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.enter"));
-    _backOut = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.back"));
-    _gameId = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.text"));
-    _playerId = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.text"));
-    
-    _enterGame->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            _status = Status::START;  // transition to lobby scene
-        }
-    });
-    
-    _backOut->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            _status = Status::ABORT;
-        }
-    });
-    
-    std::shared_ptr<cugl::scene2::Label> placeID = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.placeholder"));
-    placeID->setText("Enter Game ID");
-    
-    _gameId->addTypeListener([this, placeID](const std::string& name, const std::string& value) {
-        placeID->setVisible(value.empty());
-    });
-    
-    std::shared_ptr<cugl::scene2::Label> placeName = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.placeholder"));
-    placeName->setText("Enter Name");
-    
-    _playerId->addTypeListener([this, placeName](const std::string& name, const std::string& value) {
-        placeName->setVisible(value.empty());
-    });
+
+    // Setup UI and respective listeners
+    setupUI();
+    setupListeners();
     
     _status = Status::IDLE;
     
     addChild(scene);
     setActive(false);
     return true;
+}
+
+/**
+ * Retrieves and stores references to the client scene UI elements.
+ *
+ * This method looks up UI components from the scene graph including the
+ * enter button, back button, game ID text field, and player name text field.
+ * It also initializes the placeholder labels for the input fields.
+ */
+void ClientScene::setupUI() {
+    // Assign pointers to active buttons and text-fields
+    _enterGame = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("clientScene.enter"));
+
+    _backOut = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("clientScene.back"));
+
+    _gameId = std::dynamic_pointer_cast<scene2::TextField>(
+        _assets->get<scene2::SceneNode>("clientScene.center.gameID.text"));
+
+    _playerId = std::dynamic_pointer_cast<scene2::TextField>(
+        _assets->get<scene2::SceneNode>("clientScene.center.playerName.text"));
+
+    // Create placeholder text for text-field
+    std::shared_ptr<cugl::scene2::Label> placeID = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.placeholder"));
+    placeID->setText("Enter Game ID");
+    
+    std::shared_ptr<cugl::scene2::Label> placeName = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.placeholder"));
+    placeName->setText("Enter Name");
+    
+    // Set the placeholders to invsible when typing starts
+    _gameId->addTypeListener([this, placeID](const std::string& name, const std::string& value) {
+        placeID->setVisible(value.empty());
+    });
+    
+    _playerId->addTypeListener([this, placeName](const std::string& name, const std::string& value) {
+        placeName->setVisible(value.empty());
+    });
+}
+
+/**
+ * Attaches input listeners to the client scene UI controls.
+ *
+ * This method assigns callbacks for entering the game or returning to the
+ * previous menu. It also attaches typing listeners to the game ID and player
+ * name text fields to toggle the visibility of their placeholder labels.
+ */
+void ClientScene::setupListeners() {
+
+    _enterGame->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::START;
+        }
+    });
+
+    _backOut->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::ABORT;
+        }
+    });
 }
 
 /**
