@@ -403,6 +403,7 @@ void GameScene::handleDragInitiation(InputController& input) {
  */
 void GameScene::handleDragTracking(InputController& input) {
     if (!_activeIcon || (!input.isTouching() && !input.isMouseDown())) return;
+    
     Vec2 dragScene = screenToWorldCoords(input.getDragPos());
     _activeIcon->setPosition(dragScene + _dragOffset);
 }
