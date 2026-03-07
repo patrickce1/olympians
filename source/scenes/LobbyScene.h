@@ -148,7 +148,6 @@ private:
      * @param text      The new text value
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
-
 };
 
 #endif /* __LOBBY_SCENE_H__ */
