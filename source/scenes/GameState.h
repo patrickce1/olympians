@@ -50,6 +50,37 @@ public:
 #pragma mark - Lifecycle
 
     /**
+     * Loads character definitions from JSON into the character loader.
+     * Must be called first since player construction depends on it.
+     *
+     * @return true if the character file loaded successfully.
+     */
+    bool initCharacters();
+
+    /**
+     * Builds the player array (one human + three AI), links all players in a
+     * circular neighbour ring, and populates the player ID map.
+     * Must be called after initCharacters().
+     */
+    void initPlayers();
+
+    /**
+     * Loads and initialises the enemy from JSON.
+     *
+     * @return true if the enemy loaded and initialised successfully.
+     */
+    bool initEnemy();
+
+    /**
+     * Finishes initialising all AI-controlled players using the item database.
+     * Must be called after initPlayers() and after the ItemController is ready.
+     *
+     * @param itemController  The ItemController whose database the AI players need.
+     * @return true if all AI players initialised successfully.
+     */
+    bool initAI(ItemController& itemController);
+    
+    /**
      * Initialises the game world: loads characters and the enemy from JSON,
      * builds the player array (one human + three AI), links all players in a
      * circular neighbour ring, and finishes AI initialisation using the

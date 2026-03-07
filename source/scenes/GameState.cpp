@@ -2,36 +2,31 @@
 #include "GameState.h"
 
 /**
- * Initialises the game world: loads characters and the enemy from JSON,
- * builds the player array (one human + three AI), links all players in a
- * circular neighbour ring, and finishes AI initialisation using the
- * provided item database.
+ * Loads character definitions from JSON into the character loader.
+ * Must be called first in init() since player construction depends on it.
  *
- * @param itemController  The ItemController whose database is needed for
- *                        AI player initialisation.
- * @return true if all resources loaded and initialised successfully.
+ * @return true if the character file loaded successfully.
  */
-bool GameState::init(ItemController& itemController) {
-
-    // --- Character loading ---
+bool GameState::initCharacters() {
     const std::string characterJsonPath = "json/characters.json";
     if (!_characterLoader.loadFromFile(characterJsonPath)) {
         CULog("GameState: Failed to load characters.json");
         return false;
     }
+    return true;
+}
 
-    // --- Build the player array ---
-    // Index 0: human-controlled Player.
-    // Indices 1-3: AI-controlled EasyPlayerAI (inherits PlayerAI -> Player).
-    // All stored as shared_ptr<Player> so EnemyController, neighbour links,
-    // and any other system that iterates _players works uniformly.
+/**
+ * Builds the player array (one human + three AI), links all players in a
+ * circular neighbour ring, and populates the player ID map.
+ * Must be called after initCharacters() so the character loader is ready.
+ */
+void GameState::initPlayers() {
     _players.reserve(4);
 
     auto humanPlayer = std::make_shared<Player>("Percy", 1, "Player 1", _characterLoader);
     _players.push_back(humanPlayer);
 
-    // AI players — constructed here but not yet init()'d because
-    // init() needs the ItemController database passed in below.
     for (int i = 1; i <= 3; i++) {
         auto aiPlayer = std::make_shared<EasyPlayerAI>(
             "Percy", i + 1,
@@ -41,8 +36,7 @@ bool GameState::init(ItemController& itemController) {
         _players.push_back(aiPlayer);
     }
 
-    // --- Circular neighbour linking ---
-    // Links all 4 players in a ring: 0 <-> 1 <-> 2 <-> 3 <-> 0
+    // Circular neighbour linking: 0 <-> 1 <-> 2 <-> 3 <-> 0
     const int playerCount = (int)_players.size();
     for (int i = 0; i < playerCount; i++) {
         int leftIdx  = (i - 1 + playerCount) % playerCount;
@@ -51,18 +45,23 @@ bool GameState::init(ItemController& itemController) {
         _players[i]->setRightPlayer(_players[rightIdx].get());
     }
 
-    // --- Player ID map ---
-    // Populate the network lookup map. Key == array index for now;
-    // will be replaced with host-assigned IDs once networking is wired up.
+    // Populate network lookup map (key == array index until lobby assigns real IDs).
     for (int i = 0; i < playerCount; i++) {
         _playerIdMap[i] = _players[i].get();
     }
 
-    // Default local player to index 0 (single-player / pre-network default).
-    // setLocalPlayer() will be called again with the real slot after lobby.
+    // Default to index 0; setLocalPlayer() is called again after network lobby.
     setLocalPlayer(0);
+}
 
-    // --- Enemy loading ---
+/**
+ * Loads the enemy from JSON and initialises it.
+ * Must be called after initPlayers() so the player array exists for
+ * EnemyController to reference later.
+ *
+ * @return true if the enemy loaded and initialised successfully.
+ */
+bool GameState::initEnemy() {
     const std::string enemyJsonPath = "json/enemies.json";
     _enemy = std::make_shared<Enemy>();
     if (!_enemy->init("enemy1", enemyJsonPath)) {
@@ -70,10 +69,21 @@ bool GameState::init(ItemController& itemController) {
         return false;
     }
     CULog("GameState: Enemy initialized id='%s'", _enemy->getId().c_str());
+    return true;
+}
 
-    // --- AI player init ---
-    // Finish initialising AI players now that the item database is available.
+/**
+ * Finishes initialising all AI-controlled players using the item database.
+ * Must be called after initPlayers() and after the ItemController is ready,
+ * since AI init requires the item definition database.
+ *
+ * @param itemController  The ItemController whose database the AI players need.
+ * @return true if all AI players initialised successfully.
+ */
+bool GameState::initAI(ItemController& itemController) {
     const std::string aiConfigPath = "json/playerAI.json";
+    const int playerCount = (int)_players.size();
+
     for (int i = 1; i < playerCount; i++) {
         auto* ai = dynamic_cast<PlayerAI*>(_players[i].get());
         if (!ai) {
@@ -86,7 +96,24 @@ bool GameState::init(ItemController& itemController) {
         }
         CULog("GameState: Initialized AI for player %d", i);
     }
+    return true;
+}
 
+/**
+ * Initialises the game world: loads characters and the enemy from JSON,
+ * builds the player array (one human + three AI), links all players in a
+ * circular neighbour ring, and finishes AI initialisation using the
+ * provided item database.
+ *
+ * @param itemController  The ItemController whose database is needed for
+ *                        AI player initialisation.
+ * @return true if all resources loaded and initialised successfully.
+ */
+bool GameState::init(ItemController& itemController) {
+    if (!initCharacters())        return false;
+    initPlayers();
+    if (!initEnemy())             return false;
+    if (!initAI(itemController))  return false;
     return true;
 }
 
