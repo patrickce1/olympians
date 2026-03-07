@@ -43,10 +43,10 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     // Retrieve and set up buttons
     _playButton = std::dynamic_pointer_cast<Button>(menuNode->getChildByName("play"));
     _settingsButton = std::dynamic_pointer_cast<Button>(menuNode->getChildByName("settings"));
-    _joinButton = std::dynamic_pointer_cast<Button>(menuNode->getChildByName("join"));
+    _itemsButton = std::dynamic_pointer_cast<Button>(menuNode->getChildByName("items"));
 
-    if (!_playButton || !_settingsButton || !_joinButton) {
-        CULog("MenuScene: expected buttons 'play', 'settings', and 'join'");
+    if (!_playButton || !_settingsButton || !_itemsButton) {
+        CULog("MenuScene: expected buttons 'play', 'settings', and 'items'");
         return false;
     }
 
@@ -67,10 +67,10 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     });
 
     // Give items button a function
-    _joinButton->addListener([this](const std::string&, bool down) {
+    _itemsButton->addListener([this](const std::string&, bool down) {
         if (!down) {
-            CULog("MenuScene: Join pressed (placeholder)");
-            _nextAction = Action::JOIN_GAME;
+            CULog("MenuScene: Items pressed (placeholder)");
+            _nextAction = Action::OPEN_ITEMS;
         }
     });
 
@@ -89,7 +89,7 @@ void MenuScene::dispose() {
     removeAllChildren();
     _playButton = nullptr;
     _settingsButton = nullptr;
-    _joinButton = nullptr;
+    _itemsButton = nullptr;
     _scene = nullptr;
     _assets = nullptr;
     _nextAction = Action::NONE;
@@ -117,21 +117,18 @@ void MenuScene::setActive(bool value) {
         if (_settingsButton) {
             _settingsButton->activate();
         }
-        if (_joinButton) {
-            _joinButton->activate();
+        if (_itemsButton) {
+            _itemsButton->activate();
         }
     } else {
         if (_playButton) {
             _playButton->deactivate();
-            _playButton->setDown(false);
         }
         if (_settingsButton) {
             _settingsButton->deactivate();
-            _settingsButton->setDown(false);
         }
-        if (_joinButton) {
-            _joinButton->deactivate();
-            _joinButton->setDown(false);
+        if (_itemsButton) {
+            _itemsButton->deactivate();
         }
     }
 }

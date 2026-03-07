@@ -1,60 +1,45 @@
 {
     "enemies": [
         {
+            "id": "dummy",
+            "name": "Dummy",
+            "maxHealth": 10.0,
+            "spritesheetPath": "textures/dummy_enemy.png",
+            "defaultShields": {
+                "front": 0.0,
+                "back": 0.0,
+                "left": 0.0,
+                "right": 0.0
+            },
+            "states": {
+                "idle": {
+                    "animationRow": 0
+                }
+            }
+        },
+        {
             "id": "enemy1",
             "name": "Enemy 1",
             "maxHealth": 20.0,
             "spritesheetPath": "textures/enemy1.png",
-            "ai": {
-                "retargetLikelihood": 0.5
+            "defaultShields": {
+                "front": 0.0,
+                "back": 1.0,
+                "left": 0.5,
+                "right": 0.5
             },
             "states": {
                 "idle": {
-                    "tag": "idle",
                     "animationRow": 0
                 },
                 "attack1": {
-                    "tag": "attack",
                     "animationRow": 1,
                     "buildUpTime": 4.0,
-                    "cooldownTime": 0.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        }
-                    ],
-                    "nextState": "attack1_p2"
-                },
-                "attack1_p2": {
-                    "tag": "follow_up",
-                    "animationRow": 2,
-                    "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
                         {
                             "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        }
-                    ],
-                    "nextState": "idle"
-                },
-                "attack2": {
-                    "tag": "attack",
-                    "animationRow": 3,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        },
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
+                            "target": "front",
                             "amount": 1.0
                         }
                     ],

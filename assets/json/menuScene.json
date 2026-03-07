@@ -26,13 +26,13 @@
             "type": "Solid",
             "data": {
                 "polygon": [
-                    800,
+                    400,
                     852,
                     0,
                     852,
                     0,
                     0,
-                    800,
+                    400,
                     0
                 ],
                 "color": "#ffffffff",
@@ -208,7 +208,7 @@
                                 ],
                                 "angle": 0,
                                 "visible": true,
-                                "font": "gideon romanRegular24",
+                                "font": "menuLabel",
                                 "text": "Host Game",
                                 "foreground": "#000000ff",
                                 "background": "#00000000",
@@ -241,7 +241,7 @@
                         ]
                     }
                 },
-                "join": {
+                "settings": {
                     "type": "Button",
                     "format": {
                         "type": "Anchored"
@@ -313,7 +313,7 @@
                                 "y_offset": 0
                             }
                         },
-                        "Join": {
+                        "Settings": {
                             "type": "Label",
                             "data": {
                                 "anchor": [
@@ -330,7 +330,7 @@
                                 ],
                                 "angle": 0,
                                 "visible": true,
-                                "font": "gideon romanRegular24",
+                                "font": "menuLabel",
                                 "text": "Join Game",
                                 "foreground": "#000000ff",
                                 "background": "#00000000",
@@ -363,7 +363,7 @@
                         ]
                     }
                 },
-                "settings": {
+                "items": {
                     "type": "Button",
                     "format": {
                         "type": "Anchored"
@@ -435,7 +435,7 @@
                                 "y_offset": 0
                             }
                         },
-                        "Settings": {
+                        "Items": {
                             "type": "Label",
                             "data": {
                                 "anchor": [
@@ -452,7 +452,7 @@
                                 ],
                                 "angle": 0,
                                 "visible": true,
-                                "font": "gideon romanRegular24",
+                                "font": "menuLabel",
                                 "text": "Settings",
                                 "foreground": "#000000ff",
                                 "background": "#00000000",

@@ -4,8 +4,16 @@
  * Initializes shared AI parameters from the JSON config.
  * Subclasses should call this first in their own init() override.
  */
-bool PlayerAI::init(const ItemDatabase& db, const std::string& path) {
+bool PlayerAI::init(Player* player, const ItemDatabase& db,
+                    const std::string& path) {
+    if (!player) {
+        CULogError("PlayerAI::init — player must not be null");
+        return false;
+    }
+    _player = player;
     _db = &db;
+
+    // Initialize think timer to 0 at the start
     _thinkTimer = 0.0f;
 
     auto reader = cugl::JsonReader::alloc(path);
@@ -20,6 +28,7 @@ bool PlayerAI::init(const ItemDatabase& db, const std::string& path) {
         return false;
     }
 
+    // Read from JSON. Return false if any value is not read properly
     bool valid = true;
 
     if (config->has("thinkInterval") && config->get("thinkInterval")->isNumber()) {

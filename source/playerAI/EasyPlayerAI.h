@@ -21,32 +21,20 @@
  */
 class EasyPlayerAI : public PlayerAI {
 public:
-    /**
-     * Constructs an EasyPlayerAI, forwarding all arguments to the Player base constructor.
-     * Required because Player has no default constructor.
-     *
-     * @param characterId   The character ID as it appears in characters.json
-     * @param playerNumber  The assigned player slot number
-     * @param playerName    Display name for this player
-     * @param loader        The CharacterLoader used to populate stats
-     */
-    EasyPlayerAI(const std::string& characterId,
-                 int playerNumber,
-                 const std::string& playerName,
-                 const CharacterLoader& loader)
-        : PlayerAI(characterId, playerNumber, playerName, loader) {}
-
+    EasyPlayerAI() = default;
     ~EasyPlayerAI() = default;
 
     /**
      * Initializes the EasyPlayerAI by reading the "easyPlayerAI" block
      * from the shared playerAI.json file.
      *
+     * @param player    Pointer to the Player this controller will drive. Must not be null.
      * @param db        Read-only reference to the item database for item lookups.
      * @param path      Path to the shared playerAI.json config file.
      * @return true if initialization succeeded, false otherwise.
      */
-    bool init(const ItemDatabase& db, const std::string& path) override;
+    bool init(Player* player, const ItemDatabase& db,
+              const std::string& path) override;
 
 protected:
 
@@ -62,12 +50,16 @@ protected:
 
     /**
      * Returns whether the AI has at least one attack item in its inventory.
+     *
+     * @return true if an attack item is available, false otherwise.
      */
     bool canAttack() const;
 
     /**
      * Returns whether the AI has a support item AND at least one neighbor
      * (left or right) is alive and below _healThreshold.
+     *
+     * @return true if a support action is viable, false otherwise.
      */
     bool canSupport() const;
 
