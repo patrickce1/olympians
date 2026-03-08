@@ -196,8 +196,7 @@ void GameScene::setLocalPlayer(int assignedIndex) {
 void GameScene::handleAttack() {
     auto enemy = _gameState.getEnemy();
     Player *local = _gameState.getLocalPlayer();
-    if (!enemy || !local)
-        return;
+    if (!enemy || !local) return;
 
     for (const ItemInstance &item : local->getInventory()) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
@@ -216,8 +215,7 @@ void GameScene::handleAttack() {
 void GameScene::handleSupportLeft() {
     Player *local = _gameState.getLocalPlayer();
     Player *target = local ? local->getLeftPlayer() : nullptr;
-    if (!target || !target->isAlive())
-        return;
+    if (!target || !target->isAlive()) return;
 
     for (const ItemInstance &item : local->getInventory()) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
@@ -234,8 +232,7 @@ void GameScene::handleSupportLeft() {
 void GameScene::handleSupportRight() {
     Player *local = _gameState.getLocalPlayer();
     Player *target = local ? local->getRightPlayer() : nullptr;
-    if (!target || !target->isAlive())
-        return;
+    if (!target || !target->isAlive()) return;
 
     for (const ItemInstance &item : local->getInventory()) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
@@ -252,8 +249,7 @@ void GameScene::handleSupportRight() {
 void GameScene::handlePassLeft() {
     Player *local = _gameState.getLocalPlayer();
     Player *target = local ? local->getLeftPlayer() : nullptr;
-    if (!target || !target->isAlive() || local->getInventory().empty())
-        return;
+    if (!target || !target->isAlive() || local->getInventory().empty()) return;
 
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());
@@ -266,8 +262,7 @@ void GameScene::handlePassLeft() {
 void GameScene::handlePassRight() {
     Player *local = _gameState.getLocalPlayer();
     Player *target = local ? local->getRightPlayer() : nullptr;
-    if (!target || !target->isAlive() || local->getInventory().empty())
-        return;
+    if (!target || !target->isAlive() || local->getInventory().empty()) return;
 
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());
@@ -280,8 +275,7 @@ void GameScene::handlePassRight() {
  */
 void GameScene::handlePlayerActions(InputController &input) {
     Player *local = _gameState.getLocalPlayer();
-    if (!local || !local->isAlive())
-        return;
+    if (!local || !local->isAlive()) return;
 
     switch (input.getAction()) {
     case InputController::Action::DROP_BOSS:
@@ -313,8 +307,7 @@ void GameScene::handlePlayerActions(InputController &input) {
  */
 void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
-    if (!enemy || !enemy->isAlive())
-        return;
+    if (!enemy || !enemy->isAlive()) return;
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
@@ -329,8 +322,7 @@ void GameScene::updateEnemyAndAI(float dt) {
  * Checks whether the reset button was tapped and calls reset() if so.
  */
 void GameScene::handleResetButton(InputController &input) {
-    if (!input.touchEnded() || _activeIcon || !_resetBtn)
-        return;
+    if (!input.touchEnded() || _activeIcon || !_resetBtn) return;
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
     if (_resetBtn->getBoundingBox().contains(touchPosScreen)) {
@@ -344,8 +336,7 @@ void GameScene::handleResetButton(InputController &input) {
  * appropriate action and glow effect, then clears the active icon.
  */
 void GameScene::handleDropResolution(InputController &input) {
-    if (!_activeIcon || !input.touchEnded())
-        return;
+    if (!_activeIcon || !input.touchEnded()) return;
 
     Vec2 releaseWorld = screenToWorldCoords(input.getReleasePosition());
     InputController::Action finalAction = InputController::Action::NONE;
@@ -374,8 +365,7 @@ void GameScene::handleDropResolution(InputController &input) {
  * once the timer expires.
  */
 void GameScene::tickGlowTimer(float dt) {
-    if (_glowTimer <= 0)
-        return;
+    if (_glowTimer <= 0) return;
     _glowTimer -= dt;
     if (_glowTimer <= 0) {
         _glowAction = InputController::Action::NONE;
@@ -392,8 +382,8 @@ void GameScene::updateDebugPointer(InputController &input) {
     }
 
     Vec2 current = input.isDragging()
-                       ? screenToWorldCoords(input.getDragPos())
-                       : screenToWorldCoords(input.getTouchStart());
+        ? screenToWorldCoords(input.getDragPos())
+        : screenToWorldCoords(input.getTouchStart());
 
     _debugPointerScene = current;
     _hasDebugPointer = true;
@@ -403,8 +393,7 @@ void GameScene::updateDebugPointer(InputController &input) {
  * Hit-tests item widgets against the initial touch position.
  */
 void GameScene::handleDragInitiation(InputController &input) {
-    if (_activeIcon || !input.isDragging())
-        return;
+    if (_activeIcon || !input.isDragging()) return;
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
 
@@ -423,8 +412,7 @@ void GameScene::handleDragInitiation(InputController &input) {
  * Moves the active dragged icon to follow the current touch position.
  */
 void GameScene::handleDragTracking(InputController &input) {
-    if (!_activeIcon || (!input.isTouching() && !input.isMouseDown()))
-        return;
+    if (!_activeIcon || (!input.isTouching() && !input.isMouseDown())) return;
 
     Vec2 dragScene = screenToWorldCoords(input.getDragPos());
     _activeIcon->setPosition(dragScene + _dragOffset);
@@ -469,8 +457,7 @@ void GameScene::resolveAction(InputController::Action action) {
  * Processes one frame of game logic.
  */
 void GameScene::update(float dt, InputController &input) {
-    if (!_active)
-        return;
+    if (!_active) return;
 
     handleResetButton(input);
     handleDropResolution(input);
@@ -497,15 +484,13 @@ void GameScene::update(float dt, InputController &input) {
 /** Creates a scene-node widget for the given item and adds it to the inventory container. */
 std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance &item) {
     auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
-    if (!itemDef)
-        return nullptr;
+    if (!itemDef) return nullptr;
 
     const std::string textureKey =
         (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
 
     auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
-    if (!texture)
-        return nullptr;
+    if (!texture) return nullptr;
 
     auto widget = PolygonNode::allocWithTexture(texture);
     widget->setContentSize(Size(64, 64));
@@ -574,8 +559,7 @@ void GameScene::syncInventoryWidgets() {
 
 /** Draws a green debug outline around the reset button's bounding box. */
 void GameScene::renderResetButton(cugl::graphics::SpriteBatch *batch) {
-    if (!_resetBtn)
-        return;
+    if (!_resetBtn) return;
     Rect boundingBox = _resetBtn->getBoundingBox();
     Path2 path(boundingBox);
     batch->setColor(Color4(0, 255, 0, 150));
@@ -601,8 +585,7 @@ void GameScene::renderDropZones(cugl::graphics::SpriteBatch *batch) {
 void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch *batch) {
     batch->setColor(Color4(255, 0, 255, 140));
     for (auto &[id, widget] : _itemWidgets) {
-        if (!widget || !widget->isVisible())
-            continue;
+        if (!widget || !widget->isVisible()) continue;
         Path2 path(widget->getBoundingBox());
         batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
     }
@@ -610,8 +593,7 @@ void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch *batch) {
 
 /** Draws a small red square at the current touch position. */
 void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch *batch) {
-    if (!_hasDebugPointer)
-        return;
+    if (!_hasDebugPointer) return;
     Rect p(_debugPointerScene.x - 6.0f, _debugPointerScene.y - 6.0f, 12.0f, 12.0f);
     Path2 path(p);
     batch->setColor(Color4(255, 0, 0, 200));
