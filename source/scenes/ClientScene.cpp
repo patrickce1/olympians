@@ -102,7 +102,7 @@ void ClientScene::setupListeners() {
     _enterGame->addListener([this](const std::string& name, bool down) {
         if (down) {
             _network->joinRoom(_gameId->getText());
-            _network->setPlayerName(name);
+            _network->setPlayerName(_playerId->getText());
             _status = Status::START;
         }
     });

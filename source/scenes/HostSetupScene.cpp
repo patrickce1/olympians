@@ -113,7 +113,7 @@ void HostSetupScene::setupListeners() {
     _startGame->addListener([this](const std::string& name, bool down) {
         if (down) {
             _network->hostRoom();
-            _network->setPlayerName(_hostName->getName());
+            _network->setPlayerName(_hostName->getText());
             _status = Status::START;
         }
     });
