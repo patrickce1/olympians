@@ -21,8 +21,7 @@
  * This separation makes it straightforward to broadcast a read-only
  * GameState snapshot over the network without touching any rendering code.
  */
-class GameScene : public cugl::scene2::Scene2
-{
+class GameScene : public cugl::scene2::Scene2 {
 protected:
 #pragma mark - Scene Graph Nodes
 
