@@ -160,7 +160,7 @@ public:
      * @param assets  The loaded asset manager.
      * @return true if initialisation succeeded, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager> &assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
 
     /**
      * Activates or deactivates the scene and its UI.
@@ -226,7 +226,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handlePlayerActions(InputController &input);
+    void handlePlayerActions(InputController& input);
 
 #pragma mark - Update Helpers
 
@@ -245,7 +245,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handleResetButton(InputController &input);
+    void handleResetButton(InputController& input);
 
     /**
      * Classifies a drag-and-drop release into a drop zone, triggers the
@@ -253,7 +253,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handleDropResolution(InputController &input);
+    void handleDropResolution(InputController& input);
 
     /**
      * Decrements the glow timer each frame. Clears the active glow action
@@ -269,7 +269,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void updateDebugPointer(InputController &input);
+    void updateDebugPointer(InputController& input);
 
     /**
      * Hit-tests item widgets against the initial touch position.
@@ -277,7 +277,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handleDragInitiation(InputController &input);
+    void handleDragInitiation(InputController& input);
 
     /**
      * Moves the active dragged icon to follow the current touch position.
@@ -285,7 +285,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handleDragTracking(InputController &input);
+    void handleDragTracking(InputController& input);
 
     /**
      * Logs the resolved drop-zone action for debugging.
@@ -304,10 +304,10 @@ public:
      * @param item  The item instance to represent.
      * @return      The new widget node, or nullptr if assets were missing.
      */
-    std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance &item);
+    std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
 
     /** Return a random valid inventory position for a newly spawned item widget */
-    cugl::Vec2 getRandomInventoryPosition(const cugl::Size &widgetSize) const;
+    cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
 
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
@@ -331,14 +331,14 @@ public:
      * @param dt     Delta time in seconds.
      * @param input  The input controller owned by SceneLoader.
      */
-    void update(float dt, InputController &input);
+    void update(float dt, InputController& input);
 
     /**
      * Draws a green debug outline around the reset button's bounding box.
      *
      * @param batch  The active sprite batch.
      */
-    void renderResetButton(cugl::graphics::SpriteBatch *batch);
+    void renderResetButton(cugl::graphics::SpriteBatch* batch);
 
     /**
      * Draws a faint green outline around every input zone. Draws a fading
@@ -346,14 +346,14 @@ public:
      *
      * @param batch  The active sprite batch.
      */
-    void renderDropZones(cugl::graphics::SpriteBatch *batch);
+    void renderDropZones(cugl::graphics::SpriteBatch* batch);
 
     /**
      * Draws a magenta outline around each visible item widget's bounding box.
      *
      * @param batch  The active sprite batch.
      */
-    void renderItemWidgetDebug(cugl::graphics::SpriteBatch *batch);
+    void renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch);
 
     /**
      * Draws a small red square at the current touch position.
@@ -361,7 +361,7 @@ public:
      *
      * @param batch  The active sprite batch.
      */
-    void renderPointerDebug(cugl::graphics::SpriteBatch *batch);
+    void renderPointerDebug(cugl::graphics::SpriteBatch* batch);
 
     /**
      * Custom render pass drawn after the standard scene graph render.
