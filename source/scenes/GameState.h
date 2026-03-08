@@ -10,6 +10,7 @@
 #include "../items/ItemController.h"
 #include "../playerAI/PlayerAI.h"
 #include "../playerAI/EasyPlayerAI.h"
+#include "../NetworkController.h"
 
 /**
  * Pure data model for the game world.
@@ -104,6 +105,11 @@ public:
      * Called at the start of every round via GameScene::reset().
      */
     void reset();
+
+    /*Convinient way to update the game state by just providing the struct from the network controller*/
+    void networkUpdate(NetworkController::GameStateMessage updatedState) {
+        
+    }
 
 #pragma mark - Player Access
 

@@ -79,6 +79,10 @@ void LobbyScene::setupUI() {
 void LobbyScene::setupListeners() {
     _enterGame->addListener([this](const std::string& name, bool down) {
         if (down) {
+            //only host can start the game
+            if (_network->isHost()) {
+                _network->broadcastGameStart();
+            }
             _status = Status::START;
         }
     });
@@ -135,11 +139,22 @@ void LobbyScene::setActive(bool value) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void LobbyScene::update(float timestep) {
+    //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
         _gameId->setText(_network->getRoom());
     }
-    
-    // IMPLEMENT ME
+    else {
+        _gameId->setText("waiting...");
+    }
+
+
+    if (!_network->isHost()) {
+        _network->getNetworkUpdates();
+        bool gameStarted = _network->checkGameStarted();
+        if (gameStarted) {
+            _status = START;
+        }
+    }
 
 }
 

@@ -102,16 +102,16 @@ void ClientScene::setupListeners() {
     _enterGame->addListener([this](const std::string& name, bool down) {
         if (down) {
             _network->joinRoom(_gameId->getText());
-
-            if (_network->checkConnection() == NetworkController::Status::CONNECTED ||
-                _network->checkConnection() == NetworkController::Status::WAITING) {
-                _status = Status::START;
-            }
-            else {
-                //some pop-up saying connection failed idk...
-                //for now changing the text in the box but we should change this
-                _gameId->setText("failed");
-            }
+            _status = Status::START;
+            //if (_network->checkConnection() == NetworkController::Status::CONNECTED ||
+            //    _network->checkConnection() == NetworkController::Status::WAITING) {
+            //    _status = Status::START;
+            //}
+            //else {
+            //    //some pop-up saying connection failed idk...
+            //    //for now changing the text in the box but we should change this
+            //    _gameId->setText("failed");
+            //}
             
         }
     });
@@ -187,6 +187,5 @@ void ClientScene::updateText(const std::shared_ptr<scene2::Button>& button, cons
  */
 void ClientScene::update(float timestep) {
     // IMPLEMENT ME
-
 }
 

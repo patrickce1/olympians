@@ -18,7 +18,17 @@ the messages that they extract from the NetworkController.
 class NetworkController {
 public:
     /*
-    Types of messages we can recieve
+    These are the types of messages we send/recieve when in the lobby
+    */
+    struct JoinMessage {
+        std::string playerName;
+    };
+
+
+
+
+    /*
+    Types of messages we send/recieve when fighting the boss
     */
     struct AttackMessage {
         float damage;
@@ -32,6 +42,20 @@ public:
     struct PassMessage {
         std::string itemID;
         std::string playerID;
+    };
+
+    struct GameStateMessage {
+        //boss health
+        float bossHealth;
+        int bossDirection;
+
+        //player health
+        float player1HP;
+        float player2HP;
+        float player3HP;
+        float player4HP;
+
+        //future info will be added as the game expands
     };
 
 	enum Status {
@@ -110,10 +134,6 @@ public:
     /*Disconnects the player. If it's the host, moves the host*/
     void disconnect();
 
-    /*Need to add some functions related to getting info about players for waiting in the lobby.
-      However, I can't figure the exact nature of the info we need to send until I get Danielle's pr
-    */
-
     /*Because the original host can disconnect, this is used to keep track of host migration*/
     bool isHost();
 
@@ -121,12 +141,24 @@ public:
     void broadcastDamage(float damageAmount);
     void passItem(const std::string& itemDefID, const std::string& playerID);
     void broadcastHeal(float healAmount, const std::string& playerID);
-    
 
-    /*
-    Functions for getting
-    */
-    //GameState getUpdatedState();
+    /* Client Lobby Messages*/
+    void broadcastJoinedLobby(const std::string& playerName);
+
+    void broadcastGameStart();
+
+    void broadcastLobbyState();
+
+
+
+    /**Functions used during the lobby scene*/
+
+    /*Checks if the game has started. Used during the lobby scene by clients*/
+    bool checkGameStarted();
+
+    /*Returns any updates on player order. Each networked player is represented by NetworkID, Username*/
+    std::vector<std::pair<std::string, std::string>> checkLobbyOrder();
+
 
 
 
@@ -139,7 +171,10 @@ protected:
         BOSS_DAMAGE = 0,
         PLAYER_HEAL = 1,
         PLAYER_PASS = 2,
-        GAME_UPDATE = 3
+        GAME_UPDATE = 3,
+        GAME_START = 4,
+        LOBBY_UPDATE = 5,
+        PLAYER_JOIN = 6,
     };
 
 
@@ -170,11 +205,18 @@ protected:
 
 
 private:
-    //Lists that keep track of the
+
+
+    //Lists that keep track of the updates sent by players
     std::vector<AttackMessage> attacks;
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
+
     //GameState state;
+    bool gameStarted;
+
+    //stores the most recent order that we got. The host's version of this is authoritative
+    std::vector<std::pair<std::string, std::string>> onlinePlayers;
 
     void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);
 
