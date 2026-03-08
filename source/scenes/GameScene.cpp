@@ -23,8 +23,7 @@ using namespace std;
  * Builds the five rectangular input zones from the current scene dimensions.
  * Must be called after Scene2::initWithHint() so getSize() is valid.
  */
-void GameScene::initInputZones()
-{
+void GameScene::initInputZones() {
     Size dimen = getSize();
     float w = dimen.width;
     float h = dimen.height;
@@ -43,13 +42,11 @@ void GameScene::initInputZones()
  *
  * @return true if the root scene node was found in the asset manager.
  */
-bool GameScene::initSceneGraph()
-{
+bool GameScene::initSceneGraph() {
     Size dimen = getSize();
 
     _scene = _assets->get<scene2::SceneNode>("gameScene");
-    if (!_scene)
-    {
+    if (!_scene) {
         CULogError("Scene NOT here!");
         return false;
     }
@@ -61,16 +58,14 @@ bool GameScene::initSceneGraph()
     _inventory = _scene->getChildByName("inventory");
     _resetBtn = _scene->getChildByName("resetButton");
 
-    if (_gameArea)
-    {
+    if (_gameArea) {
         _attackArea = _gameArea->getChildByName("attackArea");
         _playerSlots.push_back(_gameArea->getChildByName("player"));
         _playerSlots.push_back(_gameArea->getChildByName("player3"));
         _playerSlots.push_back(_gameArea->getChildByName("player4"));
     }
 
-    if (_attackArea)
-    {
+    if (_attackArea) {
         _bossNode = _attackArea->getChildByName("enemy");
     }
 
@@ -85,14 +80,11 @@ bool GameScene::initSceneGraph()
  *
  * @return true if both systems initialised successfully.
  */
-bool GameScene::initGameSystems()
-{
-    if (!_itemController.init(_assets))
-    {
+bool GameScene::initGameSystems() {
+    if (!_itemController.init(_assets)) {
         return false;
     }
-    if (!_gameState.init(_itemController))
-    {
+    if (!_gameState.init(_itemController)) {
         return false;
     }
     return true;
@@ -109,14 +101,11 @@ bool GameScene::initGameSystems()
  * @param assets  The loaded asset manager.
  * @return true if initialisation succeeded, false otherwise.
  */
-bool GameScene::init(const std::shared_ptr<cugl::AssetManager> &assets)
-{
-    if (assets == nullptr)
-    {
+bool GameScene::init(const std::shared_ptr<cugl::AssetManager> &assets) {
+    if (assets == nullptr) {
         return false;
     }
-    if (!Scene2::initWithHint(Size(0, SCENE_HEIGHT)))
-    {
+    if (!Scene2::initWithHint(Size(0, SCENE_HEIGHT))) {
         return false;
     }
 
@@ -124,13 +113,11 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager> &assets)
 
     initInputZones();
 
-    if (!initSceneGraph())
-    {
+    if (!initSceneGraph()) {
         return false;
     }
 
-    if (!initGameSystems())
-    {
+    if (!initGameSystems()) {
         return false;
     }
 
@@ -141,10 +128,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager> &assets)
 /**
  * Disposes of all (non-static) resources allocated to this mode.
  */
-void GameScene::dispose()
-{
-    if (_active)
-    {
+void GameScene::dispose() {
+    if (_active) {
         removeAllChildren();
         _gameArea = nullptr;
         _inventory = nullptr;
@@ -160,13 +145,10 @@ void GameScene::dispose()
  * Activates or deactivates the scene and its UI.
  * Calls reset() and enters the idle enemy state on activation.
  */
-void GameScene::setActive(bool value)
-{
-    if (isActive() != value)
-    {
+void GameScene::setActive(bool value) {
+    if (isActive() != value) {
         Scene2::setActive(value);
-        if (value)
-        {
+        if (value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
         }
@@ -178,16 +160,13 @@ void GameScene::setActive(bool value)
  * Clears all item widgets, cancels any active drag, resets the glow
  * effect, and clears every player's inventory via GameState::reset().
  */
-void GameScene::reset()
-{
+void GameScene::reset() {
     _activeIcon = nullptr;
     _glowAction = InputController::Action::NONE;
     _glowTimer = 0;
 
-    for (auto &[id, widget] : _itemWidgets)
-    {
-        if (widget && _inventory)
-        {
+    for (auto &[id, widget] : _itemWidgets) {
+        if (widget && _inventory) {
             _inventory->removeChild(widget);
         }
     }
@@ -204,8 +183,7 @@ void GameScene::reset()
  * Assigns the local player slot for this machine.
  * Delegates to GameState::setLocalPlayer().
  */
-void GameScene::setLocalPlayer(int assignedIndex)
-{
+void GameScene::setLocalPlayer(int assignedIndex) {
     _gameState.setLocalPlayer(assignedIndex);
 }
 
@@ -215,18 +193,15 @@ void GameScene::setLocalPlayer(int assignedIndex)
 /**
  * Handles the local player dropping an attack item on the boss zone.
  */
-void GameScene::handleAttack()
-{
+void GameScene::handleAttack() {
     auto enemy = _gameState.getEnemy();
     Player *local = _gameState.getLocalPlayer();
     if (!enemy || !local)
         return;
 
-    for (const ItemInstance &item : local->getInventory())
-    {
+    for (const ItemInstance &item : local->getInventory()) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Attack)
-        {
+        if (def && def->getType() == ItemDef::Type::Attack) {
             local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
             CULog("Player attacked enemy '%s' with item %llu",
                   enemy->getId().c_str(), (unsigned long long)item.getId());
@@ -238,18 +213,15 @@ void GameScene::handleAttack()
 /**
  * Handles the local player dropping a support item on the left ally zone.
  */
-void GameScene::handleSupportLeft()
-{
+void GameScene::handleSupportLeft() {
     Player *local = _gameState.getLocalPlayer();
     Player *target = local ? local->getLeftPlayer() : nullptr;
     if (!target || !target->isAlive())
         return;
 
-    for (const ItemInstance &item : local->getInventory())
-    {
+    for (const ItemInstance &item : local->getInventory()) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Support)
-        {
+        if (def && def->getType() == ItemDef::Type::Support) {
             local->useItemById(item.getId(), *target, _itemController.getDatabase());
             return;
         }
@@ -259,18 +231,15 @@ void GameScene::handleSupportLeft()
 /**
  * Handles the local player dropping a support item on the right ally zone.
  */
-void GameScene::handleSupportRight()
-{
+void GameScene::handleSupportRight() {
     Player *local = _gameState.getLocalPlayer();
     Player *target = local ? local->getRightPlayer() : nullptr;
     if (!target || !target->isAlive())
         return;
 
-    for (const ItemInstance &item : local->getInventory())
-    {
+    for (const ItemInstance &item : local->getInventory()) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Support)
-        {
+        if (def && def->getType() == ItemDef::Type::Support) {
             local->useItemById(item.getId(), *target, _itemController.getDatabase());
             return;
         }
@@ -280,8 +249,7 @@ void GameScene::handleSupportRight()
 /**
  * Passes the first item in the local player's inventory to the left neighbour.
  */
-void GameScene::handlePassLeft()
-{
+void GameScene::handlePassLeft() {
     Player *local = _gameState.getLocalPlayer();
     Player *target = local ? local->getLeftPlayer() : nullptr;
     if (!target || !target->isAlive() || local->getInventory().empty())
@@ -295,8 +263,7 @@ void GameScene::handlePassLeft()
 /**
  * Passes the first item in the local player's inventory to the right neighbour.
  */
-void GameScene::handlePassRight()
-{
+void GameScene::handlePassRight() {
     Player *local = _gameState.getLocalPlayer();
     Player *target = local ? local->getRightPlayer() : nullptr;
     if (!target || !target->isAlive() || local->getInventory().empty())
@@ -311,14 +278,12 @@ void GameScene::handlePassRight()
  * Dispatches the resolved drop-zone action to the appropriate handler
  * and resets the input action afterwards.
  */
-void GameScene::handlePlayerActions(InputController &input)
-{
+void GameScene::handlePlayerActions(InputController &input) {
     Player *local = _gameState.getLocalPlayer();
     if (!local || !local->isAlive())
         return;
 
-    switch (input.getAction())
-    {
+    switch (input.getAction()) {
     case InputController::Action::DROP_BOSS:
         handleAttack();
         break;
@@ -346,18 +311,15 @@ void GameScene::handlePlayerActions(InputController &input)
 /**
  * Ticks the enemy controller and all AI-controlled players forward by one frame.
  */
-void GameScene::updateEnemyAndAI(float dt)
-{
+void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive())
         return;
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
-    for (auto &player : _gameState.getPlayers())
-    {
-        if (auto *ai = dynamic_cast<PlayerAI *>(player.get()))
-        {
+    for (auto &player : _gameState.getPlayers()) {
+        if (auto *ai = dynamic_cast<PlayerAI *>(player.get())) {
             ai->update(dt, *enemy, _itemController);
         }
     }
@@ -366,14 +328,12 @@ void GameScene::updateEnemyAndAI(float dt)
 /**
  * Checks whether the reset button was tapped and calls reset() if so.
  */
-void GameScene::handleResetButton(InputController &input)
-{
+void GameScene::handleResetButton(InputController &input) {
     if (!input.touchEnded() || _activeIcon || !_resetBtn)
         return;
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
-    if (_resetBtn->getBoundingBox().contains(touchPosScreen))
-    {
+    if (_resetBtn->getBoundingBox().contains(touchPosScreen)) {
         CULog("Reset button tapped!");
         reset();
     }
@@ -383,30 +343,25 @@ void GameScene::handleResetButton(InputController &input)
  * Classifies a drag-and-drop release into a drop zone, triggers the
  * appropriate action and glow effect, then clears the active icon.
  */
-void GameScene::handleDropResolution(InputController &input)
-{
+void GameScene::handleDropResolution(InputController &input) {
     if (!_activeIcon || !input.touchEnded())
         return;
 
     Vec2 releaseWorld = screenToWorldCoords(input.getReleasePosition());
     InputController::Action finalAction = InputController::Action::NONE;
 
-    for (const auto &pair : _inputZones)
-    {
-        if (pair.second.contains(releaseWorld))
-        {
+    for (const auto &pair : _inputZones) {
+        if (pair.second.contains(releaseWorld)) {
             finalAction = pair.first;
             break;
         }
     }
 
-    if (finalAction != InputController::Action::NONE)
-    {
+    if (finalAction != InputController::Action::NONE) {
         resolveAction(finalAction);
         _glowAction = finalAction;
         _glowTimer = _glowDuration;
-        if (_activeIcon)
-        {
+        if (_activeIcon) {
             _activeIcon->setVisible(false);
         }
     }
@@ -418,13 +373,11 @@ void GameScene::handleDropResolution(InputController &input)
  * Decrements the glow timer each frame. Clears the active glow action
  * once the timer expires.
  */
-void GameScene::tickGlowTimer(float dt)
-{
+void GameScene::tickGlowTimer(float dt) {
     if (_glowTimer <= 0)
         return;
     _glowTimer -= dt;
-    if (_glowTimer <= 0)
-    {
+    if (_glowTimer <= 0) {
         _glowAction = InputController::Action::NONE;
     }
 }
@@ -432,10 +385,8 @@ void GameScene::tickGlowTimer(float dt)
 /**
  * Updates the debug pointer position in scene coordinates.
  */
-void GameScene::updateDebugPointer(InputController &input)
-{
-    if (!input.isTouching())
-    {
+void GameScene::updateDebugPointer(InputController &input) {
+    if (!input.isTouching()) {
         _hasDebugPointer = false;
         return;
     }
@@ -451,19 +402,16 @@ void GameScene::updateDebugPointer(InputController &input)
 /**
  * Hit-tests item widgets against the initial touch position.
  */
-void GameScene::handleDragInitiation(InputController &input)
-{
+void GameScene::handleDragInitiation(InputController &input) {
     if (_activeIcon || !input.isDragging())
         return;
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
 
-    for (auto &[id, widget] : _itemWidgets)
-    {
+    for (auto &[id, widget] : _itemWidgets) {
         if (!widget)
             continue;
-        if (widget->getBoundingBox().contains(touchPosScreen))
-        {
+        if (widget->getBoundingBox().contains(touchPosScreen)) {
             _activeIcon = widget;
             _dragOffset = widget->getPosition() - touchPosScreen;
             break;
@@ -474,8 +422,7 @@ void GameScene::handleDragInitiation(InputController &input)
 /**
  * Moves the active dragged icon to follow the current touch position.
  */
-void GameScene::handleDragTracking(InputController &input)
-{
+void GameScene::handleDragTracking(InputController &input) {
     if (!_activeIcon || (!input.isTouching() && !input.isMouseDown()))
         return;
 
@@ -486,10 +433,8 @@ void GameScene::handleDragTracking(InputController &input)
 /**
  * Logs the resolved drop-zone action for debugging.
  */
-void GameScene::resolveAction(InputController::Action action)
-{
-    switch (action)
-    {
+void GameScene::resolveAction(InputController::Action action) {
+    switch (action) {
     case InputController::Action::DROP_BOSS:
         CULog("boss drop");
         break;
@@ -523,16 +468,14 @@ void GameScene::resolveAction(InputController::Action action)
 /**
  * Processes one frame of game logic.
  */
-void GameScene::update(float dt, InputController &input)
-{
+void GameScene::update(float dt, InputController &input) {
     if (!_active)
         return;
 
     handleResetButton(input);
     handleDropResolution(input);
 
-    if (input.touchEnded())
-    {
+    if (input.touchEnded()) {
         input.resetAction();
     }
 
@@ -552,8 +495,7 @@ void GameScene::update(float dt, InputController &input)
 #pragma mark Inventory UI
 
 /** Creates a scene-node widget for the given item and adds it to the inventory container. */
-std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance &item)
-{
+std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance &item) {
     auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
     if (!itemDef)
         return nullptr;
@@ -574,8 +516,7 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance &item)
 }
 
 /** Return a random in-bounds inventory position for a newly spawned item widget */
-cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size &widgetSize) const
-{
+cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size &widgetSize) const {
     const cugl::Size inventorySize = _inventory->getContentSize();
     Size dimen = getSize();
     float w = dimen.width;
@@ -592,27 +533,22 @@ cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size &widgetSize) c
 }
 
 /** Synchronises on-screen item widgets with the local player's current inventory. */
-void GameScene::syncInventoryWidgets()
-{
+void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();
-    if (!_inventory || !local)
-    {
+    if (!_inventory || !local) {
         return;
     }
 
     std::unordered_set<ItemInstance::ItemId> liveIds;
 
-    for (const ItemInstance &item : local->getInventory())
-    {
+    for (const ItemInstance &item : local->getInventory()) {
         ItemInstance::ItemId id = item.getId();
         liveIds.insert(id);
 
         auto found = _itemWidgets.find(id);
-        if (found == _itemWidgets.end())
-        {
+        if (found == _itemWidgets.end()) {
             auto widget = createItemWidget(item);
-            if (!widget)
-            {
+            if (!widget) {
                 continue;
             }
             widget->setPosition(getRandomInventoryPosition(widget->getContentSize()));
@@ -620,18 +556,14 @@ void GameScene::syncInventoryWidgets()
         }
     }
 
-    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end();)
-    {
-        if (liveIds.find(it->first) == liveIds.end())
-        {
-            if (it->second)
-            {
+    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end();) {
+        if (liveIds.find(it->first) == liveIds.end()) {
+            if (it->second) {
                 _inventory->removeChild(it->second);
             }
             it = _itemWidgets.erase(it);
         }
-        else
-        {
+        else {
             ++it;
         }
     }
@@ -641,8 +573,7 @@ void GameScene::syncInventoryWidgets()
 #pragma mark Render
 
 /** Draws a green debug outline around the reset button's bounding box. */
-void GameScene::renderResetButton(cugl::graphics::SpriteBatch *batch)
-{
+void GameScene::renderResetButton(cugl::graphics::SpriteBatch *batch) {
     if (!_resetBtn)
         return;
     Rect boundingBox = _resetBtn->getBoundingBox();
@@ -652,13 +583,10 @@ void GameScene::renderResetButton(cugl::graphics::SpriteBatch *batch)
 }
 
 /** Draws zone outlines and a fading glow on the last successfully used zone. */
-void GameScene::renderDropZones(cugl::graphics::SpriteBatch *batch)
-{
-    for (auto &[action, rect] : _inputZones)
-    {
+void GameScene::renderDropZones(cugl::graphics::SpriteBatch *batch) {
+    for (auto &[action, rect] : _inputZones) {
         Path2 path(rect);
-        if (action == _glowAction && _glowTimer > 0)
-        {
+        if (action == _glowAction && _glowTimer > 0) {
             float t = _glowTimer / _glowDuration;
             Uint8 alpha = (Uint8)(150 * t);
             batch->setColor(Color4(0, 255, 0, alpha));
@@ -670,11 +598,9 @@ void GameScene::renderDropZones(cugl::graphics::SpriteBatch *batch)
 }
 
 /** Draws a magenta outline around each visible item widget's bounding box. */
-void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch *batch)
-{
+void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch *batch) {
     batch->setColor(Color4(255, 0, 255, 140));
-    for (auto &[id, widget] : _itemWidgets)
-    {
+    for (auto &[id, widget] : _itemWidgets) {
         if (!widget || !widget->isVisible())
             continue;
         Path2 path(widget->getBoundingBox());
@@ -683,8 +609,7 @@ void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch *batch)
 }
 
 /** Draws a small red square at the current touch position. */
-void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch *batch)
-{
+void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch *batch) {
     if (!_hasDebugPointer)
         return;
     Rect p(_debugPointerScene.x - 6.0f, _debugPointerScene.y - 6.0f, 12.0f, 12.0f);
@@ -698,8 +623,7 @@ void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch *batch)
 /**
  * Custom render pass drawn after the standard scene graph render.
  */
-void GameScene::render()
-{
+void GameScene::render() {
     Scene2::render();
 
     auto batch = getSpriteBatch();

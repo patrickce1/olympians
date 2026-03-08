@@ -105,8 +105,6 @@ void ItemController::giveRandomItem(Player* player) {
     }
 
     player->addItem(*itemInstance);
-    CULog("[ItemController] Spawned item '%s' with id %llu", itemDefId.c_str(),
-          (unsigned long long)itemInstance->getId());
 }
 
 
