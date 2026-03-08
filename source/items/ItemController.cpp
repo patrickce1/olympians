@@ -49,7 +49,7 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
 
     // Read maxInventorySpawnItems from JSON if present, otherwise keep default
     if (itemsJson->has("maxInventorySpawnItems") && itemsJson->get("maxInventorySpawnItems")->isNumber()) {
-        int parsedCap = itemsJson->get("maxInventorySpawnItems")->asInt();
+        int parsedCap = itemsJson->getInt("maxInventorySpawnItems");
         if (parsedCap >= 0) {
             _maxInventorySpawnItems = static_cast<std::size_t>(parsedCap);
         } else {
@@ -71,7 +71,6 @@ void ItemController::update(float dt, Player* player) {
 
     while (_itemTimer >= _itemInterval) {
         _itemTimer -= _itemInterval;
-        CULog("[ItemController] Spawn timer fired");
         giveRandomItem(player);
     }
 }
