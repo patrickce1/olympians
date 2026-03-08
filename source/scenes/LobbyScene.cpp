@@ -22,53 +22,68 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
-    // Initialize the scene to a locked width
-    if (assets == nullptr) {
-        return false;
-    } else if (!Scene2::initWithHint(Size(0,SCENE_HEIGHT))) {
-        return false;
+    bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+        // Initialize the scene to a locked width
+        if (assets == nullptr) {
+            return false;
+        } else if (!Scene2::initWithHint(Size(0,SCENE_HEIGHT))) {
+            return false;
+        }
+    
+        // Start up the input handler
+        _assets = assets;
+        _network = networkController;
+
+        Size dimen = getSize();
+    
+        std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("lobbyScene");
+    
+        scene->setContentSize(dimen);
+        scene->doLayout(); // Repositions the HUD
+    
+        // Setup UI and listeners
+        setupUI();
+        setupListeners();
+    
+        _status = Status::IDLE;
+    
+        addChild(scene);
+        setActive(false);
+        return true;
     }
-    
-    // Start up the input handler
-    _assets = assets;
-    _network = networkController;
 
-    Size dimen = getSize();
-    
-    std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("lobbyScene");
-    
-    scene->setContentSize(dimen);
-    scene->doLayout(); // Repositions the HUD
-    
-    // Setup UI and listeners
-    setupUI();
-    setupListeners();
-    
-    _status = Status::IDLE;
-    
-    addChild(scene);
-    setActive(false);
-    return true;
-}
+    /**
+     * Retrieves and stores references to the lobby UI elements.
+     *
+     * This method looks up important UI components from the scene graph,
+     * including the start button, back button, and game ID label, and stores
+     * them for later interaction.
+     */
+    void LobbyScene::setupUI() {
+        _enterGame = std::dynamic_pointer_cast<scene2::Button>(
+            _assets->get<scene2::SceneNode>("lobbyScene.start"));
 
-/**
- * Retrieves and stores references to the lobby UI elements.
- *
- * This method looks up important UI components from the scene graph,
- * including the start button, back button, and game ID label, and stores
- * them for later interaction.
- */
-void LobbyScene::setupUI() {
-    _enterGame = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("lobbyScene.start"));
+        _backOut = std::dynamic_pointer_cast<scene2::Button>(
+            _assets->get<scene2::SceneNode>("lobbyScene.back"));
 
-    _backOut = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("lobbyScene.back"));
+        _gameId = std::dynamic_pointer_cast<scene2::Label>(
+            _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
 
-    _gameId = std::dynamic_pointer_cast<scene2::Label>(
-        _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
-}
+        
+        _container = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
+
+        if (_container) {
+            for (int i = 1; i <= 4; i++) {
+                std::string cardName = "playerCard" + std::to_string(i);
+                auto card = _container->getChildByName(cardName);
+                auto label = std::dynamic_pointer_cast<scene2::Label>(
+                    card->getChildByName("username")
+                );
+
+                _playerSlots.push_back(label);
+            }
+        }
+    }
 
 /**
  * Attaches input listeners to the lobby UI buttons.
@@ -131,6 +146,17 @@ void LobbyScene::setActive(bool value) {
     }
 }
 
+void LobbyScene::updateLobbyText(std::vector<std::pair<std::string, std::string>> onlinePlayers) {
+    for (int i = 0; i < _playerSlots.size(); i++) {
+        if (i < onlinePlayers.size()) {
+            _playerSlots[i]->setText(onlinePlayers[i].second);
+        }
+        else {
+            _playerSlots[i]->setText("AI Player");
+        }
+    }
+}
+
 /**
  * The method called to update the scene.
  *
@@ -142,11 +168,12 @@ void LobbyScene::update(float timestep) {
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
         _gameId->setText(_network->getRoom());
+        _network->broadcastJoinedLobby();
+        _network->getNetworkUpdates();
     }
     else {
         _gameId->setText("waiting...");
     }
-
 
     if (!_network->isHost()) {
         _network->getNetworkUpdates();
@@ -156,5 +183,6 @@ void LobbyScene::update(float timestep) {
         }
     }
 
+    updateLobbyText(_network->checkLobbyOrder());
 }
 

@@ -25,8 +25,6 @@ public:
     };
 
 
-
-
     /*
     Types of messages we send/recieve when fighting the boss
     */
@@ -143,7 +141,8 @@ public:
     void broadcastHeal(float healAmount, const std::string& playerID);
 
     /* Client Lobby Messages*/
-    void broadcastJoinedLobby(const std::string& playerName);
+    //broadcasts the name set through setPlayerName
+    void broadcastJoinedLobby();
 
     void broadcastGameStart();
 
@@ -156,8 +155,11 @@ public:
     /*Checks if the game has started. Used during the lobby scene by clients*/
     bool checkGameStarted();
 
+    void setPlayerName(const std::string& name);
+    std::string getPlayerName() const { return _playerName; }
+
     /*Returns any updates on player order. Each networked player is represented by NetworkID, Username*/
-    std::vector<std::pair<std::string, std::string>> checkLobbyOrder();
+    const std::vector<std::pair<std::string, std::string>> checkLobbyOrder();
 
 
 
@@ -217,6 +219,8 @@ private:
 
     //stores the most recent order that we got. The host's version of this is authoritative
     std::vector<std::pair<std::string, std::string>> onlinePlayers;
+    //Player's chosen username
+    std::string _playerName;
 
     void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);
 

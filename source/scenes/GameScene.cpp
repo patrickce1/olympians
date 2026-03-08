@@ -267,6 +267,13 @@ void GameScene::handlePassRight() {
     target->addItem(item);
 }
 
+//void GameScene::updateInventoryPasses(std::vector<NetworkController::PassMessage> passes) {
+//    Player* local = _gameState.getLocalPlayer();
+//    for (NetworkController::PassMessage pass : passes) {
+//        local->addItem(_itemController->get)
+//    }
+//}
+
 /**
  * Dispatches the resolved drop-zone action to the appropriate handler
  * and resets the input action afterwards.

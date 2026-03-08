@@ -106,10 +106,14 @@ public:
      */
     void reset();
 
-    /*Convinient way to update the game state by just providing the struct from the network controller*/
-    void networkUpdate(NetworkController::GameStateMessage updatedState) {
-        
-    }
+    /*Convinient way to update the game state and inventory by just providing the struct from the network controller. USED BY CLIENTS*/
+    void networkUpdate(NetworkController::GameStateMessage updatedState);
+    void passUpdates(std::vector<NetworkController::PassMessage> passes);
+
+    /*Convinient functions to handle updates recieved from the network. USED BY THE HOST*/
+    void attackUpdates(std::vector<NetworkController::AttackMessage> attacks);
+    void healUpdates(std::vector<NetworkController::HealMessage> heals);
+    
 
 #pragma mark - Player Access
 

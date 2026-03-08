@@ -102,17 +102,8 @@ void ClientScene::setupListeners() {
     _enterGame->addListener([this](const std::string& name, bool down) {
         if (down) {
             _network->joinRoom(_gameId->getText());
+            _network->setPlayerName(name);
             _status = Status::START;
-            //if (_network->checkConnection() == NetworkController::Status::CONNECTED ||
-            //    _network->checkConnection() == NetworkController::Status::WAITING) {
-            //    _status = Status::START;
-            //}
-            //else {
-            //    //some pop-up saying connection failed idk...
-            //    //for now changing the text in the box but we should change this
-            //    _gameId->setText("failed");
-            //}
-            
         }
     });
 
@@ -175,7 +166,6 @@ void ClientScene::setActive(bool value) {
 void ClientScene::updateText(const std::shared_ptr<scene2::Button>& button, const std::string text) {
     auto label = std::dynamic_pointer_cast<scene2::Label>(button->getChildByName("up")->getChildByName("label"));
     label->setText(text);
-
 }
 
 /**

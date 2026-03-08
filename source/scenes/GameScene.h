@@ -302,6 +302,9 @@ public:
      */
     void resolveAction(InputController::Action action);
 
+
+    //void updateInventoryPasses(std::vector<NetworkController::PassMessage> passes);
+
 #pragma mark - Inventory UI
 
     /**

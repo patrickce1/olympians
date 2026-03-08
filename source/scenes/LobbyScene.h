@@ -48,6 +48,9 @@ protected:
     
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
+
+    /** The player selection container */
+    std::shared_ptr<cugl::scene2::SceneNode> _container;
     
     /** The current status */
     Status _status;
@@ -152,6 +155,9 @@ private:
      * @param text      The new text value
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
+
+    /*Updates the player handles based on updates to the lobby state*/
+    void updateLobbyText(std::vector<std::pair<std::string, std::string>> onlinePlayers);
 };
 
 #endif /* __LOBBY_SCENE_H__ */

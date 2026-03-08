@@ -69,6 +69,7 @@ bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) 
 	_config.set(json);
 	_serializer = NetcodeSerializer();
 	_deserializer = NetcodeDeserializer();
+	_playerName = "";
 	return true;
 }
 
@@ -159,14 +160,27 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		}
 		case MessageType::PLAYER_JOIN: {
 			std::string playerName = _deserializer.readString();
-			std::pair<std::string, std::string> playerPair = std::make_pair(senderID, playerName);
-			onlinePlayers.push_back(playerPair);
-			broadcastLobbyState();
-			break; // ← you were missing this!
+			CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
+
+			// check if player is already registered
+			bool alreadyRegistered = false;
+			for (std::pair<std::string, std::string>& player : onlinePlayers) {
+				if (player.first == senderID) {
+					alreadyRegistered = true;
+					break;
+				}
+			}
+
+			if (!alreadyRegistered) {
+				onlinePlayers.push_back(std::make_pair(senderID, playerName));
+				broadcastLobbyState();
+			}
+			break;
 		}
 		case MessageType::LOBBY_UPDATE: {
 			std::vector<std::string> playerData = _deserializer.readStringVector();
 			onlinePlayers.clear();
+			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
 			// re-pair the flattened vector back into pairs
 			for (int i = 0; i < playerData.size(); i += 2) {
 				std::string networkID = playerData[i];
@@ -174,7 +188,6 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				onlinePlayers.push_back(std::make_pair(networkID, playerName));
 			}
 			break;
-
 		}
 	}
 }
@@ -183,6 +196,7 @@ void NetworkController::getNetworkUpdates() {
 	if (_network) {
 		_network->receive([this](const std::string source,
 			const std::vector<std::byte>& data) {
+				CULog("I got a msg");
 				handleMessage(source, data);
 			});
 		checkConnection();
@@ -228,9 +242,9 @@ bool NetworkController::checkGameStarted() {
 	return gameStarted;
 }
 
-void NetworkController::broadcastJoinedLobby(const std::string& playerName) {
+void NetworkController::broadcastJoinedLobby() {
 	_serializer.writeSint32(MessageType::PLAYER_JOIN);
-	_serializer.writeString(playerName);
+	_serializer.writeString(_playerName);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
@@ -239,14 +253,27 @@ void NetworkController::broadcastLobbyState() {
 	//for sending over the lobby state, we unwrap the players vector into a vector of strings back to back
 	//so it would look like P1 Network ID -> P1 Name -> P2 Netwoek ID -> P2 name -> etc
 	//this is done because the serializer can only do vector of just strings, not of pairs
+	CULog("Hello I broadcast my state");
 	std::vector<std::string> serializablePlayers;
 
 	for (pair<std::string, std::string>& player : onlinePlayers) {
 		serializablePlayers.push_back(player.first);
 		serializablePlayers.push_back(player.second);
 	}
+
 	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
 	_serializer.writeStringVector(serializablePlayers);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
+}
+
+void NetworkController::setPlayerName(const std::string& name) { 
+	_playerName = name; 
+	if (onlinePlayers.empty()) {
+		onlinePlayers.push_back(std::make_pair(_network->getUUID(), _playerName));
+	}
+}
+
+const std::vector<std::pair<std::string, std::string>> NetworkController::checkLobbyOrder() {
+	return onlinePlayers;
 }
