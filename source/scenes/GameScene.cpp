@@ -577,13 +577,15 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance &item)
 cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size &widgetSize) const
 {
     const cugl::Size inventorySize = _inventory->getContentSize();
+    Size dimen = getSize();
+    float w = dimen.width;
 
-    const float maxX = std::max(0.0f, inventorySize.width - widgetSize.width);
+    const float maxX = std::max(0.0f, inventorySize.width - widgetSize.width - (w * 0.15f));
     const float maxY = std::max(0.0f, inventorySize.height - widgetSize.height);
 
     std::random_device rd;
     std::mt19937 rng(rd());
-    std::uniform_real_distribution<float> xDist(0.0f, maxX);
+    std::uniform_real_distribution<float> xDist(w * 0.15f, maxX);
     std::uniform_real_distribution<float> yDist(0.0f, maxY);
 
     return cugl::Vec2(xDist(rng), yDist(rng));
