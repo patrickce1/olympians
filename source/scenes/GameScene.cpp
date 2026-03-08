@@ -29,11 +29,11 @@ void GameScene::initInputZones()
     float w = dimen.width;
     float h = dimen.height;
     _inputZones = {
-        {InputController::Action::DROP_BOSS, Rect(w * 0.15f, h * 0.5f, w * 0.7f, h * 0.5f)},
-        {InputController::Action::DROP_ALLY_LEFT, Rect(0, h * 0.5f, w * 0.15f, h * 0.5f)},
+        {InputController::Action::DROP_BOSS,       Rect(w * 0.15f, h * 0.5f, w * 0.7f,  h * 0.5f)},
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.5f, w * 0.15f, h * 0.5f)},
         {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)},
-        {InputController::Action::PASS_LEFT, Rect(0, 0, w * 0.15f, h * 0.5f)},
-        {InputController::Action::PASS_RIGHT, Rect(w * 0.85f, 0, w * 0.15f, h * 0.5f)}};
+        {InputController::Action::PASS_LEFT,       Rect(0,         0,        w * 0.15f, h * 0.5f)},
+        {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)}};
 }
 
 /**
