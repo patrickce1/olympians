@@ -55,6 +55,18 @@ void GameState::initPlayers() {
     setLocalPlayer(0);
 }
 
+void GameState::setRealPlayer(int playerNumber, const std::string& playerName) {
+    if (playerNumber < 0 || playerNumber >= _players.size()) {
+        CULog("Invalid player number %d", playerNumber);
+        return;
+    }
+    _players[playerNumber] = std::make_shared<Player>(
+        "Percy", playerNumber + 1,
+        playerName + std::to_string(playerNumber + 1),
+        _characterLoader
+    );
+}
+
 /**
  * Loads the enemy from JSON and initialises it.
  * Must be called after initPlayers() so the player array exists for

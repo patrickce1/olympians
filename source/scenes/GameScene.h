@@ -10,6 +10,7 @@
 #include "../EnemyLoader.h"
 #include "../EnemyController.h"
 #include "GameState.h"
+#include "../NetworkController.h"
 
 /**
  * Controller for the core game scene.
@@ -30,6 +31,9 @@ protected:
 
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+
+    /** Network controller */
+    std::shared_ptr<NetworkController> _network;
 
     /** The root scene node for this scene graph. */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
@@ -167,7 +171,7 @@ public:
      * @param assets  The loaded asset manager.
      * @return true if initialisation succeeded, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
 
     /**
      * Activates or deactivates the scene and its UI.
@@ -233,7 +237,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handlePlayerActions(InputController& input);
+    void handlePlayerActions(InputController::Action action);
 
 #pragma mark - Update Helpers
 
@@ -303,7 +307,7 @@ public:
     void resolveAction(InputController::Action action);
 
 
-    //void updateInventoryPasses(std::vector<NetworkController::PassMessage> passes);
+    void updateInventoryPasses(std::vector<NetworkController::PassMessage> passes);
 
 #pragma mark - Inventory UI
 

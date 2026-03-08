@@ -99,7 +99,7 @@ bool GameScene::initGameSystems() {
  * @param assets  The loaded asset manager.
  * @return true if initialisation succeeded, false otherwise.
  */
-bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
     if (assets == nullptr) {
         return false;
     }
@@ -108,6 +108,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     }
 
     _assets = assets;
+    _network = networkController;
 
     initInputZones();
 
@@ -118,6 +119,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     if (!initGameSystems()) {
         return false;
     }
+
+    setLocalPlayer(0);
 
     setActive(false);
     return true;
@@ -150,6 +153,15 @@ void GameScene::setActive(bool value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
         }
+    }
+    if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
+        //check who are real players
+        //will change once we have player reordering in
+        for (int i = 0; i < _network->checkLobbyOrder().size(); i++) {
+            _gameState.setRealPlayer(i, _network->checkLobbyOrder()[i].second);
+        }
+            //assign our own number
+       setLocalPlayer(_network->getLocalPlayerNumber());
     }
 }
 
@@ -245,46 +257,56 @@ void GameScene::handleSupportRight() {
  * Passes the first item in the local player's inventory to the left neighbour.
  */
 void GameScene::handlePassLeft() {
+    CULog("HELLO I AM THE LEFT PASS");
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getLeftPlayer() : nullptr;
     if (!target || !target->isAlive() || local->getInventory().empty()) return;
 
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());
-    target->addItem(item);
+    if (!target->isAI()) {
+        CULog("Passing left to a real player");
+    }
+    _network->broadcastPass(item.getDefId(), target->getPlayerNumber()-1);
 }
 
 /**
  * Passes the first item in the local player's inventory to the right neighbour.
  */
 void GameScene::handlePassRight() {
+    CULog("HELLO I AM THE RIGHT PASS");
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
     if (!target || !target->isAlive() || local->getInventory().empty()) return;
 
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());
-    target->addItem(item);
+    if (!target->isAI()) {
+        CULog("Passing right to a real player");
+    }
+    _network->broadcastPass(item.getDefId(), target->getPlayerNumber()-1);
 }
 
-//void GameScene::updateInventoryPasses(std::vector<NetworkController::PassMessage> passes) {
-//    //update for everyone if im host
-//    //if im not host, just 
-//    Player* local = _gameState.getLocalPlayer();
-//    for (NetworkController::PassMessage pass : passes) {
-//        local->addItem(_itemController->get)
-//    }
-//}
+void GameScene::updateInventoryPasses(std::vector<NetworkController::PassMessage> passes) {
+    for (NetworkController::PassMessage pass : passes) {
+        Player* player = _gameState.getPlayerById(pass.playerID);
+        //for now, passing just gives a random item in the player inventory
+        _itemController.giveRandomItem(player);
+        //IN THE FUTURE, can we just give the ItemController a makeItem function that takes in a specific item id
+        //so that I can just do pass.itemID
+        // the ID is based on the one from the database
+    }
+}
 
 /**
  * Dispatches the resolved drop-zone action to the appropriate handler
  * and resets the input action afterwards.
  */
-void GameScene::handlePlayerActions(InputController& input) {
+void GameScene::handlePlayerActions(InputController::Action action) {
     Player* local = _gameState.getLocalPlayer();
     if (!local || !local->isAlive()) return;
 
-    switch (input.getAction()) {
+    switch (action) {
         case InputController::Action::DROP_BOSS:       handleAttack();       break;
         case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft();  break;
         case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(); break;
@@ -292,7 +314,7 @@ void GameScene::handlePlayerActions(InputController& input) {
         case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
         default: break;
     }
-    input.resetAction();
+    //input.resetAction();
 }
 
 #pragma mark -
@@ -345,6 +367,7 @@ void GameScene::handleDropResolution(InputController& input) {
     }
 
     if (finalAction != InputController::Action::NONE) {
+        handlePlayerActions(finalAction);
         resolveAction(finalAction);
         _glowAction = finalAction;
         _glowTimer  = _glowDuration;
@@ -453,7 +476,7 @@ void GameScene::update(float dt, InputController& input) {
     _itemController.update(dt, _gameState.getLocalPlayer());
     syncInventoryWidgets();
 
-    handlePlayerActions(input);
+    //handlePlayerActions(input);
     updateEnemyAndAI(dt);
 }
 

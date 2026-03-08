@@ -39,7 +39,7 @@ public:
 
     struct PassMessage {
         std::string itemID;
-        std::string playerID;
+        int playerID;
     };
 
     struct GameStateMessage {
@@ -137,7 +137,8 @@ public:
 
     /* Atomic update-style functions */
     void broadcastDamage(float damageAmount);
-    void passItem(const std::string& itemDefID, const std::string& playerID);
+    //the playerID is represented by a integer for its spot in the circle
+    void broadcastPass(const std::string& itemDefID, int playerID);
     void broadcastHeal(float healAmount, const std::string& playerID);
 
     /* Client Lobby Messages*/
@@ -158,8 +159,11 @@ public:
     void setPlayerName(const std::string& name);
     std::string getPlayerName() const { return _playerName; }
 
-    //returns the player's position in the circle
-    int getCirclPos();
+    //returns the local player's position in the circle
+    int getLocalPlayerNumber();
+
+    //returns if this numbered player is a real one or AI
+    bool checkRealPlayer(int playerID);
 
     /*Returns any updates on player order. Each networked player is represented by NetworkID, Username*/
     const std::vector<std::pair<std::string, std::string>> checkLobbyOrder();
@@ -221,7 +225,7 @@ private:
     bool gameStarted;
 
     //stores the most recent order that we got. The host's version of this is authoritative
-    std::vector<std::pair<std::string, std::string>> onlinePlayers;
+    std::vector<std::pair<std::string, std::string>> _onlinePlayers;
     //Player's chosen username
     std::string _playerName;
 

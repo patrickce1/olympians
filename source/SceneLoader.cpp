@@ -235,7 +235,7 @@ void SceneLoader::update(float dt) {
                     CULog("Failed to initialize ClientScene");
                 }
                 
-                if (_gameScene.init(_assets)) {
+                if (_gameScene.init(_assets, _network)) {
                     _gameScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize GameScene");

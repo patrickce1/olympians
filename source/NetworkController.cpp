@@ -147,7 +147,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		}
 		case MessageType::PLAYER_PASS: {
 			std::string itemID = _deserializer.readString();
-			std::string passRecieverID = _deserializer.readString();
+			int passRecieverID = _deserializer.readSint32();
 			PassMessage passMsg;
 			passMsg.itemID = itemID;
 			passMsg.playerID = passRecieverID;
@@ -164,7 +164,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 
 			// check if player is already registered
 			bool alreadyRegistered = false;
-			for (std::pair<std::string, std::string>& player : onlinePlayers) {
+			for (std::pair<std::string, std::string>& player : _onlinePlayers) {
 				if (player.first == senderID) {
 					alreadyRegistered = true;
 					break;
@@ -172,20 +172,20 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			}
 
 			if (!alreadyRegistered) {
-				onlinePlayers.push_back(std::make_pair(senderID, playerName));
+				_onlinePlayers.push_back(std::make_pair(senderID, playerName));
 				broadcastLobbyState();
 			}
 			break;
 		}
 		case MessageType::LOBBY_UPDATE: {
 			std::vector<std::string> playerData = _deserializer.readStringVector();
-			onlinePlayers.clear();
+			_onlinePlayers.clear();
 			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
 			// re-pair the flattened vector back into pairs
 			for (int i = 0; i < playerData.size(); i += 2) {
 				std::string networkID = playerData[i];
 				std::string playerName = playerData[i + 1];
-				onlinePlayers.push_back(std::make_pair(networkID, playerName));
+				_onlinePlayers.push_back(std::make_pair(networkID, playerName));
 			}
 			break;
 		}
@@ -196,7 +196,6 @@ void NetworkController::getNetworkUpdates() {
 	if (_network) {
 		_network->receive([this](const std::string source,
 			const std::vector<std::byte>& data) {
-				CULog("I got a msg");
 				handleMessage(source, data);
 			});
 		checkConnection();
@@ -224,12 +223,30 @@ void NetworkController::broadcastHeal(float heal, const std::string& playerID) {
 	_serializer.reset();
 }
 
-void NetworkController::passItem(const std::string& itemDefID, const std::string& playerID) {
+bool NetworkController::checkRealPlayer(int playerID) {
+	if (playerID >= _onlinePlayers.size() ) {
+		return false;
+	}
+	else {
+		return true;
+	}
+}
+
+void NetworkController::broadcastPass(const std::string& itemDefID, int playerID) {
 	_serializer.writeSint32(MessageType::PLAYER_PASS);
 	_serializer.writeString(itemDefID);
-	_serializer.writeString(playerID);
-	_network->sendToHost(_serializer.serialize());
+	_serializer.writeSint32(playerID);
+	
+	
+	if (checkRealPlayer(playerID)) {
+		std::string playerNetworkID = _onlinePlayers[playerID].first;
+		_network->sendTo(playerNetworkID, _serializer.serialize());
+	}
+	else {
+		_network->sendToHost(_serializer.serialize());
+	}
 	_serializer.reset();
+
 }
 
 void NetworkController::broadcastGameStart(){
@@ -256,7 +273,7 @@ void NetworkController::broadcastLobbyState() {
 	CULog("Hello I broadcast my state");
 	std::vector<std::string> serializablePlayers;
 
-	for (pair<std::string, std::string>& player : onlinePlayers) {
+	for (pair<std::string, std::string>& player : _onlinePlayers) {
 		serializablePlayers.push_back(player.first);
 		serializablePlayers.push_back(player.second);
 	}
@@ -269,11 +286,22 @@ void NetworkController::broadcastLobbyState() {
 
 void NetworkController::setPlayerName(const std::string& name) { 
 	_playerName = name; 
-	if (onlinePlayers.empty()) {
-		onlinePlayers.push_back(std::make_pair(_network->getUUID(), _playerName));
+	if (_onlinePlayers.empty()) {
+		_onlinePlayers.push_back(std::make_pair(_network->getUUID(), _playerName));
 	}
 }
 
 const std::vector<std::pair<std::string, std::string>> NetworkController::checkLobbyOrder() {
-	return onlinePlayers;
+	return _onlinePlayers;
+}
+
+
+int NetworkController::getLocalPlayerNumber() {
+	std::string localID = _network->getUUID();
+	for (int i = 0; i < _onlinePlayers.size(); i++) {
+		if (_onlinePlayers[i].first == localID) {
+			return i;
+		}
+	}
+	return -1; // not found
 }

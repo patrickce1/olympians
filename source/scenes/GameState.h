@@ -62,8 +62,16 @@ public:
      * Builds the player array (one human + three AI), links all players in a
      * circular neighbour ring, and populates the player ID map.
      * Must be called after initCharacters().
+     * 
+     * For now, we just pass in an integer, since if there are x real players, there will be the first x players in the game scene
+     * Later, when we have reordering ability, this can be changed
      */
     void initPlayers();
+
+    //makes the player at that number a real player.
+    //used for when the network registers new players joining
+    //in the future we will probably want a setAIPlayer function as well for real players leaving
+    void setRealPlayer(int playerNumber, const std::string& playerName);
 
     /**
      * Loads and initialises the enemy from JSON.
@@ -93,7 +101,6 @@ public:
      * @return true if all resources loaded and initialised successfully.
      */
     bool init(ItemController& itemController);
-    //std::vector<std::pair<std::string, std::string>> onlinePlayers
 
     /**
      * Releases all owned resources and resets every pointer to nullptr.
