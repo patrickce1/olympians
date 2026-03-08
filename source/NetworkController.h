@@ -158,6 +158,9 @@ public:
     void setPlayerName(const std::string& name);
     std::string getPlayerName() const { return _playerName; }
 
+    //returns the player's position in the circle
+    int getCirclPos();
+
     /*Returns any updates on player order. Each networked player is represented by NetworkID, Username*/
     const std::vector<std::pair<std::string, std::string>> checkLobbyOrder();
 

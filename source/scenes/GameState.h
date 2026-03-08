@@ -89,9 +89,11 @@ public:
      *
      * @param itemController  The ItemController whose database is needed for
      *                        AI player initialisation.
+     * @param onlinePlayers   A list of players connected over the network
      * @return true if all resources loaded and initialised successfully.
      */
     bool init(ItemController& itemController);
+    //std::vector<std::pair<std::string, std::string>> onlinePlayers
 
     /**
      * Releases all owned resources and resets every pointer to nullptr.

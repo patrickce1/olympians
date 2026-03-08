@@ -51,6 +51,7 @@ void GameState::initPlayers() {
     }
 
     // Default to index 0; setLocalPlayer() is called again after network lobby.
+    //figure out our own location in the circle
     setLocalPlayer(0);
 }
 

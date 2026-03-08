@@ -268,6 +268,8 @@ void GameScene::handlePassRight() {
 }
 
 //void GameScene::updateInventoryPasses(std::vector<NetworkController::PassMessage> passes) {
+//    //update for everyone if im host
+//    //if im not host, just 
 //    Player* local = _gameState.getLocalPlayer();
 //    for (NetworkController::PassMessage pass : passes) {
 //        local->addItem(_itemController->get)
