@@ -1,5 +1,6 @@
 #ifndef __ITEM_CONTROLLER_H__
 #define __ITEM_CONTROLLER_H__
+#include <cstddef>
 #include <cugl/cugl.h>
 #include <vector>
 #include "ItemDatabase.h"
@@ -16,6 +17,8 @@ private:
     float _itemInterval;
     // The item timer which tells us how long it has been since players last received an item
     float _itemTimer;
+    // Maximum number of items allowed for timer-based spawning
+    std::size_t _maxInventorySpawnItems;
 
 public:
     ItemController() = default;
