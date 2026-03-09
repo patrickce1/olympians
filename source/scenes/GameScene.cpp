@@ -56,12 +56,12 @@ bool GameScene::initSceneGraph() {
     _inventory = _scene->getChildByName("inventory");
     _resetBtn  = _scene->getChildByName("resetButton");
 
-    if (_gameArea) {
-        _attackArea = _gameArea->getChildByName("attackArea");
-        _playerSlots.push_back(_gameArea->getChildByName("player"));
-        _playerSlots.push_back(_gameArea->getChildByName("player3"));
-        _playerSlots.push_back(_gameArea->getChildByName("player4"));
-    }
+//    if (_gameArea) {
+//        _attackArea = _gameArea->getChildByName("attackArea");
+//        _playerSlots.push_back(_gameArea->getChildByName("player"));
+//        _playerSlots.push_back(_gameArea->getChildByName("player3"));
+//        _playerSlots.push_back(_gameArea->getChildByName("player4"));
+//    }
 
     if (_attackArea) {
         _bossNode = _attackArea->getChildByName("enemy");

@@ -6,29 +6,333 @@
             "type": "Anchored"
         },
         "data": {
-            "anchor": [0, 0],
-            "size": [400, 300],
+            "anchor": [
+                0,
+                0
+            ],
+            "size": [
+                395,
+                304
+            ],
             "angle": 0,
-            "position": [0, 0],
+            "position": [
+                0,
+                0
+            ],
             "visible": true
         },
         "children": {
-            "inventoryBackground": {
+            "background": {
                 "type": "Image",
                 "data": {
-                    "texture": "inventory_background",
-                    "anchor": [0, 0],
-                    "size": [400, 300],
+                    "texture": "inventoryBackground",
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        395,
+                        300
+                    ],
                     "angle": 0,
-                    "position": [0,0],
+                    "position": [
+                        0,
+                        0
+                    ],
                     "visible": true
                 },
                 "layout": {
-                    "x_anchor": "bottom",
-                    "y_anchor": "left",
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0,
                     "y_offset": 0
+                }
+            },
+            "playerHealth": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        285.18,
+                        11.57
+                    ],
+                    "angle": 0,
+                    "position": [
+                        87.35,
+                        46.43
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "healthBarFrame": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "playerHealthFrame",
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                285.5,
+                                12
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                -0.43
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.04
+                        }
+                    },
+                    "healthBarFill": {
+                        "type": "Progress",
+                        "data": {
+                            "texture": "playerHealthFill",
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                282,
+                                8
+                            ],
+                            "angle": 0,
+                            "position": [
+                                1.65,
+                                2
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.01,
+                            "y_offset": 0.17
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.22,
+                    "y_offset": 0.15
+                }
+            },
+            "playerLiveIcon": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        133.56,
+                        133.56
+                    ],
+                    "angle": 0,
+                    "position": [
+                        -11.08,
+                        12.44
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "playerImage": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "playerImage",
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                57,
+                                57
+                            ],
+                            "angle": 0,
+                            "position": [
+                                38.08,
+                                37.64
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.29,
+                            "y_offset": 0.28
+                        }
+                    },
+                    "outsideFrame": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "playerImageFrame",
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                67,
+                                67
+                            ],
+                            "angle": 0,
+                            "position": [
+                                33.08,
+                                33.64
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.25,
+                            "y_offset": 0.25
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": -0.03,
+                    "y_offset": 0.04
+                }
+            },
+            "attack": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        74,
+                        85
+                    ],
+                    "angle": 0,
+                    "position": [
+                        35,
+                        166
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "attack": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "attack",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                74,
+                                85
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.09,
+                    "y_offset": 0.55
+                }
+            },
+            "heal": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        74,
+                        85
+                    ],
+                    "angle": 0,
+                    "position": [
+                        178,
+                        195
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "heal": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "heal",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                74,
+                                85
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.45,
+                    "y_offset": 0.64
                 }
             }
         }

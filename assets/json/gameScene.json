@@ -10,6 +10,39 @@
             "type": "Anchored"
         },
         "children": {
+            "background": {
+                "type": "Solid",
+                "data": {
+                    "polygon": [
+                        800,
+                        852,
+                        0,
+                        852,
+                        0,
+                        0,
+                        800,
+                        0
+                    ],
+                    "color": "#251919",
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true,
+                    "angle": 0
+                },
+                "layout": {
+                    "x_anchor": "middle",
+                    "y_anchor": "center",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
             "gameArea": {
                 "type": "Widget",
                 "data": {
