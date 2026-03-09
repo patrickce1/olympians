@@ -256,7 +256,7 @@ public:
      *
      * @param dt Delta time in seconds
      */
-    void updatePlayerAndEnemyHealth(float dt);
+    void updatePlayerAndEnemyHealthUI(float dt);
 
     /**
      * Checks whether the reset button was tapped and calls reset() if so.

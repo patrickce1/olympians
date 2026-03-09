@@ -69,13 +69,15 @@ bool GameScene::initSceneGraph() {
         
         _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
              _assets->get<scene2::SceneNode>("gameScene.gameArea.rightName.username"));
+        
+        _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.healthFill"));
     }
-
-    _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
-           _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.healthFill"));
     
-    _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
-           _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
+    if (_inventory) {
+        _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
+    }
     
     addChild(_scene);
     return true;
@@ -143,6 +145,10 @@ void GameScene::dispose() {
         _inventory  = nullptr;
         _attackArea = nullptr;
         _bossNode   = nullptr;
+        _leftPlayerName = nullptr;
+        _rightPlayerName = nullptr;
+        _bossHealthBar = nullptr;
+        _playerHealthBar = nullptr;
         _playerSlots.clear();
         _gameState.dispose();
         _active = false;
@@ -318,7 +324,7 @@ void GameScene::updateEnemyAndAI(float dt) {
 /**
  * Updates the progress bar with the current ratios of player and enemy health.
  */
-void GameScene::updatePlayerAndEnemyHealth(float dt) {
+void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
     
@@ -485,7 +491,7 @@ void GameScene::update(float dt, InputController& input) {
 
     handlePlayerActions(input);
     updateEnemyAndAI(dt);
-    updatePlayerAndEnemyHealth(dt);
+    updatePlayerAndEnemyHealthUI(dt);
 }
 
 #pragma mark -
