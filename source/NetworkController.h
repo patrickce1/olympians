@@ -153,7 +153,7 @@ public:
 
     void broadcastPass(const std::string& itemDefID, int playerID);
 
-    void broadcastHeal(float healAmount, const std::string& playerID);
+    void broadcastHeal(float healAmount, int playerID);
 
     /*Client-Side Lobby Messages*/
     /*Sends player username to the host*/
