@@ -32,7 +32,8 @@ void GameScene::initInputZones() {
         {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.5f, w * 0.15f, h * 0.5f)},
         {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)},
         {InputController::Action::PASS_LEFT,       Rect(0,         0,        w * 0.15f, h * 0.5f)},
-        {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)}};
+        {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)}
+    };
 }
 
 /**
@@ -54,9 +55,9 @@ bool GameScene::initSceneGraph() {
     _scene->setContentSize(dimen);
     _scene->doLayout();
 
-    _gameArea = _scene->getChildByName("gameArea");
+    _gameArea  = _scene->getChildByName("gameArea");
     _inventory = _scene->getChildByName("inventory");
-    _resetBtn = _scene->getChildByName("resetButton");
+    _resetBtn  = _scene->getChildByName("resetButton");
 
     if (_gameArea) {
         _attackArea = _gameArea->getChildByName("attackArea");
@@ -131,10 +132,10 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 void GameScene::dispose() {
     if (_active) {
         removeAllChildren();
-        _gameArea = nullptr;
-        _inventory = nullptr;
+        _gameArea   = nullptr;
+        _inventory  = nullptr;
         _attackArea = nullptr;
-        _bossNode = nullptr;
+        _bossNode   = nullptr;
         _playerSlots.clear();
         _gameState.dispose();
         _active = false;
@@ -194,7 +195,7 @@ void GameScene::setLocalPlayer(int assignedIndex) {
  * Handles the local player dropping an attack item on the boss zone.
  */
 void GameScene::handleAttack() {
-    auto enemy = _gameState.getEnemy();
+    auto enemy    = _gameState.getEnemy();
     Player* local = _gameState.getLocalPlayer();
     if (!enemy || !local) return;
 
@@ -213,7 +214,7 @@ void GameScene::handleAttack() {
  * Handles the local player dropping a support item on the left ally zone.
  */
 void GameScene::handleSupportLeft() {
-    Player* local = _gameState.getLocalPlayer();
+    Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getLeftPlayer() : nullptr;
     if (!target || !target->isAlive()) return;
 
@@ -230,7 +231,7 @@ void GameScene::handleSupportLeft() {
  * Handles the local player dropping a support item on the right ally zone.
  */
 void GameScene::handleSupportRight() {
-    Player* local = _gameState.getLocalPlayer();
+    Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
     if (!target || !target->isAlive()) return;
 
@@ -247,7 +248,7 @@ void GameScene::handleSupportRight() {
  * Passes the first item in the local player's inventory to the left neighbour.
  */
 void GameScene::handlePassLeft() {
-    Player* local = _gameState.getLocalPlayer();
+    Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getLeftPlayer() : nullptr;
     if (!target || !target->isAlive() || local->getInventory().empty()) return;
 
@@ -260,7 +261,7 @@ void GameScene::handlePassLeft() {
  * Passes the first item in the local player's inventory to the right neighbour.
  */
 void GameScene::handlePassRight() {
-    Player* local = _gameState.getLocalPlayer();
+    Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
     if (!target || !target->isAlive() || local->getInventory().empty()) return;
 
@@ -278,23 +279,12 @@ void GameScene::handlePlayerActions(InputController& input) {
     if (!local || !local->isAlive()) return;
 
     switch (input.getAction()) {
-    case InputController::Action::DROP_BOSS:
-        handleAttack();
-        break;
-    case InputController::Action::DROP_ALLY_LEFT:
-        handleSupportLeft();
-        break;
-    case InputController::Action::DROP_ALLY_RIGHT:
-        handleSupportRight();
-        break;
-    case InputController::Action::PASS_LEFT:
-        handlePassLeft();
-        break;
-    case InputController::Action::PASS_RIGHT:
-        handlePassRight();
-        break;
-    default:
-        break;
+        case InputController::Action::DROP_BOSS:       handleAttack();       break;
+        case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft();  break;
+        case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(); break;
+        case InputController::Action::PASS_LEFT:       handlePassLeft();     break;
+        case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
+        default: break;
     }
     input.resetAction();
 }
@@ -312,7 +302,7 @@ void GameScene::updateEnemyAndAI(float dt) {
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
     for (auto& player : _gameState.getPlayers()) {
-        if (auto* ai = dynamic_cast<PlayerAI *>(player.get())) {
+        if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
             ai->update(dt, *enemy, _itemController);
         }
     }
@@ -351,7 +341,7 @@ void GameScene::handleDropResolution(InputController& input) {
     if (finalAction != InputController::Action::NONE) {
         resolveAction(finalAction);
         _glowAction = finalAction;
-        _glowTimer = _glowDuration;
+        _glowTimer  = _glowDuration;
         if (_activeIcon) {
             _activeIcon->setVisible(false);
         }
@@ -386,7 +376,7 @@ void GameScene::updateDebugPointer(InputController& input) {
         : screenToWorldCoords(input.getTouchStart());
 
     _debugPointerScene = current;
-    _hasDebugPointer = true;
+    _hasDebugPointer   = true;
 }
 
 /**
@@ -398,8 +388,7 @@ void GameScene::handleDragInitiation(InputController& input) {
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
 
     for (auto& [id, widget] : _itemWidgets) {
-        if (!widget)
-            continue;
+        if (!widget) continue;
         if (widget->getBoundingBox().contains(touchPosScreen)) {
             _activeIcon = widget;
             _dragOffset = widget->getPosition() - touchPosScreen;
@@ -520,9 +509,7 @@ cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size& widgetSize) c
 /** Synchronises on-screen item widgets with the local player's current inventory. */
 void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();
-    if (!_inventory || !local) {
-        return;
-    }
+    if (!_inventory || !local) return;
 
     std::unordered_set<ItemInstance::ItemId> liveIds;
 
@@ -533,9 +520,7 @@ void GameScene::syncInventoryWidgets() {
         auto found = _itemWidgets.find(id);
         if (found == _itemWidgets.end()) {
             auto widget = createItemWidget(item);
-            if (!widget) {
-                continue;
-            }
+            if (!widget) continue;
             widget->setPosition(getRandomInventoryPosition(widget->getContentSize()));
             _itemWidgets.emplace(id, widget);
         }
@@ -547,8 +532,7 @@ void GameScene::syncInventoryWidgets() {
                 _inventory->removeChild(it->second);
             }
             it = _itemWidgets.erase(it);
-        }
-        else {
+        } else {
             ++it;
         }
     }
