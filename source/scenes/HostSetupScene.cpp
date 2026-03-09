@@ -141,6 +141,7 @@ void HostSetupScene::dispose() {
         removeAllChildren();
         _active = false;
     }
+    _network = nullptr;
 }
 
 /**

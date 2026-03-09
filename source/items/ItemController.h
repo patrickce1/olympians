@@ -37,10 +37,10 @@ public:
      */
     void giveRandomItem(Player* player);
 
-    /**
-     * // Retrieves the item database
-     * @return the item database
-     */
+    /*
+    * Retrieves the item database
+    * @return the item database
+    */
     const ItemDatabase& getDatabase() const { return _itemDb; }
 };
 

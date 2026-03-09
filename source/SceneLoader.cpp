@@ -157,10 +157,12 @@ void SceneLoader::onShutdown() {
     _loadingScene = nullptr;
     Logger::close("debug");
     netcode::NetworkLayer::stop();
+    _assets->unloadAll();
 
     // Delete all smart pointers
     _batch = nullptr;
     _assets = nullptr;
+    _network = nullptr;
 
     // Deativate input
 #if defined CU_TOUCH_SCREEN

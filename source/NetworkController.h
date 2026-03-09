@@ -3,7 +3,6 @@
 #define __NETWORKING_CONTROLLER__
 
 #include <cugl/cugl.h>
-#include "scenes/GameState.h"
 
 /*
 The networking controller creates an abstraction for sending messages over the network.

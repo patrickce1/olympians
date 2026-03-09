@@ -122,6 +122,7 @@ void ClientScene::dispose() {
         removeAllChildren();
         _active = false;
     }
+    _network = nullptr;
 }
 
 /**

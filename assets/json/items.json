@@ -36,7 +36,7 @@
             "description": "A ballista constructed by the great Deadalus.",
             "icon": "item_noams_ballista",
             "type": "attack",
-            "rarity": "epic",
+            "rarity": "common",
             "primaryHouse": "ares",
             "secondaryHouse": "none",
             "effectiveValue": 1.5

@@ -117,6 +117,7 @@ void LobbyScene::dispose() {
         removeAllChildren();
         _active = false;
     }
+    _network = nullptr;
 }
 
 /**

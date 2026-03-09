@@ -152,6 +152,7 @@ void GameScene::dispose() {
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
         _playerHealthBar = nullptr;
+        _network = nullptr;
         _playerSlots.clear();
         _gameState.dispose();
         _active = false;
@@ -179,6 +180,9 @@ void GameScene::setActive(bool value) {
         }
             //assign our own number
        setLocalPlayer(_network->getLocalPlayerNumber());
+       
+       _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
+       _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
     }
 }
 
