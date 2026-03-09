@@ -3,8 +3,7 @@
 #define __NETWORKING_CONTROLLER__
 
 #include <cugl/cugl.h>
-#include "items/ItemDef.h"
-
+#include "scenes/GameState.h"
 
 /*
 The networking controller creates an abstraction for sending messages over the network.
@@ -18,12 +17,24 @@ the messages that they extract from the NetworkController.
 class NetworkController {
 public:
     /*
+    BELOW IS THE SPECIFICATION FOR HOW DATA IS ORGANIZED BASED ON MESSAGE TYPE
+    BOSS_DAMAGE
+        This type of message includes data about what damage was dealt to the boss.
+        The data payload for this is just an integer representing how much damage was done to the boss.
+    PLAYER_HEAL
+        This type of message includes data about what player was healed and for how much health
+    PLAYER_PASS
+        This type of message includes data about what player was sent
+    GAME_UPDATE
+        This is the biggest type of message sent over the network. The host sends out this message to tell players of the new world state.
+        How this payload
+    */
+    /*
     These are the types of messages we send/recieve when in the lobby
     */
     struct JoinMessage {
         std::string playerName;
     };
-
 
     /*
     Types of messages we send/recieve when fighting the boss
@@ -34,7 +45,7 @@ public:
 
     struct HealMessage {
         float heal;
-        std::string playerID;
+        int playerID;
     };
 
     struct PassMessage {
@@ -135,16 +146,20 @@ public:
     /*Because the original host can disconnect, this is used to keep track of host migration*/
     bool isHost();
 
-    /* Atomic update-style functions */
+
+    /* Atomic style update functions. The following are ONLY SEND TO THE HOST*/
+
     void broadcastDamage(float damageAmount);
-    //the playerID is represented by a integer for its spot in the circle
+
     void broadcastPass(const std::string& itemDefID, int playerID);
+
     void broadcastHeal(float healAmount, const std::string& playerID);
 
-    /* Client Lobby Messages*/
-    //broadcasts the name set through setPlayerName
+    /*Client-Side Lobby Messages*/
+    /*Sends player username to the host*/
     void broadcastJoinedLobby();
 
+    /**/
     void broadcastGameStart();
 
     void broadcastLobbyState();
@@ -158,20 +173,20 @@ public:
     /*Checks if the game has started. Used during the lobby scene by clients*/
     bool checkGameStarted();
 
+    /*Sets the player username. Used in the Client and Host scenes*/
     void setPlayerName(const std::string& name);
+
+    /*Returns the username we set*/
     std::string getPlayerName() const { return _playerName; }
 
-    //returns the local player's position in the circle
+    /*returns the local player's position in the circle*/
     int getLocalPlayerNumber();
 
-    //returns if this numbered player is a real one or AI
+    /*returns if this numbered player is a real one or AI*/
     bool checkRealPlayer(int playerID);
 
     /*Returns any updates on player order. Each networked player is represented by NetworkID, Username*/
     const std::vector<std::pair<std::string, std::string>> checkLobbyOrder();
-
-
-
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -188,21 +203,6 @@ protected:
         PLAYER_JOIN = 6,
     };
 
-
-    /*
-    BELOW IS THE SPECIFICATION FOR HOW DATA IS ORGANIZED BASED ON MESSAGE TYPE
-    BOSS_DAMAGE
-        This type of message includes data about what damage was dealt to the boss.
-        The data payload for this is just an integer representing how much damage was done to the boss.
-    PLAYER_HEAL
-        This type of message includes data about what player was healed and for how much health
-    PLAYER_PASS
-        This type of message includes data about what player was sent
-    GAME_UPDATE
-        This is the biggest type of message sent over the network. The host sends out this message to tell players of the new world state.
-        How this payload
-    */
-
 	std::shared_ptr<cugl::netcode::NetcodeConnection> _network;
     cugl::netcode::NetcodeSerializer _serializer;
     cugl::netcode::NetcodeDeserializer _deserializer;
@@ -213,27 +213,23 @@ protected:
     /** The network configuration */
     cugl::netcode::NetcodeConfig _config;
     
-
-
 private:
-
-
-    //Lists that keep track of the updates sent by players
+    /*Lists that keep track of the updates sent by players to the host*/
     std::vector<AttackMessage> attacks;
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
 
-    //GameState state;
+    //Used for sending a message
     bool gameStarted;
 
     //stores the most recent order that we got. The host's version of this is authoritative
     std::vector<std::pair<std::string, std::string>> _onlinePlayers;
+
     //Player's chosen username
     std::string _playerName;
-
+    
+    //
     void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);
-
 };
-
 
 #endif /* __NETWORKING_CONTROLLER__ */

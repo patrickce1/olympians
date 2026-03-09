@@ -138,7 +138,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		}
 		case MessageType::PLAYER_HEAL: {
 			float heal = _deserializer.readFloat();
-			std::string healRecieverID = _deserializer.readString();
+			int healRecieverID = _deserializer.readSint32();
 			HealMessage healMsg;
 			healMsg.heal = heal;
 			healMsg.playerID = healRecieverID;
@@ -216,10 +216,10 @@ void NetworkController::broadcastDamage(float damage) {
 	_serializer.reset();
 }
 
-void NetworkController::broadcastHeal(float heal, const std::string& playerID) {
+void NetworkController::broadcastHeal(float heal, int playerID) {
 	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
 	_serializer.writeFloat(heal);
-	_serializer.writeString(playerID);
+	_serializer.writeSint32(playerID);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
