@@ -63,6 +63,12 @@ bool GameScene::initSceneGraph() {
         // Left and right teammate icon
         _playerSlots.push_back(_gameArea->getChildByName("leftIcon"));
         _playerSlots.push_back(_gameArea->getChildByName("rightIcon"));
+        
+        _leftPlayerName = std::dynamic_pointer_cast<scene2::Label>(
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftName.username"));
+        
+        _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightName.username"));
     }
 
     _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(

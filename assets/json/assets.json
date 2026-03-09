@@ -123,6 +123,10 @@
           "file": "fonts/GideonRoman-Regular.ttf",
           "size": 10
         },
+        "gideon romanRegular12": {
+          "file": "fonts/GideonRoman-Regular.ttf",
+          "size": 12
+        },
         "gideon romanRegular48": {
           "file": "fonts/GideonRoman-Regular.ttf",
           "size": 48

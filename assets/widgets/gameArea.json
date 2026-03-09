@@ -188,6 +188,212 @@
                     "x_offset": 0.76,
                     "y_offset": 0.82
                 }
+            },
+            "leftName": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        85,
+                        21
+                    ],
+                    "angle": 0,
+                    "position": [
+                        15,
+                        492
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "nameBG": {
+                        "type": "Solid",
+                        "data": {
+                            "polygon": [
+                                85,
+                                21,
+                                0,
+                                21,
+                                0,
+                                0,
+                                85,
+                                0
+                            ],
+                            "color": "#f4ba33ff",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true,
+                            "angle": 0
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "username": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                85,
+                                14
+                            ],
+                            "position": [
+                                0,
+                                3.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular12",
+                            "text": "USERNAME",
+                            "foreground": "#000000ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.17
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.04,
+                    "y_offset": -0.15
+                }
+            },
+            "rightName": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        85,
+                        21
+                    ],
+                    "angle": 0,
+                    "position": [
+                        291,
+                        492
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "nameBG": {
+                        "type": "Solid",
+                        "data": {
+                            "polygon": [
+                                85,
+                                21,
+                                0,
+                                21,
+                                0,
+                                0,
+                                85,
+                                0
+                            ],
+                            "color": "#f4ba33ff",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true,
+                            "angle": 0
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "username": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                85,
+                                14
+                            ],
+                            "position": [
+                                0,
+                                3.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular12",
+                            "text": "USERNAME",
+                            "foreground": "#000000ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.17
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.74,
+                    "y_offset": -0.15
+                }
             }
         }
     }

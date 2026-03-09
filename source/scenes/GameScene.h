@@ -61,6 +61,13 @@ protected:
     /** The player's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBar;
     
+    /** Left teammate username label */
+    std::shared_ptr<cugl::scene2::Label> _leftPlayerName;
+
+    /** Right teammate username label */
+    std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
+
+    
 
 #pragma mark - Drag State
 
