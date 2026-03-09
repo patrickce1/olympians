@@ -164,7 +164,7 @@ void GameScene::setActive(bool value) {
 void GameScene::reset() {
     _activeIcon = nullptr;
     _glowAction = InputController::Action::NONE;
-    _glowTimer = 0;
+    _glowTimer  = 0;
 
     for (auto& [id, widget] : _itemWidgets) {
         if (widget && _inventory) {
