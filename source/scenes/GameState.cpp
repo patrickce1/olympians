@@ -186,14 +186,14 @@ Player* GameState::getPlayerById(int playerId) const {
     return (it != _playerIdMap.end()) ? it->second : nullptr;
 }
 
-void GameState::attackUpdates(std::vector<NetworkController::AttackMessage> attacks) {
-    for (NetworkController::AttackMessage attack : attacks) {
+void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
+    for (AttackMessage attack : attacks) {
         _enemy->updateHealth(-1 * attack.damage);
     }
 }
 
-void GameState::healUpdates(std::vector<NetworkController::HealMessage> heals) {
-    for (NetworkController::HealMessage heal : heals) {
+void GameState::healUpdates(std::vector<HealMessage> heals) {
+    for (HealMessage heal : heals) {
         //find the player by ID and apply heal
     }
 }
