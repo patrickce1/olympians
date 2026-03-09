@@ -26,7 +26,6 @@
  */
 class GameScene : public cugl::scene2::Scene2 {
 protected:
-
 #pragma mark - Scene Graph Nodes
 
     /** The asset manager for this scene. */
@@ -114,7 +113,6 @@ protected:
     bool _host;
 
 public:
-
 #pragma mark - Constructors
 
     /**
@@ -134,7 +132,7 @@ public:
      * Disposes of all (non-static) resources allocated to this mode.
      */
     void dispose() override;
-    
+
     /**
      * Builds the five rectangular input zones from the current scene dimensions.
      * Must be called after Scene2::initWithHint() so getSize() is valid.
@@ -320,19 +318,10 @@ public:
      */
     std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
 
-    /**
-     * Returns the initial world position for a new item widget inside the
-     * inventory container (the centre of the inventory node).
-     *
-     * @return  Centre of the inventory node in world coordinates.
-     */
-    cugl::Vec2 getInitialInventoryPosition() const;
+    /** Return a random valid inventory position for a newly spawned item widget */
+    cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
 
-    /**
-     * Synchronises on-screen item widgets with the local player's current
-     * inventory. Creates widgets for new items and removes widgets for
-     * consumed or passed items. Called every frame from update().
-     */
+    /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
 
 #pragma mark - Update & Render

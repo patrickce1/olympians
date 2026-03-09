@@ -1,6 +1,9 @@
 #include <cugl/cugl.h>
+#include <algorithm>
 #include <iostream>
+#include <random>
 #include <sstream>
+#include <unordered_set>
 #include "GameScene.h"
 
 using namespace cugl;
@@ -205,8 +208,8 @@ void GameScene::setLocalPlayer(int assignedIndex) {
  * Handles the local player dropping an attack item on the boss zone.
  */
 void GameScene::handleAttack() {
-    auto enemy       = _gameState.getEnemy();
-    Player* local    = _gameState.getLocalPlayer();
+    auto enemy    = _gameState.getEnemy();
+    Player* local = _gameState.getLocalPlayer();
     if (!enemy || !local) return;
 
     for (const ItemInstance& item : local->getInventory()) {
@@ -450,14 +453,30 @@ void GameScene::handleDragTracking(InputController& input) {
  */
 void GameScene::resolveAction(InputController::Action action) {
     switch (action) {
-        case InputController::Action::DROP_BOSS:       CULog("boss drop");      break;
-        case InputController::Action::DROP_ALLY_LEFT:  CULog("ally drop left"); break;
-        case InputController::Action::DROP_ALLY_RIGHT: CULog("ally drop right");break;
-        case InputController::Action::PASS_LEFT:       CULog("pass left");      break;
-        case InputController::Action::PASS_RIGHT:      CULog("pass right");     break;
-        case InputController::Action::DRAG:            CULog("Dragging");       break;
-        case InputController::Action::NONE:            CULog("Nothing");        break;
-        case InputController::Action::PAUSE:           CULog("Nothing");        break;
+    case InputController::Action::DROP_BOSS:
+        CULog("boss drop");
+        break;
+    case InputController::Action::DROP_ALLY_LEFT:
+        CULog("ally drop left");
+        break;
+    case InputController::Action::DROP_ALLY_RIGHT:
+        CULog("ally drop right");
+        break;
+    case InputController::Action::PASS_LEFT:
+        CULog("pass left");
+        break;
+    case InputController::Action::PASS_RIGHT:
+        CULog("pass right");
+        break;
+    case InputController::Action::DRAG:
+        CULog("Dragging");
+        break;
+    case InputController::Action::NONE:
+        CULog("Nothing");
+        break;
+    case InputController::Action::PAUSE:
+        CULog("Nothing");
+        break;
     }
 }
 
@@ -515,10 +534,21 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     return widget;
 }
 
-/** Returns the centre of the inventory node in world coordinates. */
-cugl::Vec2 GameScene::getInitialInventoryPosition() const {
-    cugl::Size size = _inventory->getContentSize();
-    return cugl::Vec2(size.width * 0.5f, size.height * 0.5f);
+/** Return a random in-bounds inventory position for a newly spawned item widget */
+cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size& widgetSize) const {
+    const cugl::Size inventorySize = _inventory->getContentSize();
+    Size dimen = getSize();
+    float w = dimen.width;
+
+    const float maxX = std::max(0.0f, inventorySize.width - widgetSize.width - (w * 0.15f));
+    const float maxY = std::max(0.0f, inventorySize.height - widgetSize.height);
+
+    std::random_device rd;
+    std::mt19937 rng(rd());
+    std::uniform_real_distribution<float> xDist(w * 0.15f, maxX);
+    std::uniform_real_distribution<float> yDist(0.0f, maxY);
+
+    return cugl::Vec2(xDist(rng), yDist(rng));
 }
 
 /** Synchronises on-screen item widgets with the local player's current inventory. */
@@ -532,15 +562,16 @@ void GameScene::syncInventoryWidgets() {
         ItemInstance::ItemId id = item.getId();
         liveIds.insert(id);
 
-        if (_itemWidgets.find(id) == _itemWidgets.end()) {
+        auto found = _itemWidgets.find(id);
+        if (found == _itemWidgets.end()) {
             auto widget = createItemWidget(item);
             if (!widget) continue;
-            widget->setPosition(getInitialInventoryPosition());
+            widget->setPosition(getRandomInventoryPosition(widget->getContentSize()));
             _itemWidgets.emplace(id, widget);
         }
     }
 
-    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end(); ) {
+    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end();) {
         if (liveIds.find(it->first) == liveIds.end()) {
             if (it->second) {
                 _inventory->removeChild(it->second);
