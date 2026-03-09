@@ -132,13 +132,13 @@ std::string Enemy::getNextStateOrIdle() const {
 
 /** Main update loop for enemy. Handles firing events, applying cooldown, transition to next state. */
 void Enemy::update(float dt) {
-    //tick(dt);
+    tick(dt);
 
-    //if (readyToFire()) {
-    //    fireEvents();
-    //    applyCooldown();
-    //    enterState(getNextStateOrIdle());
-    //}
+    if (readyToFire()) {
+        fireEvents();
+        applyCooldown();
+        enterState(getNextStateOrIdle());
+    }
 }
 
 /** Return contents of current event buffer and clears it.*/
