@@ -227,7 +227,7 @@ void NetworkController::broadcastDamage(float damage) {
 }
 
 void NetworkController::broadcastHeal(float heal, int playerID) {
-	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
+	_serializer.writeSint32(MessageType::PLAYER_HEAL);
 	_serializer.writeFloat(heal);
 	_serializer.writeSint32(playerID);
 	_network->sendToHost(_serializer.serialize());

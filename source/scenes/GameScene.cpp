@@ -297,7 +297,7 @@ void GameScene::handlePassLeft() {
     CULog("HELLO I AM THE LEFT PASS");
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getLeftPlayer() : nullptr;
-    //if (!target || !target->isAlive() || local->getInventory().empty()) return;
+    if (!target || !target->isAlive() || local->getInventory().empty()) return;
 
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());
@@ -317,7 +317,7 @@ void GameScene::handlePassRight() {
     CULog("HELLO I AM THE RIGHT PASS");
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
-    //if (!target || !target->isAlive() || local->getInventory().empty()) return;
+    if (!target || !target->isAlive() || local->getInventory().empty()) return;
 
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());

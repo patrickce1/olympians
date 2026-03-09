@@ -194,12 +194,8 @@ void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
 
 void GameState::healUpdates(std::vector<HealMessage> heals) {
     for (HealMessage heal : heals) {
-        for (HealMessage heal : heals) {
-            Player* player = getPlayerById(heal.playerID);
-            if (player != nullptr) {
-                player->updateHealth(heal.heal);
-            }
-        }
+        if (heal.playerID < 0 || heal.playerID >= (int)_players.size()) continue;
+        _players[heal.playerID]->updateHealth(heal.heal);
     }
 }
 
