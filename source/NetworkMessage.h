@@ -42,7 +42,6 @@ struct PassMessage {
 struct GameStateMessage {
     //boss health
     float bossHealth;
-    int bossDirection;
 
     //player health
     float player1HP;

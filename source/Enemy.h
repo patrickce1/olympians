@@ -54,6 +54,7 @@ public:
     float getMaxHealth() const { return _maxHealth; }
     float getCurrentHealth() const { return _currentHealth; }
     bool isAlive() const { return _currentHealth > 0.0f; }
+    void setCurrentHealth(float health) { _currentHealth = health; }
 
     const std::string& getCurrentStateName() const { return _currentState; }
     const EnemyLoader::StateDef* getCurrentStateDef() const;

@@ -117,7 +117,6 @@ public:
 
     /*Convinient way to update the game state and inventory by just providing the struct from the network controller. USED BY CLIENTS*/
     void networkUpdate(GameStateMessage updatedState);
-    void passUpdates(std::vector<PassMessage> passes);
 
     /*Convinient functions to handle updates recieved from the network. USED BY THE HOST*/
     void attackUpdates(std::vector<AttackMessage> attacks);

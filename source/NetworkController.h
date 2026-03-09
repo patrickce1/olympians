@@ -4,6 +4,7 @@
 
 #include <cugl/cugl.h>
 #include "NetworkMessage.h"
+#include "scenes/GameState.h"
 
 /*
 The networking controller creates an abstraction for sending messages over the network.
@@ -105,6 +106,8 @@ public:
 
     void broadcastHeal(float healAmount, int playerID);
 
+    void broadcastGameState(const GameState& state);
+
     /*Client-Side Lobby Messages*/
     /*Sends player username to the host*/
     void broadcastJoinedLobby();
@@ -117,6 +120,7 @@ public:
     const std::vector<AttackMessage>& getAttackUpdates() const { return attacks; }
     const std::vector<PassMessage>& getPassUpdates() const { return passes; }
     const std::vector<HealMessage>& getHealUpdates() const { return heals; }
+    GameStateMessage getStateUpdate() { return _latestGameState; }
 
     /**Functions used during the lobby scene*/
 
@@ -168,6 +172,7 @@ private:
     std::vector<AttackMessage> attacks;
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
+    GameStateMessage _latestGameState;
 
     //Used for sending a message
     bool gameStarted;

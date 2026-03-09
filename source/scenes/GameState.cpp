@@ -194,6 +194,28 @@ void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
 
 void GameState::healUpdates(std::vector<HealMessage> heals) {
     for (HealMessage heal : heals) {
-        //find the player by ID and apply heal
+        for (HealMessage heal : heals) {
+            Player* player = getPlayerById(heal.playerID);
+            if (player != nullptr) {
+                player->updateHealth(heal.heal);
+            }
+        }
+    }
+}
+
+void GameState::networkUpdate(GameStateMessage newState) {
+    // update boss health
+    _enemy->setCurrentHealth(newState.bossHealth);
+
+    // update player health
+    std::vector<float> healths = {
+        newState.player1HP,
+        newState.player2HP,
+        newState.player3HP,
+        newState.player4HP
+    };
+
+    for (int i = 0; i < _players.size(); i++) {
+        _players[i]->setCurrentHealth(healths[i]);
     }
 }

@@ -190,6 +190,16 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			}
 			break;
 		}
+		case MessageType::GAME_UPDATE : {
+				GameStateMessage stateMsg;
+				stateMsg.bossHealth = _deserializer.readFloat();
+				stateMsg.player1HP = _deserializer.readFloat();
+				stateMsg.player2HP = _deserializer.readFloat();
+				stateMsg.player3HP = _deserializer.readFloat();
+				stateMsg.player4HP = _deserializer.readFloat();
+				_latestGameState = stateMsg;
+				break;
+		}
 	}
 }
 
@@ -266,6 +276,22 @@ void NetworkController::broadcastJoinedLobby() {
 	_serializer.writeSint32(MessageType::PLAYER_JOIN);
 	_serializer.writeString(_playerName);
 	_network->sendToHost(_serializer.serialize());
+	_serializer.reset();
+}
+
+void NetworkController::broadcastGameState(const GameState& state) {
+	_serializer.writeSint32(MessageType::GAME_UPDATE);
+	_serializer.writeFloat(state.getEnemy()->getCurrentHealth());
+	std::vector<shared_ptr<Player>> players = state.getPlayers();
+	for (int i = 0; i < 4; i++) {
+		if (i < players.size()) {
+			_serializer.writeFloat(players[i]->getCurrentHealth());
+		}
+		else {
+			_serializer.writeFloat(0.0f);
+		}
+	}
+	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
 }
 

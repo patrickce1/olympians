@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include "GameScene.h"
 
+
 using namespace cugl;
 using namespace cugl::scene2;
 using namespace std;
@@ -233,6 +234,9 @@ void GameScene::handleAttack() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
             local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+            if (!_network->isHost()) {
+                _network->broadcastDamage(def->getEffectiveValue());
+            }
             CULog("Player attacked enemy '%s' with item %llu",
                   enemy->getId().c_str(), (unsigned long long)item.getId());
             return;
@@ -252,6 +256,12 @@ void GameScene::handleSupportLeft() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            if (_network->isHost()) {
+                target->updateHealth(def->getEffectiveValue());
+            }
+            else {
+                _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
+            }
             return;
         }
     }
@@ -269,6 +279,12 @@ void GameScene::handleSupportRight() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            if (_network->isHost()) {
+                target->updateHealth(def->getEffectiveValue());
+            }
+            else {
+                _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
+            }
             return;
         }
     }
@@ -312,11 +328,11 @@ void GameScene::handlePassRight() {
     _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
 }
 
-void GameScene::updateInventoryPasses(std::vector<NetworkController::PassMessage> passes) {
+void GameScene::updateInventoryPasses(std::vector<PassMessage> passes) {
     if (passes.size() > 0) {
         CULog("I got called, there were some passe");
     }
-    for (NetworkController::PassMessage pass : passes) {
+    for (PassMessage pass : passes) {
         Player* player = _gameState.getPlayerById(pass.playerID);
         CULog("I'm in savage mode");
         //for now, passing just gives a random item in the player inventory
@@ -531,8 +547,21 @@ void GameScene::update(float dt, InputController& input) {
     handleDragInitiation(input);
     handleDragTracking(input);
 
+    /*Networking pull cycle*/
     _network->getNetworkUpdates();
-    
+
+    if (_network->isHost()) {
+        // handle incoming attack/heal messages from clients
+        _gameState.attackUpdates(_network->getAttackUpdates());
+        _gameState.healUpdates(_network->getHealUpdates());
+        // broadcast authoritative state to all clients
+        _network->broadcastGameState(_gameState);
+    }
+    else {
+        // clients just apply the latest state from host
+        _gameState.networkUpdate(_network->getStateUpdate());
+    }
+
     updateInventoryPasses(_network->getPassUpdates());
     _itemController.update(dt, _gameState.getLocalPlayer());
     syncInventoryWidgets();

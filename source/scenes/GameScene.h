@@ -11,6 +11,7 @@
 #include "../EnemyController.h"
 #include "GameState.h"
 #include "../NetworkController.h"
+#include "../NetworkMessage.h"
 
 /**
  * Controller for the core game scene.
