@@ -333,7 +333,7 @@
                             "y_offset": -0.2
                         }
                     },
-                    "playerCard4": {
+                    "playerCard1": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
@@ -437,7 +437,7 @@
                             "y_offset": 0.72
                         }
                     },
-                    "playerCard2": {
+                    "playerCard3": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
@@ -541,7 +541,7 @@
                             "y_offset": 0
                         }
                     },
-                    "playerCard3": {
+                    "playerCard2": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
@@ -645,7 +645,7 @@
                             "y_offset": 0.33
                         }
                     },
-                    "playerCard1": {
+                    "playerCard0": {
                         "type": "Node",
                         "format": {
                             "type": "Float",

@@ -149,7 +149,9 @@ public:
 
     void broadcastLobbyState();
 
-
+    const std::vector<AttackMessage>& getAttackUpdates() const { return attacks; }
+    const std::vector<PassMessage>& getPassUpdates() const { return passes; }
+    const std::vector<HealMessage>& getHealUpdates() const { return heals; }
 
     /**Functions used during the lobby scene*/
 

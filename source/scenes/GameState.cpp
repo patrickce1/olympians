@@ -24,13 +24,13 @@ bool GameState::initCharacters() {
 void GameState::initPlayers() {
     _players.reserve(4);
 
-    auto humanPlayer = std::make_shared<Player>("Percy", 1, "Player 1", _characterLoader);
+    auto humanPlayer = std::make_shared<Player>("Percy", 0, "Player 1", _characterLoader);
     _players.push_back(humanPlayer);
 
     for (int i = 1; i <= 3; i++) {
-        auto aiPlayer = std::make_shared<EasyPlayerAI>(
-            "Percy", i + 1,
-            "Player " + std::to_string(i + 1),
+       auto aiPlayer = std::make_shared<EasyPlayerAI>(
+            "Percy", i,
+            "Player " + std::to_string(i),
             _characterLoader
         );
         _players.push_back(aiPlayer);
@@ -61,10 +61,19 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName) {
         return;
     }
     _players[playerNumber] = std::make_shared<Player>(
-        "Percy", playerNumber + 1,
-        playerName + std::to_string(playerNumber + 1),
+        "Percy", playerNumber,
+        playerName + std::to_string(playerNumber),
         _characterLoader
     );
+
+    // reset all neighbors for every player
+    int playerCount = _players.size();
+    for (int i = 0; i < playerCount; i++) {
+        int leftIdx = (i - 1 + playerCount) % playerCount;
+        int rightIdx = (i + 1) % playerCount;
+        _players[i]->setLeftPlayer(_players[leftIdx].get());
+        _players[i]->setRightPlayer(_players[rightIdx].get());
+    }
 }
 
 /**

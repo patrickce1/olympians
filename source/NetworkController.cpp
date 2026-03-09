@@ -146,6 +146,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			break;
 		}
 		case MessageType::PLAYER_PASS: {
+			CULog("I recieved a passing message");
 			std::string itemID = _deserializer.readString();
 			int passRecieverID = _deserializer.readSint32();
 			PassMessage passMsg;
@@ -237,12 +238,14 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
 	_serializer.writeString(itemDefID);
 	_serializer.writeSint32(playerID);
 	
-	
+	CULog("Sending broadcasting message to player %d", playerID);
 	if (checkRealPlayer(playerID)) {
+		CULog("This was a real player");
 		std::string playerNetworkID = _onlinePlayers[playerID].first;
 		_network->sendTo(playerNetworkID, _serializer.serialize());
 	}
 	else {
+		CULog("This was not a real player");
 		_network->sendToHost(_serializer.serialize());
 	}
 	_serializer.reset();

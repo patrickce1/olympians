@@ -157,6 +157,7 @@ void GameScene::setActive(bool value) {
     if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
         //check who are real players
         //will change once we have player reordering in
+        CULog("I am player %d", _network->getLocalPlayerNumber());
         for (int i = 0; i < _network->checkLobbyOrder().size(); i++) {
             _gameState.setRealPlayer(i, _network->checkLobbyOrder()[i].second);
         }
@@ -264,10 +265,13 @@ void GameScene::handlePassLeft() {
 
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());
+
+    CULog("Passing left to player %d", target->getPlayerNumber());
+
     if (!target->isAI()) {
         CULog("Passing left to a real player");
     }
-    _network->broadcastPass(item.getDefId(), target->getPlayerNumber()-1);
+    _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
 }
 
 /**
@@ -284,14 +288,19 @@ void GameScene::handlePassRight() {
     if (!target->isAI()) {
         CULog("Passing right to a real player");
     }
-    _network->broadcastPass(item.getDefId(), target->getPlayerNumber()-1);
+    CULog("I am passing to player %d", target->getPlayerNumber());
+    _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
 }
 
 void GameScene::updateInventoryPasses(std::vector<NetworkController::PassMessage> passes) {
+    if (passes.size() > 0) {
+        CULog("I got called, there were some passe");
+    }
     for (NetworkController::PassMessage pass : passes) {
         Player* player = _gameState.getPlayerById(pass.playerID);
+        CULog("I'm in savage mode");
         //for now, passing just gives a random item in the player inventory
-        _itemController.giveRandomItem(player);
+        _itemController.giveRandomItem(_gameState.getLocalPlayer());
         //IN THE FUTURE, can we just give the ItemController a makeItem function that takes in a specific item id
         //so that I can just do pass.itemID
         // the ID is based on the one from the database
@@ -473,11 +482,15 @@ void GameScene::update(float dt, InputController& input) {
     handleDragInitiation(input);
     handleDragTracking(input);
 
+    _network->getNetworkUpdates();
+    
+    updateInventoryPasses(_network->getPassUpdates());
     _itemController.update(dt, _gameState.getLocalPlayer());
     syncInventoryWidgets();
 
     //handlePlayerActions(input);
     updateEnemyAndAI(dt);
+    _network->clearQueues();
 }
 
 #pragma mark -

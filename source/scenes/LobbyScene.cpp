@@ -73,7 +73,7 @@ using namespace std;
         _container = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
 
         if (_container) {
-            for (int i = 1; i <= 4; i++) {
+            for (int i = 0; i <= 3; i++) {
                 std::string cardName = "playerCard" + std::to_string(i);
                 auto card = _container->getChildByName(cardName);
                 auto label = std::dynamic_pointer_cast<scene2::Label>(
