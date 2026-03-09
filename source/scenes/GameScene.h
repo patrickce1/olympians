@@ -67,8 +67,6 @@ protected:
     /** Right teammate username label */
     std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
 
-    
-
 #pragma mark - Drag State
 
     /** The scene node currently being dragged by the player, or nullptr. */
