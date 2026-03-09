@@ -87,6 +87,9 @@ protected:
     float _glowDuration = 0.3f;
 
 #pragma mark - Debug State
+    
+    /** Determines whether the debug mode is on. This inlcudes reset button, zone lines, etc.*/
+    bool _debugMode = false;
 
     /** Latest pointer position in scene coordinates, for debug rendering. */
     cugl::Vec2 _debugPointerScene = cugl::Vec2::ZERO;
@@ -395,6 +398,19 @@ public:
      * sprite batch is already configured with the scene camera.
      */
     void render() override;
+    
+#pragma mark - Debug Mode
+    /**
+     * Sets whether debug mode is on.
+     *
+     * @param enabled  The state _debugMode should be set to.
+     */
+    void setDebugMode(bool enabled);
+    
+    /**
+     * Retrieves the current state of `_debugMode.
+     */
+    bool isDebugMode() const {return _debugMode; }
 };
 
 #endif /* __GAME_SCENE_H__ */
