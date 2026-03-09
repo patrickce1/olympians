@@ -47,6 +47,18 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
         CULogError("No item timer start was specified");
     }
 
+    // Read maxInventorySpawnItems from JSON if present, otherwise keep default
+    if (itemsJson->has("maxInventorySpawnItems") && itemsJson->get("maxInventorySpawnItems")->isNumber()) {
+        int parsedCap = itemsJson->getInt("maxInventorySpawnItems");
+        if (parsedCap >= 0) {
+            _maxInventorySpawnItems = static_cast<std::size_t>(parsedCap);
+        } else {
+            CULogError("maxInventorySpawnItems must be non-negative. Using default cap %zu", _maxInventorySpawnItems);
+        }
+    } else {
+        CULog("ItemController: maxInventorySpawnItems not specified. Using default cap %zu", _maxInventorySpawnItems);
+    }
+
     _idGen.startGame(ItemInstance::IdGenerator::randomGameId());
     _itemDb.setStartingPointWithTime();
 
@@ -63,13 +75,21 @@ void ItemController::update(float dt, Player* player) {
     }
 }
 
-// Hand out a card to the player
+// Hand out an item to the player
 void ItemController::giveRandomItem(Player* player) {
+    // Check if player is alive
     if (!player->isAlive()) {
         CULog("[ItemController] Player is not alive");
         return;
     }
-        
+
+    // Check if player has too many items
+    if (player->getInventory().size() >= _maxInventorySpawnItems) {
+        CULog("[ItemController] Spawn skipped: inventory size %zu is at or above cap %zu",
+              player->getInventory().size(), _maxInventorySpawnItems);
+        return;
+    }
+
     // Gets defId of the random item generated
     std::string itemDefId = _itemDb.rollRandomDefId();
     if (itemDefId.empty()) {
