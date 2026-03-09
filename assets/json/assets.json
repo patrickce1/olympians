@@ -25,9 +25,6 @@
         "background": {
                    "file": "textures/background-small.png"
         },
-        "background_scene": {
-            "file": "textures/scene_background.png"
-        },
         "attack_area": {
             "file": "textures/attack_area.png"
         },
@@ -36,15 +33,6 @@
         },
         "player": {
             "file": "textures/player.png"
-        },
-        "inventory_background": {
-            "file": "textures/inventory_background.png"
-        },
-        "heal": {
-            "file": "textures/heal.png"
-        },
-        "attack": {
-            "file": "textures/attack.png"
         },
         "indicator": {
             "file": "textures/indicator.png"
@@ -69,6 +57,45 @@
         },
         "playerIcon": {
             "file": "textures/playerIcon.png"
+        },
+        "cerberusBackground": {
+            "file": "textures/gameScene/background.png"
+        },
+        "cerberus": {
+            "file": "textures/gameScene/cerberus.png"
+        },
+        "healthFrame": {
+            "file": "textures/gameScene/healthFrame.png"
+        },
+        "healthFill": {
+            "file": "textures/gameScene/healthFill.png"
+        },
+        "basicTeammateIcon": {
+            "file": "textures/gameScene/leftIcon.png"
+        },
+        "inventoryBackground": {
+            "file": "textures/gameScene/inventoryBackground.png"
+        },
+        "playerHealthFrame": {
+            "file": "textures/gameScene/healthBarFrame.png"
+        },
+        "playerHealthFill": {
+            "file": "textures/gameScene/healthBarFill.png"
+        },
+        "playerImage": {
+            "file": "textures/gameScene/playerImage.png"
+        },
+        "playerImageFrame": {
+            "file": "textures/gameScene/outsideFrame.png"
+        },
+        "attack": {
+            "file": "textures/gameScene/attack.png"
+        },
+        "heal": {
+            "file": "textures/gameScene/heal.png"
+        },
+        "debugReset" : {
+            "file": "textures/attack.png"
         }
 	},
     "fonts": {
@@ -95,6 +122,10 @@
         "gideon romanRegular10": {
           "file": "fonts/GideonRoman-Regular.ttf",
           "size": 10
+        },
+        "gideon romanRegular12": {
+          "file": "fonts/GideonRoman-Regular.ttf",
+          "size": 12
         },
         "gideon romanRegular48": {
           "file": "fonts/GideonRoman-Regular.ttf",
@@ -133,6 +164,10 @@
             "data": {
                 "key": "scene",
                 "variables": {}
+            },
+            "layout": {
+                "x_anchor": "left",
+                "y_anchor": "bottom"
             }
         },
         "clientScene": {

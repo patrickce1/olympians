@@ -60,16 +60,25 @@ bool GameScene::initSceneGraph() {
     _resetBtn  = _scene->getChildByName("resetButton");
 
     if (_gameArea) {
-        _attackArea = _gameArea->getChildByName("attackArea");
-        _playerSlots.push_back(_gameArea->getChildByName("player"));
-        _playerSlots.push_back(_gameArea->getChildByName("player3"));
-        _playerSlots.push_back(_gameArea->getChildByName("player4"));
+        // Left and right teammate icon
+        _playerSlots.push_back(_gameArea->getChildByName("leftIcon"));
+        _playerSlots.push_back(_gameArea->getChildByName("rightIcon"));
+        
+        _leftPlayerName = std::dynamic_pointer_cast<scene2::Label>(
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftName.username"));
+        
+        _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightName.username"));
+        
+        _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.healthFill"));
     }
-
-    if (_attackArea) {
-        _bossNode = _attackArea->getChildByName("enemy");
+    
+    if (_inventory) {
+        _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
     }
-
+    
     addChild(_scene);
     return true;
 }
@@ -136,6 +145,10 @@ void GameScene::dispose() {
         _inventory  = nullptr;
         _attackArea = nullptr;
         _bossNode   = nullptr;
+        _leftPlayerName = nullptr;
+        _rightPlayerName = nullptr;
+        _bossHealthBar = nullptr;
+        _playerHealthBar = nullptr;
         _playerSlots.clear();
         _gameState.dispose();
         _active = false;
@@ -309,6 +322,19 @@ void GameScene::updateEnemyAndAI(float dt) {
 }
 
 /**
+ * Updates the progress bar with the current ratios of player and enemy health.
+ */
+void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy || !enemy->isAlive()) return;
+    
+    _bossHealthBar->setProgress(enemy->getCurrentHealth()/enemy->getMaxHealth());
+    
+    auto player = _gameState.getLocalPlayer();
+    _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
+}
+
+/**
  * Checks whether the reset button was tapped and calls reset() if so.
  */
 void GameScene::handleResetButton(InputController& input) {
@@ -465,6 +491,7 @@ void GameScene::update(float dt, InputController& input) {
 
     handlePlayerActions(input);
     updateEnemyAndAI(dt);
+    updatePlayerAndEnemyHealthUI(dt);
 }
 
 #pragma mark -
@@ -482,7 +509,7 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     if (!texture) return nullptr;
 
     auto widget = PolygonNode::allocWithTexture(texture);
-    widget->setContentSize(Size(64, 64));
+    widget->setContentSize(Size(74, 85));
     widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
     widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
     _inventory->addChild(widget);

@@ -16,8 +16,8 @@
             ],
             "angle": 0,
             "position": [
-                300,
-                228
+                23.92,
+                492.36
             ],
             "visible": true
         },
@@ -25,19 +25,18 @@
             "player": {
                 "type": "Image",
                 "data": {
-                    "texture": "player",
+                    "texture": "basicTeammateIcon",
                     "anchor": [
                         0,
-                        1
+                        0
                     ],
                     "size": [
-                        77,
-                        77
+                        68,
+                        68
                     ],
                     "angle": 0,
                     "position": [
-                        0,
-                        0
+                        0,0
                     ],
                     "visible": true
                 },
