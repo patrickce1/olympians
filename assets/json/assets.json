@@ -93,6 +93,9 @@
         },
         "heal": {
             "file": "textures/gameScene/heal.png"
+        },
+        "debugReset" : {
+            "file": "textures/attack.png"
         }
 	},
     "fonts": {

@@ -55,19 +55,15 @@
                 "data": {
                     "key": "inventory",
                     "variables": {}
-                },
-                "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "bottom"
                 }
             },
             "resetButton": {
                 "type": "Image",
                 "data": {
-                    "texture": "attack",
+                    "texture": "debugReset",
                     "anchor": [0.5, 0.5],
-                    "size": [80, 80],
-                    "position": [330, 780]
+                    "size": [40, 40],
+                    "position": [200, 780]
                 }
             }
         }
