@@ -246,6 +246,11 @@ public:
      */
     void updateEnemyAndAI(float dt);
     
+    /**
+     * Updates the progress bar with the current ratios of player and enemy health.
+     *
+     * @param dt Delta time in seconds
+     */
     void updatePlayerAndEnemyHealth(float dt);
 
     /**

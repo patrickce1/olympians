@@ -309,6 +309,9 @@ void GameScene::updateEnemyAndAI(float dt) {
     }
 }
 
+/**
+ * Updates the progress bar with the current ratios of player and enemy health.
+ */
 void GameScene::updatePlayerAndEnemyHealth(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
