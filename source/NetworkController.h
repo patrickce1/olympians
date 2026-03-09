@@ -9,10 +9,13 @@
 /*
 The networking controller creates an abstraction for sending messages over the network.
 
-It handles sending and recieving bytes of data and decoding them into easy to read structs. 
+It handles sending and recieving bytes of data and decoding them into easy to read structs and getter methods
 
 It does not handle actually updating the state of the game. It is up to the individual scenes to update themselves based on
 the messages that they extract from the NetworkController.
+
+IMPORTANT: before collecting updates, make sure you call the getNetworkUpdates() and when you are done processing all data, make sure to
+call clearQueues() to get rid of leftover messages from the past
 */
 
 class NetworkController {
