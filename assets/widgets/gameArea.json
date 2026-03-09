@@ -6,30 +6,65 @@
             "type": "Anchored"
         },
         "data": {
-            "anchor": [0, 0],
-            "size": [400, 557],
+            "anchor": [
+                0,
+                0
+            ],
+            "size": [
+                393, 598
+            ],
             "angle": 0,
-            "position": [0, 295],
+            "position": [
+                0,
+                254
+            ],
             "visible": true
         },
         "children": {
-            "backgroundScene": {
-                "type": "Solid",
+            "background": {
+                "type": "Image",
                 "data": {
-                    "polygon": [
-                        400,
-                        557,
+                    "texture": "cerberusBackground",
+                    "anchor": [
                         0,
-                        557,
-                        0,
-                        0,
-                        400,
                         0
-                        ],
-                    "color": "#bfbfbf",
-                    "anchor": [0, 0],
+                    ],
+                    "size": [
+                        395,
+                        652
+                    ],
                     "angle": 0,
-                    "position": [0, 0],
+                    "position": [
+                        0,
+                        -53.64
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.09
+                }
+            },
+            "cerberus": {
+                "type": "Image",
+                "data": {
+                    "texture": "cerberus",
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        355.48,
+                        511.54
+                    ],
+                    "angle": 0,
+                    "position": [
+                        20,
+                        0.46
+                    ],
                     "visible": true
                 },
                 "layout": {
@@ -40,21 +75,93 @@
                     "y_offset": 0
                 }
             },
-            "attackArea": {
-                "type": "Widget",
+            "enemyHealth": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
                 "data": {
-                    "key": "attackArea",
-                    "variables": {}
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        211.3,
+                        16.07
+                    ],
+                    "angle": 0,
+                    "position": [
+                        93.92,
+                        57.11
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "healthFrame": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "healthFrame",
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                211.3,
+                                16.07
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "healthFill": {
+                        "type": "Progress",
+                        "data": {
+                            "texture": "healthFill",
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                203.66,
+                                10.04
+                            ],
+                            "angle": 0,
+                            "position": [
+                                3.82,
+                                3.01
+                            ],
+                            "interior": [0,203.66],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.02,
+                            "y_offset": 0.19
+                        }
+                    }
                 },
                 "layout": {
                     "x_anchor": "left",
                     "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": 0.17,
-                    "y_offset": 0.08
+                    "x_offset": 0.24,
+                    "y_offset": 0.1
                 }
             },
-            "player": {
+            "leftIcon": {
                 "type": "Widget",
                 "data": {
                     "key": "playerSlot",
@@ -64,25 +171,11 @@
                     "x_anchor": "left",
                     "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": 0.04,
-                    "y_offset": 0.41
+                    "x_offset": 0.06,
+                    "y_offset": 0.82
                 }
             },
-            "player3": {
-                "type": "Widget",
-                "data": {
-                    "key": "playerSlot",
-                    "variables": {}
-                },
-                "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "bottom",
-                    "absolute": false,
-                    "x_offset": 0.4,
-                    "y_offset": 0.81
-                }
-            },
-            "player4": {
+            "rightIcon": {
                 "type": "Widget",
                 "data": {
                     "key": "playerSlot",
@@ -93,7 +186,213 @@
                     "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0.76,
-                    "y_offset": 0.41
+                    "y_offset": 0.82
+                }
+            },
+            "leftName": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        85,
+                        21
+                    ],
+                    "angle": 0,
+                    "position": [
+                        15,
+                        492
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "nameBG": {
+                        "type": "Solid",
+                        "data": {
+                            "polygon": [
+                                85,
+                                21,
+                                0,
+                                21,
+                                0,
+                                0,
+                                85,
+                                0
+                            ],
+                            "color": "#f4ba33ff",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true,
+                            "angle": 0
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "username": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                85,
+                                14
+                            ],
+                            "position": [
+                                0,
+                                3.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular12",
+                            "text": "USERNAME",
+                            "foreground": "#000000ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.17
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.04,
+                    "y_offset": -0.15
+                }
+            },
+            "rightName": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        85,
+                        21
+                    ],
+                    "angle": 0,
+                    "position": [
+                        291,
+                        492
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "nameBG": {
+                        "type": "Solid",
+                        "data": {
+                            "polygon": [
+                                85,
+                                21,
+                                0,
+                                21,
+                                0,
+                                0,
+                                85,
+                                0
+                            ],
+                            "color": "#f4ba33ff",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true,
+                            "angle": 0
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "username": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                85,
+                                14
+                            ],
+                            "position": [
+                                0,
+                                3.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular12",
+                            "text": "USERNAME",
+                            "foreground": "#000000ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.17
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.74,
+                    "y_offset": -0.15
                 }
             }
         }

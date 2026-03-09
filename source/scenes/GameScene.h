@@ -60,6 +60,18 @@ protected:
 
     /** The reset button node. */
     std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
+    
+    /** The boss health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _bossHealthBar;
+    
+    /** The player's health bar*/
+    std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBar;
+    
+    /** Left teammate username label */
+    std::shared_ptr<cugl::scene2::Label> _leftPlayerName;
+
+    /** Right teammate username label */
+    std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
 
 #pragma mark - Drag State
 
@@ -247,6 +259,13 @@ public:
      * @param dt  Delta time in seconds.
      */
     void updateEnemyAndAI(float dt);
+    
+    /**
+     * Updates the progress bar with the current ratios of player and enemy health.
+     *
+     * @param dt Delta time in seconds
+     */
+    void updatePlayerAndEnemyHealthUI(float dt);
 
     /**
      * Checks whether the reset button was tapped and calls reset() if so.
