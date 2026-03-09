@@ -54,6 +54,13 @@ protected:
 
     /** The reset button node. */
     std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
+    
+    /** The boss health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _bossHealthBar;
+    
+    /** The player's health bar*/
+    std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBar;
+    
 
 #pragma mark - Drag State
 
@@ -238,6 +245,8 @@ public:
      * @param dt  Delta time in seconds.
      */
     void updateEnemyAndAI(float dt);
+    
+    void updatePlayerAndEnemyHealth(float dt);
 
     /**
      * Checks whether the reset button was tapped and calls reset() if so.
