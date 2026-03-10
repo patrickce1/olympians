@@ -6,7 +6,6 @@
 #include <unordered_set>
 #include "GameScene.h"
 
-
 using namespace cugl;
 using namespace cugl::scene2;
 using namespace std;
@@ -133,6 +132,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
         return false;
     }
 
+    /*since networking not initialized yet, just assume we are the host
+    we recheck if we are player 0 whenever another scene transitions back into this one*/
     setLocalPlayer(0);
 
     setActive(false);

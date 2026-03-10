@@ -65,14 +65,17 @@ public:
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
 
-    /**
-      Basic functions.
-     */
+    /*Returns the current state of the connection. Check the Status enum for possible values*/
     Status checkConnection();
-    void getNetworkUpdates();
-    void clearQueues();
 
-     
+    /*Tells the network controller to 
+    Calling this function will populate the message queues and variables with new information*/
+    void getNetworkUpdates();
+
+    /*Clears all message queues. 
+    * You MUST do this before tou call getNetworkUpdates() again, 
+    unless you want all past messages still in the queue*/
+    void clearQueues();
 
     /**
     * Connects to the game server as specified in the assets file
@@ -101,25 +104,37 @@ public:
     bool isHost();
 
 
-    /* Atomic style update functions. The following are ONLY SEND TO THE HOST*/
+    /* Atomic style update functions. The following are ONLY SENT TO THE HOST*/
 
+    /*Tells the host that the boss has been damaged for damageAmount*/
     void broadcastDamage(float damageAmount);
 
+    /*Sends a message to the corresponding player that item with the definition itemDefID has been passed to them.
+    * If sent to an AI player, the host handles it, otherwise, handled by the player on their end.
+    * The playerID tells us which numbered player they are in the cicle*/
     void broadcastPass(const std::string& itemDefID, int playerID);
 
+    /*Sends a message to the host that the player located at playerID in the cicle got healed for healAmount.*/
     void broadcastHeal(float healAmount, int playerID);
 
+    /*The following are USED ONLY BY THE HOST*/
+    
+    /*Send the GameState state as the new authoritative version of the game to all players*/
     void broadcastGameState(const GameState& state);
+
 
     /*Client-Side Lobby Messages*/
     /*Sends player username to the host*/
     void broadcastJoinedLobby();
 
-    /**/
+    /*Host-Side Lobby Messages*/
+    /*Notifies all clients that the game has started*/
     void broadcastGameStart();
 
+    /*Sends an update notifying players about changes to the lobby (new players joining/leaving)*/
     void broadcastLobbyState();
 
+    /*Getters for the queues and game state used during the gameplay*/
     const std::vector<AttackMessage>& getAttackUpdates() const { return attacks; }
     const std::vector<PassMessage>& getPassUpdates() const { return passes; }
     const std::vector<HealMessage>& getHealUpdates() const { return heals; }
@@ -160,33 +175,39 @@ protected:
         PLAYER_JOIN = 6,
     };
 
+    /*Our network connection*/
 	std::shared_ptr<cugl::netcode::NetcodeConnection> _network;
+
+    /*Serializer and desializer that lets us make bytes more readable and easy to decode across the network*/
     cugl::netcode::NetcodeSerializer _serializer;
     cugl::netcode::NetcodeDeserializer _deserializer;
 
+    /*Keeps track of the id of the game we are in*/
     std::string _gameid;
+
+    /*Keeps track of the connection status*/
     Status _status;
 
     /** The network configuration */
     cugl::netcode::NetcodeConfig _config;
     
 private:
-    /*Lists that keep track of the updates sent by players to the host*/
+    /* Lists that keep track of the updates sent by players to the host */
     std::vector<AttackMessage> attacks;
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
     GameStateMessage _latestGameState;
 
-    //Used for sending a message
+    //Boolean that tells us if the game has been started by the host
     bool gameStarted;
 
-    //stores the most recent order that we got. The host's version of this is authoritative
+    //Stores the most recent player order that we got. The host's version of this is authoritative
     std::vector<NetworkedPlayer> _onlinePlayers;
 
     //Player's chosen username
     std::string _playerName;
     
-    //
+    //Used internally to handle the different types of networking messages that come in 
     void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);
 };
 
