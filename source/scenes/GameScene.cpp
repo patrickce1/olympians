@@ -131,7 +131,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         return false;
     }
     
-    setDebugMode(true);
+    setDebugMode(false);
     setActive(false);
     return true;
 }
@@ -639,6 +639,13 @@ void GameScene::render() {
     batch->end();
 }
 
+/**
+ * Enables or disables debug mode for the scene.
+ *
+ * When active, debug mode shows additional overlays and UI elements
+ * to aid development, including the reset button, drop zone outlines,
+ * item widget bounding boxes, and a touch position indicator.
+ */
 void GameScene::setDebugMode(bool enabled){
     _debugMode = enabled;
     if (_resetBtn) _resetBtn->setVisible(enabled);
