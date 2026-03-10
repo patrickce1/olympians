@@ -176,8 +176,8 @@ void GameScene::setActive(bool value) {
         //check who are real players
         //will change once we have player reordering in
         CULog("I am player %d", _network->getLocalPlayerNumber());
-        for (int i = 0; i < _network->checkLobbyOrder().size(); i++) {
-            _gameState.setRealPlayer(i, _network->checkLobbyOrder()[i].second);
+        for (int i = 0; i < _network->getNetworkedPlayers().size(); i++) {
+            _gameState.setRealPlayer(i, _network->getNetworkedPlayers()[i].username);
         }
             //assign our own number
        setLocalPlayer(_network->getLocalPlayerNumber());

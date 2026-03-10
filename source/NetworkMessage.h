@@ -60,4 +60,15 @@ struct GameStateMessage {
     //future info like boss direction will be added as the game expands
 };
 
+/*
+* Represents a player as seen over the network.
+* Carries information used for identifying the player.
+* Stored in the NetworkController and used to map network IDs to in-game players.
+*/
+struct NetworkedPlayer {
+    std::string networkID;
+    std::string username;
+    //will be expanded to carry things such as player class
+};
+
 #endif /* __NETWORK_MESSAGES_H__ */

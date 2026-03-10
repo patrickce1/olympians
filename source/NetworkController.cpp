@@ -59,7 +59,8 @@ static std::string hex2dec(const std::string hex) {
 }
 
 
-/*MAIN FUNCTIONS*/
+/*Implementation of functions from the header.
+Read the header for details on when/how to use these functions*/
 
 bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 	if (assets == nullptr) {
@@ -165,15 +166,18 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 
 			// check if player is already registered
 			bool alreadyRegistered = false;
-			for (std::pair<std::string, std::string>& player : _onlinePlayers) {
-				if (player.first == senderID) {
+			for (NetworkedPlayer player : _onlinePlayers) {
+				if (player.networkID == senderID) {
 					alreadyRegistered = true;
 					break;
 				}
 			}
 
 			if (!alreadyRegistered) {
-				_onlinePlayers.push_back(std::make_pair(senderID, playerName));
+				NetworkedPlayer newPlayer;
+				newPlayer.networkID = senderID;
+				newPlayer.username = playerName;
+				_onlinePlayers.push_back(newPlayer);
 				broadcastLobbyState();
 			}
 			break;
@@ -184,9 +188,10 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
 			// re-pair the flattened vector back into pairs
 			for (int i = 0; i < playerData.size(); i += 2) {
-				std::string networkID = playerData[i];
-				std::string playerName = playerData[i + 1];
-				_onlinePlayers.push_back(std::make_pair(networkID, playerName));
+				NetworkedPlayer newPlayer;
+				newPlayer.networkID = playerData[i];
+				newPlayer.username = playerData[i + 1];
+				_onlinePlayers.push_back(newPlayer);
 			}
 			break;
 		}
@@ -251,7 +256,7 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
 	CULog("Sending broadcasting message to player %d", playerID);
 	if (checkRealPlayer(playerID)) {
 		CULog("This was a real player");
-		std::string playerNetworkID = _onlinePlayers[playerID].first;
+		std::string playerNetworkID = _onlinePlayers[playerID].networkID;
 		_network->sendTo(playerNetworkID, _serializer.serialize());
 	}
 	else {
@@ -297,14 +302,13 @@ void NetworkController::broadcastGameState(const GameState& state) {
 
 void NetworkController::broadcastLobbyState() {
 	//for sending over the lobby state, we unwrap the players vector into a vector of strings back to back
-	//so it would look like P1 Network ID -> P1 Name -> P2 Netwoek ID -> P2 name -> etc
-	//this is done because the serializer can only do vector of just strings, not of pairs
-	CULog("Hello I broadcast my state");
+	//so it would look like P1 Network ID -> P1 Name -> P2 Network ID -> P2 name -> etc
+	//this is done because the serializer can only do vector of strings, not of custom structs
 	std::vector<std::string> serializablePlayers;
 
-	for (pair<std::string, std::string>& player : _onlinePlayers) {
-		serializablePlayers.push_back(player.first);
-		serializablePlayers.push_back(player.second);
+	for (NetworkedPlayer player : _onlinePlayers) {
+		serializablePlayers.push_back(player.networkID);
+		serializablePlayers.push_back(player.username);
 	}
 
 	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
@@ -316,11 +320,14 @@ void NetworkController::broadcastLobbyState() {
 void NetworkController::setPlayerName(const std::string& name) { 
 	_playerName = name; 
 	if (_onlinePlayers.empty()) {
-		_onlinePlayers.push_back(std::make_pair(_network->getUUID(), _playerName));
+		NetworkedPlayer newPlayer;
+		newPlayer.username = name;
+		newPlayer.networkID = _network->getUUID();
+		_onlinePlayers.push_back(newPlayer);
 	}
 }
 
-const std::vector<std::pair<std::string, std::string>> NetworkController::checkLobbyOrder() {
+const std::vector<NetworkedPlayer> NetworkController::getNetworkedPlayers() {
 	return _onlinePlayers;
 }
 
@@ -328,7 +335,7 @@ const std::vector<std::pair<std::string, std::string>> NetworkController::checkL
 int NetworkController::getLocalPlayerNumber() {
 	std::string localID = _network->getUUID();
 	for (int i = 0; i < _onlinePlayers.size(); i++) {
-		if (_onlinePlayers[i].first == localID) {
+		if (_onlinePlayers[i].networkID == localID) {
 			return i;
 		}
 	}

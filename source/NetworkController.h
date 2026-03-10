@@ -15,7 +15,7 @@ It does not handle actually updating the state of the game. It is up to the indi
 the messages that they extract from the NetworkController.
 
 IMPORTANT: before collecting updates, make sure you call the getNetworkUpdates() and when you are done processing all data, make sure to
-call clearQueues() to get rid of leftover messages from the past
+call clearQueues() so that old messages don't show up in the next frame
 */
 
 class NetworkController {
@@ -142,8 +142,8 @@ public:
     /*returns if this numbered player is a real one or AI*/
     bool checkRealPlayer(int playerID);
 
-    /*Returns any updates on player order. Each networked player is represented by NetworkID, Username*/
-    const std::vector<std::pair<std::string, std::string>> checkLobbyOrder();
+    /*Returns the list of networked players, carrying their network ID and username*/
+    const std::vector<NetworkedPlayer> getNetworkedPlayers();
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -181,7 +181,7 @@ private:
     bool gameStarted;
 
     //stores the most recent order that we got. The host's version of this is authoritative
-    std::vector<std::pair<std::string, std::string>> _onlinePlayers;
+    std::vector<NetworkedPlayer> _onlinePlayers;
 
     //Player's chosen username
     std::string _playerName;

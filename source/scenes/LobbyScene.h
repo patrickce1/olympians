@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include "../NetworkController.h"
+#include "../NetworkMessage.h"
 
 /**
  * This class provides the interface to join an existing game.
@@ -157,7 +158,7 @@ private:
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
 
     /*Updates the player handles based on updates to the lobby state*/
-    void updateLobbyText(std::vector<std::pair<std::string, std::string>> onlinePlayers);
+    void updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers);
 };
 
 #endif /* __LOBBY_SCENE_H__ */

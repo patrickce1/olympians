@@ -147,10 +147,10 @@ void LobbyScene::setActive(bool value) {
     }
 }
 
-void LobbyScene::updateLobbyText(std::vector<std::pair<std::string, std::string>> onlinePlayers) {
+void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
     for (int i = 0; i < _playerSlots.size(); i++) {
         if (i < onlinePlayers.size()) {
-            _playerSlots[i]->setText(onlinePlayers[i].second);
+            _playerSlots[i]->setText(onlinePlayers[i].username);
         }
         else {
             _playerSlots[i]->setText("AI Player");
@@ -184,6 +184,6 @@ void LobbyScene::update(float timestep) {
         }
     }
 
-    updateLobbyText(_network->checkLobbyOrder());
+    updateLobbyText(_network->getNetworkedPlayers());
 }
 
