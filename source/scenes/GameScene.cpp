@@ -130,7 +130,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     if (!initGameSystems()) {
         return false;
     }
-
+    
+    setDebugMode(false);
     setActive(false);
     return true;
 }
@@ -338,6 +339,7 @@ void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
  * Checks whether the reset button was tapped and calls reset() if so.
  */
 void GameScene::handleResetButton(InputController& input) {
+    if (!isDebugMode()){ return; }
     if (!input.touchEnded() || _activeIcon || !_resetBtn) return;
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
@@ -392,6 +394,10 @@ void GameScene::tickGlowTimer(float dt) {
  * Updates the debug pointer position in scene coordinates.
  */
 void GameScene::updateDebugPointer(InputController& input) {
+    if (!isDebugMode()) {
+        _hasDebugPointer = false;
+        return;
+    }
     if (!input.isTouching()) {
         _hasDebugPointer = false;
         return;
@@ -622,11 +628,25 @@ void GameScene::render() {
     auto batch = getSpriteBatch();
     batch->setPerspective(getCamera()->getCombined());
     batch->begin();
-
-    renderResetButton(batch.get());
-    renderDropZones(batch.get());
-    renderItemWidgetDebug(batch.get());
-    renderPointerDebug(batch.get());
+    
+    if (isDebugMode()){
+        renderResetButton(batch.get());
+        renderDropZones(batch.get());
+        renderItemWidgetDebug(batch.get());
+        renderPointerDebug(batch.get());
+    }
 
     batch->end();
+}
+
+/**
+ * Enables or disables debug mode for the scene.
+ *
+ * When active, debug mode shows additional overlays and UI elements
+ * to aid development, including the reset button, drop zone outlines,
+ * item widget bounding boxes, and a touch position indicator.
+ */
+void GameScene::setDebugMode(bool enabled){
+    _debugMode = enabled;
+    if (_resetBtn) _resetBtn->setVisible(enabled);
 }
