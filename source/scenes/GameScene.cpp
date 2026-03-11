@@ -175,15 +175,16 @@ void GameScene::setActive(bool value) {
         }
     }
     if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
-        //check who are real players
-        //will change once we have player reordering in
-        CULog("I am player %d", _network->getLocalPlayerNumber());
-        for (int i = 0; i < _network->getNetworkedPlayers().size(); i++) {
-            _gameState.setRealPlayer(i, _network->getNetworkedPlayers()[i].username);
-        }
-            //assign our own number
+       //check who are real players
+       //will change once we have player reordering in
+       CULog("I am player %d", _network->getLocalPlayerNumber());
+       for (int i = 0; i < _network->getNetworkedPlayers().size(); i++) {
+           _gameState.setRealPlayer(i, _network->getNetworkedPlayers()[i].username);
+       }
+
+       //assign our own number
        setLocalPlayer(_network->getLocalPlayerNumber());
-       
+
        _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
        _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
     }
@@ -542,7 +543,9 @@ void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
 
     handleResetButton(input);
+
     handleDropResolution(input);
+    handlePlayerActions(input);
 
     if (input.touchEnded()) {
         input.resetAction();
@@ -572,7 +575,6 @@ void GameScene::update(float dt, InputController& input) {
     _itemController.update(dt, _gameState.getLocalPlayer());
     syncInventoryWidgets();
 
-    //handlePlayerActions(input);
     updateEnemyAndAI(dt);
     _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
