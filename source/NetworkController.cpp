@@ -1,9 +1,7 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
-
 #include "NetworkController.h"
-
 
 using namespace cugl;
 using namespace cugl::scene2;
@@ -29,7 +27,6 @@ static std::string dec2hex(const std::string dec) {
 	}
 	return strtool::to_hexstring(value, 4);
 }
-
 
 /**
  * Converts a hexadecimal string to a decimal string
@@ -58,10 +55,8 @@ static std::string hex2dec(const std::string hex) {
 	return result;
 }
 
-
 /*Implementation of functions from the header.
 Read the header for details on when/how to use these functions*/
-
 bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 	if (assets == nullptr) {
 		return false;
@@ -264,7 +259,6 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
 		_network->sendToHost(_serializer.serialize());
 	}
 	_serializer.reset();
-
 }
 
 void NetworkController::broadcastGameStart(){
@@ -330,7 +324,6 @@ void NetworkController::setPlayerName(const std::string& name) {
 const std::vector<NetworkedPlayer> NetworkController::getNetworkedPlayers() {
 	return _onlinePlayers;
 }
-
 
 int NetworkController::getLocalPlayerNumber() {
 	std::string localID = _network->getUUID();

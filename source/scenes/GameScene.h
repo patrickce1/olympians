@@ -4,12 +4,12 @@
 #include <cugl/cugl.h>
 #include <vector>
 #include <unordered_map>
+#include "GameState.h"
 #include "../InputController.h"
 #include "../items/ItemController.h"
 #include "../Enemy.h"
 #include "../EnemyLoader.h"
 #include "../EnemyController.h"
-#include "GameState.h"
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 
@@ -327,7 +327,9 @@ public:
      */
     void resolveAction(InputController::Action action);
 
-
+    /**
+    * Processes all the PassMessages
+    */
     void updateInventoryPasses(std::vector<PassMessage> passes);
 
 #pragma mark - Inventory UI

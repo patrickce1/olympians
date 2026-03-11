@@ -22,7 +22,7 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-    bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
         // Initialize the scene to a locked width
         if (assets == nullptr) {
             return false;
@@ -52,14 +52,14 @@ using namespace std;
         return true;
     }
 
-    /**
-     * Retrieves and stores references to the lobby UI elements.
-     *
-     * This method looks up important UI components from the scene graph,
-     * including the start button, back button, and game ID label, and stores
-     * them for later interaction.
-     */
-    void LobbyScene::setupUI() {
+/**
+ * Retrieves and stores references to the lobby UI elements.
+ *
+ * This method looks up important UI components from the scene graph,
+ * including the start button, back button, and game ID label, and stores
+ * them for later interaction.
+ */
+void LobbyScene::setupUI() {
         _enterGame = std::dynamic_pointer_cast<scene2::Button>(
             _assets->get<scene2::SceneNode>("lobbyScene.start"));
 
@@ -69,7 +69,6 @@ using namespace std;
         _gameId = std::dynamic_pointer_cast<scene2::Label>(
             _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
 
-        
         _container = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
 
         if (_container) {

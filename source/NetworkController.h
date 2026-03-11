@@ -29,7 +29,6 @@ public:
         ONGOING
 	};
     
-    
      /**
       * Creates a new host scene with the default values.
       *
@@ -103,9 +102,7 @@ public:
     /*Because the original host can disconnect, this is used to keep track of host migration*/
     bool isHost();
 
-
     /* Atomic style update functions. The following are ONLY SENT TO THE HOST*/
-
     /*Tells the host that the boss has been damaged for damageAmount*/
     void broadcastDamage(float damageAmount);
 
@@ -118,10 +115,8 @@ public:
     void broadcastHeal(float healAmount, int playerID);
 
     /*The following are USED ONLY BY THE HOST*/
-    
     /*Send the GameState state as the new authoritative version of the game to all players*/
     void broadcastGameState(const GameState& state);
-
 
     /*Client-Side Lobby Messages*/
     /*Sends player username to the host*/

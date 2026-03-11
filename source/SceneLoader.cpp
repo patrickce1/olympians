@@ -98,8 +98,6 @@ void SceneLoader::onStartup() {
     _input.init(); //The input controller starts.
     
     _input.setActive(true); //We can actually tap.
-
-
     
     CULog("Input is active: %d", _input.isActive());
 
