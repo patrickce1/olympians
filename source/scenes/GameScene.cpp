@@ -336,7 +336,6 @@ void GameScene::updateInventoryPasses(std::vector<PassMessage> passes) {
     }
     for (PassMessage pass : passes) {
         Player* player = _gameState.getPlayerById(pass.playerID);
-        CULog("I'm in savage mode");
         //for now, passing just gives a random item in the player inventory
         _itemController.giveRandomItem(_gameState.getLocalPlayer());
         //IN THE FUTURE, can we just give the ItemController a makeItem function that takes in a specific item id
