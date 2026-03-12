@@ -55,8 +55,19 @@ void GameState::initPlayers() {
     setLocalPlayer(0);
 }
 
-//Since real players always occupy the first N slots, playerNumber corresponds
-//* directly to their index in the online players list.
+/**
+ * Replaces the AI placeholder at the given slot with a real human player.
+ *
+ * Called during game setup after the lobby has finalized the player order.
+ * Since real players always occupy the first N slots, playerNumber corresponds
+ * directly to their index in the online players list.
+ *
+ * After replacing the player, all neighbors in the circle are re-linked
+ * to account for the new player object at that slot.
+ *
+ * @param playerNumber  The 0-based index of the slot to replace with a real player.
+ * @param playerName    The display name of the player joining this slot.
+ */
 void GameState::setRealPlayer(int playerNumber, const std::string& playerName) {
     if (playerNumber < 0 || playerNumber >= _players.size()) {
         CULog("Invalid player number %d", playerNumber);
@@ -188,12 +199,14 @@ Player* GameState::getPlayerById(int playerId) const {
     return (it != _playerIdMap.end()) ? it->second : nullptr;
 }
 
+/* Goes through the list of attack messages in attacks and applies the damage specified to the boss*/
 void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
     for (AttackMessage attack : attacks) {
         _enemy->updateHealth(-1 * attack.damage);
     }
 }
 
+/* Goes through the list of heal messages in heals and increases player health according to the heal amount*/
 void GameState::healUpdates(std::vector<HealMessage> heals) {
     for (HealMessage heal : heals) {
         if (heal.playerID < 0 || heal.playerID >= (int)_players.size()) continue;
