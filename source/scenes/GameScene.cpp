@@ -548,6 +548,29 @@ void GameScene::debugLogAction(InputController::Action action) {
     }
 }
 
+/* Checks if any updates about the state of the game were sent over the network.
+* If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
+* If we are the host, we process any attack, heal, and pass messages.
+* After doing so, we send out a new authoritative version of the game state as the host*/
+void GameScene::handleNetworkUpdates() {
+    /*Networking pull cycle*/
+    _network->getNetworkUpdates();
+
+    if (_network->isHost()) {
+        // handle incoming attack/heal messages from clients
+        _gameState.attackUpdates(_network->getAttackUpdates());
+        _gameState.healUpdates(_network->getHealUpdates());
+        // broadcast authoritative state to all clients
+        _network->broadcastGameState(_gameState);
+    }
+    else {
+        // clients just apply the latest state from host
+        _gameState.networkUpdate(_network->getStateUpdate());
+    }
+
+    processNetworkedPasses(_network->getPassUpdates());
+}
+
 #pragma mark -
 #pragma mark Update
 
@@ -571,22 +594,8 @@ void GameScene::update(float dt, InputController& input) {
     handleDragInitiation(input);
     handleDragTracking(input);
 
-    /*Networking pull cycle*/
-    _network->getNetworkUpdates();
+    handleNetworkUpdates();
 
-    if (_network->isHost()) {
-        // handle incoming attack/heal messages from clients
-        _gameState.attackUpdates(_network->getAttackUpdates());
-        _gameState.healUpdates(_network->getHealUpdates());
-        // broadcast authoritative state to all clients
-        _network->broadcastGameState(_gameState);
-    }
-    else {
-        // clients just apply the latest state from host
-        _gameState.networkUpdate(_network->getStateUpdate());
-    }
-
-    processNetworkedPasses(_network->getPassUpdates());
     _itemController.update(dt, _gameState.getLocalPlayer());
     syncInventoryWidgets();
 

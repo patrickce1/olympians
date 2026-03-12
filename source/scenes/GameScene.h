@@ -436,6 +436,13 @@ public:
      * Retrieves the current state of `_debugMode.
      */
     bool isDebugMode() const {return _debugMode; }
+
+#pragma mark - Networking
+    /* Checks if any updates about the state of the game were sent over the network. 
+    * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us. 
+    * If we are the host, we process any attack, heal, and pass messages. 
+    * After doing so, we send out a new authoritative version of the game state as the host*/
+    void handleNetworkUpdates();
 };
 
 #endif /* __GAME_SCENE_H__ */
