@@ -280,12 +280,19 @@ public:
     void handleResetButton(InputController& input);
 
     /**
-     * Classifies a drag-and-drop release into a drop zone, triggers the
-     * appropriate action and glow effect, then clears the active icon.
+     * Handles the full pipeline of a player's drag-and-drop input for one frame.
      *
-     * @param input  The active input controller.
+     * When the player releases a dragged item, this function determines which
+     * drop zone the item landed in and dispatches the appropriate game action
+     * (attack, support, or pass). Also triggers a glow effect on the activated
+     * zone for visual feedback and clears the active dragged icon.
+     *
+     * Does nothing if no item is being dragged or if the touch has not ended.
+     * Does nothing if the local player is dead.
+     *
+     * @param input     The input controller for this frame.
      */
-    void handleDropResolution(InputController& input);
+    void handlePlayerInput(InputController& input);
 
     /**
      * Decrements the glow timer each frame. Clears the active glow action
@@ -325,7 +332,7 @@ public:
      *
      * @param action  The action resolved from the drop-zone hit-test.
      */
-    void resolveAction(InputController::Action action);
+    void debugLogAction(InputController::Action action);
 
     /**
     * Processes all the PassMessages

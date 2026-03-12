@@ -113,7 +113,6 @@ NetworkController::Status NetworkController::checkConnection() {
 		case NetcodeConnection::State::MISMATCHED:
 		case NetcodeConnection::State::FAILED:
 		case NetcodeConnection::State::DISCONNECTED:
-			CULog("The message is %d", _network->getState());
 			_network->close();
 			return Status::FAILED;
 			break;
@@ -142,7 +141,6 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			break;
 		}
 		case MessageType::PLAYER_PASS: {
-			CULog("I recieved a passing message");
 			std::string itemID = _deserializer.readString();
 			int passRecieverID = _deserializer.readSint32();
 			PassMessage passMsg;

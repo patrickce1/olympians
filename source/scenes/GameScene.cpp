@@ -297,7 +297,6 @@ void GameScene::handleSupportRight() {
  * Passes the first item in the local player's inventory to the left neighbour.
  */
 void GameScene::handlePassLeft() {
-    CULog("HELLO I AM THE LEFT PASS");
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getLeftPlayer() : nullptr;
     if (!target || !target->isAlive() || local->getInventory().empty()) return;
@@ -317,7 +316,6 @@ void GameScene::handlePassLeft() {
  * Passes the first item in the local player's inventory to the right neighbour.
  */
 void GameScene::handlePassRight() {
-    CULog("HELLO I AM THE RIGHT PASS");
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
     if (!target || !target->isAlive() || local->getInventory().empty()) return;
@@ -332,9 +330,6 @@ void GameScene::handlePassRight() {
 }
 
 void GameScene::updateInventoryPasses(std::vector<PassMessage> passes) {
-    if (passes.size() > 0) {
-        CULog("I got called, there were some passe");
-    }
     for (PassMessage pass : passes) {
         Player* player = _gameState.getPlayerById(pass.playerID);
         //for now, passing just gives a random item in the player inventory
@@ -346,8 +341,7 @@ void GameScene::updateInventoryPasses(std::vector<PassMessage> passes) {
 }
 
 /**
- * Dispatches the resolved drop-zone action to the appropriate handler
- * and resets the input action afterwards.
+ * Calls the appropriate handle action helper based on the input that we recieved
  */
 void GameScene::handlePlayerActions(InputController::Action action) {
     Player* local = _gameState.getLocalPlayer();
@@ -361,7 +355,6 @@ void GameScene::handlePlayerActions(InputController::Action action) {
         case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
         default: break;
     }
-    //input.resetAction();
 }
 
 #pragma mark -
@@ -410,13 +403,25 @@ void GameScene::handleResetButton(InputController& input) {
     }
 }
 
+
 /**
- * Classifies a drag-and-drop release into a drop zone, triggers the
- * appropriate action and glow effect, then clears the active icon.
+ * Handles the full pipeline of a player's drag-and-drop input for one frame.
+ *
+ * When the player releases a dragged item, this function:
+ *   1. Checks if a drag-and-drop release occurred this frame.
+ *   2. Determines which drop zone (if any) the item was released into.
+ *   3. Validates that the local player is alive before acting.
+ *   4. Dispatches the appropriate game action (attack, support, pass).
+ *   5. Triggers a glow effect on the activated zone for visual feedback.
+ *   6. Logs the action for debugging.
+ *   7. Clears the active dragged icon.
+ *
+ * @param input     The input controller for this frame.
  */
-void GameScene::handleDropResolution(InputController& input) {
+void GameScene::handlePlayerInput(InputController& input) {
     if (!_activeIcon || !input.touchEnded()) return;
 
+    // 1. Determine which drop zone the item was released into
     Vec2 releaseWorld = screenToWorldCoords(input.getReleasePosition());
     InputController::Action finalAction = InputController::Action::NONE;
 
@@ -428,13 +433,21 @@ void GameScene::handleDropResolution(InputController& input) {
     }
 
     if (finalAction != InputController::Action::NONE) {
+        // 2. Dispatch to the appropriate action handler
         handlePlayerActions(finalAction);
-        resolveAction(finalAction);
+        if (isDebugMode()) {
+            debugLogAction(finalAction);
+        }
+
+        // 3. Trigger glow effect on the activated zone
         _glowAction = finalAction;
-        _glowTimer  = _glowDuration;
+        _glowTimer = _glowDuration;
         if (_activeIcon) {
             _activeIcon->setVisible(false);
         }
+
+        // 4. Debug log
+        CULog("Player action: %d", (int)finalAction);
     }
 
     _activeIcon = nullptr;
@@ -504,7 +517,7 @@ void GameScene::handleDragTracking(InputController& input) {
 /**
  * Logs the resolved drop-zone action for debugging.
  */
-void GameScene::resolveAction(InputController::Action action) {
+void GameScene::debugLogAction(InputController::Action action) {
     switch (action) {
     case InputController::Action::DROP_BOSS:
         CULog("boss drop");
@@ -544,8 +557,8 @@ void GameScene::update(float dt, InputController& input) {
 
     handleResetButton(input);
 
-    handleDropResolution(input);
-    handlePlayerActions(input);
+    handlePlayerInput(input);
+    input.resetAction();
 
     if (input.touchEnded()) {
         input.resetAction();
