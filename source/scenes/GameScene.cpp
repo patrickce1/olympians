@@ -179,9 +179,7 @@ void GameScene::dispose() {
  */
 void GameScene::updateNetworkOrder() {
     if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
-        //check who are real players
-        //will change once we have player reordering in
-        CULog("I am player %d", _network->getLocalPlayerNumber());
+        //check who are real players. This is subject to change once player reordering is developed
         for (int i = 0; i < _network->getNetworkedPlayers().size(); i++) {
             _gameState.setRealPlayer(i, _network->getNetworkedPlayers()[i].username);
         }
