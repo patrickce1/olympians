@@ -125,9 +125,16 @@ public:
     void broadcastLobbyState();
 
     /*Getters for the queues and game state used during the gameplay*/
+    /*Returns all the networking messages about attacks we recieved after calling getNetworkUpdate()*/
     const std::vector<AttackMessage>& getAttackUpdates() const { return attacks; }
+
+    /*Returns all the networking messages about item passing we recieved after calling getNetworkUpdate()*/
     const std::vector<PassMessage>& getPassUpdates() const { return passes; }
+
+    /*Returns all the networking messages about healing we recieved after calling getNetworkUpdate()*/
     const std::vector<HealMessage>& getHealUpdates() const { return heals; }
+
+    /*Returns the most recent version of the authoritative game state*/
     GameStateMessage getStateUpdate() { return _latestGameState; }
 
     /**Functions used during the lobby scene*/
