@@ -256,6 +256,7 @@ void GameScene::handleAttack() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
             local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+            //NETWORKING
             if (!_network->isHost()) {
                 _network->broadcastDamage(def->getEffectiveValue());
             }
@@ -278,6 +279,7 @@ void GameScene::handleSupportLeft() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            //NETWORK
             if (_network->isHost()) {
                 target->updateHealth(def->getEffectiveValue());
             }
@@ -301,6 +303,7 @@ void GameScene::handleSupportRight() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            //NETWORK
             if (_network->isHost()) {
                 target->updateHealth(def->getEffectiveValue());
             }
@@ -323,11 +326,12 @@ void GameScene::handlePassLeft() {
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());
 
-    CULog("Passing left to player %d", target->getPlayerNumber());
-
     if (!target->isAI()) {
         CULog("Passing left to a real player");
     }
+    CULog("Passing left to player %d", target->getPlayerNumber());
+
+    //NETWORK
     _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
 }
 
@@ -341,10 +345,13 @@ void GameScene::handlePassRight() {
 
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());
+
     if (!target->isAI()) {
         CULog("Passing right to a real player");
     }
     CULog("I am passing to player %d", target->getPlayerNumber());
+
+    //NETWORK
     _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
 }
 
