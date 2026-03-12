@@ -163,6 +163,38 @@ void GameScene::dispose() {
 }
 
 /**
+ * Syncs the local game state with the current network player order.
+ *
+ * Iterates through the lobby's finalized player list and promotes each
+ * slot from an AI placeholder to a real human player via setRealPlayer().
+ * Then sets the local player index so this machine knows which player
+ * it controls, and updates the teammate name labels to show the correct
+ * left and right neighbors.
+ *
+ * NOTE: For now, assumes real players always occupy the first N consecutive slots
+ * in the player array. Will need to be updated if player reordering is
+ * added in the future.
+ *
+ * Does nothing if the network is not connected.
+ */
+void GameScene::updateNetworkOrder() {
+    if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
+        //check who are real players
+        //will change once we have player reordering in
+        CULog("I am player %d", _network->getLocalPlayerNumber());
+        for (int i = 0; i < _network->getNetworkedPlayers().size(); i++) {
+            _gameState.setRealPlayer(i, _network->getNetworkedPlayers()[i].username);
+        }
+
+        //assign our own number
+        setLocalPlayer(_network->getLocalPlayerNumber());
+
+        _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
+        _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
+    }
+}
+
+/**
  * Activates or deactivates the scene and its UI.
  * Calls reset() and enters the idle enemy state on activation.
  */
@@ -174,20 +206,7 @@ void GameScene::setActive(bool value) {
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
         }
     }
-    if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
-       //check who are real players
-       //will change once we have player reordering in
-       CULog("I am player %d", _network->getLocalPlayerNumber());
-       for (int i = 0; i < _network->getNetworkedPlayers().size(); i++) {
-           _gameState.setRealPlayer(i, _network->getNetworkedPlayers()[i].username);
-       }
-
-       //assign our own number
-       setLocalPlayer(_network->getLocalPlayerNumber());
-
-       _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
-       _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
-    }
+    updateNetworkOrder();
 }
 
 /**

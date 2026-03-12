@@ -444,6 +444,18 @@ public:
     * If we are the host, we process any attack, heal, and pass messages. 
     * After doing so, we send out a new authoritative version of the game state as the host*/
     void handleNetworkUpdates();
+    
+    /**
+     * Syncs the local game state with the current network player order.
+     *
+     * Converts all networked player slots to real human players, assigns
+     * the local player index, and updates the left and right neighbor
+     * name labels in the UI. Should be called once when the game scene
+     * becomes active after the lobby has finalized the player order.
+     *
+     * Does nothing if the network is not connected.
+     */
+    void updateNetworkOrder();
 };
 
 #endif /* __GAME_SCENE_H__ */
