@@ -50,8 +50,8 @@ protected:
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
 
-    /** The player selection container */
-    std::shared_ptr<cugl::scene2::SceneNode> _container;
+    /** A container that stores labels and other info for visualizing the character and username choices of players */
+    std::shared_ptr<cugl::scene2::SceneNode> _playerInfoContainer;
     
     /** The current status */
     Status _status;

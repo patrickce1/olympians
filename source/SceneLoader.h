@@ -41,8 +41,10 @@ protected:
     /** A logger for debugging, can be removed if we feel like this is not necessary */
     std::shared_ptr<cugl::Logger> _logger;
     
+    /*Input controller. Used to extract input data*/
     InputController _input;
 
+    /*Network controller used across scenes. Used for recieving and processing networking messages*/
     std::shared_ptr<NetworkController> _network;
 
     /* All the scenes in the game*/

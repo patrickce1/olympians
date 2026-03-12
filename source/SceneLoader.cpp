@@ -95,6 +95,7 @@ void SceneLoader::onStartup() {
     netcode::NetworkLayer::start(netcode::NetworkLayer::Log::INFO);
 
     // in SceneLoader::onStartup(), just to verify zones fire
+    //NETWORK
     _input.init(); //The input controller starts.
     
     _input.setActive(true); //We can actually tap.

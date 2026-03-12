@@ -69,12 +69,12 @@ void LobbyScene::setupUI() {
         _gameId = std::dynamic_pointer_cast<scene2::Label>(
             _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
 
-        _container = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
+        _playerInfoContainer = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
 
-        if (_container) {
+        if (_playerInfoContainer) {
             for (int i = 0; i <= 3; i++) {
                 std::string cardName = "playerCard" + std::to_string(i);
-                auto card = _container->getChildByName(cardName);
+                auto card = _playerInfoContainer->getChildByName(cardName);
                 auto label = std::dynamic_pointer_cast<scene2::Label>(
                     card->getChildByName("username")
                 );
