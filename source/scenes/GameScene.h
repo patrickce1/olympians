@@ -184,6 +184,7 @@ public:
      * call setActive(true) when ready to receive input.
      *
      * @param assets  The loaded asset manager.
+     * @param networkController The network controller shared across all scenes
      * @return true if initialisation succeeded, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
