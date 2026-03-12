@@ -325,9 +325,11 @@ void GameScene::handlePassLeft() {
     local->removeItemById(item.getId());
 
     if (!target->isAI()) {
-        CULog("Passing left to a real player");
+        CULog("Passing left to a real player with the number %d", target->getPlayerNumber());
     }
-    CULog("Passing left to player %d", target->getPlayerNumber());
+    else {
+        CULog("Passing left to player AI player with number %d", target->getPlayerNumber());
+    }
 
     //NETWORK
     _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
@@ -345,9 +347,11 @@ void GameScene::handlePassRight() {
     local->removeItemById(item.getId());
 
     if (!target->isAI()) {
-        CULog("Passing right to a real player");
+        CULog("Passing right to a real player with the number %d", target->getPlayerNumber());
     }
-    CULog("I am passing to player %d", target->getPlayerNumber());
+    else {
+        CULog("Passing right to player AI player with number %d", target->getPlayerNumber());
+    }
 
     //NETWORK
     _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
