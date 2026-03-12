@@ -55,6 +55,8 @@ void GameState::initPlayers() {
     setLocalPlayer(0);
 }
 
+//Since real players always occupy the first N slots, playerNumber corresponds
+//* directly to their index in the online players list.
 void GameState::setRealPlayer(int playerNumber, const std::string& playerName) {
     if (playerNumber < 0 || playerNumber >= _players.size()) {
         CULog("Invalid player number %d", playerNumber);

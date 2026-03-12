@@ -68,9 +68,17 @@ public:
      */
     void initPlayers();
 
-    //makes the player at that number a real player.
-    //used for when the network registers new players joining
-    //in the future we will probably want a setAIPlayer function as well for real players leaving
+     /**
+     * Replaces the AI placeholder at the given slot with a real human player.
+     *
+     * Called during game setup after the lobby has finalized the player order.
+     *
+     * After replacing the player, all neighbors in the circle are re-linked
+     * to account for the new player object at that slot.
+     *
+     * @param playerNumber  The 0-based index of the slot to replace with a real player.
+     * @param playerName    The display name of the player joining this slot.
+     */
     void setRealPlayer(int playerNumber, const std::string& playerName);
 
     /**
@@ -118,7 +126,10 @@ public:
     void networkUpdate(GameStateMessage updatedState);
 
     /*Convinient functions to handle updates recieved from the network. USED BY THE HOST*/
+    /*Updates the gameState object by applying all the damage present in the messages of `attacks`*/
     void attackUpdates(std::vector<AttackMessage> attacks);
+
+    /*Updates the gameState object by handling all healing requests in the messages in `heals`*/
     void healUpdates(std::vector<HealMessage> heals);
     
 
