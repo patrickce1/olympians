@@ -48,20 +48,15 @@ public:
     //disposes of all non-static resoueces allocated to this mode.
     void dispose();
 
-     /**
-      * Initializes the controller contents, and starts the game
-      *
-      * In previous labs, this method "started" the scene.  But in this
-      * case, we only use to initialize the scene user interface.  We
-      * do not activate the user interface yet, as an active user
-      * interface will still receive input EVEN WHEN IT IS HIDDEN.
-      *
-      * That is why we have the method {@link #setActive}.
-      *
-      * @param assets    The (loaded) assets for this game mode
-      *
-      * @return true if the controller is initialized properly, false otherwise.
-     */
+    /**
+    * Initializes the NetworkController with the server configuration from assets.
+    * Must be called once after assets have finished loading, before any
+    * network calls are made.
+    *
+    * @param assets    The loaded asset manager.
+    * @return          true if initialization succeeded, false if assets is null
+    *                  or the server config could not be loaded.
+    */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
 
     /*Returns the current state of the connection. Check the Status enum for possible values*/
@@ -82,7 +77,7 @@ public:
     * The {@link #init} method set the configuration data. This method simply uses
     * this to create a new {@Link NetworkConnection}. 
     *
-    * @param room  The room ID to use
+    * @param room  The room ID to use. Should be a 5-digit base 10 number
     *
     * To check the status of the connection, use {@link #checkConnection()}
     */

@@ -32,7 +32,8 @@ protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
 
-    /** Network controller */
+    /** Network controller. Responsible for sending networking messages and process messages sent
+     * over the network. */
     std::shared_ptr<NetworkController> _network;
 
     /** The root scene node for this scene graph. */
@@ -335,9 +336,11 @@ public:
     void debugLogAction(InputController::Action action);
 
     /**
-    * Processes all the PassMessages
+    * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory
+    * If we are the host, it will also give the correct items to the AI
+    * Intended usage: get the pass message vector from the network controller and pass into this function
     */
-    void updateInventoryPasses(std::vector<PassMessage> passes);
+    void processNetworkedPasses(std::vector<PassMessage> passes);
 
 #pragma mark - Inventory UI
 

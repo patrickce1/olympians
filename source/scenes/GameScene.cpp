@@ -329,14 +329,16 @@ void GameScene::handlePassRight() {
     _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
 }
 
-void GameScene::updateInventoryPasses(std::vector<PassMessage> passes) {
+/**
+* Processes all the passMessages inside of the vector, putting the correct items in the player's inventory
+* If we are the host, it will also give the correct items to the AI
+* Intended usage: get the pass message vector from the network controller and pass into this function
+*/
+void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
     for (PassMessage pass : passes) {
         Player* player = _gameState.getPlayerById(pass.playerID);
         //for now, passing just gives a random item in the player inventory
         _itemController.giveRandomItem(_gameState.getLocalPlayer());
-        //IN THE FUTURE, can we just give the ItemController a makeItem function that takes in a specific item id
-        //so that I can just do pass.itemID
-        // the ID is based on the one from the database
     }
 }
 
@@ -584,7 +586,7 @@ void GameScene::update(float dt, InputController& input) {
         _gameState.networkUpdate(_network->getStateUpdate());
     }
 
-    updateInventoryPasses(_network->getPassUpdates());
+    processNetworkedPasses(_network->getPassUpdates());
     _itemController.update(dt, _gameState.getLocalPlayer());
     syncInventoryWidgets();
 
