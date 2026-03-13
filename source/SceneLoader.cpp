@@ -92,10 +92,12 @@ void SceneLoader::onStartup() {
     
     // Build the scene from these assets
     Application::onStartup();
+    
+    //NETWORK
     netcode::NetworkLayer::start(netcode::NetworkLayer::Log::INFO);
 
     // in SceneLoader::onStartup(), just to verify zones fire
-    //NETWORK
+    
     _input.init(); //The input controller starts.
     
     _input.setActive(true); //We can actually tap.
@@ -213,6 +215,7 @@ void SceneLoader::update(float dt) {
             if (_loadingScene->isPending()) {
                 CULog("Assets finished loading. Initializing MenuScene...");
 
+                //NETWORK
                 _network->init(_assets); //assets loaded, load network controller
 
                 if (_menuScene.init(_assets)) {
