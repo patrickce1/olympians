@@ -329,14 +329,6 @@ public:
     void handleDragTracking(InputController& input);
 
     /**
-     * Logs the resolved drop-zone action for debugging.
-     * Replace CULog calls with real game logic as features are implemented.
-     *
-     * @param action  The action resolved from the drop-zone hit-test.
-     */
-    void debugLogAction(InputController::Action action);
-
-    /**
     * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory
     * If we are the host, it will also give the correct items to the AI
     * Intended usage: get the pass message vector from the network controller and pass into this function

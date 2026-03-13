@@ -465,19 +465,13 @@ void GameScene::handlePlayerInput(InputController& input) {
     if (finalAction != InputController::Action::NONE) {
         // 2. Dispatch to the appropriate action handler
         handlePlayerActions(finalAction);
-        if (isDebugMode()) {
-            debugLogAction(finalAction);
-        }
 
         // 3. Trigger glow effect on the activated zone
         _glowAction = finalAction;
-        _glowTimer = _glowDuration;
+        _glowTimer  = _glowDuration;
         if (_activeIcon) {
             _activeIcon->setVisible(false);
         }
-
-        // 4. Debug log
-        CULog("Player action: %d", (int)finalAction);
     }
 
     _activeIcon = nullptr;
@@ -542,38 +536,6 @@ void GameScene::handleDragTracking(InputController& input) {
 
     Vec2 dragScene = screenToWorldCoords(input.getDragPos());
     _activeIcon->setPosition(dragScene + _dragOffset);
-}
-
-/**
- * Logs the resolved drop-zone action for debugging.
- */
-void GameScene::debugLogAction(InputController::Action action) {
-    switch (action) {
-    case InputController::Action::DROP_BOSS:
-        CULog("boss drop");
-        break;
-    case InputController::Action::DROP_ALLY_LEFT:
-        CULog("ally drop left");
-        break;
-    case InputController::Action::DROP_ALLY_RIGHT:
-        CULog("ally drop right");
-        break;
-    case InputController::Action::PASS_LEFT:
-        CULog("pass left");
-        break;
-    case InputController::Action::PASS_RIGHT:
-        CULog("pass right");
-        break;
-    case InputController::Action::DRAG:
-        CULog("Dragging");
-        break;
-    case InputController::Action::NONE:
-        CULog("Nothing");
-        break;
-    case InputController::Action::PAUSE:
-        CULog("Nothing");
-        break;
-    }
 }
 
 /* Checks if any updates about the state of the game were sent over the network.
