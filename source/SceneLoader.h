@@ -48,11 +48,24 @@ protected:
     std::shared_ptr<NetworkController> _network;
 
     /* All the scenes in the game*/
+    /*The opening scene players see while the game loads*/
     std::shared_ptr<cugl::scene2::LoadingScene> _loadingScene;
+
+    /*The main menu screen*/
     MenuScene _menuScene;
+
+    /*The scene where the game takes place*/
     GameScene _gameScene;
+    
+    /*The scene players get when they hit "join game". 
+     *Allows players to join a room and set their username*/
     ClientScene _clientScene;
+
+    /*The scene where the host sets up the lobby
+     *Allows host to set the boss for the play session*/
     HostSetupScene _hostSetupScene;
+
+    /*The scene where all joined players are displayed, with the boss in the middle*/
     LobbyScene _lobbyScene;
     //more scenes to come...
 

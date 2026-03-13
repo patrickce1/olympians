@@ -571,7 +571,6 @@ void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
 
     handleResetButton(input);
-
     handlePlayerInput(input);
     input.resetAction();
 

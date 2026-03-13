@@ -23,34 +23,34 @@ using namespace std;
  * @return true if the controller is initialized properly, false otherwise.
  */
 bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
-        // Initialize the scene to a locked width
-        if (assets == nullptr) {
-            return false;
-        } else if (!Scene2::initWithHint(Size(0,SCENE_HEIGHT))) {
-            return false;
-        }
-    
-        // Start up the input handler
-        _assets = assets;
-        _network = networkController;
-
-        Size dimen = getSize();
-    
-        std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("lobbyScene");
-    
-        scene->setContentSize(dimen);
-        scene->doLayout(); // Repositions the HUD
-    
-        // Setup UI and listeners
-        setupUI();
-        setupListeners();
-    
-        _status = Status::IDLE;
-    
-        addChild(scene);
-        setActive(false);
-        return true;
+    // Initialize the scene to a locked width
+    if (assets == nullptr) {
+        return false;
+    } else if (!Scene2::initWithHint(Size(0,SCENE_HEIGHT))) {
+        return false;
     }
+    
+    // Start up the input handler
+    _assets = assets;
+    _network = networkController;
+
+    Size dimen = getSize();
+    
+    std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("lobbyScene");
+    
+    scene->setContentSize(dimen);
+    scene->doLayout(); // Repositions the HUD
+    
+    // Setup UI and listeners
+    setupUI();
+    setupListeners();
+    
+    _status = Status::IDLE;
+    
+    addChild(scene);
+    setActive(false);
+    return true;
+}
 
 /**
  * Retrieves and stores references to the lobby UI elements.
@@ -60,29 +60,29 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const s
  * them for later interaction.
  */
 void LobbyScene::setupUI() {
-        _enterGame = std::dynamic_pointer_cast<scene2::Button>(
-            _assets->get<scene2::SceneNode>("lobbyScene.start"));
+    _enterGame = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("lobbyScene.start"));
 
-        _backOut = std::dynamic_pointer_cast<scene2::Button>(
-            _assets->get<scene2::SceneNode>("lobbyScene.back"));
+    _backOut = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("lobbyScene.back"));
 
-        _gameId = std::dynamic_pointer_cast<scene2::Label>(
-            _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
+    _gameId = std::dynamic_pointer_cast<scene2::Label>(
+        _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
 
-        _playerInfoContainer = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
+    _playerInfoContainer = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
 
-        if (_playerInfoContainer) {
-            for (int i = 0; i <= 3; i++) {
-                std::string cardName = "playerCard" + std::to_string(i);
-                auto card = _playerInfoContainer->getChildByName(cardName);
-                auto label = std::dynamic_pointer_cast<scene2::Label>(
-                    card->getChildByName("username")
-                );
+    if (_playerInfoContainer) {
+        for (int i = 0; i <= 3; i++) {
+            std::string cardName = "playerCard" + std::to_string(i);
+            auto card = _playerInfoContainer->getChildByName(cardName);
+            auto label = std::dynamic_pointer_cast<scene2::Label>(
+                card->getChildByName("username")
+            );
 
-                _playerSlots.push_back(label);
-            }
+            _playerSlots.push_back(label);
         }
     }
+}
 
 /**
  * Attaches input listeners to the lobby UI buttons.

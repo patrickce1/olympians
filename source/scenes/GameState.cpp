@@ -214,6 +214,15 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
     }
 }
 
+/**
+ * Overwrites the local game state with a snapshot received from the host.
+ *
+ * Applies the host's authoritative boss and player health values directly,
+ * discarding any local speculative state. Called once per frame on clients
+ * after getNetworkUpdates() is processed.
+ *
+ * @param newState  The authoritative game state snapshot from the host.
+ */
 void GameState::networkUpdate(GameStateMessage newState) {
     // update boss health
     _enemy->setCurrentHealth(newState.bossHealth);
