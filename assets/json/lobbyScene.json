@@ -333,7 +333,7 @@
                             "y_offset": -0.2
                         }
                     },
-                    "playerCard4": {
+                    "playerCard1": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
@@ -645,7 +645,7 @@
                             "y_offset": 0.33
                         }
                     },
-                    "playerCard": {
+                    "playerCard0": {
                         "type": "Node",
                         "format": {
                             "type": "Float",

@@ -111,7 +111,7 @@ bool GameScene::initGameSystems() {
  * @param assets  The loaded asset manager.
  * @return true if initialisation succeeded, false otherwise.
  */
-bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
     if (assets == nullptr) {
         return false;
     }
@@ -120,6 +120,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     }
 
     _assets = assets;
+    _network = networkController;
 
     initInputZones();
 
@@ -130,6 +131,10 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     if (!initGameSystems()) {
         return false;
     }
+
+    /*since networking not initialized yet, just assume we are the host
+    we recheck if we are player 0 whenever another scene transitions back into this one*/
+    setLocalPlayer(0);
     
     setDebugMode(false);
     setActive(false);
@@ -150,9 +155,40 @@ void GameScene::dispose() {
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
         _playerHealthBar = nullptr;
+        _network = nullptr;
         _playerSlots.clear();
         _gameState.dispose();
         _active = false;
+    }
+}
+
+/**
+ * Syncs the local game state with the current network player order.
+ *
+ * Iterates through the lobby's finalized player list and promotes each
+ * slot from an AI placeholder to a real human player via setRealPlayer().
+ * Then sets the local player index so this machine knows which player
+ * it controls, and updates the teammate name labels to show the correct
+ * left and right neighbors.
+ *
+ * NOTE: For now, assumes real players always occupy the first N consecutive slots
+ * in the player array. Will need to be updated if player reordering is
+ * added in the future.
+ *
+ * Does nothing if the network is not connected.
+ */
+void GameScene::updateNetworkOrder() {
+    if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
+        //check who are real players. This is subject to change once player reordering is developed
+        for (int i = 0; i < _network->getNetworkedPlayers().size(); i++) {
+            _gameState.setRealPlayer(i, _network->getNetworkedPlayers()[i].username);
+        }
+
+        //assign our own number
+        setLocalPlayer(_network->getLocalPlayerNumber());
+
+        _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
+        _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
     }
 }
 
@@ -168,6 +204,7 @@ void GameScene::setActive(bool value) {
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
         }
     }
+    updateNetworkOrder();
 }
 
 /**
@@ -217,6 +254,10 @@ void GameScene::handleAttack() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
             local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+            //NETWORKING
+            if (!_network->isHost()) {
+                _network->broadcastDamage(def->getEffectiveValue());
+            }
             CULog("Player attacked enemy '%s' with item %llu",
                   enemy->getId().c_str(), (unsigned long long)item.getId());
             return;
@@ -236,6 +277,13 @@ void GameScene::handleSupportLeft() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            //NETWORK
+            if (_network->isHost()) {
+                target->updateHealth(def->getEffectiveValue());
+            }
+            else {
+                _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
+            }
             return;
         }
     }
@@ -253,6 +301,13 @@ void GameScene::handleSupportRight() {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            //NETWORK
+            if (_network->isHost()) {
+                target->updateHealth(def->getEffectiveValue());
+            }
+            else {
+                _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
+            }
             return;
         }
     }
@@ -268,7 +323,16 @@ void GameScene::handlePassLeft() {
 
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());
-    target->addItem(item);
+
+    if (!target->isAI()) {
+        CULog("Passing left to a real player with the number %d", target->getPlayerNumber());
+    }
+    else {
+        CULog("Passing left to player AI player with number %d", target->getPlayerNumber());
+    }
+
+    //NETWORK
+    _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
 }
 
 /**
@@ -281,18 +345,39 @@ void GameScene::handlePassRight() {
 
     ItemInstance item = local->getInventory()[0];
     local->removeItemById(item.getId());
-    target->addItem(item);
+
+    if (!target->isAI()) {
+        CULog("Passing right to a real player with the number %d", target->getPlayerNumber());
+    }
+    else {
+        CULog("Passing right to player AI player with number %d", target->getPlayerNumber());
+    }
+
+    //NETWORK
+    _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
 }
 
 /**
- * Dispatches the resolved drop-zone action to the appropriate handler
- * and resets the input action afterwards.
+* Processes all the passMessages inside of the vector, putting the correct items in the player's inventory
+* If we are the host, it will also give the correct items to the AI
+* Intended usage: get the pass message vector from the network controller and pass into this function
+*/
+void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
+    for (PassMessage pass : passes) {
+        Player* player = _gameState.getPlayerById(pass.playerID);
+        //for now, passing just gives a random item in the player inventory
+        _itemController.giveRandomItem(_gameState.getLocalPlayer());
+    }
+}
+
+/**
+ * Calls the appropriate handle action helper based on the input that we recieved
  */
-void GameScene::handlePlayerActions(InputController& input) {
+void GameScene::handlePlayerActions(InputController::Action action) {
     Player* local = _gameState.getLocalPlayer();
     if (!local || !local->isAlive()) return;
 
-    switch (input.getAction()) {
+    switch (action) {
         case InputController::Action::DROP_BOSS:       handleAttack();       break;
         case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft();  break;
         case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(); break;
@@ -300,7 +385,6 @@ void GameScene::handlePlayerActions(InputController& input) {
         case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
         default: break;
     }
-    input.resetAction();
 }
 
 #pragma mark -
@@ -349,13 +433,25 @@ void GameScene::handleResetButton(InputController& input) {
     }
 }
 
+
 /**
- * Classifies a drag-and-drop release into a drop zone, triggers the
- * appropriate action and glow effect, then clears the active icon.
+ * Handles the full pipeline of a player's drag-and-drop input for one frame.
+ *
+ * When the player releases a dragged item, this function:
+ *   1. Checks if a drag-and-drop release occurred this frame.
+ *   2. Determines which drop zone (if any) the item was released into.
+ *   3. Validates that the local player is alive before acting.
+ *   4. Dispatches the appropriate game action (attack, support, pass).
+ *   5. Triggers a glow effect on the activated zone for visual feedback.
+ *   6. Logs the action for debugging.
+ *   7. Clears the active dragged icon.
+ *
+ * @param input     The input controller for this frame.
  */
-void GameScene::handleDropResolution(InputController& input) {
+void GameScene::handlePlayerInput(InputController& input) {
     if (!_activeIcon || !input.touchEnded()) return;
 
+    // 1. Determine which drop zone the item was released into
     Vec2 releaseWorld = screenToWorldCoords(input.getReleasePosition());
     InputController::Action finalAction = InputController::Action::NONE;
 
@@ -367,7 +463,10 @@ void GameScene::handleDropResolution(InputController& input) {
     }
 
     if (finalAction != InputController::Action::NONE) {
-        resolveAction(finalAction);
+        // 2. Dispatch to the appropriate action handler
+        handlePlayerActions(finalAction);
+
+        // 3. Trigger glow effect on the activated zone
         _glowAction = finalAction;
         _glowTimer  = _glowDuration;
         if (_activeIcon) {
@@ -439,36 +538,27 @@ void GameScene::handleDragTracking(InputController& input) {
     _activeIcon->setPosition(dragScene + _dragOffset);
 }
 
-/**
- * Logs the resolved drop-zone action for debugging.
- */
-void GameScene::resolveAction(InputController::Action action) {
-    switch (action) {
-    case InputController::Action::DROP_BOSS:
-        CULog("boss drop");
-        break;
-    case InputController::Action::DROP_ALLY_LEFT:
-        CULog("ally drop left");
-        break;
-    case InputController::Action::DROP_ALLY_RIGHT:
-        CULog("ally drop right");
-        break;
-    case InputController::Action::PASS_LEFT:
-        CULog("pass left");
-        break;
-    case InputController::Action::PASS_RIGHT:
-        CULog("pass right");
-        break;
-    case InputController::Action::DRAG:
-        CULog("Dragging");
-        break;
-    case InputController::Action::NONE:
-        CULog("Nothing");
-        break;
-    case InputController::Action::PAUSE:
-        CULog("Nothing");
-        break;
+/* Checks if any updates about the state of the game were sent over the network.
+* If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
+* If we are the host, we process any attack, heal, and pass messages.
+* After doing so, we send out a new authoritative version of the game state as the host*/
+void GameScene::handleNetworkUpdates() {
+    /*Networking pull cycle*/
+    _network->getNetworkUpdates();
+
+    if (_network->isHost()) {
+        // handle incoming attack/heal messages from clients
+        _gameState.attackUpdates(_network->getAttackUpdates());
+        _gameState.healUpdates(_network->getHealUpdates());
+        // broadcast authoritative state to all clients
+        _network->broadcastGameState(_gameState);
     }
+    else {
+        // clients just apply the latest state from host
+        _gameState.networkUpdate(_network->getStateUpdate());
+    }
+
+    processNetworkedPasses(_network->getPassUpdates());
 }
 
 #pragma mark -
@@ -481,7 +571,8 @@ void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
 
     handleResetButton(input);
-    handleDropResolution(input);
+    handlePlayerInput(input);
+    input.resetAction();
 
     if (input.touchEnded()) {
         input.resetAction();
@@ -492,11 +583,13 @@ void GameScene::update(float dt, InputController& input) {
     handleDragInitiation(input);
     handleDragTracking(input);
 
+    handleNetworkUpdates();
+
     _itemController.update(dt, _gameState.getLocalPlayer());
     syncInventoryWidgets();
 
-    handlePlayerActions(input);
     updateEnemyAndAI(dt);
+    _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
 }
 

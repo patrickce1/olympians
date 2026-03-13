@@ -15,6 +15,10 @@
 #include "../Player.h"
 #include "../CharacterLoader.h"
 #include <cugl/cugl.h>
+#include <fstream>
+#include <cstdio>
+#include "../EnemyLoader.h"
+#include "../Enemy.h"
 #include <unordered_set>
 
 // ─────────────────────────────────────────────

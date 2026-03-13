@@ -2,6 +2,7 @@
 #define __CLIENT_SCENE_H__
 
 #include <cugl/cugl.h>
+#include "../NetworkController.h"
 
 /**
  * This class provides the interface to join an existing game.
@@ -33,6 +34,9 @@ public:
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+
+    /** The network controller shared across all scenes*/
+    std::shared_ptr<NetworkController> _network;
     
     /** Menu buttons. **/
     /** The menu button for entering a game */
@@ -82,10 +86,11 @@ public:
      * That is why we have the method {@link #setActive}.
      *
      * @param assets    The (loaded) assets for this game mode
+     * @param networkController The network controller shared across all scenes
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
     
     /**
      * Retrieves and stores references to the client scene UI elements.

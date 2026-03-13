@@ -22,7 +22,7 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -32,6 +32,7 @@ bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // Start up the input handler
     _assets = assets;
+    _network = networkController;
     
     Size dimen = getSize();
     
@@ -100,6 +101,8 @@ void ClientScene::setupListeners() {
 
     _enterGame->addListener([this](const std::string& name, bool down) {
         if (down) {
+            _network->joinRoom(_gameId->getText());
+            _network->setPlayerName(_playerId->getText());
             _status = Status::START;
         }
     });
@@ -119,6 +122,7 @@ void ClientScene::dispose() {
         removeAllChildren();
         _active = false;
     }
+    _network = nullptr;
 }
 
 /**
@@ -163,7 +167,6 @@ void ClientScene::setActive(bool value) {
 void ClientScene::updateText(const std::shared_ptr<scene2::Button>& button, const std::string text) {
     auto label = std::dynamic_pointer_cast<scene2::Label>(button->getChildByName("up")->getChildByName("label"));
     label->setText(text);
-
 }
 
 /**
@@ -175,6 +178,5 @@ void ClientScene::updateText(const std::shared_ptr<scene2::Button>& button, cons
  */
 void ClientScene::update(float timestep) {
     // IMPLEMENT ME
-
 }
 

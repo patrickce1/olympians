@@ -22,7 +22,7 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -32,6 +32,7 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // Start up the input handler
     _assets = assets;
+    _network = networkController;
 
     Size dimen = getSize();
     
@@ -66,7 +67,21 @@ void LobbyScene::setupUI() {
         _assets->get<scene2::SceneNode>("lobbyScene.back"));
 
     _gameId = std::dynamic_pointer_cast<scene2::Label>(
-        _assets->get<scene2::SceneNode>("lobbyScene.header.gameId"));
+        _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
+
+    _playerInfoContainer = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
+
+    if (_playerInfoContainer) {
+        for (int i = 0; i <= 3; i++) {
+            std::string cardName = "playerCard" + std::to_string(i);
+            auto card = _playerInfoContainer->getChildByName(cardName);
+            auto label = std::dynamic_pointer_cast<scene2::Label>(
+                card->getChildByName("username")
+            );
+
+            _playerSlots.push_back(label);
+        }
+    }
 }
 
 /**
@@ -78,6 +93,10 @@ void LobbyScene::setupUI() {
 void LobbyScene::setupListeners() {
     _enterGame->addListener([this](const std::string& name, bool down) {
         if (down) {
+            //only host can start the game
+            if (_network->isHost()) {
+                _network->broadcastGameStart();
+            }
             _status = Status::START;
         }
     });
@@ -97,6 +116,7 @@ void LobbyScene::dispose() {
         removeAllChildren();
         _active = false;
     }
+    _network = nullptr;
 }
 
 /**
@@ -126,6 +146,17 @@ void LobbyScene::setActive(bool value) {
     }
 }
 
+void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
+    for (int i = 0; i < _playerSlots.size(); i++) {
+        if (i < onlinePlayers.size()) {
+            _playerSlots[i]->setText(onlinePlayers[i].username);
+        }
+        else {
+            _playerSlots[i]->setText("AI Player");
+        }
+    }
+}
+
 /**
  * The method called to update the scene.
  *
@@ -134,7 +165,24 @@ void LobbyScene::setActive(bool value) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void LobbyScene::update(float timestep) {
-    // IMPLEMENT ME
+    //get the room once we are fully connected
+    if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
+        _gameId->setText(_network->getRoom());
+        _network->broadcastJoinedLobby();
+        _network->getNetworkUpdates();
+    }
+    else {
+        _gameId->setText("waiting...");
+    }
 
+    if (!_network->isHost()) {
+        _network->getNetworkUpdates();
+        bool gameStarted = _network->checkGameStarted();
+        if (gameStarted) {
+            _status = START;
+        }
+    }
+
+    updateLobbyText(_network->getNetworkedPlayers());
 }
 

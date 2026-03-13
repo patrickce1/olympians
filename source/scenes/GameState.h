@@ -10,6 +10,7 @@
 #include "../items/ItemController.h"
 #include "../playerAI/PlayerAI.h"
 #include "../playerAI/EasyPlayerAI.h"
+#include "../NetworkMessage.h"
 
 /**
  * Pure data model for the game world.
@@ -61,8 +62,24 @@ public:
      * Builds the player array (one human + three AI), links all players in a
      * circular neighbour ring, and populates the player ID map.
      * Must be called after initCharacters().
+     * 
+     * For now, we just pass in an integer, since if there are x real players, there will be the first x players in the game scene
+     * Later, when we have reordering ability, this can be changed
      */
     void initPlayers();
+
+     /**
+     * Replaces the AI placeholder at the given slot with a real human player.
+     *
+     * Called during game setup after the lobby has finalized the player order.
+     *
+     * After replacing the player, all neighbors in the circle are re-linked
+     * to account for the new player object at that slot.
+     *
+     * @param playerNumber  The 0-based index of the slot to replace with a real player.
+     * @param playerName    The display name of the player joining this slot.
+     */
+    void setRealPlayer(int playerNumber, const std::string& playerName);
 
     /**
      * Loads and initialises the enemy from JSON.
@@ -104,6 +121,17 @@ public:
      * Called at the start of every round via GameScene::reset().
      */
     void reset();
+
+    /*Convinient way to update the game state and inventory by just providing the struct from the network controller. USED BY CLIENTS*/
+    void networkUpdate(GameStateMessage updatedState);
+
+    /*Convinient functions to handle updates recieved from the network. USED BY THE HOST*/
+    /*Updates the gameState object by applying all the damage present in the messages of `attacks`*/
+    void attackUpdates(std::vector<AttackMessage> attacks);
+
+    /*Updates the gameState object by handling all healing requests in the messages in `heals`*/
+    void healUpdates(std::vector<HealMessage> heals);
+    
 
 #pragma mark - Player Access
 

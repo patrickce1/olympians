@@ -97,6 +97,9 @@ public:
      * Return the current health of the character/player
      */
     float getCurrentHealth() const { return _currentHealth; }
+
+    /*Setter for current health*/
+    void setCurrentHealth(float health) { _currentHealth = health; }
     
     /**
      * Returns the ability class of the character

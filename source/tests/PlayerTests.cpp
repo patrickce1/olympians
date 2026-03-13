@@ -15,6 +15,7 @@
 #include "PlayerTests.h"
 #include "../Player.h"
 #include "../Enemy.h"
+#include "../EnemyLoader.h"
 #include "../playerAI/EasyPlayerAI.h"
 #include "../items/ItemDatabase.h"
 #include "../items/ItemDef.h"

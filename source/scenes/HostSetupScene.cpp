@@ -29,7 +29,7 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -39,6 +39,7 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // Start up the input handler
     _assets = assets;
+    _network = networkController;
     
     Size dimen = getSize();
     
@@ -111,6 +112,8 @@ void HostSetupScene::setupListeners() {
     
     _startGame->addListener([this](const std::string& name, bool down) {
         if (down) {
+            _network->hostRoom();
+            _network->setPlayerName(_hostName->getText());
             _status = Status::START;
         }
     });
@@ -138,6 +141,7 @@ void HostSetupScene::dispose() {
         removeAllChildren();
         _active = false;
     }
+    _network = nullptr;
 }
 
 /**

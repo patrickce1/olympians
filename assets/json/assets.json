@@ -140,6 +140,9 @@
             "size":     42
         }
     },
+    "jsons": {
+        "server": "json/server.json"
+    },
     "widgets": {
         "scene":       "json/gameScene.json",
         "gameArea":   "widgets/gameArea.json",

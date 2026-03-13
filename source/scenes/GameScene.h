@@ -4,10 +4,14 @@
 #include <cugl/cugl.h>
 #include <vector>
 #include <unordered_map>
+#include "GameState.h"
 #include "../InputController.h"
 #include "../items/ItemController.h"
+#include "../Enemy.h"
+#include "../EnemyLoader.h"
 #include "../EnemyController.h"
-#include "GameState.h"
+#include "../NetworkController.h"
+#include "../NetworkMessage.h"
 
 /**
  * Controller for the core game scene.
@@ -27,6 +31,10 @@ protected:
 
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+
+    /** Network controller. Responsible for sending networking messages and process messages sent
+     * over the network. */
+    std::shared_ptr<NetworkController> _network;
 
     /** The root scene node for this scene graph. */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
@@ -118,6 +126,9 @@ protected:
      */
     GameState _gameState;
 
+    /** Keeps track of whether or not we are the host */
+    bool _host;
+
 public:
 #pragma mark - Constructors
 
@@ -173,9 +184,10 @@ public:
      * call setActive(true) when ready to receive input.
      *
      * @param assets  The loaded asset manager.
+     * @param networkController The network controller shared across all scenes
      * @return true if initialisation succeeded, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
 
     /**
      * Activates or deactivates the scene and its UI.
@@ -241,7 +253,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handlePlayerActions(InputController& input);
+    void handlePlayerActions(InputController::Action action);
 
 #pragma mark - Update Helpers
 
@@ -270,12 +282,19 @@ public:
     void handleResetButton(InputController& input);
 
     /**
-     * Classifies a drag-and-drop release into a drop zone, triggers the
-     * appropriate action and glow effect, then clears the active icon.
+     * Handles the full pipeline of a player's drag-and-drop input for one frame.
      *
-     * @param input  The active input controller.
+     * When the player releases a dragged item, this function determines which
+     * drop zone the item landed in and dispatches the appropriate game action
+     * (attack, support, or pass). Also triggers a glow effect on the activated
+     * zone for visual feedback and clears the active dragged icon.
+     *
+     * Does nothing if no item is being dragged or if the touch has not ended.
+     * Does nothing if the local player is dead.
+     *
+     * @param input     The input controller for this frame.
      */
-    void handleDropResolution(InputController& input);
+    void handlePlayerInput(InputController& input);
 
     /**
      * Decrements the glow timer each frame. Clears the active glow action
@@ -310,12 +329,11 @@ public:
     void handleDragTracking(InputController& input);
 
     /**
-     * Logs the resolved drop-zone action for debugging.
-     * Replace CULog calls with real game logic as features are implemented.
-     *
-     * @param action  The action resolved from the drop-zone hit-test.
-     */
-    void resolveAction(InputController::Action action);
+    * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory
+    * If we are the host, it will also give the correct items to the AI
+    * Intended usage: get the pass message vector from the network controller and pass into this function
+    */
+    void processNetworkedPasses(std::vector<PassMessage> passes);
 
 #pragma mark - Inventory UI
 
@@ -411,6 +429,25 @@ public:
      * Retrieves the current state of `_debugMode.
      */
     bool isDebugMode() const {return _debugMode; }
+
+#pragma mark - Networking
+    /* Checks if any updates about the state of the game were sent over the network. 
+    * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us. 
+    * If we are the host, we process any attack, heal, and pass messages. 
+    * After doing so, we send out a new authoritative version of the game state as the host*/
+    void handleNetworkUpdates();
+    
+    /**
+     * Syncs the local game state with the current network player order.
+     *
+     * Converts all networked player slots to real human players, assigns
+     * the local player index, and updates the left and right neighbor
+     * name labels in the UI. Should be called once when the game scene
+     * becomes active after the lobby has finalized the player order.
+     *
+     * Does nothing if the network is not connected.
+     */
+    void updateNetworkOrder();
 };
 
 #endif /* __GAME_SCENE_H__ */

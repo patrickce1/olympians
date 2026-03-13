@@ -4,6 +4,8 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
+#include "../NetworkController.h"
+#include "../NetworkMessage.h"
 
 /**
  * This class provides the interface to join an existing game.
@@ -30,6 +32,9 @@ protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
 
+    /** The network controller shared across all scenes*/
+    std::shared_ptr<NetworkController> _network;
+
     /** The button for entering a game */
     std::shared_ptr<cugl::scene2::Button> _enterGame;
     
@@ -44,6 +49,9 @@ protected:
     
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
+
+    /** A container that stores labels and other info for visualizing the character and username choices of players */
+    std::shared_ptr<cugl::scene2::SceneNode> _playerInfoContainer;
     
     /** The current status */
     Status _status;
@@ -83,10 +91,11 @@ public:
      * That is why we have the method {@link #setActive}.
      *
      * @param assets    The (loaded) assets for this game mode
+     * @param networkController The network controller shared across all scenes
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
     
     /**
      * Retrieves and stores references to the lobby UI elements.
@@ -148,6 +157,9 @@ private:
      * @param text      The new text value
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
+
+    /*Updates the player handles based on updates to the lobby state*/
+    void updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers);
 };
 
 #endif /* __LOBBY_SCENE_H__ */

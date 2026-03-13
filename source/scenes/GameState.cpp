@@ -24,13 +24,13 @@ bool GameState::initCharacters() {
 void GameState::initPlayers() {
     _players.reserve(4);
 
-    auto humanPlayer = std::make_shared<Player>("Percy", 1, "Player 1", _characterLoader);
+    auto humanPlayer = std::make_shared<Player>("Percy", 0, "Player 1", _characterLoader);
     _players.push_back(humanPlayer);
 
     for (int i = 1; i <= 3; i++) {
-        auto aiPlayer = std::make_shared<EasyPlayerAI>(
-            "Percy", i + 1,
-            "Player " + std::to_string(i + 1),
+       auto aiPlayer = std::make_shared<EasyPlayerAI>(
+            "Percy", i,
+            "Player " + std::to_string(i),
             _characterLoader
         );
         _players.push_back(aiPlayer);
@@ -51,7 +51,42 @@ void GameState::initPlayers() {
     }
 
     // Default to index 0; setLocalPlayer() is called again after network lobby.
+    //figure out our own location in the circle
     setLocalPlayer(0);
+}
+
+/**
+ * Replaces the AI placeholder at the given slot with a real human player.
+ *
+ * Called during game setup after the lobby has finalized the player order.
+ * Since real players always occupy the first N slots, playerNumber corresponds
+ * directly to their index in the online players list.
+ *
+ * After replacing the player, all neighbors in the circle are re-linked
+ * to account for the new player object at that slot.
+ *
+ * @param playerNumber  The 0-based index of the slot to replace with a real player.
+ * @param playerName    The display name of the player joining this slot.
+ */
+void GameState::setRealPlayer(int playerNumber, const std::string& playerName) {
+    if (playerNumber < 0 || playerNumber >= _players.size()) {
+        CULog("Invalid player number %d", playerNumber);
+        return;
+    }
+    _players[playerNumber] = std::make_shared<Player>(
+        "Percy", playerNumber,
+        playerName + std::to_string(playerNumber),
+        _characterLoader
+    );
+
+    // reset all neighbors for every player
+    int playerCount = _players.size();
+    for (int i = 0; i < playerCount; i++) {
+        int leftIdx = (i - 1 + playerCount) % playerCount;
+        int rightIdx = (i + 1) % playerCount;
+        _players[i]->setLeftPlayer(_players[leftIdx].get());
+        _players[i]->setRightPlayer(_players[rightIdx].get());
+    }
 }
 
 /**
@@ -162,4 +197,45 @@ void GameState::setLocalPlayer(int assignedIndex) {
 Player* GameState::getPlayerById(int playerId) const {
     auto it = _playerIdMap.find(playerId);
     return (it != _playerIdMap.end()) ? it->second : nullptr;
+}
+
+/* Goes through the list of attack messages in attacks and applies the damage specified to the boss*/
+void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
+    for (AttackMessage attack : attacks) {
+        _enemy->updateHealth(-1 * attack.damage);
+    }
+}
+
+/* Goes through the list of heal messages in heals and increases player health according to the heal amount*/
+void GameState::healUpdates(std::vector<HealMessage> heals) {
+    for (HealMessage heal : heals) {
+        if (heal.playerID < 0 || heal.playerID >= (int)_players.size()) continue;
+        _players[heal.playerID]->updateHealth(heal.heal);
+    }
+}
+
+/**
+ * Overwrites the local game state with a snapshot received from the host.
+ *
+ * Applies the host's authoritative boss and player health values directly,
+ * discarding any local speculative state. Called once per frame on clients
+ * after getNetworkUpdates() is processed.
+ *
+ * @param newState  The authoritative game state snapshot from the host.
+ */
+void GameState::networkUpdate(GameStateMessage newState) {
+    // update boss health
+    _enemy->setCurrentHealth(newState.bossHealth);
+
+    // update player health
+    std::vector<float> healths = {
+        newState.player1HP,
+        newState.player2HP,
+        newState.player3HP,
+        newState.player4HP
+    };
+
+    for (int i = 0; i < _players.size(); i++) {
+        _players[i]->setCurrentHealth(healths[i]);
+    }
 }
