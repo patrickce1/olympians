@@ -16,6 +16,10 @@ using namespace std;
 /** Example height for now, change as needed */
 #define SCENE_HEIGHT 852
 
+namespace {
+constexpr float ITEM_PHYSICS_UNITS = 1.0f;
+}
+
 #pragma mark -
 #pragma mark Constructors
 
@@ -83,6 +87,17 @@ bool GameScene::initSceneGraph() {
     return true;
 }
 
+bool GameScene::initInventoryPhysics() {
+    Rect worldBounds(0.0f, 0.0f, getSize().width, getSize().height);
+    _itemPhysicsWorld = cugl::physics2::ObstacleWorld::alloc(worldBounds, Vec2::ZERO);
+    if (!_itemPhysicsWorld) {
+        CULogError("Failed to create item physics world");
+        return false;
+    }
+
+    return true;
+}
+
 /**
  * Initialises the ItemController and GameState.
  * ItemController must be initialised first because GameState::init()
@@ -128,6 +143,10 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
         return false;
     }
 
+    if (!initInventoryPhysics()) {
+        return false;
+    }
+
     if (!initGameSystems()) {
         return false;
     }
@@ -136,7 +155,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     we recheck if we are player 0 whenever another scene transitions back into this one*/
     setLocalPlayer(0);
     
-    setDebugMode(false);
+    setDebugMode(true);
     setActive(false);
     return true;
 }
@@ -145,8 +164,9 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
  * Disposes of all (non-static) resources allocated to this mode.
  */
 void GameScene::dispose() {
-    if (_active) {
+    if (_active || _scene || _itemPhysicsWorld) {
         removeAllChildren();
+        _scene      = nullptr;
         _gameArea   = nullptr;
         _inventory  = nullptr;
         _attackArea = nullptr;
@@ -157,6 +177,12 @@ void GameScene::dispose() {
         _playerHealthBar = nullptr;
         _network = nullptr;
         _playerSlots.clear();
+        _itemWidgets.clear();
+        _itemBodies.clear();
+        if (_itemPhysicsWorld) {
+            _itemPhysicsWorld->dispose();
+            _itemPhysicsWorld = nullptr;
+        }
         _gameState.dispose();
         _active = false;
     }
@@ -217,12 +243,14 @@ void GameScene::reset() {
     _glowAction = InputController::Action::NONE;
     _glowTimer  = 0;
 
-    for (auto& [id, widget] : _itemWidgets) {
-        if (widget && _inventory) {
-            _inventory->removeChild(widget);
-        }
+    std::vector<ItemInstance::ItemId> itemIds;
+    itemIds.reserve(_itemWidgets.size());
+    for (const auto& [id, widget] : _itemWidgets) {
+        itemIds.push_back(id);
     }
-    _itemWidgets.clear();
+    for (ItemInstance::ItemId itemId : itemIds) {
+        removeItemWidget(itemId);
+    }
 
     // Delegate inventory clearing to the model.
     _gameState.reset();
@@ -587,6 +615,10 @@ void GameScene::update(float dt, InputController& input) {
 
     _itemController.update(dt, _gameState.getLocalPlayer());
     syncInventoryWidgets();
+    syncItemBodiesToWidgets();
+    if (_itemPhysicsWorld) {
+        _itemPhysicsWorld->update(dt);
+    }
 
     updateEnemyAndAI(dt);
     _network->clearQueues();
@@ -632,6 +664,77 @@ cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size& widgetSize) c
     return cugl::Vec2(xDist(rng), yDist(rng));
 }
 
+std::shared_ptr<cugl::physics2::BoxObstacle> GameScene::createItemBody(
+    ItemInstance::ItemId itemId,
+    const std::shared_ptr<SceneNode>& widget) {
+    if (!_itemPhysicsWorld || !widget) {
+        return nullptr;
+    }
+
+    Size widgetSize = widget->getContentSize();
+    Vec2 center = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+    auto body = cugl::physics2::BoxObstacle::alloc(center, widgetSize);
+    if (!body) {
+        CULogError("Failed to create item body for %llu", (unsigned long long)itemId);
+        return nullptr;
+    }
+
+    body->setName("item_body_" + std::to_string((unsigned long long)itemId));
+    body->setPhysicsUnits(ITEM_PHYSICS_UNITS);
+    body->setBodyType(b2_kinematicBody);
+    body->setSensor(true);
+    body->setLinearVelocity(Vec2::ZERO);
+    _itemPhysicsWorld->addObstacle(body);
+    _itemBodies[itemId] = body;
+    return body;
+}
+
+void GameScene::syncItemBodiesToWidgets() {
+    std::vector<ItemInstance::ItemId> staleIds;
+
+    for (auto& [itemId, body] : _itemBodies) {
+        auto widgetIt = _itemWidgets.find(itemId);
+        if (!body || widgetIt == _itemWidgets.end() || !widgetIt->second) {
+            staleIds.push_back(itemId);
+            continue;
+        }
+
+        Size widgetSize = widgetIt->second->getContentSize();
+        Vec2 center = widgetIt->second->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+        body->setPosition(center);
+        body->setLinearVelocity(Vec2::ZERO);
+    }
+
+    for (ItemInstance::ItemId itemId : staleIds) {
+        removeItemWidget(itemId);
+    }
+}
+
+void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
+    auto widgetIt = _itemWidgets.find(itemId);
+    if (widgetIt != _itemWidgets.end()) {
+        if (_activeIcon == widgetIt->second) {
+            _activeIcon = nullptr;
+        }
+        if (widgetIt->second && _inventory) {
+            _inventory->removeChild(widgetIt->second);
+        }
+        _itemWidgets.erase(widgetIt);
+    }
+
+    auto bodyIt = _itemBodies.find(itemId);
+    if (bodyIt != _itemBodies.end()) {
+        if (bodyIt->second && _itemPhysicsWorld) {
+            b2World* world = _itemPhysicsWorld->getWorld();
+            if (world && bodyIt->second->getBody()) {
+                bodyIt->second->deactivatePhysics(*world);
+            }
+            _itemPhysicsWorld->removeObstacle(bodyIt->second);
+        }
+        _itemBodies.erase(bodyIt);
+    }
+}
+
 /** Synchronises on-screen item widgets with the local player's current inventory. */
 void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();
@@ -649,18 +752,18 @@ void GameScene::syncInventoryWidgets() {
             if (!widget) continue;
             widget->setPosition(getRandomInventoryPosition(widget->getContentSize()));
             _itemWidgets.emplace(id, widget);
+            createItemBody(id, widget);
         }
     }
 
-    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end();) {
-        if (liveIds.find(it->first) == liveIds.end()) {
-            if (it->second) {
-                _inventory->removeChild(it->second);
-            }
-            it = _itemWidgets.erase(it);
-        } else {
-            ++it;
+    std::vector<ItemInstance::ItemId> removedIds;
+    for (const auto& [itemId, widget] : _itemWidgets) {
+        if (liveIds.find(itemId) == liveIds.end()) {
+            removedIds.push_back(itemId);
         }
+    }
+    for (ItemInstance::ItemId itemId : removedIds) {
+        removeItemWidget(itemId);
     }
 }
 
@@ -701,6 +804,17 @@ void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch) {
     }
 }
 
+void GameScene::renderItemBodyDebug(cugl::graphics::SpriteBatch* batch) {
+    batch->setTexture(nullptr);
+    batch->setGradient(nullptr);
+    batch->setColor(Color4(0, 255, 255, 200));
+
+    for (auto& [itemId, body] : _itemBodies) {
+        if (!body || _itemWidgets.find(itemId) == _itemWidgets.end()) continue;
+        batch->drawMesh(body->getDebugMesh(), body->getGraphicsTransform());
+    }
+}
+
 /** Draws a small red square at the current touch position. */
 void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch* batch) {
     if (!_hasDebugPointer) return;
@@ -726,6 +840,7 @@ void GameScene::render() {
         renderResetButton(batch.get());
         renderDropZones(batch.get());
         renderItemWidgetDebug(batch.get());
+        renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
     }
 

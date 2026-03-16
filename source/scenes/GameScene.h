@@ -57,6 +57,12 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
+    /** Inventory-only physics world used to attach Box2D bodies to item widgets. */
+    std::shared_ptr<cugl::physics2::ObstacleWorld> _itemPhysicsWorld;
+
+    /** Maps ItemId to the Box2D body representing that inventory widget. */
+    std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::physics2::BoxObstacle>> _itemBodies;
+
     /** Input zones: each entry maps an Action to the screen Rect that triggers it. */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _inputZones;
 
@@ -165,6 +171,16 @@ public:
      * @return true if the root scene node was found in the asset manager.
      */
     bool initSceneGraph();
+
+    /**
+     * Initialises the dedicated Box2D world used for inventory item widgets.
+     *
+     * Bodies in this world are only used for debugging and future inventory
+     * interactions, so the world has zero gravity and scene-space bounds.
+     *
+     * @return true if the physics world was created successfully.
+     */
+    bool initInventoryPhysics();
 
     /**
      * Initialises the ItemController and GameState.
@@ -349,6 +365,18 @@ public:
     /** Return a random valid inventory position for a newly spawned item widget */
     cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
 
+    /** Creates and registers the Box2D body for an item widget. */
+    std::shared_ptr<cugl::physics2::BoxObstacle> createItemBody(
+        ItemInstance::ItemId itemId,
+        const std::shared_ptr<cugl::scene2::SceneNode>& widget
+    );
+
+    /** Updates all inventory bodies so they exactly match their widget positions. */
+    void syncItemBodiesToWidgets();
+
+    /** Removes the widget and its Box2D body for the given item. */
+    void removeItemWidget(ItemInstance::ItemId itemId);
+
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
 
@@ -394,6 +422,9 @@ public:
      * @param batch  The active sprite batch.
      */
     void renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch);
+
+    /** Draws the Box2D debug wireframes for inventory item bodies. */
+    void renderItemBodyDebug(cugl::graphics::SpriteBatch* batch);
 
     /**
      * Draws a small red square at the current touch position.
