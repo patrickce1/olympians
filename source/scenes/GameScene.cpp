@@ -240,6 +240,8 @@ void GameScene::setActive(bool value) {
  */
 void GameScene::reset() {
     _activeIcon = nullptr;
+    _activeItemId = 0;
+    _dragStartPosition = Vec2::ZERO;
     _glowAction = InputController::Action::NONE;
     _glowTimer  = 0;
 
@@ -273,38 +275,46 @@ void GameScene::setLocalPlayer(int assignedIndex) {
 /**
  * Handles the local player dropping an attack item on the boss zone.
  */
-void GameScene::handleAttack() {
+void GameScene::handleAttack(ItemInstance::ItemId itemId) {
     auto enemy    = _gameState.getEnemy();
     Player* local = _gameState.getLocalPlayer();
-    if (!enemy || !local) return;
+    if (!enemy || !local || itemId == 0) return;
 
     for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() != itemId) {
+            continue;
+        }
+
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
-            local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+            local->useItemById(itemId, *enemy, _itemController.getDatabase());
             //NETWORKING
             if (!_network->isHost()) {
                 _network->broadcastDamage(def->getEffectiveValue());
             }
             CULog("Player attacked enemy '%s' with item %llu",
-                  enemy->getId().c_str(), (unsigned long long)item.getId());
-            return;
+                  enemy->getId().c_str(), (unsigned long long)itemId);
         }
+        return;
     }
 }
 
 /**
  * Handles the local player dropping a support item on the left ally zone.
  */
-void GameScene::handleSupportLeft() {
+void GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getLeftPlayer() : nullptr;
-    if (!target || !target->isAlive()) return;
+    if (!local || !target || !target->isAlive() || itemId == 0) return;
 
     for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() != itemId) {
+            continue;
+        }
+
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            local->useItemById(itemId, *target, _itemController.getDatabase());
             //NETWORK
             if (_network->isHost()) {
                 target->updateHealth(def->getEffectiveValue());
@@ -312,23 +322,27 @@ void GameScene::handleSupportLeft() {
             else {
                 _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
             }
-            return;
         }
+        return;
     }
 }
 
 /**
  * Handles the local player dropping a support item on the right ally zone.
  */
-void GameScene::handleSupportRight() {
+void GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
-    if (!target || !target->isAlive()) return;
+    if (!local || !target || !target->isAlive() || itemId == 0) return;
 
     for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() != itemId) {
+            continue;
+        }
+
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            local->useItemById(itemId, *target, _itemController.getDatabase());
             //NETWORK
             if (_network->isHost()) {
                 target->updateHealth(def->getEffectiveValue());
@@ -336,53 +350,65 @@ void GameScene::handleSupportRight() {
             else {
                 _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
             }
-            return;
         }
+        return;
     }
 }
 
 /**
- * Passes the first item in the local player's inventory to the left neighbour.
+ * Passes the dragged item in the local player's inventory to the left neighbour.
  */
-void GameScene::handlePassLeft() {
+void GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getLeftPlayer() : nullptr;
-    if (!target || !target->isAlive() || local->getInventory().empty()) return;
+    if (!local || !target || !target->isAlive() || itemId == 0) return;
 
-    ItemInstance item = local->getInventory()[0];
-    local->removeItemById(item.getId());
+    for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() != itemId) {
+            continue;
+        }
 
-    if (!target->isAI()) {
-        CULog("Passing left to a real player with the number %d", target->getPlayerNumber());
+        local->removeItemById(itemId);
+
+        if (!target->isAI()) {
+            CULog("Passing left to a real player with the number %d", target->getPlayerNumber());
+        }
+        else {
+            CULog("Passing left to player AI player with number %d", target->getPlayerNumber());
+        }
+
+        //NETWORK
+        _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
+        return;
     }
-    else {
-        CULog("Passing left to player AI player with number %d", target->getPlayerNumber());
-    }
-
-    //NETWORK
-    _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
 }
 
 /**
- * Passes the first item in the local player's inventory to the right neighbour.
+ * Passes the dragged item in the local player's inventory to the right neighbour.
  */
-void GameScene::handlePassRight() {
+void GameScene::handlePassRight(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
-    if (!target || !target->isAlive() || local->getInventory().empty()) return;
+    if (!local || !target || !target->isAlive() || itemId == 0) return;
 
-    ItemInstance item = local->getInventory()[0];
-    local->removeItemById(item.getId());
+    for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() != itemId) {
+            continue;
+        }
 
-    if (!target->isAI()) {
-        CULog("Passing right to a real player with the number %d", target->getPlayerNumber());
+        local->removeItemById(itemId);
+
+        if (!target->isAI()) {
+            CULog("Passing right to a real player with the number %d", target->getPlayerNumber());
+        }
+        else {
+            CULog("Passing right to player AI player with number %d", target->getPlayerNumber());
+        }
+
+        //NETWORK
+        _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
+        return;
     }
-    else {
-        CULog("Passing right to player AI player with number %d", target->getPlayerNumber());
-    }
-
-    //NETWORK
-    _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
 }
 
 /**
@@ -401,17 +427,57 @@ void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
 /**
  * Calls the appropriate handle action helper based on the input that we recieved
  */
-void GameScene::handlePlayerActions(InputController::Action action) {
+void GameScene::handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId) {
     Player* local = _gameState.getLocalPlayer();
     if (!local || !local->isAlive()) return;
 
     switch (action) {
-        case InputController::Action::DROP_BOSS:       handleAttack();       break;
-        case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft();  break;
-        case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(); break;
-        case InputController::Action::PASS_LEFT:       handlePassLeft();     break;
-        case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
+        case InputController::Action::DROP_BOSS:       handleAttack(itemId);       break;
+        case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft(itemId);  break;
+        case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(itemId); break;
+        case InputController::Action::PASS_LEFT:       handlePassLeft(itemId);     break;
+        case InputController::Action::PASS_RIGHT:      handlePassRight(itemId);    break;
         default: break;
+    }
+}
+
+bool GameScene::isValidActionForItem(ItemInstance::ItemId itemId, InputController::Action action) const {
+    if (itemId == 0) {
+        return false;
+    }
+
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) {
+        return false;
+    }
+
+    const ItemInstance* draggedItem = nullptr;
+    for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() == itemId) {
+            draggedItem = &item;
+            break;
+        }
+    }
+    if (!draggedItem) {
+        return false;
+    }
+
+    auto def = _itemController.getDatabase().getDef(draggedItem->getDefId());
+    if (!def) {
+        return false;
+    }
+
+    switch (action) {
+        case InputController::Action::DROP_BOSS:
+            return def->getType() == ItemDef::Type::Attack;
+        case InputController::Action::DROP_ALLY_LEFT:
+        case InputController::Action::DROP_ALLY_RIGHT:
+            return def->getType() == ItemDef::Type::Support;
+        case InputController::Action::PASS_LEFT:
+        case InputController::Action::PASS_RIGHT:
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -491,18 +557,24 @@ void GameScene::handlePlayerInput(InputController& input) {
     }
 
     if (finalAction != InputController::Action::NONE) {
-        // 2. Dispatch to the appropriate action handler
-        handlePlayerActions(finalAction);
+        if (isValidActionForItem(_activeItemId, finalAction)) {
+            // 2. Dispatch to the appropriate action handler
+            handlePlayerActions(finalAction, _activeItemId);
 
-        // 3. Trigger glow effect on the activated zone
-        _glowAction = finalAction;
-        _glowTimer  = _glowDuration;
-        if (_activeIcon) {
-            _activeIcon->setVisible(false);
+            // 3. Trigger glow effect on the activated zone
+            _glowAction = finalAction;
+            _glowTimer  = _glowDuration;
+            if (_activeIcon) {
+                _activeIcon->setVisible(false);
+            }
+        } else {
+            _activeIcon->setPosition(_dragStartPosition);
         }
     }
 
     _activeIcon = nullptr;
+    _activeItemId = 0;
+    _dragStartPosition = Vec2::ZERO;
 }
 
 /**
@@ -550,6 +622,8 @@ void GameScene::handleDragInitiation(InputController& input) {
         if (!widget) continue;
         if (widget->getBoundingBox().contains(touchPosScreen)) {
             _activeIcon = widget;
+            _activeItemId = id;
+            _dragStartPosition = widget->getPosition();
             _dragOffset = widget->getPosition() - touchPosScreen;
             break;
         }
@@ -715,6 +789,8 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
     if (widgetIt != _itemWidgets.end()) {
         if (_activeIcon == widgetIt->second) {
             _activeIcon = nullptr;
+            _activeItemId = 0;
+            _dragStartPosition = Vec2::ZERO;
         }
         if (widgetIt->second && _inventory) {
             _inventory->removeChild(widgetIt->second);

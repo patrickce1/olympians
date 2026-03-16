@@ -86,6 +86,12 @@ protected:
     /** The scene node currently being dragged by the player, or nullptr. */
     std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
 
+    /** The inventory item currently being dragged, or 0 if none is active. */
+    ItemInstance::ItemId _activeItemId = 0;
+
+    /** The dragged icon's pre-drag position, used to restore invalid drops. */
+    cugl::Vec2 _dragStartPosition = cugl::Vec2::ZERO;
+
     /** Offset from the icon's origin to the touch point, applied during drag. */
     cugl::Vec2 _dragOffset;
 
@@ -235,32 +241,31 @@ public:
 
     /**
      * Handles the local player dropping an attack item on the boss zone.
-     * Finds the first attack item in the local player's inventory and
-     * applies it to the enemy.
+     * Applies the dragged attack item to the enemy.
      */
-    void handleAttack();
+    void handleAttack(ItemInstance::ItemId itemId);
 
     /**
      * Handles the local player dropping a support item on the left ally zone.
-     * Finds the first support item and applies it to the left neighbour.
+     * Applies the dragged support item to the left neighbour.
      */
-    void handleSupportLeft();
+    void handleSupportLeft(ItemInstance::ItemId itemId);
 
     /**
      * Handles the local player dropping a support item on the right ally zone.
-     * Finds the first support item and applies it to the right neighbour.
+     * Applies the dragged support item to the right neighbour.
      */
-    void handleSupportRight();
+    void handleSupportRight(ItemInstance::ItemId itemId);
 
     /**
-     * Passes the first item in the local player's inventory to the left neighbour.
+     * Passes the dragged item to the left neighbour.
      */
-    void handlePassLeft();
+    void handlePassLeft(ItemInstance::ItemId itemId);
 
     /**
-     * Passes the first item in the local player's inventory to the right neighbour.
+     * Passes the dragged item to the right neighbour.
      */
-    void handlePassRight();
+    void handlePassRight(ItemInstance::ItemId itemId);
 
     /**
      * Dispatches the resolved drop-zone action to the appropriate handler
@@ -269,7 +274,19 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handlePlayerActions(InputController::Action action);
+    void handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId);
+
+    /**
+     * Returns true if the specified item may be used in the given drop zone.
+     *
+     * Attack items may only be dropped on the boss zone. Support items may
+     * only be dropped on ally zones. Passing accepts any item.
+     *
+     * @param itemId  The dragged item instance ID.
+     * @param action  The resolved drop-zone action.
+     * @return true if the action is valid for that item, false otherwise.
+     */
+    bool isValidActionForItem(ItemInstance::ItemId itemId, InputController::Action action) const;
 
 #pragma mark - Update Helpers
 
