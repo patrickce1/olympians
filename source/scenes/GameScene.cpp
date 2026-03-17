@@ -24,16 +24,7 @@ using namespace std;
  * Must be called after Scene2::initWithHint() so getSize() is valid.
  */
 void GameScene::initInputZones() {
-    Size dimen = getSize();
-    float w = dimen.width;
-    float h = dimen.height;
-    _inputZones = {
-        {InputController::Action::DROP_BOSS,       Rect(w * 0.15f, h * 0.5f, w * 0.7f,  h * 0.5f)},
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.5f, w * 0.15f, h * 0.5f)},
-        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)},
-        {InputController::Action::PASS_LEFT,       Rect(0,         0,        w * 0.15f, h * 0.5f)},
-        {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)}
-    };
+    updateInputZones();
 }
 
 /**
@@ -136,7 +127,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     we recheck if we are player 0 whenever another scene transitions back into this one*/
     setLocalPlayer(0);
     
-    setDebugMode(false);
+    setDebugMode(true);
     setActive(false);
     return true;
 }
@@ -370,6 +361,17 @@ void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
     }
 }
 
+const ItemDef* GameScene::getHeldItemDef(ItemInstance::ItemId itemId){
+    for (const ItemInstance& item : _gameState.getLocalPlayer()->getInventory()){
+        if (item.getId() != itemId){
+            continue;
+        }
+        return _itemController.getDatabase().getDef(item.getDefId()).get();
+    }
+    return nullptr;
+}
+    
+
 /**
  * Calls the appropriate handle action helper based on the input that we recieved
  */
@@ -475,6 +477,9 @@ void GameScene::handlePlayerInput(InputController& input) {
     }
 
     _activeIcon = nullptr;
+    _draggedItemId = NULL;
+    _draggedItemDef = nullptr;
+    updateInputZones();
 }
 
 /**
@@ -523,6 +528,9 @@ void GameScene::handleDragInitiation(InputController& input) {
         if (widget->getBoundingBox().contains(touchPosScreen)) {
             _activeIcon = widget;
             _dragOffset = widget->getPosition() - touchPosScreen;
+            _draggedItemId = id;
+            _draggedItemDef = getHeldItemDef(id);
+            updateInputZones();
             break;
         }
     }
@@ -730,6 +738,27 @@ void GameScene::render() {
     }
 
     batch->end();
+}
+
+void GameScene::updateInputZones(){
+    Size dimen = getSize();
+    float w = dimen.width;
+    float h = dimen.height;
+    _inputZones.clear();
+    
+    if (_draggedItemDef && _draggedItemDef->getType() == ItemDef::Type::Attack){
+        _inputZones.push_back({InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.4f, w * 0.9f,  h * 0.55f)});
+    }
+    if (_draggedItemDef && _draggedItemDef->getType() == ItemDef::Type::Support){
+        _inputZones.push_back({InputController::Action::DROP_ALLY_LEFT,  Rect(0, h * 0.45f, w * 0.15f, h * 0.5f)});
+        _inputZones.push_back({InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.5f)});
+    }
+    
+    if (_draggedItemDef){
+        _inputZones.push_back({InputController::Action::PASS_LEFT, Rect(0, 0, w * 0.15f, h * 0.35f)});
+        _inputZones.push_back({InputController::Action::PASS_RIGHT,Rect(w * 0.85f, 0, w * 0.15f, h * 0.35f)});
+    }
+    
 }
 
 /**

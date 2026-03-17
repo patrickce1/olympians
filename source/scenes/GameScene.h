@@ -79,7 +79,13 @@ protected:
 
     /** The scene node currently being dragged by the player, or nullptr. */
     std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
+    
+    /** The item id of the item being curerntly held. */
+    ItemInstance::ItemId _draggedItemId;
 
+    /** The ItemDef of the item currently being dragged, or nullptr. */
+    const ItemDef* _draggedItemDef = nullptr;
+    
     /** Offset from the icon's origin to the touch point, applied during drag. */
     cugl::Vec2 _dragOffset;
 
@@ -334,7 +340,16 @@ public:
     * Intended usage: get the pass message vector from the network controller and pass into this function
     */
     void processNetworkedPasses(std::vector<PassMessage> passes);
-
+    
+    /**
+     * Looks up the ItemDef for the item currently being dragged.
+     * Returns nullptr if the item is not found or has no definition.
+     *
+     * @param itemId  The ID of the held item.
+     * @return        A const pointer to the item's definition, or nullptr.
+     */
+    const ItemDef* getHeldItemDef(ItemInstance::ItemId itemId);
+    
 #pragma mark - Inventory UI
 
     /**
@@ -372,6 +387,13 @@ public:
      * @param input  The input controller owned by SceneLoader.
      */
     void update(float dt, InputController& input);
+    
+    /**
+     * Rebuilds the active input zones based on the type of item currently being dragged.
+     * Attack items show the boss drop zone; support items show the ally drop zones.
+     * Pass zones are always included while dragging. Clears all zones if nothing is held.
+     */
+    void updateInputZones();
 
     /**
      * Draws a green debug outline around the reset button's bounding box.
