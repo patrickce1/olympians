@@ -89,8 +89,8 @@ protected:
     /** The inventory item currently being dragged, or 0 if none is active. */
     ItemInstance::ItemId _activeItemId = 0;
 
-    /** The dragged icon's pre-drag position, used to restore invalid drops. */
-    cugl::Vec2 _dragStartPosition = cugl::Vec2::ZERO;
+    /** The dragged body's pre-drag position, used to restore invalid drops. */
+    cugl::Vec2 _dragStartBodyPosition = cugl::Vec2::ZERO;
 
     /** Offset from the icon's origin to the touch point, applied during drag. */
     cugl::Vec2 _dragOffset;
@@ -388,8 +388,8 @@ public:
         const std::shared_ptr<cugl::scene2::SceneNode>& widget
     );
 
-    /** Updates all inventory bodies so they exactly match their widget positions. */
-    void syncItemBodiesToWidgets();
+    /** Updates all inventory widgets so they exactly match their body positions. */
+    void syncItemWidgetsToBodies();
 
     /** Removes the widget and its Box2D body for the given item. */
     void removeItemWidget(ItemInstance::ItemId itemId);

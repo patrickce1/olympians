@@ -241,7 +241,7 @@ void GameScene::setActive(bool value) {
 void GameScene::reset() {
     _activeIcon = nullptr;
     _activeItemId = 0;
-    _dragStartPosition = Vec2::ZERO;
+    _dragStartBodyPosition = Vec2::ZERO;
     _glowAction = InputController::Action::NONE;
     _glowTimer  = 0;
 
@@ -568,13 +568,17 @@ void GameScene::handlePlayerInput(InputController& input) {
                 _activeIcon->setVisible(false);
             }
         } else {
-            _activeIcon->setPosition(_dragStartPosition);
+            auto bodyIt = _itemBodies.find(_activeItemId);
+            if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                bodyIt->second->setPosition(_dragStartBodyPosition);
+                bodyIt->second->setLinearVelocity(Vec2::ZERO);
+            }
         }
     }
 
     _activeIcon = nullptr;
     _activeItemId = 0;
-    _dragStartPosition = Vec2::ZERO;
+    _dragStartBodyPosition = Vec2::ZERO;
 }
 
 /**
@@ -623,8 +627,15 @@ void GameScene::handleDragInitiation(InputController& input) {
         if (widget->getBoundingBox().contains(touchPosScreen)) {
             _activeIcon = widget;
             _activeItemId = id;
-            _dragStartPosition = widget->getPosition();
             _dragOffset = widget->getPosition() - touchPosScreen;
+
+            auto bodyIt = _itemBodies.find(id);
+            if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                _dragStartBodyPosition = bodyIt->second->getPosition();
+            } else {
+                Size widgetSize = widget->getContentSize();
+                _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+            }
             break;
         }
     }
@@ -637,7 +648,14 @@ void GameScene::handleDragTracking(InputController& input) {
     if (!_activeIcon || (!input.isTouching() && !input.isMouseDown())) return;
 
     Vec2 dragScene = screenToWorldCoords(input.getDragPos());
-    _activeIcon->setPosition(dragScene + _dragOffset);
+    Vec2 widgetPosition = dragScene + _dragOffset;
+    auto bodyIt = _itemBodies.find(_activeItemId);
+    if (bodyIt != _itemBodies.end() && bodyIt->second) {
+        Size widgetSize = _activeIcon->getContentSize();
+        Vec2 center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+        bodyIt->second->setPosition(center);
+        bodyIt->second->setLinearVelocity(Vec2::ZERO);
+    }
 }
 
 /* Checks if any updates about the state of the game were sent over the network.
@@ -689,10 +707,10 @@ void GameScene::update(float dt, InputController& input) {
 
     _itemController.update(dt, _gameState.getLocalPlayer());
     syncInventoryWidgets();
-    syncItemBodiesToWidgets();
     if (_itemPhysicsWorld) {
         _itemPhysicsWorld->update(dt);
     }
+    syncItemWidgetsToBodies();
 
     updateEnemyAndAI(dt);
     _network->clearQueues();
@@ -763,7 +781,7 @@ std::shared_ptr<cugl::physics2::BoxObstacle> GameScene::createItemBody(
     return body;
 }
 
-void GameScene::syncItemBodiesToWidgets() {
+void GameScene::syncItemWidgetsToBodies() {
     std::vector<ItemInstance::ItemId> staleIds;
 
     for (auto& [itemId, body] : _itemBodies) {
@@ -774,9 +792,9 @@ void GameScene::syncItemBodiesToWidgets() {
         }
 
         Size widgetSize = widgetIt->second->getContentSize();
-        Vec2 center = widgetIt->second->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
-        body->setPosition(center);
-        body->setLinearVelocity(Vec2::ZERO);
+        Vec2 bodyPosition = body->getPosition();
+        Vec2 widgetPosition = bodyPosition - Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+        widgetIt->second->setPosition(widgetPosition);
     }
 
     for (ItemInstance::ItemId itemId : staleIds) {
@@ -790,7 +808,7 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
         if (_activeIcon == widgetIt->second) {
             _activeIcon = nullptr;
             _activeItemId = 0;
-            _dragStartPosition = Vec2::ZERO;
+            _dragStartBodyPosition = Vec2::ZERO;
         }
         if (widgetIt->second && _inventory) {
             _inventory->removeChild(widgetIt->second);
