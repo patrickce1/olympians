@@ -145,6 +145,9 @@
         },
         "teamSelectIconEmpty": {
             "file": "textures/houseSelect/teamSelectIconEmpty.png"
+        },
+        "heroPoster": {
+            "file": "textures/houseSelect/heroPoster.png"
         }
 	},
     "fonts": {
