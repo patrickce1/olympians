@@ -96,6 +96,55 @@
         },
         "debugReset" : {
             "file": "textures/attack.png"
+        },
+        
+        "cyclopsShowroom": {
+            "file": "textures/houseSelect/cyclopsShowroom.png"
+        },
+        "cerebrusShowroom": {
+            "file": "textures/houseSelect/cerebrusShowroomSM.png"
+        },
+        "buttonSmallBG": {
+            "file": "textures/houseSelect/buttonSmallBG.png"
+        },
+        "glowOverlayHero": {
+            "file": "textures/houseSelect/glowOverlayHero.png"
+        },
+        "labelBG": {
+            "file": "textures/houseSelect/labelBG.png"
+        },
+        "emptystats": {
+            "file": "textures/houseSelect/emptystats.png"
+        },
+        "athenaPoster": {
+            "file": "textures/houseSelect/athenaPoster.png"
+        },
+        "statsAthena": {
+            "file": "textures/houseSelect/statsAthena.png"
+        },
+        "leftscroll": {
+            "file": "textures/houseSelect/leftscroll.png"
+        },
+        "rightscroll": {
+            "file": "textures/houseSelect/rightscroll.png"
+        },
+        "buttonbackBG": {
+            "file": "textures/houseSelect/buttonbackBG.png"
+        },
+        "connector": {
+            "file": "textures/houseSelect/connector.png"
+        },
+        "lockedGlow": {
+            "file": "textures/houseSelect/lockedGlow.png"
+        },
+        "selection live icon 2": {
+            "file": "textures/houseSelect/selection live icon 2.png"
+        },
+        "emptyLocalIcon": {
+            "file": "textures/houseSelect/emptyLocalIcon.png"
+        },
+        "teamSelectIconEmpty": {
+            "file": "textures/houseSelect/teamSelectIconEmpty.png"
         }
 	},
     "fonts": {
@@ -157,7 +206,8 @@
         "roleCard": "widgets/elements/roleCard.json",
         "bossSelection": "widgets/bossSelection.json",
         "menuScene":   "json/menuScene.json",
-        "lobbyScene": "json/lobbyScene.json"
+        "lobbyScene": "json/lobbyScene.json",
+        "houseSelectScene": "json/houseSelectionScene.json"
     },
     "scene2s": {
         "gameScene": {
@@ -206,6 +256,15 @@
             "format": { "type": "Anchored" },
             "data": {
                 "key": "menuScene",
+                "variables": {}
+            }
+        },
+        "houseSelectionScene": {
+            "type": "Widget",
+            "comment": "Root node of the house select scene",
+            "format": { "type": "Anchored"},
+            "data": {
+                "key": "houseSelectionScene",
                 "variables": {}
             }
         }
