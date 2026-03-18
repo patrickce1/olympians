@@ -156,6 +156,26 @@ public:
 
     /*Returns the list of networked players, carrying their network ID and username*/
     const std::vector<NetworkedPlayer> getNetworkedPlayers();
+    
+    /**
+     * Host-only. Checks whether any network peer that maps to a real player slot has disconnected. Compares _onlinePlayers networkIDs against the
+     * provided set of active real-player network IDs. Broadcasts PLAYER_DISCONNECT and updates _onlinePlayers for any dropped peer.
+     *
+     * @param activeNetworkIDs  The networkIDs of all currently real (non-AI)
+     *                          player slots, keyed by slot index.
+     */
+    void checkForDroppedPeers(const std::unordered_map<int, std::string>& activeNetworkIDs);
+
+    /**
+     * Broadcasts a PLAYER_DISCONNECT message to all clients.
+     *
+     * @param slotIndex  The 0-based player slot that disconnected.
+     */
+    void broadcastPlayerDisconnected(int slotIndex);
+    
+    /** Returns slots that disconnected since the last clearQueues(). */
+    const std::vector<int>& getDisconnectedSlots() const { return _disconnectedSlots; }
+
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -170,6 +190,7 @@ protected:
         GAME_START = 4,
         LOBBY_UPDATE = 5,
         PLAYER_JOIN = 6,
+        PLAYER_DISCONNECT = 7,
     };
 
     /*Our network connection*/
@@ -194,6 +215,9 @@ private:
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
     GameStateMessage _latestGameState;
+    
+    // A vector storing the slots containing all the disconnected players that haven't been reassigned.
+    std::vector<int> _disconnectedSlots;
 
     //Boolean that tells us if the game has been started by the host
     bool gameStarted;

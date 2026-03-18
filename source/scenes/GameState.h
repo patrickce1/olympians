@@ -168,9 +168,20 @@ public:
      * the correct player instance.
      *
      * @param playerId  The network-assigned player ID.
-     * @return          The matching Player pointer, or nullptr if not found.
+     * @return         The matching Player pointer, or nullptr if not found.
      */
     Player* getPlayerById(int playerId) const;
+    
+    /**
+     * Returns a raw pointer to the player at the given slot index.
+     *
+     * @param  slot  Zero-based index into the player array.
+     * @return      The Player at that slot, or nullptr if out of range.
+     */
+    Player* getPlayerBySlot(int slot) const;
+    
+    /** Returns the character loader, needed when constructing replacement players. */
+    const CharacterLoader& getCharacterLoader() const { return _characterLoader; }
 
 #pragma mark - Enemy Access
 

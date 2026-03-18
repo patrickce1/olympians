@@ -247,15 +247,21 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			break;
 		}
 		case MessageType::GAME_UPDATE : {
-				GameStateMessage stateMsg;
-				stateMsg.bossHealth = _deserializer.readFloat();
-				stateMsg.player1HP = _deserializer.readFloat();
-				stateMsg.player2HP = _deserializer.readFloat();
-				stateMsg.player3HP = _deserializer.readFloat();
-				stateMsg.player4HP = _deserializer.readFloat();
-				_latestGameState = stateMsg;
-				break;
+            GameStateMessage stateMsg;
+            stateMsg.bossHealth = _deserializer.readFloat();
+            stateMsg.player1HP  = _deserializer.readFloat();
+            stateMsg.player2HP  = _deserializer.readFloat();
+            stateMsg.player3HP  = _deserializer.readFloat();
+            stateMsg.player4HP  = _deserializer.readFloat();
+            _latestGameState    = stateMsg;
+            break;
 		}
+        case MessageType::PLAYER_DISCONNECT: {
+            int slot = _deserializer.readSint32();
+            CULog("NetworkController: received PLAYER_DISCONNECT for slot %d", slot);
+            _disconnectedSlots.push_back(slot);
+            break;
+        }
 	}
 }
 
@@ -283,6 +289,7 @@ void NetworkController::clearQueues() {
 	attacks.clear();
 	heals.clear();
 	passes.clear();
+    _disconnectedSlots.clear();
 }
 
 /**
@@ -472,4 +479,42 @@ int NetworkController::getLocalPlayerNumber() {
 		}
 	}
 	return -1; // not found
+}
+
+/**
+ * Host-only. Checks whether any network peer that maps to a real player slot has disconnected. Compares _onlinePlayers networkIDs against the
+ * provided set of active real-player network IDs. Broadcasts PLAYER_DISCONNECT and updates _onlinePlayers for any dropped peer.
+ *
+ * @param activeNetworkIDs  The networkIDs of all currently real (non-AI) player slots, keyed by slot index.
+ */
+void NetworkController::checkForDroppedPeers(const std::unordered_map<int, std::string>& activeNetworkIDs) {
+    if (!_network || !isHost()) return;
+
+    // Build a fast lookup of which networkIDs are still connected.
+    std::unordered_set<std::string> connectedIDs;
+    for (const auto& peer : _onlinePlayers) {
+        connectedIDs.insert(peer.networkID);
+    }
+
+    // For every slot that still has a real player, check if their
+    // networkID has disappeared from the connected peers list.
+    for (const auto& [slot, networkID] : activeNetworkIDs) {
+        if (connectedIDs.count(networkID) == 0) {
+            CULog("NetworkController: slot %d (id=%s) dropped", slot, networkID.c_str());
+            _disconnectedSlots.push_back(slot);
+            broadcastPlayerDisconnected(slot);
+        }
+    }
+}
+
+/**
+ * Broadcasts a PLAYER_DISCONNECT message to all clients.
+ *
+ * @param slotIndex  The 0-based player slot that disconnected.
+ */
+void NetworkController::broadcastPlayerDisconnected(int slotIndex) {
+    _serializer.writeSint32(MessageType::PLAYER_DISCONNECT);
+    _serializer.writeSint32(slotIndex);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }

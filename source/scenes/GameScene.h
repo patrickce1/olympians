@@ -4,6 +4,7 @@
 #include <cugl/cugl.h>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include "GameState.h"
 #include "../InputController.h"
 #include "../items/ItemController.h"
@@ -74,6 +75,9 @@ protected:
 
     /** Right teammate username label */
     std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
+    
+    /** Slots already demoted to Easy AI this session; prevents re-demoting each frame. */
+    std::unordered_set<int> _slotsDemotedToAI;
 
 #pragma mark - Drag State
 
@@ -254,8 +258,14 @@ public:
      * @param input  The active input controller.
      */
     void handlePlayerActions(InputController::Action action);
+    
+    /**
+     * Top-level disconnect handler. Called every frame from update().
+     * Delegates to the three helpers below.
+     */
+    void handleDisconnectedPlayers();
 
-#pragma mark - Update Helpers
+#pragma mark - Helpers
 
     /**
      * Ticks the enemy controller and all AI-controlled players forward by
@@ -334,6 +344,29 @@ public:
     * Intended usage: get the pass message vector from the network controller and pass into this function
     */
     void processNetworkedPasses(std::vector<PassMessage> passes);
+    
+    /**
+     * HOST ONLY. Builds a slot -> networkID map for every real (non-AI)
+     * player and passes it to the NetworkController to diff against the
+     * still-connected peer list. Populates _disconnectedSlots with any
+     * newly-dropped slots.
+     */
+    void detectDroppedPeers();
+
+    /**
+     * HOST ONLY. Replaces the player at the given slot with an EasyPlayerAI,
+     * re-wires the neighbour ring, and restores the disconnected player's
+     * health and inventory onto the new AI.
+     *
+     * @param slot  The 0-based slot index of the disconnected player.
+     */
+    void demoteSlotToAI(int slot);
+
+    /**
+     * HOST + CLIENTS. Updates the left and right teammate name labels to
+     * reflect the current AI/human state of each neighbour.
+     */
+    void refreshTeammateNameLabels();
 
 #pragma mark - Inventory UI
 

@@ -199,6 +199,17 @@ Player* GameState::getPlayerById(int playerId) const {
     return (it != _playerIdMap.end()) ? it->second : nullptr;
 }
 
+/**
+ * Returns a raw pointer to the player at the given slot index.
+ *
+ * @param  slot  Zero-based index into the player array.
+ * @return      The Player at that slot, or nullptr if out of range.
+ */
+Player* GameState::getPlayerBySlot(int slot) const {
+    if (slot < 0 || slot >= (int)_players.size()) return nullptr;
+    return _players[slot].get();
+}
+
 /* Goes through the list of attack messages in attacks and applies the damage specified to the boss*/
 void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
     for (AttackMessage attack : attacks) {
