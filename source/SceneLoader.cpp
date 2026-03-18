@@ -335,12 +335,6 @@ void SceneLoader::update(float dt) {
                     _lobbyScene.setActive(false);
                     _currentScene = State::MENU;
                     break;
-                case LobbyScene::Status::CHOOSE:
-                    CULog("Transitioning to HouseSelectScene...");
-                    _houseSelectScene.setActive(true);
-                    _lobbyScene.setActive(false);
-                    _currentScene = State::HOUSESELECT;
-                    break;
                 default:
                     break;;
             }

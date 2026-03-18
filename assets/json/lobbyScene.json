@@ -400,9 +400,9 @@
                                 }
                             },
                             "playerIcon": {
-                                "type": "Button",
-                                "format": { "type": "Anchored" },
+                                "type": "Image",
                                 "data": {
+                                    "texture": "playerIcon",
                                     "anchor": [
                                         0.5,
                                         0.5
@@ -416,30 +416,7 @@
                                         42.5,
                                         63.5
                                     ],
-                                    "visible": true,
-                                    "upnode": "playerIcon"
-                                },
-                                "children": {
-                                    "playerIconImg": {
-                                        "type": "Image",
-                                        "data": {
-                                            "texture": "playerIcon",
-                                            "anchor": [
-                                                0.5,
-                                                0.5
-                                            ],
-                                            "size": [
-                                                85,
-                                                85
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                0,
-                                                0
-                                            ],
-                                            "visible": true
-                                        }
-                                    }
+                                    "visible": true
                                 },
                                 "layout": {
                                     "priority": 1,
