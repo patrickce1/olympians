@@ -45,6 +45,9 @@ protected:
     /** The house selection node list */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _items;
     
+    /** The house selection indicator list */
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _indicators;
+    
     /** The current index of the god shown in the house selection screen*/
     int _currentIndex = 4;
     
@@ -189,6 +192,8 @@ private:
      * @param newIndex The index of the item to slide to.
      */
     void slideTo(int index);
+    
+    void updateIndicators(int newIndex);
 };
 
 #endif /* __HOUSE_SELECT_SCENE_H__ */

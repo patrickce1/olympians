@@ -88,6 +88,14 @@ void HouseSelectScene::setupUI() {
             _items.push_back(_container->getChild(i));
         }
     }
+    
+    auto indicatorContainer = _assets->get<scene2::SceneNode>("houseSelectScene.classSelectionCarouselIcons");
+    
+    if (indicatorContainer) {
+        for (int i = 0; i < 9; i++) {
+            _indicators.push_back(indicatorContainer->getChild(i));
+        }
+    }
 }
 
 /**
@@ -252,8 +260,22 @@ void HouseSelectScene::slideTo(int newIndex) {
                 }
             }
         }
-        
     }
+    
+    updateIndicators(newIndex);
+}
 
+void HouseSelectScene::updateIndicators(int currentIndex) {
+    for (int i = 0; i < _indicators.size(); i++) {
+        auto node = _indicators[i];
+        
+        auto fill   = node->getChildByName("fill");
+        
+        if (i == currentIndex) {
+            fill->setColor(Color4("#4c3214ff"));
+        } else {
+            fill->setColor(Color4("#9d7137ff"));
+        }
+    }
 }
 
