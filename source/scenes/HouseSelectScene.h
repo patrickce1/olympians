@@ -46,7 +46,7 @@ protected:
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _items;
     
     /** The current index of the god shown in the house selection screen*/
-    int _currentIndex = 5;
+    int _currentIndex = 4;
     
     /** The house selection navigation left button */
     std::shared_ptr<cugl::scene2::Button> _leftButton;

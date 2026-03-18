@@ -82,6 +82,9 @@ void LobbyScene::setupUI() {
             _playerSlots.push_back(label);
         }
     }
+    
+    _testButton = std::dynamic_pointer_cast<scene2::Button>(
+                _assets->get<scene2::SceneNode>("lobbyScene.tableArea.playerCard1.playerIcon"));
 }
 
 /**
@@ -104,6 +107,12 @@ void LobbyScene::setupListeners() {
     _backOut->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
+        }
+    });
+    
+    _testButton->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::CHOOSE;
         }
     });
 }
@@ -135,13 +144,16 @@ void LobbyScene::setActive(bool value) {
             _status = IDLE;
             _enterGame->activate();
             _backOut->activate();
+            _testButton->activate();
         } else {
             _backOut->deactivate();
             _enterGame->deactivate();
+            _testButton->deactivate();
             
             // If any were pressed, reset them
             _enterGame->setDown(false);
             _backOut->setDown(false);
+            _testButton->setDown(false);
         }
     }
 }

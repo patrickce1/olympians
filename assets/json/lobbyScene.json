@@ -400,9 +400,9 @@
                                 }
                             },
                             "playerIcon": {
-                                "type": "Image",
+                                "type": "Button",
+                                "format": { "type": "Anchored" },
                                 "data": {
-                                    "texture": "playerIcon",
                                     "anchor": [
                                         0.5,
                                         0.5
@@ -416,7 +416,30 @@
                                         42.5,
                                         63.5
                                     ],
-                                    "visible": true
+                                    "visible": true,
+                                    "upnode": "playerIcon"
+                                },
+                                "children": {
+                                    "playerIconImg": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "playerIcon",
+                                            "anchor": [
+                                                0.5,
+                                                0.5
+                                            ],
+                                            "size": [
+                                                85,
+                                                85
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                0,
+                                                0
+                                            ],
+                                            "visible": true
+                                        }
+                                    }
                                 },
                                 "layout": {
                                     "priority": 1,
@@ -813,8 +836,8 @@
                     "x_anchor": "left",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.07,
-                    "y_offset": -0.06
+                    "x_offset": 0.0,
+                    "y_offset": 0.0
                 }
             }
         }

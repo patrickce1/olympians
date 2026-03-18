@@ -76,10 +76,10 @@ void HouseSelectScene::setupUI() {
     _playerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.selectorMainIcon.emptyLocalIcon"));
 
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("houseSelectScene.directionButtons.leftscroll"));
+        _assets->get<scene2::SceneNode>("houseSelectScene.Carousel_buttons.directionbuttons.leftscroll"));
 
     _rightButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("houseSelectScene.directionButtons.rightscroll"));
+        _assets->get<scene2::SceneNode>("houseSelectScene.Carousel_buttons.directionbuttons.rightscroll"));
 
     _container = _assets->get<scene2::SceneNode>("houseSelectScene.Carousel_buttons.heroCardcont");
 

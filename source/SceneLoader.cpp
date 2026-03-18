@@ -155,6 +155,7 @@ void SceneLoader::onShutdown() {
     _hostSetupScene.dispose();
     _menuScene.dispose();
     _lobbyScene.dispose();
+    _houseSelectScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
     netcode::NetworkLayer::stop();
@@ -250,6 +251,12 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize LobbyScene");
                 }
+                
+                if (_houseSelectScene.init(_assets)) {
+                    _houseSelectScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize HouseSelectScene");
+                }
             }
             break;
         case State::MENU:
@@ -328,9 +335,18 @@ void SceneLoader::update(float dt) {
                     _lobbyScene.setActive(false);
                     _currentScene = State::MENU;
                     break;
+                case LobbyScene::Status::CHOOSE:
+                    CULog("Transitioning to HouseSelectScene...");
+                    _houseSelectScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::HOUSESELECT;
+                    break;
                 default:
                     break;;
             }
+            break;
+        case State::HOUSESELECT:
+            _houseSelectScene.update(dt);
             break;
         case State::GAME:
             InputController::Action action = _input.getAction();
@@ -390,6 +406,9 @@ void SceneLoader::draw() {
             break;
         case State::GAME:
             _gameScene.render();
+            break;
+        case State::HOUSESELECT:
+            _houseSelectScene.render();
             break;
     }
 }

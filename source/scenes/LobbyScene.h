@@ -24,6 +24,7 @@ public:
     enum Status {
         IDLE,
         WAIT,
+        CHOOSE,
         START,
         ABORT
     };
@@ -52,6 +53,8 @@ protected:
 
     /** A container that stores labels and other info for visualizing the character and username choices of players */
     std::shared_ptr<cugl::scene2::SceneNode> _playerInfoContainer;
+    
+    std::shared_ptr<cugl::scene2::Button> _testButton;
     
     /** The current status */
     Status _status;
