@@ -568,10 +568,10 @@ void GameScene::handlePlayerInput(InputController& input) {
                 _activeIcon->setVisible(false);
             }
         } else {
-            auto bodyIt = _itemBodies.find(_activeItemId);
-            if (bodyIt != _itemBodies.end() && bodyIt->second) {
-                bodyIt->second->setPosition(_dragStartBodyPosition);
-                bodyIt->second->setLinearVelocity(Vec2::ZERO);
+            auto body = _itemBodies.find(_activeItemId);
+            if (body != _itemBodies.end() && body->second) {
+                body->second->setPosition(_dragStartBodyPosition);
+                body->second->setLinearVelocity(Vec2::ZERO);
             }
         }
     }
@@ -629,9 +629,9 @@ void GameScene::handleDragInitiation(InputController& input) {
             _activeItemId = id;
             _dragOffset = widget->getPosition() - touchPosScreen;
 
-            auto bodyIt = _itemBodies.find(id);
-            if (bodyIt != _itemBodies.end() && bodyIt->second) {
-                _dragStartBodyPosition = bodyIt->second->getPosition();
+            auto body = _itemBodies.find(id);
+            if (body != _itemBodies.end() && body->second) {
+                _dragStartBodyPosition = body->second->getPosition();
             } else {
                 Size widgetSize = widget->getContentSize();
                 _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
@@ -649,12 +649,12 @@ void GameScene::handleDragTracking(InputController& input) {
 
     Vec2 dragScene = screenToWorldCoords(input.getDragPos());
     Vec2 widgetPosition = dragScene + _dragOffset;
-    auto bodyIt = _itemBodies.find(_activeItemId);
-    if (bodyIt != _itemBodies.end() && bodyIt->second) {
+    auto body = _itemBodies.find(_activeItemId);
+    if (body != _itemBodies.end() && body->second) {
         Size widgetSize = _activeIcon->getContentSize();
         Vec2 center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
-        bodyIt->second->setPosition(center);
-        bodyIt->second->setLinearVelocity(Vec2::ZERO);
+        body->second->setPosition(center);
+        body->second->setLinearVelocity(Vec2::ZERO);
     }
 }
 
@@ -785,16 +785,16 @@ void GameScene::syncItemWidgetsToBodies() {
     std::vector<ItemInstance::ItemId> staleIds;
 
     for (auto& [itemId, body] : _itemBodies) {
-        auto widgetIt = _itemWidgets.find(itemId);
-        if (!body || widgetIt == _itemWidgets.end() || !widgetIt->second) {
+        auto widget = _itemWidgets.find(itemId);
+        if (!body || widget == _itemWidgets.end() || !widget->second) {
             staleIds.push_back(itemId);
             continue;
         }
 
-        Size widgetSize = widgetIt->second->getContentSize();
+        Size widgetSize = widget->second->getContentSize();
         Vec2 bodyPosition = body->getPosition();
         Vec2 widgetPosition = bodyPosition - Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
-        widgetIt->second->setPosition(widgetPosition);
+        widget->second->setPosition(widgetPosition);
     }
 
     for (ItemInstance::ItemId itemId : staleIds) {
@@ -803,29 +803,29 @@ void GameScene::syncItemWidgetsToBodies() {
 }
 
 void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
-    auto widgetIt = _itemWidgets.find(itemId);
-    if (widgetIt != _itemWidgets.end()) {
-        if (_activeIcon == widgetIt->second) {
+    auto widget = _itemWidgets.find(itemId);
+    if (widget != _itemWidgets.end()) {
+        if (_activeIcon == widget->second) {
             _activeIcon = nullptr;
             _activeItemId = 0;
             _dragStartBodyPosition = Vec2::ZERO;
         }
-        if (widgetIt->second && _inventory) {
-            _inventory->removeChild(widgetIt->second);
+        if (widget->second && _inventory) {
+            _inventory->removeChild(widget->second);
         }
-        _itemWidgets.erase(widgetIt);
+        _itemWidgets.erase(widget);
     }
 
-    auto bodyIt = _itemBodies.find(itemId);
-    if (bodyIt != _itemBodies.end()) {
-        if (bodyIt->second && _itemPhysicsWorld) {
+    auto body = _itemBodies.find(itemId);
+    if (body != _itemBodies.end()) {
+        if (body->second && _itemPhysicsWorld) {
             b2World* world = _itemPhysicsWorld->getWorld();
-            if (world && bodyIt->second->getBody()) {
-                bodyIt->second->deactivatePhysics(*world);
+            if (world && body->second->getBody()) {
+                body->second->deactivatePhysics(*world);
             }
-            _itemPhysicsWorld->removeObstacle(bodyIt->second);
+            _itemPhysicsWorld->removeObstacle(body->second);
         }
-        _itemBodies.erase(bodyIt);
+        _itemBodies.erase(body);
     }
 }
 
