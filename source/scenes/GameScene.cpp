@@ -127,7 +127,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     we recheck if we are player 0 whenever another scene transitions back into this one*/
     setLocalPlayer(0);
     
-    setDebugMode(true);
+    setDebugMode(false);
     setActive(false);
     return true;
 }
@@ -732,14 +732,20 @@ void GameScene::render() {
     
     if (isDebugMode()){
         renderResetButton(batch.get());
-        renderDropZones(batch.get());
         renderItemWidgetDebug(batch.get());
         renderPointerDebug(batch.get());
     }
+    renderDropZones(batch.get());
 
     batch->end();
 }
-
+/**
+ * Recreates the zones that should be on screen dependent on what item the player is holding.
+ * If nothing is held, no zones are added to_inputZones.
+ * If any type of item is held, the pass zones are added  to _inputZones.
+ * If an attack item is held, the attack zone is added to _inputZones.
+ * If a support item is held, the support zones are added to _inputZones.
+ */
 void GameScene::updateInputZones(){
     Size dimen = getSize();
     float w = dimen.width;
@@ -747,11 +753,11 @@ void GameScene::updateInputZones(){
     _inputZones.clear();
     
     if (_draggedItemDef && _draggedItemDef->getType() == ItemDef::Type::Attack){
-        _inputZones.push_back({InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.4f, w * 0.9f,  h * 0.55f)});
+        _inputZones.push_back({InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.4f, w * 0.9f,  h * 0.47f)});
     }
     if (_draggedItemDef && _draggedItemDef->getType() == ItemDef::Type::Support){
-        _inputZones.push_back({InputController::Action::DROP_ALLY_LEFT,  Rect(0, h * 0.45f, w * 0.15f, h * 0.5f)});
-        _inputZones.push_back({InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.5f)});
+        _inputZones.push_back({InputController::Action::DROP_ALLY_LEFT,  Rect(0, h * 0.45f, w * 0.15f, h * 0.40f)});
+        _inputZones.push_back({InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)});
     }
     
     if (_draggedItemDef){
