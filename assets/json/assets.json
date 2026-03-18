@@ -262,12 +262,12 @@
                 "variables": {}
             }
         },
-        "houseSelectionScene": {
+        "houseSelectScene": {
             "type": "Widget",
             "comment": "Root node of the house select scene",
             "format": { "type": "Anchored"},
             "data": {
-                "key": "houseSelectionScene",
+                "key": "houseSelectScene",
                 "variables": {}
             }
         }
