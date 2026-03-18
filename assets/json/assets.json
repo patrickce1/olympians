@@ -209,7 +209,9 @@
         "menuScene":   "json/scenes/menuScene.json",
         "lobbyScene": "json/scenes/lobbyScene.json",
         "houseSelectScene": "json/scenes/houseSelectionScene.json",
-        "heroCard" : "widgets/houseSelect/heroCard.json"
+        "heroCard" : "widgets/houseSelect/heroCard.json",
+        "teamHouseIcon" : "widgets/houseSelect/teamHouseIcon.json",
+        "playerHouseIcon" : "widgets/houseSelect/playerHouseIcon.json"
     },
     "scene2s": {
         "gameScene": {

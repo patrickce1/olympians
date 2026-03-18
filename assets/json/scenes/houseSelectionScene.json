@@ -2217,108 +2217,13 @@
                             "y_offset": -0.18
                         }
                     },
-                    "selectionMainIcon": {
-                        "type": "Node",
-                        "format": {
-                            "type": "Anchored"
-                        },
+                    "playerSelectIcon": {
+                        "type": "Widget",
                         "data": {
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "size": [
-                                156.5,
-                                156.5
-                            ],
-                            "angle": 0,
-                            "position": [
-                                6,
-                                -0.5
-                            ],
-                            "visible": true
-                        },
-                        "children": {
-                            "lockedGlow": {
-                                "type": "Image",
-                                "data": {
-                                    "texture": "lockedGlow",
-                                    "anchor": [
-                                        0,
-                                        1
-                                    ],
-                                    "size": [
-                                        156.5,
-                                        156.5
-                                    ],
-                                    "angle": 0,
-                                    "position": [
-                                        0,
-                                        0
-                                    ],
-                                    "visible": true
-                                },
-                                "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "top",
-                                    "absolute": false,
-                                    "x_offset": 0,
-                                    "y_offset": 0
-                                }
-                            },
-                            "selection live icon 2": {
-                                "type": "Image",
-                                "data": {
-                                    "texture": "selection live icon 2",
-                                    "anchor": [
-                                        0,
-                                        1
-                                    ],
-                                    "size": [
-                                        94,
-                                        94
-                                    ],
-                                    "angle": 0,
-                                    "position": [
-                                        31,
-                                        31.5
-                                    ],
-                                    "visible": true
-                                },
-                                "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "top",
-                                    "absolute": false,
-                                    "x_offset": 0.2,
-                                    "y_offset": -0.2
-                                }
-                            },
-                            "emptyLocalIcon": {
-                                "type": "Image",
-                                "data": {
-                                    "texture": "emptyLocalIcon",
-                                    "anchor": [
-                                        0,
-                                        1
-                                    ],
-                                    "size": [
-                                        80.5,
-                                        80.5
-                                    ],
-                                    "angle": 0,
-                                    "position": [
-                                        38,
-                                        38
-                                    ],
-                                    "visible": true
-                                },
-                                "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "top",
-                                    "absolute": false,
-                                    "x_offset": 0.24,
-                                    "y_offset": -0.24
-                                }
+                            "key": "playerHouseIcon",
+                            "variables": {
+                                "houseImage" : "teamSelectIconEmpty",
+                                "glow" : false
                             }
                         },
                         "layout": {
@@ -2329,24 +2234,13 @@
                             "y_offset": -0.26
                         }
                     },
-                    "teamSelectIconEmpty": {
-                        "type": "Image",
+                    "teamSelectIconUp": {
+                        "type": "Widget",
                         "data": {
-                            "texture": "teamSelectIconEmpty",
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "size": [
-                                74,
-                                74
-                            ],
-                            "angle": 0,
-                            "position": [
-                                47,
-                                136
-                            ],
-                            "visible": true
+                            "key": "teamHouseIcon",
+                            "variables": {
+                                "houseImage" : "teamSelectIconEmpty"
+                            }
                         },
                         "layout": {
                             "x_anchor": "left",
@@ -2356,24 +2250,13 @@
                             "y_offset": 0
                         }
                     },
-                    "teamSelectIconEmpty_3": {
-                        "type": "Image",
+                    "teamSelectIconLeft": {
+                        "type": "Widget",
                         "data": {
-                            "texture": "teamSelectIconEmpty",
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "size": [
-                                74,
-                                74
-                            ],
-                            "angle": 0,
-                            "position": [
-                                0,
-                                92
-                            ],
-                            "visible": true
+                            "key": "teamHouseIcon",
+                            "variables": {
+                                "houseImage" : "teamSelectIconEmpty"
+                            }
                         },
                         "layout": {
                             "x_anchor": "left",
@@ -2383,24 +2266,13 @@
                             "y_offset": -0.21
                         }
                     },
-                    "teamSelectIconEmpty_4": {
-                        "type": "Image",
+                    "teamSelectIconRight": {
+                        "type": "Widget",
                         "data": {
-                            "texture": "teamSelectIconEmpty",
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "size": [
-                                74,
-                                74
-                            ],
-                            "angle": 0,
-                            "position": [
-                                94,
-                                92
-                            ],
-                            "visible": true
+                            "key": "teamHouseIcon",
+                            "variables": {
+                                "houseImage" : "teamSelectIconEmpty"
+                            }
                         },
                         "layout": {
                             "x_anchor": "left",
