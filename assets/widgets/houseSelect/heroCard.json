@@ -23,33 +23,6 @@
             "visible": true
         },
         "children": {
-            "glowOverlayHero": {
-                "type": "Image",
-                "data": {
-                    "texture": "glowOverlayHero",
-                    "anchor": [
-                        0,
-                        1
-                    ],
-                    "size": [
-                        332,
-                        544
-                    ],
-                    "angle": 0,
-                    "position": [
-                        0,
-                        0
-                    ],
-                    "visible": true
-                },
-                "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "top",
-                    "absolute": false,
-                    "x_offset": 0,
-                    "y_offset": 0
-                }
-            },
             "heroPoster": {
                 "type": "Image",
                 "data": {
@@ -75,6 +48,33 @@
                     "absolute": false,
                     "x_offset": 0.1,
                     "y_offset": -0.06
+                }
+            },
+            "glowOverlayHero": {
+                "type": "Image",
+                "data": {
+                    "texture": "glowOverlayHero",
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        332,
+                        544
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
                 }
             },
             "title": {

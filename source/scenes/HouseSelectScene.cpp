@@ -240,6 +240,20 @@ void HouseSelectScene::slideTo(int newIndex) {
     
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
+    
+    for (int i = 0; i < _items.size(); i++) {
+        auto card = _items[i];
+        if (card) {
+            auto glow = card->getChildByName("glowOverlayHero");
+            if (glow){
+                glow->setVisible(false);
+                if (i == newIndex) {
+                    glow->setVisible(true);
+                }
+            }
+        }
+        
+    }
 
 }
 
