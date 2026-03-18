@@ -73,7 +73,15 @@ void HouseSelectScene::setupUI() {
         _assets->get<scene2::SceneNode>("houseSelectScene.back"));
 
     // actually image, make into widget for access
-    _playerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.selectorMainIcon.emptyLocalIcon"));
+    _playerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.playerSelectIcon"));
+    
+    if (_playerIcon) {
+        _playerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
+                            _playerIcon->getChildByName("emptyLocalIcon"));
+        
+        _playerIconGlow = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
+                            _playerIcon->getChildByName("lockedGlow"));
+    }
 
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("houseSelectScene.Carousel_buttons.directionbuttons.leftscroll"));
@@ -107,9 +115,17 @@ void HouseSelectScene::setupUI() {
 void HouseSelectScene::setupListeners() {
     
     _lockButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-//            updateText(_lockButton, "UNLOCK");
-            _status = Status::START;
+        if (!down) return;
+        _locked = !_locked;
+
+        if (_locked) {
+            updateSelectedIcon(_currentIndex);
+            updateText(_lockButton, "UNLOCK");
+            _playerIconGlow->setVisible(true);
+//            _status = Status::START;
+        } else {
+            updateText(_lockButton, "LOCK");
+            _playerIconGlow->setVisible(false);
         }
     });
 
@@ -189,7 +205,7 @@ void HouseSelectScene::setActive(bool value) {
  * @param text      The new text value
  */
 void HouseSelectScene::updateText(const std::shared_ptr<scene2::Button>& button, const std::string text) {
-    auto label = std::dynamic_pointer_cast<scene2::Label>(button->getChildByName("up")->getChildByName("label"));
+    auto label = std::dynamic_pointer_cast<scene2::Label>(button->getChildByName("label"));
     label->setText(text);
 }
 
@@ -263,6 +279,9 @@ void HouseSelectScene::slideTo(int newIndex) {
     }
     
     updateIndicators(newIndex);
+    if (!_locked){
+        updateSelectedIcon(newIndex);
+    }
 }
 
 void HouseSelectScene::updateIndicators(int currentIndex) {
@@ -275,6 +294,19 @@ void HouseSelectScene::updateIndicators(int currentIndex) {
             fill->setColor(Color4("#4c3214ff"));
         } else {
             fill->setColor(Color4("#9d7137ff"));
+        }
+    }
+}
+
+void HouseSelectScene::updateSelectedIcon(int currentIndex) {
+    auto card = _items[currentIndex];
+    std::string name = card->getName();
+    if (_playerIconImage){
+        _playerIconImage->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+        if (name == "athena") {
+            _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+        } else {
+            _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
         }
     }
 }

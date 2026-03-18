@@ -117,10 +117,18 @@
             "file": "textures/houseSelect/emptystats.png"
         },
         "athenaPoster": {
-            "file": "textures/houseSelect/athenaPoster.png"
+            "file": "textures/houseSelect/athenaPoster.png",
+            "minfilter":"linear",
+            "magfilter":"linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
         },
         "statsAthena": {
-            "file": "textures/houseSelect/statsAthena.png"
+            "file": "textures/houseSelect/statsAthena.png",
+            "minfilter":"linear",
+            "magfilter":"linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
         },
         "leftscroll": {
             "file": "textures/houseSelect/leftscroll.png"
@@ -148,6 +156,13 @@
         },
         "heroPoster": {
             "file": "textures/houseSelect/heroPoster.png"
+        },
+        "athenaSIcon": {
+            "file": "textures/houseSelect/athenaSIcon.png",
+            "minfilter":"linear",
+            "magfilter":"linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
         }
 	},
     "fonts": {

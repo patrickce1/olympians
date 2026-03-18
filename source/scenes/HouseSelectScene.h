@@ -29,6 +29,18 @@ public:
         ABORT
     };
     
+    enum House {
+        ZEUS,
+        POSEIDON,
+        HADES,
+        DEMETER,
+        ATHENA,
+        APHRODITE,
+        ARES,
+        HEPHESTUS,
+        HERMES
+    };
+    
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
@@ -41,6 +53,14 @@ protected:
     
     /** The player icon (for updating) */
     std::shared_ptr<cugl::scene2::SceneNode> _playerIcon;
+    
+    /** The player icon (for updating) */
+    std::shared_ptr<cugl::scene2::PolygonNode> _playerIconImage;
+    
+    /** The player icon (for updating) */
+    std::shared_ptr<cugl::scene2::SceneNode> _playerIconGlow;
+    
+    bool _locked = false;
     
     /** The house selection node list */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _items;
@@ -194,6 +214,8 @@ private:
     void slideTo(int index);
     
     void updateIndicators(int newIndex);
+    
+    void updateSelectedIcon(int newIndex);
 };
 
 #endif /* __HOUSE_SELECT_SCENE_H__ */

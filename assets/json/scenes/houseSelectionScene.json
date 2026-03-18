@@ -102,10 +102,10 @@
                         44
                     ],
                     "visible": true,
-                    "upnode": "buttonSmallBG"
+                    "upnode": "up"
                 },
                 "children": {
-                    "buttonSmallBG": {
+                    "up": {
                         "type": "Image",
                         "data": {
                             "texture": "buttonSmallBG",
@@ -132,15 +132,15 @@
                             "y_offset": 0
                         }
                     },
-                    "LOCK": {
+                    "label": {
                         "type": "Label",
                         "data": {
                             "anchor": [
-                                0,
-                                1
+                                0.5,
+                                1.5
                             ],
                             "size": [
-                                46,
+                                72,
                                 30
                             ],
                             "position": [
@@ -164,11 +164,11 @@
                         },
                         "children": {},
                         "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
                             "absolute": false,
-                            "x_offset": 0.41,
-                            "y_offset": -0.18
+                            "x_offset": 0,
+                            "y_offset": 0.65
                         }
                     }
                 },
@@ -1825,7 +1825,7 @@
                                     ]
                                 }
                             },
-                            "athenaCard": {
+                            "athena": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
