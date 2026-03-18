@@ -196,21 +196,20 @@
         "server": "json/server.json"
     },
     "widgets": {
-        "scene":       "json/gameScene.json",
+        "scene":       "json/scenes/gameScene.json",
         "gameArea":   "widgets/gameArea.json",
         "inventory":   "widgets/inventory.json",
-        "attackArea": "widgets/attackArea.json",
-        "boss":        "widgets/boss.json",
         "playerSlot": "widgets/playerSlot.json",
         "ability":     "widgets/ability.json",
-        "client": "json/clientScene.json",
+        "client": "json/scenes/clientScene.json",
         "textfield": "widgets/elements/textfield.json",
-        "hostSetup": "json/hostSetupScene.json",
+        "hostSetup": "json/scenes/hostSetupScene.json",
         "roleCard": "widgets/elements/roleCard.json",
         "bossSelection": "widgets/bossSelection.json",
-        "menuScene":   "json/menuScene.json",
-        "lobbyScene": "json/lobbyScene.json",
-        "houseSelectScene": "json/houseSelectionScene.json"
+        "menuScene":   "json/scenes/menuScene.json",
+        "lobbyScene": "json/scenes/lobbyScene.json",
+        "houseSelectScene": "json/scenes/houseSelectionScene.json",
+        "heroCard" : "widgets/houseSelect/heroCard.json"
     },
     "scene2s": {
         "gameScene": {
