@@ -51,7 +51,7 @@
                     "x_anchor": "center",
                     "y_anchor": "middle",
                     "absolute": false,
-                    "x_offset": 0.01,
+                    "x_offset": 0,
                     "y_offset": 0
                 }
             },
@@ -60,14 +60,14 @@
                 "data": {
                     "texture": "cyclopsShowroom",
                     "anchor": [
-                        0.5,
-                        0.5
+                        0,
+                        0
                     ],
                     "size": [
                         393,
                         852
                     ],
-                    "angle": -180,
+                    "angle": 0,
                     "position": [
                         393,
                         0
@@ -76,10 +76,10 @@
                 },
                 "layout": {
                     "x_anchor": "left",
-                    "y_anchor": "top",
+                    "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": 0.5,
-                    "y_offset": -0.5
+                    "x_offset": 0,
+                    "y_offset": 0
                 }
             },
             "lock": {
@@ -89,8 +89,8 @@
                 },
                 "data": {
                     "anchor": [
-                        0,
-                        1
+                        0.5,
+                        0
                     ],
                     "size": [
                         260,
@@ -173,11 +173,11 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "top",
+                    "x_anchor": "center",
+                    "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": 0.17,
-                    "y_offset": -0.9
+                    "x_offset": 0,
+                    "y_offset": 0.06
                 }
             },
             "Class Selection Carousel Icon": {
@@ -825,8 +825,8 @@
                 },
                 "data": {
                     "anchor": [
-                        0,
-                        1
+                        0.5,
+                        0.5
                     ],
                     "size": [
                         2732,
@@ -2181,129 +2181,23 @@
                                         }
                                     },
                                     "heroPoster": {
-                                        "type": "Node",
-                                        "format": {
-                                            "type": "Anchored"
-                                        },
+                                        "type": "Image",
                                         "data": {
+                                            "texture": "heroPoster",
                                             "anchor": [
                                                 0,
                                                 1
                                             ],
-                                            "angle": 0,
                                             "size": [
                                                 264,
                                                 476
                                             ],
+                                            "angle": 0,
                                             "position": [
                                                 34,
                                                 34
                                             ],
                                             "visible": true
-                                        },
-                                        "children": {
-                                            "fill": {
-                                                "type": "Solid",
-                                                "data": {
-                                                    "polygon": [
-                                                        264,
-                                                        476,
-                                                        0,
-                                                        476,
-                                                        0,
-                                                        200,
-                                                        1.71,
-                                                        173.89,
-                                                        6.81,
-                                                        148.24,
-                                                        15.22,
-                                                        123.46,
-                                                        26.79,
-                                                        100,
-                                                        41.33,
-                                                        78.25,
-                                                        58.58,
-                                                        58.58,
-                                                        78.25,
-                                                        41.33,
-                                                        100,
-                                                        26.79,
-                                                        123.46,
-                                                        15.22,
-                                                        148.24,
-                                                        6.81,
-                                                        173.89,
-                                                        1.71,
-                                                        200,
-                                                        0,
-                                                        64,
-                                                        0,
-                                                        90.11,
-                                                        1.71,
-                                                        115.76,
-                                                        6.81,
-                                                        140.54,
-                                                        15.22,
-                                                        164,
-                                                        26.79,
-                                                        185.75,
-                                                        41.33,
-                                                        205.42,
-                                                        58.58,
-                                                        222.67,
-                                                        78.25,
-                                                        237.21,
-                                                        100,
-                                                        248.78,
-                                                        123.46,
-                                                        257.19,
-                                                        148.24,
-                                                        262.29,
-                                                        173.89,
-                                                        264,
-                                                        200
-                                                    ],
-                                                    "color": "#2c1b0fff",
-                                                    "anchor": [
-                                                        0.5,
-                                                        0.5
-                                                    ],
-                                                    "position": [
-                                                        0,
-                                                        0
-                                                    ],
-                                                    "visible": true
-                                                },
-                                                "layout": {
-                                                    "x_anchor": "center",
-                                                    "y_anchor": "middle"
-                                                }
-                                            },
-                                            "stroke": {
-                                                "type": "Path",
-                                                "data": {
-                                                    "color": "#9d7137ff",
-                                                    "path": {
-                                                        "vertices": [],
-                                                        "closed": true
-                                                    },
-                                                    "stroke": 3,
-                                                    "joint": "square",
-                                                    "anchor": [
-                                                        0.5,
-                                                        0.5
-                                                    ],
-                                                    "position": [
-                                                        0,
-                                                        0
-                                                    ],
-                                                    "visible": true
-                                                },
-                                                "layout": {
-                                                    "x_anchor": "center",
-                                                    "y_anchor": "middle"
-                                                }
-                                            }
                                         },
                                         "layout": {
                                             "x_anchor": "left",
@@ -2708,6 +2602,33 @@
                                             "y_offset": 0
                                         }
                                     },
+                                    "heroPoster": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "heroPoster",
+                                            "anchor": [
+                                                0,
+                                                1
+                                            ],
+                                            "size": [
+                                                264,
+                                                476
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                34,
+                                                34
+                                            ],
+                                            "visible": true
+                                        },
+                                        "layout": {
+                                            "x_anchor": "left",
+                                            "y_anchor": "top",
+                                            "absolute": false,
+                                            "x_offset": 0.1,
+                                            "y_offset": -0.06
+                                        }
+                                    },
                                     "title": {
                                         "type": "Node",
                                         "format": {
@@ -2830,33 +2751,6 @@
                                             "absolute": false,
                                             "x_offset": 0.18,
                                             "y_offset": -0.75
-                                        }
-                                    },
-                                    "heroPoster": {
-                                        "type": "Image",
-                                        "data": {
-                                            "texture": "heroPoster",
-                                            "anchor": [
-                                                0,
-                                                1
-                                            ],
-                                            "size": [
-                                                264,
-                                                476
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                34,
-                                                34
-                                            ],
-                                            "visible": true
-                                        },
-                                        "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0.1,
-                                            "y_offset": -0.06
                                         }
                                     }
                                 },
@@ -3037,11 +2931,11 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "top",
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
                     "absolute": false,
-                    "x_offset": -2.97,
-                    "y_offset": -0.21
+                    "x_offset": 0,
+                    "y_offset": -0.02
                 }
             },
             "back": {

@@ -836,8 +836,8 @@
                     "x_anchor": "left",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.0,
-                    "y_offset": 0.0
+                    "x_offset": 0.07,
+                    "y_offset": -0.06
                 }
             }
         }

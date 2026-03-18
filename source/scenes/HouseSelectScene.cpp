@@ -100,7 +100,7 @@ void HouseSelectScene::setupListeners() {
     
     _lockButton->addListener([this](const std::string& name, bool down) {
         if (down) {
-            updateText(_lockButton, "UNLOCK");
+//            updateText(_lockButton, "UNLOCK");
             _status = Status::START;
         }
     });
