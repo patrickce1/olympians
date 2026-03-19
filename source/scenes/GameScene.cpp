@@ -155,7 +155,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     we recheck if we are player 0 whenever another scene transitions back into this one*/
     setLocalPlayer(0);
     
-    setDebugMode(true);
+    setDebugMode(false);
     setActive(false);
     return true;
 }
