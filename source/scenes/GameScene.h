@@ -57,8 +57,17 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
-    /** Input zones: each entry maps an Action to the screen Rect that triggers it. */
+    /** Input zones: each entry maps an Action to the screen Rect that triggers it.  Defined as the currently active zones*/
     std::vector<std::pair<InputController::Action, cugl::Rect>> _inputZones;
+    
+    /** Zones used for attack on screen. */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _attackZones;
+    
+    /** Zones used for support on screen. */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _supportZones;
+    
+    /** IZones used for pass on screen. . */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _passZones;
 
     /** The reset button node. */
     std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
@@ -348,7 +357,7 @@ public:
      * @param itemId  The ID of the held item.
      * @return        A const pointer to the item's definition, or nullptr.
      */
-    const ItemDef* getHeldItemDef(ItemInstance::ItemId itemId);
+    std::shared_ptr<const ItemDef> getHeldItemDef(ItemInstance::ItemId itemId);
     
 #pragma mark - Inventory UI
 

@@ -20,14 +20,6 @@ using namespace std;
 #pragma mark Constructors
 
 /**
- * Builds the five rectangular input zones from the current scene dimensions.
- * Must be called after Scene2::initWithHint() so getSize() is valid.
- */
-void GameScene::initInputZones() {
-    updateInputZones();
-}
-
-/**
  * Loads the scene graph from assets, resizes it to the current scene
  * dimensions, and wires up all named child node references.
  * Must be called after _assets is assigned and Scene2::initWithHint() succeeds.
@@ -89,6 +81,24 @@ bool GameScene::initGameSystems() {
         return false;
     }
     return true;
+}
+
+void GameScene::initInputZones(){
+    Size dimen = getSize();
+    float w = dimen.width;
+    float h = dimen.height;
+    
+    _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.4f, w * 0.9f, h * 0.47f)}};
+    
+    _supportZones = {
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(0,          h * 0.45f, w * 0.15f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)}
+    };
+    
+    _passZones = {
+        {InputController::Action::PASS_LEFT,  Rect(0,          0, w * 0.15f, h * 0.35f)},
+        {InputController::Action::PASS_RIGHT, Rect(w * 0.85f, 0, w * 0.15f, h * 0.35f)}
+    };
 }
 
 /**
@@ -361,12 +371,15 @@ void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
     }
 }
 
-const ItemDef* GameScene::getHeldItemDef(ItemInstance::ItemId itemId){
+/**
+ Returns the ItemDef associated with the passed itemID. If nothing is associated with the idea, returns nullpointer.
+ */
+std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId itemId){
     for (const ItemInstance& item : _gameState.getLocalPlayer()->getInventory()){
         if (item.getId() != itemId){
             continue;
         }
-        return _itemController.getDatabase().getDef(item.getDefId()).get();
+        return _itemController.getDatabase().getDef(item.getDefId());
     }
     return nullptr;
 }
@@ -529,7 +542,7 @@ void GameScene::handleDragInitiation(InputController& input) {
             _activeIcon = widget;
             _dragOffset = widget->getPosition() - touchPosScreen;
             _draggedItemId = id;
-            _draggedItemDef = getHeldItemDef(id);
+            _draggedItemDef = getHeldItemDef(id).get();
             updateInputZones();
             break;
         }
@@ -747,24 +760,19 @@ void GameScene::render() {
  * If a support item is held, the support zones are added to _inputZones.
  */
 void GameScene::updateInputZones(){
-    Size dimen = getSize();
-    float w = dimen.width;
-    float h = dimen.height;
-    _inputZones.clear();
-    
-    if (_draggedItemDef && _draggedItemDef->getType() == ItemDef::Type::Attack){
-        _inputZones.push_back({InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.4f, w * 0.9f,  h * 0.47f)});
-    }
-    if (_draggedItemDef && _draggedItemDef->getType() == ItemDef::Type::Support){
-        _inputZones.push_back({InputController::Action::DROP_ALLY_LEFT,  Rect(0, h * 0.45f, w * 0.15f, h * 0.40f)});
-        _inputZones.push_back({InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)});
+    if (!_draggedItemDef){
+        _inputZones = {};
+        return;
     }
     
-    if (_draggedItemDef){
-        _inputZones.push_back({InputController::Action::PASS_LEFT, Rect(0, 0, w * 0.15f, h * 0.35f)});
-        _inputZones.push_back({InputController::Action::PASS_RIGHT,Rect(w * 0.85f, 0, w * 0.15f, h * 0.35f)});
+    if (_draggedItemDef->getType() == ItemDef::Type::Attack){
+        _inputZones = _attackZones;
+    }
+    else {
+        _inputZones = _supportZones;
     }
     
+    _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
 }
 
 /**
