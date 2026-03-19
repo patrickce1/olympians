@@ -371,11 +371,12 @@ void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
     }
 }
 
-/**
- Returns the ItemDef associated with the passed itemID. If nothing is associated with the idea, returns nullpointer.
- */
-std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId itemId){
-    for (const ItemInstance& item : _gameState.getLocalPlayer()->getInventory()){
+const ItemDef* GameScene::getHeldItemDef(ItemInstance::ItemId itemId){
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) {
+        return nullptr;
+    }
+    for (const ItemInstance& item : local->getInventory()){
         if (item.getId() != itemId){
             continue;
         }
@@ -490,7 +491,7 @@ void GameScene::handlePlayerInput(InputController& input) {
     }
 
     _activeIcon = nullptr;
-    _draggedItemId = NULL;
+    _draggedItemId = 0;
     _draggedItemDef = nullptr;
     updateInputZones();
 }
