@@ -750,7 +750,6 @@ void GameScene::render() {
         renderPointerDebug(batch.get());
     }
     renderDropZones(batch.get());
-
     batch->end();
 }
 /**
