@@ -355,7 +355,7 @@ public:
      * Returns nullptr if the item is not found or has no definition.
      *
      * @param itemId  The ID of the held item.
-     * @return        A const pointer to the item's definition, or nullptr.
+     * @return        A shared pointer to the item's definition, or nullptr.
      */
     std::shared_ptr<const ItemDef> getHeldItemDef(ItemInstance::ItemId itemId);
     
