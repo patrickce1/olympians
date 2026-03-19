@@ -754,9 +754,9 @@ void GameScene::render() {
     batch->end();
 }
 /**
- * Recreates the zones that should be on screen dependent on what item the player is holding.
- * If nothing is held, no zones are added to_inputZones.
- * If any type of item is held, the pass zones are added  to _inputZones.
+ * Recreates the on-screen input zones depending on the item the player is holding.
+ * If nothing is held, no zones are added to _inputZones.
+ * If any item is held, the pass zones are added to _inputZones.
  * If an attack item is held, the attack zone is added to _inputZones.
  * If a support item is held, the support zones are added to _inputZones.
  */
