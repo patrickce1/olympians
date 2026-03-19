@@ -362,7 +362,11 @@ void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
 }
 
 const ItemDef* GameScene::getHeldItemDef(ItemInstance::ItemId itemId){
-    for (const ItemInstance& item : _gameState.getLocalPlayer()->getInventory()){
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) {
+        return nullptr;
+    }
+    for (const ItemInstance& item : local->getInventory()){
         if (item.getId() != itemId){
             continue;
         }
