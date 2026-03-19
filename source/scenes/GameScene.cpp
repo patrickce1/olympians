@@ -481,7 +481,7 @@ void GameScene::handlePlayerInput(InputController& input) {
     }
 
     _activeIcon = nullptr;
-    _draggedItemId = NULL;
+    _draggedItemId = 0;
     _draggedItemDef = nullptr;
     updateInputZones();
 }
