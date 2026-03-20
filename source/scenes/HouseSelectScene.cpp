@@ -289,7 +289,7 @@ void HouseSelectScene::slideTo(int newIndex) {
         }
     }
     
-    updateIndicators(newIndex);
+    updateCarouselDots(newIndex);
     if (!_locked){
         updateSelectedIcon(newIndex);
     }

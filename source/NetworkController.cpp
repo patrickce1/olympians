@@ -259,7 +259,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		}
         case MessageType::SELECT_HOUSE: {
             int houseID = _deserializer.readSint32();
-            int index = getIndexByID(senderID);
+            int index = getPlayerNumberByID(senderID);
             if (index != -1) {
                 _onlinePlayers[index].houseID = houseID;
                 broadcastLobbyState();
