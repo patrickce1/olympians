@@ -57,8 +57,17 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
-    /** Input zones: each entry maps an Action to the screen Rect that triggers it. */
+    /** Input zones: each entry maps an Action to the screen Rect that triggers it.  Defined as the currently active zones*/
     std::vector<std::pair<InputController::Action, cugl::Rect>> _inputZones;
+    
+    /** Zones used for attack on screen. */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _attackZones;
+    
+    /** Zones used for support on screen. */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _supportZones;
+    
+    /** IZones used for pass on screen. . */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _passZones;
 
     /** The reset button node. */
     std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
@@ -79,7 +88,13 @@ protected:
 
     /** The scene node currently being dragged by the player, or nullptr. */
     std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
+    
+    /** The item id of the item being currently held. */
+    ItemInstance::ItemId _draggedItemId = ItemInstance::ItemId{};
 
+    /** The ItemDef of the item currently being dragged, or nullptr. */
+    const ItemDef* _draggedItemDef = nullptr;
+    
     /** Offset from the icon's origin to the touch point, applied during drag. */
     cugl::Vec2 _dragOffset;
 
@@ -334,7 +349,16 @@ public:
     * Intended usage: get the pass message vector from the network controller and pass into this function
     */
     void processNetworkedPasses(std::vector<PassMessage> passes);
-
+    
+    /**
+     * Looks up the ItemDef for the item currently being dragged.
+     * Returns nullptr if the item is not found or has no definition.
+     *
+     * @param itemId  The ID of the held item.
+     * @return        A shared pointer to the item's definition, or nullptr.
+     */
+    std::shared_ptr<const ItemDef> getHeldItemDef(ItemInstance::ItemId itemId);
+    
 #pragma mark - Inventory UI
 
     /**
@@ -372,6 +396,13 @@ public:
      * @param input  The input controller owned by SceneLoader.
      */
     void update(float dt, InputController& input);
+    
+    /**
+     * Rebuilds the active input zones based on the type of item currently being dragged.
+     * Attack items show the boss drop zone; support items show the ally drop zones.
+     * Pass zones are always included while dragging. Clears all zones if nothing is held.
+     */
+    void updateInputZones();
 
     /**
      * Draws a green debug outline around the reset button's bounding box.
