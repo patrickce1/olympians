@@ -24,6 +24,7 @@ public:
     enum Status {
         IDLE,
         WAIT,
+        SELECT,
         START,
         ABORT
     };
@@ -49,6 +50,9 @@ protected:
     
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
+    
+    /** Player icon buttons (to update when they selct house) */
+    std::vector<std::shared_ptr<cugl::scene2::Button>> _playerImages;
 
     /** A container that stores labels and other info for visualizing the character and username choices of players */
     std::shared_ptr<cugl::scene2::SceneNode> _playerInfoContainer;

@@ -78,8 +78,12 @@ void LobbyScene::setupUI() {
             auto label = std::dynamic_pointer_cast<scene2::Label>(
                 card->getChildByName("username")
             );
+            auto image = std::dynamic_pointer_cast<scene2::Button>(
+                card->getChildByName("playerIcon")
+            );
 
             _playerSlots.push_back(label);
+            _playerImages.push_back(image);
         }
     }
 }
@@ -106,6 +110,15 @@ void LobbyScene::setupListeners() {
             _status = Status::ABORT;
         }
     });
+    
+    for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages) {
+        icon->addListener([this](const std::string& name, bool down) {
+            if (down) {
+                CULog("down");
+                _status = Status::SELECT;
+            }
+        });
+    }
 }
 
 /**
@@ -114,6 +127,12 @@ void LobbyScene::setupListeners() {
 void LobbyScene::dispose() {
     if (_active) {
         removeAllChildren();
+        _playerSlots.clear();
+        _playerImages.clear();
+        _enterGame = nullptr;
+        _backOut = nullptr;
+        _gameId = nullptr;
+        _playerInfoContainer = nullptr;
         _active = false;
     }
     _network = nullptr;
@@ -135,9 +154,16 @@ void LobbyScene::setActive(bool value) {
             _status = IDLE;
             _enterGame->activate();
             _backOut->activate();
+            for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+                icon->activate();
+            }
         } else {
             _backOut->deactivate();
             _enterGame->deactivate();
+            for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+                icon->deactivate();
+                icon->setDown(false);
+            }
             
             // If any were pressed, reset them
             _enterGame->setDown(false);

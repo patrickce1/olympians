@@ -213,7 +213,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		}
 		case MessageType::PLAYER_JOIN: {
 			std::string playerName = _deserializer.readString();
-			CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
+//			CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
 
 			// check if player is already registered
 			bool alreadyRegistered = false;
@@ -236,7 +236,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		case MessageType::LOBBY_UPDATE: {
 			std::vector<std::string> playerData = _deserializer.readStringVector();
 			_onlinePlayers.clear();
-			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
+//			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
 			// re-pair the flattened vector back into pairs
 			for (int i = 0; i < playerData.size(); i += 2) {
 				NetworkedPlayer newPlayer;
