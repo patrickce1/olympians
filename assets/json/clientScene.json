@@ -20,32 +20,22 @@
         },
         "children": {
             "background": {
-                "type": "Solid",
+                "type": "Image",
                 "data": {
-                    "polygon": [
-                        800,
-                        852,
-                        0,
-                        852,
-                        0,
-                        0,
-                        800,
-                        0
-                    ],
-                    "color": "#ffffffff",
+                    "texture": "cloudBottom",
                     "anchor": [
-                        0,
+                        0.5,
                         0
                     ],
-                    "position": [
-                        0,
-                        0
+                    "size": [
+                        397,
+                        662
                     ],
-                    "visible": true,
-                    "angle": 0
+                    "angle": 0,
+                    "visible": true
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0,
@@ -177,7 +167,7 @@
                     "gameID": {
                         "type": "Widget",
                         "data": {
-                            "key": "textfield",
+                            "key": "text-field",
                             "variables": {
                                 "text": ""
                             }
@@ -190,7 +180,7 @@
                     "playerName": {
                         "type": "Widget",
                         "data": {
-                            "key": "textfield",
+                            "key": "text-field",
                             "variables": {
                                 "text": ""
                             }
@@ -210,115 +200,11 @@
                 }
             },
             "enter": {
-                "type": "Button",
-                "format": {
-                    "type": "Anchored"
-                },
+                "type": "Widget",
                 "data": {
-                    "anchor": [
-                        0.5,
-                        0.5
-                    ],
-                    "size": [
-                        280,
-                        53
-                    ],
-                    "angle": 0,
-                    "position": [
-                        57,
-                        331
-                    ],
-                    "visible": true,
-                    "upnode": "Rectangle 29"
-                },
-                "children": {
-                    "Rectangle 29": {
-                        "type": "Solid",
-                        "data": {
-                            "polygon": [
-                                280,
-                                47,
-                                278.24,
-                                51.24,
-                                274,
-                                53,
-                                6,
-                                53,
-                                1.76,
-                                51.24,
-                                0,
-                                47,
-                                0,
-                                6,
-                                1.76,
-                                1.76,
-                                6,
-                                0,
-                                274,
-                                0,
-                                278.24,
-                                1.76,
-                                280,
-                                6
-                            ],
-                            "color": "#c9c9c9ff",
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "position": [
-                                0,
-                                0
-                            ],
-                            "visible": true,
-                            "angle": 0
-                        },
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
-                            "absolute": false,
-                            "x_offset": 0,
-                            "y_offset": 0
-                        }
-                    },
-                    "Enter Game": {
-                        "type": "Label",
-                        "data": {
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "size": [
-                                132,
-                                29
-                            ],
-                            "position": [
-                                73.5,
-                                12
-                            ],
-                            "angle": 0,
-                            "visible": true,
-                            "font": "gideon romanRegular24",
-                            "text": "Enter Game",
-                            "foreground": "#000000ff",
-                            "background": "#00000000",
-                            "padding": [
-                                0,
-                                0,
-                                0,
-                                0
-                            ],
-                            "valign": "top",
-                            "halign": "center"
-                        },
-                        "children": {},
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
-                            "absolute": false,
-                            "x_offset": 0.26,
-                            "y_offset": -0.23
-                        }
+                    "key": "buttonMedium",
+                    "variables": {
+                        "label": "ENTER GAME"
                     }
                 },
                 "layout": {
@@ -326,7 +212,7 @@
                     "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.08
+                    "y_offset": -0.06
                 }
             },
             "back": {

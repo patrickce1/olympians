@@ -99,6 +99,18 @@
         },
         "buttonBG": {
             "file": "textures/elements/buttonBG.png"
+        },
+        "buttonMedBG": {
+            "file": "textures/elements/buttonMedBG.png"
+        },
+        "buttonSmallBG": {
+            "file": "textures/elements/buttonSmallBG.png"
+        },
+        "textfieldBG": {
+            "file": "textures/elements/textfieldBG.png"
+        },
+        "cloudBottom": {
+            "file": "textures/clientCloud.png"
         }
 	},
     "fonts": {
@@ -161,7 +173,10 @@
         "bossSelection": "widgets/bossSelection.json",
         "menuScene":   "json/menuScene.json",
         "lobbyScene": "json/lobbyScene.json",
-        "buttonRegular": "widgets/elements/button-reg.json"
+        "buttonRegular": "widgets/elements/button-reg.json",
+        "buttonMedium": "widgets/elements/button-medium.json",
+        "buttonSmall": "widgets/elements/button-small.json",
+        "text-field": "widgets/elements/text-field.json"
     },
     "scene2s": {
         "gameScene": {

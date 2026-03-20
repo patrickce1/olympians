@@ -75,10 +75,10 @@ void ClientScene::setupUI() {
 
     // Create placeholder text for text-field
     std::shared_ptr<cugl::scene2::Label> placeID = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.placeholder"));
-    placeID->setText("Enter Game ID");
+    placeID->setText("ENTER GAME ID");
     
     std::shared_ptr<cugl::scene2::Label> placeName = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.placeholder"));
-    placeName->setText("Enter Name");
+    placeName->setText("ENTER NAME");
     
     // Set the placeholders to invsible when typing starts
     _gameId->addTypeListener([this, placeID](const std::string& name, const std::string& value) {
