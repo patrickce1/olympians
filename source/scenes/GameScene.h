@@ -90,7 +90,7 @@ protected:
     std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
     
     /** The item id of the item being currently held. */
-    ItemInstance::ItemId _draggedItemId;
+    ItemInstance::ItemId _draggedItemId = ItemInstance::ItemId{};
 
     /** The ItemDef of the item currently being dragged, or nullptr. */
     const ItemDef* _draggedItemDef = nullptr;

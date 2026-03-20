@@ -83,6 +83,15 @@ bool GameScene::initGameSystems() {
     return true;
 }
 
+/**
+ * Initializes touch/mouse input zones mapped to game actions.
+ *
+ * Divides the screen into named rectangular regions scaled to the current
+ * scene dimensions. Populates _attackZones (top center, DROP_BOSS),
+ * _supportZones (top sides, DROP_ALLY), and _passZones
+ * (bottom sides, PASS_LEFT / PASS_RIGHT).
+ *
+ */
 void GameScene::initInputZones(){
     Size dimen = getSize();
     float w = dimen.width;
@@ -91,12 +100,12 @@ void GameScene::initInputZones(){
     _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.4f, w * 0.9f, h * 0.47f)}};
     
     _supportZones = {
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(0,          h * 0.45f, w * 0.15f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(0, h * 0.45f, w * 0.15f, h * 0.40f)},
         {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)}
     };
     
     _passZones = {
-        {InputController::Action::PASS_LEFT,  Rect(0,          0, w * 0.15f, h * 0.35f)},
+        {InputController::Action::PASS_LEFT,  Rect(0, 0, w * 0.15f, h * 0.35f)},
         {InputController::Action::PASS_RIGHT, Rect(w * 0.85f, 0, w * 0.15f, h * 0.35f)}
     };
 }
@@ -370,8 +379,14 @@ void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
         _itemController.giveRandomItem(_gameState.getLocalPlayer());
     }
 }
-
-const ItemDef* GameScene::getHeldItemDef(ItemInstance::ItemId itemId){
+/**
+ * Returns the definition for an item in the local player's inventory.
+ *
+ * @param itemId  The instance ID of the item to look up.
+ * @return The item's definition, or nullptr if the local player does not
+ *         exist or does not hold an item with the given ID.
+ */
+std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId itemId){
     Player* local = _gameState.getLocalPlayer();
     if (!local) {
         return nullptr;
