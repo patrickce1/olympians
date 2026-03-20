@@ -96,6 +96,9 @@
         },
         "debugReset" : {
             "file": "textures/attack.png"
+        },
+        "buttonBG": {
+            "file": "textures/elements/buttonBG.png"
         }
 	},
     "fonts": {
@@ -132,8 +135,8 @@
           "size": 48
         },
         "menuTitle": {
-            "file":     "fonts/GideonRoman-Regular.ttf",
-            "size":     60
+            "file":     "fonts/GRECOromanLubedWrestling.ttf",
+            "size":     48
         },
         "menuLabel": {
             "file":     "fonts/Roboto-Bold.ttf",
@@ -157,7 +160,8 @@
         "roleCard": "widgets/elements/roleCard.json",
         "bossSelection": "widgets/bossSelection.json",
         "menuScene":   "json/menuScene.json",
-        "lobbyScene": "json/lobbyScene.json"
+        "lobbyScene": "json/lobbyScene.json",
+        "buttonRegular": "widgets/elements/button-reg.json"
     },
     "scene2s": {
         "gameScene": {
