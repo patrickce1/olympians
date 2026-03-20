@@ -337,6 +337,15 @@ public:
      * @param input  The active input controller.
      */
     void handleDragTracking(InputController& input);
+    
+    /**
+     * Spawns items for the local player every frame, and for all AI-controlled
+     * players if this machine is the host. AI item spawning is host-only since
+     * the host is the authoritative source for all AI state.
+     *
+     * @param dt  Delta time in seconds.
+     */
+    void handleItemSpawn(float dt);
 
     /**
     * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory

@@ -156,16 +156,14 @@ public:
 
     /*Returns the list of networked players, carrying their network ID and username*/
     const std::vector<NetworkedPlayer> getNetworkedPlayers();
-    
-    /**
-     * Host-only. Checks whether any network peer that maps to a real player slot has disconnected. Compares _onlinePlayers networkIDs against the
-     * provided set of active real-player network IDs. Broadcasts PLAYER_DISCONNECT and updates _onlinePlayers for any dropped peer.
-     *
-     * @param activeNetworkIDs  The networkIDs of all currently real (non-AI)
-     *                          player slots, keyed by slot index.
-     */
-    void checkForDroppedPeers(const std::unordered_map<int, std::string>& activeNetworkIDs);
 
+    /**
+     * Registers a disconnect callback on the NetcodeConnection so that when
+     * any peer closes, their slot is immediately pushed into _disconnectedSlots.
+     * Should be called once after the network connection is established.
+     */
+    void registerDisconnectCallback();
+    
     /**
      * Broadcasts a PLAYER_DISCONNECT message to all clients.
      *

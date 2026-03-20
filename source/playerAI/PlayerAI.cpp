@@ -61,13 +61,32 @@ void PlayerAI::update(float dt, Enemy& enemy, ItemController& items) {
     _thinkTimer += dt;
     if (_thinkTimer < _thinkInterval) return;
     _thinkTimer = 0.0f;
+    
+    CULog("[PlayerAI '%s'] inventory size=%d hp=%.1f/%.1f",
+              getPlayerName().c_str(),
+              (int)getInventory().size(),
+              getCurrentHealth(),
+              getMaxHealth());
 
     _state = evaluate(enemy);
 
     switch (_state) {
-        case State::ATTACK:  actAttack(enemy, items); break;
-        case State::SUPPORT: actSupport(items);       break;
-        case State::PASS:    actPass();               break;
-        default: break;
+        case State::ATTACK:
+            CULog("[PlayerAI '%s'] state → ATTACK", getPlayerName().c_str());
+            actAttack(enemy, items);
+            break;
+        case State::SUPPORT:
+            CULog("[PlayerAI '%s'] state → SUPPORT", getPlayerName().c_str());
+            actSupport(items);
+            break;
+        case State::PASS:
+            CULog("[PlayerAI '%s'] state → PASS", getPlayerName().c_str());
+            actPass();
+            break;
+        case State::IDLE:
+            CULog("[PlayerAI '%s'] state → IDLE (no inventory)", getPlayerName().c_str());
+            break;
+        default:
+            break;
     }
 }

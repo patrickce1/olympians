@@ -86,6 +86,7 @@ bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) 
 void NetworkController::joinRoom(const std::string room) {
 	_network = NetcodeConnection::alloc(_config, dec2hex(room));
 	_network->open();
+    registerDisconnectCallback();
 }
 
 /**
@@ -96,6 +97,7 @@ void NetworkController::joinRoom(const std::string room) {
 void NetworkController::hostRoom() {
 	_network = NetcodeConnection::alloc(_config);
     _network->open();
+    registerDisconnectCallback();
 }
 
 /**
@@ -482,29 +484,34 @@ int NetworkController::getLocalPlayerNumber() {
 }
 
 /**
- * Host-only. Checks whether any network peer that maps to a real player slot has disconnected. Compares _onlinePlayers networkIDs against the
- * provided set of active real-player network IDs. Broadcasts PLAYER_DISCONNECT and updates _onlinePlayers for any dropped peer.
- *
- * @param activeNetworkIDs  The networkIDs of all currently real (non-AI) player slots, keyed by slot index.
+ * Registers a disconnect callback on the NetcodeConnection so that when
+ * any peer closes, their slot is immediately pushed into _disconnectedSlots.
+ * Should be called once after the network connection is established.
  */
-void NetworkController::checkForDroppedPeers(const std::unordered_map<int, std::string>& activeNetworkIDs) {
-    if (!_network || !isHost()) return;
+void NetworkController::registerDisconnectCallback() {
+    if (!_network) return;
 
-    // Build a fast lookup of which networkIDs are still connected.
-    std::unordered_set<std::string> connectedIDs;
-    for (const auto& peer : _onlinePlayers) {
-        connectedIDs.insert(peer.networkID);
-    }
+    _network->onDisconnect([this](const std::string& peerID) {
+        CULog("NetworkController: peer %s disconnected", peerID.c_str());
 
-    // For every slot that still has a real player, check if their
-    // networkID has disappeared from the connected peers list.
-    for (const auto& [slot, networkID] : activeNetworkIDs) {
-        if (connectedIDs.count(networkID) == 0) {
-            CULog("NetworkController: slot %d (id=%s) dropped", slot, networkID.c_str());
-            _disconnectedSlots.push_back(slot);
-            broadcastPlayerDisconnected(slot);
+        // Find which slot this networkID maps to.
+        for (int i = 0; i < (int)_onlinePlayers.size(); i++) {
+            if (_onlinePlayers[i].networkID == peerID) {
+                CULog("NetworkController: slot %d disconnected", i);
+                _disconnectedSlots.push_back(i);
+
+                // Remove from _onlinePlayers so future lookups are accurate.
+                _onlinePlayers.erase(_onlinePlayers.begin() + i);
+
+                // Notify all remaining clients if we are the host.
+                if (isHost()) {
+                    broadcastPlayerDisconnected(i);
+                    broadcastLobbyState();
+                }
+                break;
+            }
         }
-    }
+    });
 }
 
 /**

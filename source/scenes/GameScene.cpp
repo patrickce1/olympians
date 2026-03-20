@@ -562,6 +562,20 @@ void GameScene::handleNetworkUpdates() {
     processNetworkedPasses(_network->getPassUpdates());
 }
 
+void GameScene::handleItemSpawn(float dt) {
+    // Always spawn items for the local human player.
+    _itemController.update(dt, _gameState.getLocalPlayer());
+
+    // Only the host spawns items for AI players, since the host is the
+    // authoritative source for all AI state and broadcasts it to clients.
+    if (!_network->isHost()) return;
+
+    for (auto& player : _gameState.getPlayers()) {
+        if (!player->isAI()) continue;
+        _itemController.update(dt, player.get());
+    }
+}
+
 #pragma mark -
 #pragma mark Update
 
@@ -571,7 +585,6 @@ void GameScene::handleNetworkUpdates() {
 void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
 
-    handleDisconnectedPlayers();
     handleResetButton(input);
     handlePlayerInput(input);
     input.resetAction();
@@ -586,10 +599,10 @@ void GameScene::update(float dt, InputController& input) {
     handleDragTracking(input);
 
     handleNetworkUpdates();
+    handleDisconnectedPlayers();
 
-    _itemController.update(dt, _gameState.getLocalPlayer());
+    handleItemSpawn(dt);
     syncInventoryWidgets();
-
     updateEnemyAndAI(dt);
     _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
@@ -771,8 +784,6 @@ void GameScene::detectDroppedPeers() {
             activeNetworkIDs[slot] = networkedPlayers[slot].networkID;
         }
     }
-
-    _network->checkForDroppedPeers(activeNetworkIDs);
 }
 
 /**
@@ -852,13 +863,9 @@ void GameScene::refreshTeammateNameLabels() {
 void GameScene::handleDisconnectedPlayers() {
     if (!_network) return;
 
-    // Step 1: Host detects which peers have gone silent this frame.
-    // Clients skip this — they learn via PLAYER_DISCONNECT from the host.
-    if (_network->isHost()) {
-        detectDroppedPeers();
-    }
+    // No polling needed — _disconnectedSlots is populated automatically
+    // by the NetworkController's disconnect callback when any peer closes.
 
-    // Step 2: Process each newly disconnected slot.
     for (int slot : _network->getDisconnectedSlots()) {
 
         // Skip slots we already handled in a previous frame.
