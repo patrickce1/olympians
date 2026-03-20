@@ -5,6 +5,7 @@
 #include <cugl/cugl.h>
 #include <unordered_map>
 #include <string>
+#include "House.h"
 
 class CharacterLoader {
     
@@ -20,7 +21,7 @@ public:
     /** This is a struct with all the properties of our characters defined in the JSON*/
     struct CharacterDef {
         std::string id;
-        std::string house;
+        House house;
         float maxHealth;
         AbilityClass abilityClass;
         std::string spritesheetPath;
@@ -39,6 +40,20 @@ public:
         if (s == "Healer")        return AbilityClass::HEALER;
         if (s == "Damage Dealer") return AbilityClass::DAMAGE_DEALER;
         return AbilityClass::ALL_ROUNDER;
+    }
+    
+    /**Returns the respective house given a string**/
+    House parseHouse(const std::string& s) {
+        if (s == "Zeus") return House::ZEUS;
+        if (s == "Poseidon") return House::POSEIDON;
+        if (s == "Hades") return House::HADES;
+        if (s == "Demeter") return House::DEMETER;
+        if (s == "Athena") return House::ATHENA;
+        if (s == "Aphrodite") return House::APHRODITE;
+        if (s == "Ares") return House::ARES;
+        if (s == "Hephestus") return House::HEPHESTUS;
+        if (s == "Hermes") return House::HERMES;
+        return House::NONE; // Athena is default
     }
 
     /**
@@ -65,7 +80,7 @@ public:
             auto entry = charArray->get(i);
             CharacterDef def;
             def.id                = entry->getString("id");
-            def.house             = entry->getString("house");
+            def.house             = parseHouse(entry->getString("house"));
             def.maxHealth         = entry->getFloat("maxHealth");
             def.abilityClass      = parseAbilityClass(entry->getString("abilityClass"));
             def.spritesheetPath   = entry->getString("spritesheetPath");

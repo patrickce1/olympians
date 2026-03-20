@@ -2,6 +2,9 @@
 #define __HOUSE_SELECT_SCENE_H__
 
 #include <cugl/cugl.h>
+#include "../House.h"
+#include "../NetworkController.h"
+#include "../NetworkMessage.h"
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -21,29 +24,20 @@ public:
      * This is how the application knows to switch to the next scene.
      */
     enum Status {
-        /** Host is waiting on a connection */
-        WAIT,
-        /** Time to start the game */
-        START,
-        /** Game was aborted; back to main menu */
+        /** Player is browsing and has not locked in a house yet */
+        WAITING,
+        /** Player has locked in a house; ready to proceed */
+        LOCKED,
+        /** Player canceled or left house select; back to lobby */
         ABORT
-    };
-    
-    enum House {
-        ZEUS,
-        POSEIDON,
-        HADES,
-        DEMETER,
-        ATHENA,
-        APHRODITE,
-        ARES,
-        HEPHESTUS,
-        HERMES
     };
     
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+    
+    /** The network controller shared across all scenes*/
+    std::shared_ptr<NetworkController> _network;
 
     /** The button for locking/unlocking chosen character */
     std::shared_ptr<cugl::scene2::Button> _lockButton;
@@ -54,12 +48,13 @@ protected:
     /** The player icon (for updating) */
     std::shared_ptr<cugl::scene2::SceneNode> _playerIcon;
     
-    /** The player icon (for updating) */
+    /** The player icon image (for updating) */
     std::shared_ptr<cugl::scene2::PolygonNode> _playerIconImage;
     
-    /** The player icon (for updating) */
+    /** The player icon glow state (for toggle) */
     std::shared_ptr<cugl::scene2::SceneNode> _playerIconGlow;
     
+    /** Whether the played has locked down a house.*/
     bool _locked = false;
     
     /** The house selection node list */
@@ -130,7 +125,8 @@ public:
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets,
+              const std::shared_ptr<NetworkController>& networkController);
     
     /**
      * Retrieves and stores references to the host setup UI elements.
@@ -213,10 +209,28 @@ private:
      */
     void slideTo(int index);
     
+    /**
+     * Updates the circular indicators at the bottom of what card in the carousel
+     * we are currently at.
+     *
+     * @param currentIndex The index of the card we are at.
+     */
     void updateIndicators(int newIndex);
     
+    /**
+     * Updates the player's respective icon in the diamond based on the house card
+     * they are currently on. If the player has locked their house, there is no change.
+     *
+     * @param currentIndex The index of the card we are at.
+     */
     void updateSelectedIcon(int newIndex);
+    
+    /**
+     * Gets House from the given index using the House enum
+     *
+     * @param index The index of the house
+     */
+    House getHouseFromIndex(int index);
 };
 
 #endif /* __HOUSE_SELECT_SCENE_H__ */
-

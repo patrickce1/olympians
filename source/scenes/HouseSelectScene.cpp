@@ -28,7 +28,7 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -36,8 +36,8 @@ bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         return false;
     }
     
-    // Start up the input handler
     _assets = assets;
+    _network = networkController;
     
     Size dimen = getSize();
     
@@ -49,7 +49,7 @@ bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     setupUI();
     setupListeners();
     
-    _status = Status::WAIT;
+    _status = Status::WAITING;
     
     addChild(scene);
     setActive(false);
@@ -82,6 +82,8 @@ void HouseSelectScene::setupUI() {
         _playerIconGlow = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
                             _playerIcon->getChildByName("lockedGlow"));
     }
+    
+    _playerIconImage->setAnchor(cugl::Vec2::ANCHOR_CENTER);
 
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("houseSelectScene.Carousel_buttons.directionbuttons.leftscroll"));
@@ -119,13 +121,15 @@ void HouseSelectScene::setupListeners() {
         _locked = !_locked;
 
         if (_locked) {
+            // Scene Updates
             updateSelectedIcon(_currentIndex);
             updateText(_lockButton, "UNLOCK");
             _playerIconGlow->setVisible(true);
-//            _status = Status::START;
+            _status = Status::LOCKED;
         } else {
             updateText(_lockButton, "LOCK");
             _playerIconGlow->setVisible(false);
+            _status = Status::WAITING;
         }
     });
 
@@ -148,16 +152,18 @@ void HouseSelectScene::setupListeners() {
  * Disposes of all (non-static) resources allocated to this mode.
  */
 void HouseSelectScene::dispose() {
-    if (_active) {
-        removeAllChildren();
-        _lockButton = nullptr;
-        _backOut = nullptr;
-        _playerIcon = nullptr;
-        _leftButton = nullptr;
-        _rightButton = nullptr;
-        _container = nullptr;
-        _active = false;
-    }
+    removeAllChildren();
+    _lockButton = nullptr;
+    _backOut = nullptr;
+    _playerIcon = nullptr;
+    _playerIconImage = nullptr;
+    _playerIconGlow = nullptr;
+    _leftButton = nullptr;
+    _rightButton = nullptr;
+    _container = nullptr;
+    _items.clear();
+    _indicators.clear();
+    _active = false;
 }
 
 /**
@@ -173,7 +179,7 @@ void HouseSelectScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
         if (value) {
-            _status = WAIT;
+            _status = WAITING;
             _lockButton->activate();
             _leftButton->activate();
             _rightButton->activate();
@@ -217,6 +223,7 @@ void HouseSelectScene::updateText(const std::shared_ptr<scene2::Button>& button,
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void HouseSelectScene::update(float timestep) {
+    // The carousel move logic
     if (_isAnimating) {
         Vec2 current = _container->getPosition();
         Vec2 next = current.lerp(_slideTarget, 0.2f); // 0.2 = smoothing factor
@@ -284,6 +291,12 @@ void HouseSelectScene::slideTo(int newIndex) {
     }
 }
 
+/**
+ * Updates the circular indicators at the bottom of what card in the carousel
+ * we are currently at.
+ *
+ * @param currentIndex The index of the card we are at.
+ */
 void HouseSelectScene::updateIndicators(int currentIndex) {
     for (int i = 0; i < _indicators.size(); i++) {
         auto node = _indicators[i];
@@ -298,16 +311,30 @@ void HouseSelectScene::updateIndicators(int currentIndex) {
     }
 }
 
+/**
+ * Updates the player's respective icon in the diamond based on the house card
+ * they are currently on. If the player has locked their house, there is no change.
+ *
+ * @param currentIndex The index of the card we are at.
+ */
 void HouseSelectScene::updateSelectedIcon(int currentIndex) {
-    auto card = _items[currentIndex];
-    std::string name = card->getName();
-    if (_playerIconImage){
-        _playerIconImage->setAnchor(cugl::Vec2::ANCHOR_CENTER);
-        if (name == "athena") {
-            _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
-        } else {
-            _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
-        }
+    if (!_playerIconImage) return;
+    
+    House house = getHouseFromIndex(currentIndex);
+    if (house == House::ATHENA) {
+        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+    } else {
+        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
     }
+}
+
+/**
+ * Gets House from the given index using the House enum
+ *
+ * @param index The index of the house
+ */
+House HouseSelectScene::getHouseFromIndex(int index) {
+    // assuming the order doesn't change
+    return static_cast<House>(index);
 }
 

@@ -9,6 +9,7 @@
 #include "items/ItemInstance.h"
 #include "items/ItemDatabase.h"
 #include "Enemy.h"
+#include "House.h"
 #include <type_traits>
 
 
@@ -27,7 +28,7 @@ private:
     /** The character name for the character the player is using*/
     std::string _characterId;
     /** The house that the character hails from*/
-    std::string _house;
+    House _house;
     /** The max health of the character and player*/
     float _maxHealth;
     /** The current health of the character and player*/
@@ -86,7 +87,7 @@ public:
     /**
      * Return the house of the character
      */
-    std::string getCharacterHouse() const { return _house; }
+    House getCharacterHouse() const { return _house; }
     
     /**
      * Return the max health of the character/player
