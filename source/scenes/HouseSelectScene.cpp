@@ -126,6 +126,7 @@ void HouseSelectScene::setupListeners() {
             updateText(_lockButton, "UNLOCK");
             _playerIconGlow->setVisible(true);
             _status = Status::LOCKED;
+            _network->broadcastSelectedHouse(_currentIndex);
         } else {
             updateText(_lockButton, "LOCK");
             _playerIconGlow->setVisible(false);
@@ -152,18 +153,21 @@ void HouseSelectScene::setupListeners() {
  * Disposes of all (non-static) resources allocated to this mode.
  */
 void HouseSelectScene::dispose() {
-    removeAllChildren();
-    _lockButton = nullptr;
-    _backOut = nullptr;
-    _playerIcon = nullptr;
-    _playerIconImage = nullptr;
-    _playerIconGlow = nullptr;
-    _leftButton = nullptr;
-    _rightButton = nullptr;
-    _container = nullptr;
-    _items.clear();
-    _indicators.clear();
-    _active = false;
+    if (_active){
+        removeAllChildren();
+        _lockButton = nullptr;
+        _backOut = nullptr;
+        _playerIcon = nullptr;
+        _playerIconImage = nullptr;
+        _playerIconGlow = nullptr;
+        _leftButton = nullptr;
+        _rightButton = nullptr;
+        _container = nullptr;
+        _items.clear();
+        _indicators.clear();
+        _active = false;
+    }
+    _network = nullptr;
 }
 
 /**
@@ -320,21 +324,11 @@ void HouseSelectScene::updateIndicators(int currentIndex) {
 void HouseSelectScene::updateSelectedIcon(int currentIndex) {
     if (!_playerIconImage) return;
     
-    House house = getHouseFromIndex(currentIndex);
+    int house = currentIndex;
     if (house == House::ATHENA) {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
     } else {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
     }
-}
-
-/**
- * Gets House from the given index using the House enum
- *
- * @param index The index of the house
- */
-House HouseSelectScene::getHouseFromIndex(int index) {
-    // assuming the order doesn't change
-    return static_cast<House>(index);
 }
 

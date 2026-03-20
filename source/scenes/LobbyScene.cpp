@@ -132,6 +132,7 @@ void LobbyScene::dispose() {
         _enterGame = nullptr;
         _backOut = nullptr;
         _gameId = nullptr;
+        _bossImage = nullptr;
         _playerInfoContainer = nullptr;
         _active = false;
     }
@@ -183,6 +184,24 @@ void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
     }
 }
 
+void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers) {
+    for (int i = 0; i < _playerImages.size(); i++) {
+        auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_playerImages[i]->getChildByName("playerIconImg"));
+        if (image){
+            if (i < onlinePlayers.size()) {
+                if (onlinePlayers[i].houseID == House::ATHENA) {
+                    image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+                } else {
+                    image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+                }
+            }
+            else {
+                image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+            }
+        }
+    }
+}
+
 /**
  * The method called to update the scene.
  *
@@ -210,5 +229,6 @@ void LobbyScene::update(float timestep) {
     }
 
     updateLobbyText(_network->getNetworkedPlayers());
+    updateLobbyPlayerIcons(_network->getNetworkedPlayers());
 }
 

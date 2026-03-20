@@ -139,6 +139,13 @@ void HostSetupScene::setupListeners() {
 void HostSetupScene::dispose() {
     if (_active) {
         removeAllChildren();
+        _startGame = nullptr;
+        _backOut = nullptr;
+        _hostName = nullptr;
+        _items.clear();
+        _leftButton = nullptr;
+        _rightButton = nullptr;
+        _container = nullptr;
         _active = false;
     }
     _network = nullptr;

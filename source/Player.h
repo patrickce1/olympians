@@ -28,7 +28,7 @@ private:
     /** The character name for the character the player is using*/
     std::string _characterId;
     /** The house that the character hails from*/
-    House _house;
+    int _house;
     /** The max health of the character and player*/
     float _maxHealth;
     /** The current health of the character and player*/
@@ -87,7 +87,7 @@ public:
     /**
      * Return the house of the character
      */
-    House getCharacterHouse() const { return _house; }
+    int getCharacterHouse() const { return _house; }
     
     /**
      * Return the max health of the character/player

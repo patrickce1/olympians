@@ -60,6 +60,10 @@ struct GameStateMessage {
     //future info like boss direction will be added as the game expands
 };
 
+struct SetHouseMessage {
+    int houseID;
+};
+
 /*
 * Represents a player as seen over the network.
 * Carries information used for identifying the player.
@@ -68,6 +72,7 @@ struct GameStateMessage {
 struct NetworkedPlayer {
     std::string networkID;
     std::string username;
+    int houseID = -1;
     //will be expanded to carry things such as player class
 };
 

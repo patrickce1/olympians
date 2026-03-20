@@ -224,13 +224,6 @@ private:
      * @param currentIndex The index of the card we are at.
      */
     void updateSelectedIcon(int newIndex);
-    
-    /**
-     * Gets House from the given index using the House enum
-     *
-     * @param index The index of the house
-     */
-    House getHouseFromIndex(int index);
 };
 
 #endif /* __HOUSE_SELECT_SCENE_H__ */

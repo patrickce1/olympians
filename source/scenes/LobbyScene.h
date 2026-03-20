@@ -51,7 +51,7 @@ protected:
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
     
-    /** Player icon buttons (to update when they selct house) */
+    /** Player icon buttons (to update when they select house) */
     std::vector<std::shared_ptr<cugl::scene2::Button>> _playerImages;
 
     /** A container that stores labels and other info for visualizing the character and username choices of players */
@@ -164,6 +164,8 @@ private:
 
     /*Updates the player handles based on updates to the lobby state*/
     void updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers);
+    
+    void updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers);
 };
 
 #endif /* __LOBBY_SCENE_H__ */

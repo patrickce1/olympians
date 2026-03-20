@@ -120,6 +120,10 @@ void ClientScene::setupListeners() {
 void ClientScene::dispose() {
     if (_active) {
         removeAllChildren();
+        _enterGame = nullptr;
+        _backOut = nullptr;
+        _gameId = nullptr;
+        _playerId = nullptr;
         _active = false;
     }
     _network = nullptr;

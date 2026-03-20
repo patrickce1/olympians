@@ -21,7 +21,7 @@ public:
     /** This is a struct with all the properties of our characters defined in the JSON*/
     struct CharacterDef {
         std::string id;
-        House house;
+        int house;
         float maxHealth;
         AbilityClass abilityClass;
         std::string spritesheetPath;
@@ -43,7 +43,7 @@ public:
     }
     
     /**Returns the respective house given a string**/
-    House parseHouse(const std::string& s) {
+    int parseHouse(const std::string& s) {
         if (s == "Zeus") return House::ZEUS;
         if (s == "Poseidon") return House::POSEIDON;
         if (s == "Hades") return House::HADES;
