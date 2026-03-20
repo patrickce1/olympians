@@ -111,6 +111,9 @@
         },
         "cloudBottom": {
             "file": "textures/clientCloud.png"
+        },
+        "back": {
+            "file": "textures/buttonbackBG.png"
         }
 	},
     "fonts": {

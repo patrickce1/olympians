@@ -72,7 +72,9 @@
                     "halign"   : "left",
                     "valign"   : "middle",
                     "foreground": "#D49949ff",
-                    "cursor": true
+                    "cursor": true,
+                    "cursorcolor" : "#FFE5C3ff",
+                    "cursorwidth" : 1
                 },
                 "layout" : {
                     "x_anchor" : "fill",

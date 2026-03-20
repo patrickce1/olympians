@@ -83,7 +83,7 @@
                             "visible": true,
                             "font": "gideon romanRegular20",
                             "text": "Join Game",
-                            "foreground": "#000000ff",
+                            "foreground": "#F6B561ff",
                             "background": "#00000000",
                             "padding": [
                                 0,
@@ -99,34 +99,92 @@
                             "x_anchor": "left",
                             "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0.03,
+                            "x_offset": 0.1,
                             "y_offset": 0
                         }
                     },
                     "indicator": {
-                        "type": "Image",
+                        "type": "Node",
+                        "format": {
+                        "type": "Anchored"
+                        },
                         "data": {
-                            "texture": "indicator",
                             "anchor": [
                                 0,
                                 1
                             ],
+                            "angle": 0,
                             "size": [
-                                104,
+                                110,
                                 1
                             ],
-                            "angle": 0,
                             "position": [
-                                0,
-                                -1
+                                223,
+                                747
                             ],
                             "visible": true
+                        },
+                        "children": {
+                            "fill": {
+                                "type": "Solid",
+                                "data": {
+                                    "polygon": [
+                                        110,
+                                        1,
+                                        0,
+                                        1,
+                                        0,
+                                        0,
+                                        110,
+                                        0
+                                    ],
+                                    "color": "#f6b561ff",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            },
+                            "stroke": {
+                                "type": "Path",
+                                "data": {
+                                    "color": "#f6b561ff",
+                                    "path": {
+                                        "vertices": [],
+                                        "closed": true
+                                    },
+                                    "stroke": 1,
+                                    "joint": "square",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            }
                         },
                         "layout": {
                             "x_anchor": "left",
                             "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0,
+                            "x_offset": 0.02,
                             "y_offset": -1
                         }
                     }
@@ -135,8 +193,8 @@
                     "x_anchor": "left",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.17,
-                    "y_offset": -0.05
+                    "x_offset": 0.2,
+                    "y_offset": -0.065
                 }
             },
             "center": {
@@ -226,8 +284,8 @@
                         1
                     ],
                     "size": [
-                        8.83,
-                        15
+                        43,
+                        42
                     ],
                     "angle": 0,
                     "position": [
@@ -235,20 +293,20 @@
                         788
                     ],
                     "visible": true,
-                    "upnode": "back 1"
+                    "upnode": "back"
                 },
                 "children": {
-                    "back 1": {
+                    "back": {
                         "type": "Image",
                         "data": {
-                            "texture": "back 1",
+                            "texture": "back",
                             "anchor": [
                                 0,
                                 1
                             ],
                             "size": [
-                                9,
-                                15
+                                42,
+                                42
                             ],
                             "angle": 0,
                             "position": [
@@ -270,7 +328,7 @@
                     "x_anchor": "left",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.07,
+                    "x_offset": 0.05,
                     "y_offset": -0.06
                 }
             }
