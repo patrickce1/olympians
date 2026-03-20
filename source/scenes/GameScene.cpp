@@ -399,7 +399,6 @@ std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId it
     }
     return nullptr;
 }
-    
 
 /**
  * Calls the appropriate handle action helper based on the input that we recieved
