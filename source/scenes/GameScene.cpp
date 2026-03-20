@@ -464,7 +464,6 @@ void GameScene::handleResetButton(InputController& input) {
     }
 }
 
-
 /**
  * Handles the full pipeline of a player's drag-and-drop input for one frame.
  *
@@ -767,6 +766,7 @@ void GameScene::render() {
     renderDropZones(batch.get());
     batch->end();
 }
+
 /**
  * Recreates the on-screen input zones depending on the item the player is holding.
  * If nothing is held, no zones are added to _inputZones.
