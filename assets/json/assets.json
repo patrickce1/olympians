@@ -113,8 +113,8 @@
         "labelBG": {
             "file": "textures/houseSelect/labelBG.png"
         },
-        "emptystats": {
-            "file": "textures/houseSelect/emptystats.png"
+        "emptyStats": {
+            "file": "textures/houseSelect/emptyStats.png"
         },
         "athenaPoster": {
             "file": "textures/houseSelect/athenaPoster.png",

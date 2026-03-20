@@ -91,7 +91,7 @@ public:
 #pragma mark -
 #pragma mark Constructors
     /**
-     * Creates a new host scene with the default values.
+     * Creates a new house select scene with the default values.
      *
      * This constructor does not allocate any objects or start the game.
      * This allows us to use the object without a heap pointer.
@@ -112,24 +112,25 @@ public:
     void dispose() override;
     
     /**
-     * Initializes the controller contents, and starts the game
+     * Initializes the house selection scene.
      *
-     * In previous labs, this method "started" the scene.  But in this
-     * case, we only use to initialize the scene user interface.  We
-     * do not activate the user interface yet, as an active user
-     * interface will still receive input EVEN WHEN IT IS HIDDEN.
+     * This method sets up all UI elements, binds necessary callbacks,
+     * and stores references to shared resources such as the asset manager
+     * and network controller. It prepares the scene for use but does not
+     * make it active or responsive to input.
      *
-     * That is why we have the method {@link #setActive}.
+     * Activation and input handling are controlled separately via setActive().
      *
-     * @param assets    The (loaded) assets for this game mode
+     * @param assets              The loaded asset manager used to retrieve scene resources
+     * @param networkController   The network controller used for multiplayer communication
      *
-     * @return true if the controller is initialized properly, false otherwise.
+     * @return true if the scene was successfully initialized; false otherwise
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets,
               const std::shared_ptr<NetworkController>& networkController);
     
     /**
-     * Retrieves and stores references to the host setup UI elements.
+     * Retrieves and stores references to the house select UI elements.
      *
      * This method looks up UI components from the scene graph including the
      * start button, back button, host name text field, carousel navigation
@@ -139,7 +140,7 @@ public:
     void setupUI();
     
     /**
-     * Attaches input listeners to the host setup buttons.
+     * Attaches input listeners to the house select buttons.
      *
      * This method assigns callbacks for starting the game, returning to the
      * previous menu, and navigating the role selection carousel.

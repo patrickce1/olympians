@@ -177,7 +177,7 @@
             "heroStats": {
                 "type": "Image",
                 "data": {
-                    "texture": "emptystats",
+                    "texture": "emptyStats",
                     "anchor": [
                         0,
                         1

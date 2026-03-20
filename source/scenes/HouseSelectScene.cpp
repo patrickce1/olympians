@@ -4,29 +4,29 @@ using namespace cugl;
 using namespace std;
 
 #pragma mark -
-#pragma mark Level Layout
+#pragma mark Scene Layout
 
 /** Regardless of logo, lock the height to this */
 #define SCENE_HEIGHT  852
 /** Role card width */
 #define ROLE_CARD_WIDTH 300
 
-
 #pragma mark -
 #pragma mark Provided Methods
 /**
- * Initializes the controller contents, and starts the game
+ * Initializes the house selection scene.
  *
- * In previous labs, this method "started" the scene.  But in this
- * case, we only use to initialize the scene user interface.  We
- * do not activate the user interface yet, as an active user
- * interface will still receive input EVEN WHEN IT IS HIDDEN.
+ * This method sets up all UI elements, binds necessary callbacks,
+ * and stores references to shared resources such as the asset manager
+ * and network controller. It prepares the scene for use but does not
+ * make it active or responsive to input.
  *
- * That is why we have the method {@link #setActive}.
+ * Activation and input handling are controlled separately via setActive().
  *
- * @param assets    The (loaded) assets for this game mode
+ * @param assets              The loaded asset manager used to retrieve scene resources
+ * @param networkController   The network controller used for multiplayer communication
  *
- * @return true if the controller is initialized properly, false otherwise.
+ * @return true if the scene was successfully initialized; false otherwise
  */
 bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
     // Initialize the scene to a locked width
@@ -57,12 +57,12 @@ bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, c
 }
 
 /**
- * Retrieves and stores references to the host setup UI elements.
+ * Retrieves and stores references to the house select UI elements.
  *
  * This method looks up UI components from the scene graph including the
- * start button, back button, host name text field, carousel navigation
+ * lock button, back button, carousel navigation
  * buttons, and the role carousel container. It also initializes the
- * carousel item list and configures the placeholder label.
+ * carousel item list and the mini icons.
  */
 void HouseSelectScene::setupUI() {
 
@@ -109,7 +109,7 @@ void HouseSelectScene::setupUI() {
 }
 
 /**
- * Attaches input listeners to the host setup buttons.
+ * Attaches input listeners to the house select buttons.
  *
  * This method assigns callbacks for starting the game, returning to the
  * previous menu, and navigating the role selection carousel.
