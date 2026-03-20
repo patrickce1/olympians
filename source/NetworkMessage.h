@@ -60,6 +60,9 @@ struct GameStateMessage {
     //future info like boss direction will be added as the game expands
 };
 
+/*
+* Represents a player's selected house sent to the host for updates.
+*/
 struct SetHouseMessage {
     int houseID;
 };

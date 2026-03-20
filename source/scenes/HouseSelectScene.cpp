@@ -253,7 +253,7 @@ void HouseSelectScene::configureLockButton() {
 }
 
 /**
- * Initiates a slide animation to center the item at `newIndex`.
+ * Initiates a slide animation to center the house card at `newIndex`.
  *
  * Does nothing if an animation is already in progress or if the
  * index is out of bounds. Otherwise computes the target container
@@ -301,7 +301,7 @@ void HouseSelectScene::slideTo(int newIndex) {
  *
  * @param currentIndex The index of the card we are at.
  */
-void HouseSelectScene::updateIndicators(int currentIndex) {
+void HouseSelectScene::updateCarouselDots(int currentIndex) {
     for (int i = 0; i < _indicators.size(); i++) {
         auto node = _indicators[i];
         

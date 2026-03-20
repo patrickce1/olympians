@@ -165,6 +165,7 @@ private:
     /*Updates the player handles based on updates to the lobby state*/
     void updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers);
     
+    /*Updates the player icons based on updates to the lobby state*/
     void updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers);
 };
 

@@ -213,7 +213,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		}
 		case MessageType::PLAYER_JOIN: {
 			std::string playerName = _deserializer.readString();
-//			CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
+			CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
 
 			// check if player is already registered
 			bool alreadyRegistered = false;
@@ -236,7 +236,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		case MessageType::LOBBY_UPDATE: {
 			std::vector<std::string> playerData = _deserializer.readStringVector();
 			_onlinePlayers.clear();
-//			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
+			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
 			// re-pair the flattened vector back into pairs
 			for (int i = 0; i < playerData.size(); i += 3) {
 				NetworkedPlayer newPlayer;
@@ -433,7 +433,6 @@ void NetworkController::broadcastLobbyState() {
 	for (NetworkedPlayer player : _onlinePlayers) {
 		serializablePlayers.push_back(player.networkID);
 		serializablePlayers.push_back(player.username);
-        // hmm
         serializablePlayers.push_back(std::to_string(player.houseID));
 	}
 
@@ -443,6 +442,13 @@ void NetworkController::broadcastLobbyState() {
 	_serializer.reset();
 }
 
+/**
+ * Broadcasts the current selected house by the player to all connected clients.
+ * Called by the host whenever a player locks down a house choice so all clients
+ * can stay in sync and in can be displayed in the lobby.
+ *
+ *@param house - the selected house 
+ */
 void NetworkController::broadcastSelectedHouse(int house) {
     _serializer.writeSint32(MessageType::SELECT_HOUSE);
     _serializer.writeSint32(house);
@@ -493,7 +499,14 @@ int NetworkController::getLocalPlayerNumber() {
 	return -1; // not found
 }
 
-int NetworkController::getIndexByID(const std::string& networkID) {
+/**
+ * Returns the 0-based index of the player in the online players list given their networkID.
+ * This index corresponds to the player's slot in the game's player array.
+ * Returns -1 if the player is not found in the list.
+ *
+ * @return  The player's index, or -1 if not found.
+ */
+int NetworkController::getPlayerNumberByID(const std::string& networkID) {
     for (int i = 0; i < _onlinePlayers.size(); i++) {
         if (_onlinePlayers[i].networkID == networkID) {
             return i;

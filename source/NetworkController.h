@@ -124,6 +124,7 @@ public:
     /*Sends an update notifying players about changes to the lobby (new players joining/leaving)*/
     void broadcastLobbyState();
     
+    /*Sends an update notifying players about changes to the house selections*/
     void broadcastSelectedHouse(int house);
 
     /*Getters for the queues and game state used during the gameplay*/
@@ -153,7 +154,8 @@ public:
     /*returns the local player's position in the circle*/
     int getLocalPlayerNumber();
     
-    int getIndexByID(const std::string& networkID);
+    /*returns player's position in the circle given their networkID*/
+    int getPlayerNumberByID(const std::string& networkID);
 
     /*returns if this numbered player is a real one or AI*/
     bool checkRealPlayer(int playerID);

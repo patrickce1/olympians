@@ -10,11 +10,7 @@
 #include <vector>
 
 /**
- * This class provides the interface to make a new game.
- *
- * Most games have a since "matching" scene whose purpose is to initialize the
- * network controller.  We have separate the host from the client to make the
- * code a little more clear.
+ * This class provides the interface to make the house select scene.
  */
 class HouseSelectScene : public cugl::scene2::Scene2 {
 public:
@@ -211,12 +207,12 @@ private:
     void slideTo(int index);
     
     /**
-     * Updates the circular indicators at the bottom of what card in the carousel
+     * Updates the circular carousel indicators at the bottom of what card in the carousel
      * we are currently at.
      *
      * @param currentIndex The index of the card we are at.
      */
-    void updateIndicators(int newIndex);
+    void updateCarouselDots(int newIndex);
     
     /**
      * Updates the player's respective icon in the diamond based on the house card

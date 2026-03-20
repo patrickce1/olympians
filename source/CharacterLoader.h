@@ -43,7 +43,7 @@ public:
     }
     
     /**Returns the respective house given a string**/
-    int parseHouse(const std::string& s) {
+    int houseFromString(const std::string& s) {
         if (s == "Zeus") return House::ZEUS;
         if (s == "Poseidon") return House::POSEIDON;
         if (s == "Hades") return House::HADES;
@@ -80,7 +80,7 @@ public:
             auto entry = charArray->get(i);
             CharacterDef def;
             def.id                = entry->getString("id");
-            def.house             = parseHouse(entry->getString("house"));
+            def.house             = houseFromString(entry->getString("house"));
             def.maxHealth         = entry->getFloat("maxHealth");
             def.abilityClass      = parseAbilityClass(entry->getString("abilityClass"));
             def.spritesheetPath   = entry->getString("spritesheetPath");

@@ -85,7 +85,7 @@ public:
     std::string getCharacterName() const { return _characterId; }
     
     /**
-     * Return the house of the character
+     * Return the house number of the character
      */
     int getCharacterHouse() const { return _house; }
     

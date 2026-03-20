@@ -111,6 +111,7 @@ void LobbyScene::setupListeners() {
         }
     });
     
+    // Add listeners to all the player icon buttons in the scene to access house select
     for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages) {
         icon->addListener([this](const std::string& name, bool down) {
             if (down) {
@@ -173,6 +174,7 @@ void LobbyScene::setActive(bool value) {
     }
 }
 
+/** Updates the player handles based on updates to the lobby state */
 void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
     for (int i = 0; i < _playerSlots.size(); i++) {
         if (i < onlinePlayers.size()) {
@@ -184,6 +186,8 @@ void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
     }
 }
 
+/** Updates the player icons based on updates to the lobby state
+ */
 void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers) {
     for (int i = 0; i < _playerImages.size(); i++) {
         auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_playerImages[i]->getChildByName("playerIconImg"));
