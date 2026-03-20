@@ -247,14 +247,22 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			break;
 		}
 		case MessageType::GAME_UPDATE : {
-				GameStateMessage stateMsg;
-				stateMsg.bossHealth = _deserializer.readFloat();
-				stateMsg.player1HP = _deserializer.readFloat();
-				stateMsg.player2HP = _deserializer.readFloat();
-				stateMsg.player3HP = _deserializer.readFloat();
-				stateMsg.player4HP = _deserializer.readFloat();
-				_latestGameState = stateMsg;
-				break;
+			GameStateMessage stateMsg;
+			stateMsg.bossHealth = _deserializer.readFloat();
+			stateMsg.player1HP = _deserializer.readFloat();
+			stateMsg.player2HP = _deserializer.readFloat();
+			stateMsg.player3HP = _deserializer.readFloat();
+			stateMsg.player4HP = _deserializer.readFloat();
+			_latestGameState = stateMsg;
+			break;
+		}
+		case MessageType::GAME_WON: {
+			_gameWon = true;
+			break;
+		}
+		case MessageType::GAME_LOST: {
+			_gameLost = true;
+			break;
 		}
 	}
 }
@@ -283,6 +291,8 @@ void NetworkController::clearQueues() {
 	attacks.clear();
 	heals.clear();
 	passes.clear();
+	_gameWon = false;
+	_gameLost = false;
 }
 
 /**
@@ -410,6 +420,23 @@ void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.reset();
 }
 
+/**
+* Broacasts to clients if the game was won
+*/
+void NetworkController::broadcastWinGame() {
+	_serializer.writeSint32(MessageType::GAME_WON);
+	_network->broadcast(_serializer.serialize());
+	_serializer.reset();
+}
+
+/**
+* Broadcasts to clients if the game was lost
+*/
+void NetworkController::broadcastLoseGame() {
+	_serializer.writeSint32(MessageType::GAME_LOST);
+	_network->broadcast(_serializer.serialize());
+	_serializer.reset();
+}
 
 /**
  * Broadcasts the current lobby player list to all connected clients.

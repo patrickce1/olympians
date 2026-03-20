@@ -239,3 +239,21 @@ void GameState::networkUpdate(GameStateMessage newState) {
         _players[i]->setCurrentHealth(healths[i]);
     }
 }
+
+
+/** Returns whether or not the players won based on the current game state
+* The game is considered won if the boss heal is 0
+*/
+bool GameState::checkWon() {
+    return _enemy->getCurrentHealth() <= 0;
+}
+
+/** Returns whether or not the players lost based on the current game state
+* The game is considered lost if all players reach a life of 0
+*/
+bool GameState::checkLost() {
+    return _players[0]->getCurrentHealth() <= 0
+        && _players[1]->getCurrentHealth() <= 0
+        && _players[2]->getCurrentHealth() <= 0
+        && _players[3]->getCurrentHealth() <= 0;
+}

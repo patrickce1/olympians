@@ -552,10 +552,26 @@ void GameScene::handleNetworkUpdates() {
         _gameState.healUpdates(_network->getHealUpdates());
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
+        //check if we won or lost
+        if (_gameState.checkWon()) {
+            _network->broadcastWinGame();
+        }
+        else {
+            _network->broadcastLoseGame();
+        }
     }
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        // clients check if the host told us anything about winning/losing
+        if (_network->checkGameWon()) {
+            //return to lobby for now, will be made separate UI
+            CULog("We were told that we won");
+        }
+        else if (_network->checkGameLost()) {
+            //return to lobby for now, will be made separate UI
+            CULog("We were told that we lost");
+        }
     }
 
     processNetworkedPasses(_network->getPassUpdates());
