@@ -555,8 +555,9 @@ void GameScene::handleNetworkUpdates() {
         //check if we won or lost
         if (_gameState.checkWon()) {
             _network->broadcastWinGame();
+            CULog("Are you winning son");
         }
-        else {
+        else if(_gameState.checkLost()){
             _network->broadcastLoseGame();
         }
     }

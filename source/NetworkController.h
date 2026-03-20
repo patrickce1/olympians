@@ -144,10 +144,10 @@ public:
     GameStateMessage getStateUpdate() { return _latestGameState; }
 
     /*Tells us if the host sent a message saying the game was lost*/
-    bool checkGameLost() { return _gameWon; }
+    bool checkGameLost() { return _gameLost; }
 
     /*Tells us if the host sent a message saying the game was won*/
-    bool checkGameWon() { return _gameLost; }
+    bool checkGameWon() { return _gameWon; }
 
     /**Functions used during the lobby scene*/
 

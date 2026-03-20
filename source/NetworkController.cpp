@@ -73,6 +73,8 @@ bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) 
 	_serializer = NetcodeSerializer();
 	_deserializer = NetcodeDeserializer();
 	_playerName = "";
+	_gameWon = false;
+	_gameLost = false;
 	return true;
 }
 
