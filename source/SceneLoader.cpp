@@ -72,7 +72,7 @@ void SceneLoader::onStartup() {
     _assets->attach<scene2::SceneNode>(Scene2Loader::alloc()->getHook());
 
     // This reads the given JSON file and uses it to load all other assets
-    _assets->loadDirectory("json/loading.json");
+    _assets->loadDirectory("json/scenes/loading.json");
 
     // Activate mouse or touch screen input as appropriate
     // We have to do this BEFORE the scene, because the scene has a button
@@ -252,7 +252,7 @@ void SceneLoader::update(float dt) {
                     CULog("Failed to initialize LobbyScene");
                 }
                 
-                if (_houseSelectScene.init(_assets)) {
+                if (_houseSelectScene.init(_assets, _network)) {
                     _houseSelectScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize HouseSelectScene");
@@ -341,6 +341,15 @@ void SceneLoader::update(float dt) {
             break;
         case State::HOUSESELECT:
             _houseSelectScene.update(dt);
+            switch (_houseSelectScene.getStatus()) {
+                case HouseSelectScene::Status::ABORT:
+                    _lobbyScene.setActive(true);
+                    _houseSelectScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                default:
+                    break;
+            }
             break;
         case State::GAME:
             InputController::Action action = _input.getAction();
