@@ -186,7 +186,15 @@ void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
     }
 }
 
-/** Updates the player icons based on updates to the lobby state
+/**
+ * Updates the player icon images based on the current lobby state.
+ *
+ * Iterates through the list of player slots and assigns the appropriate
+ * icon texture for each connected player based on their selected house.
+ * If a slot does not correspond to an active player, a default icon is used.
+ *
+ * @param onlinePlayers  The list of players currently in the lobby,
+ *                       including their selected house information.
  */
 void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers) {
     for (int i = 0; i < _playerImages.size(); i++) {
