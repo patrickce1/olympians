@@ -38,6 +38,7 @@ bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, c
     
     _assets = assets;
     _network = networkController;
+    loadHouses();
     
     Size dimen = getSize();
     
@@ -121,15 +122,25 @@ void HouseSelectScene::setupListeners() {
         _locked = !_locked;
 
         if (_locked) {
-            // Scene Updates
+            // Get the selected house using carousel index
+            HouseLoader::HouseDef selectedHouse = _houseLoader.getAllOrdered()[_currentIndex];
+            
+            // Update UI
             updateSelectedIcon(_currentIndex);
             updateText(_lockButton, "UNLOCK");
             _playerIconGlow->setVisible(true);
+            
+            // Update local status
             _status = Status::LOCKED;
-            _network->broadcastSelectedHouse(_currentIndex);
+            
+            // Broadcast selection over network
+            _network->broadcastSelectedHouse(selectedHouse.id);
         } else {
+            // Update UI
             updateText(_lockButton, "LOCK");
             _playerIconGlow->setVisible(false);
+            
+            // Update local status
             _status = Status::WAITING;
         }
     });
@@ -324,11 +335,20 @@ void HouseSelectScene::updateCarouselDots(int currentIndex) {
 void HouseSelectScene::updateSelectedIcon(int currentIndex) {
     if (!_playerIconImage) return;
     
-    int house = currentIndex;
-    if (house == House::ATHENA) {
+    const HouseLoader::HouseDef& selectedHouse = _houseLoader.getAllOrdered()[currentIndex];
+    if (selectedHouse.id == "Athena") {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
     } else {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
     }
 }
 
+/** Loads houses definitions from the house JSON to use in house selection. */
+bool HouseSelectScene::loadHouses() {
+    const std::string houseJsonPath = "json/houses.json";
+    if (!_houseLoader.loadFromFile(houseJsonPath)) {
+        CULog("HouseSelectScene: Failed to load house.json");
+        return false;
+    }
+    return true;
+}

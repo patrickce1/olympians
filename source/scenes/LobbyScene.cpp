@@ -193,7 +193,7 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlaye
         auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_playerImages[i]->getChildByName("playerIconImg"));
         if (image){
             if (i < onlinePlayers.size()) {
-                if (onlinePlayers[i].houseID == House::ATHENA) {
+                if (onlinePlayers[i].houseID == "Athena") {
                     image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
                 } else {
                     image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));

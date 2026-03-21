@@ -5,7 +5,6 @@
 #include <cugl/cugl.h>
 #include <unordered_map>
 #include <string>
-#include "House.h"
 
 class HouseLoader {
     
@@ -31,6 +30,8 @@ private:
     
     /** A mapping from houses to houseDef objects indexed by ID's */
     std::unordered_map<std::string, HouseDef> _houses;
+    /** A ordered vector of all houses for later selection */
+    std::vector<HouseDef> _housesVector;
     
 public:
     
@@ -78,6 +79,7 @@ public:
             }
             
             _houses[def.id] = def;
+            _housesVector.push_back(def);
         }
         return true;
     }
@@ -95,6 +97,13 @@ public:
      */
     const HouseDef& get(const std::string& id) const {
         return _houses.at(id);
+    }
+    
+    /**
+     *Returns the all the HouseDefs in tthe order defined by the JSON
+     */
+    const std::vector<HouseDef>& getAllOrdered() const {
+        return _housesVector;
     }
     
     /**

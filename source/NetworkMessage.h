@@ -64,7 +64,7 @@ struct GameStateMessage {
 * Represents a player's selected house sent to the host for updates.
 */
 struct SetHouseMessage {
-    int houseID;
+    std::string houseID;
 };
 
 /*
@@ -75,7 +75,7 @@ struct SetHouseMessage {
 struct NetworkedPlayer {
     std::string networkID;
     std::string username;
-    int houseID = -1;
+    std::string houseID;
     //will be expanded to carry things such as player class
 };
 

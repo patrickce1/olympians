@@ -242,7 +242,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				NetworkedPlayer newPlayer;
 				newPlayer.networkID = playerData[i];
 				newPlayer.username = playerData[i + 1];
-                newPlayer.houseID = std::stoi(playerData[i+2]);
+                newPlayer.houseID = playerData[i+2];
 				_onlinePlayers.push_back(newPlayer);
 			}
 			break;
@@ -258,7 +258,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				break;
 		}
         case MessageType::SELECT_HOUSE: {
-            int houseID = _deserializer.readSint32();
+            std::string houseID = _deserializer.readString();
             int index = getPlayerNumberByID(senderID);
             if (index != -1) {
                 _onlinePlayers[index].houseID = houseID;
@@ -433,7 +433,7 @@ void NetworkController::broadcastLobbyState() {
 	for (NetworkedPlayer player : _onlinePlayers) {
 		serializablePlayers.push_back(player.networkID);
 		serializablePlayers.push_back(player.username);
-        serializablePlayers.push_back(std::to_string(player.houseID));
+        serializablePlayers.push_back(player.houseID);
 	}
 
 	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
@@ -449,9 +449,9 @@ void NetworkController::broadcastLobbyState() {
  *
  *@param house - the selected house 
  */
-void NetworkController::broadcastSelectedHouse(int house) {
+void NetworkController::broadcastSelectedHouse(std::string& house) {
     _serializer.writeSint32(MessageType::SELECT_HOUSE);
-    _serializer.writeSint32(house);
+    _serializer.writeString(house);
     _network->sendToHost(_serializer.serialize());
     _serializer.reset();
 }

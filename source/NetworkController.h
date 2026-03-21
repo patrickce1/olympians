@@ -125,7 +125,7 @@ public:
     void broadcastLobbyState();
     
     /*Sends an update notifying players about changes to the house selections*/
-    void broadcastSelectedHouse(int house);
+    void broadcastSelectedHouse(std::string& house);
 
     /*Getters for the queues and game state used during the gameplay*/
     /*Returns all the networking messages about attacks we recieved after calling getNetworkUpdate()*/

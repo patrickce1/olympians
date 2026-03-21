@@ -2,7 +2,7 @@
 #define __HOUSE_SELECT_SCENE_H__
 
 #include <cugl/cugl.h>
-#include "../House.h"
+#include "../HouseLoader.h"
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 #include <iostream>
@@ -82,6 +82,9 @@ protected:
     
     /** The current status */
     Status _status;
+    
+    /** Loads house definitions from JSON for house selection. */
+    HouseLoader _houseLoader;
 
 public:
 #pragma mark -
@@ -221,6 +224,10 @@ private:
      * @param currentIndex The index of the card we are at.
      */
     void updateSelectedIcon(int newIndex);
+    
+    /** Loads houses definitions from the house JSON to use in house selection. */
+    bool loadHouses();
+    
 };
 
 #endif /* __HOUSE_SELECT_SCENE_H__ */

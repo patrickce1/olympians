@@ -17,7 +17,6 @@ Player::Player(const std::string& houseId, int playerNumber,
 
     // Load from HouseDef
     _houseId      = def.id;
-    _house            = def.house;
     _maxHealth        = def.maxHealth;
     _currentHealth    = def.maxHealth;
     _abilityClass     = def.abilityClass;
