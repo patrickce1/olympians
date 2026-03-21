@@ -244,7 +244,7 @@ void GameState::networkUpdate(GameStateMessage newState) {
 
 
 /** Returns whether or not the players won based on the current game state
-* The game is considered won if the boss heal is 0
+* The game is considered won if the boss health is 0
 */
 bool GameState::checkWon() {
     return _enemy->getCurrentHealth() <= 0;
