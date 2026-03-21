@@ -6,6 +6,7 @@
 #include "scenes/HostSetupScene.h"
 #include "scenes/MenuScene.h"
 #include "scenes/LobbyScene.h"
+#include "scenes/HouseSelectScene.h"
 #include "InputController.h"
 #include "tests/PlayerTests.h"
 #include "tests/EnemyTests.h"
@@ -27,6 +28,7 @@ protected:
         CLIENT,
         LOBBY,
         MENU,
+        HOUSESELECT,
         GAME
     };
 
@@ -67,6 +69,9 @@ protected:
 
     /*The scene where all joined players are displayed, with the boss in the middle*/
     LobbyScene _lobbyScene;
+    
+    /*The scene where the player choose what house they want to represent*/
+    HouseSelectScene _houseSelectScene;
     //more scenes to come...
 
 public:
