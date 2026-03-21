@@ -174,7 +174,6 @@ public:
     /** Returns slots that disconnected since the last clearQueues(). */
     const std::vector<int>& getDisconnectedSlots() const { return _disconnectedSlots; }
 
-
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
     

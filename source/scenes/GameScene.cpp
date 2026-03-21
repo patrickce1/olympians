@@ -889,7 +889,6 @@ void GameScene::demoteSlotToAI(int slot) {
     for (const ItemInstance& item : savedInventory) {
         aiPlayer->addItem(item);
     }
-    
 }
 
 /**
