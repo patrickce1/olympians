@@ -1690,7 +1690,7 @@
                     "y_offset": -0.85
                 }
             },
-            "carouselButtons": {
+            "Carousel_buttons": {
                 "type": "Node",
                 "format": {
                     "type": "Anchored"
@@ -1944,7 +1944,7 @@
                             "y_offset": 0
                         }
                     },
-                    "directionButtons": {
+                    "directionbuttons": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
@@ -1969,7 +1969,7 @@
                             "visible": true
                         },
                         "children": {
-                            "leftScroll": {
+                            "leftscroll": {
                                 "type": "Button",
                                 "format": {
                                     "type": "Anchored"
@@ -1989,13 +1989,13 @@
                                         24
                                     ],
                                     "visible": true,
-                                    "upnode": "leftScroll"
+                                    "upnode": "leftscroll"
                                 },
                                 "children": {
-                                    "leftScroll": {
+                                    "leftscroll": {
                                         "type": "Image",
                                         "data": {
-                                            "texture": "leftScroll",
+                                            "texture": "leftscroll",
                                             "anchor": [
                                                 0,
                                                 1
@@ -2030,7 +2030,7 @@
                                     ]
                                 }
                             },
-                            "rightScroll": {
+                            "rightscroll": {
                                 "type": "Button",
                                 "format": {
                                     "type": "Anchored"
@@ -2050,13 +2050,13 @@
                                         24
                                     ],
                                     "visible": true,
-                                    "upnode": "rightScroll"
+                                    "upnode": "rightscroll"
                                 },
                                 "children": {
                                     "rightscroll": {
                                         "type": "Image",
                                         "data": {
-                                            "texture": "rightScroll",
+                                            "texture": "rightscroll",
                                             "anchor": [
                                                 0,
                                                 1

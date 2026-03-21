@@ -48,10 +48,10 @@
                     "y_offset": 0
                 }
             },
-            "playerIconBorder": {
+            "selection live icon 2": {
                 "type": "Image",
                 "data": {
-                    "texture": "playerIconBorder",
+                    "texture": "selection live icon 2",
                     "anchor": [
                         0,
                         1
