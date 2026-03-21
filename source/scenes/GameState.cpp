@@ -172,7 +172,9 @@ void GameState::dispose() {
 void GameState::reset() {
     for (auto& player : _players) {
         player->clearInventory();
+        player->setCurrentHealth(player->getMaxHealth());
     }
+    _enemy->setCurrentHealth(_enemy->getMaxHealth());
 }
 
 /**

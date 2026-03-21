@@ -210,7 +210,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			break;
 		}
 		case MessageType::GAME_START: {
-			gameStarted = true;
+			_gameStarted = true;
 			break;
 		}
 		case MessageType::PLAYER_JOIN: {
@@ -295,6 +295,7 @@ void NetworkController::clearQueues() {
 	passes.clear();
 	_gameWon = false;
 	_gameLost = false;
+	_gameStarted = false;
 }
 
 /**
@@ -383,7 +384,7 @@ void NetworkController::broadcastGameStart(){
  * @return  true if the game has started, false otherwise.
  */
 bool NetworkController::checkGameStarted() {
-	return gameStarted;
+	return _gameStarted;
 }
 
 /**

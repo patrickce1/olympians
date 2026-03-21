@@ -212,8 +212,8 @@ private:
     bool _gameWon;
     bool _gameLost;
 
-    //Boolean that tells us if the game has been started by the host
-    bool gameStarted;
+    //Boolean that tells us if the game has been started by the host in the last network cycle
+    bool _gameStarted;
 
     //Stores the most recent player order that we got. The host's version of this is authoritative
     std::vector<NetworkedPlayer> _onlinePlayers;

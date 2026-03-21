@@ -3,7 +3,7 @@
         {
             "id": "enemy1",
             "name": "Enemy 1",
-            "maxHealth": 20.0,
+            "maxHealth": 3.0,
             "spritesheetPath": "textures/enemy1.png",
             "ai": {
                 "retargetLikelihood": 0.5

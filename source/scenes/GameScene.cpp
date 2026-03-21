@@ -135,7 +135,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
     setLocalPlayer(0);
-    
+    _status = Status::PLAYING;
     setDebugMode(false);
     setActive(false);
     return true;
@@ -215,6 +215,7 @@ void GameScene::setActive(bool value) {
 void GameScene::reset() {
     _activeIcon = nullptr;
     _glowAction = InputController::Action::NONE;
+    _status = Status::PLAYING;
     _glowTimer  = 0;
 
     for (auto& [id, widget] : _itemWidgets) {
@@ -224,7 +225,7 @@ void GameScene::reset() {
     }
     _itemWidgets.clear();
 
-    // Delegate inventory clearing to the model.
+    // Delegate inventory clearing and health resetting to the model.
     _gameState.reset();
 }
 
@@ -555,10 +556,11 @@ void GameScene::handleNetworkUpdates() {
         //check if we won or lost
         if (_gameState.checkWon()) {
             _network->broadcastWinGame();
-            CULog("Are you winning son");
+            _status = Status::WON;
         }
         else if(_gameState.checkLost()){
             _network->broadcastLoseGame();
+            _status = Status::LOST;
         }
     }
     else {
@@ -566,11 +568,11 @@ void GameScene::handleNetworkUpdates() {
         _gameState.networkUpdate(_network->getStateUpdate());
         // clients check if the host told us anything about winning/losing
         if (_network->checkGameWon()) {
-            //return to lobby for now, will be made separate UI
+            _status = Status::WON;
             CULog("We were told that we won");
         }
         else if (_network->checkGameLost()) {
-            //return to lobby for now, will be made separate UI
+            _status = Status::LOST;
             CULog("We were told that we lost");
         }
     }

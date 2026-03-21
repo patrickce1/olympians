@@ -120,6 +120,8 @@ public:
      * This method should be used to toggle all the UI elements.  Buttons
      * should be activated when it is made active and deactivated when
      * it is not.
+     * 
+     * It also resets the status to WAIT when value == true, to indicate we are back in the lobby scene
      *
      * @param value whether the scene is currently active
      */
