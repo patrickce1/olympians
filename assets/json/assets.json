@@ -136,8 +136,8 @@
         "rightScroll": {
             "file": "textures/houseSelect/rightScroll.png"
         },
-        "buttonbackBG": {
-            "file": "textures/houseSelect/buttonbackBG.png"
+        "buttonBackBG": {
+            "file": "textures/houseSelect/buttonBackBG.png"
         },
         "connector": {
             "file": "textures/houseSelect/connector.png"

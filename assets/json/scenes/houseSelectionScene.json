@@ -2129,13 +2129,13 @@
                         765
                     ],
                     "visible": true,
-                    "upnode": "buttonbackBG"
+                    "upnode": "buttonBackBG"
                 },
                 "children": {
-                    "buttonbackBG": {
+                    "buttonBackBG": {
                         "type": "Image",
                         "data": {
-                            "texture": "buttonbackBG",
+                            "texture": "buttonBackBG",
                             "anchor": [
                                 0,
                                 1
