@@ -86,12 +86,12 @@ void HouseSelectScene::setupUI() {
     _playerIconImage->setAnchor(cugl::Vec2::ANCHOR_CENTER);
 
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("houseSelectScene.Carousel_buttons.directionbuttons.leftscroll"));
+        _assets->get<scene2::SceneNode>("houseSelectScene.carouselButtons.directionButtons.leftScroll"));
 
     _rightButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("houseSelectScene.Carousel_buttons.directionbuttons.rightscroll"));
+        _assets->get<scene2::SceneNode>("houseSelectScene.carouselButtons.directionButtons.rightScroll"));
 
-    _container = _assets->get<scene2::SceneNode>("houseSelectScene.Carousel_buttons.heroCardcont");
+    _container = _assets->get<scene2::SceneNode>("houseSelectScene.carouselButtons.heroCardCont");
 
     if (_container) {
         for (int i = 0; i < 9; i++) {

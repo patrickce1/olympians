@@ -130,11 +130,11 @@
             "wrapS":    "clamp",
             "wrapT":    "clamp"
         },
-        "leftscroll": {
-            "file": "textures/houseSelect/leftscroll.png"
+        "leftScroll": {
+            "file": "textures/houseSelect/leftScroll.png"
         },
-        "rightscroll": {
-            "file": "textures/houseSelect/rightscroll.png"
+        "rightScroll": {
+            "file": "textures/houseSelect/rightScroll.png"
         },
         "buttonbackBG": {
             "file": "textures/houseSelect/buttonbackBG.png"
@@ -145,8 +145,8 @@
         "lockedGlow": {
             "file": "textures/houseSelect/lockedGlow.png"
         },
-        "selection live icon 2": {
-            "file": "textures/houseSelect/selection live icon 2.png"
+        "playerIconBorder": {
+            "file": "textures/houseSelect/playerIconBorder.png"
         },
         "emptyLocalIcon": {
             "file": "textures/houseSelect/emptyLocalIcon.png"
