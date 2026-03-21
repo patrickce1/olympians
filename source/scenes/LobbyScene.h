@@ -121,7 +121,7 @@ public:
      * should be activated when it is made active and deactivated when
      * it is not.
      * 
-     * It also resets the status to WAIT when value == true, to indicate we are back in the lobby scene
+     * It also resets the status to IDLE when value == true, to indicate we are back in the lobby scene
      *
      * @param value whether the scene is currently active
      */
