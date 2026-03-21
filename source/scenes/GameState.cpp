@@ -30,7 +30,7 @@ void GameState::initPlayers() {
     for (int i = 1; i <= 3; i++) {
        auto aiPlayer = std::make_shared<EasyPlayerAI>(
             "Percy", i,
-            "Player " + std::to_string(i),
+            "AI Player " + std::to_string(i),
             _characterLoader
         );
         _players.push_back(aiPlayer);
