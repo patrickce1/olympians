@@ -10,6 +10,8 @@ using namespace std;
 #define SCENE_HEIGHT  852
 /** Role card width */
 #define ROLE_CARD_WIDTH 300
+/** Interpolation smoothing factor*/
+#define SMOOTHING_FACTOR 0.2f
 
 #pragma mark -
 #pragma mark Provided Methods
@@ -95,7 +97,7 @@ void HouseSelectScene::setupUI() {
     _houseSelectionCardContainer = _assets->get<scene2::SceneNode>("houseSelectScene.carouselButtons.heroCardContainer");
 
     if (_houseSelectionCardContainer) {
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < _houseLoader.getAllOrdered().size(); i++) {
             _houseCards.push_back(_houseSelectionCardContainer->getChild(i));
         }
     }
@@ -103,7 +105,7 @@ void HouseSelectScene::setupUI() {
     auto houseCarouselDotsContainer = _assets->get<scene2::SceneNode>("houseSelectScene.classSelectionCarouselIcons");
     
     if (houseCarouselDotsContainer) {
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < _houseLoader.getAllOrdered().size(); i++) {
             _houseCarouselDotIndicators.push_back(houseCarouselDotsContainer->getChild(i));
         }
     }
@@ -241,7 +243,7 @@ void HouseSelectScene::update(float timestep) {
     // The carousel move logic
     if (_isAnimating) {
         Vec2 current = _houseSelectionCardContainer->getPosition();
-        Vec2 next = current.lerp(_slideTarget, 0.2f); // 0.2 = smoothing factor
+        Vec2 next = current.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor
 
         if (current.distance(_slideTarget) < 1.0f) {
             _houseSelectionCardContainer->setPosition(_slideTarget);
