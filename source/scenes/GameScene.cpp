@@ -166,6 +166,7 @@ void GameScene::dispose() {
         _bossHealthBar = nullptr;
         _playerHealthBar = nullptr;
         _network = nullptr;
+        _activeIcon = nullptr;
         _playerSlots.clear();
         _gameState.dispose();
         _active = false;

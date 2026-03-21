@@ -2,15 +2,17 @@
 #include "GameState.h"
 
 /**
- * Loads character definitions from JSON into the character loader.
+ * Loads house definitions from JSON into the house loader.
  * Must be called first in init() since player construction depends on it.
  *
- * @return true if the character file loaded successfully.
+ * @return true if the house file loaded successfully.
  */
-bool GameState::initCharacters() {
-    const std::string characterJsonPath = "json/characters.json";
-    if (!_characterLoader.loadFromFile(characterJsonPath)) {
-        CULog("GameState: Failed to load characters.json");
+bool GameState::initHouses()
+{
+    const std::string houseJsonPath = "json/houses.json";
+    if (!_houseLoader.loadFromFile(houseJsonPath))
+    {
+        CULog("GameState: Failed to load house.json");
         return false;
     }
     return true;
@@ -19,39 +21,42 @@ bool GameState::initCharacters() {
 /**
  * Builds the player array (one human + three AI), links all players in a
  * circular neighbour ring, and populates the player ID map.
- * Must be called after initCharacters() so the character loader is ready.
+ * Must be called after intHouses() so the house loader is ready.
  */
-void GameState::initPlayers() {
+void GameState::initPlayers()
+{
     _players.reserve(4);
 
-    auto humanPlayer = std::make_shared<Player>("Percy", 0, "Player 1", _characterLoader);
+    auto humanPlayer = std::make_shared<Player>("Poseidon", 0, "Player 1", _houseLoader);
     _players.push_back(humanPlayer);
 
-    for (int i = 1; i <= 3; i++) {
-       auto aiPlayer = std::make_shared<EasyPlayerAI>(
-            "Percy", i,
-            "AI Player " + std::to_string(i),
-            _characterLoader
-        );
+    for (int i = 1; i <= 3; i++)
+    {
+        auto aiPlayer = std::make_shared<EasyPlayerAI>(
+            "Poseidon", i,
+            "Player " + std::to_string(i),
+            _houseLoader);
         _players.push_back(aiPlayer);
     }
 
     // Circular neighbour linking: 0 <-> 1 <-> 2 <-> 3 <-> 0
     const int playerCount = (int)_players.size();
-    for (int i = 0; i < playerCount; i++) {
-        int leftIdx  = (i - 1 + playerCount) % playerCount;
+    for (int i = 0; i < playerCount; i++)
+    {
+        int leftIdx = (i - 1 + playerCount) % playerCount;
         int rightIdx = (i + 1) % playerCount;
         _players[i]->setLeftPlayer(_players[leftIdx].get());
         _players[i]->setRightPlayer(_players[rightIdx].get());
     }
 
     // Populate network lookup map (key == array index until lobby assigns real IDs).
-    for (int i = 0; i < playerCount; i++) {
+    for (int i = 0; i < playerCount; i++)
+    {
         _playerIdMap[i] = _players[i].get();
     }
 
     // Default to index 0; setLocalPlayer() is called again after network lobby.
-    //figure out our own location in the circle
+    // figure out our own location in the circle
     setLocalPlayer(0);
 }
 
@@ -68,20 +73,22 @@ void GameState::initPlayers() {
  * @param playerNumber  The 0-based index of the slot to replace with a real player.
  * @param playerName    The display name of the player joining this slot.
  */
-void GameState::setRealPlayer(int playerNumber, const std::string& playerName) {
-    if (playerNumber < 0 || playerNumber >= _players.size()) {
+void GameState::setRealPlayer(int playerNumber, const std::string &playerName)
+{
+    if (playerNumber < 0 || playerNumber >= _players.size())
+    {
         CULog("Invalid player number %d", playerNumber);
         return;
     }
     _players[playerNumber] = std::make_shared<Player>(
-        "Percy", playerNumber,
+        "Poseidon", playerNumber,
         playerName + std::to_string(playerNumber),
-        _characterLoader
-    );
+        _houseLoader);
 
     // reset all neighbors for every player
     int playerCount = _players.size();
-    for (int i = 0; i < playerCount; i++) {
+    for (int i = 0; i < playerCount; i++)
+    {
         int leftIdx = (i - 1 + playerCount) % playerCount;
         int rightIdx = (i + 1) % playerCount;
         _players[i]->setLeftPlayer(_players[leftIdx].get());
@@ -96,10 +103,12 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName) {
  *
  * @return true if the enemy loaded and initialised successfully.
  */
-bool GameState::initEnemy() {
+bool GameState::initEnemy()
+{
     const std::string enemyJsonPath = "json/enemies.json";
     _enemy = std::make_shared<Enemy>();
-    if (!_enemy->init("enemy1", enemyJsonPath)) {
+    if (!_enemy->init("enemy1", enemyJsonPath))
+    {
         CULog("GameState: Failed to initialize enemy");
         return false;
     }
@@ -115,17 +124,21 @@ bool GameState::initEnemy() {
  * @param itemController  The ItemController whose database the AI players need.
  * @return true if all AI players initialised successfully.
  */
-bool GameState::initAI(ItemController& itemController) {
+bool GameState::initAI(ItemController &itemController)
+{
     const std::string aiConfigPath = "json/playerAI.json";
     const int playerCount = (int)_players.size();
 
-    for (int i = 1; i < playerCount; i++) {
-        auto* ai = dynamic_cast<PlayerAI*>(_players[i].get());
-        if (!ai) {
+    for (int i = 1; i < playerCount; i++)
+    {
+        auto *ai = dynamic_cast<PlayerAI *>(_players[i].get());
+        if (!ai)
+        {
             CULog("GameState: Player %d is not a PlayerAI — skipping AI init", i);
             continue;
         }
-        if (!ai->init(itemController.getDatabase(), aiConfigPath)) {
+        if (!ai->init(itemController.getDatabase(), aiConfigPath))
+        {
             CULog("GameState: Failed to initialize AI for player %d", i);
             return false;
         }
@@ -135,7 +148,7 @@ bool GameState::initAI(ItemController& itemController) {
 }
 
 /**
- * Initialises the game world: loads characters and the enemy from JSON,
+ * Initialises the game world: loads houses and the enemy from JSON,
  * builds the player array (one human + three AI), links all players in a
  * circular neighbour ring, and finishes AI initialisation using the
  * provided item database.
@@ -144,19 +157,25 @@ bool GameState::initAI(ItemController& itemController) {
  *                        AI player initialisation.
  * @return true if all resources loaded and initialised successfully.
  */
-bool GameState::init(ItemController& itemController) {
-    if (!initCharacters())        return false;
+bool GameState::init(ItemController &itemController)
+{
+    if (!initHouses())
+        return false;
     initPlayers();
-    if (!initEnemy())             return false;
-    if (!initAI(itemController))  return false;
+    if (!initEnemy())
+        return false;
+    if (!initAI(itemController))
+        return false;
     return true;
 }
 
 /**
  * Releases all owned resources and resets every pointer to nullptr.
  */
-void GameState::dispose() {
-    for (auto& player : _players) {
+void GameState::dispose()
+{
+    for (auto &player : _players)
+    {
         player->clearInventory();
     }
     _players.clear();
@@ -169,8 +188,10 @@ void GameState::dispose() {
  * Resets all players' inventories to their default state.
  * Does not reload assets or rebuild the player array.
  */
-void GameState::reset() {
-    for (auto& player : _players) {
+void GameState::reset()
+{
+    for (auto &player : _players)
+    {
         player->clearInventory();
     }
 }
@@ -180,11 +201,11 @@ void GameState::reset() {
  *
  * @param assignedIndex  Zero-based index into the player array.
  */
-void GameState::setLocalPlayer(int assignedIndex) {
+void GameState::setLocalPlayer(int assignedIndex)
+{
     CUAssertLog(
         assignedIndex >= 0 && assignedIndex < (int)_players.size(),
-        "GameState::setLocalPlayer — assigned index out of range"
-    );
+        "GameState::setLocalPlayer — assigned index out of range");
     _localPlayer = _players[assignedIndex].get();
 }
 
@@ -194,7 +215,8 @@ void GameState::setLocalPlayer(int assignedIndex) {
  * @param playerId  The network-assigned player ID.
  * @return          The matching Player pointer, or nullptr if not found.
  */
-Player* GameState::getPlayerById(int playerId) const {
+Player *GameState::getPlayerById(int playerId) const
+{
     auto it = _playerIdMap.find(playerId);
     return (it != _playerIdMap.end()) ? it->second : nullptr;
 }
@@ -205,22 +227,29 @@ Player* GameState::getPlayerById(int playerId) const {
  * @param  slot  Zero-based index into the player array.
  * @return      The Player at that slot, or nullptr if out of range.
  */
-Player* GameState::getPlayerBySlot(int slot) const {
-    if (slot < 0 || slot >= (int)_players.size()) return nullptr;
+Player *GameState::getPlayerBySlot(int slot) const
+{
+    if (slot < 0 || slot >= (int)_players.size())
+        return nullptr;
     return _players[slot].get();
 }
 
 /* Goes through the list of attack messages in attacks and applies the damage specified to the boss*/
-void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
-    for (AttackMessage attack : attacks) {
+void GameState::attackUpdates(std::vector<AttackMessage> attacks)
+{
+    for (AttackMessage attack : attacks)
+    {
         _enemy->updateHealth(-1 * attack.damage);
     }
 }
 
 /* Goes through the list of heal messages in heals and increases player health according to the heal amount*/
-void GameState::healUpdates(std::vector<HealMessage> heals) {
-    for (HealMessage heal : heals) {
-        if (heal.playerID < 0 || heal.playerID >= (int)_players.size()) continue;
+void GameState::healUpdates(std::vector<HealMessage> heals)
+{
+    for (HealMessage heal : heals)
+    {
+        if (heal.playerID < 0 || heal.playerID >= (int)_players.size())
+            continue;
         _players[heal.playerID]->updateHealth(heal.heal);
     }
 }
@@ -234,7 +263,8 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
  *
  * @param newState  The authoritative game state snapshot from the host.
  */
-void GameState::networkUpdate(GameStateMessage newState) {
+void GameState::networkUpdate(GameStateMessage newState)
+{
     // update boss health
     _enemy->setCurrentHealth(newState.bossHealth);
 
@@ -243,10 +273,10 @@ void GameState::networkUpdate(GameStateMessage newState) {
         newState.player1HP,
         newState.player2HP,
         newState.player3HP,
-        newState.player4HP
-    };
+        newState.player4HP};
 
-    for (int i = 0; i < _players.size(); i++) {
+    for (int i = 0; i < _players.size(); i++)
+    {
         _players[i]->setCurrentHealth(healths[i]);
     }
 }

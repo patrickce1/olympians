@@ -72,7 +72,7 @@ void SceneLoader::onStartup() {
     _assets->attach<scene2::SceneNode>(Scene2Loader::alloc()->getHook());
 
     // This reads the given JSON file and uses it to load all other assets
-    _assets->loadDirectory("json/loading.json");
+    _assets->loadDirectory("json/scenes/loading.json");
 
     // Activate mouse or touch screen input as appropriate
     // We have to do this BEFORE the scene, because the scene has a button
@@ -124,7 +124,7 @@ void SceneLoader::onStartup() {
     
     // ── Run unit tests ──────────────────────────
 //    PlayerTests::runAll(
-//        "json/characters.json",
+//        "json/houses.json",
 //        "json/items.json",
 //        "json/enemies.json",
 //        "json/playerAI.json"
@@ -132,7 +132,7 @@ void SceneLoader::onStartup() {
 //
 //    EnemyTests::runAll(
 //        "json/enemies.json",
-//        "json/characters.json"
+//        "json/houses.json"
 //    );
 
 }
@@ -155,6 +155,7 @@ void SceneLoader::onShutdown() {
     _hostSetupScene.dispose();
     _menuScene.dispose();
     _lobbyScene.dispose();
+    _houseSelectScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
     netcode::NetworkLayer::stop();
@@ -250,6 +251,12 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize LobbyScene");
                 }
+                
+                if (_houseSelectScene.init(_assets, _network)) {
+                    _houseSelectScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize HouseSelectScene");
+                }
             }
             break;
         case State::MENU:
@@ -322,6 +329,12 @@ void SceneLoader::update(float dt) {
                     _lobbyScene.setActive(false);
                     _currentScene = State::GAME;
                     break;
+                case LobbyScene::Status::SELECT:
+                    CULog("Transitioning to HouseSelectScene...");
+                    _houseSelectScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::HOUSESELECT;
+                    break;
                 case LobbyScene::Status::ABORT:
                     CULog("Transitioning to MenuScene...");
                     _menuScene.setActive(true);
@@ -330,6 +343,18 @@ void SceneLoader::update(float dt) {
                     break;
                 default:
                     break;;
+            }
+            break;
+        case State::HOUSESELECT:
+            _houseSelectScene.update(dt);
+            switch (_houseSelectScene.getStatus()) {
+                case HouseSelectScene::Status::ABORT:
+                    _lobbyScene.setActive(true);
+                    _houseSelectScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                default:
+                    break;
             }
             break;
         case State::GAME:
@@ -390,6 +415,9 @@ void SceneLoader::draw() {
             break;
         case State::GAME:
             _gameScene.render();
+            break;
+        case State::HOUSESELECT:
+            _houseSelectScene.render();
             break;
     }
 }
