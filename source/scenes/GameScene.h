@@ -243,29 +243,29 @@ public:
      * Handles the local player dropping an attack item on the boss zone.
      * Applies the dragged attack item to the enemy.
      */
-    void handleAttack(ItemInstance::ItemId itemId);
+    bool handleAttack(ItemInstance::ItemId itemId);
 
     /**
      * Handles the local player dropping a support item on the left ally zone.
      * Applies the dragged support item to the left neighbour.
      */
-    void handleSupportLeft(ItemInstance::ItemId itemId);
+    bool handleSupportLeft(ItemInstance::ItemId itemId);
 
     /**
      * Handles the local player dropping a support item on the right ally zone.
      * Applies the dragged support item to the right neighbour.
      */
-    void handleSupportRight(ItemInstance::ItemId itemId);
+    bool handleSupportRight(ItemInstance::ItemId itemId);
 
     /**
      * Passes the dragged item to the left neighbour.
      */
-    void handlePassLeft(ItemInstance::ItemId itemId);
+    bool handlePassLeft(ItemInstance::ItemId itemId);
 
     /**
      * Passes the dragged item to the right neighbour.
      */
-    void handlePassRight(ItemInstance::ItemId itemId);
+    bool handlePassRight(ItemInstance::ItemId itemId);
 
     /**
      * Dispatches the resolved drop-zone action to the appropriate handler
@@ -274,19 +274,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId);
-
-    /**
-     * Returns true if the specified item may be used in the given drop zone.
-     *
-     * Attack items may only be dropped on the boss zone. Support items may
-     * only be dropped on ally zones. Passing accepts any item.
-     *
-     * @param itemId  The dragged item instance ID.
-     * @param action  The resolved drop-zone action.
-     * @return true if the action is valid for that item, false otherwise.
-     */
-    bool isValidActionForItem(ItemInstance::ItemId itemId, InputController::Action action) const;
+    bool handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId);
 
 #pragma mark - Update Helpers
 
