@@ -296,7 +296,7 @@ static void testEnemyHealthClamp(const std::string& enemiesJsonPath) {
 static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPath,
                                                const std::string& housesJsonPath) {
     HouseLoader loader = loadHouses(housesJsonPath);
-    auto players = makePlayersRing(loader, "Percy", 4);
+    auto players = makePlayersRing(loader, "Poseidon", 4);
 
     auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
     if (!enemy) return;
@@ -317,7 +317,7 @@ static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPat
 static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& enemiesJsonPath,
                                                          const std::string& housesJsonPath) {
     HouseLoader loader = loadHouses(housesJsonPath);
-    auto players = makePlayersRing(loader, "Percy", 4);
+    auto players = makePlayersRing(loader, "Poseidon", 4);
 
     for (auto& p : players) {
         p->updateHealth(-999999.0f);
@@ -343,7 +343,7 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
 static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonPath,
                                                  const std::string& housesJsonPath) {
     HouseLoader loader = loadHouses(housesJsonPath);
-    auto players = makePlayersRing(loader, "Percy", 4);
+    auto players = makePlayersRing(loader, "Poseidon", 4);
 
     auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
     if (!enemy) return;
