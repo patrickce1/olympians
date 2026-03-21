@@ -35,7 +35,7 @@ protected:
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
 
-    /** The button for locking/unlocking chosen character */
+    /** The button for locking/unlocking chosen house */
     std::shared_ptr<cugl::scene2::Button> _lockButton;
     
     /** The back button for the houseSelect scene */

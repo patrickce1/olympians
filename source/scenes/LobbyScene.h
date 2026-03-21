@@ -54,7 +54,7 @@ protected:
     /** Player icon buttons (to update when they select house) */
     std::vector<std::shared_ptr<cugl::scene2::Button>> _playerImages;
 
-    /** A container that stores labels and other info for visualizing the character and username choices of players */
+    /** A container that stores labels and other info for visualizing the house and username choices of players */
     std::shared_ptr<cugl::scene2::SceneNode> _playerInfoContainer;
     
     /** The current status */

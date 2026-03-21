@@ -124,7 +124,7 @@ void SceneLoader::onStartup() {
     
     // ── Run unit tests ──────────────────────────
 //    PlayerTests::runAll(
-//        "json/characters.json",
+//        "json/houses.json",
 //        "json/items.json",
 //        "json/enemies.json",
 //        "json/playerAI.json"
@@ -132,7 +132,7 @@ void SceneLoader::onStartup() {
 //
 //    EnemyTests::runAll(
 //        "json/enemies.json",
-//        "json/characters.json"
+//        "json/houses.json"
 //    );
 
 }
