@@ -26,7 +26,8 @@
  * This separation makes it straightforward to broadcast a read-only
  * GameState snapshot over the network without touching any rendering code.
  */
-class GameScene : public cugl::scene2::Scene2 {
+class GameScene : public cugl::scene2::Scene2
+{
 protected:
 #pragma mark - Scene Graph Nodes
 
@@ -58,24 +59,33 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
-    /** Input zones: each entry maps an Action to the screen Rect that triggers it. */
+    /** Input zones: each entry maps an Action to the screen Rect that triggers it.  Defined as the currently active zones*/
     std::vector<std::pair<InputController::Action, cugl::Rect>> _inputZones;
+
+    /** Zones used for attack on screen. */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _attackZones;
+
+    /** Zones used for support on screen. */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _supportZones;
+
+    /** IZones used for pass on screen. . */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _passZones;
 
     /** The reset button node. */
     std::shared_ptr<cugl::scene2::SceneNode> _resetBtn;
-    
+
     /** The boss health bar */
     std::shared_ptr<cugl::scene2::ProgressBar> _bossHealthBar;
-    
+
     /** The player's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBar;
-    
+
     /** Left teammate username label */
     std::shared_ptr<cugl::scene2::Label> _leftPlayerName;
 
     /** Right teammate username label */
     std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
-    
+
     /** Slots already demoted to Easy AI this session; prevents re-demoting each frame. */
     std::unordered_set<int> _slotsDemotedToAI;
 
@@ -83,6 +93,12 @@ protected:
 
     /** The scene node currently being dragged by the player, or nullptr. */
     std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
+
+    /** The item id of the item being currently held. */
+    ItemInstance::ItemId _draggedItemId = ItemInstance::ItemId{};
+
+    /** The ItemDef of the item currently being dragged, or nullptr. */
+    const ItemDef *_draggedItemDef = nullptr;
 
     /** Offset from the icon's origin to the touch point, applied during drag. */
     cugl::Vec2 _dragOffset;
@@ -99,7 +115,7 @@ protected:
     float _glowDuration = 0.3f;
 
 #pragma mark - Debug State
-    
+
     /** Determines whether the debug mode is on. This inlcudes reset button, zone lines, etc.*/
     bool _debugMode = false;
 
@@ -191,7 +207,7 @@ public:
      * @param networkController The network controller shared across all scenes
      * @return true if initialisation succeeded, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
+    bool init(const std::shared_ptr<cugl::AssetManager> &assets, const std::shared_ptr<NetworkController> &networkController);
 
     /**
      * Activates or deactivates the scene and its UI.
@@ -258,7 +274,7 @@ public:
      * @param input  The active input controller.
      */
     void handlePlayerActions(InputController::Action action);
-    
+
     /**
      * Top-level disconnect handler. Called every frame from update().
      * Delegates to the three helpers below.
@@ -275,7 +291,7 @@ public:
      * @param dt  Delta time in seconds.
      */
     void updateEnemyAndAI(float dt);
-    
+
     /**
      * Updates the progress bar with the current ratios of player and enemy health.
      *
@@ -289,7 +305,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handleResetButton(InputController& input);
+    void handleResetButton(InputController &input);
 
     /**
      * Handles the full pipeline of a player's drag-and-drop input for one frame.
@@ -304,7 +320,7 @@ public:
      *
      * @param input     The input controller for this frame.
      */
-    void handlePlayerInput(InputController& input);
+    void handlePlayerInput(InputController &input);
 
     /**
      * Decrements the glow timer each frame. Clears the active glow action
@@ -320,7 +336,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void updateDebugPointer(InputController& input);
+    void updateDebugPointer(InputController &input);
 
     /**
      * Hit-tests item widgets against the initial touch position.
@@ -328,7 +344,7 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handleDragInitiation(InputController& input);
+    void handleDragInitiation(InputController &input);
 
     /**
      * Moves the active dragged icon to follow the current touch position.
@@ -336,8 +352,8 @@ public:
      *
      * @param input  The active input controller.
      */
-    void handleDragTracking(InputController& input);
-    
+    void handleDragTracking(InputController &input);
+
     /**
      * Spawns items for the local player every frame, and for all AI-controlled
      * players if this machine is the host. AI item spawning is host-only since
@@ -348,12 +364,12 @@ public:
     void handleItemSpawn(float dt);
 
     /**
-    * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory
-    * If we are the host, it will also give the correct items to the AI
-    * Intended usage: get the pass message vector from the network controller and pass into this function
-    */
+     * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory
+     * If we are the host, it will also give the correct items to the AI
+     * Intended usage: get the pass message vector from the network controller and pass into this function
+     */
     void processNetworkedPasses(std::vector<PassMessage> passes);
-    
+
     /**
      * Looks up the ItemDef for the item currently being dragged.
      * Returns nullptr if the item is not found or has no definition.
@@ -362,7 +378,7 @@ public:
      * @return        A shared pointer to the item's definition, or nullptr.
      */
     std::shared_ptr<const ItemDef> getHeldItemDef(ItemInstance::ItemId itemId);
-    
+
     /**
      * HOST ONLY. Builds a slot -> networkID map for every real (non-AI)
      * player and passes it to the NetworkController to diff against the
@@ -395,10 +411,10 @@ public:
      * @param item  The item instance to represent.
      * @return      The new widget node, or nullptr if assets were missing.
      */
-    std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
+    std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance &item);
 
     /** Return a random valid inventory position for a newly spawned item widget */
-    cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
+    cugl::Vec2 getRandomInventoryPosition(const cugl::Size &widgetSize) const;
 
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
@@ -422,14 +438,21 @@ public:
      * @param dt     Delta time in seconds.
      * @param input  The input controller owned by SceneLoader.
      */
-    void update(float dt, InputController& input);
+    void update(float dt, InputController &input);
+
+    /**
+     * Rebuilds the active input zones based on the type of item currently being dragged.
+     * Attack items show the boss drop zone; support items show the ally drop zones.
+     * Pass zones are always included while dragging. Clears all zones if nothing is held.
+     */
+    void updateInputZones();
 
     /**
      * Draws a green debug outline around the reset button's bounding box.
      *
      * @param batch  The active sprite batch.
      */
-    void renderResetButton(cugl::graphics::SpriteBatch* batch);
+    void renderResetButton(cugl::graphics::SpriteBatch *batch);
 
     /**
      * Draws a faint green outline around every input zone. Draws a fading
@@ -437,14 +460,14 @@ public:
      *
      * @param batch  The active sprite batch.
      */
-    void renderDropZones(cugl::graphics::SpriteBatch* batch);
+    void renderDropZones(cugl::graphics::SpriteBatch *batch);
 
     /**
      * Draws a magenta outline around each visible item widget's bounding box.
      *
      * @param batch  The active sprite batch.
      */
-    void renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch);
+    void renderItemWidgetDebug(cugl::graphics::SpriteBatch *batch);
 
     /**
      * Draws a small red square at the current touch position.
@@ -452,7 +475,7 @@ public:
      *
      * @param batch  The active sprite batch.
      */
-    void renderPointerDebug(cugl::graphics::SpriteBatch* batch);
+    void renderPointerDebug(cugl::graphics::SpriteBatch *batch);
 
     /**
      * Custom render pass drawn after the standard scene graph render.
@@ -467,7 +490,7 @@ public:
      * sprite batch is already configured with the scene camera.
      */
     void render() override;
-    
+
 #pragma mark - Debug Mode
     /**
      * Sets whether debug mode is on.
@@ -475,19 +498,19 @@ public:
      * @param enabled  The state _debugMode should be set to.
      */
     void setDebugMode(bool enabled);
-    
+
     /**
      * Retrieves the current state of `_debugMode.
      */
-    bool isDebugMode() const {return _debugMode; }
+    bool isDebugMode() const { return _debugMode; }
 
 #pragma mark - Networking
-    /* Checks if any updates about the state of the game were sent over the network. 
-    * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us. 
-    * If we are the host, we process any attack, heal, and pass messages. 
-    * After doing so, we send out a new authoritative version of the game state as the host*/
+    /* Checks if any updates about the state of the game were sent over the network.
+     * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
+     * If we are the host, we process any attack, heal, and pass messages.
+     * After doing so, we send out a new authoritative version of the game state as the host*/
     void handleNetworkUpdates();
-    
+
     /**
      * Syncs the local game state with the current network player order.
      *
