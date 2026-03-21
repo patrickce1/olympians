@@ -54,10 +54,10 @@ protected:
     bool _locked = false;
     
     /** The house selection node list */
-    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _items;
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _houseCards;
     
     /** The house selection indicator list */
-    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _indicators;
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _houseCarouselDotIndicators;
     
     /** The current index of the god shown in the house selection screen*/
     int _currentIndex = 4;
@@ -68,8 +68,8 @@ protected:
     /** The house selection navigation right button */
     std::shared_ptr<cugl::scene2::Button> _rightButton;
     
-    /** The house selection container **/
-    std::shared_ptr<cugl::scene2::SceneNode> _container; // holds items
+    /** The house selection container that contains the card and direction buttons**/
+    std::shared_ptr<cugl::scene2::SceneNode> _houseSelectionCardContainer;
     
     /** Whether the house selection screen is sliding to another index */
     bool _isAnimating = false;

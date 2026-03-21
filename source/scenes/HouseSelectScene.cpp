@@ -92,19 +92,19 @@ void HouseSelectScene::setupUI() {
     _rightButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("houseSelectScene.carouselButtons.directionButtons.rightScroll"));
 
-    _container = _assets->get<scene2::SceneNode>("houseSelectScene.carouselButtons.heroCardcont");
+    _houseSelectionCardContainer = _assets->get<scene2::SceneNode>("houseSelectScene.carouselButtons.heroCardContainer");
 
-    if (_container) {
+    if (_houseSelectionCardContainer) {
         for (int i = 0; i < 9; i++) {
-            _items.push_back(_container->getChild(i));
+            _houseCards.push_back(_houseSelectionCardContainer->getChild(i));
         }
     }
     
-    auto indicatorContainer = _assets->get<scene2::SceneNode>("houseSelectScene.classSelectionCarouselIcons");
+    auto houseCarouselDotsContainer = _assets->get<scene2::SceneNode>("houseSelectScene.classSelectionCarouselIcons");
     
-    if (indicatorContainer) {
+    if (houseCarouselDotsContainer) {
         for (int i = 0; i < 9; i++) {
-            _indicators.push_back(indicatorContainer->getChild(i));
+            _houseCarouselDotIndicators.push_back(houseCarouselDotsContainer->getChild(i));
         }
     }
 }
@@ -173,9 +173,9 @@ void HouseSelectScene::dispose() {
         _playerIconGlow = nullptr;
         _leftButton = nullptr;
         _rightButton = nullptr;
-        _container = nullptr;
-        _items.clear();
-        _indicators.clear();
+        _houseSelectionCardContainer = nullptr;
+        _houseCards.clear();
+        _houseCarouselDotIndicators.clear();
         _active = false;
     }
     _network = nullptr;
@@ -240,14 +240,14 @@ void HouseSelectScene::updateText(const std::shared_ptr<scene2::Button>& button,
 void HouseSelectScene::update(float timestep) {
     // The carousel move logic
     if (_isAnimating) {
-        Vec2 current = _container->getPosition();
+        Vec2 current = _houseSelectionCardContainer->getPosition();
         Vec2 next = current.lerp(_slideTarget, 0.2f); // 0.2 = smoothing factor
 
         if (current.distance(_slideTarget) < 1.0f) {
-            _container->setPosition(_slideTarget);
+            _houseSelectionCardContainer->setPosition(_slideTarget);
             _isAnimating = false;
         } else {
-            _container->setPosition(next);
+            _houseSelectionCardContainer->setPosition(next);
         }
     }
 }
@@ -274,21 +274,21 @@ void HouseSelectScene::configureLockButton() {
  */
 void HouseSelectScene::slideTo(int newIndex) {
     if (_isAnimating) return;
-    if (newIndex < 0 || newIndex >= _items.size()) return;
+    if (newIndex < 0 || newIndex >= _houseCards.size()) return;
 
     _isAnimating = true;
 
     float shiftAmount = ROLE_CARD_WIDTH;
     
     int deltaIndex = newIndex - _currentIndex;
-    Vec2 currentPos = _container->getPosition();
+    Vec2 currentPos = _houseSelectionCardContainer->getPosition();
     float targetX = currentPos.x - (deltaIndex * shiftAmount);
     
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
     
-    for (int i = 0; i < _items.size(); i++) {
-        auto card = _items[i];
+    for (int i = 0; i < _houseCards.size(); i++) {
+        auto card = _houseCards[i];
         if (card) {
             auto glow = card->getChildByName("glowOverlayHero");
             if (glow){
@@ -313,8 +313,8 @@ void HouseSelectScene::slideTo(int newIndex) {
  * @param currentIndex The index of the card we are at.
  */
 void HouseSelectScene::updateCarouselDots(int currentIndex) {
-    for (int i = 0; i < _indicators.size(); i++) {
-        auto node = _indicators[i];
+    for (int i = 0; i < _houseCarouselDotIndicators.size(); i++) {
+        auto node = _houseCarouselDotIndicators[i];
         
         auto fill   = node->getChildByName("fill");
         

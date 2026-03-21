@@ -111,7 +111,7 @@ void LobbyScene::setupListeners() {
         }
     });
     
-    // Add listeners to all the player icon buttons in the scene to access house select
+    // Add listeners to all player icon buttons to open the house select screen
     for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages) {
         icon->addListener([this](const std::string& name, bool down) {
             if (down) {

@@ -1712,7 +1712,7 @@
                     "visible": true
                 },
                 "children": {
-                    "heroCardcont": {
+                    "heroCardContainer": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
