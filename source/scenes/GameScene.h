@@ -355,6 +355,15 @@ public:
     void processNetworkedPasses(std::vector<PassMessage> passes);
     
     /**
+     * Looks up the ItemDef for the item currently being dragged.
+     * Returns nullptr if the item is not found or has no definition.
+     *
+     * @param itemId  The ID of the held item.
+     * @return        A shared pointer to the item's definition, or nullptr.
+     */
+    std::shared_ptr<const ItemDef> getHeldItemDef(ItemInstance::ItemId itemId);
+    
+    /**
      * HOST ONLY. Builds a slot -> networkID map for every real (non-AI)
      * player and passes it to the NetworkController to diff against the
      * still-connected peer list. Populates _disconnectedSlots with any
