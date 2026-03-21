@@ -9,7 +9,6 @@
 #include "items/ItemInstance.h"
 #include "items/ItemDatabase.h"
 #include "Enemy.h"
-#include "House.h"
 #include <type_traits>
 
 
@@ -83,11 +82,6 @@ public:
      * Return the name of the house
      */
     std::string getHouseName() const { return _houseId; }
-    
-    /**
-     * Return the house number of the house
-     */
-    int getCharacterHouse() const { return _house; }
     
     /**
      * Return the max health of the house/player
