@@ -3,7 +3,7 @@
         {
             "id": "Percy",
             "house": "Poseidon",
-            "maxHealth": 2.0,
+            "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["whirlpool"],
             "spritesheetPath": "textures/percy.png"
