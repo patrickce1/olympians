@@ -190,12 +190,15 @@ void GameScene::dispose() {
  */
 void GameScene::updateNetworkOrder() {
     if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
-        //check who are real players. This is subject to change once player reordering is developed
-        for (int i = 0; i < _network->getNetworkedPlayers().size(); i++) {
-            _gameState.setRealPlayer(i, _network->getNetworkedPlayers()[i].username);
+        const auto& networkedPlayers = _network->getNetworkedPlayers();
+        for (int i = 0; i < (int)networkedPlayers.size(); i++) {
+            _gameState.setRealPlayer(
+                i,
+                networkedPlayers[i].username,
+                networkedPlayers[i].houseID   // ← new third argument
+            );
         }
 
-        //assign our own number
         setLocalPlayer(_network->getLocalPlayerNumber());
 
         _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
@@ -559,7 +562,7 @@ void GameScene::handleDragInitiation(InputController& input) {
             _activeIcon = widget;
             _dragOffset = widget->getPosition() - touchPosScreen;
             _draggedItemId = id;
-            _draggedItemDef = getHeldItemDef(id).get();
+            _draggedItemDef = getHeldItemDef(id);
             updateInputZones();
             break;
         }
@@ -615,7 +618,7 @@ void GameScene::handleItemSpawn(float dt) {
     if (!_network->isHost()) return;
 
     for (auto& player : _gameState.getPlayers()) {
-        if (!player->isAI()) continue;
+        if (!player || !player->isAI()) continue;
         _itemController.update(dt, player.get());
     }
 }
@@ -637,18 +640,19 @@ void GameScene::update(float dt, InputController& input) {
         input.resetAction();
     }
 
+    handleNetworkUpdates();
+    handleDisconnectedPlayers();
+
+    // now safe to iterate players
+    handleItemSpawn(dt);
+    syncInventoryWidgets();
+    updateEnemyAndAI(dt);
+
     tickGlowTimer(dt);
     updateDebugPointer(input);
     handleDragInitiation(input);
     handleDragTracking(input);
 
-    handleNetworkUpdates();
-    handleDisconnectedPlayers();
-
-    handleItemSpawn(dt);
-    syncInventoryWidgets();
-
-    updateEnemyAndAI(dt);
     _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
 }

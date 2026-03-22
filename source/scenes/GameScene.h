@@ -97,7 +97,7 @@ protected:
     ItemInstance::ItemId _draggedItemId = ItemInstance::ItemId{};
 
     /** The ItemDef of the item currently being dragged, or nullptr. */
-    const ItemDef* _draggedItemDef = nullptr;
+    std::shared_ptr<const ItemDef> _draggedItemDef = nullptr;
     
     /** Offset from the icon's origin to the touch point, applied during drag. */
     cugl::Vec2 _dragOffset;

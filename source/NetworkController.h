@@ -179,6 +179,26 @@ public:
     
     /** Returns slots that disconnected since the last clearQueues(). */
     const std::vector<int>& getDisconnectedSlots() const { return _disconnectedSlots; }
+    
+    /**
+     * Sets the house selection for the local player (host only).
+     *
+     * Because sendToHost() does not loop back to the sender, the host cannot
+     * receive its own SELECT_HOUSE message via the normal network path. This
+     * method writes the house ID directly into the host's slot in the online
+     * players list and broadcasts the updated lobby state to all clients so
+     * they stay in sync.
+     *
+     * Should be called on the host immediately after broadcastSelectedHouse()
+     * when the host locks in their house selection.
+     *
+     * @param houseID  The ID of the house the host selected (e.g. "Athena").
+     *                 Must match a valid entry in the HouseLoader.
+     */
+    void setLocalHouse(const std::string& houseID);
+    
+    /** Returns true if every player in the lobby has selected a house. */
+    bool allPlayersSelectedHouse() const;
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network

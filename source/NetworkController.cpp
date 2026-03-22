@@ -266,6 +266,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
                 _onlinePlayers[index].houseID = houseID;
                 broadcastLobbyState();
             }
+            break;
         }
         case MessageType::PLAYER_DISCONNECT: {
             int slot = _deserializer.readSint32();
@@ -566,3 +567,33 @@ void NetworkController::broadcastPlayerDisconnected(int slotIndex) {
     _serializer.reset();
 }
 
+/**
+ * Sets the house selection for the local player (host only).
+ *
+ * Because sendToHost() does not loop back to the sender, the host cannot
+ * receive its own SELECT_HOUSE message via the normal network path. This
+ * method writes the house ID directly into the host's slot in the online
+ * players list and broadcasts the updated lobby state to all clients so
+ * they stay in sync.
+ *
+ * Should be called on the host immediately after broadcastSelectedHouse()
+ * when the host locks in their house selection.
+ *
+ * @param houseID  The ID of the house the host selected (e.g. "Athena").
+ *                 Must match a valid entry in the HouseLoader.
+ */
+void NetworkController::setLocalHouse(const std::string& houseID) {
+    if (!_onlinePlayers.empty()) {
+        _onlinePlayers[0].houseID = houseID;
+        broadcastLobbyState();
+    }
+}
+
+/** Returns true if every player in the lobby has selected a house. */
+bool NetworkController::allPlayersSelectedHouse() const {
+    if (_onlinePlayers.empty()) return false;
+    for (const NetworkedPlayer& player : _onlinePlayers) {
+        if (player.houseID.empty()) return false;
+    }
+    return true;
+}

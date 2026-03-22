@@ -56,35 +56,39 @@ void GameState::initPlayers() {
 }
 
 /**
- * Replaces the AI placeholder at the given slot with a real human player.
+ * Replaces the AI placeholder at the given slot with a real human player,
+ * using the house they selected in the character select screen.
  *
- * Called during game setup after the lobby has finalized the player order.
- * Since real players always occupy the first N slots, playerNumber corresponds
+ * Called during game setup after the lobby has finalized the player order
+ * and all players have broadcast their house selections. Since real players
+ * always occupy the first N consecutive slots, playerNumber corresponds
  * directly to their index in the online players list.
  *
- * After replacing the player, all neighbors in the circle are re-linked
- * to account for the new player object at that slot.
+ * After replacing the player object, all neighbour pointers in the circular
+ * ring are re-wired so that every player's left/right references remain valid.
  *
- * @param playerNumber  The 0-based index of the slot to replace with a real player.
+ * @param playerNumber  The 0-based slot index of the player to promote.
  * @param playerName    The display name of the player joining this slot.
+ * @param houseName     The ID of the house the player selected (e.g. "Athena").
+ *                      Must match a valid house definition in the HouseLoader.
+ *                      Passing an unrecognized ID will produce a player with
+ *                      default/missing stats and may cause a crash downstream.
  */
-void GameState::setRealPlayer(int playerNumber, const std::string& playerName) {
-    if (playerNumber < 0 || playerNumber >= _players.size()) {
-        CULog("Invalid player number %d", playerNumber);
-        return;
-    }
+void GameState::setRealPlayer(int playerNumber, const std::string& playerName, const std::string& houseName) {
+    if (playerNumber < 0 || playerNumber >= (int)_players.size()) return;
+
     _players[playerNumber] = std::make_shared<Player>(
-        "Poseidon", playerNumber,
-        playerName + std::to_string(playerNumber),
+        houseName,        // ← use actual selected house, not hardcoded "Poseidon"
+        playerNumber,
+        playerName,       // ← don't concatenate playerNumber onto the name
         _houseLoader
     );
 
-    // reset all neighbors for every player
     int playerCount = _players.size();
     for (int i = 0; i < playerCount; i++) {
-        int leftIdx = (i - 1 + playerCount) % playerCount;
+        int leftIdx  = (i - 1 + playerCount) % playerCount;
         int rightIdx = (i + 1) % playerCount;
-        _players[i]->setLeftPlayer(_players[leftIdx].get());
+        _players[i]->setLeftPlayer (_players[leftIdx].get());
         _players[i]->setRightPlayer(_players[rightIdx].get());
     }
 }
