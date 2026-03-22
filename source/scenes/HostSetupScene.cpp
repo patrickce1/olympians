@@ -10,7 +10,7 @@ using namespace std;
 /** Regardless of logo, lock the height to this */
 #define SCENE_HEIGHT  852
 /** Role card width */
-#define ROLE_CARD_WIDTH 177.22
+#define ROLE_CARD_WIDTH 251
 
 
 #pragma mark -
@@ -78,12 +78,12 @@ void HostSetupScene::setupUI() {
         _assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
 
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.leftscroll"));
+        _assets->get<scene2::SceneNode>("hostSetupScene.Boss_Carousel.directionbuttons.leftScroll"));
 
     _rightButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.rightscroll"));
+        _assets->get<scene2::SceneNode>("hostSetupScene.Boss_Carousel.directionbuttons.rightScroll"));
 
-    _container = _assets->get<scene2::SceneNode>("hostSetupScene.roleCarousel");
+    _container = _assets->get<scene2::SceneNode>("hostSetupScene.Boss_Carousel.bossCardcont");
 
     if (_container) {
         _items.push_back(_container->getChild(0));
@@ -95,7 +95,7 @@ void HostSetupScene::setupUI() {
         std::dynamic_pointer_cast<scene2::Label>(
             _assets->get<scene2::SceneNode>("hostSetupScene.hostName.placeholder"));
 
-    placeName->setText("Enter Name");
+    placeName->setText("ENTER NAME");
 
     _hostName->addTypeListener([placeName](const std::string& name, const std::string& value) {
         placeName->setVisible(value.empty());
@@ -251,7 +251,7 @@ void HostSetupScene::slideTo(int newIndex) {
 
     _isAnimating = true;
 
-    float shiftAmount = ROLE_CARD_WIDTH + 24;
+    float shiftAmount = ROLE_CARD_WIDTH;
     
     int deltaIndex = newIndex - _currentIndex;
     Vec2 currentPos = _container->getPosition();

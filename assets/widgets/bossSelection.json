@@ -11,21 +11,21 @@
         "data": {
             "anchor": [
                 0,
-                1
+                0
             ],
             "size": [
-                580,
-                354.6
+                788,
+                462
             ],
             "angle": 0,
             "position": [
-                -93,
-                292.4
+                0,
+                0
             ],
             "visible": true
         },
         "children": {
-            "dummy": {
+            "cyclopsCard": {
                 "type": "Widget",
                 "data": {
                     "key": "roleCard",
@@ -37,12 +37,12 @@
                     "padding": [
                         0,
                         0,
-                        24,
+                        -35,
                         0
                     ]
                 }
             },
-            "cerberus": {
+            "cerberusCard": {
                 "type": "Widget",
                 "data": {
                     "key": "roleCard",
@@ -55,7 +55,7 @@
                     "padding": [
                         0,
                         0,
-                        24,
+                        -35,
                         0
                     ]
                 }

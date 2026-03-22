@@ -299,7 +299,7 @@
                     "back": {
                         "type": "Image",
                         "data": {
-                            "texture": "back",
+                            "texture": "buttonBackBG",
                             "anchor": [
                                 0,
                                 1
