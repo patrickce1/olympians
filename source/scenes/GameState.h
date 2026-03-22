@@ -171,6 +171,17 @@ public:
      * @return          The matching Player pointer, or nullptr if not found.
      */
     Player* getPlayerById(int playerId) const;
+    
+    /**
+     * Returns a raw pointer to the player at the given slot index.
+     *
+     * @param  slot  Zero-based index into the player array.
+     * @return      The Player at that slot, or nullptr if out of range.
+     */
+    Player* getPlayerBySlot(int slot) const;
+    
+    /** Returns the character loader, needed when constructing replacement players. */
+    const HouseLoader& getHouseLoader() const { return _houseLoader; }
 
 #pragma mark - Enemy Access
 

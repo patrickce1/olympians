@@ -162,6 +162,23 @@ public:
 
     /*Returns the list of networked players, carrying their network ID and username*/
     const std::vector<NetworkedPlayer> getNetworkedPlayers();
+    
+    /**
+     * Registers a disconnect callback on the NetcodeConnection so that when
+     * any peer closes, their slot is immediately pushed into _disconnectedSlots.
+     * Should be called once after the network connection is established.
+     */
+    void registerDisconnectCallback();
+    
+    /**
+     * Broadcasts a PLAYER_DISCONNECT message to all clients.
+     *
+     * @param slotIndex  The 0-based player slot that disconnected.
+     */
+    void broadcastPlayerDisconnected(int slotIndex);
+    
+    /** Returns slots that disconnected since the last clearQueues(). */
+    const std::vector<int>& getDisconnectedSlots() const { return _disconnectedSlots; }
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -176,7 +193,8 @@ protected:
         GAME_START = 4,
         LOBBY_UPDATE = 5,
         PLAYER_JOIN = 6,
-        SELECT_HOUSE = 7
+        SELECT_HOUSE = 7,
+        PLAYER_DISCONNECT = 8
     };
 
     /*Our network connection*/
@@ -201,6 +219,9 @@ private:
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
     GameStateMessage _latestGameState;
+    
+    // A vector storing the slots containing all the disconnected players that haven't been reassigned.
+    std::vector<int> _disconnectedSlots;
 
     //Boolean that tells us if the game has been started by the host
     bool gameStarted;
