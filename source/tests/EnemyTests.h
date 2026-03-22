@@ -13,7 +13,7 @@
  *   but BEFORE the game loop starts (e.g. in AppDelegate::onStartup()).
  *
  * Example:
- *   EnemyTests::runAll("json/enemies.json", "json/characters.json");
+ *   EnemyTests::runAll("json/enemies.json", "json/houses.json");
  */
 class EnemyTests {
 public:
@@ -21,10 +21,10 @@ public:
      * Loads fixtures from JSON and runs all Enemy tests.
      *
      * @param enemiesJsonPath     Path to enemies.json (e.g. "json/enemies.json")
-     * @param charactersJsonPath  Path to characters.json (e.g. "json/characters.json")
+     * @param housesJsonPath  Path to houses.json (e.g. "json/houses.json")
      */
     static void runAll(const std::string& enemiesJsonPath,
-                       const std::string& charactersJsonPath);
+                       const std::string& housesJsonPath);
 };
 
 #endif /* __ENEMY_TESTS_H__ */

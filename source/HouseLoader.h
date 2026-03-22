@@ -1,12 +1,12 @@
-// CharacterLoader.h
-#ifndef __CHARACTER_LOADER_H__
-#define __CHARACTER_LOADER_H__
+// HouseLoader.h
+#ifndef __HOUSE_LOADER_H__
+#define __HOUSE_LOADER_H__
 
 #include <cugl/cugl.h>
 #include <unordered_map>
 #include <string>
 
-class CharacterLoader {
+class HouseLoader {
     
 public:
     
@@ -17,10 +17,9 @@ public:
         ALL_ROUNDER
     };
     
-    /** This is a struct with all the properties of our characters defined in the JSON*/
-    struct CharacterDef {
+    /** This is a struct with all the properties of our houses defined in the JSON*/
+    struct HouseDef {
         std::string id;
-        std::string house;
         float maxHealth;
         AbilityClass abilityClass;
         std::string spritesheetPath;
@@ -29,8 +28,10 @@ public:
     
 private:
     
-    /** A mapping from characters to characterDef objects indexed by ID's */
-    std::unordered_map<std::string, CharacterDef> _characters;
+    /** A mapping from houses to houseDef objects indexed by ID's */
+    std::unordered_map<std::string, HouseDef> _houses;
+    /** A ordered vector of all houses for later selection */
+    std::vector<HouseDef> _housesVector;
     
 public:
     
@@ -42,7 +43,7 @@ public:
     }
 
     /**
-     * Loads all characters from the given JSON file path.
+     * Loads all houses from the given JSON file path.
      * Call this once during sta.
      * @return true if loading succeeded
      */
@@ -56,16 +57,15 @@ public:
         auto json = reader->readJson();
         if (!json) return false;
         
-        // Gets the character object from JSON
-        auto charArray = json->get("characters");
+        // Gets the house object from JSON
+        auto charArray = json->get("houses");
         if (!charArray) return false;
         
-        // Creates mapping of character objects to CharacterDef
+        // Creates mapping of house objects to HouseDef
         for (int i = 0; i < charArray->size(); i++) {
             auto entry = charArray->get(i);
-            CharacterDef def;
+            HouseDef def;
             def.id                = entry->getString("id");
-            def.house             = entry->getString("house");
             def.maxHealth         = entry->getFloat("maxHealth");
             def.abilityClass      = parseAbilityClass(entry->getString("abilityClass"));
             def.spritesheetPath   = entry->getString("spritesheetPath");
@@ -78,33 +78,41 @@ public:
                 }
             }
             
-            _characters[def.id] = def;
+            _houses[def.id] = def;
+            _housesVector.push_back(def);
         }
         return true;
     }
     
     /**
-     * Returns whether the CharacterDef has a given character id.
+     * Returns whether the HouseDef has a given house id.
      * Returns nullptr equivalent (use has() first) if not found.
      */
     bool has(const std::string& id) const {
-        return _characters.count(id) > 0;
+        return _houses.count(id) > 0;
     }
     
     /**
-     *Returns the CharacterDef for the given character id
+     *Returns the HouseDef for the given house id
      */
-    const CharacterDef& get(const std::string& id) const {
-        return _characters.at(id);
+    const HouseDef& get(const std::string& id) const {
+        return _houses.at(id);
     }
     
     /**
-     *Returns all the mapping of character id -> CharacterDef
+     *Returns the all the HouseDefs in tthe order defined by the JSON
      */
-    const std::unordered_map<std::string, CharacterDef>& getAll() const {
-        return _characters;
+    const std::vector<HouseDef>& getAllOrdered() const {
+        return _housesVector;
+    }
+    
+    /**
+     *Returns all the mapping of house id -> HouseDef
+     */
+    const std::unordered_map<std::string, HouseDef>& getAll() const {
+        return _houses;
     }
 };
 
-#endif /* !__CHARACTER_LOADER_H__ */
+#endif /* !__HOUSE_LOADER_H__ */
 
