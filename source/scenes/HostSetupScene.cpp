@@ -112,11 +112,9 @@ void HostSetupScene::setupListeners() {
     
     _startGame->addListener([this](const std::string& name, bool down) {
         if (down) {
-            if(_hostName->getText() != ""){
-                _network->hostRoom();
-                _network->setPlayerName(_hostName->getText());
-                _status = Status::START;
-            }
+            _network->hostRoom();
+            _network->setPlayerName(_hostName->getText());
+            _status = Status::START;
         }
     });
 
@@ -141,13 +139,6 @@ void HostSetupScene::setupListeners() {
 void HostSetupScene::dispose() {
     if (_active) {
         removeAllChildren();
-        _startGame = nullptr;
-        _backOut = nullptr;
-        _hostName = nullptr;
-        _items.clear();
-        _leftButton = nullptr;
-        _rightButton = nullptr;
-        _container = nullptr;
         _active = false;
     }
     _network = nullptr;

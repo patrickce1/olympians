@@ -20,11 +20,9 @@ using namespace std;
  *
  * @return the hexadecimal equivalent to dec
  */
-static std::string dec2hex(const std::string dec)
-{
+static std::string dec2hex(const std::string dec) {
 	Uint32 value = strtool::stou32(dec);
-	if (value >= 65535)
-	{
+	if (value >= 65535) {
 		value = 0;
 	}
 	return strtool::to_hexstring(value, 4);
@@ -43,16 +41,13 @@ static std::string dec2hex(const std::string dec)
  *
  * @return the decimal equivalent to hex
  */
-static std::string hex2dec(const std::string hex)
-{
+static std::string hex2dec(const std::string hex) {
 	Uint32 value = strtool::stou32(hex, 0, 16);
 	std::string result = strtool::to_string(value);
-	if (result.size() < 5)
-	{
+	if (result.size() < 5) {
 		size_t diff = 5 - result.size();
 		std::string alt(5, '0');
-		for (size_t ii = 0; ii < result.size(); ii++)
-		{
+		for (size_t ii = 0; ii < result.size(); ii++) {
 			alt[diff + ii] = result[ii];
 		}
 		result = alt;
@@ -61,18 +56,16 @@ static std::string hex2dec(const std::string hex)
 }
 
 /**
- * Initializes the NetworkController with the server configuration from assets.
- * Must be called once after assets have finished loading, before any
- * network calls are made.
- *
- * @param assets    The loaded asset manager.
- * @return          true if initialization succeeded, false if assets is null
- *                  or the server config could not be loaded.
- */
-bool NetworkController::init(const std::shared_ptr<cugl::AssetManager> &assets)
-{
-	if (assets == nullptr)
-	{
+* Initializes the NetworkController with the server configuration from assets.
+* Must be called once after assets have finished loading, before any
+* network calls are made.
+*
+* @param assets    The loaded asset manager.
+* @return          true if initialization succeeded, false if assets is null
+*                  or the server config could not be loaded.
+*/
+bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+	if (assets == nullptr) {
 		return false;
 	}
 	auto json = assets->get<JsonValue>("server");
@@ -90,11 +83,10 @@ bool NetworkController::init(const std::shared_ptr<cugl::AssetManager> &assets)
  *
  * @param room  The 5-digit decimal room code displayed in the lobby.
  */
-void NetworkController::joinRoom(const std::string room)
-{
+void NetworkController::joinRoom(const std::string room) {
 	_network = NetcodeConnection::alloc(_config, dec2hex(room));
 	_network->open();
-	registerDisconnectCallback();
+    registerDisconnectCallback();
 }
 
 /**
@@ -102,11 +94,10 @@ void NetworkController::joinRoom(const std::string room)
  * The room code can be retrieved via getRoom() once the connection
  * state reaches CONNECTED.
  */
-void NetworkController::hostRoom()
-{
+void NetworkController::hostRoom() {
 	_network = NetcodeConnection::alloc(_config);
-	_network->open();
-	registerDisconnectCallback();
+    _network->open();
+    registerDisconnectCallback();
 }
 
 /**
@@ -115,12 +106,8 @@ void NetworkController::hostRoom()
  *
  * @return  The room code, or "nullstr" if not connected.
  */
-std::string NetworkController::getRoom()
-{
-	if (!_network)
-	{
-		return "nullstr";
-	}
+std::string NetworkController::getRoom() {
+	if (!_network) { return "nullstr"; }
 	return hex2dec(_network->getRoom());
 }
 
@@ -128,8 +115,7 @@ std::string NetworkController::getRoom()
  * Closes the network connection and releases the connection object.
  * Should be called when leaving a lobby or game session.
  */
-void NetworkController::disconnect()
-{
+void NetworkController::disconnect() {
 	_network->close();
 	_network = nullptr;
 }
@@ -139,8 +125,7 @@ void NetworkController::disconnect()
  * Prefer disconnect() for intentional disconnects. This is used
  * during shutdown to release the pointer cleanly.
  */
-void NetworkController::dispose()
-{
+void NetworkController::dispose() {
 	_network = nullptr;
 }
 
@@ -150,12 +135,8 @@ void NetworkController::dispose()
  *
  * @return  true if this client is the host, false otherwise.
  */
-bool NetworkController::isHost()
-{
-	if (!_network)
-	{
-		return false;
-	}
+bool NetworkController::isHost() {
+	if (!_network) { return false; }
 	return _network->isHost();
 }
 
@@ -166,29 +147,24 @@ bool NetworkController::isHost()
  *
  * @return  The current connection status.
  */
-NetworkController::Status NetworkController::checkConnection()
-{
-	if (!_network)
-	{
-		return FAILED;
-	}
+NetworkController::Status NetworkController::checkConnection() {
+	if (!_network) { return FAILED; }
 
-	switch (_network->getState())
-	{
-	case NetcodeConnection::State::NEGOTIATING:
-		return Status::WAITING;
-		break;
-	case NetcodeConnection::State::CONNECTED:
-		return Status::CONNECTED;
-		break;
-	case NetcodeConnection::State::DENIED:
-	case NetcodeConnection::State::INVALID:
-	case NetcodeConnection::State::MISMATCHED:
-	case NetcodeConnection::State::FAILED:
-	case NetcodeConnection::State::DISCONNECTED:
-		_network->close();
-		return Status::FAILED;
-		break;
+	switch (_network->getState()) {
+		case NetcodeConnection::State::NEGOTIATING:
+			return Status::WAITING;
+			break;
+		case NetcodeConnection::State::CONNECTED:
+			return Status::CONNECTED;
+			break;
+		case NetcodeConnection::State::DENIED:
+		case NetcodeConnection::State::INVALID:
+		case NetcodeConnection::State::MISMATCHED:
+		case NetcodeConnection::State::FAILED:
+		case NetcodeConnection::State::DISCONNECTED:
+			_network->close();
+			return Status::FAILED;
+			break;
 	}
 	return FAILED;
 }
@@ -204,117 +180,90 @@ NetworkController::Status NetworkController::checkConnection()
  * @param senderID  The network UUID of the sender.
  * @param message   The raw byte payload to deserialize.
  */
-void NetworkController::handleMessage(const std::string &senderID, const std::vector<std::byte> &message)
-{
+void NetworkController::handleMessage(const std::string& senderID, const std::vector<std::byte>& message) {
 	_deserializer.receive(message);
 	int msgCode = _deserializer.readSint32();
-	switch (msgCode)
-	{
-	case MessageType::BOSS_DAMAGE:
-	{
-		float damage = _deserializer.readFloat();
-		AttackMessage attackMsg;
-		attackMsg.damage = damage;
-		attacks.push_back(attackMsg);
-		break;
-	}
-	case MessageType::PLAYER_HEAL:
-	{
-		float heal = _deserializer.readFloat();
-		int healRecieverID = _deserializer.readSint32();
-		HealMessage healMsg;
-		healMsg.heal = heal;
-		healMsg.playerID = healRecieverID;
-		heals.push_back(healMsg);
-		break;
-	}
-	case MessageType::PLAYER_PASS:
-	{
-		std::string itemID = _deserializer.readString();
-		int passRecieverID = _deserializer.readSint32();
-		PassMessage passMsg;
-		passMsg.itemID = itemID;
-		passMsg.playerID = passRecieverID;
-		passes.push_back(passMsg);
-		break;
-	}
-	case MessageType::GAME_START:
-	{
-		gameStarted = true;
-		break;
-	}
-	case MessageType::PLAYER_JOIN:
-	{
-		std::string playerName = _deserializer.readString();
-		CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
+	switch (msgCode) {
+		case MessageType::BOSS_DAMAGE: {
+			float damage = _deserializer.readFloat();
+			AttackMessage attackMsg;
+			attackMsg.damage = damage;
+			attacks.push_back(attackMsg);
+			break;
+		}
+		case MessageType::PLAYER_HEAL: {
+			float heal = _deserializer.readFloat();
+			int healRecieverID = _deserializer.readSint32();
+			HealMessage healMsg;
+			healMsg.heal = heal;
+			healMsg.playerID = healRecieverID;
+			heals.push_back(healMsg);
+			break;
+		}
+		case MessageType::PLAYER_PASS: {
+			std::string itemID = _deserializer.readString();
+			int passRecieverID = _deserializer.readSint32();
+			PassMessage passMsg;
+			passMsg.itemID = itemID;
+			passMsg.playerID = passRecieverID;
+			passes.push_back(passMsg);
+			break;
+		}
+		case MessageType::GAME_START: {
+			gameStarted = true;
+			break;
+		}
+		case MessageType::PLAYER_JOIN: {
+			std::string playerName = _deserializer.readString();
+			CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
 
-		// check if player is already registered
-		bool alreadyRegistered = false;
-		for (NetworkedPlayer player : _onlinePlayers)
-		{
-			if (player.networkID == senderID)
-			{
-				alreadyRegistered = true;
-				break;
+			// check if player is already registered
+			bool alreadyRegistered = false;
+			for (NetworkedPlayer player : _onlinePlayers) {
+				if (player.networkID == senderID) {
+					alreadyRegistered = true;
+					break;
+				}
 			}
-		}
 
-		if (!alreadyRegistered)
-		{
-			NetworkedPlayer newPlayer;
-			newPlayer.networkID = senderID;
-			newPlayer.username = playerName;
-			_onlinePlayers.push_back(newPlayer);
-			broadcastLobbyState();
+			if (!alreadyRegistered) {
+				NetworkedPlayer newPlayer;
+				newPlayer.networkID = senderID;
+				newPlayer.username = playerName;
+				_onlinePlayers.push_back(newPlayer);
+				broadcastLobbyState();
+			}
+			break;
 		}
-		break;
-	}
-	case MessageType::LOBBY_UPDATE:
-	{
-		std::vector<std::string> playerData = _deserializer.readStringVector();
-		_onlinePlayers.clear();
-		CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
-		// re-pair the flattened vector back into pairs
-		for (int i = 0; i < playerData.size(); i += 3)
-		{
-			NetworkedPlayer newPlayer;
-			newPlayer.networkID = playerData[i];
-			newPlayer.username = playerData[i + 1];
-			newPlayer.houseID = playerData[i + 2];
-			_onlinePlayers.push_back(newPlayer);
+		case MessageType::LOBBY_UPDATE: {
+			std::vector<std::string> playerData = _deserializer.readStringVector();
+			_onlinePlayers.clear();
+			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
+			// re-pair the flattened vector back into pairs
+			for (int i = 0; i < playerData.size(); i += 2) {
+				NetworkedPlayer newPlayer;
+				newPlayer.networkID = playerData[i];
+				newPlayer.username = playerData[i + 1];
+				_onlinePlayers.push_back(newPlayer);
+			}
+			break;
 		}
-		break;
-	}
-	case MessageType::GAME_UPDATE:
-	{
-		GameStateMessage stateMsg;
-		stateMsg.bossHealth = _deserializer.readFloat();
-		stateMsg.player1HP = _deserializer.readFloat();
-		stateMsg.player2HP = _deserializer.readFloat();
-		stateMsg.player3HP = _deserializer.readFloat();
-		stateMsg.player4HP = _deserializer.readFloat();
-		_latestGameState = stateMsg;
-		break;
-	}
-	case MessageType::PLAYER_DISCONNECT:
-	{
-		int slot = _deserializer.readSint32();
-		CULog("NetworkController: received PLAYER_DISCONNECT for slot %d", slot);
-		_disconnectedSlots.push_back(slot);
-		break;
-	}
-
-	case MessageType::SELECT_HOUSE:
-	{
-		std::string houseID = _deserializer.readString();
-		int index = getPlayerNumberByID(senderID);
-		if (index != -1)
-		{
-			_onlinePlayers[index].houseID = houseID;
-			broadcastLobbyState();
+		case MessageType::GAME_UPDATE : {
+            GameStateMessage stateMsg;
+            stateMsg.bossHealth = _deserializer.readFloat();
+            stateMsg.player1HP  = _deserializer.readFloat();
+            stateMsg.player2HP  = _deserializer.readFloat();
+            stateMsg.player3HP  = _deserializer.readFloat();
+            stateMsg.player4HP  = _deserializer.readFloat();
+            _latestGameState    = stateMsg;
+            break;
 		}
-		break;
-	}
+        case MessageType::PLAYER_DISCONNECT: {
+            int slot = _deserializer.readSint32();
+            CULog("NetworkController: received PLAYER_DISCONNECT for slot %d", slot);
+            _disconnectedSlots.push_back(slot);
+            break;
+        }
 	}
 }
 
@@ -323,13 +272,12 @@ void NetworkController::handleMessage(const std::string &senderID, const std::ve
  * Should be called once per frame at the start of the update cycle,
  * before reading from any message queues.
  */
-void NetworkController::getNetworkUpdates()
-{
-	if (_network)
-	{
+void NetworkController::getNetworkUpdates() {
+	if (_network) {
 		_network->receive([this](const std::string source,
-														 const std::vector<std::byte> &data)
-											{ handleMessage(source, data); });
+			const std::vector<std::byte>& data) {
+				handleMessage(source, data);
+			});
 		checkConnection();
 	}
 }
@@ -339,12 +287,11 @@ void NetworkController::getNetworkUpdates()
  * Should be called at the end of each update cycle after all queues
  * have been consumed, to prevent messages from being processed twice.
  */
-void NetworkController::clearQueues()
-{
+void NetworkController::clearQueues() {
 	attacks.clear();
 	heals.clear();
 	passes.clear();
-	_disconnectedSlots.clear();
+    _disconnectedSlots.clear();
 }
 
 /**
@@ -353,8 +300,7 @@ void NetworkController::clearQueues()
  *
  * @param damage    The amount of damage dealt to the boss.
  */
-void NetworkController::broadcastDamage(float damage)
-{
+void NetworkController::broadcastDamage(float damage) {
 	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
 	_serializer.writeFloat(damage);
 	_network->sendToHost(_serializer.serialize());
@@ -368,8 +314,7 @@ void NetworkController::broadcastDamage(float damage)
  * @param heal      The amount of health to restore.
  * @param playerID  The 0-based index of the player to heal.
  */
-void NetworkController::broadcastHeal(float heal, int playerID)
-{
+void NetworkController::broadcastHeal(float heal, int playerID) {
 	_serializer.writeSint32(MessageType::PLAYER_HEAL);
 	_serializer.writeFloat(heal);
 	_serializer.writeSint32(playerID);
@@ -384,14 +329,11 @@ void NetworkController::broadcastHeal(float heal, int playerID)
  * @param playerID  The 0-based player index to check.
  * @return          true if the player is a real networked player, false if AI.
  */
-bool NetworkController::checkRealPlayer(int playerID)
-{
-	if (playerID >= _onlinePlayers.size())
-	{
+bool NetworkController::checkRealPlayer(int playerID) {
+	if (playerID >= _onlinePlayers.size() ) {
 		return false;
 	}
-	else
-	{
+	else {
 		return true;
 	}
 }
@@ -404,21 +346,18 @@ bool NetworkController::checkRealPlayer(int playerID)
  * @param itemDefID The definition ID of the item being passed.
  * @param playerID  The 0-based index of the player to pass the item to.
  */
-void NetworkController::broadcastPass(const std::string &itemDefID, int playerID)
-{
+void NetworkController::broadcastPass(const std::string& itemDefID, int playerID) {
 	_serializer.writeSint32(MessageType::PLAYER_PASS);
 	_serializer.writeString(itemDefID);
 	_serializer.writeSint32(playerID);
-
+	
 	CULog("Sending broadcasting message to player %d", playerID);
-	if (checkRealPlayer(playerID))
-	{
+	if (checkRealPlayer(playerID)) {
 		CULog("This was a real player");
 		std::string playerNetworkID = _onlinePlayers[playerID].networkID;
 		_network->sendTo(playerNetworkID, _serializer.serialize());
 	}
-	else
-	{
+	else {
 		CULog("This was not a real player");
 		_network->sendToHost(_serializer.serialize());
 	}
@@ -429,8 +368,7 @@ void NetworkController::broadcastPass(const std::string &itemDefID, int playerID
  * Broadcasts a game start message to all connected clients.
  * Should only be called by the host when the game is ready to begin.
  */
-void NetworkController::broadcastGameStart()
-{
+void NetworkController::broadcastGameStart(){
 	_serializer.writeSint32(MessageType::GAME_START);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
@@ -441,8 +379,7 @@ void NetworkController::broadcastGameStart()
  *
  * @return  true if the game has started, false otherwise.
  */
-bool NetworkController::checkGameStarted()
-{
+bool NetworkController::checkGameStarted() {
 	return gameStarted;
 }
 
@@ -452,8 +389,7 @@ bool NetworkController::checkGameStarted()
  * The host will add this player to the online players list and
  * broadcast the updated lobby state to all clients.
  */
-void NetworkController::broadcastJoinedLobby()
-{
+void NetworkController::broadcastJoinedLobby() {
 	_serializer.writeSint32(MessageType::PLAYER_JOIN);
 	_serializer.writeString(_playerName);
 	_network->sendToHost(_serializer.serialize());
@@ -467,19 +403,15 @@ void NetworkController::broadcastJoinedLobby()
  *
  * @param state     The current authoritative game state.
  */
-void NetworkController::broadcastGameState(const GameState &state)
-{
+void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.writeSint32(MessageType::GAME_UPDATE);
 	_serializer.writeFloat(state.getEnemy()->getCurrentHealth());
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
-	for (int i = 0; i < 4; i++)
-	{
-		if (i < players.size())
-		{
+	for (int i = 0; i < 4; i++) {
+		if (i < players.size()) {
 			_serializer.writeFloat(players[i]->getCurrentHealth());
 		}
-		else
-		{
+		else {
 			_serializer.writeFloat(0.0f);
 		}
 	}
@@ -487,41 +419,24 @@ void NetworkController::broadcastGameState(const GameState &state)
 	_serializer.reset();
 }
 
+
 /**
  * Broadcasts the current lobby player list to all connected clients.
  * Called by the host whenever a new player joins so all clients stay in sync.
  * Serializes the online players list as a flat string vector in the format:
- * [networkID_0, username_0, house_0, networkID_1, username_1, house_1, ...]
+ * [networkID_0, username_0, networkID_1, username_1, ...]
  */
-void NetworkController::broadcastLobbyState()
-{
+void NetworkController::broadcastLobbyState() {
 	std::vector<std::string> serializablePlayers;
 
-	for (NetworkedPlayer player : _onlinePlayers)
-	{
+	for (NetworkedPlayer player : _onlinePlayers) {
 		serializablePlayers.push_back(player.networkID);
 		serializablePlayers.push_back(player.username);
-		serializablePlayers.push_back(player.houseID);
 	}
 
 	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
 	_serializer.writeStringVector(serializablePlayers);
 	_network->broadcast(_serializer.serialize());
-	_serializer.reset();
-}
-
-/**
- * Broadcasts the current selected house by the player to all connected clients.
- * Called by the host whenever a player locks down a house choice so all clients
- * can stay in sync and in can be displayed in the lobby.
- *
- *@param house - the selected house
- */
-void NetworkController::broadcastSelectedHouse(std::string &house)
-{
-	_serializer.writeSint32(MessageType::SELECT_HOUSE);
-	_serializer.writeString(house);
-	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
 
@@ -532,11 +447,9 @@ void NetworkController::broadcastSelectedHouse(std::string &house)
  *
  * @param name  The display name to assign to the local player.
  */
-void NetworkController::setPlayerName(const std::string &name)
-{
-	_playerName = name;
-	if (_onlinePlayers.empty())
-	{
+void NetworkController::setPlayerName(const std::string& name) { 
+	_playerName = name; 
+	if (_onlinePlayers.empty()) {
 		NetworkedPlayer newPlayer;
 		newPlayer.username = name;
 		newPlayer.networkID = _network->getUUID();
@@ -549,8 +462,7 @@ void NetworkController::setPlayerName(const std::string &name)
  *
  * @return  A copy of the online players list.
  */
-const std::vector<NetworkedPlayer> NetworkController::getNetworkedPlayers()
-{
+const std::vector<NetworkedPlayer> NetworkController::getNetworkedPlayers() {
 	return _onlinePlayers;
 }
 
@@ -561,13 +473,10 @@ const std::vector<NetworkedPlayer> NetworkController::getNetworkedPlayers()
  *
  * @return  The local player's index, or -1 if not found.
  */
-int NetworkController::getLocalPlayerNumber()
-{
+int NetworkController::getLocalPlayerNumber() {
 	std::string localID = _network->getUUID();
-	for (int i = 0; i < _onlinePlayers.size(); i++)
-	{
-		if (_onlinePlayers[i].networkID == localID)
-		{
+	for (int i = 0; i < _onlinePlayers.size(); i++) {
+		if (_onlinePlayers[i].networkID == localID) {
 			return i;
 		}
 	}
@@ -579,13 +488,10 @@ int NetworkController::getLocalPlayerNumber()
  * any peer closes, their slot is immediately pushed into _disconnectedSlots.
  * Should be called once after the network connection is established.
  */
-void NetworkController::registerDisconnectCallback()
-{
-	if (!_network)
-		return;
+void NetworkController::registerDisconnectCallback() {
+    if (!_network) return;
 
-	_network->onDisconnect([this](const std::string &peerID)
-												 {
+    _network->onDisconnect([this](const std::string& peerID) {
         CULog("NetworkController: peer %s disconnected", peerID.c_str());
 
         // Find which slot this networkID maps to.
@@ -604,7 +510,8 @@ void NetworkController::registerDisconnectCallback()
                 }
                 break;
             }
-        } });
+        }
+    });
 }
 
 /**
@@ -612,10 +519,9 @@ void NetworkController::registerDisconnectCallback()
  *
  * @param slotIndex  The 0-based player slot that disconnected.
  */
-void NetworkController::broadcastPlayerDisconnected(int slotIndex)
-{
-	_serializer.writeSint32(MessageType::PLAYER_DISCONNECT);
-	_serializer.writeSint32(slotIndex);
-	_network->broadcast(_serializer.serialize());
-	_serializer.reset();
+void NetworkController::broadcastPlayerDisconnected(int slotIndex) {
+    _serializer.writeSint32(MessageType::PLAYER_DISCONNECT);
+    _serializer.writeSint32(slotIndex);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }

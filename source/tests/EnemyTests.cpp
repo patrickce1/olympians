@@ -7,13 +7,13 @@
 //   All results print via CULog as [PASS] or [FAIL]. Remove the call before shipping.
 //
 //   Example:
-//     EnemyTests::runAll("json/enemies.json", "json/houses.json");
+//     EnemyTests::runAll("json/enemies.json", "json/characters.json");
 
 #include "EnemyTests.h"
 #include "../Enemy.h"
 #include "../EnemyController.h"
 #include "../Player.h"
-#include "../HouseLoader.h"
+#include "../CharacterLoader.h"
 #include <cugl/cugl.h>
 #include <fstream>
 #include <cstdio>
@@ -47,24 +47,24 @@ void printSummary() {
     CULog("─────────────────────────────────────────");
 }
 
-/** Loads houses definitions from the given JSON path for use in tests. */
-HouseLoader loadHouses(const std::string& housesJsonPath) {
-    HouseLoader loader;
-    if (!loader.loadFromFile(housesJsonPath)) {
-        CULogError("EnemyTests: failed to load houses from '%s'", housesJsonPath.c_str());
+/** Loads character definitions from the given JSON path for use in tests. */
+CharacterLoader loadCharacters(const std::string& charactersJsonPath) {
+    CharacterLoader loader;
+    if (!loader.loadFromFile(charactersJsonPath)) {
+        CULogError("EnemyTests: failed to load characters from '%s'", charactersJsonPath.c_str());
     }
     return loader;
 }
 
 /** Creates N players in a ring topology and wires left/right neighbors. */
-std::vector<std::shared_ptr<Player>> makePlayersRing(const HouseLoader& loader,
-                                                     const std::string& houseId,
+std::vector<std::shared_ptr<Player>> makePlayersRing(const CharacterLoader& loader,
+                                                     const std::string& characterId,
                                                      int count) {
     std::vector<std::shared_ptr<Player>> players;
     players.reserve(count);
     for (int i = 0; i < count; i++) {
         std::string name = "Player " + std::to_string(i + 1);
-        players.push_back(std::make_shared<Player>(houseId, i + 1, name, loader));
+        players.push_back(std::make_shared<Player>(characterId, i + 1, name, loader));
     }
 
     const int n = (int)players.size();
@@ -294,9 +294,9 @@ static void testEnemyHealthClamp(const std::string& enemiesJsonPath) {
 
 /** Validates EnemyController will initiate an attack from idle when players are alive. */
 static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPath,
-                                               const std::string& housesJsonPath) {
-    HouseLoader loader = loadHouses(housesJsonPath);
-    auto players = makePlayersRing(loader, "Poseidon", 4);
+                                               const std::string& charactersJsonPath) {
+    CharacterLoader loader = loadCharacters(charactersJsonPath);
+    auto players = makePlayersRing(loader, "Percy", 4);
 
     auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
     if (!enemy) return;
@@ -315,9 +315,9 @@ static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPat
 
 /** Verifies controller remains in idle and does not attack when all players are dead. */
 static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& enemiesJsonPath,
-                                                         const std::string& housesJsonPath) {
-    HouseLoader loader = loadHouses(housesJsonPath);
-    auto players = makePlayersRing(loader, "Poseidon", 4);
+                                                         const std::string& charactersJsonPath) {
+    CharacterLoader loader = loadCharacters(charactersJsonPath);
+    auto players = makePlayersRing(loader, "Percy", 4);
 
     for (auto& p : players) {
         p->updateHealth(-999999.0f);
@@ -341,9 +341,9 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
 
 /** Confirms DAMAGE events processed by the controller reduce at least one player's health. */
 static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonPath,
-                                                 const std::string& housesJsonPath) {
-    HouseLoader loader = loadHouses(housesJsonPath);
-    auto players = makePlayersRing(loader, "Poseidon", 4);
+                                                 const std::string& charactersJsonPath) {
+    CharacterLoader loader = loadCharacters(charactersJsonPath);
+    auto players = makePlayersRing(loader, "Percy", 4);
 
     auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
     if (!enemy) return;
@@ -376,7 +376,7 @@ static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonP
 
 /** Test harness entry point: runs all sections and prints a summary. */
 void EnemyTests::runAll(const std::string& enemiesJsonPath,
-                        const std::string& housesJsonPath) {
+                        const std::string& charactersJsonPath) {
     _passed = 0;
     _failed = 0;
 
@@ -384,7 +384,7 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
     CULog("  EnemyTests::runAll");
     CULog("═════════════════════════════════════════");
     CULog("  enemiesJsonPath    : %s", enemiesJsonPath.c_str());
-    CULog("  housesJsonPath : %s", housesJsonPath.c_str());
+    CULog("  charactersJsonPath : %s", charactersJsonPath.c_str());
     CULog("─────────────────────────────────────────");
 
     CULog("── Section 1: Init ──────────────────────");
@@ -398,9 +398,9 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
     testEnemyHealthClamp(enemiesJsonPath);
 
     CULog("── Section 4: Controller mechanics ──────");
-    testControllerStartsAttackFromIdle(enemiesJsonPath, housesJsonPath);
-    testControllerDoesNotAttackWhenAllPlayersDead(enemiesJsonPath, housesJsonPath);
-    testControllerDamageEventHitsSomeone(enemiesJsonPath, housesJsonPath);
+    testControllerStartsAttackFromIdle(enemiesJsonPath, charactersJsonPath);
+    testControllerDoesNotAttackWhenAllPlayersDead(enemiesJsonPath, charactersJsonPath);
+    testControllerDamageEventHitsSomeone(enemiesJsonPath, charactersJsonPath);
 
     printSummary();
 }

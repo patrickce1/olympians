@@ -25,16 +25,16 @@ public:
      * Constructs an EasyPlayerAI, forwarding all arguments to the Player base constructor.
      * Required because Player has no default constructor.
      *
-     * @param houseId   The house ID as it appears in houses.json
+     * @param characterId   The character ID as it appears in characters.json
      * @param playerNumber  The assigned player slot number
      * @param playerName    Display name for this player
-     * @param loader        The HouseLoader used to populate stats
+     * @param loader        The CharacterLoader used to populate stats
      */
-    EasyPlayerAI(const std::string& houseId,
+    EasyPlayerAI(const std::string& characterId,
                  int playerNumber,
                  const std::string& playerName,
-                 const HouseLoader& loader)
-        : PlayerAI(houseId, playerNumber, playerName, loader) {}
+                 const CharacterLoader& loader)
+        : PlayerAI(characterId, playerNumber, playerName, loader) {}
 
     ~EasyPlayerAI() = default;
 

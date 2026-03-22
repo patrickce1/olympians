@@ -5,7 +5,7 @@
 #include <cugl/cugl.h>
 #include <string>
 #include <vector>
-#include "HouseLoader.h"
+#include "CharacterLoader.h"
 #include "items/ItemInstance.h"
 #include "items/ItemDatabase.h"
 #include "Enemy.h"
@@ -24,19 +24,19 @@ private:
     int _playerNumber;
     /** The player name*/
     std::string _playerName;
-    /** The house name for the house the player is using*/
-    std::string _houseId;
-    /** The house that the house hails from*/
-    int _house;
-    /** The max health of the house and player*/
+    /** The character name for the character the player is using*/
+    std::string _characterId;
+    /** The house that the character hails from*/
+    std::string _house;
+    /** The max health of the character and player*/
     float _maxHealth;
-    /** The current health of the house and player*/
+    /** The current health of the character and player*/
     float _currentHealth;
-    /** The  ability class of the house*/
-    HouseLoader::AbilityClass _abilityClass;
-    /** The spritesheet correlating to this house*/
+    /** The  ability class of the character*/
+    CharacterLoader::AbilityClass _abilityClass;
+    /** The spritesheet correlating to this character*/
     std::string _spritesheetPath;
-    /** The list of the house special abilities*/
+    /** The list of the characters special abilities*/
     std::vector<std::string> _specialAbilities;
     /** The player to the left of this player, or nullptr if none */
     Player* _leftPlayer = nullptr;
@@ -45,12 +45,12 @@ private:
     
 public:
     /**
-     *Creates a player instance given a house ID
-     * @param houseId         The ID of the house as appears in the JSON
+     *Creates a player instance given a character ID
+     * @param characterId         The ID of the character as appears in the JSON
      */
-    Player(const std::string& houseId, int playerNumber,
+    Player(const std::string& characterId, int playerNumber,
            const std::string& playerName,
-           const HouseLoader& loader);
+           const CharacterLoader& loader);
     
     /**
      * Discards the player and releases all resources
@@ -79,17 +79,22 @@ public:
     std::string getPlayerName() const { return _playerName; }
     
     /**
-     * Return the name of the house
+     * Return the name of the character
      */
-    std::string getHouseName() const { return _houseId; }
+    std::string getCharacterName() const { return _characterId; }
     
     /**
-     * Return the max health of the house/player
+     * Return the house of the character
+     */
+    std::string getCharacterHouse() const { return _house; }
+    
+    /**
+     * Return the max health of the character/player
      */
     float getMaxHealth() const { return _maxHealth; }
     
     /**
-     * Return the current health of the house/player
+     * Return the current health of the character/player
      */
     float getCurrentHealth() const { return _currentHealth; }
 
@@ -97,17 +102,17 @@ public:
     void setCurrentHealth(float health) { _currentHealth = health; }
     
     /**
-     * Returns the ability class of the house
+     * Returns the ability class of the character
      */
-    HouseLoader::AbilityClass getAbilityClass() const { return _abilityClass; }
+    CharacterLoader::AbilityClass getAbilityClass() const { return _abilityClass; }
     
     /**
-     * Returns the path of the spritesheet for the house
+     * Returns the path of the spritesheet for the character
      */
     std::string getSpritesheetPath() const { return _spritesheetPath; }
     
     /**
-     * Returns the list of the house special ability items
+     * Returns the list of the characters special ability items
      */
     std::vector<std::string> getSpecialAbilities() const { return _specialAbilities; }
     

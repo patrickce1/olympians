@@ -2,21 +2,22 @@
 #include "Player.h"
 
 /**
- *Creates a player instance giiven a house ID
- * @param houseID         The ID of the house as appears in the JSON
+ *Creates a player instance giiven a character ID
+ * @param characterID         The ID of the character as appears in the JSON
  */
 
-Player::Player(const std::string& houseId, int playerNumber,
+Player::Player(const std::string& characterId, int playerNumber,
                     const std::string& playerName,
-                    const HouseLoader& loader){
+                    const CharacterLoader& loader){
     
-    // Safety check — make sure the house exists in the loader
-    CUAssertLog(loader.has(houseId), "House ID not found: %s", houseId.c_str());
+    // Safety check — make sure the character exists in the loader
+    CUAssertLog(loader.has(characterId), "Character ID not found: %s", characterId.c_str());
 
-    const HouseLoader::HouseDef& def = loader.get(houseId);
+    const CharacterLoader::CharacterDef& def = loader.get(characterId);
 
-    // Load from HouseDef
-    _houseId      = def.id;
+    // Load from CharacterDef
+    _characterId      = def.id;
+    _house            = def.house;
     _maxHealth        = def.maxHealth;
     _currentHealth    = def.maxHealth;
     _abilityClass     = def.abilityClass;

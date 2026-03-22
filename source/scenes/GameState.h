@@ -6,7 +6,7 @@
 #include <memory>
 #include "../Player.h"
 #include "../Enemy.h"
-#include "../HouseLoader.h"
+#include "../CharacterLoader.h"
 #include "../items/ItemController.h"
 #include "../playerAI/PlayerAI.h"
 #include "../playerAI/EasyPlayerAI.h"
@@ -51,18 +51,18 @@ public:
 #pragma mark - Lifecycle
 
     /**
-     * Loads house definitions from JSON into the house loader.
+     * Loads character definitions from JSON into the character loader.
      * Must be called first since player construction depends on it.
      *
-     * @return true if the house file loaded successfully.
+     * @return true if the character file loaded successfully.
      */
-    bool initHouses();
+    bool initCharacters();
 
     /**
      * Builds the player array (one human + three AI), links all players in a
      * circular neighbour ring, and populates the player ID map.
-     * Must be called after initHouses().
-     *
+     * Must be called after initCharacters().
+     * 
      * For now, we just pass in an integer, since if there are x real players, there will be the first x players in the game scene
      * Later, when we have reordering ability, this can be changed
      */
@@ -98,7 +98,7 @@ public:
     bool initAI(ItemController& itemController);
     
     /**
-     * Initialises the game world: loads houses and the enemy from JSON,
+     * Initialises the game world: loads characters and the enemy from JSON,
      * builds the player array (one human + three AI), links all players in a
      * circular neighbour ring, and finishes AI initialisation using the
      * provided item database.
@@ -220,8 +220,8 @@ private:
     /** The enemy for this game session. */
     std::shared_ptr<Enemy> _enemy;
 
-    /** Loads house definitions from JSON for player construction. */
-    HouseLoader _houseLoader;
+    /** Loads character definitions from JSON for player construction. */
+    CharacterLoader _characterLoader;
 };
 
 #endif /* __GAME_STATE_H__ */

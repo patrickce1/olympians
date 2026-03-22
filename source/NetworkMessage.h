@@ -61,13 +61,6 @@ struct GameStateMessage {
 };
 
 /*
-* Represents a player's selected house sent to the host for updates.
-*/
-struct SetHouseMessage {
-    std::string houseID;
-};
-
-/*
 * Represents a player as seen over the network.
 * Carries information used for identifying the player.
 * Stored in the NetworkController and used to map network IDs to in-game players.
@@ -75,7 +68,6 @@ struct SetHouseMessage {
 struct NetworkedPlayer {
     std::string networkID;
     std::string username;
-    std::string houseID;
     //will be expanded to carry things such as player class
 };
 

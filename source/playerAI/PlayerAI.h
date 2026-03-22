@@ -94,16 +94,16 @@ public:
      * Constructs a PlayerAI, forwarding all arguments to the Player base constructor.
      * Required because Player has no default constructor.
      *
-     * @param houseId   The house ID as it appears in house.json
+     * @param characterId   The character ID as it appears in characters.json
      * @param playerNumber  The assigned player slot number
      * @param playerName    Display name for this player
-     * @param loader        The HouseLoader used to populate stats
+     * @param loader        The CharacterLoader used to populate stats
      */
-    PlayerAI(const std::string& houseId,
+    PlayerAI(const std::string& characterId,
              int playerNumber,
              const std::string& playerName,
-             const HouseLoader& loader)
-        : Player(houseId, playerNumber, playerName, loader) {}
+             const CharacterLoader& loader)
+        : Player(characterId, playerNumber, playerName, loader) {}
 
     /**
      * Virtual destructor — required for safe polymorphic deletion of subclasses
