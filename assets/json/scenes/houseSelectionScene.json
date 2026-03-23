@@ -1847,16 +1847,16 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard5": {
+                            "poseidon": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "poseidonPoster",
+                                        "heroName": "-POSEIDON-",
+                                        "heroStats": "statsPoseidon"
                                     }
                                 },
                                 "layout": {
@@ -1869,16 +1869,16 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard6": {
+                            "ares": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "aresPoster",
+                                        "heroName": "-ARES-",
+                                        "heroStats": "statsAres"
                                     }
                                 },
                                 "layout": {

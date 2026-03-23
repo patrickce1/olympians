@@ -345,6 +345,10 @@ void HouseSelectScene::updateSelectedIcon(int currentIndex) {
     const HouseLoader::HouseDef& selectedHouse = _houseLoader.getAllOrdered()[currentIndex];
     if (selectedHouse.id == "Athena") {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+    } else if (selectedHouse.id == "Ares") {
+        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("aresSIcon"));
+    } else if (selectedHouse.id == "Poseidon") {
+        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("poseidonSIcon"));
     } else {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
     }

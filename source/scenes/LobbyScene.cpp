@@ -202,6 +202,10 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlaye
             if (i < onlinePlayers.size()) {
                 if (onlinePlayers[i].houseID == "Athena") {
                     image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+                } else if (onlinePlayers[i].houseID == "Ares") {
+                    image->setTexture(_assets->get<cugl::graphics::Texture>("aresSIcon"));
+                } else if (onlinePlayers[i].houseID == "Poseidon") {
+                    image->setTexture(_assets->get<cugl::graphics::Texture>("poseidonSIcon"));
                 } else {
                     image->setTexture(_assets->get<cugl::graphics::Texture>("emptySIcon"));
                 }

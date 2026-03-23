@@ -144,6 +144,30 @@
             "wrapS":    "clamp",
             "wrapT":    "clamp"
         },
+        "poseidonPoster": {
+            "file": "textures/houseSelect/poseidonPoster.png"
+        },
+        "statsPoseidon": {
+            "file": "textures/houseSelect/statsPoseidon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "aresPoster": {
+            "file": "textures/houseSelect/aresPoster.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "statsAres": {
+            "file": "textures/houseSelect/statsAres.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
         "leftScroll": {
             "file": "textures/houseSelect/leftScroll.png"
         },
@@ -173,6 +197,20 @@
         },
         "athenaSIcon": {
             "file": "textures/houseSelect/athenaSIcon.png",
+            "minfilter":"linear",
+            "magfilter":"linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "poseidonSIcon": {
+            "file": "textures/houseSelect/poseidonSIcon.png",
+            "minfilter":"linear",
+            "magfilter":"linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "aresSIcon": {
+            "file": "textures/houseSelect/aresSIcon.png",
             "minfilter":"linear",
             "magfilter":"linear",
             "wrapS":    "clamp",

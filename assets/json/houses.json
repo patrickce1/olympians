@@ -8,11 +8,11 @@
             "spritesheetPath": "textures/zeus.png"
         },
         {
-            "id": "Poseidon",
+            "id": "Aphrodite",
             "maxHealth": 5.0,
-            "abilityClass": "Damage Dealer",
-            "specialAbilities": ["whirlpool"],
-            "spritesheetPath": "textures/poseidon.png"
+            "abilityClass": "Healer",
+            "specialAbilities": ["love"],
+            "spritesheetPath": "textures/aphrodite.png"
         },
         {
             "id": "Hades",
@@ -36,11 +36,11 @@
             "spritesheetPath": "textures/athena.png"
         },
         {
-            "id": "Aphrodite",
+            "id": "Poseidon",
             "maxHealth": 5.0,
-            "abilityClass": "Healer",
-            "specialAbilities": ["love"],
-            "spritesheetPath": "textures/aphrodite.png"
+            "abilityClass": "Damage Dealer",
+            "specialAbilities": ["whirlpool"],
+            "spritesheetPath": "textures/poseidon.png"
         },
         {
             "id": "Ares",
