@@ -93,16 +93,16 @@ protected:
 #pragma mark - Drag State
 
     /** The scene node currently being dragged by the player, or nullptr. */
-    std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
+    std::shared_ptr<cugl::scene2::SceneNode> _draggedIcon;
 
     /** The inventory item currently being dragged, or 0 if none is active. */
-    ItemInstance::ItemId _activeItemId = 0;
+    ItemInstance::ItemId _draggedItemId = 0;
 
     /** The dragged body's pre-drag position, used to restore invalid drops. */
     cugl::Vec2 _dragStartBodyPosition = cugl::Vec2::ZERO;
 
     /** The ItemDef of the item currently being dragged, or nullptr. */
-    const ItemDef* _activeItemDef = nullptr;
+    const ItemDef* _draggedItemDef = nullptr;
     
     /** Offset from the icon's origin to the touch point, applied during drag. */
     cugl::Vec2 _dragOffset;
