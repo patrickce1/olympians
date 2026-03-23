@@ -78,8 +78,12 @@ void LobbyScene::setupUI() {
             auto label = std::dynamic_pointer_cast<scene2::Label>(
                 card->getChildByName("username")
             );
+            auto image = std::dynamic_pointer_cast<scene2::Button>(
+                card->getChildByName("playerIcon")
+            );
 
             _playerSlots.push_back(label);
+            _playerImages.push_back(image);
         }
     }
 }
@@ -106,6 +110,16 @@ void LobbyScene::setupListeners() {
             _status = Status::ABORT;
         }
     });
+    
+    // Add listeners to all player icon buttons to open the house select screen
+    for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages) {
+        icon->addListener([this](const std::string& name, bool down) {
+            if (down) {
+                CULog("down");
+                _status = Status::SELECT;
+            }
+        });
+    }
 }
 
 /**
@@ -114,6 +128,13 @@ void LobbyScene::setupListeners() {
 void LobbyScene::dispose() {
     if (_active) {
         removeAllChildren();
+        _playerSlots.clear();
+        _playerImages.clear();
+        _enterGame = nullptr;
+        _backOut = nullptr;
+        _gameId = nullptr;
+        _bossImage = nullptr;
+        _playerInfoContainer = nullptr;
         _active = false;
     }
     _network = nullptr;
@@ -135,9 +156,16 @@ void LobbyScene::setActive(bool value) {
             _status = IDLE;
             _enterGame->activate();
             _backOut->activate();
+            for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+                icon->activate();
+            }
         } else {
             _backOut->deactivate();
             _enterGame->deactivate();
+            for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+                icon->deactivate();
+                icon->setDown(false);
+            }
             
             // If any were pressed, reset them
             _enterGame->setDown(false);
@@ -146,6 +174,7 @@ void LobbyScene::setActive(bool value) {
     }
 }
 
+/** Updates the player handles based on updates to the lobby state */
 void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
     for (int i = 0; i < _playerSlots.size(); i++) {
         if (i < onlinePlayers.size()) {
@@ -153,6 +182,34 @@ void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
         }
         else {
             _playerSlots[i]->setText("AI Player");
+        }
+    }
+}
+
+/**
+ * Updates the player icon images based on the current lobby state.
+ *
+ * Iterates through the list of player slots and assigns the appropriate
+ * icon texture for each connected player based on their selected house.
+ * If a slot does not correspond to an active player, a default icon is used.
+ *
+ * @param onlinePlayers  The list of players currently in the lobby,
+ *                       including their selected house information.
+ */
+void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers) {
+    for (int i = 0; i < _playerImages.size(); i++) {
+        auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_playerImages[i]->getChildByName("playerIconImg"));
+        if (image){
+            if (i < onlinePlayers.size()) {
+                if (onlinePlayers[i].houseID == "Athena") {
+                    image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+                } else {
+                    image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+                }
+            }
+            else {
+                image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+            }
         }
     }
 }
@@ -184,5 +241,6 @@ void LobbyScene::update(float timestep) {
     }
 
     updateLobbyText(_network->getNetworkedPlayers());
+    updateLobbyPlayerIcons(_network->getNetworkedPlayers());
 }
 

@@ -16,7 +16,7 @@
  * Example (in AppDelegate::onStartup, before the game loop):
  *
  *   PlayerTests::runAll(
- *       "json/characters.json",
+ *       "json/houses.json",
  *       "json/items.json",
  *       "json/enemies.json",
  *       "assets/json/playerAI.json"
@@ -27,12 +27,12 @@ public:
     /**
      * Loads all fixtures from JSON and runs all unit tests.
      *
-     * @param charactersJsonPath  Path to characters.json (e.g. "json/characters.json")
+     * @param housesJsonPath  Path to houses.json (e.g. "json/houses.json")
      * @param itemsJsonPath       Path to items.json      (e.g. "json/items.json")
      * @param enemiesJsonPath     Path to enemies.json    (e.g. "json/enemies.json")
      * @param aiConfigPath        Path to playerAI.json   (e.g. "assets/json/playerAI.json")
      */
-    static void runAll(const std::string& charactersJsonPath,
+    static void runAll(const std::string& housesJsonPath,
                        const std::string& itemsJsonPath,
                        const std::string& enemiesJsonPath,
                        const std::string& aiConfigPath);

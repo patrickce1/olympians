@@ -24,23 +24,6 @@ namespace {
 #pragma mark Constructors
 
 /**
- * Builds the five rectangular input zones from the current scene dimensions.
- * Must be called after Scene2::initWithHint() so getSize() is valid.
- */
-void GameScene::initInputZones() {
-    Size dimen = getSize();
-    float w = dimen.width;
-    float h = dimen.height;
-    _inputZones = {
-        {InputController::Action::DROP_BOSS,       Rect(w * 0.15f, h * 0.5f, w * 0.7f,  h * 0.5f)},
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.5f, w * 0.15f, h * 0.5f)},
-        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.5f, w * 0.15f, h * 0.5f)},
-        {InputController::Action::PASS_LEFT,       Rect(0,         0,        w * 0.15f, h * 0.5f)},
-        {InputController::Action::PASS_RIGHT,      Rect(w * 0.85f, 0,        w * 0.15f, h * 0.5f)}
-    };
-}
-
-/**
  * Loads the scene graph from assets, resizes it to the current scene
  * dimensions, and wires up all named child node references.
  * Must be called after _assets is assigned and Scene2::initWithHint() succeeds.
@@ -116,6 +99,33 @@ bool GameScene::initGameSystems() {
 }
 
 /**
+ * Initializes touch/mouse input zones mapped to game actions.
+ *
+ * Divides the screen into named rectangular regions scaled to the current
+ * scene dimensions. Populates _attackZones (top center, DROP_BOSS),
+ * _supportZones (top sides, DROP_ALLY), and _passZones
+ * (bottom sides, PASS_LEFT / PASS_RIGHT).
+ *
+ */
+void GameScene::initInputZones(){
+    Size dimen = getSize();
+    float w = dimen.width;
+    float h = dimen.height;
+    
+    _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.4f, w * 0.9f, h * 0.47f)}};
+    
+    _supportZones = {
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(0, h * 0.45f, w * 0.15f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)}
+    };
+    
+    _passZones = {
+        {InputController::Action::PASS_LEFT,  Rect(0, 0, w * 0.15f, h * 0.35f)},
+        {InputController::Action::PASS_RIGHT, Rect(w * 0.85f, 0, w * 0.15f, h * 0.35f)}
+    };
+}
+
+/**
  * Initialises the scene graph and all game systems.
  *
  * Builds the scene graph from the asset manager, initialises the
@@ -176,6 +186,7 @@ void GameScene::dispose() {
         _bossHealthBar = nullptr;
         _playerHealthBar = nullptr;
         _network = nullptr;
+        _activeIcon = nullptr;
         _playerSlots.clear();
         _itemWidgets.clear();
         _itemBodies.clear();
@@ -241,6 +252,7 @@ void GameScene::setActive(bool value) {
 void GameScene::reset() {
     _activeIcon = nullptr;
     _activeItemId = 0;
+    _activeItemDef = nullptr;
     _dragStartBodyPosition = Vec2::ZERO;
     _glowAction = InputController::Action::NONE;
     _glowTimer  = 0;
@@ -437,6 +449,27 @@ void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
         _itemController.giveRandomItem(_gameState.getLocalPlayer());
     }
 }
+/**
+ * Returns the definition for an item in the local player's inventory.
+ *
+ * @param itemId  The instance ID of the item to look up.
+ * @return The item's definition, or nullptr if the local player does not
+ *         exist or does not hold an item with the given ID.
+ */
+std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId itemId){
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) {
+        return nullptr;
+    }
+    for (const ItemInstance& item : local->getInventory()){
+        if (item.getId() != itemId){
+            continue;
+        }
+        return _itemController.getDatabase().getDef(item.getDefId());
+    }
+    return nullptr;
+}
+
 
 /**
  * Calls the appropriate handle action helper based on the input that we recieved
@@ -510,7 +543,6 @@ void GameScene::handleResetButton(InputController& input) {
     }
 }
 
-
 /**
  * Handles the full pipeline of a player's drag-and-drop input for one frame.
  *
@@ -563,6 +595,8 @@ void GameScene::handlePlayerInput(InputController& input) {
     _activeIcon = nullptr;
     _activeItemId = 0;
     _dragStartBodyPosition = Vec2::ZERO;
+    _activeItemDef = nullptr;
+    updateInputZones();
 }
 
 /**
@@ -620,6 +654,8 @@ void GameScene::handleDragInitiation(InputController& input) {
                 Size widgetSize = widget->getContentSize();
                 _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
             }
+            _activeItemDef = getHeldItemDef(id).get();
+            updateInputZones();
             break;
         }
     }
@@ -916,13 +952,35 @@ void GameScene::render() {
     
     if (isDebugMode()){
         renderResetButton(batch.get());
-        renderDropZones(batch.get());
         renderItemWidgetDebug(batch.get());
         renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
     }
-
+    renderDropZones(batch.get());
     batch->end();
+}
+
+/**
+ * Recreates the on-screen input zones depending on the item the player is holding.
+ * If nothing is held, no zones are added to _inputZones.
+ * If any item is held, the pass zones are added to _inputZones.
+ * If an attack item is held, the attack zone is added to _inputZones.
+ * If a support item is held, the support zones are added to _inputZones.
+ */
+void GameScene::updateInputZones(){
+    if (!_activeItemDef){
+        _inputZones = {};
+        return;
+    }
+    
+    if (_activeItemDef->getType() == ItemDef::Type::Attack){
+        _inputZones = _attackZones;
+    }
+    else {
+        _inputZones = _supportZones;
+    }
+    
+    _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
 }
 
 /**

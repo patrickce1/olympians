@@ -2,15 +2,15 @@
 #include "GameState.h"
 
 /**
- * Loads character definitions from JSON into the character loader.
+ * Loads house definitions from JSON into the house loader.
  * Must be called first in init() since player construction depends on it.
  *
- * @return true if the character file loaded successfully.
+ * @return true if the house file loaded successfully.
  */
-bool GameState::initCharacters() {
-    const std::string characterJsonPath = "json/characters.json";
-    if (!_characterLoader.loadFromFile(characterJsonPath)) {
-        CULog("GameState: Failed to load characters.json");
+bool GameState::initHouses() {
+    const std::string houseJsonPath = "json/houses.json";
+    if (!_houseLoader.loadFromFile(houseJsonPath)) {
+        CULog("GameState: Failed to load house.json");
         return false;
     }
     return true;
@@ -19,19 +19,19 @@ bool GameState::initCharacters() {
 /**
  * Builds the player array (one human + three AI), links all players in a
  * circular neighbour ring, and populates the player ID map.
- * Must be called after initCharacters() so the character loader is ready.
+ * Must be called after intHouses() so the house loader is ready.
  */
 void GameState::initPlayers() {
     _players.reserve(4);
 
-    auto humanPlayer = std::make_shared<Player>("Percy", 0, "Player 1", _characterLoader);
+    auto humanPlayer = std::make_shared<Player>("Poseidon", 0, "Player 1", _houseLoader);
     _players.push_back(humanPlayer);
 
     for (int i = 1; i <= 3; i++) {
        auto aiPlayer = std::make_shared<EasyPlayerAI>(
-            "Percy", i,
+            "Poseidon", i,
             "Player " + std::to_string(i),
-            _characterLoader
+            _houseLoader
         );
         _players.push_back(aiPlayer);
     }
@@ -74,9 +74,9 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName) {
         return;
     }
     _players[playerNumber] = std::make_shared<Player>(
-        "Percy", playerNumber,
+        "Poseidon", playerNumber,
         playerName + std::to_string(playerNumber),
-        _characterLoader
+        _houseLoader
     );
 
     // reset all neighbors for every player
@@ -135,7 +135,7 @@ bool GameState::initAI(ItemController& itemController) {
 }
 
 /**
- * Initialises the game world: loads characters and the enemy from JSON,
+ * Initialises the game world: loads houses and the enemy from JSON,
  * builds the player array (one human + three AI), links all players in a
  * circular neighbour ring, and finishes AI initialisation using the
  * provided item database.
@@ -145,7 +145,7 @@ bool GameState::initAI(ItemController& itemController) {
  * @return true if all resources loaded and initialised successfully.
  */
 bool GameState::init(ItemController& itemController) {
-    if (!initCharacters())        return false;
+    if (!initHouses())        return false;
     initPlayers();
     if (!initEnemy())             return false;
     if (!initAI(itemController))  return false;

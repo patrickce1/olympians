@@ -24,6 +24,7 @@ public:
     enum Status {
         IDLE,
         WAIT,
+        SELECT,
         START,
         ABORT
     };
@@ -49,8 +50,11 @@ protected:
     
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
+    
+    /** Player icon buttons (to update when they select house) */
+    std::vector<std::shared_ptr<cugl::scene2::Button>> _playerImages;
 
-    /** A container that stores labels and other info for visualizing the character and username choices of players */
+    /** A container that stores labels and other info for visualizing the house and username choices of players */
     std::shared_ptr<cugl::scene2::SceneNode> _playerInfoContainer;
     
     /** The current status */
@@ -160,6 +164,18 @@ private:
 
     /*Updates the player handles based on updates to the lobby state*/
     void updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers);
+    
+    /**
+     * Updates the player icon images based on the current lobby state.
+     *
+     * Iterates through the list of player slots and assigns the appropriate
+     * icon texture for each connected player based on their selected house.
+     * If a slot does not correspond to an active player, a default icon is used.
+     *
+     * @param onlinePlayers  The list of players currently in the lobby,
+     *                       including their selected house information.
+     */
+    void updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers);
 };
 
 #endif /* __LOBBY_SCENE_H__ */

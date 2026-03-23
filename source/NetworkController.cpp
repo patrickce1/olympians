@@ -238,10 +238,11 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			_onlinePlayers.clear();
 			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
 			// re-pair the flattened vector back into pairs
-			for (int i = 0; i < playerData.size(); i += 2) {
+			for (int i = 0; i < playerData.size(); i += 3) {
 				NetworkedPlayer newPlayer;
 				newPlayer.networkID = playerData[i];
 				newPlayer.username = playerData[i + 1];
+                newPlayer.houseID = playerData[i+2];
 				_onlinePlayers.push_back(newPlayer);
 			}
 			break;
@@ -256,6 +257,15 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				_latestGameState = stateMsg;
 				break;
 		}
+        case MessageType::SELECT_HOUSE: {
+            std::string houseID = _deserializer.readString();
+            int index = getPlayerNumberByID(senderID);
+            if (index != -1) {
+                _onlinePlayers[index].houseID = houseID;
+                broadcastLobbyState();
+            }
+            
+        }
 	}
 }
 
@@ -415,7 +425,7 @@ void NetworkController::broadcastGameState(const GameState& state) {
  * Broadcasts the current lobby player list to all connected clients.
  * Called by the host whenever a new player joins so all clients stay in sync.
  * Serializes the online players list as a flat string vector in the format:
- * [networkID_0, username_0, networkID_1, username_1, ...]
+ * [networkID_0, username_0, house_0, networkID_1, username_1, house_1, ...]
  */
 void NetworkController::broadcastLobbyState() {
 	std::vector<std::string> serializablePlayers;
@@ -423,12 +433,27 @@ void NetworkController::broadcastLobbyState() {
 	for (NetworkedPlayer player : _onlinePlayers) {
 		serializablePlayers.push_back(player.networkID);
 		serializablePlayers.push_back(player.username);
+        serializablePlayers.push_back(player.houseID);
 	}
 
 	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
 	_serializer.writeStringVector(serializablePlayers);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
+}
+
+/**
+ * Broadcasts the current selected house by the player to all connected clients.
+ * Called by the host whenever a player locks down a house choice so all clients
+ * can stay in sync and in can be displayed in the lobby.
+ *
+ *@param house - the selected house 
+ */
+void NetworkController::broadcastSelectedHouse(std::string& house) {
+    _serializer.writeSint32(MessageType::SELECT_HOUSE);
+    _serializer.writeString(house);
+    _network->sendToHost(_serializer.serialize());
+    _serializer.reset();
 }
 
 /**
@@ -472,4 +497,20 @@ int NetworkController::getLocalPlayerNumber() {
 		}
 	}
 	return -1; // not found
+}
+
+/**
+ * Returns the 0-based index of the player in the online players list given their networkID.
+ * This index corresponds to the player's slot in the game's player array.
+ * Returns -1 if the player is not found in the list.
+ *
+ * @return  The player's index, or -1 if not found.
+ */
+int NetworkController::getPlayerNumberByID(const std::string& networkID) {
+    for (int i = 0; i < _onlinePlayers.size(); i++) {
+        if (_onlinePlayers[i].networkID == networkID) {
+            return i;
+        }
+    }
+    return -1; // not found
 }
