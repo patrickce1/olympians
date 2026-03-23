@@ -277,8 +277,8 @@
                                 "data": {
                                     "texture": "glowBorder",
                                     "anchor": [
-                                        0,
-                                        1
+                                        0.5,
+                                        0.5
                                     ],
                                     "size": [
                                         197,
@@ -292,8 +292,8 @@
                                     "visible": true
                                 },
                                 "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "top",
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle",
                                     "absolute": false,
                                     "x_offset": 0,
                                     "y_offset": 0
@@ -306,8 +306,8 @@
                                 },
                                 "data": {
                                     "anchor": [
-                                        0,
-                                        1
+                                        0.5,
+                                        0.5
                                     ],
                                     "size": [
                                         84.85,
@@ -354,8 +354,8 @@
                                         "data": {
                                             "texture": "emptySIcon",
                                             "anchor": [
-                                                0,
-                                                1
+                                                0.5,
+                                                0.5
                                             ],
                                             "size": [
                                                 80.5,
@@ -369,20 +369,20 @@
                                             "visible": true
                                         },
                                         "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
+                                            "x_anchor": "center",
+                                            "y_anchor": "middle",
                                             "absolute": false,
-                                            "x_offset": 0.02,
-                                            "y_offset": -0.02
+                                            "x_offset": 0,
+                                            "y_offset": 0
                                         }
                                     }
                                 },
                                 "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "top",
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle",
                                     "absolute": false,
-                                    "x_offset": 0.28,
-                                    "y_offset": -0.28
+                                    "x_offset": 0,
+                                    "y_offset": 0
                                 }
                             },
                             "username": {
@@ -513,8 +513,8 @@
                                         "data": {
                                             "texture": "emptySIcon",
                                             "anchor": [
-                                                0,
-                                                1
+                                                0.5,
+                                                0.5
                                             ],
                                             "size": [
                                                 80.5,
@@ -528,11 +528,11 @@
                                             "visible": true
                                         },
                                         "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
+                                            "x_anchor": "center",
+                                            "y_anchor": "middle",
                                             "absolute": false,
-                                            "x_offset": 0.02,
-                                            "y_offset": -0.02
+                                            "x_offset": 0,
+                                            "y_offset": 0
                                         }
                                     }
                                 },
@@ -717,8 +717,8 @@
                                         "data": {
                                             "texture": "emptySIcon",
                                             "anchor": [
-                                                0,
-                                                1
+                                                0.5,
+                                                0.5
                                             ],
                                             "size": [
                                                 80.5,
@@ -732,11 +732,11 @@
                                             "visible": true
                                         },
                                         "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
+                                            "x_anchor": "center",
+                                            "y_anchor": "middle",
                                             "absolute": false,
-                                            "x_offset": 0.02,
-                                            "y_offset": -0.02
+                                            "x_offset": 0,
+                                            "y_offset": 0
                                         }
                                     }
                                 },
@@ -839,8 +839,8 @@
                                         "data": {
                                             "texture": "emptySIcon",
                                             "anchor": [
-                                                0,
-                                                1
+                                                0.5,
+                                                0.5
                                             ],
                                             "size": [
                                                 80.5,
@@ -854,11 +854,11 @@
                                             "visible": true
                                         },
                                         "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
+                                            "x_anchor": "center",
+                                            "y_anchor": "middle",
                                             "absolute": false,
-                                            "x_offset": 0.02,
-                                            "y_offset": -0.02
+                                            "x_offset": 0,
+                                            "y_offset": 0
                                         }
                                     }
                                 },
