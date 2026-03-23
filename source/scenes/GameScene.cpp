@@ -186,7 +186,7 @@ void GameScene::dispose() {
         _bossHealthBar = nullptr;
         _playerHealthBar = nullptr;
         _network = nullptr;
-        _activeIcon = nullptr;
+        _draggedIcon = nullptr;
         _playerSlots.clear();
         _itemWidgets.clear();
         _itemBodies.clear();
@@ -250,9 +250,9 @@ void GameScene::setActive(bool value) {
  * effect, and clears every player's inventory via GameState::reset().
  */
 void GameScene::reset() {
-    _activeIcon = nullptr;
-    _activeItemId = 0;
-    _activeItemDef = nullptr;
+    _draggedIcon = nullptr;
+    _draggedItemId = 0;
+    _draggedItemDef = nullptr;
     _dragStartBodyPosition = Vec2::ZERO;
     _glowAction = InputController::Action::NONE;
     _glowTimer  = 0;
@@ -534,7 +534,7 @@ void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
  */
 void GameScene::handleResetButton(InputController& input) {
     if (!isDebugMode()){ return; }
-    if (!input.touchEnded() || _activeIcon || !_resetBtn) return;
+    if (!input.touchEnded() || _draggedIcon || !_resetBtn) return;
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
     if (_resetBtn->getBoundingBox().contains(touchPosScreen)) {
@@ -558,7 +558,7 @@ void GameScene::handleResetButton(InputController& input) {
  * @param input     The input controller for this frame.
  */
 void GameScene::handlePlayerInput(InputController& input) {
-    if (!_activeIcon || !input.touchEnded()) return;
+    if (!_draggedIcon || !input.touchEnded()) return;
 
     // 1. Determine which drop zone the item was released into
     Vec2 releaseWorld = screenToWorldCoords(input.getReleasePosition());
@@ -572,30 +572,30 @@ void GameScene::handlePlayerInput(InputController& input) {
     }
 
     if (finalAction != InputController::Action::NONE) {
-        if (handlePlayerActions(finalAction, _activeItemId)) {
+        if (handlePlayerActions(finalAction, _draggedItemId)) {
             // 2. Dispatch to the appropriate action handler
             // 3. Trigger glow effect on the activated zone
             _glowAction = finalAction;
             _glowTimer  = _glowDuration;
-            if (_activeIcon) {
-                _activeIcon->setVisible(false);
+            if (_draggedIcon) {
+                _draggedIcon->setVisible(false);
             }
         } else {
-            auto body = _itemBodies.find(_activeItemId);
+            auto body = _itemBodies.find(_draggedItemId);
             if (body != _itemBodies.end() && body->second) {
                 body->second->setPosition(_dragStartBodyPosition);
                 body->second->setLinearVelocity(Vec2::ZERO);
             }
-            if (_activeIcon) {
-                _activeIcon->setVisible(true);
+            if (_draggedIcon) {
+                _draggedIcon->setVisible(true);
             }
         }
     }
 
-    _activeIcon = nullptr;
-    _activeItemId = 0;
+    _draggedIcon = nullptr;
+    _draggedItemId = 0;
     _dragStartBodyPosition = Vec2::ZERO;
-    _activeItemDef = nullptr;
+    _draggedItemDef = nullptr;
     updateInputZones();
 }
 
@@ -636,15 +636,15 @@ void GameScene::updateDebugPointer(InputController& input) {
  * Hit-tests item widgets against the initial touch position.
  */
 void GameScene::handleDragInitiation(InputController& input) {
-    if (_activeIcon || !input.isDragging()) return;
+    if (_draggedIcon || !input.isDragging()) return;
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
 
     for (auto& [id, widget] : _itemWidgets) {
         if (!widget) continue;
         if (widget->getBoundingBox().contains(touchPosScreen)) {
-            _activeIcon = widget;
-            _activeItemId = id;
+            _draggedIcon = widget;
+            _draggedItemId = id;
             _dragOffset = widget->getPosition() - touchPosScreen;
 
             auto body = _itemBodies.find(id);
@@ -654,7 +654,7 @@ void GameScene::handleDragInitiation(InputController& input) {
                 Size widgetSize = widget->getContentSize();
                 _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
             }
-            _activeItemDef = getHeldItemDef(id).get();
+            _draggedItemDef = getHeldItemDef(id).get();
             updateInputZones();
             break;
         }
@@ -665,13 +665,13 @@ void GameScene::handleDragInitiation(InputController& input) {
  * Moves the active dragged icon to follow the current touch position.
  */
 void GameScene::handleDragTracking(InputController& input) {
-    if (!_activeIcon || (!input.isTouching() && !input.isMouseDown())) return;
+    if (!_draggedIcon || (!input.isTouching() && !input.isMouseDown())) return;
 
     Vec2 dragScene = screenToWorldCoords(input.getDragPos());
     Vec2 widgetPosition = dragScene + _dragOffset;
-    auto body = _itemBodies.find(_activeItemId);
+    auto body = _itemBodies.find(_draggedItemId);
     if (body != _itemBodies.end() && body->second) {
-        Size widgetSize = _activeIcon->getContentSize();
+        Size widgetSize = _draggedIcon->getContentSize();
         Vec2 center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
         body->second->setPosition(center);
         body->second->setLinearVelocity(Vec2::ZERO);
@@ -825,9 +825,9 @@ void GameScene::syncItemWidgetsToBodies() {
 void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
     auto widget = _itemWidgets.find(itemId);
     if (widget != _itemWidgets.end()) {
-        if (_activeIcon == widget->second) {
-            _activeIcon = nullptr;
-            _activeItemId = 0;
+        if (_draggedIcon == widget->second) {
+            _draggedIcon = nullptr;
+            _draggedItemId = 0;
             _dragStartBodyPosition = Vec2::ZERO;
         }
         if (widget->second && _inventory) {
@@ -968,12 +968,12 @@ void GameScene::render() {
  * If a support item is held, the support zones are added to _inputZones.
  */
 void GameScene::updateInputZones(){
-    if (!_activeItemDef){
+    if (!_draggedItemDef){
         _inputZones = {};
         return;
     }
     
-    if (_activeItemDef->getType() == ItemDef::Type::Attack){
+    if (_draggedItemDef->getType() == ItemDef::Type::Attack){
         _inputZones = _attackZones;
     }
     else {
