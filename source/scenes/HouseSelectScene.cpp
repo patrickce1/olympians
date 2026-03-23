@@ -109,6 +109,9 @@ void HouseSelectScene::setupUI() {
             _houseCarouselDotIndicators.push_back(houseCarouselDotsContainer->getChild(i));
         }
     }
+    
+    _backgroundImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_assets->get<scene2::SceneNode>
+                                                                            ("houseSelectScene.showroomImage"));
 }
 
 /**
@@ -258,6 +261,8 @@ void HouseSelectScene::update(float timestep) {
             _houseSelectionCardContainer->setPosition(next);
         }
     }
+    
+    updateBossBGImage(_network->getEnemy());
 }
 
 /**
@@ -352,6 +357,21 @@ void HouseSelectScene::updateSelectedIcon(int currentIndex) {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("poseidonSIcon"));
     } else {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
+    }
+}
+
+void HouseSelectScene::updateBossBGImage(std::string enemyID) {
+    if (enemyID == "" && _currentBoss == "") {
+        return;
+    } else if (enemyID == _currentBoss) {
+        return;
+    }
+    
+    _currentBoss = enemyID;
+    if (_currentBoss == "enemy1") {
+        _backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>("cyclopsShowroom"));
+    } else if (_currentBoss == "cerberus") {
+        _backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusShowroom"));
     }
 }
 

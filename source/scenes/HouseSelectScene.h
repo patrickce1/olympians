@@ -71,6 +71,10 @@ protected:
     /** The house selection container that contains the card and direction buttons**/
     std::shared_ptr<cugl::scene2::SceneNode> _houseSelectionCardContainer;
     
+    std::shared_ptr<cugl::scene2::PolygonNode> _backgroundImage;
+    
+    std::string _currentBoss = "";
+    
     /** Whether the house selection screen is sliding to another index */
     bool _isAnimating = false;
     
@@ -224,6 +228,8 @@ private:
      * @param currentIndex The index of the card we are at.
      */
     void updateSelectedIcon(int newIndex);
+    
+    void updateBossBGImage(std::string enemyID);
     
     /** Loads houses definitions from the house JSON to use in house selection. */
     bool loadHouses();

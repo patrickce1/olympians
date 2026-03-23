@@ -115,8 +115,8 @@
         "cyclopsShowroom": {
             "file": "textures/houseSelect/cyclopsShowroom.png"
         },
-        "cerebrusShowroom": {
-            "file": "textures/houseSelect/cerebrusShowroomSM.png"
+        "cerberusShowroom": {
+            "file": "textures/houseSelect/cerberusShowroom.png"
         },
         "buttonSmallBG": {
             "file": "textures/houseSelect/buttonSmallBG.png"

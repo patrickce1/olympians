@@ -55,7 +55,7 @@
                     "y_offset": 0
                 }
             },
-            "cyclopsShowroom": {
+            "showroomImage": {
                 "type": "Image",
                 "data": {
                     "texture": "cyclopsShowroom",
