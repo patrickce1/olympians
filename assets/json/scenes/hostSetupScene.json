@@ -136,7 +136,7 @@
                     "y_offset": -0.8
                 }
             },
-            "Class Selection Carousel Icon": {
+            "bossSelectionCarouselIcons": {
                 "type": "Node",
                 "format": {
                     "type": "Float",

@@ -47,7 +47,10 @@ protected:
     std::shared_ptr<cugl::scene2::TextField> _hostName;
     
     /** The boss selection node list */
-    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _items;
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _bossCards;
+    
+    /** The boss selection indicator list */
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _bossCarouselDotIndicators;
     
     /** The current index of the boss shown in the boss selection screen*/
     int _currentIndex = 1;
@@ -59,7 +62,7 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _rightButton;
     
     /** The boss selection container **/
-    std::shared_ptr<cugl::scene2::SceneNode> _container; // holds items
+    std::shared_ptr<cugl::scene2::SceneNode> _bossSelectionCardContainer; // holds items
     
     /** Whether the boss selection screen is sliding to another index */
     bool _isAnimating = false;
@@ -195,6 +198,14 @@ private:
      * @param newIndex The index of the item to slide to.
      */
     void slideTo(int index);
+    
+    /**
+     * Updates the circular indicators at the bottom of what card in the carousel
+     * we are currently at.
+     *
+     * @param currentIndex The index of the card we are at.
+     */
+    void updateCarouselDots(int currentIndex);
 };
 
 #endif /* __HOST_SETUP_SCENE_H__ */

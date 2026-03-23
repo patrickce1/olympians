@@ -11,6 +11,8 @@ using namespace std;
 #define SCENE_HEIGHT  852
 /** Role card width */
 #define ROLE_CARD_WIDTH 251
+/** Interpolation smoothing factor*/
+#define SMOOTHING_FACTOR 0.2f
 
 
 #pragma mark -
@@ -83,12 +85,12 @@ void HostSetupScene::setupUI() {
     _rightButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.directionButtons.rightScroll"));
 
-    _container = _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.bossCardContainer");
+    _bossSelectionCardContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.bossCardContainer");
 
-    if (_container) {
-        _items.push_back(_container->getChild(0));
-        _items.push_back(_container->getChild(1));
-        _items.push_back(_container->getChild(2));
+    if (_bossSelectionCardContainer) {
+        for (int i = 0; i < 3; i++) {
+            _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
+        }
     }
 
     std::shared_ptr<cugl::scene2::Label> placeName =
@@ -100,6 +102,14 @@ void HostSetupScene::setupUI() {
     _hostName->addTypeListener([placeName](const std::string& name, const std::string& value) {
         placeName->setVisible(value.empty());
     });
+    
+    auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossSelectionCarouselIcons");
+    
+    if (bossCarouselDotsContainer) {
+        for (int i = 0; i < 3; i++) {
+            _bossCarouselDotIndicators.push_back(bossCarouselDotsContainer->getChild(i));
+        }
+    }
 }
 
 /**
@@ -144,10 +154,10 @@ void HostSetupScene::dispose() {
         _startGame = nullptr;
         _backOut = nullptr;
         _hostName = nullptr;
-        _items.clear();
+        _bossCards.clear();
         _leftButton = nullptr;
         _rightButton = nullptr;
-        _container = nullptr;
+        _bossSelectionCardContainer = nullptr;
         _active = false;
     }
     _network = nullptr;
@@ -213,14 +223,14 @@ void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, c
  */
 void HostSetupScene::update(float timestep) {
     if (_isAnimating) {
-        Vec2 current = _container->getPosition();
-        Vec2 next = current.lerp(_slideTarget, 0.2f); // 0.2 = smoothing factor
+        Vec2 current = _bossSelectionCardContainer->getPosition();
+        Vec2 next = current.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor
 
         if (current.distance(_slideTarget) < 1.0f) {
-            _container->setPosition(_slideTarget);
+            _bossSelectionCardContainer->setPosition(_slideTarget);
             _isAnimating = false;
         } else {
-            _container->setPosition(next);
+            _bossSelectionCardContainer->setPosition(next);
         }
     }
 }
@@ -247,17 +257,51 @@ void HostSetupScene::configureStartButton() {
  */
 void HostSetupScene::slideTo(int newIndex) {
     if (_isAnimating) return;
-    if (newIndex < 0 || newIndex >= _items.size()) return;
+    if (newIndex < 0 || newIndex >= _bossCards.size()) return;
 
     _isAnimating = true;
 
     float shiftAmount = ROLE_CARD_WIDTH;
     
     int deltaIndex = newIndex - _currentIndex;
-    Vec2 currentPos = _container->getPosition();
+    Vec2 currentPos = _bossSelectionCardContainer->getPosition();
     float targetX = currentPos.x - (deltaIndex * shiftAmount);
     
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
+    
+    for (int i = 0; i < _bossCards.size(); i++) {
+        auto card = _bossCards[i];
+        if (card) {
+            auto glow = card->getChildByName("glowOverlay");
+            if (glow){
+                glow->setVisible(false);
+                if (i == newIndex) {
+                    glow->setVisible(true);
+                }
+            }
+        }
+    }
 
+    updateCarouselDots(newIndex);
+}
+
+/**
+ * Updates the circular indicators at the bottom of what card in the carousel
+ * we are currently at.
+ *
+ * @param currentIndex The index of the card we are at.
+ */
+void HostSetupScene::updateCarouselDots(int currentIndex) {
+    for (int i = 0; i < _bossCarouselDotIndicators.size(); i++) {
+        auto node = _bossCarouselDotIndicators[i];
+        
+        auto fill   = node->getChildByName("fill");
+        
+        if (i == currentIndex) {
+            fill->setColor(Color4("#4c3214ff"));
+        } else {
+            fill->setColor(Color4("#9d7137ff"));
+        }
+    }
 }
