@@ -53,7 +53,7 @@
                         1
                     ],
                     "size": [
-                        104,
+                        393,
                         24
                     ],
                     "angle": 0,
@@ -64,7 +64,7 @@
                     "visible": true
                 },
                 "children": {
-                    "Join Game": {
+                    "joinGame": {
                         "type": "Label",
                         "data": {
                             "anchor": [
@@ -99,7 +99,46 @@
                             "x_anchor": "left",
                             "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0.1,
+                            "x_offset": 0.02,
+                            "y_offset": 0
+                        }
+                    },
+                    "hostGame": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                100,
+                                24
+                            ],
+                            "position": [
+                                3,
+                                0
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular20",
+                            "text": "Host Game",
+                            "foreground": "#F6B561ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "left"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.38,
                             "y_offset": 0
                         }
                     },
@@ -184,7 +223,7 @@
                             "x_anchor": "left",
                             "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0.02,
+                            "x_offset": 0,
                             "y_offset": -1
                         }
                     }

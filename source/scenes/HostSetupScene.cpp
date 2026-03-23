@@ -78,12 +78,12 @@ void HostSetupScene::setupUI() {
         _assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
 
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.Boss_Carousel.directionbuttons.leftScroll"));
+        _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.directionButtons.leftScroll"));
 
     _rightButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.Boss_Carousel.directionbuttons.rightScroll"));
+        _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.directionButtons.rightScroll"));
 
-    _container = _assets->get<scene2::SceneNode>("hostSetupScene.Boss_Carousel.bossCardcont");
+    _container = _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.bossCardContainer");
 
     if (_container) {
         _items.push_back(_container->getChild(0));

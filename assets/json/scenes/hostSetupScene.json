@@ -658,18 +658,18 @@
                     "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": -0.01,
+                    "x_offset": 0,
                     "y_offset": -0.73
                 }
             },
-            "Boss_Carousel": {
+            "bossCarousel": {
                 "type": "Node",
                 "format": {
                     "type": "Anchored"
                 },
                 "data": {
                     "anchor": [
-                        0,
+                        0.5,
                         1
                     ],
                     "size": [
@@ -684,17 +684,17 @@
                     "visible": true
                 },
                 "children": {
-                    "bossCardcont": {
+                    "bossCardContainer": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
-                            "x_alignment": "left",
+                            "x_alignment": "center",
                             "y_alignment": "middle",
                             "orientation": "horizontal"
                         },
                         "data": {
                             "anchor": [
-                                0,
+                                0.5,
                                 1
                             ],
                             "size": [
@@ -709,275 +709,16 @@
                             "visible": true
                         },
                         "children": {
-                            "cyclops card": {
-                                "type": "Node",
-                                "format": {
-                                    "type": "Anchored"
-                                },
+                            "cyclopsCard": {
+                                "type": "Widget",
+                                "format": { "type": "Anchored" },
                                 "data": {
-                                    "anchor": [
-                                        0.5,
-                                        0.5
-                                    ],
-                                    "size": [
-                                        286,
-                                        462
-                                    ],
-                                    "angle": 0,
-                                    "position": [
-                                        143,
-                                        231
-                                    ],
-                                    "visible": true
-                                },
-                                "children": {
-                                    "glowOverlayBoss": {
-                                        "type": "Image",
-                                        "data": {
-                                            "texture": "glowOverlayBoss",
-                                            "anchor": [
-                                                0,
-                                                1
-                                            ],
-                                            "size": [
-                                                286,
-                                                462
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                0,
-                                                0
-                                            ],
-                                            "visible": true
-                                        },
-                                        "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0,
-                                            "y_offset": 0
-                                        }
-                                    },
-                                    "cyclopsPoster": {
-                                        "type": "Image",
-                                        "data": {
-                                            "texture": "cyclopsPoster",
-                                            "anchor": [
-                                                0,
-                                                1
-                                            ],
-                                            "size": [
-                                                286,
-                                                462
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                0,
-                                                0
-                                            ],
-                                            "visible": true
-                                        },
-                                        "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0,
-                                            "y_offset": 0
-                                        }
-                                    },
-                                    "title": {
-                                        "type": "Node",
-                                        "format": {
-                                            "type": "Anchored"
-                                        },
-                                        "data": {
-                                            "anchor": [
-                                                0.5,
-                                                1
-                                            ],
-                                            "size": [
-                                                135,
-                                                35
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                77,
-                                                17
-                                            ],
-                                            "visible": true
-                                        },
-                                        "children": {
-                                            "background": {
-                                                "type": "Node",
-                                                "format": {
-                                                    "type": "Anchored"
-                                                },
-                                                "data": {
-                                                    "anchor": [
-                                                        0,
-                                                        1
-                                                    ],
-                                                    "angle": 0,
-                                                    "size": [
-                                                        135,
-                                                        35
-                                                    ],
-                                                    "position": [
-                                                        0,
-                                                        0
-                                                    ],
-                                                    "visible": true
-                                                },
-                                                "children": {
-                                                    "fill": {
-                                                        "type": "Solid",
-                                                        "data": {
-                                                            "polygon": [
-                                                                135,
-                                                                35,
-                                                                0,
-                                                                35,
-                                                                0,
-                                                                0,
-                                                                135,
-                                                                0
-                                                            ],
-                                                            "color": "#c38e49ff",
-                                                            "anchor": [
-                                                                0.5,
-                                                                0.5
-                                                            ],
-                                                            "position": [
-                                                                0,
-                                                                0
-                                                            ],
-                                                            "visible": true
-                                                        },
-                                                        "layout": {
-                                                            "x_anchor": "center",
-                                                            "y_anchor": "middle"
-                                                        }
-                                                    },
-                                                    "stroke": {
-                                                        "type": "Path",
-                                                        "data": {
-                                                            "color": "#553a19ff",
-                                                            "path": {
-                                                                "vertices": [],
-                                                                "closed": true
-                                                            },
-                                                            "stroke": 1,
-                                                            "joint": "square",
-                                                            "anchor": [
-                                                                0.5,
-                                                                0.5
-                                                            ],
-                                                            "position": [
-                                                                0,
-                                                                0
-                                                            ],
-                                                            "visible": true
-                                                        },
-                                                        "layout": {
-                                                            "x_anchor": "center",
-                                                            "y_anchor": "middle"
-                                                        }
-                                                    }
-                                                },
-                                                "layout": {
-                                                    "x_anchor": "left",
-                                                    "y_anchor": "top",
-                                                    "absolute": false,
-                                                    "x_offset": 0,
-                                                    "y_offset": 0
-                                                }
-                                            },
-                                            "BOSS": {
-                                                "type": "Label",
-                                                "data": {
-                                                    "anchor": [
-                                                        0,
-                                                        1
-                                                    ],
-                                                    "size": [
-                                                        134.39999389648438,
-                                                        22
-                                                    ],
-                                                    "position": [
-                                                        0,
-                                                        6.599609375
-                                                    ],
-                                                    "angle": 0,
-                                                    "visible": true,
-                                                    "font": "gideon romanRegular18",
-                                                    "text": "-CYCLOPS-",
-                                                    "foreground": "#000000ff",
-                                                    "background": "#00000000",
-                                                    "padding": [
-                                                        0,
-                                                        0,
-                                                        0,
-                                                        0
-                                                    ],
-                                                    "valign": "top",
-                                                    "halign": "center"
-                                                },
-                                                "children": {},
-                                                "layout": {
-                                                    "x_anchor": "left",
-                                                    "y_anchor": "top",
-                                                    "absolute": false,
-                                                    "x_offset": 0,
-                                                    "y_offset": -0.18
-                                                }
-                                            }
-                                        },
-                                        "layout": {
-                                            "x_anchor": "center",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0.01,
-                                            "y_offset": -0.89
-                                        }
-                                    },
-                                    "bossDescription": {
-                                        "type": "Label",
-                                        "data": {
-                                            "anchor": [
-                                                0.5,
-                                                1
-                                            ],
-                                            "size": [
-                                                179,
-                                                56
-                                            ],
-                                            "position": [
-                                                54,
-                                                69
-                                            ],
-                                            "angle": 0,
-                                            "visible": true,
-                                            "font": "gideon romanRegular12",
-                                            "text": "Cyclops, the lone guardian of the cave, blinded by rage and hunger. Defeat it to escape its domain.",
-                                            "foreground": "#ffe3c0ff",
-                                            "background": "#00000000",
-                                            "padding": [
-                                                0,
-                                                0,
-                                                0,
-                                                0
-                                            ],
-                                            "valign": "top",
-                                            "halign": "center"
-                                        },
-                                        "children": {},
-                                        "layout": {
-                                            "x_anchor": "center",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0,
-                                            "y_offset": -0.73
-                                        }
+                                    "key": "bossCard",
+                                    "variables": {
+                                        "image": "cyclopsPoster",
+                                        "description": "Cyclops, the lone guardian of the cave, blinded by rage and hunger. Defeat it to escape its domain.",
+                                        "name": "-CYCLOPS-",
+                                        "glow": false
                                     }
                                 },
                                 "layout": {
@@ -990,275 +731,16 @@
                                     ]
                                 }
                             },
-                            "cerberus card": {
-                                "type": "Node",
-                                "format": {
-                                    "type": "Anchored"
-                                },
+                            "cerberusCard": {
+                                "type": "Widget",
+                                "format": { "type": "Anchored" },
                                 "data": {
-                                    "anchor": [
-                                        0.5,
-                                        0.5
-                                    ],
-                                    "size": [
-                                        286,
-                                        462
-                                    ],
-                                    "angle": 0,
-                                    "position": [
-                                        394,
-                                        231
-                                    ],
-                                    "visible": true
-                                },
-                                "children": {
-                                    "glowOverlayBoss": {
-                                        "type": "Image",
-                                        "data": {
-                                            "texture": "glowOverlayBoss",
-                                            "anchor": [
-                                                0,
-                                                1
-                                            ],
-                                            "size": [
-                                                286,
-                                                462
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                0,
-                                                0
-                                            ],
-                                            "visible": true
-                                        },
-                                        "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0,
-                                            "y_offset": 0
-                                        }
-                                    },
-                                    "cerberusPoster": {
-                                        "type": "Image",
-                                        "data": {
-                                            "texture": "cerberusPoster",
-                                            "anchor": [
-                                                0,
-                                                1
-                                            ],
-                                            "size": [
-                                                286,
-                                                462
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                0,
-                                                0
-                                            ],
-                                            "visible": true
-                                        },
-                                        "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0,
-                                            "y_offset": 0
-                                        }
-                                    },
-                                    "title": {
-                                        "type": "Node",
-                                        "format": {
-                                            "type": "Anchored"
-                                        },
-                                        "data": {
-                                            "anchor": [
-                                                0.5,
-                                                1
-                                            ],
-                                            "size": [
-                                                135,
-                                                35
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                77,
-                                                17
-                                            ],
-                                            "visible": true
-                                        },
-                                        "children": {
-                                            "background": {
-                                                "type": "Node",
-                                                "format": {
-                                                    "type": "Anchored"
-                                                },
-                                                "data": {
-                                                    "anchor": [
-                                                        0,
-                                                        1
-                                                    ],
-                                                    "angle": 0,
-                                                    "size": [
-                                                        135,
-                                                        35
-                                                    ],
-                                                    "position": [
-                                                        0,
-                                                        0
-                                                    ],
-                                                    "visible": true
-                                                },
-                                                "children": {
-                                                    "fill": {
-                                                        "type": "Solid",
-                                                        "data": {
-                                                            "polygon": [
-                                                                135,
-                                                                35,
-                                                                0,
-                                                                35,
-                                                                0,
-                                                                0,
-                                                                135,
-                                                                0
-                                                            ],
-                                                            "color": "#c38e49ff",
-                                                            "anchor": [
-                                                                0.5,
-                                                                0.5
-                                                            ],
-                                                            "position": [
-                                                                0,
-                                                                0
-                                                            ],
-                                                            "visible": true
-                                                        },
-                                                        "layout": {
-                                                            "x_anchor": "center",
-                                                            "y_anchor": "middle"
-                                                        }
-                                                    },
-                                                    "stroke": {
-                                                        "type": "Path",
-                                                        "data": {
-                                                            "color": "#553a19ff",
-                                                            "path": {
-                                                                "vertices": [],
-                                                                "closed": true
-                                                            },
-                                                            "stroke": 1,
-                                                            "joint": "square",
-                                                            "anchor": [
-                                                                0.5,
-                                                                0.5
-                                                            ],
-                                                            "position": [
-                                                                0,
-                                                                0
-                                                            ],
-                                                            "visible": true
-                                                        },
-                                                        "layout": {
-                                                            "x_anchor": "center",
-                                                            "y_anchor": "middle"
-                                                        }
-                                                    }
-                                                },
-                                                "layout": {
-                                                    "x_anchor": "left",
-                                                    "y_anchor": "top",
-                                                    "absolute": false,
-                                                    "x_offset": 0,
-                                                    "y_offset": 0
-                                                }
-                                            },
-                                            "BOSS": {
-                                                "type": "Label",
-                                                "data": {
-                                                    "anchor": [
-                                                        0,
-                                                        1
-                                                    ],
-                                                    "size": [
-                                                        134.39999389648438,
-                                                        22
-                                                    ],
-                                                    "position": [
-                                                        0,
-                                                        6.599609375
-                                                    ],
-                                                    "angle": 0,
-                                                    "visible": true,
-                                                    "font": "gideon romanRegular18",
-                                                    "text": "-CERBERUS-",
-                                                    "foreground": "#000000ff",
-                                                    "background": "#00000000",
-                                                    "padding": [
-                                                        0,
-                                                        0,
-                                                        0,
-                                                        0
-                                                    ],
-                                                    "valign": "top",
-                                                    "halign": "center"
-                                                },
-                                                "children": {},
-                                                "layout": {
-                                                    "x_anchor": "left",
-                                                    "y_anchor": "top",
-                                                    "absolute": false,
-                                                    "x_offset": 0,
-                                                    "y_offset": -0.18
-                                                }
-                                            }
-                                        },
-                                        "layout": {
-                                            "x_anchor": "center",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0.01,
-                                            "y_offset": -0.89
-                                        }
-                                    },
-                                    "bossDescription": {
-                                        "type": "Label",
-                                        "data": {
-                                            "anchor": [
-                                                0.5,
-                                                1
-                                            ],
-                                            "size": [
-                                                179,
-                                                42
-                                            ],
-                                            "position": [
-                                                53,
-                                                70
-                                            ],
-                                            "angle": 0,
-                                            "visible": true,
-                                            "font": "gideon romanRegular12",
-                                            "text": "Hades’ companion gone rogue, defeat it and bring him back to Hell. Attacks.....Defenses....",
-                                            "foreground": "#ffe3c0ff",
-                                            "background": "#00000000",
-                                            "padding": [
-                                                0,
-                                                0,
-                                                0,
-                                                0
-                                            ],
-                                            "valign": "top",
-                                            "halign": "center"
-                                        },
-                                        "children": {},
-                                        "layout": {
-                                            "x_anchor": "center",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0,
-                                            "y_offset": -0.76
-                                        }
+                                    "key": "bossCard",
+                                    "variables": {
+                                        "image": "cerberusPoster",
+                                        "description": "Hades’ companion gone rogue, defeat it and bring him back to Hell. Attacks.....Defenses....",
+                                        "name": "-CERBERUS-",
+                                        "glow": true
                                     }
                                 },
                                 "layout": {
@@ -1271,275 +753,16 @@
                                     ]
                                 }
                             },
-                            "empty card": {
-                                "type": "Node",
-                                "format": {
-                                    "type": "Anchored"
-                                },
+                            "emptyCard": {
+                                "type": "Widget",
+                                "format": { "type": "Anchored" },
                                 "data": {
-                                    "anchor": [
-                                        0.5,
-                                        0.5
-                                    ],
-                                    "size": [
-                                        286,
-                                        462
-                                    ],
-                                    "angle": 0,
-                                    "position": [
-                                        645,
-                                        231
-                                    ],
-                                    "visible": true
-                                },
-                                "children": {
-                                    "glowOverlayBoss": {
-                                        "type": "Image",
-                                        "data": {
-                                            "texture": "glowOverlayBoss",
-                                            "anchor": [
-                                                0,
-                                                1
-                                            ],
-                                            "size": [
-                                                286,
-                                                462
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                0,
-                                                0
-                                            ],
-                                            "visible": true
-                                        },
-                                        "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0,
-                                            "y_offset": 0
-                                        }
-                                    },
-                                    "bossPosterEmpty": {
-                                        "type": "Image",
-                                        "data": {
-                                            "texture": "bossPosterEmpty",
-                                            "anchor": [
-                                                0,
-                                                1
-                                            ],
-                                            "size": [
-                                                213,
-                                                389
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                36,
-                                                37
-                                            ],
-                                            "visible": true
-                                        },
-                                        "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0.13,
-                                            "y_offset": -0.08
-                                        }
-                                    },
-                                    "title": {
-                                        "type": "Node",
-                                        "format": {
-                                            "type": "Anchored"
-                                        },
-                                        "data": {
-                                            "anchor": [
-                                                0.5,
-                                                1
-                                            ],
-                                            "size": [
-                                                135,
-                                                35
-                                            ],
-                                            "angle": 0,
-                                            "position": [
-                                                77,
-                                                17
-                                            ],
-                                            "visible": true
-                                        },
-                                        "children": {
-                                            "background": {
-                                                "type": "Node",
-                                                "format": {
-                                                    "type": "Anchored"
-                                                },
-                                                "data": {
-                                                    "anchor": [
-                                                        0,
-                                                        1
-                                                    ],
-                                                    "angle": 0,
-                                                    "size": [
-                                                        135,
-                                                        35
-                                                    ],
-                                                    "position": [
-                                                        0,
-                                                        0
-                                                    ],
-                                                    "visible": true
-                                                },
-                                                "children": {
-                                                    "fill": {
-                                                        "type": "Solid",
-                                                        "data": {
-                                                            "polygon": [
-                                                                135,
-                                                                35,
-                                                                0,
-                                                                35,
-                                                                0,
-                                                                0,
-                                                                135,
-                                                                0
-                                                            ],
-                                                            "color": "#c38e49ff",
-                                                            "anchor": [
-                                                                0.5,
-                                                                0.5
-                                                            ],
-                                                            "position": [
-                                                                0,
-                                                                0
-                                                            ],
-                                                            "visible": true
-                                                        },
-                                                        "layout": {
-                                                            "x_anchor": "center",
-                                                            "y_anchor": "middle"
-                                                        }
-                                                    },
-                                                    "stroke": {
-                                                        "type": "Path",
-                                                        "data": {
-                                                            "color": "#553a19ff",
-                                                            "path": {
-                                                                "vertices": [],
-                                                                "closed": true
-                                                            },
-                                                            "stroke": 1,
-                                                            "joint": "square",
-                                                            "anchor": [
-                                                                0.5,
-                                                                0.5
-                                                            ],
-                                                            "position": [
-                                                                0,
-                                                                0
-                                                            ],
-                                                            "visible": true
-                                                        },
-                                                        "layout": {
-                                                            "x_anchor": "center",
-                                                            "y_anchor": "middle"
-                                                        }
-                                                    }
-                                                },
-                                                "layout": {
-                                                    "x_anchor": "left",
-                                                    "y_anchor": "top",
-                                                    "absolute": false,
-                                                    "x_offset": 0,
-                                                    "y_offset": 0
-                                                }
-                                            },
-                                            "BOSS": {
-                                                "type": "Label",
-                                                "data": {
-                                                    "anchor": [
-                                                        0,
-                                                        1
-                                                    ],
-                                                    "size": [
-                                                        134.39999389648438,
-                                                        22
-                                                    ],
-                                                    "position": [
-                                                        0,
-                                                        6.599609375
-                                                    ],
-                                                    "angle": 0,
-                                                    "visible": true,
-                                                    "font": "gideon romanRegular18",
-                                                    "text": "-BOSS-",
-                                                    "foreground": "#000000ff",
-                                                    "background": "#00000000",
-                                                    "padding": [
-                                                        0,
-                                                        0,
-                                                        0,
-                                                        0
-                                                    ],
-                                                    "valign": "top",
-                                                    "halign": "center"
-                                                },
-                                                "children": {},
-                                                "layout": {
-                                                    "x_anchor": "left",
-                                                    "y_anchor": "top",
-                                                    "absolute": false,
-                                                    "x_offset": 0,
-                                                    "y_offset": -0.18
-                                                }
-                                            }
-                                        },
-                                        "layout": {
-                                            "x_anchor": "center",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0.01,
-                                            "y_offset": -0.89
-                                        }
-                                    },
-                                    "bossDescription": {
-                                        "type": "Label",
-                                        "data": {
-                                            "anchor": [
-                                                0.5,
-                                                1
-                                            ],
-                                            "size": [
-                                                179,
-                                                14
-                                            ],
-                                            "position": [
-                                                53,
-                                                98
-                                            ],
-                                            "angle": 0,
-                                            "visible": true,
-                                            "font": "gideon romanRegular12",
-                                            "text": "[ENTER DESCRIPTION]",
-                                            "foreground": "#ffe3c0ff",
-                                            "background": "#00000000",
-                                            "padding": [
-                                                0,
-                                                0,
-                                                0,
-                                                0
-                                            ],
-                                            "valign": "top",
-                                            "halign": "center"
-                                        },
-                                        "children": {},
-                                        "layout": {
-                                            "x_anchor": "center",
-                                            "y_anchor": "top",
-                                            "absolute": false,
-                                            "x_offset": 0,
-                                            "y_offset": -0.76
-                                        }
+                                    "key": "bossCard",
+                                    "variables": {
+                                        "image": "bossPosterEmpty",
+                                        "description": "",
+                                        "name": "-BOSS-",
+                                        "glow": false
                                     }
                                 },
                                 "layout": {
@@ -1554,14 +777,14 @@
                             }
                         },
                         "layout": {
-                            "x_anchor": "left",
+                            "x_anchor": "center",
                             "y_anchor": "top",
                             "absolute": false,
                             "x_offset": 0,
                             "y_offset": 0
                         }
                     },
-                    "directionbuttons": {
+                    "directionButtons": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
@@ -1713,16 +936,16 @@
                             "x_anchor": "center",
                             "y_anchor": "middle",
                             "absolute": false,
-                            "x_offset": 0,
+                            "x_offset": 0.001,
                             "y_offset": -0.02
                         }
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": -0.51,
+                    "x_offset": 0,
                     "y_offset": -0.19
                 }
             },
@@ -1823,7 +1046,7 @@
                     "y_offset": -0.17
                 }
             },
-            "Rectangle 168": {
+            "indicator": {
                 "type": "Node",
                 "format": {
                     "type": "Anchored"
@@ -1837,10 +1060,6 @@
                     "size": [
                         110,
                         1
-                    ],
-                    "position": [
-                        222,
-                        747
                     ],
                     "visible": true
                 },
@@ -1904,11 +1123,11 @@
                     "x_anchor": "left",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.56,
-                    "y_offset": -0.12
+                    "x_offset": 0.57,
+                    "y_offset": -0.095
                 }
             },
-            "Host Game": {
+            "hostGame": {
                 "type": "Label",
                 "data": {
                     "anchor": [
@@ -1944,10 +1163,10 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0.58,
-                    "y_offset": -0.09
+                    "y_offset": -0.065
                 }
             },
-            "Join Game": {
+            "joinGame": {
                 "type": "Label",
                 "data": {
                     "anchor": [
@@ -1983,7 +1202,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0.22,
-                    "y_offset": -0.09
+                    "y_offset": -0.065
                 }
             },
             "back": {
@@ -2041,8 +1260,8 @@
                     "x_anchor": "left",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.04,
-                    "y_offset": -0.09
+                    "x_offset": 0.05,
+                    "y_offset": -0.06
                 }
             }
         }

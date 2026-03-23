@@ -238,6 +238,10 @@
         "menuLabel": {
             "file":     "fonts/Roboto-Bold.ttf",
             "size":     42
+        },
+        "bossDescriptionLabel": {
+            "file":     "fonts/GRECOromanLubedWrestling.ttf",
+            "size":     12
         }
     },
     "jsons": {
@@ -252,8 +256,7 @@
         "client": "json/scenes/clientScene.json",
         "textfield": "widgets/elements/textfield.json",
         "hostSetup": "json/scenes/hostSetupScene.json",
-        "roleCard": "widgets/elements/roleCard.json",
-        "bossSelection": "widgets/bossSelection.json",
+        "bossCard": "widgets/elements/bossCard.json",
         "menuScene":   "json/scenes/menuScene.json",
         "lobbyScene": "json/scenes/lobbyScene.json",
         "houseSelectScene": "json/scenes/houseSelectionScene.json",

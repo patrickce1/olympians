@@ -71,7 +71,7 @@
                     "padding"  : [20, 10, 20, 10],
                     "halign"   : "left",
                     "valign"   : "middle",
-                    "foreground": "#D49949ff",
+                    "foreground": "#ffd9a9ff",
                     "cursor": true,
                     "cursorcolor" : "#FFE5C3ff",
                     "cursorwidth" : 1
