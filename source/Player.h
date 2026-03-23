@@ -24,11 +24,11 @@ private:
     int _playerNumber;
     /** The player name*/
     std::string _playerName;
-    /** The house name for the house the player is using*/
+    /** The house name for the house the player is from*/
     std::string _houseId;
-    /** The house that the house hails from*/
+    /** The house that the player hails from*/
     int _house;
-    /** The max health of the house and player*/
+    /** The max health of the player*/
     float _maxHealth;
     /** The current health of the house and player*/
     float _currentHealth;
@@ -89,7 +89,7 @@ public:
     float getMaxHealth() const { return _maxHealth; }
     
     /**
-     * Return the current health of the house/player
+     * Return the current health of the player
      */
     float getCurrentHealth() const { return _currentHealth; }
 
