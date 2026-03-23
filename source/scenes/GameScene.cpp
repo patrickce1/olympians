@@ -16,9 +16,9 @@ using namespace std;
 /** Example height for now, change as needed */
 #define SCENE_HEIGHT 852
 
-namespace {
-    constexpr float ITEM_PHYSICS_UNITS = 1.0f;
-}
+/** Constant to define Box2D obstacle physics base unit */
+constexpr float ITEM_SPEED_UNITS = 1.0f;
+
 
 #pragma mark -
 #pragma mark Constructors
@@ -795,7 +795,7 @@ std::shared_ptr<cugl::physics2::BoxObstacle> GameScene::createItemBody(
     }
 
     body->setName("item_body_" + std::to_string((unsigned long long)itemId));
-    body->setPhysicsUnits(ITEM_PHYSICS_UNITS);
+    body->setPhysicsUnits(ITEM_SPEED_UNITS);
     body->setBodyType(b2_kinematicBody);
     body->setSensor(true);
     body->setLinearVelocity(Vec2::ZERO);
