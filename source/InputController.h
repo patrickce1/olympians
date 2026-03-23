@@ -42,6 +42,7 @@ public:
         DROP_BOSS,      ///< Item released onto the boss zone — triggers an attack.
         DROP_ALLY_LEFT, ///< Item released onto the left ally zone — triggers support.
         DROP_ALLY_RIGHT,///< Item released onto the right ally zone — triggers support.
+        DROP_INVALID,   ///< Item released into the attack zone holding a support item — triggers pullback.
         PASS_LEFT,      ///< Horizontal swipe left — passes item to the left neighbour.
         PASS_RIGHT,     ///< Horizontal swipe right — passes item to the right neighbour.
         PAUSE,          ///< Pause button tapped.

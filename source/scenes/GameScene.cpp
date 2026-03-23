@@ -115,8 +115,9 @@ void GameScene::initInputZones(){
     _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.4f, w * 0.9f, h * 0.47f)}};
     
     _supportZones = {
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(0, h * 0.45f, w * 0.15f, h * 0.40f)},
-        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)}
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.45f, w * 0.15f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)},
+        {InputController::Action::DROP_INVALID,    Rect(w * 0.15f, h * 0.45f, w * 0.70f, h * 0.40f)}
     };
     
     _passZones = {
@@ -488,6 +489,8 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
         case InputController::Action::DROP_ALLY_RIGHT:
             if (!local->isAlive()) return false;
             return handleSupportRight(itemId);
+        case InputController::Action::DROP_INVALID:
+            return false;
         case InputController::Action::PASS_LEFT:
             return handlePassLeft(itemId);
         case InputController::Action::PASS_RIGHT:
