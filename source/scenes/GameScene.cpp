@@ -19,7 +19,6 @@ using namespace std;
 /** Constant to define Box2D obstacle physics base unit */
 constexpr float ITEM_SPEED_UNITS = 1.0f;
 
-
 #pragma mark -
 #pragma mark Constructors
 
@@ -117,11 +116,14 @@ void GameScene::initInputZones(){
     _supportZones = {
         {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.45f, w * 0.15f, h * 0.40f)},
         {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)},
-        {InputController::Action::DROP_INVALID,    Rect(w * 0.15f, h * 0.45f, w * 0.70f, h * 0.40f)}
+    };
+    
+    _inventoryZones = {
+        {InputController::Action::NONE, Rect(w * 0.15f, 0, w * 0.70f, h * 0.35f)}
     };
     
     _passZones = {
-        {InputController::Action::PASS_LEFT,  Rect(0, 0, w * 0.15f, h * 0.35f)},
+        {InputController::Action::PASS_LEFT,  Rect(0,         0, w * 0.15f, h * 0.35f)},
         {InputController::Action::PASS_RIGHT, Rect(w * 0.85f, 0, w * 0.15f, h * 0.35f)}
     };
 }
@@ -565,7 +567,7 @@ void GameScene::handlePlayerInput(InputController& input) {
 
     // 1. Determine which drop zone the item was released into
     Vec2 releaseWorld = screenToWorldCoords(input.getReleasePosition());
-    InputController::Action finalAction = InputController::Action::NONE;
+    InputController::Action finalAction = InputController::Action::DROP_INVALID;
 
     for (const auto& pair : _inputZones) {
         if (pair.second.contains(releaseWorld)) {
@@ -984,6 +986,7 @@ void GameScene::updateInputZones(){
     }
     
     _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
+    _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
 }
 
 /**

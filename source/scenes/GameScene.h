@@ -72,6 +72,9 @@ protected:
     /** Zones used for support on screen. */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _supportZones;
     
+    /** Zones used for inventory on screen. */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _inventoryZones;
+    
     /** IZones used for pass on screen. . */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _passZones;
 
