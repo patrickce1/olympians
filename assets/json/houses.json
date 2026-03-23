@@ -1,0 +1,67 @@
+{
+    "houses": [
+        {
+            "id": "Zeus",
+            "maxHealth": 5.0,
+            "abilityClass": "Damage Dealer",
+            "specialAbilities": ["bolt"],
+            "spritesheetPath": "textures/zeus.png"
+        },
+        {
+            "id": "Poseidon",
+            "maxHealth": 5.0,
+            "abilityClass": "Damage Dealer",
+            "specialAbilities": ["whirlpool"],
+            "spritesheetPath": "textures/poseidon.png"
+        },
+        {
+            "id": "Hades",
+            "maxHealth": 5.0,
+            "abilityClass": "Damage Dealer",
+            "specialAbilities": ["resurrect"],
+            "spritesheetPath": "textures/hades.png"
+        },
+        {
+            "id": "Demeter",
+            "maxHealth": 5.0,
+            "abilityClass": "Healer",
+            "specialAbilities": ["harvest"],
+            "spritesheetPath": "textures/demeter.png"
+        },
+        {
+            "id": "Athena",
+            "maxHealth": 5.0,
+            "abilityClass": "Damage Dealer",
+            "specialAbilities": ["aegis"],
+            "spritesheetPath": "textures/athena.png"
+        },
+        {
+            "id": "Aphrodite",
+            "maxHealth": 5.0,
+            "abilityClass": "Healer",
+            "specialAbilities": ["love"],
+            "spritesheetPath": "textures/aphrodite.png"
+        },
+        {
+            "id": "Ares",
+            "maxHealth": 5.0,
+            "abilityClass": "Damage Dealer",
+            "specialAbilities": ["armor"],
+            "spritesheetPath": "textures/ares.png"
+        },
+        {
+            "id": "Hephestus",
+            "maxHealth": 5.0,
+            "abilityClass": "Damage Dealer",
+            "specialAbilities": ["craft"],
+            "spritesheetPath": "textures/hephestus.png"
+        },
+        {
+            "id": "Hermes",
+            "maxHealth": 5.0,
+            "abilityClass": "Damage Dealer",
+            "specialAbilities": ["speed"],
+            "spritesheetPath": "textures/hermes.png"
+        }
+    ]
+}

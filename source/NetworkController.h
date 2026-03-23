@@ -129,6 +129,9 @@ public:
 
     /*Sends an update notifying players about changes to the lobby (new players joining/leaving)*/
     void broadcastLobbyState();
+    
+    /*Sends an update notifying players about changes to the house selections*/
+    void broadcastSelectedHouse(std::string& house);
 
     /*Getters for the queues and game state used during the gameplay*/
     /*Returns all the networking messages about attacks we recieved after calling getNetworkUpdate()*/
@@ -162,12 +165,52 @@ public:
 
     /*returns the local player's position in the circle*/
     int getLocalPlayerNumber();
+    
+    /*returns player's position in the circle given their networkID*/
+    int getPlayerNumberByID(const std::string& networkID);
 
     /*returns if this numbered player is a real one or AI*/
     bool checkRealPlayer(int playerID);
 
     /*Returns the list of networked players, carrying their network ID and username*/
     const std::vector<NetworkedPlayer> getNetworkedPlayers();
+    
+    /**
+     * Registers a disconnect callback on the NetcodeConnection so that when
+     * any peer closes, their slot is immediately pushed into _disconnectedSlots.
+     * Should be called once after the network connection is established.
+     */
+    void registerDisconnectCallback();
+    
+    /**
+     * Broadcasts a PLAYER_DISCONNECT message to all clients.
+     *
+     * @param slotIndex  The 0-based player slot that disconnected.
+     */
+    void broadcastPlayerDisconnected(int slotIndex);
+    
+    /** Returns slots that disconnected since the last clearQueues(). */
+    const std::vector<int>& getDisconnectedSlots() const { return _disconnectedSlots; }
+    
+    /**
+     * Sets the house selection for the local player (host only).
+     *
+     * Because sendToHost() does not loop back to the sender, the host cannot
+     * receive its own SELECT_HOUSE message via the normal network path. This
+     * method writes the house ID directly into the host's slot in the online
+     * players list and broadcasts the updated lobby state to all clients so
+     * they stay in sync.
+     *
+     * Should be called on the host immediately after broadcastSelectedHouse()
+     * when the host locks in their house selection.
+     *
+     * @param houseID  The ID of the house the host selected (e.g. "Athena").
+     *                 Must match a valid entry in the HouseLoader.
+     */
+    void setLocalHouse(const std::string& houseID);
+    
+    /** Returns true if every player in the lobby has selected a house. */
+    bool allPlayersSelectedHouse() const;
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -184,6 +227,8 @@ protected:
         PLAYER_JOIN = 6,
         GAME_LOST = 7,
         GAME_WON = 8,
+        SELECT_HOUSE = 9,
+        PLAYER_DISCONNECT = 10
     };
 
     /*Our network connection*/
@@ -211,6 +256,9 @@ private:
     //win/loss booleans
     bool _gameWon;
     bool _gameLost;
+    
+    // A vector storing the slots containing all the disconnected players that haven't been reassigned.
+    std::vector<int> _disconnectedSlots;
 
     //Boolean that tells us if the game has been started by the host in the last network cycle
     bool _gameStarted;

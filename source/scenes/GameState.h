@@ -6,7 +6,7 @@
 #include <memory>
 #include "../Player.h"
 #include "../Enemy.h"
-#include "../CharacterLoader.h"
+#include "../HouseLoader.h"
 #include "../items/ItemController.h"
 #include "../playerAI/PlayerAI.h"
 #include "../playerAI/EasyPlayerAI.h"
@@ -51,35 +51,39 @@ public:
 #pragma mark - Lifecycle
 
     /**
-     * Loads character definitions from JSON into the character loader.
+     * Loads house definitions from JSON into the house loader.
      * Must be called first since player construction depends on it.
      *
-     * @return true if the character file loaded successfully.
+     * @return true if the house file loaded successfully.
      */
-    bool initCharacters();
+    bool initHouses();
 
     /**
      * Builds the player array (one human + three AI), links all players in a
      * circular neighbour ring, and populates the player ID map.
-     * Must be called after initCharacters().
-     * 
+     * Must be called after initHouses().
+     *
      * For now, we just pass in an integer, since if there are x real players, there will be the first x players in the game scene
      * Later, when we have reordering ability, this can be changed
      */
     void initPlayers();
 
-     /**
-     * Replaces the AI placeholder at the given slot with a real human player.
+    /**
+     * Replaces the AI placeholder at the given slot with a real human player,
+     * using the house they selected in the character select screen.
      *
-     * Called during game setup after the lobby has finalized the player order.
+     * Called during game setup after the lobby has finalized the player order
+     * and all players have broadcast their house selections. After replacing
+     * the player object, all neighbour pointers in the circular ring are
+     * re-wired so that every player's left/right references remain valid.
      *
-     * After replacing the player, all neighbors in the circle are re-linked
-     * to account for the new player object at that slot.
-     *
-     * @param playerNumber  The 0-based index of the slot to replace with a real player.
+     * @param playerNumber  The 0-based slot index of the player to promote.
      * @param playerName    The display name of the player joining this slot.
+     * @param houseName     The ID of the house the player selected (e.g. "Athena").
+     *                      Must match a valid entry in the HouseLoader or player
+     *                      stats will be missing and may cause a crash downstream.
      */
-    void setRealPlayer(int playerNumber, const std::string& playerName);
+    void setRealPlayer(int playerNumber, const std::string& playerName, const std::string& houseName);
 
     /**
      * Loads and initialises the enemy from JSON.
@@ -98,7 +102,7 @@ public:
     bool initAI(ItemController& itemController);
     
     /**
-     * Initialises the game world: loads characters and the enemy from JSON,
+     * Initialises the game world: loads houses and the enemy from JSON,
      * builds the player array (one human + three AI), links all players in a
      * circular neighbour ring, and finishes AI initialisation using the
      * provided item database.
@@ -171,6 +175,17 @@ public:
      * @return          The matching Player pointer, or nullptr if not found.
      */
     Player* getPlayerById(int playerId) const;
+    
+    /**
+     * Returns a raw pointer to the player at the given slot index.
+     *
+     * @param  slot  Zero-based index into the player array.
+     * @return      The Player at that slot, or nullptr if out of range.
+     */
+    Player* getPlayerBySlot(int slot) const;
+    
+    /** Returns the character loader, needed when constructing replacement players. */
+    const HouseLoader& getHouseLoader() const { return _houseLoader; }
 
 #pragma mark - Enemy Access
 
@@ -217,8 +232,8 @@ private:
     /** The enemy for this game session. */
     std::shared_ptr<Enemy> _enemy;
 
-    /** Loads character definitions from JSON for player construction. */
-    CharacterLoader _characterLoader;
+    /** Loads house definitions from JSON for player construction. */
+    HouseLoader _houseLoader;
 };
 
 #endif /* __GAME_STATE_H__ */

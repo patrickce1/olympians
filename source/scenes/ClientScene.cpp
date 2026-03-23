@@ -101,9 +101,13 @@ void ClientScene::setupListeners() {
 
     _enterGame->addListener([this](const std::string& name, bool down) {
         if (down) {
-            _network->joinRoom(_gameId->getText());
-            _network->setPlayerName(_playerId->getText());
-            _status = Status::START;
+            if(_gameId->getText() != "" && _playerId->getText() != ""){
+                _network->joinRoom(_gameId->getText());
+                _network->setPlayerName(_playerId->getText());
+                _status = Status::START;
+            } else {
+                _enterGame->setDown(true);
+            }
         }
     });
 
@@ -120,6 +124,10 @@ void ClientScene::setupListeners() {
 void ClientScene::dispose() {
     if (_active) {
         removeAllChildren();
+        _enterGame = nullptr;
+        _backOut = nullptr;
+        _gameId = nullptr;
+        _playerId = nullptr;
         _active = false;
     }
     _network = nullptr;

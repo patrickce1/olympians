@@ -88,6 +88,7 @@ bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) 
 void NetworkController::joinRoom(const std::string room) {
 	_network = NetcodeConnection::alloc(_config, dec2hex(room));
 	_network->open();
+    registerDisconnectCallback();
 }
 
 /**
@@ -98,6 +99,7 @@ void NetworkController::joinRoom(const std::string room) {
 void NetworkController::hostRoom() {
 	_network = NetcodeConnection::alloc(_config);
     _network->open();
+    registerDisconnectCallback();
 }
 
 /**
@@ -240,10 +242,11 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			_onlinePlayers.clear();
 			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
 			// re-pair the flattened vector back into pairs
-			for (int i = 0; i < playerData.size(); i += 2) {
+			for (int i = 0; i < playerData.size(); i += 3) {
 				NetworkedPlayer newPlayer;
 				newPlayer.networkID = playerData[i];
 				newPlayer.username = playerData[i + 1];
+                newPlayer.houseID = playerData[i+2];
 				_onlinePlayers.push_back(newPlayer);
 			}
 			break;
@@ -266,6 +269,21 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			_gameLost = true;
 			break;
 		}
+        case MessageType::SELECT_HOUSE: {
+            std::string houseID = _deserializer.readString();
+            int index = getPlayerNumberByID(senderID);
+            if (index != -1) {
+                _onlinePlayers[index].houseID = houseID;
+                broadcastLobbyState();
+            }
+            break;
+        }
+        case MessageType::PLAYER_DISCONNECT: {
+            int slot = _deserializer.readSint32();
+            CULog("NetworkController: received PLAYER_DISCONNECT for slot %d", slot);
+            _disconnectedSlots.push_back(slot);
+            break;
+        }
 	}
 }
 
@@ -296,6 +314,7 @@ void NetworkController::clearQueues() {
 	_gameWon = false;
 	_gameLost = false;
 	_gameStarted = false;
+  _disconnectedSlots.clear();
 }
 
 /**
@@ -445,7 +464,7 @@ void NetworkController::broadcastLoseGame() {
  * Broadcasts the current lobby player list to all connected clients.
  * Called by the host whenever a new player joins so all clients stay in sync.
  * Serializes the online players list as a flat string vector in the format:
- * [networkID_0, username_0, networkID_1, username_1, ...]
+ * [networkID_0, username_0, house_0, networkID_1, username_1, house_1, ...]
  */
 void NetworkController::broadcastLobbyState() {
 	std::vector<std::string> serializablePlayers;
@@ -453,12 +472,27 @@ void NetworkController::broadcastLobbyState() {
 	for (NetworkedPlayer player : _onlinePlayers) {
 		serializablePlayers.push_back(player.networkID);
 		serializablePlayers.push_back(player.username);
+        serializablePlayers.push_back(player.houseID);
 	}
 
 	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
 	_serializer.writeStringVector(serializablePlayers);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
+}
+
+/**
+ * Broadcasts the current selected house by the player to all connected clients.
+ * Called by the host whenever a player locks down a house choice so all clients
+ * can stay in sync and in can be displayed in the lobby.
+ *
+ *@param house - the selected house 
+ */
+void NetworkController::broadcastSelectedHouse(std::string& house) {
+    _serializer.writeSint32(MessageType::SELECT_HOUSE);
+    _serializer.writeString(house);
+    _network->sendToHost(_serializer.serialize());
+    _serializer.reset();
 }
 
 /**
@@ -502,4 +536,94 @@ int NetworkController::getLocalPlayerNumber() {
 		}
 	}
 	return -1; // not found
+}
+
+/**
+ * Returns the 0-based index of the player in the online players list given their networkID.
+ * This index corresponds to the player's slot in the game's player array.
+ * Returns -1 if the player is not found in the list.
+ *
+ * @return  The player's index, or -1 if not found.
+ */
+int NetworkController::getPlayerNumberByID(const std::string& networkID) {
+    for (int i = 0; i < _onlinePlayers.size(); i++) {
+        if (_onlinePlayers[i].networkID == networkID) {
+            return i;
+        }
+    }
+    return -1; // not found
+}
+
+/**
+ * Registers a disconnect callback on the NetcodeConnection so that when
+ * any peer closes, their slot is immediately pushed into _disconnectedSlots.
+ * Should be called once after the network connection is established.
+ */
+void NetworkController::registerDisconnectCallback() {
+    if (!_network) return;
+
+    _network->onDisconnect([this](const std::string& peerID) {
+        CULog("NetworkController: peer %s disconnected", peerID.c_str());
+        
+        // Find which slot this networkID maps to.
+        for (int i = 0; i < (int)_onlinePlayers.size(); i++) {
+            if (_onlinePlayers[i].networkID == peerID) {
+                CULog("NetworkController: slot %d disconnected", i);
+                _disconnectedSlots.push_back(i);
+                
+                // Remove from _onlinePlayers so future lookups are accurate.
+                _onlinePlayers.erase(_onlinePlayers.begin() + i);
+                
+                // Notify all remaining clients if we are the host.
+                if (isHost()) {
+                    broadcastPlayerDisconnected(i);
+                    broadcastLobbyState();
+                }
+                break;
+            }
+        }
+    });
+}
+
+/**
+ * Broadcasts a PLAYER_DISCONNECT message to all clients.
+ *
+ * @param slotIndex  The 0-based player slot that disconnected.
+ */
+void NetworkController::broadcastPlayerDisconnected(int slotIndex) {
+    _serializer.writeSint32(MessageType::PLAYER_DISCONNECT);
+    _serializer.writeSint32(slotIndex);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
+}
+
+/**
+ * Sets the house selection for the local player (host only).
+ *
+ * Because sendToHost() does not loop back to the sender, the host cannot
+ * receive its own SELECT_HOUSE message via the normal network path. This
+ * method writes the house ID directly into the host's slot in the online
+ * players list and broadcasts the updated lobby state to all clients so
+ * they stay in sync.
+ *
+ * Should be called on the host immediately after broadcastSelectedHouse()
+ * when the host locks in their house selection.
+ *
+ * @param houseID  The ID of the house the host selected (e.g. "Athena").
+ *                 Must match a valid entry in the HouseLoader.
+ */
+void NetworkController::setLocalHouse(const std::string& houseID) {
+    if (!_onlinePlayers.empty()) {
+        _onlinePlayers[0].houseID = houseID;
+        broadcastLobbyState();
+    }
+}
+
+/** Returns true if every player in the lobby has selected a house. */
+bool NetworkController::allPlayersSelectedHouse() const {
+    if (_onlinePlayers.empty()) return false;
+    for (const NetworkedPlayer& player : _onlinePlayers) {
+        if (player.houseID.empty()) return false;
+    }
+    return true;
 }
