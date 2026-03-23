@@ -609,6 +609,7 @@ void GameScene::handlePlayerInput(InputController& input) {
                 _draggedIcon->setVisible(false);
             }
         } else {
+            // Find item physics body and pullback its position to where the item was before drag
             auto body = _itemBodies.find(_draggedItemId);
             if (body != _itemBodies.end() && body->second) {
                 body->second->setPosition(_dragStartBodyPosition);
@@ -804,6 +805,11 @@ cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size& widgetSize) c
     return cugl::Vec2(xDist(rng), yDist(rng));
 }
 
+/** Creates and registers the Box2D body for an item widget.
+ *
+ * @param itemId  The ItemInstance for which the item body is created.
+ * @param widget  The widget to attach the physics body to.
+ */
 std::shared_ptr<cugl::physics2::BoxObstacle> GameScene::createItemBody(
     ItemInstance::ItemId itemId,
     const std::shared_ptr<SceneNode>& widget) {
@@ -829,6 +835,7 @@ std::shared_ptr<cugl::physics2::BoxObstacle> GameScene::createItemBody(
     return body;
 }
 
+/** Updates all inventory widgets so they exactly match their body positions. */
 void GameScene::syncItemWidgetsToBodies() {
     std::vector<ItemInstance::ItemId> staleIds;
 
@@ -850,6 +857,10 @@ void GameScene::syncItemWidgetsToBodies() {
     }
 }
 
+/** Removes the widget and its Box2D body for the given item.
+ *
+ * @param itemId  The itemId representing the ItemInstance to be removed.
+ */
 void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
     auto widget = _itemWidgets.find(itemId);
     if (widget != _itemWidgets.end()) {
@@ -946,6 +957,10 @@ void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch) {
     }
 }
 
+/** Draws a cyan outline around Box2D debug wireframes for inventory item bodies.
+ *
+ * @param batch  The active sprite batch.
+ */
 void GameScene::renderItemBodyDebug(cugl::graphics::SpriteBatch* batch) {
     batch->setTexture(nullptr);
     batch->setGradient(nullptr);

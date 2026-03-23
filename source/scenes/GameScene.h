@@ -404,7 +404,11 @@ public:
     /** Return a random valid inventory position for a newly spawned item widget */
     cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
 
-    /** Creates and registers the Box2D body for an item widget. */
+    /** Creates and registers the Box2D body for an item widget.
+     *
+     * @param itemId  The ItemInstance for which the item body is created.
+     * @param widget  The widget to attach the physics body to.
+     */
     std::shared_ptr<cugl::physics2::BoxObstacle> createItemBody(
         ItemInstance::ItemId itemId,
         const std::shared_ptr<cugl::scene2::SceneNode>& widget
@@ -413,7 +417,10 @@ public:
     /** Updates all inventory widgets so they exactly match their body positions. */
     void syncItemWidgetsToBodies();
 
-    /** Removes the widget and its Box2D body for the given item. */
+    /** Removes the widget and its Box2D body for the given item.
+     *
+     * @param itemId  The itemId representing the ItemInstance to be removed.
+     */
     void removeItemWidget(ItemInstance::ItemId itemId);
 
     /** Sync player inventory and item widgets displayed on screen */
@@ -469,7 +476,10 @@ public:
      */
     void renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch);
 
-    /** Draws the Box2D debug wireframes for inventory item bodies. */
+    /** Draws a cyan outline around Box2D debug wireframes for inventory item bodies.
+     *
+     * @param batch  The active sprite batch.
+     */
     void renderItemBodyDebug(cugl::graphics::SpriteBatch* batch);
 
     /**
