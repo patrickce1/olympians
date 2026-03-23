@@ -268,6 +268,11 @@ void GameScene::reset() {
     for (ItemInstance::ItemId itemId : itemIds) {
         removeItemWidget(itemId);
     }
+    
+    if (_itemPhysicsWorld) {
+        _itemPhysicsWorld->dispose();
+        _itemPhysicsWorld = nullptr;
+    }
 
     // Delegate inventory clearing to the model.
     _gameState.reset();
@@ -289,6 +294,9 @@ void GameScene::setLocalPlayer(int assignedIndex) {
 
 /**
  * Handles the local player dropping an attack item on the boss zone.
+ * Applies the dragged attack item to the enemy.
+ *
+ *@param itemId  The id of the item being handled.
  */
 bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
     auto enemy    = _gameState.getEnemy();
@@ -320,6 +328,8 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
 
 /**
  * Handles the local player dropping a support item on the left ally zone.
+ *
+ *@param itemId  The id of the item being handled.
  */
 bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
@@ -352,6 +362,8 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
 /**
  * Handles the local player dropping a support item on the right ally zone.
+ *
+ *@param itemId  The id of the item being handled.
  */
 bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
@@ -384,6 +396,8 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
 /**
  * Passes the dragged item in the local player's inventory to the left neighbour.
+ *
+ *@param itemId  The id of the item being handled.
  */
 bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
@@ -413,6 +427,8 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
 
 /**
  * Passes the dragged item in the local player's inventory to the right neighbour.
+ *
+ *@param itemId  The id of the item being handled.
  */
 bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
@@ -476,6 +492,9 @@ std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId it
 
 /**
  * Calls the appropriate handle action helper based on the input that we recieved
+ *
+ *@param action  The action the dragged action corresponds to.
+ *@param itemId  The id of the item being handled.
  */
 bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId) {
     Player* local = _gameState.getLocalPlayer();

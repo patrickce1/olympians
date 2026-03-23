@@ -257,28 +257,38 @@ public:
     /**
      * Handles the local player dropping an attack item on the boss zone.
      * Applies the dragged attack item to the enemy.
+     *
+     *@param itemId  The id of the item being handled.
      */
     bool handleAttack(ItemInstance::ItemId itemId);
 
     /**
      * Handles the local player dropping a support item on the left ally zone.
      * Applies the dragged support item to the left neighbour.
+     *
+     *@param itemId  The id of the item being handled.
      */
     bool handleSupportLeft(ItemInstance::ItemId itemId);
 
     /**
      * Handles the local player dropping a support item on the right ally zone.
      * Applies the dragged support item to the right neighbour.
+     *
+     *@param itemId  The id of the item being handled.
      */
     bool handleSupportRight(ItemInstance::ItemId itemId);
 
     /**
      * Passes the dragged item to the left neighbour.
+     *
+     *@param itemId  The id of the item being handled.
      */
     bool handlePassLeft(ItemInstance::ItemId itemId);
 
     /**
      * Passes the dragged item to the right neighbour.
+     *
+     *@param itemId  The id of the item being handled.
      */
     bool handlePassRight(ItemInstance::ItemId itemId);
 
@@ -287,7 +297,7 @@ public:
      * and resets the input action afterwards.
      * No-op if the local player is not alive.
      *
-     * @param input  The active input controller.
+     * @param itemId  The id of the item being handled.
      */
     bool handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId);
 
