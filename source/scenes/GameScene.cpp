@@ -276,11 +276,6 @@ void GameScene::reset() {
     for (ItemInstance::ItemId itemId : itemIds) {
         removeItemWidget(itemId);
     }
-    
-    if (_itemPhysicsWorld) {
-        _itemPhysicsWorld->dispose();
-        _itemPhysicsWorld = nullptr;
-    }
 
     // Delegate inventory clearing to the model.
     _gameState.reset();
