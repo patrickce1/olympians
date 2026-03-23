@@ -60,8 +60,14 @@ protected:
     /** A container that stores labels and other info for visualizing the house and username choices of players */
     std::shared_ptr<cugl::scene2::SceneNode> _playerInfoContainer;
     
+    std::shared_ptr<cugl::scene2::SceneNode> _localPlayerIconIndicator;
+    
     /** The current status */
     Status _status;
+    
+    float _blinkTimer = 0.0f;
+    bool _blinkOn = true;
+    bool _hasSelectedHouse;
 
 public:
 #pragma mark -

@@ -9,7 +9,8 @@ using namespace std;
 
 /** Regardless of logo, lock the height to this */
 #define SCENE_HEIGHT  852
-
+/** Player Icon Blink Timer */
+#define BLINK_TIMER  0.5f
 
 /**
  * Initializes the controller contents, and starts the game
@@ -88,6 +89,8 @@ void LobbyScene::setupUI() {
             _playerImages.push_back(image);
         }
     }
+    
+    _localPlayerIconIndicator = _assets->get<scene2::SceneNode>("lobbyScene.tableArea.playerCard0.glowBorder");
 }
 
 /**
@@ -215,6 +218,16 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlaye
             }
         }
     }
+    
+    // check if local player has selected house
+    int localIndex = _network->getLocalPlayerNumber();
+
+    if (localIndex < onlinePlayers.size()) {
+        const auto& player = onlinePlayers[localIndex];
+        _hasSelectedHouse = (!player.houseID.empty());
+    } else {
+        _hasSelectedHouse = false;
+    }
 }
 
 void LobbyScene::updateLobbyBossImage(std::string enemyID) {
@@ -269,5 +282,17 @@ void LobbyScene::update(float timestep) {
 
     updateLobbyText(_network->getNetworkedPlayers());
     updateLobbyPlayerIcons(_network->getNetworkedPlayers());
+    
+    if (!_hasSelectedHouse) {
+        _blinkTimer += timestep;
+
+        if (_blinkTimer >= BLINK_TIMER) {
+            _blinkTimer = 0.0f;
+            _blinkOn = !_blinkOn;
+            _localPlayerIconIndicator->setVisible(_blinkOn);
+        }
+    } else {
+        _localPlayerIconIndicator->setVisible(true);
+    }
 }
 

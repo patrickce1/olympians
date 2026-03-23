@@ -207,6 +207,7 @@ void HouseSelectScene::setActive(bool value) {
             _rightButton->activate();
             _backOut->activate();
         } else {
+            slideTo(4);
             _lockButton->deactivate();
             _leftButton->deactivate();
             _rightButton->deactivate();
