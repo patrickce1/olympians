@@ -69,6 +69,11 @@ bool GameScene::initSceneGraph() {
     return true;
 }
 
+/**
+ * Initializes the Box2D physics world to support physics objects in the scene space.
+ *
+ * @return true if the physics world was successfully created.
+ */
 bool GameScene::initInventoryPhysics() {
     Rect worldBounds(0.0f, 0.0f, getSize().width, getSize().height);
     _itemPhysicsWorld = cugl::physics2::ObstacleWorld::alloc(worldBounds, Vec2::ZERO);
@@ -76,7 +81,6 @@ bool GameScene::initInventoryPhysics() {
         CULogError("Failed to create item physics world");
         return false;
     }
-
     return true;
 }
 
