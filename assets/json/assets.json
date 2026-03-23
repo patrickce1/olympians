@@ -74,7 +74,7 @@
             "file": "textures/gameScene/leftIcon.png"
         },
         "inventoryBackground": {
-            "file": "textures/gameScene/inventoryBackground.png"
+            "file": "textures/gameScene/inventoryBackground1.png"
         },
         "playerHealthFrame": {
             "file": "textures/gameScene/healthBarFrame.png"
