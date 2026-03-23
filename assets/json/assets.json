@@ -192,6 +192,24 @@
         },
         "brackets": {
             "file": "textures/hostScene/brackets.png"
+        },
+        "cloudTopRight": {
+            "file": "textures/lobbyScene/cloudTopRight.png"
+        },
+        "bossCircleFrame": {
+            "file": "textures/lobbyScene/bossCircleFrame.png"
+        },
+        "emptyLobbyImage": {
+            "file": "textures/lobbyScene/emptyLobbyImage.png"
+        },
+        "glowBorder": {
+            "file": "textures/lobbyScene/glowBorder.png"
+        },
+        "playerIconBG": {
+            "file": "textures/lobbyScene/playerIconBG.png"
+        },
+        "emptySIcon": {
+            "file": "textures/lobbyScene/emptySIcon.png"
         }
 	},
     "fonts": {

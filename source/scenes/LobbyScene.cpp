@@ -195,17 +195,17 @@ void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
  */
 void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers) {
     for (int i = 0; i < _playerImages.size(); i++) {
-        auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_playerImages[i]->getChildByName("playerIconImg"));
+        auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_playerImages[i]->getChildByName("playerIconImg")); // <- change Json to match
         if (image){
             if (i < onlinePlayers.size()) {
                 if (onlinePlayers[i].houseID == "Athena") {
                     image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
                 } else {
-                    image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+                    image->setTexture(_assets->get<cugl::graphics::Texture>("emptySIcon"));
                 }
             }
             else {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+                image->setTexture(_assets->get<cugl::graphics::Texture>("emptySIcon"));
             }
         }
     }
