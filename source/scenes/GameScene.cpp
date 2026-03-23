@@ -223,12 +223,15 @@ void GameScene::dispose() {
  */
 void GameScene::updateNetworkOrder() {
     if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
-        //check who are real players. This is subject to change once player reordering is developed
-        for (int i = 0; i < _network->getNetworkedPlayers().size(); i++) {
-            _gameState.setRealPlayer(i, _network->getNetworkedPlayers()[i].username);
+        const auto& networkedPlayers = _network->getNetworkedPlayers();
+        for (int i = 0; i < (int)networkedPlayers.size(); i++) {
+            _gameState.setRealPlayer(
+                i,
+                networkedPlayers[i].username,
+                networkedPlayers[i].houseID   // ← new third argument
+            );
         }
 
-        //assign our own number
         setLocalPlayer(_network->getLocalPlayerNumber());
 
         _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
@@ -263,6 +266,7 @@ void GameScene::reset() {
     _dragStartBodyPosition = Vec2::ZERO;
     _glowAction = InputController::Action::NONE;
     _glowTimer  = 0;
+    _slotsDemotedToAI.clear();
 
     std::vector<ItemInstance::ItemId> itemIds;
     itemIds.reserve(_itemWidgets.size());
@@ -730,6 +734,27 @@ void GameScene::handleNetworkUpdates() {
     processNetworkedPasses(_network->getPassUpdates());
 }
 
+/**
+ * Spawns items for the local player every frame, and for all AI-controlled
+ * players if this machine is the host. AI item spawning is host-only since
+ * the host is the authoritative source for all AI state.
+ *
+ * @param dt  Delta time in seconds.
+ */
+void GameScene::handleItemSpawn(float dt) {
+    // Always spawn items for the local human player.
+    _itemController.update(dt, _gameState.getLocalPlayer());
+
+    // Only the host spawns items for AI players, since the host is the
+    // authoritative source for all AI state and broadcasts it to clients.
+    if (!_network->isHost()) return;
+
+    for (auto& player : _gameState.getPlayers()) {
+        if (!player || !player->isAI()) continue;
+        _itemController.update(dt, player.get());
+    }
+}
+
 #pragma mark -
 #pragma mark Update
 
@@ -746,6 +771,14 @@ void GameScene::update(float dt, InputController& input) {
     if (input.touchEnded()) {
         input.resetAction();
     }
+
+    handleNetworkUpdates();
+    handleDisconnectedPlayers();
+
+    // now safe to iterate players
+    handleItemSpawn(dt);
+    syncInventoryWidgets();
+    updateEnemyAndAI(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);
@@ -1037,4 +1070,135 @@ void GameScene::updateInputZones(){
 void GameScene::setDebugMode(bool enabled){
     _debugMode = enabled;
     if (_resetBtn) _resetBtn->setVisible(enabled);
+}
+
+/**
+ * HOST ONLY. Builds a slot -> networkID map for every real (non-AI)
+ * player and passes it to the NetworkController to diff against the
+ * still-connected peer list. Populates _disconnectedSlots with any
+ * newly-dropped slots.
+ */
+void GameScene::detectDroppedPeers() {
+    std::unordered_map<int, std::string> activeNetworkIDs;
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
+
+    for (const auto& player : _gameState.getPlayers()) {
+        // Skip AI slots — they have no network peer to check.
+        if (player->isAI()) continue;
+
+        int slot = player->getPlayerNumber();
+
+        // Skip our own slot — we are still here by definition.
+        if (slot == _network->getLocalPlayerNumber()) continue;
+
+        // networkID lives at the same index as slot in _onlinePlayers,
+        // since lobby order and slot order are kept in sync.
+        if (slot < (int)networkedPlayers.size()) {
+            activeNetworkIDs[slot] = networkedPlayers[slot].networkID;
+        }
+    }
+}
+
+/**
+ * HOST ONLY. Replaces the player at the given slot with an EasyPlayerAI,
+ * re-wires the neighbour ring, and restores the disconnected player's
+ * health and inventory onto the new AI.
+ *
+ * @param slot  The 0-based slot index of the disconnected player.
+ */
+void GameScene::demoteSlotToAI(int slot) {
+    Player* player = _gameState.getPlayerBySlot(slot);
+    if (!player) return;
+
+    CULog("GameScene: host demoting slot %d to EasyPlayerAI", slot);
+
+    // Snapshot the disconnected player's state before overwriting.
+    float savedHealth    = player->getCurrentHealth();
+    auto  savedInventory = player->getInventory();
+
+    // Construct the replacement AI. GameScene owns this step because
+    // _itemController and _gameState.getCharacterLoader() both live here.
+    auto aiPlayer = std::make_shared<EasyPlayerAI>(
+        player->getHouseName(),
+        slot,
+        player->getPlayerName(),
+        _gameState.getHouseLoader()
+    );
+    aiPlayer->init(_itemController.getDatabase(), "json/playerAI.json");
+
+    // Swap the slot in the player array.
+    auto& players = _gameState.getPlayers();
+    players[slot] = aiPlayer;
+
+    // Re-wire the full circular neighbour ring so every player's
+    // left/right pointers are valid after the swap.
+    const int n = (int)players.size();
+    for (int i = 0; i < n; i++) {
+        players[i]->setLeftPlayer (players[(i - 1 + n) % n].get());
+        players[i]->setRightPlayer(players[(i + 1)     % n].get());
+    }
+
+    // Restore the disconnected player's health and inventory onto the
+    // new AI so the game continues without a state jump.
+    aiPlayer->setCurrentHealth(savedHealth);
+    for (const ItemInstance& item : savedInventory) {
+        aiPlayer->addItem(item);
+    }
+}
+
+/**
+ * HOST + CLIENTS. Updates the left and right teammate name labels to
+ * reflect the current AI/human state of each neighbour.
+ */
+void GameScene::refreshTeammateNameLabels() {
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) return;
+
+    if (_leftPlayerName && local->getLeftPlayer()) {
+        _leftPlayerName->setText(
+            local->getLeftPlayer()->isAI()
+                ? "AI Player " + std::to_string(local->getLeftPlayer()->getPlayerNumber())
+                : local->getLeftPlayer()->getPlayerName());
+    }
+    if (_rightPlayerName && local->getRightPlayer()) {
+        _rightPlayerName->setText(
+            local->getRightPlayer()->isAI()
+                ? "AI Player " + std::to_string(local->getRightPlayer()->getPlayerNumber())
+                : local->getRightPlayer()->getPlayerName());
+    }
+}
+
+/**
+ * Top-level disconnect handler. Called every frame from update().
+ * Delegates to the three helpers below.
+ */
+void GameScene::handleDisconnectedPlayers() {
+    if (!_network) return;
+
+    // No polling needed — _disconnectedSlots is populated automatically
+    // by the NetworkController's disconnect callback when any peer closes.
+
+    for (int slot : _network->getDisconnectedSlots()) {
+
+        // Skip slots we already handled in a previous frame.
+        if (_slotsDemotedToAI.count(slot)) continue;
+
+        Player* existing = _gameState.getPlayerBySlot(slot);
+
+        // Skip if the slot is already AI or doesn't exist.
+        if (!existing || existing->isAI()) continue;
+
+        // Step 2a: Host replaces the player object with an EasyPlayerAI.
+        // Clients skip this — their state is kept in sync each frame
+        // via broadcastGameState / networkUpdate.
+        if (_network->isHost()) {
+            demoteSlotToAI(slot);
+        }
+
+        // Mark this slot as handled so we don't re-demote it next frame.
+        _slotsDemotedToAI.insert(slot);
+
+        // Step 2b: Both host and clients refresh the teammate name labels.
+        refreshTeammateNameLabels();
+    }
 }

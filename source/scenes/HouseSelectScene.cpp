@@ -137,6 +137,11 @@ void HouseSelectScene::setupListeners() {
             
             // Broadcast selection over network
             _network->broadcastSelectedHouse(selectedHouse.id);
+            
+            // Host sets their own houseID directly since sendToHost doesn't loop back
+            if (_network->isHost()) {
+                _network->setLocalHouse(selectedHouse.id);
+            }
         } else {
             // Update UI
             updateText(_lockButton, "LOCK");
