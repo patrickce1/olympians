@@ -42,6 +42,7 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, con
     // Start up the input handler
     _assets = assets;
     _network = networkController;
+    loadBosses();
     
     Size dimen = getSize();
     
@@ -125,6 +126,11 @@ void HostSetupScene::setupListeners() {
             if(_hostName->getText() != ""){
                 _network->hostRoom();
                 _network->setPlayerName(_hostName->getText());
+                
+                // Get the selected boss using carousel index
+                EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
+                _network->setEnemy(selectedBoss.id);
+                
                 _status = Status::START;
             }
         }
@@ -304,4 +310,14 @@ void HostSetupScene::updateCarouselDots(int currentIndex) {
             fill->setColor(Color4("#9d7137ff"));
         }
     }
+}
+
+/** Loads boss definitions from the enemies JSON to use in selection. */
+bool HostSetupScene::loadBosses() {
+    const std::string enemiesJsonPath = "json/enemies.json";
+    if (!_enemyLoader.loadFromFile(enemiesJsonPath)) {
+        CULog("HostSetupScene: Failed to load enemies.json");
+        return false;
+    }
+    return true;
 }

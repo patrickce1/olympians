@@ -589,6 +589,16 @@ void NetworkController::setLocalHouse(const std::string& houseID) {
     }
 }
 
+/**
+ * Sets the enemy of the game using their unique Enemy ID. Should be called once after
+ * the host chooses a boss.
+ *
+ * @param enemyID  The unique of the boss from enemies.json
+ */
+void NetworkController::setEnemy(const std::string& enemyID) {
+    _enemy = enemyID;
+}
+
 /** Returns true if every player in the lobby has selected a house. */
 bool NetworkController::allPlayersSelectedHouse() const {
     if (_onlinePlayers.empty()) return false;

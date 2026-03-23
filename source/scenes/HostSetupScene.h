@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include "../EnemyLoader.h"
 #include "../NetworkController.h"
 
 /**
@@ -75,6 +76,9 @@ protected:
     
     /** The current status */
     Status _status;
+    
+    /** Loads enemy definitions from JSON for boss selection. */
+    EnemyLoader _enemyLoader;
 
 public:
 #pragma mark -
@@ -206,6 +210,9 @@ private:
      * @param currentIndex The index of the card we are at.
      */
     void updateCarouselDots(int currentIndex);
+    
+    /** Loads boss definitions from the enemies JSON to use in selection. */
+    bool loadBosses();
 };
 
 #endif /* __HOST_SETUP_SCENE_H__ */

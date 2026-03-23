@@ -203,6 +203,8 @@ void GameScene::updateNetworkOrder() {
 
         _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
         _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
+        
+        _gameState.setEnemy(_network->getEnemy());
     }
 }
 

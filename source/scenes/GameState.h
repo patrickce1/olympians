@@ -195,6 +195,13 @@ public:
      * @return A shared pointer to the Enemy, or nullptr if not yet initialised.
      */
     std::shared_ptr<Enemy> getEnemy() const { return _enemy; }
+    
+    /**
+     * Assigns the enemy for the game session.
+     *
+     * @param enemyId  the unique ID of the chosen enemy.
+     */
+    void setEnemy(std::string enemyID);
 
 private:
 

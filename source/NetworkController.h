@@ -197,6 +197,17 @@ public:
      */
     void setLocalHouse(const std::string& houseID);
     
+    /** Returns the enemy ID of the chosen boss for the game. */
+    std::string getEnemy() { return _enemy; };
+    
+    /**
+     * Sets the enemy of the game using their unique Enemy ID. Should be called once after
+     * the host chooses a boss.
+     *
+     * @param enemyID  The unique of the boss from enemies.json
+     */
+    void setEnemy(const std::string& enemyID);
+    
     /** Returns true if every player in the lobby has selected a house. */
     bool allPlayersSelectedHouse() const;
 
@@ -251,6 +262,9 @@ private:
 
     //Player's chosen username
     std::string _playerName;
+    
+    // Enemy for the game
+    std::string _enemy;
     
     //Used internally to handle the different types of networking messages that come in 
     void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);

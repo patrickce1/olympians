@@ -193,6 +193,19 @@ void GameState::setLocalPlayer(int assignedIndex) {
 }
 
 /**
+ * Assigns the enemy for the game session.
+ *
+ * @param enemyID  the unique ID of the chosen enemy.
+ */
+void GameState::setEnemy(std::string enemyID) {
+    const std::string enemyJsonPath = "json/enemies.json";
+    if (_enemy == nullptr) {
+        _enemy = std::make_shared<Enemy>();
+    }
+    _enemy->init(enemyID, enemyJsonPath);
+};
+
+/**
  * Returns the player associated with a given network player ID.
  *
  * @param playerId  The network-assigned player ID.
