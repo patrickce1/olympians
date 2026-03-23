@@ -687,7 +687,7 @@ void GameScene::handleDragInitiation(InputController& input) {
                 Size widgetSize = widget->getContentSize();
                 _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
             }
-            _draggedItemDef = getHeldItemDef(id).get();
+            _draggedItemDef = getHeldItemDef(id);
             updateInputZones();
             break;
         }
