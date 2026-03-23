@@ -45,8 +45,11 @@ protected:
     /** The game id label */
     std::shared_ptr<cugl::scene2::Label> _gameId;
     
+    /** Current boss id */
+    std::string _currentBoss = "";
+    
     /** Circular boss image (maybe button)*/
-    std::shared_ptr<cugl::scene2::SceneNode> _bossImage;
+    std::shared_ptr<cugl::scene2::PolygonNode> _bossImage;
     
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
@@ -164,6 +167,8 @@ private:
 
     /*Updates the player handles based on updates to the lobby state*/
     void updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers);
+    
+    void updateLobbyBossImage(std::string enemyID);
     
     /**
      * Updates the player icon images based on the current lobby state.

@@ -202,6 +202,12 @@
         "emptyLobbyImage": {
             "file": "textures/lobbyScene/emptyLobbyImage.png"
         },
+        "cyclopsLobbyImage": {
+            "file": "textures/lobbyScene/cyclopsLobbyImage.png"
+        },
+        "cerberusLobbyImage": {
+            "file": "textures/lobbyScene/cerberusLobbyImage.png"
+        },
         "glowBorder": {
             "file": "textures/lobbyScene/glowBorder.png"
         },

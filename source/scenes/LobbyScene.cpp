@@ -69,6 +69,8 @@ void LobbyScene::setupUI() {
     _gameId = std::dynamic_pointer_cast<scene2::Label>(
         _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
 
+    _bossImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_assets->get<scene2::SceneNode>("lobbyScene.tableArea.bossCircle.bossLobbyImage"));
+    
     _playerInfoContainer = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
 
     if (_playerInfoContainer) {
@@ -211,6 +213,21 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlaye
     }
 }
 
+void LobbyScene::updateLobbyBossImage(std::string enemyID) {
+    if (enemyID == "" && _currentBoss == "") {
+        return;
+    } else if (enemyID == _currentBoss) {
+        return;
+    }
+    
+    _currentBoss = enemyID;
+    if (_currentBoss == "enemy1") {
+        _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cyclopsLobbyImage"));
+    } else if (_currentBoss == "cerberus") {
+        _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusLobbyImage"));
+    }
+}
+
 /**
  * The method called to update the scene.
  *
@@ -224,9 +241,11 @@ void LobbyScene::update(float timestep) {
         _gameId->setText(_network->getRoom());
         _network->broadcastJoinedLobby();
         _network->getNetworkUpdates();
+        // change boss icon to the currently chosen boss
+        updateLobbyBossImage(_network->getEnemy());
     }
     else {
-        _gameId->setText("waiting...");
+        _gameId->setText("#####");
     }
 
     if (!_network->isHost()) {

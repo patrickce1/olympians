@@ -27,26 +27,22 @@
                 "data": {
                     "texture": "cloudTopRight",
                     "anchor": [
-                        0,
+                        1,
                         1
                     ],
                     "size": [
-                        396.93,
-                        696.59
+                        243,
+                        598
                     ],
                     "angle": 0,
-                    "position": [
-                        150,
-                        -442.18
-                    ],
                     "visible": true
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "right",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.38,
-                    "y_offset": -0.7
+                    "x_offset": 0,
+                    "y_offset": 0
                 }
             },
             "start": {
@@ -218,7 +214,7 @@
                                     "y_offset": 0
                                 }
                             },
-                            "emptyLobbyImage": {
+                            "bossLobbyImage": {
                                 "type": "Image",
                                 "data": {
                                     "texture": "emptyLobbyImage",
@@ -988,7 +984,7 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "left"
+                            "halign": "true center"
                         },
                         "children": {},
                         "layout": {
@@ -1009,7 +1005,7 @@
                                 0.5
                             ],
                             "size": [
-                                180,
+                                150,
                                 56
                             ],
                             "position": [
@@ -1019,7 +1015,7 @@
                             "angle": 0,
                             "visible": true,
                             "font": "menuTitle",
-                            "text": "######",
+                            "text": "#####",
                             "foreground": "#fdc782ff",
                             "background": "#00000000",
                             "padding": [
@@ -1029,7 +1025,7 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "left"
+                            "halign": "true center"
                         },
                         "children": {},
                         "layout": {
