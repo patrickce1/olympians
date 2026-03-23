@@ -96,11 +96,8 @@ void LobbyScene::setupUI() {
  */
 void LobbyScene::setupListeners() {
     _enterGame->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            //only host can start the game
-            if (_network->isHost()) {
-                _network->broadcastGameStart();
-            }
+        if (down && _network->isHost() && _network->allPlayersSelectedHouse()) {
+            _network->broadcastGameStart();
             _status = Status::START;
         }
     });
@@ -154,7 +151,7 @@ void LobbyScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = IDLE;
-            _enterGame->activate();
+            _enterGame->deactivate();
             _backOut->activate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->activate();
@@ -238,6 +235,13 @@ void LobbyScene::update(float timestep) {
         if (gameStarted) {
             _status = START;
         }
+    }
+    
+    // Only the host can start; only enable the button when all players have locked in a house.
+    if (_network->isHost() && _network->allPlayersSelectedHouse()) {
+            _enterGame->activate();
+    } else {
+        _enterGame->deactivate();
     }
 
     updateLobbyText(_network->getNetworkedPlayers());

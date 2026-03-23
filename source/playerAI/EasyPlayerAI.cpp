@@ -127,9 +127,16 @@ void EasyPlayerAI::actAttack(Enemy& enemy, ItemController& items) {
         }
     }
 
-    if (attackItems.empty()) return;
+    if (attackItems.empty()){
+        CULog("[EasyPlayerAI '%s'] actAttack — no attack items in inventory, aborting", getPlayerName().c_str());
+        return;
+    }
 
     ItemInstance::ItemId chosen = attackItems[rand() % attackItems.size()];
+    CULog("[EasyPlayerAI '%s'] actAttack — using item %llu on enemy '%s'",
+          getPlayerName().c_str(),
+          (unsigned long long)chosen,
+          enemy.getId().c_str());
     useItemById(chosen, enemy, *_db);
 }
 
@@ -153,7 +160,11 @@ void EasyPlayerAI::actSupport(ItemController& items) {
     check(getLeftPlayer());
     check(getRightPlayer());
 
-    if (!target) return;
+    if (!target){
+        CULog("[EasyPlayerAI '%s'] actSupport — no neighbour below healThreshold %.2f, aborting",
+                getPlayerName().c_str(), _healThreshold);
+        return;
+    }
 
     std::vector<ItemInstance::ItemId> supportItems;
     for (const ItemInstance& item : getInventory()) {
@@ -163,9 +174,18 @@ void EasyPlayerAI::actSupport(ItemController& items) {
         }
     }
 
-    if (supportItems.empty()) return;
+    if (supportItems.empty()){
+        CULog("[EasyPlayerAI '%s'] actSupport — no support items in inventory, aborting",
+                getPlayerName().c_str());
+        return;
+    }
 
     ItemInstance::ItemId chosen = supportItems[rand() % supportItems.size()];
+    CULog("[EasyPlayerAI '%s'] actSupport — using item %llu on '%s' (hp ratio=%.2f)",
+          getPlayerName().c_str(),
+          (unsigned long long)chosen,
+          target->getPlayerName().c_str(),
+          lowestRatio);
     useItemById(chosen, *target, *_db);
 }
 
@@ -173,7 +193,10 @@ void EasyPlayerAI::actSupport(ItemController& items) {
  * Picks a random item and passes it to a random alive neighbor.
  */
 void EasyPlayerAI::actPass() {
-    if (getInventory().empty()) return;
+    if (getInventory().empty()) {
+        CULog("[EasyPlayerAI '%s'] actPass — inventory empty, aborting", getPlayerName().c_str());
+        return;
+    }
 
     std::vector<Player*> targets;
     if (getLeftPlayer()  && getLeftPlayer()->isAlive())
@@ -181,12 +204,18 @@ void EasyPlayerAI::actPass() {
     if (getRightPlayer() && getRightPlayer()->isAlive())
         targets.push_back(getRightPlayer());
 
-    if (targets.empty()) return;
+    if (targets.empty()) {
+        CULog("[EasyPlayerAI '%s'] actPass — no alive neighbours, aborting", getPlayerName().c_str());
+        return;
+    }
 
     const auto& inventory = getInventory();
     ItemInstance item     = inventory[rand() % inventory.size()];
     Player* chosenTarget  = targets[rand() % targets.size()];
-
+    CULog("[EasyPlayerAI '%s'] actPass — passing item %llu to '%s'",
+          getPlayerName().c_str(),
+          (unsigned long long)item.getId(),
+          chosenTarget->getPlayerName().c_str());
     removeItemById(item.getId());
     chosenTarget->addItem(item);
 }

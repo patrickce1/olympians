@@ -1,9 +1,9 @@
 {
     "easyPlayerAI": {
         "thinkInterval": 2.0,
-        "aggressionWeight": 0.6,
-        "supportWeight": 0.4,
-        "healThreshold": 0.5
+        "aggressionWeight": 0.4,
+        "supportWeight": 0.6,
+        "healThreshold": 0.7
     },
     "mediumPlayerAI": {
         "thinkInterval": 1.5,
