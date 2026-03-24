@@ -23,6 +23,7 @@
 #include "../items/ItemController.h"
 #include "../HouseLoader.h"
 #include <cugl/cugl.h>
+#include <cmath>
 
 // ─────────────────────────────────────────────
 // Internal helpers — not exposed in the header
@@ -65,8 +66,9 @@ void printHand(const Player& p) {
     }
 }
 
-/** Loads the ItemDatabase from the given items JSON path and seeds time. */
-ItemDatabase loadDatabase(const std::string& itemsJsonPath) {
+/** Loads the ItemDatabase + house scaling from JSON and seeds time. */
+ItemDatabase loadDatabase(const std::string& itemsJsonPath,
+                         const std::string& housesJsonPath) {
     ItemDatabase db;
 
     auto reader = cugl::JsonReader::alloc(itemsJsonPath);
@@ -85,8 +87,24 @@ ItemDatabase loadDatabase(const std::string& itemsJsonPath) {
         CULogError("PlayerTests: ItemDatabase::loadFromJson failed for '%s'", itemsJsonPath.c_str());
     }
 
+    auto houseReader = cugl::JsonReader::alloc(housesJsonPath);
+    if (!houseReader) {
+        CULogError("PlayerTests: failed to open houses JSON at '%s'", housesJsonPath.c_str());
+    } else {
+        auto housesJson = houseReader->readJson();
+        if (!housesJson) {
+            CULogError("PlayerTests: failed to parse houses JSON at '%s'", housesJsonPath.c_str());
+        } else if (!db.loadHouseScalingFromJson(housesJson)) {
+            CULogError("PlayerTests: ItemDatabase::loadHouseScalingFromJson failed for '%s'", housesJsonPath.c_str());
+        }
+    }
+
     db.setStartingPointWithTime();
     return db;
+}
+
+bool nearlyEqual(float a, float b, float eps = 1e-4f) {
+    return std::fabs(a - b) <= eps;
 }
 
 /** Loads house definitions from the given JSON path for use in tests. */
@@ -418,6 +436,57 @@ static void testUseSupportItemOnEnemyIsNoop(const HouseLoader& loader,
            "useSupportItemOnEnemy: item is still consumed");
 }
 
+/** Verifies attack scaling and affinity multiplier on a rare affinity-matching item. */
+static void testAttackScalingAndAffinity(const HouseLoader& loader,
+                                         const ItemDatabase& db,
+                                         Enemy& enemy) {
+    auto matchPlayer = std::make_shared<Player>("Ares", 1, "Ares P1", loader);
+    auto mismatchPlayer = std::make_shared<Player>("Poseidon", 2, "Poseidon P2", loader);
+
+    auto def = db.getDef("noams_ballista");
+    expect(def != nullptr, "scalingAttack: noams_ballista def exists");
+    if (!def) return;
+
+    const float matchHpBefore = enemy.getCurrentHealth();
+    matchPlayer->addItem(makeItem("noams_ballista"));
+    const float matchResolved = matchPlayer->useItemById(matchPlayer->getInventory()[0].getId(), enemy, db);
+
+    const float expectedMatch = def->getBaseValue() * (1.0f + 1.0f) * 1.5f; // ares attack 1.0 + affinity
+    expect(nearlyEqual(matchResolved, expectedMatch), "scalingAttack: affinity-matching value is correct");
+    expect(nearlyEqual(matchHpBefore - enemy.getCurrentHealth(), expectedMatch), "scalingAttack: enemy damage matches resolved value");
+
+    // Reset enemy health for second check
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    const float mismatchHpBefore = enemy.getCurrentHealth();
+    mismatchPlayer->addItem(makeItem("noams_ballista"));
+    const float mismatchResolved = mismatchPlayer->useItemById(mismatchPlayer->getInventory()[0].getId(), enemy, db);
+
+    const float expectedMismatch = def->getBaseValue() * (1.0f + 0.8f); // poseidon attack 0.8, no affinity
+    expect(nearlyEqual(mismatchResolved, expectedMismatch), "scalingAttack: non-matching value is correct");
+    expect(nearlyEqual(mismatchHpBefore - enemy.getCurrentHealth(), expectedMismatch), "scalingAttack: enemy damage without affinity is correct");
+}
+
+/** Verifies support scaling on a non-affinity common item. */
+static void testSupportScaling(const HouseLoader& loader,
+                               const ItemDatabase& db) {
+    auto healer = std::make_shared<Player>("Demeter", 1, "Demeter P1", loader);
+    auto ally = std::make_shared<Player>("Ares", 2, "Ares P2", loader);
+    ally->updateHealth(-3.0f);
+
+    auto def = db.getDef("apple");
+    expect(def != nullptr, "scalingSupport: apple def exists");
+    if (!def) return;
+
+    const float hpBefore = ally->getCurrentHealth();
+    healer->addItem(makeItem("apple"));
+    const float resolved = healer->useItemById(healer->getInventory()[0].getId(), *ally, db);
+
+    const float expected = def->getBaseValue() * (1.0f + 0.9f); // demeter support 0.9
+    const float expectedApplied = std::min(expected, ally->getMaxHealth() - hpBefore);
+    expect(nearlyEqual(resolved, expected), "scalingSupport: resolved value is correct");
+    expect(nearlyEqual(ally->getCurrentHealth() - hpBefore, expectedApplied), "scalingSupport: heal amount is correct");
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 5 — AI behavior
 // ─────────────────────────────────────────────────────────────────────────────
@@ -553,7 +622,7 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     CULog("═════════════════════════════════════════");
 
     HouseLoader loader = loadHouses(housesJsonPath);
-    ItemDatabase    db     = loadDatabase(itemsJsonPath);
+    ItemDatabase    db     = loadDatabase(itemsJsonPath, housesJsonPath);
     Enemy           enemy  = loadEnemy(enemiesJsonPath, "enemy1");
 
     const std::string attackDefId  = firstDefIdOfType(db, ItemDef::Type::Attack);
@@ -595,6 +664,10 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     testAIActsOnAttackItem      (loader, houseId, db, enemy, aiConfigPath, attackDefId);
     testAIHealsInjuredNeighbor  (loader, houseId, db, enemy, aiConfigPath, supportDefId);
     testAIPassesWhenNoHealTarget(loader, houseId, db, enemy, aiConfigPath, supportDefId);
+
+    CULog("── Section 6: House scaling ─────────────");
+    testAttackScalingAndAffinity(loader, db, enemy);
+    testSupportScaling(loader, db);
 
     printSummary();
 }

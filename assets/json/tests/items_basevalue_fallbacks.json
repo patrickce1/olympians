@@ -1,0 +1,20 @@
+{
+    "rarityWeights": { "Common": 1.0 },
+    "items": [
+        {
+            "id": "neg_base",
+            "type": "support",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": -5.0,
+            "effect": "none"
+        },
+        {
+            "id": "missing_base",
+            "type": "support",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "effect": "none"
+        }
+    ]
+}

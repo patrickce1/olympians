@@ -1,0 +1,13 @@
+{
+    "rarityWeights": { "Common": 1.0 },
+    "items": [
+        {
+            "id": "bad_type",
+            "type": "aoe",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 1.0,
+            "effect": "none"
+        }
+    ]
+}

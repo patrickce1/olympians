@@ -1,22 +1,34 @@
 #include "ItemDatabase.h"
+#include <cctype>
 
 using namespace cugl;
+
+static std::string normalizeHouseId(std::string s) {
+    auto notspace = [](unsigned char c){ return !std::isspace(c); };
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), notspace));
+    s.erase(std::find_if(s.rbegin(), s.rend(), notspace).base(), s.end());
+    return s;
+}
+
+static float clamp01(float v) {
+    if (v < 0.0f) return 0.0f;
+    if (v > 1.0f) return 1.0f;
+    return v;
+}
 
 /** Clears items from buckets and reinitializes them; buckets contain items of the corresponding rarity */
 void ItemDatabase::clearBuckets() {
     _allDefIds = Bucket();
     _bucketsByRarity.clear();
     _bucketsByRarity[ItemDef::Rarity::Common]    = Bucket();
-    _bucketsByRarity[ItemDef::Rarity::Uncommon]  = Bucket();
     _bucketsByRarity[ItemDef::Rarity::Rare]      = Bucket();
-    _bucketsByRarity[ItemDef::Rarity::Epic]      = Bucket();
-    _bucketsByRarity[ItemDef::Rarity::Legendary] = Bucket();
     _bucketsByRarity[ItemDef::Rarity::Divine]    = Bucket();
 }
 
 /** Clears buckets and the item database collection */
 void ItemDatabase::clear() {
     _defs.clear();
+    _houseScaling.clear();
     clearBuckets();
 }
 
@@ -52,11 +64,8 @@ std::shared_ptr<ItemInstance> ItemDatabase::createInstance(const std::string& de
 void ItemDatabase::resetRarityWeights() {
     _rarityWeights.clear();
     _rarityWeights[ItemDef::Rarity::Common]    = 0.45;
-    _rarityWeights[ItemDef::Rarity::Uncommon]  = 0.40;
-    _rarityWeights[ItemDef::Rarity::Rare]      = 0.08;
-    _rarityWeights[ItemDef::Rarity::Epic]      = 0.04;
-    _rarityWeights[ItemDef::Rarity::Legendary] = 0.02;
-    _rarityWeights[ItemDef::Rarity::Divine]    = 0.01;
+    _rarityWeights[ItemDef::Rarity::Rare]      = 0.40;
+    _rarityWeights[ItemDef::Rarity::Divine]    = 0.15;
 }
 
 /** Load rarity weights from a JSON */
@@ -69,6 +78,11 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
 
     auto rw = json->get("rarityWeights");
 
+    if (rw->has("Uncommon") || rw->has("Epic") || rw->has("Legendary")) {
+        _rarityWeights.clear();
+        return;
+    }
+
     auto loadOne = [&](const char* key, ItemDef::Rarity rarity) {
         if (rw->has(key) && rw->get(key)->isNumber()) {
             double w = rw->get(key)->asDouble();
@@ -78,10 +92,7 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     };
 
     loadOne("Common",    ItemDef::Rarity::Common);
-    loadOne("Uncommon",  ItemDef::Rarity::Uncommon);
     loadOne("Rare",      ItemDef::Rarity::Rare);
-    loadOne("Epic",      ItemDef::Rarity::Epic);
-    loadOne("Legendary", ItemDef::Rarity::Legendary);
     loadOne("Divine",    ItemDef::Rarity::Divine);
 }
 
@@ -153,6 +164,8 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
     clearBuckets();
     loadRarityWeights(json);
 
+    if (_rarityWeights.empty()) return false;
+
     auto arr = json->get("items");
     for (int i = 0; i < arr->size(); i++) {
         auto entry = arr->get(i);
@@ -178,6 +191,64 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
 
     // Note: _defs may be non-empty even if _allDefs is empty (e.g. all weights 0)
     return !_defs.empty();
+}
+
+bool ItemDatabase::loadHouseScalingFromJson(const std::shared_ptr<JsonValue>& json) {
+    _houseScaling.clear();
+
+    if (!json || !json->isObject()) return false;
+    auto houses = json->get("houses");
+    if (!houses || !houses->isArray()) return false;
+
+    for (int i = 0; i < houses->size(); ++i) {
+        auto entry = houses->get(i);
+        if (!entry || !entry->isObject()) {
+            continue;
+        }
+        if (!entry->has("id") || !entry->get("id")->isString()) {
+            continue;
+        }
+
+        const std::string id = normalizeHouseId(entry->getString("id", ""));
+        if (id.empty()) {
+            continue;
+        }
+
+        HouseScaling scaling;
+
+        auto readSlider = [&](const char* key, float fallback) {
+            if (!entry->has(key) || !entry->get(key)->isNumber()) {
+                return fallback;
+            }
+            float value = entry->getFloat(key);
+            return clamp01(value);
+        };
+
+        scaling.attack = readSlider("attack", 0.0f);
+        scaling.support = readSlider("support", 0.0f);
+        scaling.utility = readSlider("utility", 0.0f);
+
+        if (entry->has("affinityBonus") && entry->get("affinityBonus")->isNumber()) {
+            scaling.affinityBonus = entry->getFloat("affinityBonus");
+            if (scaling.affinityBonus <= 0.0f) {
+                scaling.affinityBonus = 1.5f;
+            }
+        } else {
+            scaling.affinityBonus = 1.5f;
+        }
+
+        _houseScaling[id] = scaling;
+    }
+
+    return !_houseScaling.empty();
+}
+
+const ItemDatabase::HouseScaling* ItemDatabase::getHouseScaling(const std::string& houseId) const {
+    auto it = _houseScaling.find(houseId);
+    if (it == _houseScaling.end()) {
+        return nullptr;
+    }
+    return &it->second;
 }
 
 /** Rarity-driven weighted roll across all spawnable items */

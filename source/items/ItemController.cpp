@@ -6,6 +6,7 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
                           const std::string& jsonKey) {
 
     std::string path = "json/items.json";
+    std::string housesPath = "json/houses.json";
 
     auto reader = cugl::JsonReader::alloc(path);
     if (!reader) {
@@ -29,6 +30,23 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
     // Create Item Database
     if (!_itemDb.loadFromJson(itemsJson)) {
         CULog("ItemController: failed to load item database");
+        return false;
+    }
+
+    auto houseReader = cugl::JsonReader::alloc(housesPath);
+    if (!houseReader) {
+        CULog("ItemController: failed to open %s", housesPath.c_str());
+        return false;
+    }
+
+    auto housesJson = houseReader->readJson();
+    if (!housesJson) {
+        CULog("ItemController: failed to parse %s", housesPath.c_str());
+        return false;
+    }
+
+    if (!_itemDb.loadHouseScalingFromJson(housesJson)) {
+        CULog("ItemController: failed to load house scaling");
         return false;
     }
 

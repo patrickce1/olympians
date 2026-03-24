@@ -5,63 +5,66 @@
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["bolt"],
-            "spritesheetPath": "textures/zeus.png"
+            "spritesheetPath": "textures/zeus.png",
+            "attack": 0.9,
+            "support": 0.2,
+            "utility": 0.4,
+            "affinityBonus": 1.5
         },
         {
             "id": "Poseidon",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["whirlpool"],
-            "spritesheetPath": "textures/poseidon.png"
+            "spritesheetPath": "textures/poseidon.png",
+            "attack": 0.8,
+            "support": 0.3,
+            "utility": 0.5,
+            "affinityBonus": 1.5
         },
         {
             "id": "Hades",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["resurrect"],
-            "spritesheetPath": "textures/hades.png"
+            "spritesheetPath": "textures/hades.png",
+            "attack": 0.7,
+            "support": 0.4,
+            "utility": 0.7,
+            "affinityBonus": 1.5
         },
         {
             "id": "Demeter",
             "maxHealth": 5.0,
             "abilityClass": "Healer",
             "specialAbilities": ["harvest"],
-            "spritesheetPath": "textures/demeter.png"
-        },
-        {
-            "id": "Athena",
-            "maxHealth": 5.0,
-            "abilityClass": "Damage Dealer",
-            "specialAbilities": ["aegis"],
-            "spritesheetPath": "textures/athena.png"
-        },
-        {
-            "id": "Aphrodite",
-            "maxHealth": 5.0,
-            "abilityClass": "Healer",
-            "specialAbilities": ["love"],
-            "spritesheetPath": "textures/aphrodite.png"
+            "spritesheetPath": "textures/demeter.png",
+            "attack": 0.3,
+            "support": 0.9,
+            "utility": 0.5,
+            "affinityBonus": 1.5
         },
         {
             "id": "Ares",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["armor"],
-            "spritesheetPath": "textures/ares.png"
+            "spritesheetPath": "textures/ares.png",
+            "attack": 1.0,
+            "support": 0.1,
+            "utility": 0.4,
+            "affinityBonus": 1.5
         },
         {
-            "id": "Hephestus",
+            "id": "Athena",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
-            "specialAbilities": ["craft"],
-            "spritesheetPath": "textures/hephestus.png"
-        },
-        {
-            "id": "Hermes",
-            "maxHealth": 5.0,
-            "abilityClass": "Damage Dealer",
-            "specialAbilities": ["speed"],
-            "spritesheetPath": "textures/hermes.png"
+            "specialAbilities": ["aegis"],
+            "spritesheetPath": "textures/athena.png",
+            "attack": 0.6,
+            "support": 0.6,
+            "utility": 0.8,
+            "affinityBonus": 1.5
         }
     ]
 }

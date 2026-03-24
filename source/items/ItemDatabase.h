@@ -15,7 +15,16 @@
  * ItemDatabase is pure "definitions + selection" (no ownership, no inventory).
  */
 class ItemDatabase {
+public:
+    struct HouseScaling {
+        float attack = 0.0f;
+        float support = 0.0f;
+        float utility = 0.0f;
+        float affinityBonus = 1.5f;
+    };
+
 private:
+
     /** Struct to contain defId objects and enable rolling a random defId from the bucket with weights */
     struct Bucket {
         std::vector<std::string> defIds;
@@ -32,6 +41,9 @@ private:
     
     /** Collection of ItemDef defs based on their defIds */
     std::unordered_map<std::string, std::shared_ptr<ItemDef>> _defs;
+
+    /** Runtime house scaling data keyed by canonical lowercase house id */
+    std::unordered_map<std::string, HouseScaling> _houseScaling;
     
     /** Bucket to contain all defIds so that they may be rolled */
     Bucket _allDefIds;
@@ -117,6 +129,12 @@ public:
     
     /** Serializable option */
     std::vector<std::string> getAllDefIds() const;
+
+    /** Load house scaling data from parsed houses JSON root. */
+    bool loadHouseScalingFromJson(const std::shared_ptr<cugl::JsonValue>& json);
+
+    /** Returns house scaling data if present; nullptr otherwise. */
+    const HouseScaling* getHouseScaling(const std::string& houseId) const;
 };
 
 #endif // __ITEM_DATABASE_H__

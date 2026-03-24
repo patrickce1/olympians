@@ -268,10 +268,10 @@ void GameScene::handleAttack() {
     for (const ItemInstance& item : local->getInventory()) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
-            local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+            const float resolved = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
             //NETWORKING
-            if (!_network->isHost()) {
-                _network->broadcastDamage(def->getEffectiveValue());
+            if (!_network->isHost() && resolved > 0.0f) {
+                _network->broadcastDamage(resolved);
             }
             CULog("Player attacked enemy '%s' with item %llu",
                   enemy->getId().c_str(), (unsigned long long)item.getId());
@@ -291,13 +291,10 @@ void GameScene::handleSupportLeft() {
     for (const ItemInstance& item : local->getInventory()) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            const float resolved = local->useItemById(item.getId(), *target, _itemController.getDatabase());
             //NETWORK
-            if (_network->isHost()) {
-                target->updateHealth(def->getEffectiveValue());
-            }
-            else {
-                _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
+            if (!_network->isHost() && resolved > 0.0f) {
+                _network->broadcastHeal(resolved, target->getPlayerNumber());
             }
             return;
         }
@@ -315,13 +312,10 @@ void GameScene::handleSupportRight() {
     for (const ItemInstance& item : local->getInventory()) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            const float resolved = local->useItemById(item.getId(), *target, _itemController.getDatabase());
             //NETWORK
-            if (_network->isHost()) {
-                target->updateHealth(def->getEffectiveValue());
-            }
-            else {
-                _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
+            if (!_network->isHost() && resolved > 0.0f) {
+                _network->broadcastHeal(resolved, target->getPlayerNumber());
             }
             return;
         }

@@ -84,7 +84,7 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
         _houseLoader
     );
 
-    int playerCount = _players.size();
+    int playerCount = static_cast<int>(_players.size());
     for (int i = 0; i < playerCount; i++) {
         int leftIdx  = (i - 1 + playerCount) % playerCount;
         int rightIdx = (i + 1) % playerCount;

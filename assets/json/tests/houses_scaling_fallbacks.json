@@ -1,0 +1,14 @@
+{
+    "houses": [
+        {
+            "id": "ClampHouse",
+            "attack": 2.0,
+            "support": -3.0,
+            "utility": 0.5,
+            "affinityBonus": -1.0
+        },
+        {
+            "id": "MissingHouse"
+        }
+    ]
+}

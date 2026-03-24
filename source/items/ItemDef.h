@@ -14,24 +14,21 @@ class ItemDef {
 public:
     enum class Type : uint8_t {
         Attack,
-        Support
+        Support,
+        Utility
     };
     enum class Rarity : uint8_t {
         Common,
-        Uncommon,
         Rare,
-        Epic,
-        Legendary,
         Divine
     };
     enum class House : uint8_t {
         Zeus,
         Poseidon,
         Hades,
-        Ares,
-        Aphrodite,
         Demeter,
-        Dionysus,
+        Ares,
+        Athena,
         None
     };
     
@@ -54,14 +51,14 @@ private:
     /* Rarity of item */
     Rarity _rarity;
     
-    /* Effective value of Item */
-    float _effectiveValue;
-    
-    /* Primary House the item belongs to */
-    House _primaryHouse;
-    
-    /* Secondary House the item belongs to (optional) */
-    House _secondaryHouse;
+    /* Base value of item before house scaling */
+    float _baseValue = 1.0f;
+
+    /* House affinity tag */
+    House _houseAffinity = House::None;
+
+    /* Reserved future effect string; currently expected to be "none" */
+    std::string _effect = "none";
     
 public:
     ItemDef() = default;
@@ -79,12 +76,15 @@ public:
     const std::string& getName() const { return _name; }
     const std::string& getDescription() const { return _description; }
     const std::string& getIconKey() const { return _iconKey; }
-    const float getEffectiveValue() const { return _effectiveValue; }
+    const float getBaseValue() const { return _baseValue; }
+    House getHouseAffinity() const { return _houseAffinity; }
+    const std::string& getEffect() const { return _effect; }
+
+    // Backwards-compatible shim for callers that still use old naming.
+    const float getEffectiveValue() const { return _baseValue; }
     
     Type getType() const { return _type; }
     Rarity getRarity() const { return _rarity; }
-    House getPrimaryHouse() const { return _primaryHouse; }
-    House getSecondaryHouse() const { return _secondaryHouse; }
     
     /** Extract Type enum from a string */
     static Type typeFromString(std::string s, Type fallback = Type::Attack);
@@ -92,7 +92,7 @@ public:
     static Rarity rarityFromString(std::string s, Rarity fallback = Rarity::Common);
     /** Extract House enum from a string */
     static House houseFromString(std::string s, House fallback = House::None);
-    
+
 };
 
 #endif // __ITEM_DEF_H__

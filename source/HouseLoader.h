@@ -5,6 +5,7 @@
 #include <cugl/cugl.h>
 #include <unordered_map>
 #include <string>
+#include <algorithm>
 
 class HouseLoader {
     
@@ -24,6 +25,10 @@ public:
         AbilityClass abilityClass;
         std::string spritesheetPath;
         std::vector<std::string> specialAbilities;
+        float attack = 0.0f;
+        float support = 0.0f;
+        float utility = 0.0f;
+        float affinityBonus = 1.5f;
     };
     
 private:
@@ -48,6 +53,8 @@ public:
      * @return true if loading succeeded
      */
     bool loadFromFile(const std::string& path) {
+        _houses.clear();
+        _housesVector.clear();
         
         // CUGL reads JSON files via JsonReader
         auto reader = cugl::JsonReader::alloc(path);
@@ -65,10 +72,31 @@ public:
         for (int i = 0; i < charArray->size(); i++) {
             auto entry = charArray->get(i);
             HouseDef def;
-            def.id                = entry->getString("id");
+            def.id                = entry->getString("id", "");
             def.maxHealth         = entry->getFloat("maxHealth");
             def.abilityClass      = parseAbilityClass(entry->getString("abilityClass"));
             def.spritesheetPath   = entry->getString("spritesheetPath");
+
+            auto readSlider = [&](const char* key, float fallback) {
+                if (!entry->has(key) || !entry->get(key)->isNumber()) {
+                    return fallback;
+                }
+                float v = entry->getFloat(key);
+                return std::max(0.0f, std::min(1.0f, v));
+            };
+
+            def.attack = readSlider("attack", 0.0f);
+            def.support = readSlider("support", 0.0f);
+            def.utility = readSlider("utility", 0.0f);
+
+            if (entry->has("affinityBonus") && entry->get("affinityBonus")->isNumber()) {
+                def.affinityBonus = entry->getFloat("affinityBonus");
+                if (def.affinityBonus <= 0.0f) {
+                    def.affinityBonus = 1.5f;
+                }
+            } else {
+                def.affinityBonus = 1.5f;
+            }
             
             //Parsing the special abilities array
             auto specialAbilities = entry->get("specialAbilities");

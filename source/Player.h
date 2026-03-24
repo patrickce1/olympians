@@ -149,34 +149,60 @@ public:
     /**
      * Uses  an item from the player's inventory by item id.
      * @param item    The item to use
-     * @return true if the item was found and used, false otherwise
+     * @return resolved magnitude, 0 if consumed but no matching target type, -1 on failure
      */
     template <typename T>
-    bool useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
+    float useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
         for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
             if (item->getId() == itemId) {
                 std::shared_ptr<ItemDef> def = db.getDef(item->getDefId());
                 if (!def) {
-                    CULogError("Player: could not find ItemDef for defId '%s'", item->getDefId().c_str());
-                    return false;
+                    return -1.0f;
+                }
+
+                float slider = 0.0f;
+                float affinityBonus = 1.0f;
+                const auto* scaling = db.getHouseScaling(_houseId);
+                if (scaling) {
+                    switch (def->getType()) {
+                        case ItemDef::Type::Attack:  slider = scaling->attack;  break;
+                        case ItemDef::Type::Support: slider = scaling->support; break;
+                        case ItemDef::Type::Utility: slider = scaling->utility; break;
+                    }
+                    const bool affinityEligible =
+                        (def->getRarity() == ItemDef::Rarity::Rare || def->getRarity() == ItemDef::Rarity::Divine);
+                    const bool affinityMatch =
+                        (def->getHouseAffinity() == ItemDef::houseFromString(_houseId, ItemDef::House::None));
+                    if (affinityEligible && affinityMatch) {
+                        affinityBonus = scaling->affinityBonus;
+                    }
+                }
+
+                float resolvedValue = def->getBaseValue() * (1.0f + slider) * affinityBonus;
+                if (resolvedValue <= 0.0f) {
+                    resolvedValue = 0.01f;
                 }
 
                 if constexpr (std::is_same<T, Player>::value) {
                     if (def->getType() == ItemDef::Type::Support) {
-                        target.updateHealth(def->getEffectiveValue());
+                        target.updateHealth(resolvedValue);
+                        _inventory.erase(item);
+                        return resolvedValue;
                     }
                 }
                 else if constexpr (std::is_same<T, Enemy>::value) {
                     if (def->getType() == ItemDef::Type::Attack) {
-                        target.updateHealth(-def->getEffectiveValue());
+                        target.updateHealth(-resolvedValue);
+                        _inventory.erase(item);
+                        return resolvedValue;
                     }
                 }
 
                 _inventory.erase(item);
-                return true;
+                return 0.0f;
             }
         }
-        return false;
+        return -1.0f;
     }
     
     /**
