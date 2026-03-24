@@ -349,7 +349,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             const float resolved = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-            if (resolve <= 0.0f) {
+            if (resolved <= 0.0f) {
                 return false;
             }
 
