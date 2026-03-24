@@ -25,6 +25,8 @@ public:
     enum Status {
         /** Host is waiting on a connection */
         WAIT,
+        /** Host switches to client screen */
+        CLIENT,
         /** Time to start the game */
         START,
         /** Game was aborted; back to main menu */
@@ -41,8 +43,11 @@ protected:
     /** The menu button for starting a game */
     std::shared_ptr<cugl::scene2::Button> _startGame;
     
-    /** The back button for the menu scene */
+    /** The back button for the host setup scene */
     std::shared_ptr<cugl::scene2::Button> _backOut;
+    
+    /** The join game (client scene) button for the host setup scene */
+    std::shared_ptr<cugl::scene2::Button> _joinButton;
     
     /** The player label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _hostName;

@@ -125,31 +125,11 @@
                     "data": {
                         "key": "buttonRegular",
                         "variables": {
-                            "label" : "HOST GAME"
+                            "label" : "START GAME"
                         }
                     },
                     "layout": {
                         "priority": 0,
-                        "padding": [
-                            0,
-                            19,
-                            0,
-                            0
-                        ]
-                    }
-                    
-                },
-                "join": {
-                    "type": "Widget",
-                    "format": { "type": "Anchored" },
-                    "data": {
-                        "key": "buttonRegular",
-                        "variables": {
-                            "label" : "JOIN GAME"
-                        }
-                    },
-                    "layout": {
-                        "priority": 1,
                         "padding": [
                             0,
                             19,
@@ -169,7 +149,7 @@
                         }
                     },
                     "layout": {
-                        "priority": 2,
+                        "priority": 1,
                         "padding": [
                             0,
                             0,

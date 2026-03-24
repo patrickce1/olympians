@@ -271,12 +271,6 @@ void SceneLoader::update(float dt) {
                 case MenuScene::Action::OPEN_SETTINGS:
                     CULog("SettingsScene placeholder pressed");
                     break;
-                case MenuScene::Action::JOIN_GAME:
-                    CULog("Transitioning to ClientScene...");
-                    _clientScene.setActive(true);
-                    _menuScene.setActive(false);
-                    _currentScene = State::CLIENT;
-                    break;
                 case MenuScene::Action::NONE:
                 default:
                     break;
@@ -290,6 +284,12 @@ void SceneLoader::update(float dt) {
                     _lobbyScene.setActive(true);
                     _clientScene.setActive(false);
                     _currentScene = State::LOBBY;
+                    break;
+                case ClientScene::Status::HOST:
+                    CULog("Transitioning to HostSetupScene...");
+                    _hostSetupScene.setActive(true);
+                    _clientScene.setActive(false);
+                    _currentScene = State::HOSTSETUP;
                     break;
                 case ClientScene::Status::ABORT:
                     CULog("Transitioning to MenuScene...");
@@ -309,6 +309,12 @@ void SceneLoader::update(float dt) {
                     _lobbyScene.setActive(true);
                     _hostSetupScene.setActive(false);
                     _currentScene = State::LOBBY;
+                    break;
+                case HostSetupScene::Status::CLIENT:
+                    CULog("Transitioning to ClientScene...");
+                    _clientScene.setActive(true);
+                    _hostSetupScene.setActive(false);
+                    _currentScene = State::CLIENT;
                     break;
                 case HostSetupScene::Status::ABORT:
                     CULog("Transitioning to MenuScene...");
