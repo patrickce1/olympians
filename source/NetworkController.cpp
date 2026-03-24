@@ -314,7 +314,7 @@ void NetworkController::clearQueues() {
 	_gameWon = false;
 	_gameLost = false;
 	_gameStarted = false;
-  _disconnectedSlots.clear();
+    _disconnectedSlots.clear();
 }
 
 /**
