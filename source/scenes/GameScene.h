@@ -26,7 +26,7 @@
  * This separation makes it straightforward to broadcast a read-only
  * GameState snapshot over the network without touching any rendering code.
  */
-class GameScene : public cugl::scene2::Scene2 {
+class GameScene : public cugl::scene2::Scene2{
 public:
     /*Keeps track of the game state. This is how the app knows when to swap scenes*/
     enum Status {
