@@ -65,8 +65,13 @@ protected:
     /** The current status */
     Status _status;
     
+    /** The timer for the blinking player icon border */
     float _blinkTimer = 0.0f;
+    
+    /** Whether the player icon border is visible */
     bool _blinkOn = true;
+    
+    /** Whether the local player has selected a house */
     bool _hasSelectedHouse;
 
 public:
@@ -171,9 +176,19 @@ private:
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
 
-    /*Updates the player handles based on updates to the lobby state*/
+    /**
+     * Updates the the player handles in the lobby UI based on updates to the lobby state.
+     *
+     * @param onlinePlayers A vector of NetworkedPlayer objects representing all
+     *                      players currently connected to the lobby.
+     */
     void updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers);
     
+    /**
+     * Updates the image of the boss circle based on the selected enemy.
+     *
+     * @param enemyID The identifier of the enemy whose background should be displayed.
+     */
     void updateLobbyBossImage(std::string enemyID);
     
     /**

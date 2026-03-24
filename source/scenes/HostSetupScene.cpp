@@ -39,7 +39,7 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, con
         return false;
     }
     
-    // Start up the input handler
+    // Start up asset manager, network controller, and enemy loader
     _assets = assets;
     _network = networkController;
     loadBosses();

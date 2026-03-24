@@ -71,8 +71,10 @@ protected:
     /** The house selection container that contains the card and direction buttons**/
     std::shared_ptr<cugl::scene2::SceneNode> _houseSelectionCardContainer;
     
+    /** The background boss image of the selection screen */
     std::shared_ptr<cugl::scene2::PolygonNode> _backgroundImage;
     
+    /** The ID of the current boss/enemy */
     std::string _currentBoss = "";
     
     /** Whether the house selection screen is sliding to another index */
@@ -229,6 +231,11 @@ private:
      */
     void updateSelectedIcon(int newIndex);
     
+    /**
+     * Updates the background image of the boss display based on the selected enemy.
+     *
+     * @param enemyID The identifier of the enemy whose background should be displayed.
+     */
     void updateBossBGImage(std::string enemyID);
     
     /** Loads houses definitions from the house JSON to use in house selection. */

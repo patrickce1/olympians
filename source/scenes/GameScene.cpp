@@ -19,8 +19,23 @@ using namespace std;
 #pragma mark -
 #pragma mark HealthState
 
+/**
+ * @enum HealthState
+ * Represents a player’s health condition for UI purposes.
+ *
+ * - FULL: Player has maximum health.
+ * - HALF: Player has below 50% health.
+ * - DEAD: Player has zero health.
+ */
 enum class HealthState { FULL, HALF, DEAD };
 
+/**
+ * Determines the health state of a player based on current and maximum health.
+ *
+ * @param current Current health value of the player.
+ * @param max Maximum health value of the player.
+ * @return HealthState corresponding to FULL, HALF, or DEAD.
+ */
 static HealthState getHealthState(float current, float max) {
     if (max <= 0 || current <= 0) return HealthState::DEAD;
     float ratio = current / max;
@@ -28,6 +43,13 @@ static HealthState getHealthState(float current, float max) {
     return HealthState::FULL;
 }
 
+/**
+ * Returns the texture name to use for a player icon based on health and house.
+ *
+ * @param state HealthState of the player.
+ * @param houseName The player's house or class (used to select house-specific icons).
+ * @return std::string The texture identifier corresponding to this health state and house.
+ */
 static std::string getHealthTexture(HealthState state, std::string houseID) {
     if (houseID.empty()) return "basicTeammateIcon";
     switch (state) {
@@ -495,6 +517,9 @@ void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
     _playerHealthBarText->setText(std::to_string((int)player->getCurrentHealth()) + "/" + std::to_string((int)player->getMaxHealth()));
 }
 
+/**
+ * Updates the player and teammate UI icons to reflect their current health.
+ */
 void GameScene::updatePlayerAndTeammateIcons() {
     auto lPlayer = _gameState.getLocalPlayer();
 

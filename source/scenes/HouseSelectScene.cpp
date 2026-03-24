@@ -360,6 +360,11 @@ void HouseSelectScene::updateSelectedIcon(int currentIndex) {
     }
 }
 
+/**
+ * Updates the background image of the boss display based on the selected enemy.
+ *
+ * @param enemyID The identifier of the enemy whose background should be displayed.
+ */
 void HouseSelectScene::updateBossBGImage(std::string enemyID) {
     if (enemyID == "" && _currentBoss == "") {
         return;

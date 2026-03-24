@@ -176,7 +176,12 @@ void LobbyScene::setActive(bool value) {
     }
 }
 
-/** Updates the player handles based on updates to the lobby state */
+/**
+ * Updates the the player handles in the lobby UI based on updates to the lobby state.
+ *
+ * @param onlinePlayers A vector of NetworkedPlayer objects representing all
+ *                      players currently connected to the lobby.
+ */
 void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
     for (int i = 0; i < _playerSlots.size(); i++) {
         if (i < onlinePlayers.size()) {
@@ -200,7 +205,7 @@ void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
  */
 void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers) {
     for (int i = 0; i < _playerImages.size(); i++) {
-        auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_playerImages[i]->getChildByName("playerIconImg")); // <- change Json to match
+        auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_playerImages[i]->getChildByName("playerIconImg"));
         if (image){
             if (i < onlinePlayers.size()) {
                 if (onlinePlayers[i].houseID == "athena") {
@@ -230,6 +235,11 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlaye
     }
 }
 
+/**
+ * Updates the image of the boss circle based on the selected enemy.
+ *
+ * @param enemyID The identifier of the enemy whose background should be displayed.
+ */
 void LobbyScene::updateLobbyBossImage(std::string enemyID) {
     if (enemyID == "" && _currentBoss == "") {
         return;

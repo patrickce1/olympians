@@ -60,9 +60,6 @@ protected:
 
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
-    
-    /** Scene node that defines the spawn area for items. */
-    std::shared_ptr<cugl::scene2::SceneNode> _itemSpawnArea;
 
     /** Input zones: each entry maps an Action to the screen Rect that triggers it.  Defined as the currently active zones*/
     std::vector<std::pair<InputController::Action, cugl::Rect>> _inputZones;
@@ -307,6 +304,9 @@ public:
      */
     void updatePlayerAndEnemyHealthUI(float dt);
     
+    /**
+     * Updates the player and teammate UI icons to reflect their current health.
+     */
     void updatePlayerAndTeammateIcons();
 
     /**
