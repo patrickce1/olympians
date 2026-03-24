@@ -595,12 +595,12 @@ void GameScene::handleNetworkUpdates() {
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
         //check if we won or lost
-        if (_gameState.checkWon()) {
-            _network->broadcastWinGame();
+        if (_gameState.didWin()) {
+            _network->broadcastWonGame();
             _status = Status::WON;
         }
-        else if(_gameState.checkLost()){
-            _network->broadcastLoseGame();
+        else if(_gameState.didLose()){
+            _network->broadcastLostGame();
             _status = Status::LOST;
         }
     }

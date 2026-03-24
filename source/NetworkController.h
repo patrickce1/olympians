@@ -114,10 +114,10 @@ public:
     void broadcastGameState(const GameState& state);
 
     /*Send a message to all clients that the game has been lost*/
-    void broadcastLoseGame();
+    void broadcastLostGame();
 
     /*Send a message to all clients that the game has been won*/
-    void broadcastWinGame();
+    void broadcastWonGame();
 
     /*Client-Side Lobby Messages*/
     /*Sends player username to the host*/
@@ -225,10 +225,10 @@ protected:
         GAME_START = 4,
         LOBBY_UPDATE = 5,
         PLAYER_JOIN = 6,
-        GAME_LOST = 7,
-        GAME_WON = 8,
-        SELECT_HOUSE = 9,
-        PLAYER_DISCONNECT = 10
+        SELECT_HOUSE = 7,
+        PLAYER_DISCONNECT = 8,
+        GAME_LOST = 9,
+        GAME_WON = 10
     };
 
     /*Our network connection*/

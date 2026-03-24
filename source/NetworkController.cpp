@@ -445,7 +445,7 @@ void NetworkController::broadcastGameState(const GameState& state) {
 /**
 * Broacasts to clients if the game was won
 */
-void NetworkController::broadcastWinGame() {
+void NetworkController::broadcastWonGame() {
 	_serializer.writeSint32(MessageType::GAME_WON);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
@@ -454,7 +454,7 @@ void NetworkController::broadcastWinGame() {
 /**
 * Broadcasts to clients if the game was lost
 */
-void NetworkController::broadcastLoseGame() {
+void NetworkController::broadcastLostGame() {
 	_serializer.writeSint32(MessageType::GAME_LOST);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();

@@ -198,10 +198,10 @@ public:
 
 #pragma mark - Game State Checking
     /* Returns whether or not the players won based on the current game state*/
-    bool checkWon();
+    bool didWin();
 
     /* Returns whether or not the players lost based on the current game state*/
-    bool checkLost();
+    bool didLose();
 
 private:
 
