@@ -185,6 +185,15 @@ public:
 
                 if constexpr (std::is_same<T, Player>::value) {
                     if (def->getType() == ItemDef::Type::Support) {
+                        CULog(
+                            "ItemUseCalc: item='%s' type=support playerHouse='%s' effectiveVal = baseVal(%.3f) * classSlider(1+%.3f) * affinity(%.3f) | = %.3f",
+                            def->getId().c_str(),
+                            _houseId.c_str(),
+                            def->getBaseValue(),
+                            slider,
+                            affinityBonus,
+                            resolvedValue
+                        );
                         target.updateHealth(resolvedValue);
                         _inventory.erase(item);
                         return resolvedValue;
@@ -192,6 +201,15 @@ public:
                 }
                 else if constexpr (std::is_same<T, Enemy>::value) {
                     if (def->getType() == ItemDef::Type::Attack) {
+                        CULog(
+                            "ItemUseCalc: item='%s' type=attack playerHouse='%s' effectiveVal = baseVal(%.3f) * classSlider(1+%.3f) * affinity(%.3f) | = %.3f",
+                            def->getId().c_str(),
+                            _houseId.c_str(),
+                            def->getBaseValue(),
+                            slider,
+                            affinityBonus,
+                            resolvedValue
+                        );
                         target.updateHealth(-resolvedValue);
                         _inventory.erase(item);
                         return resolvedValue;
