@@ -48,7 +48,7 @@
                     "y_offset": -0.09
                 }
             },
-            "cerberus": {
+            "boss": {
                 "type": "Image",
                 "data": {
                     "texture": "cerberus",
@@ -263,7 +263,7 @@
                                 85,
                                 0
                             ],
-                            "color": "#f4ba33ff",
+                            "color": "#DD8E2Fff",
                             "anchor": [
                                 0,
                                 1
@@ -366,7 +366,7 @@
                                 85,
                                 0
                             ],
-                            "color": "#f4ba33ff",
+                            "color": "#DD8E2Fff",
                             "anchor": [
                                 0,
                                 1

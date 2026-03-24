@@ -17,6 +17,28 @@ using namespace std;
 #define SCENE_HEIGHT 852
 
 #pragma mark -
+#pragma mark HealthState
+
+enum class HealthState { FULL, HALF, DEAD };
+
+static HealthState getHealthState(float current, float max) {
+    if (max <= 0 || current <= 0) return HealthState::DEAD;
+    float ratio = current / max;
+    if (ratio <= 0.5f) return HealthState::HALF;
+    return HealthState::FULL;
+}
+
+static std::string getHealthTexture(HealthState state, std::string houseID) {
+    if (houseID.empty()) return "basicTeammateIcon";
+    switch (state) {
+        case HealthState::FULL: return houseID + "Regular";
+        case HealthState::HALF: return houseID + "MidHealth";
+        case HealthState::DEAD: return houseID + "Death";
+    }
+    return "basicTeammateIcon";
+}
+
+#pragma mark -
 #pragma mark Constructors
 
 /**
@@ -44,8 +66,11 @@ bool GameScene::initSceneGraph() {
 
     if (_gameArea) {
         // Left and right teammate icon
-        _playerSlots.push_back(_gameArea->getChildByName("leftIcon"));
-        _playerSlots.push_back(_gameArea->getChildByName("rightIcon"));
+        _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("leftIcon")
+                                                                         ->getChild(0));
+        
+        _rightPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("rightIcon")
+                                                                          ->getChild(0));
         
         _leftPlayerName = std::dynamic_pointer_cast<scene2::Label>(
              _assets->get<scene2::SceneNode>("gameScene.gameArea.leftName.username"));
@@ -55,11 +80,19 @@ bool GameScene::initSceneGraph() {
         
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.healthFill"));
+        
+        _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
     }
     
     if (_inventory) {
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
+        
+        _playerHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.label"));
+        
+        _localPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_assets->get<scene2::SceneNode>("gameScene.inventory.playerLiveIcon.playerImage"));
     }
     
     addChild(_scene);
@@ -161,13 +194,16 @@ void GameScene::dispose() {
         _inventory  = nullptr;
         _attackArea = nullptr;
         _bossNode   = nullptr;
+        _leftPlayerSlot = nullptr;
+        _rightPlayerSlot = nullptr;
         _leftPlayerName = nullptr;
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
+        _bossHealthBarText = nullptr;
+        _playerHealthBarText = nullptr;
         _playerHealthBar = nullptr;
         _network = nullptr;
         _activeIcon = nullptr;
-        _playerSlots.clear();
         _gameState.dispose();
         _active = false;
     }
@@ -452,9 +488,29 @@ void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
     if (!enemy || !enemy->isAlive()) return;
     
     _bossHealthBar->setProgress(enemy->getCurrentHealth()/enemy->getMaxHealth());
+    _bossHealthBarText->setText(std::to_string((int)enemy->getCurrentHealth()) + "/" + std::to_string((int)enemy->getMaxHealth()));
     
     auto player = _gameState.getLocalPlayer();
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
+    _playerHealthBarText->setText(std::to_string((int)player->getCurrentHealth()) + "/" + std::to_string((int)player->getMaxHealth()));
+}
+
+void GameScene::updatePlayerAndTeammateIcons() {
+    auto lPlayer = _gameState.getLocalPlayer();
+
+    auto apply = [&](auto slot, auto player) {
+        slot->setTexture(_assets->get<cugl::graphics::Texture>(
+            getHealthTexture(
+                getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
+                             player->getHouseName()
+            ))
+        );
+    };
+
+    apply(_localPlayerSlot, lPlayer);
+    _localPlayerSlot->setScale(0.83f);
+    apply(_leftPlayerSlot,  lPlayer->getLeftPlayer());
+    apply(_rightPlayerSlot, lPlayer->getRightPlayer());
 }
 
 /**
@@ -657,6 +713,7 @@ void GameScene::update(float dt, InputController& input) {
 
     _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
+    updatePlayerAndTeammateIcons();
 }
 
 #pragma mark -

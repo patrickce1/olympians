@@ -254,6 +254,33 @@
         },
         "emptySIcon": {
             "file": "textures/lobbyScene/emptySIcon.png"
+        },
+        "athenaRegular": {
+            "file": "textures/gameScene/houseIcons/athena/athenaRegular.png"
+        },
+        "athenaMidHealth": {
+            "file": "textures/gameScene/houseIcons/athena/athenaMidHealth.png"
+        },
+        "athenaDeath": {
+            "file": "textures/gameScene/houseIcons/athena/athenaDeath.png"
+        },
+        "aresRegular": {
+            "file": "textures/gameScene/houseIcons/ares/aresRegular.png"
+        },
+        "aresMidHealth": {
+            "file": "textures/gameScene/houseIcons/ares/aresMidHealth.png"
+        },
+        "aresDeath": {
+            "file": "textures/gameScene/houseIcons/ares/aresDeath.png"
+        },
+        "poseidonRegular": {
+            "file": "textures/gameScene/houseIcons/poseidon/poseidonRegular.png"
+        },
+        "poseidonMidHealth": {
+            "file": "textures/gameScene/houseIcons/poseidon/poseidonMidHealth.png"
+        },
+        "poseidonDeath": {
+            "file": "textures/gameScene/houseIcons/poseidon/poseidonDeath.png"
         }
 	},
     "fonts": {

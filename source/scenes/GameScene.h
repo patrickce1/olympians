@@ -49,14 +49,20 @@ protected:
     /** The node representing the boss character in the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
 
-    /** UI slots used to display each teammate's avatar. */
-    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _playerSlots;
+    /** UI slot used to display left teammate's avatar. */
+    std::shared_ptr<cugl::scene2::PolygonNode> _leftPlayerSlot;
+    
+    /** UI slot used to display right teammate's avatar. */
+    std::shared_ptr<cugl::scene2::PolygonNode> _rightPlayerSlot;
 
     /** The player's inventory UI container node. */
     std::shared_ptr<cugl::scene2::SceneNode> _inventory;
 
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
+    
+    /** Scene node that defines the spawn area for items. */
+    std::shared_ptr<cugl::scene2::SceneNode> _itemSpawnArea;
 
     /** Input zones: each entry maps an Action to the screen Rect that triggers it.  Defined as the currently active zones*/
     std::vector<std::pair<InputController::Action, cugl::Rect>> _inputZones;
@@ -76,8 +82,17 @@ protected:
     /** The boss health bar */
     std::shared_ptr<cugl::scene2::ProgressBar> _bossHealthBar;
     
+    /** The boss health bar text showing amount of health left */
+    std::shared_ptr<cugl::scene2::Label> _bossHealthBarText;
+    
     /** The player's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBar;
+    
+    /** The player's health bar text showing amount of health left */
+    std::shared_ptr<cugl::scene2::Label> _playerHealthBarText;
+    
+    /** UI slot used to display player's avatar in inventory. */
+    std::shared_ptr<cugl::scene2::PolygonNode> _localPlayerSlot;
     
     /** Left teammate username label */
     std::shared_ptr<cugl::scene2::Label> _leftPlayerName;
@@ -291,6 +306,8 @@ public:
      * @param dt Delta time in seconds
      */
     void updatePlayerAndEnemyHealthUI(float dt);
+    
+    void updatePlayerAndTeammateIcons();
 
     /**
      * Checks whether the reset button was tapped and calls reset() if so.
