@@ -289,7 +289,7 @@
                                         0,
                                         0
                                     ],
-                                    "visible": true
+                                    "visible": false
                                 },
                                 "layout": {
                                     "x_anchor": "center",

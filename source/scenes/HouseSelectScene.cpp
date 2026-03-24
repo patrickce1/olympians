@@ -373,7 +373,7 @@ void HouseSelectScene::updateBossBGImage(std::string enemyID) {
     }
     
     _currentBoss = enemyID;
-    if (_currentBoss == "enemy1") {
+    if (_currentBoss == "cyclops") {
         _backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>("cyclopsShowroom"));
     } else if (_currentBoss == "cerberus") {
         _backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusShowroom"));

@@ -174,12 +174,12 @@ bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
 /** Verifies Enemy::init populates core fields, starts at full health in "idle", and has an "idle" state. */
 static void testEnemyInitSetsCoreFields(const std::string& enemiesJsonPath) {
     auto enemy = std::make_shared<Enemy>();
-    bool ok = enemy->init("enemy1", enemiesJsonPath);
+    bool ok = enemy->init("cyclops", enemiesJsonPath);
 
     expect(ok, "init: returns true");
     if (!ok) return;
 
-    expect(enemy->getId() == "enemy1", "init: id set");
+    expect(enemy->getId() == "cyclops", "init: id set");
     expect(!enemy->getName().empty(), "init: name set");
     expect(enemy->getMaxHealth() > 0.0f, "init: maxHealth > 0");
     expect(enemy->getCurrentHealth() == enemy->getMaxHealth(), "init: currentHealth starts at max");
@@ -193,7 +193,7 @@ static void testEnemyInitSetsCoreFields(const std::string& enemiesJsonPath) {
 
 /** Ensures an attack state fires events only after build-up and then transitions to its next (or idle). */
 static void testEnemyFiresEventsAfterBuildUp(const std::string& enemiesJsonPath) {
-    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
     if (!enemy) return;
 
     std::string attack = firstAttackStateName(enemy);
@@ -221,7 +221,7 @@ static void testEnemyFiresEventsAfterBuildUp(const std::string& enemiesJsonPath)
 
 /** Confirms cooldown states apply a lockout that prevents starting non-idle states until it expires. */
 static void testEnemyCooldownBlocksNonIdle(const std::string& enemiesJsonPath) {
-    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
     if (!enemy) return;
 
     std::string attack = firstAttackStateName(enemy);
@@ -273,7 +273,7 @@ static void testEnemyCooldownBlocksNonIdle(const std::string& enemiesJsonPath) {
 
 /** Checks health updates clamp to [0, max] and apply normal subtraction within bounds. */
 static void testEnemyHealthClamp(const std::string& enemiesJsonPath) {
-    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
     if (!enemy) return;
 
     float maxHp = enemy->getMaxHealth();
@@ -298,7 +298,7 @@ static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPat
     HouseLoader loader = loadHouses(housesJsonPath);
     auto players = makePlayersRing(loader, "poseidon", 4);
 
-    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
     if (!enemy) return;
 
     EnemyController controller;
@@ -324,7 +324,7 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
     }
     expect(!anyPlayersAlive(players), "controller(noLiving): all players confirmed dead");
 
-    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
     if (!enemy) return;
 
     EnemyController controller;
@@ -345,7 +345,7 @@ static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonP
     HouseLoader loader = loadHouses(housesJsonPath);
     auto players = makePlayersRing(loader, "poseidon", 4);
 
-    auto enemy = makeEnemy(enemiesJsonPath, "enemy1");
+    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
     if (!enemy) return;
 
     EnemyController controller;

@@ -103,7 +103,7 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
 bool GameState::initEnemy() {
     const std::string enemyJsonPath = "json/enemies.json";
     _enemy = std::make_shared<Enemy>();
-    if (!_enemy->init("enemy1", enemyJsonPath)) {
+    if (!_enemy->init("cyclops", enemyJsonPath)) {
         CULog("GameState: Failed to initialize enemy");
         return false;
     }

@@ -554,7 +554,7 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
 
     HouseLoader loader = loadHouses(housesJsonPath);
     ItemDatabase    db     = loadDatabase(itemsJsonPath);
-    Enemy           enemy  = loadEnemy(enemiesJsonPath, "enemy1");
+    Enemy           enemy  = loadEnemy(enemiesJsonPath, "cyclops");
 
     const std::string attackDefId  = firstDefIdOfType(db, ItemDef::Type::Attack);
     const std::string supportDefId = firstDefIdOfType(db, ItemDef::Type::Support);

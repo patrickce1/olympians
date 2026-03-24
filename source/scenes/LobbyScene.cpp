@@ -248,7 +248,7 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
     }
     
     _currentBoss = enemyID;
-    if (_currentBoss == "enemy1") {
+    if (_currentBoss == "cyclops") {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cyclopsLobbyImage"));
     } else if (_currentBoss == "cerberus") {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusLobbyImage"));
