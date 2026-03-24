@@ -397,7 +397,6 @@ void SceneLoader::update(float dt) {
                 case GameScene::Status::PLAYING:
                     break;
                 }
-            
             break;
     }
     _input.resetAction();
