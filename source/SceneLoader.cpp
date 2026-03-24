@@ -385,6 +385,24 @@ void SceneLoader::update(float dt) {
                         break;
                 }
             _gameScene.update(dt, _input);
+            //check if we won or lost and return to lobby if we did
+            //this will be changed to a proper win/lose scene later
+            switch (_gameScene.getStatus()) {
+                case GameScene::Status::LOST:
+                    _lobbyScene.setActive(true);
+                    _gameScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    _gameScene.reset();
+                    break;
+                case GameScene::Status::WON:
+                    _lobbyScene.setActive(true);
+                    _gameScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    _gameScene.reset();
+                    break;
+                case GameScene::Status::PLAYING:
+                    break;
+                }
             break;
     }
     _input.resetAction();

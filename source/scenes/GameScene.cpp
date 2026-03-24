@@ -171,7 +171,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
     setLocalPlayer(0);
-    
+    _status = Status::PLAYING;
     setDebugMode(false);
     setActive(false);
     return true;
@@ -265,6 +265,7 @@ void GameScene::reset() {
     _draggedItemDef = nullptr;
     _dragStartBodyPosition = Vec2::ZERO;
     _glowAction = InputController::Action::NONE;
+    _status = Status::PLAYING;
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
 
@@ -277,7 +278,7 @@ void GameScene::reset() {
         removeItemWidget(itemId);
     }
 
-    // Delegate inventory clearing to the model.
+    // Delegate inventory clearing and health resetting to the model.
     _gameState.reset();
 }
 
@@ -719,10 +720,28 @@ void GameScene::handleNetworkUpdates() {
         _gameState.healUpdates(_network->getHealUpdates());
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
+        //check if we won or lost
+        if (_gameState.didWin()) {
+            _network->broadcastWonGame();
+            _status = Status::WON;
+        }
+        else if(_gameState.didLose()){
+            _network->broadcastLostGame();
+            _status = Status::LOST;
+        }
     }
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        // clients check if the host told us anything about winning/losing
+        if (_network->checkGameWon()) {
+            _status = Status::WON;
+            CULog("We were told that we won");
+        }
+        else if (_network->checkGameLost()) {
+            _status = Status::LOST;
+            CULog("We were told that we lost");
+        }
     }
 
     processNetworkedPasses(_network->getPassUpdates());
