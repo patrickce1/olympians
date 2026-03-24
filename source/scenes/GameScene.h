@@ -27,6 +27,13 @@
  * GameState snapshot over the network without touching any rendering code.
  */
 class GameScene : public cugl::scene2::Scene2{
+public:
+    /*Keeps track of the game state. This is how the app knows when to swap scenes*/
+    enum Status {
+        PLAYING,
+        WON,
+        LOST,
+    };
 protected:
 #pragma mark - Scene Graph Nodes
 
@@ -160,6 +167,8 @@ protected:
     /** Keeps track of whether or not we are the host */
     bool _host;
 
+    Status _status;
+
 public:
 #pragma mark - Constructors
 
@@ -175,6 +184,11 @@ public:
     ~GameScene() { dispose(); }
 
 #pragma mark - Lifecycle
+
+    /**
+    * Returns the current status of the game and whether or not the player wants to go back to a different scene
+    */
+    Status getStatus() { return _status; }
 
     /**
      * Disposes of all (non-static) resources allocated to this mode.

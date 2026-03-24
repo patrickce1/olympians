@@ -177,7 +177,9 @@ void GameState::dispose() {
 void GameState::reset() {
     for (auto& player : _players) {
         player->clearInventory();
+        player->setCurrentHealth(player->getMaxHealth());
     }
+    _enemy->setCurrentHealth(_enemy->getMaxHealth());
 }
 
 /**
@@ -254,4 +256,21 @@ void GameState::networkUpdate(GameStateMessage newState) {
     for (int i = 0; i < _players.size(); i++) {
         _players[i]->setCurrentHealth(healths[i]);
     }
+}
+
+/** Returns whether or not the players won based on the current game state
+* The game is considered won if the boss health is 0
+*/
+bool GameState::didWin() {
+    return _enemy->getCurrentHealth() <= 0;
+}
+
+/** Returns whether or not the players lost based on the current game state
+* The game is considered lost if all players reach a life of 0
+*/
+bool GameState::didLose() {
+    return _players[0]->getCurrentHealth() <= 0
+        && _players[1]->getCurrentHealth() <= 0
+        && _players[2]->getCurrentHealth() <= 0
+        && _players[3]->getCurrentHealth() <= 0;
 }

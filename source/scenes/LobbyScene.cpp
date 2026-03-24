@@ -245,6 +245,7 @@ void LobbyScene::update(float timestep) {
     }
 
     updateLobbyText(_network->getNetworkedPlayers());
+    _network->clearQueues();
     updateLobbyPlayerIcons(_network->getNetworkedPlayers());
 }
 
