@@ -196,7 +196,6 @@ public:
      */
     std::shared_ptr<Enemy> getEnemy() const { return _enemy; }
 
-
 #pragma mark - Game State Checking
     /* Returns whether or not the players won based on the current game state*/
     bool checkWon();
