@@ -467,8 +467,9 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
 void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
     for (PassMessage pass : passes) {
         Player* player = _gameState.getPlayerById(pass.playerID);
-        //for now, passing just gives a random item in the player inventory
-        _itemController.giveRandomItem(_gameState.getLocalPlayer());
+        if (!player) continue;
+        // Give the specific item that was passed, not a random one
+        _itemController.giveItemByID(player, pass.itemID);
     }
 }
 /**
@@ -779,10 +780,7 @@ void GameScene::update(float dt, InputController& input) {
     updateDebugPointer(input);
     handleDragInitiation(input);
     handleDragTracking(input);
-
-    handleNetworkUpdates();
-
-    _itemController.update(dt, _gameState.getLocalPlayer());
+    
     syncInventoryWidgets();
     if (_itemPhysicsWorld) {
         _itemPhysicsWorld->update(dt);
