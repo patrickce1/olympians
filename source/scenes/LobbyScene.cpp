@@ -203,11 +203,11 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlaye
         auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_playerImages[i]->getChildByName("playerIconImg")); // <- change Json to match
         if (image){
             if (i < onlinePlayers.size()) {
-                if (onlinePlayers[i].houseID == "Athena") {
+                if (onlinePlayers[i].houseID == "athena") {
                     image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
-                } else if (onlinePlayers[i].houseID == "Ares") {
+                } else if (onlinePlayers[i].houseID == "ares") {
                     image->setTexture(_assets->get<cugl::graphics::Texture>("aresSIcon"));
-                } else if (onlinePlayers[i].houseID == "Poseidon") {
+                } else if (onlinePlayers[i].houseID == "poseidon") {
                     image->setTexture(_assets->get<cugl::graphics::Texture>("poseidonSIcon"));
                 } else {
                     image->setTexture(_assets->get<cugl::graphics::Texture>("emptySIcon"));

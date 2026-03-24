@@ -1,63 +1,63 @@
 {
     "houses": [
         {
-            "id": "Zeus",
+            "id": "zeus",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["bolt"],
             "spritesheetPath": "textures/zeus.png"
         },
         {
-            "id": "Aphrodite",
+            "id": "aphrodite",
             "maxHealth": 5.0,
             "abilityClass": "Healer",
             "specialAbilities": ["love"],
             "spritesheetPath": "textures/aphrodite.png"
         },
         {
-            "id": "Hades",
+            "id": "hades",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["resurrect"],
             "spritesheetPath": "textures/hades.png"
         },
         {
-            "id": "Demeter",
+            "id": "demeter",
             "maxHealth": 5.0,
             "abilityClass": "Healer",
             "specialAbilities": ["harvest"],
             "spritesheetPath": "textures/demeter.png"
         },
         {
-            "id": "Athena",
+            "id": "athena",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["aegis"],
             "spritesheetPath": "textures/athena.png"
         },
         {
-            "id": "Poseidon",
+            "id": "poseidon",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["whirlpool"],
             "spritesheetPath": "textures/poseidon.png"
         },
         {
-            "id": "Ares",
+            "id": "ares",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["armor"],
             "spritesheetPath": "textures/ares.png"
         },
         {
-            "id": "Hephestus",
+            "id": "hephestus",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["craft"],
             "spritesheetPath": "textures/hephestus.png"
         },
         {
-            "id": "Hermes",
+            "id": "hermes",
             "maxHealth": 5.0,
             "abilityClass": "Damage Dealer",
             "specialAbilities": ["speed"],

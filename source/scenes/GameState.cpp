@@ -24,12 +24,12 @@ bool GameState::initHouses() {
 void GameState::initPlayers() {
     _players.reserve(4);
 
-    auto humanPlayer = std::make_shared<Player>("Poseidon", 0, "Player 1", _houseLoader);
+    auto humanPlayer = std::make_shared<Player>("poseidon", 0, "Player 1", _houseLoader);
     _players.push_back(humanPlayer);
 
     for (int i = 1; i <= 3; i++) {
        auto aiPlayer = std::make_shared<EasyPlayerAI>(
-            "Poseidon", i,
+            "poseidon", i,
             "AI Player " + std::to_string(i),
             _houseLoader
         );
@@ -69,7 +69,7 @@ void GameState::initPlayers() {
  *
  * @param playerNumber  The 0-based slot index of the player to promote.
  * @param playerName    The display name of the player joining this slot.
- * @param houseName     The ID of the house the player selected (e.g. "Athena").
+ * @param houseName     The ID of the house the player selected (e.g. "athena").
  *                      Must match a valid house definition in the HouseLoader.
  *                      Passing an unrecognized ID will produce a player with
  *                      default/missing stats and may cause a crash downstream.
@@ -78,7 +78,7 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
     if (playerNumber < 0 || playerNumber >= (int)_players.size()) return;
 
     _players[playerNumber] = std::make_shared<Player>(
-        houseName,        // ← use actual selected house, not hardcoded "Poseidon"
+        houseName,        // ← use actual selected house, not hardcoded "poseidon"
         playerNumber,
         playerName,       // ← don't concatenate playerNumber onto the name
         _houseLoader

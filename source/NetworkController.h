@@ -192,7 +192,7 @@ public:
      * Should be called on the host immediately after broadcastSelectedHouse()
      * when the host locks in their house selection.
      *
-     * @param houseID  The ID of the house the host selected (e.g. "Athena").
+     * @param houseID  The ID of the house the host selected (e.g. "athena").
      *                 Must match a valid entry in the HouseLoader.
      */
     void setLocalHouse(const std::string& houseID);

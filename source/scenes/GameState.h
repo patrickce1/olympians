@@ -79,7 +79,7 @@ public:
      *
      * @param playerNumber  The 0-based slot index of the player to promote.
      * @param playerName    The display name of the player joining this slot.
-     * @param houseName     The ID of the house the player selected (e.g. "Athena").
+     * @param houseName     The ID of the house the player selected (e.g. "athena").
      *                      Must match a valid entry in the HouseLoader or player
      *                      stats will be missing and may cause a crash downstream.
      */
