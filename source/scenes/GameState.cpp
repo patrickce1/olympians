@@ -83,6 +83,7 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
         playerName,       // ← don't concatenate playerNumber onto the name
         _houseLoader
     );
+    _playerIdMap[playerNumber] = _players[playerNumber].get();
 
     int playerCount = _players.size();
     for (int i = 0; i < playerCount; i++) {
