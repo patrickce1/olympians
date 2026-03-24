@@ -64,9 +64,12 @@
                     "visible": true
                 },
                 "children": {
-                    "joinGame": {
-                        "type": "Label",
-                        "data": {
+                    "join": {
+                        "type": "Button",
+                        "format": {
+                            "type": "Anchored"
+                        },
+                        "data" : {
                             "anchor": [
                                 0,
                                 1
@@ -81,20 +84,49 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular20",
-                            "text": "Join Game",
-                            "foreground": "#F6B561ff",
-                            "background": "#00000000",
-                            "padding": [
-                                0,
-                                0,
-                                0,
-                                0
-                            ],
-                            "valign": "top",
-                            "halign": "left"
+                            "upnode": "joinGame"
                         },
-                        "children": {},
+                        "children": {
+                            "joinGame": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0,
+                                        1
+                                    ],
+                                    "size": [
+                                        97,
+                                        24
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "gideon romanRegular20",
+                                    "text": "Join Game",
+                                    "foreground": "#F6B561ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "left"
+                                },
+                                "children": {},
+                                "layout": {
+                                    "x_anchor": "left",
+                                    "y_anchor": "top",
+                                    "absolute": false,
+                                    "x_offset": 0,
+                                    "y_offset": 0
+                                }
+                            }
+                        },
                         "layout": {
                             "x_anchor": "left",
                             "y_anchor": "top",
@@ -103,9 +135,12 @@
                             "y_offset": 0
                         }
                     },
-                    "hostGame": {
-                        "type": "Label",
-                        "data": {
+                    "host": {
+                        "type": "Button",
+                        "format": {
+                            "type": "Anchored"
+                        },
+                        "data" : {
                             "anchor": [
                                 0,
                                 1
@@ -120,20 +155,49 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular20",
-                            "text": "Host Game",
-                            "foreground": "#F6B561ff",
-                            "background": "#00000000",
-                            "padding": [
-                                0,
-                                0,
-                                0,
-                                0
-                            ],
-                            "valign": "top",
-                            "halign": "left"
+                            "upnode": "hostGame"
                         },
-                        "children": {},
+                        "children": {
+                            "hostGame": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0,
+                                        1
+                                    ],
+                                    "size": [
+                                        100,
+                                        24
+                                    ],
+                                    "position": [
+                                        3,
+                                        0
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "gideon romanRegular20",
+                                    "text": "Host Game",
+                                    "foreground": "#F6B561ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "left"
+                                },
+                                "children": {},
+                                "layout": {
+                                    "x_anchor": "left",
+                                    "y_anchor": "top",
+                                    "absolute": false,
+                                    "x_offset": 0,
+                                    "y_offset": 0
+                                }
+                            }
+                        },
                         "layout": {
                             "x_anchor": "left",
                             "y_anchor": "top",
