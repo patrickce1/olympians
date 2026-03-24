@@ -231,6 +231,12 @@
         "brackets": {
             "file": "textures/hostScene/brackets.png"
         },
+        "leftFade": {
+            "file": "textures/hostScene/leftFade.png"
+        },
+        "rightFade": {
+            "file": "textures/hostScene/rightFade.png"
+        },
         "cloudTopRight": {
             "file": "textures/lobbyScene/cloudTopRight.png"
         },

@@ -784,6 +784,98 @@
                             "y_offset": 0
                         }
                     },
+                    "fade": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "center",
+                            "y_alignment": "middle",
+                            "orientation": "horizontal"
+                        },
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                409,
+                                458
+                            ],
+                            "angle": 0,
+                            "position": [
+                                198,
+                                -8
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "leftFade": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "leftFade",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        72,
+                                        458
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        37,
+                                        229
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        262,
+                                        0
+                                    ]
+                                }
+                            },
+                            "rightFade": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "rightFade",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        73,
+                                        458
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        371.5,
+                                        229
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                    0,
+                                    0,
+                                    0,
+                                    0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.24,
+                            "y_offset": -0.03
+                        }
+                    },
                     "directionButtons": {
                         "type": "Node",
                         "format": {
