@@ -204,10 +204,6 @@
         },
         "poseidonSIcon": {
             "file": "textures/houseSelect/poseidonSIcon.png",
-            "minfilter":"linear",
-            "magfilter":"linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
         },
         "aresSIcon": {
             "file": "textures/houseSelect/aresSIcon.png",
