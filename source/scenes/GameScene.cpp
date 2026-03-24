@@ -408,12 +408,12 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
     if (!local || !target || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
-        if (item.getId() != itemId) {
-            continue;
-        }
+        if (item.getId() != itemId) continue;
 
+        // Capture defId BEFORE removing the item
+        std::string defId = item.getDefId();
         local->removeItemById(itemId);
-
+        
         if (!target->isAI()) {
             CULog("Passing left to a real player with the number %d", target->getPlayerNumber());
         }
@@ -421,8 +421,7 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
             CULog("Passing left to player AI player with number %d", target->getPlayerNumber());
         }
 
-        //NETWORK
-        _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
+        _network->broadcastPass(defId, target->getPlayerNumber());
         return true;
     }
     return false;
@@ -439,10 +438,10 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
     if (!local || !target || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
-        if (item.getId() != itemId) {
-            continue;
-        }
+        if (item.getId() != itemId) continue;
 
+        // Capture defId BEFORE removing the item
+        std::string defId = item.getDefId();
         local->removeItemById(itemId);
 
         if (!target->isAI()) {
@@ -452,8 +451,7 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
             CULog("Passing right to player AI player with number %d", target->getPlayerNumber());
         }
 
-        //NETWORK
-        _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
+        _network->broadcastPass(defId, target->getPlayerNumber());
         return true;
     }
     return false;
@@ -771,23 +769,20 @@ void GameScene::update(float dt, InputController& input) {
     handleNetworkUpdates();
     handleDisconnectedPlayers();
 
-    // now safe to iterate players
     handleItemSpawn(dt);
-    syncInventoryWidgets();
     updateEnemyAndAI(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);
     handleDragInitiation(input);
     handleDragTracking(input);
-    
-    syncInventoryWidgets();
+
     if (_itemPhysicsWorld) {
         _itemPhysicsWorld->update(dt);
     }
     syncItemWidgetsToBodies();
+    syncInventoryWidgets();
 
-    updateEnemyAndAI(dt);
     _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
 }
