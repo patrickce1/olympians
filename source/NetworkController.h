@@ -218,7 +218,7 @@ public:
      *
      * @param enemyID  The unique of the boss from enemies.json
      */
-    void setEnemy(const std::string& enemyID);
+    void setEnemy(const std::string& enemyID) { _enemy = enemyID; }
     
     /** Returns true if every player in the lobby has selected a house. */
     bool allPlayersSelectedHouse() const;
