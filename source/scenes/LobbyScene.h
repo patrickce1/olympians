@@ -60,6 +60,7 @@ protected:
     /** A container that stores labels and other info for visualizing the house and username choices of players */
     std::shared_ptr<cugl::scene2::SceneNode> _playerInfoContainer;
     
+    /** The glowing blinker for the local player's icon(bottom icon) to notify them to pick house  */
     std::shared_ptr<cugl::scene2::SceneNode> _localPlayerIconIndicator;
     
     /** The current status */
