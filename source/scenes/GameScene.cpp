@@ -394,12 +394,14 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
-            if (!local->useItemById(itemId, *enemy, _itemController.getDatabase())) {
+            const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+            if (resolvedMagnitude <= 0.0f) {
                 return false;
             }
+
             //NETWORKING
-            if (!_network->isHost()) {
-                _network->broadcastDamage(def->getEffectiveValue());
+            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
+                _network->broadcastDamage(resolvedMagnitude);
             }
             CULog("Player attacked enemy '%s' with item %llu",
                   enemy->getId().c_str(), (unsigned long long)itemId);
@@ -427,15 +429,14 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            if (!local->useItemById(itemId, *target, _itemController.getDatabase())) {
+            const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            if (resolvedMagnitude <= 0.0f) {
                 return false;
             }
+
             //NETWORK
-            if (_network->isHost()) {
-                target->updateHealth(def->getEffectiveValue());
-            }
-            else {
-                _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
+            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
+                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
             return true;
         }
@@ -461,15 +462,14 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            if (!local->useItemById(itemId, *target, _itemController.getDatabase())) {
+            const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            if (resolvedMagnitude <= 0.0f) {
                 return false;
             }
+
             //NETWORK
-            if (_network->isHost()) {
-                target->updateHealth(def->getEffectiveValue());
-            }
-            else {
-                _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
+            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
+                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
             return true;
         }
