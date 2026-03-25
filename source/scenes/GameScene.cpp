@@ -271,7 +271,6 @@ void GameScene::dispose() {
         _playerHealthBar = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
-        _playerSlots.clear();
         _itemWidgets.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
