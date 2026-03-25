@@ -300,6 +300,5 @@ void LobbyScene::update(float timestep) {
     updateLobbyText(displayOrder);
     updateLobbyPlayerIcons(displayOrder);
     _network->clearQueues();
-    
 }
 
