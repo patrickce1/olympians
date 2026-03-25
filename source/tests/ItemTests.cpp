@@ -13,9 +13,15 @@
 
 namespace {
 
-int _passed = 0;
-int _failed = 0;
+int _passed = 0;  ///< Count of passed test assertions.
+int _failed = 0;   ///< Count of failed test assertions.
 
+/**
+ * Assertion helper that logs a pass/fail message and increments counters.
+ *
+ * @param condition Boolean condition to test; true logs [PASS], false logs [FAIL]
+ * @param label    Test label text describing what is being asserted
+ */
 void expect(bool condition, const std::string& label) {
     if (condition) {
         CULog("[PASS] %s", label.c_str());
@@ -26,16 +32,38 @@ void expect(bool condition, const std::string& label) {
     }
 }
 
+/**
+ * Logs a summary of passed and failed test assertions with formatting.
+ */
 void printSummary() {
     CULog("-----------------------------------------");
     CULog("  %d passed   %d failed", _passed, _failed);
     CULog("-----------------------------------------");
 }
 
+/**
+ * Compares two floats for near-equality using absolute tolerance.
+ *
+ * Useful for floating-point arithmetic comparisons where exact equality is unreliable.
+ *
+ * @param a   First value to compare
+ * @param b   Second value to compare
+ * @param eps Epsilon tolerance for comparison (default: 1e-4)
+ * @return    True if |a - b| <= eps, false otherwise
+ */
 bool nearlyEqual(float a, float b, float eps = 1e-4f) {
     return std::fabs(a - b) <= eps;
 }
 
+/**
+ * Loads JSON from an asset file path using CUGL's JsonReader.
+ *
+ * The path is resolved relative to the assets directory. Logs errors if file opening or
+ * JSON parsing fails.
+ *
+ * @param path Asset-relative path to JSON file (e.g., "json/items.json")
+ * @return     Shared pointer to parsed JsonValue, or nullptr if loading/parsing fails
+ */
 std::shared_ptr<cugl::JsonValue> readJson(const std::string& path) {
     auto reader = cugl::JsonReader::alloc(path);
     if (!reader) {
@@ -49,6 +77,17 @@ std::shared_ptr<cugl::JsonValue> readJson(const std::string& path) {
     return json;
 }
 
+/**
+ * Tests item JSON loading and basic field validation.
+ *
+ * Verifies that:
+ * - ItemDatabase loads successfully from parsed JSON
+ * - At least one item definition exists after loading
+ * - All loaded items have positive baseValue (either explicit or default)
+ * - Specific item affinities parse correctly (e.g., lightning_bolt -> Zeus)
+ *
+ * @param itemsJson Parsed JSON object containing item definitions
+ */
 void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     ItemDatabase db;
     bool ok = db.loadFromJson(itemsJson);
@@ -79,6 +118,17 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
            "items: apple affinity parses as none");
 }
 
+/**
+ * Tests house multiplier JSON loading and bounds validation.
+ *
+ * Verifies that:
+ * - ItemDatabase loads house multipliers successfully from parsed JSON
+ * - All six houses (Zeus, Poseidon, Athena, Ares, Hephaestus, Demeter) have loaded multipliers
+ * - All multiplier values (attack, support, utility) are bounded in [0.0, 1.0]
+ * - Affinity bonus values are positive (> 0.0)
+ *
+ * @param housesJson Parsed JSON object containing house definitions with multiplier data
+ */
 void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson) {
     ItemDatabase db;
     bool ok = db.loadHouseMultipliersFromJson(housesJson);
@@ -110,6 +160,14 @@ void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson
     expect(bounded, "houses: multipliers are bounded and affinityBonus is positive");
 }
 
+/**
+ * Tests parsing of enum string representations (Type, Rarity, House).
+ *
+ * Verifies that ItemDef parsing functions correctly convert strings to enum values:
+ * - Type parsing: "attack", "support", "utility"
+ * - Rarity parsing: "common", "rare", "divine"
+ * - House parsing: "Zeus", "Ares", "none", and other house names
+ */
 void testEnumParsers() {
         expect(ItemDef::typeFromString("attack") == ItemDef::Type::Attack, "parse: type attack");
         expect(ItemDef::typeFromString("support") == ItemDef::Type::Support, "parse: type support");
@@ -124,6 +182,17 @@ void testEnumParsers() {
         expect(ItemDef::houseFromString("none") == ItemDef::House::None, "parse: house none");
 }
 
+/**
+ * Tests weighted random item selection and instance creation.
+ *
+ * Verifies that:
+ * - ItemDatabase can roll random item IDs based on rarity weights (common items rolled more frequently)
+ * - All rolled IDs correspond to actual database entries
+ * - createInstance() succeeds for known item IDs and returns valid ItemInstance pointers
+ * - createInstance() fails for unknown item IDs and returns nullptr
+ *
+ * @param itemsJson Parsed JSON object containing item definitions
+ */
 void testWeightedRollAndInstanceCreation(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
         ItemDatabase db;
         expect(db.loadFromJson(itemsJson), "db: loads for roll/instance tests");
@@ -148,12 +217,122 @@ void testWeightedRollAndInstanceCreation(const std::shared_ptr<cugl::JsonValue>&
         expect(rolledAtLeastOne, "db: weighted roll returns at least one item id");
         expect(allRolledKnown, "db: weighted roll only returns known item ids");
 
-        auto okInstance = db.createInstance("apple", 42);
+    auto okInstance = db.createInstance("apple", 42);
         auto badInstance = db.createInstance("does_not_exist", 999);
         expect(okInstance != nullptr, "db: createInstance works for known defId");
         expect(badInstance == nullptr, "db: createInstance fails for unknown defId");
 }
 
+/**
+ * Tests validation that rejects items with unsupported enum values.
+ *
+ * Verifies that ItemDatabase correctly rejects items with:
+ * - Invalid rarity values (not in {common, rare, divine})
+ * - Invalid type values (not in {attack, support, utility})
+ *
+ * Uses fixture JSON files stored in assets/json/tests/ directory.
+ */
+void testValidationFailures() {
+    ItemDatabase db;
+
+    auto badRarityJson = readJson("json/tests/items_bad_rarity.json");
+    expect(badRarityJson != nullptr, "validation: parse bad-rarity fixture json");
+    if (badRarityJson) {
+        expect(!db.loadFromJson(badRarityJson), "validation: unsupported rarity is rejected");
+    }
+
+    auto badTypeJson = readJson("json/tests/items_bad_type.json");
+    expect(badTypeJson != nullptr, "validation: parse bad-type fixture json");
+    if (badTypeJson) {
+        expect(!db.loadFromJson(badTypeJson), "validation: unsupported item type is rejected");
+    }
+}
+
+/**
+ * Tests multiplier value clamping and default fallbacks for missing or invalid values.
+ *
+ * Verifies that ItemDatabase correctly:
+ * - Clamps attack/support/utility values to [0.0, 1.0]
+ * - Defaults missing slider values to 0.0
+ * - Defaults invalid or missing affinityBonus to 1.5
+ * - Creates default entries for houses without multiplier data
+ *
+ * Uses fixture JSON file: assets/json/tests/houses_scaling_fallbacks.json
+ */
+void testScalingFallbacks() {
+    ItemDatabase db;
+    auto json = readJson("json/tests/houses_scaling_fallbacks.json");
+    expect(json != nullptr, "fallback: parse clamp/fallback house fixture");
+    if (!json) return;
+
+    expect(db.loadHouseMultipliersFromJson(json), "fallback: house multipliers load with fallback defaults");
+
+    const auto* clampHouseMultipliers = db.getHouseMultipliers("ClampHouse");
+    const auto* missingHouseMultipliers = db.getHouseMultipliers("MissingHouse");
+    expect(clampHouseMultipliers != nullptr, "fallback: ClampHouse scaling exists");
+    expect(missingHouseMultipliers != nullptr, "fallback: MissingHouse scaling exists");
+    if (clampHouseMultipliers) {
+        expect(nearlyEqual(clampHouseMultipliers->attack, 1.0f), "fallback: attack clamped to 1.0");
+        expect(nearlyEqual(clampHouseMultipliers->support, 0.0f), "fallback: support clamped to 0.0");
+        expect(nearlyEqual(clampHouseMultipliers->utility, 0.5f), "fallback: utility unchanged when valid");
+        expect(nearlyEqual(clampHouseMultipliers->affinityBonus, 1.5f), "fallback: non-positive affinityBonus defaults to 1.5");
+    }
+    if (missingHouseMultipliers) {
+        expect(nearlyEqual(missingHouseMultipliers->attack, 0.0f), "fallback: missing attack defaults to 0.0");
+        expect(nearlyEqual(missingHouseMultipliers->support, 0.0f), "fallback: missing support defaults to 0.0");
+        expect(nearlyEqual(missingHouseMultipliers->utility, 0.0f), "fallback: missing utility defaults to 0.0");
+        expect(nearlyEqual(missingHouseMultipliers->affinityBonus, 1.5f), "fallback: missing affinityBonus defaults to 1.5");
+    }
+}
+
+/**
+ * Tests baseValue fallback behavior for missing or invalid item values.
+ *
+ * Verifies that ItemDatabase correctly:
+ * - Defaults negative baseValue to 1.0
+ * - Defaults missing baseValue to 1.0
+ * - Preserves valid baseValue without modification
+ *
+ * Uses fixture JSON file: assets/json/tests/items_basevalue_fallbacks.json
+ */
+void testBaseValueDefaults() {
+    ItemDatabase db;
+    auto json = readJson("json/tests/items_basevalue_fallbacks.json");
+    expect(json != nullptr, "baseValue: parse fallback fixture");
+    if (!json) return;
+
+    expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
+    
+    expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
+    auto negativeBaseValueDef = db.getDef("neg_base");
+    auto missingBaseValueDef = db.getDef("missing_base");
+    expect(negativeBaseValueDef != nullptr && missingBaseValueDef != nullptr, "baseValue: fallback defs exist");
+    if (negativeBaseValueDef) {
+        expect(nearlyEqual(negativeBaseValueDef->getBaseValue(), 1.0f), "baseValue: negative baseValue defaults to 1.0");
+    }
+    if (missingBaseValueDef) {
+        expect(nearlyEqual(missingBaseValueDef->getBaseValue(), 1.0f), "baseValue: missing baseValue defaults to 1.0");
+    }
+}
+
+/**
+ * Tests complete item usage computation pipeline with different scenarios.
+ *
+ * Verifies the full damage/healing calculation:
+ *   resolvedValue = baseValue * (1 + houseSlider) * affinityBonus
+ *
+ * Tests multiple scenarios:
+ * - Attack item with matching house affinity (should apply affinityBonus)
+ * - Attack item without matching affinity (should skip affinityBonus)
+ * - Support item heal on ally (should apply support slider)
+ * - Item used on wrong target type (should return 0 but consume item)
+ * - Missing item ID lookup (should return -1)
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJson      Parsed JSON object containing house multipliers
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
 void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& itemsJson,
                                  const std::shared_ptr<cugl::JsonValue>& housesJson,
                                  const std::string& housesJsonPath,
@@ -230,72 +409,29 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
         // Missing item id should fail with -1
         float missing = testAttacker.useItemById(999999, testTarget, db);
         expect(nearlyEqual(missing, -1.0f), "compute: missing item id returns -1.0");
-}
-
-void testValidationFailures() {
-    ItemDatabase db;
-
-    auto badRarityJson = readJson("json/tests/items_bad_rarity.json");
-    expect(badRarityJson != nullptr, "validation: parse bad-rarity fixture json");
-    if (badRarityJson) {
-        expect(!db.loadFromJson(badRarityJson), "validation: unsupported rarity is rejected");
-    }
-
-    auto badTypeJson = readJson("json/tests/items_bad_type.json");
-    expect(badTypeJson != nullptr, "validation: parse bad-type fixture json");
-    if (badTypeJson) {
-        expect(!db.loadFromJson(badTypeJson), "validation: unsupported item type is rejected");
-    }
-}
-
-void testScalingFallbacks() {
-    ItemDatabase db;
-    auto json = readJson("json/tests/houses_scaling_fallbacks.json");
-    expect(json != nullptr, "fallback: parse clamp/fallback house fixture");
-    if (!json) return;
-
-    expect(db.loadHouseMultipliersFromJson(json), "fallback: house multipliers load with fallback defaults");
-
-    const auto* clampHouseMultipliers = db.getHouseMultipliers("ClampHouse");
-    const auto* missingHouseMultipliers = db.getHouseMultipliers("MissingHouse");
-    expect(clampHouseMultipliers != nullptr, "fallback: ClampHouse scaling exists");
-    expect(missingHouseMultipliers != nullptr, "fallback: MissingHouse scaling exists");
-    if (clampHouseMultipliers) {
-        expect(nearlyEqual(clampHouseMultipliers->attack, 1.0f), "fallback: attack clamped to 1.0");
-        expect(nearlyEqual(clampHouseMultipliers->support, 0.0f), "fallback: support clamped to 0.0");
-        expect(nearlyEqual(clampHouseMultipliers->utility, 0.5f), "fallback: utility unchanged when valid");
-        expect(nearlyEqual(clampHouseMultipliers->affinityBonus, 1.5f), "fallback: non-positive affinityBonus defaults to 1.5");
-    }
-    if (missingHouseMultipliers) {
-        expect(nearlyEqual(missingHouseMultipliers->attack, 0.0f), "fallback: missing attack defaults to 0.0");
-        expect(nearlyEqual(missingHouseMultipliers->support, 0.0f), "fallback: missing support defaults to 0.0");
-        expect(nearlyEqual(missingHouseMultipliers->utility, 0.0f), "fallback: missing utility defaults to 0.0");
-        expect(nearlyEqual(missingHouseMultipliers->affinityBonus, 1.5f), "fallback: missing affinityBonus defaults to 1.5");
-    }
-}
-
-void testBaseValueDefaults() {
-    ItemDatabase db;
-    auto json = readJson("json/tests/items_basevalue_fallbacks.json");
-    expect(json != nullptr, "baseValue: parse fallback fixture");
-    if (!json) return;
-
-    expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
-    
-    expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
-    auto negativeBaseValueDef = db.getDef("neg_base");
-    auto missingBaseValueDef = db.getDef("missing_base");
-    expect(negativeBaseValueDef != nullptr && missingBaseValueDef != nullptr, "baseValue: fallback defs exist");
-    if (negativeBaseValueDef) {
-        expect(nearlyEqual(negativeBaseValueDef->getBaseValue(), 1.0f), "baseValue: negative baseValue defaults to 1.0");
-    }
-    if (missingBaseValueDef) {
-        expect(nearlyEqual(missingBaseValueDef->getBaseValue(), 1.0f), "baseValue: missing baseValue defaults to 1.0");
-    }
-}
 
 } // namespace
 
+/**
+ * Runs all item tests with given asset paths.
+ *
+ * Loads item, house, and enemy data from JSON files and orchestrates all test functions.
+ * Resets pass/fail counters and outputs a formatted summary at completion.
+ *
+ * Test sequence:
+ * 1. testItemsLoad            - Item loading and field parsing
+ * 2. testHouseMultipliersLoad - House multiplier loading  
+ * 3. testEnumParsers          - Enum string parsing
+ * 4. testWeightedRollAndInstanceCreation - Weighted random selection
+ * 5. testValidationFailures   - Rejection of invalid data
+ * 6. testScalingFallbacks     - Clamping and default values
+ * 7. testBaseValueDefaults    - baseValue fallback behavior
+ * 8. testEffectiveValueComputation - Full computation pipeline
+ *
+ * @param itemsJsonPath   Asset path to items.json (e.g., "json/items.json")
+ * @param housesJsonPath  Asset path to houses.json (e.g., "json/houses.json")
+ * @param enemiesJsonPath Asset path to enemies.json (e.g., "json/enemies.json")
+ */
 void ItemTests::runAll(const std::string& itemsJsonPath,
                                              const std::string& housesJsonPath,
                                              const std::string& enemiesJsonPath) {
