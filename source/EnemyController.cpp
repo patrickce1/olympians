@@ -44,23 +44,23 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
     // BASE CASE: All players dead
     if (living.empty()) {
         CULog("[EnemyController] Target: None (All players dead)");
-        _targetIndex = -1;
+        enemy->setTargetIndex(-1);
         return;
     }
 
     // BASE CASE: If current target is dead or invalid, force it onto a living target (no probability)
-    bool curValid = (_targetIndex >= 0 && _targetIndex < n && players[_targetIndex]->isAlive());
+    bool curValid = (enemy->getTargetIndex() >= 0 && enemy->getTargetIndex() < n && players[enemy->getTargetIndex()]->isAlive());
     if (!curValid) {
         const int pick = (int)(_rng.getUint32() % (Uint32)living.size());
-        CULog("[EnemyController] Target: Player[%d] -> Player[%d] (Current target was invalid/dead)", _targetIndex, living[pick]);
-        _targetIndex = living[pick];
+        CULog("[EnemyController] Target: Player[%d] -> Player[%d] (Current target was invalid/dead)", enemy->getTargetIndex(), living[pick]);
+        enemy->setTargetIndex(living[pick]);
         return;
     }
 
     // Roll probability on whether to switch to a different target
     float r = (float)_rng.getFloat(); // [0,1)
     if (r >= chance) {
-        CULog("[EnemyController] Target: Player[%d] (Retained original target)", _targetIndex);
+        CULog("[EnemyController] Target: Player[%d] (Retained original target)", enemy->getTargetIndex());
         return;
     }
     
@@ -68,15 +68,15 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
     std::vector<int> candidates;
     candidates.reserve(living.size());
     for (int idx : living) {
-        if (idx != _targetIndex) candidates.push_back(idx);
+        if (idx != enemy->getTargetIndex()) candidates.push_back(idx);
     }
     if (candidates.empty()) {
-        CULog("[EnemyController] Target: Player[%d] (Only living player)", _targetIndex);
+        CULog("[EnemyController] Target: Player[%d] (Only living player)", enemy->getTargetIndex());
         return;
     }
     const int pick = (int)(_rng.getUint32() % (Uint32)candidates.size());
-    CULog("[EnemyController] Target: Player[%d] -> Player[%d] (Retargeted on idle entry)", _targetIndex, candidates[pick]);
-    _targetIndex = candidates[pick];
+    CULog("[EnemyController] Target: Player[%d] -> Player[%d] (Retargeted on idle entry)", enemy->getTargetIndex(), candidates[pick]);
+    enemy->setTargetIndex(candidates[pick]);
 }
 
 /** Checks whether the enemy has just entered idle on this frame. */
@@ -164,7 +164,7 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
     }
 
     int offset = fe.def.target; // int offset from JSON
-    int victim = wrapIndex(_targetIndex + offset, n);
+    int victim = wrapIndex(enemy->getTargetIndex() + offset, n);
     
     // Victim was killed before event completed
     if (!players[victim]->isAlive()) {

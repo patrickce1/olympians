@@ -23,8 +23,6 @@ class EnemyController {
 public:
     EnemyController();
 
-    int getTargetIndex() const { return _targetIndex; }
-
     void enterIdle(const std::shared_ptr<Enemy>& enemy,
                    std::vector<std::shared_ptr<Player>>& players);
     void update(float dt,
@@ -32,7 +30,6 @@ public:
                 std::vector<std::shared_ptr<Player>>& players);
 
 private:
-    int _targetIndex = -1;
     cugl::Random _rng;
 
 private:

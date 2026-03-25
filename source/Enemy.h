@@ -27,6 +27,8 @@ private:
     std::string _name;
     std::string _spritesheetPath;
 
+    int _targetIndex = -1;
+
     float _maxHealth = 0.0f;
     float _currentHealth = 0.0f;
 
@@ -55,6 +57,9 @@ public:
     float getCurrentHealth() const { return _currentHealth; }
     bool isAlive() const { return _currentHealth > 0.0f; }
     void setCurrentHealth(float health) { _currentHealth = health; }
+
+    int getTargetIndex() const { return _targetIndex; }
+    int setTargetIndex(int index) { _targetIndex = index;  }
 
     const std::string& getCurrentStateName() const { return _currentState; }
     const EnemyLoader::StateDef* getCurrentStateDef() const;
