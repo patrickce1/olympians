@@ -24,7 +24,7 @@
             "background": {
                 "type": "Image",
                 "data": {
-                    "texture": "cerberusBackground",
+                    "texture": "cyclopsBackground",
                     "anchor": [
                         0.5,
                         0
@@ -51,19 +51,18 @@
             "boss": {
                 "type": "Image",
                 "data": {
-                    "texture": "cerberus",
+                    "texture": "cyclops",
                     "anchor": [
                         0.5,
                         0
                     ],
                     "size": [
-                        355.48,
-                        511.54
+                        393, 598
                     ],
                     "angle": 0,
                     "position": [
-                        20,
-                        0.46
+                        0,
+                        0
                     ],
                     "visible": true
                 },

@@ -205,6 +205,15 @@ public:
      * @return true if both systems initialised successfully.
      */
     bool initGameSystems();
+    
+    /**
+     * Initializes the background and boss images for the current game scene.
+     *
+     * This function sets the visual assets for both the background and the boss
+     * based on the active enemy in the game state. It retrieves the enemy ID and
+     * uses it to construct texture keys for the corresponding assets.
+     */
+    void initBackgroundAndBossImage();
 
     /**
      * Initialises the scene graph and all game systems.

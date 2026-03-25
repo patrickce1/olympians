@@ -59,10 +59,16 @@
             "file": "textures/playerIcon.png"
         },
         "cerberusBackground": {
-            "file": "textures/gameScene/background.png"
+            "file": "textures/gameScene/cerberus/background.png"
         },
         "cerberus": {
-            "file": "textures/gameScene/cerberus.png"
+            "file": "textures/gameScene/cerberus/cerberus.png"
+        },
+        "cyclopsBackground": {
+            "file": "textures/gameScene/cyclops/background.png"
+        },
+        "cyclops": {
+            "file": "textures/gameScene/cyclops/cyclops.png"
         },
         "healthFrame": {
             "file": "textures/gameScene/healthFrame.png"
@@ -203,7 +209,7 @@
             "wrapT":    "clamp"
         },
         "poseidonSIcon": {
-            "file": "textures/houseSelect/poseidonSIcon.png",
+            "file": "textures/houseSelect/poseidonSIcon.png"
         },
         "aresSIcon": {
             "file": "textures/houseSelect/aresSIcon.png",

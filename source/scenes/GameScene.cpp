@@ -166,6 +166,24 @@ void GameScene::initInputZones(){
 }
 
 /**
+ * Initializes the background and boss images for the current game scene.
+ *
+ * This function sets the visual assets for both the background and the boss
+ * based on the active enemy in the game state. It retrieves the enemy ID and
+ * uses it to construct texture keys for the corresponding assets.
+ */
+void GameScene::initBackgroundAndBossImage() {
+    if (!_network) return;
+    
+    auto boss = _gameState.getEnemy()->getId();
+    auto backgroundImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("background"));
+    backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>(boss + "Background"));
+    
+    auto bossImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("boss"));
+    bossImage->setTexture(_assets->get<cugl::graphics::Texture>(boss));
+}
+
+/**
  * Initialises the scene graph and all game systems.
  *
  * Builds the scene graph from the asset manager, initialises the
@@ -263,6 +281,8 @@ void GameScene::updateNetworkOrder() {
         _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
         
         _gameState.setEnemy(_network->getEnemy());
+        
+        initBackgroundAndBossImage();
     }
 }
 
