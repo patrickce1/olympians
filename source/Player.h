@@ -246,6 +246,16 @@ public:
      */
     void setRightPlayer(Player* player) { _rightPlayer = player; }
     
+    /**
+     * Sets the display name of the player.
+     * Used when a networked player joins before selecting a house,
+     * so their name can be shown in the lobby without reconstructing
+     * the Player object.
+     *
+     * @param name  The display name to assign.
+     */
+    void setPlayerName(const std::string& name) { _playerName = name; }
+    
 };
 #endif /* !__PLAYER_H__ */
 
