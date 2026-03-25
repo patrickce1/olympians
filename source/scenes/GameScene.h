@@ -115,6 +115,8 @@ protected:
     
     /** Slots already demoted to Easy AI this session; prevents re-demoting each frame. */
     std::unordered_set<int> _slotsDemotedToAI;
+    
+    std::shared_ptr<cugl::scene2::SpriteNode> _bossSprite;
 
 #pragma mark - Drag State
 

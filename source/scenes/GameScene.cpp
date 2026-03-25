@@ -108,6 +108,8 @@ bool GameScene::initSceneGraph() {
         
         _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
+        
+        _bossSprite = std::dynamic_pointer_cast<scene2::SpriteNode>((_gameArea->getChildByName("bossIdle")));
     }
     
     if (_inventory) {

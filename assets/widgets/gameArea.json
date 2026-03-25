@@ -64,7 +64,37 @@
                         0,
                         0
                     ],
-                    "visible": true
+                    "visible": false
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "bossIdle": {
+                "type": "Sprite",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "texture": "cyclopsFourIdle",
+                    "anchor": [
+                        0.5,
+                        0
+                    ],
+                    "size": [
+                        393, 598
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true,
+                    "cols": 4,
+                    "rows": 1,
+                    "frame":  0
                 },
                 "layout": {
                     "x_anchor": "center",
