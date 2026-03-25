@@ -123,7 +123,7 @@
             "hostName": {
                 "type": "Widget",
                 "data": {
-                    "key": "text-field",
+                    "key": "textfield",
                     "variables": {
                         "text": ""
                     }

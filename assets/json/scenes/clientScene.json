@@ -328,7 +328,7 @@
                     "gameID": {
                         "type": "Widget",
                         "data": {
-                            "key": "text-field",
+                            "key": "textfield",
                             "variables": {
                                 "text": ""
                             }
@@ -341,7 +341,7 @@
                     "playerName": {
                         "type": "Widget",
                         "data": {
-                            "key": "text-field",
+                            "key": "textfield",
                             "variables": {
                                 "text": ""
                             }
