@@ -471,9 +471,15 @@ void HouseSelectScene::updateTeammateIcons() {
         std::string house = players[slot]->getHouseName();
         if (house == "athena") {
             activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+        } else if (house == "ares") {
+            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("aresSIcon"));
+        } else if (house== "poseidon") {
+            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("poseidonSIcon"));
+        } else if (house == "demeter") {
+            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("demeterSIcon"));
         } else {
-            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
+            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("teamSelectIconEmpty"));
         }
-        
+        activeIcon->setScale(0.92);
     }
 }

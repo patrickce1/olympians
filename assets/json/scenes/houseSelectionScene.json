@@ -2239,7 +2239,7 @@
                         "data": {
                             "key": "teamHouseIcon",
                             "variables": {
-                                "houseImage" : "teamSelectIconEmpty"
+                                "houseImage" : "emptyLocalIcon"
                             }
                         },
                         "layout": {
@@ -2255,7 +2255,7 @@
                         "data": {
                             "key": "teamHouseIcon",
                             "variables": {
-                                "houseImage" : "teamSelectIconEmpty"
+                                "houseImage" : "emptyLocalIcon"
                             }
                         },
                         "layout": {
@@ -2271,7 +2271,7 @@
                         "data": {
                             "key": "teamHouseIcon",
                             "variables": {
-                                "houseImage" : "teamSelectIconEmpty"
+                                "houseImage" : "emptyLocalIcon"
                             }
                         },
                         "layout": {

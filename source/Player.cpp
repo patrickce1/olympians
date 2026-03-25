@@ -10,6 +10,15 @@ Player::Player(const std::string& houseId, int playerNumber,
                     const std::string& playerName,
                     const HouseLoader& loader){
     
+    // Set player-specific info
+    _playerNumber = playerNumber;
+    _playerName   = playerName;
+    
+    if (houseId.empty()) {
+            _houseId = "";
+            return;
+    }
+    
     // Safety check — make sure the house exists in the loader
     CUAssertLog(loader.has(houseId), "House ID not found: %s", houseId.c_str());
 
@@ -22,10 +31,6 @@ Player::Player(const std::string& houseId, int playerNumber,
     _abilityClass     = def.abilityClass;
     _spritesheetPath  = def.spritesheetPath;
     _specialAbilities = def.specialAbilities;
-
-    // Set player-specific info
-    _playerNumber = playerNumber;
-    _playerName   = playerName;
 
     // Inventory starts empty — items are added during gameplay
     _inventory = {};

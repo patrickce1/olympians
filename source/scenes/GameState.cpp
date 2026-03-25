@@ -24,7 +24,7 @@ bool GameState::initHouses() {
 void GameState::initPlayers() {
     _players.reserve(4);
 
-    auto humanPlayer = std::make_shared<Player>("poseidon", 0, "Player 1", _houseLoader);
+    auto humanPlayer = std::make_shared<Player>("", 0, "Player 1", _houseLoader);
     _players.push_back(humanPlayer);
 
     for (int i = 1; i <= 3; i++) {

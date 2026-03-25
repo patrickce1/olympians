@@ -250,7 +250,7 @@
                             "y_offset": -0.18
                         }
                     },
-                    "playerCard0": {
+                    "playerCard3": {
                         "type": "Node",
                         "format": {
                             "type": "Anchored"
@@ -389,11 +389,11 @@
                                 "type": "Label",
                                 "data": {
                                     "anchor": [
-                                        0,
+                                        0.5,
                                         1
                                     ],
                                     "size": [
-                                        66,
+                                        90,
                                         19
                                     ],
                                     "position": [
@@ -417,10 +417,10 @@
                                 },
                                 "children": {},
                                 "layout": {
-                                    "x_anchor": "left",
+                                    "x_anchor": "center",
                                     "y_anchor": "top",
                                     "absolute": false,
-                                    "x_offset": 0.33,
+                                    "x_offset": 0,
                                     "y_offset": -0.76
                                 }
                             }
@@ -433,7 +433,7 @@
                             "y_offset": -0.57
                         }
                     },
-                    "playerCard1": {
+                    "playerCard0": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
@@ -554,7 +554,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        66,
+                                        90,
                                         19
                                     ],
                                     "position": [
@@ -596,7 +596,7 @@
                             "y_offset": -0.37
                         }
                     },
-                    "playerCard2": {
+                    "playerCard1": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
@@ -629,7 +629,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        84.85282135009766,
+                                        90,
                                         19
                                     ],
                                     "position": [
@@ -759,7 +759,7 @@
                             "y_offset": 0
                         }
                     },
-                    "playerCard3": {
+                    "playerCard2": {
                         "type": "Node",
                         "format": {
                             "type": "Float",
@@ -880,7 +880,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        66,
+                                        90,
                                         19
                                     ],
                                     "position": [

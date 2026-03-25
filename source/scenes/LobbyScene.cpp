@@ -99,7 +99,7 @@ void LobbyScene::setupUI() {
         }
     }
     
-    _localPlayerIconIndicator = _assets->get<scene2::SceneNode>("lobbyScene.tableArea.playerCard0.glowBorder");
+    _localPlayerIconIndicator = _assets->get<scene2::SceneNode>("lobbyScene.tableArea.playerCard3.glowBorder");
 }
 
 /**
@@ -273,8 +273,8 @@ void LobbyScene::updateNetworkOrder() {
     // check if local player has selected house
     int localIndex = _network->getLocalPlayerNumber();
 
-    if (localIndex < onlinePlayers.size()) {
-        const auto& player = onlinePlayers[localIndex];
+    if (localIndex < networkedPlayers.size()) {
+        const auto& player = networkedPlayers[localIndex];
         _hasSelectedHouse = (!player.houseID.empty());
     } else {
         _hasSelectedHouse = false;
