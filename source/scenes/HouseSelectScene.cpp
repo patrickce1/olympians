@@ -441,20 +441,20 @@ void HouseSelectScene::updateTeammateIcons() {
     const auto& players = _gameState->getPlayers();
     int totalSlots = (int)players.size();
 
-    std::vector<std::shared_ptr<cugl::scene2::PolygonNode>> iconImages = {
+    std::vector<std::shared_ptr<cugl::scene2::PolygonNode>> iconSlots = {
         _rightPlayerIconImage, _upPlayerIconImage, _leftPlayerIconImage
     };
 
     for (int i = 1; i <= 3; i++) {
         int slot = (localIndex + i) % totalSlots;
-        auto image = iconImages[i - 1];
-        if (!image) continue;
+        auto iconNode = iconSlots[i - 1];
+        if (!iconNode) continue;
 
         std::string house = players[slot]->getHouseName();
         if (house == "Athena") {
-            image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+            iconNode->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
         } else {
-            image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+            iconNode->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
         }
     }
 }
