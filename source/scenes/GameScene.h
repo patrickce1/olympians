@@ -121,6 +121,32 @@ protected:
     /** Offset from the icon's origin to the touch point, applied during drag. */
     cugl::Vec2 _dragOffset;
 
+#pragma mark - Sliding Items State
+
+    /** Set of ItemIds currently sliding/animating. */
+    std::unordered_set<ItemInstance::ItemId> _slidingItems;
+
+    /** Item body position from previous frame, used to calculate release velocity. */
+    cugl::Vec2 _dragPreviousFrameItemBodyPos = cugl::Vec2::ZERO;
+
+    /** ItemId of the item currently being dragged/released. */
+    ItemInstance::ItemId _dragReleasedItemId = 0;
+
+    /** Original inventory position of the item being dropped (target for snapback animation). */
+    cugl::Vec2 _dragReleasedFromInventoryPos = cugl::Vec2::ZERO;
+
+    /** ItemId of item currently animating back to inventory via snapback. */
+    ItemInstance::ItemId _snapbackAnimationItemId = 0;
+
+    /** Screen position where snapback animation starts. */
+    cugl::Vec2 _snapbackStartScreenPos = cugl::Vec2::ZERO;
+
+    /** Target inventory position for snapback animation. */
+    cugl::Vec2 _snapbackTargetInventoryPos = cugl::Vec2::ZERO;
+
+    /** Normalized progress of snapback animation (0.0 to 1.0). */
+    float _snapbackAnimationProgress = 0.0f;
+
 #pragma mark - Glow Effect State
 
     /** The drop zone action whose region should currently glow. */
@@ -416,6 +442,55 @@ public:
      * @param dt  Delta time in seconds.
      */
     void handleItemSpawn(float dt);
+    
+    /**
+     * Initializes a sliding item with the given velocity and origin type.
+     * Marks the item as sliding and configures its state based on origin.
+     *
+     * @param itemId        The ID of the item to start sliding
+     * @param velocity      Initial velocity vector (units/sec)
+     * @param origin        The SlideOriginType indicating where the slide came from
+     */
+    void startItemSliding(ItemInstance::ItemId itemId, const cugl::Vec2& velocity, ItemInstance::SlideOriginType origin);
+    
+    /**
+     * Updates all sliding items each frame, applying friction and checking boundaries.
+     * Handles settlement and snapback animations for dropped items.
+     *
+     * @param dt  Delta time in seconds.
+     */
+    void updateSlidingItems(float dt);
+    
+    /**
+     * Updates snapback animations for dropped items returning to inventory.
+     * Smoothly interpolates item positions back to their original inventory locations.
+     *
+     * @param dt  Delta time in seconds.
+     */
+    void updateSnapbackAnimations(float dt);
+    
+    /**
+     * Checks for zone interactions with zone-interactive sliding items.
+     * Handles strict item-type matching (attack↔attack, support↔support).
+     * Called once per frame after sliding velocity updates.
+     */
+    void checkZoneInteractionsForSlidingItems();
+    
+    /**
+     * Clamps a passed item's position to the inventory zone bounds.
+     * Prevents passed items from sliding outside the valid inventory area.
+     *
+     * @param itemBody      The Box2D body to clamp
+     */
+    void clampItemToBounds(std::shared_ptr<cugl::physics2::BoxObstacle> itemBody);
+    
+    /**
+     * Checks if an item's position is within visible screen bounds.
+     *
+     * @param position      The screen position to check
+     * @return true if position is within visible area, false otherwise
+     */
+    bool isItemInVisibleArea(const cugl::Vec2& position);
     
     /**
      * Top-level disconnect handler. Called every frame from update().
