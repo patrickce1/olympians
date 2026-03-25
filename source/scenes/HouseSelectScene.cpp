@@ -30,7 +30,9 @@ using namespace std;
  *
  * @return true if the scene was successfully initialized; false otherwise
  */
-bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
+                            const std::shared_ptr<NetworkController>& networkController,
+                            GameState* gameState) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -38,6 +40,7 @@ bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, c
         return false;
     }
     
+    _gameState = gameState;
     _assets = assets;
     _network = networkController;
     loadHouses();
@@ -75,8 +78,11 @@ void HouseSelectScene::setupUI() {
     _backOut = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("houseSelectScene.back"));
 
-    // actually image, make into widget for access
+    // actuall image, make into widget for access
     _playerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.playerSelectIcon"));
+    _leftPlayerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconLeft"));
+    _rightPlayerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconRight"));
+    _upPlayerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconUp"));
     
     if (_playerIcon) {
         _playerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
@@ -84,6 +90,24 @@ void HouseSelectScene::setupUI() {
         
         _playerIconGlow = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
                             _playerIcon->getChildByName("lockedGlow"));
+    }
+    
+    if (_leftPlayerIcon) {
+        _leftPlayerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
+            _leftPlayerIcon->getChildByName("emptyLocalIcon"));
+        CULog("leftPlayerIconImage found: %d", _leftPlayerIconImage != nullptr);
+    }
+    
+    if (_rightPlayerIcon) {
+        _rightPlayerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
+            _rightPlayerIcon->getChildByName("emptyLocalIcon"));
+        CULog("rightPlayerIconImage found: %d", _rightPlayerIconImage != nullptr);
+    }
+    
+    if (_upPlayerIcon) {
+        _upPlayerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
+            _upPlayerIcon->getChildByName("emptyLocalIcon"));
+        CULog("upPlayerIconImage found: %d", _upPlayerIconImage != nullptr);
     }
     
     _playerIconImage->setAnchor(cugl::Vec2::ANCHOR_CENTER);
@@ -128,7 +152,7 @@ void HouseSelectScene::setupListeners() {
             HouseLoader::HouseDef selectedHouse = _houseLoader.getAllOrdered()[_currentIndex];
             
             // Update UI
-            updateSelectedIcon(_currentIndex);
+            updateSelectedIcon(_currentIndex, true);
             updateText(_lockButton, "UNLOCK");
             _playerIconGlow->setVisible(true);
             
@@ -245,6 +269,8 @@ void HouseSelectScene::updateText(const std::shared_ptr<scene2::Button>& button,
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void HouseSelectScene::update(float timestep) {
+    updateNetworkOrder();
+    updateTeammateIcons();
     // The carousel move logic
     if (_isAnimating) {
         Vec2 current = _houseSelectionCardContainer->getPosition();
@@ -334,19 +360,34 @@ void HouseSelectScene::updateCarouselDots(int currentIndex) {
 }
 
 /**
- * Updates the player's respective icon in the diamond based on the house card
- * they are currently on. If the player has locked their house, there is no change.
+ * Updates the local player's icon in the diamond based on the house card
+ * they are currently on. If commitToGameState is true, also updates the
+ * local player's house in GameState — should only be true when the player
+ * locks in their selection.
  *
- * @param currentIndex The index of the card we are at.
+ * @param currentIndex      The index of the card we are at.
+ * @param commitToGameState Whether to write the house selection to GameState.
  */
-void HouseSelectScene::updateSelectedIcon(int currentIndex) {
+void HouseSelectScene::updateSelectedIcon(int currentIndex, bool commitToGameState) {
     if (!_playerIconImage) return;
-    
+
     const HouseLoader::HouseDef& selectedHouse = _houseLoader.getAllOrdered()[currentIndex];
+
     if (selectedHouse.id == "Athena") {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
     } else {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
+    }
+
+    if (commitToGameState && _gameState) {
+        int localIndex = _network->getLocalPlayerNumber();
+        if (localIndex >= 0) {
+            _gameState->setRealPlayer(
+                localIndex,
+                _gameState->getPlayerBySlot(localIndex)->getPlayerName(),
+                selectedHouse.id
+            );
+        }
     }
 }
 
@@ -358,4 +399,62 @@ bool HouseSelectScene::loadHouses() {
         return false;
     }
     return true;
+}
+
+/**
+ * Syncs the game state player names and houses with the current
+ * networked player list. Called every frame during house selection so that
+ * _gameState reflects the latest connected player info, including house
+ * selections made by other players while this scene is active.
+ */
+void HouseSelectScene::updateNetworkOrder() {
+    if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
+
+    _network->getNetworkUpdates();
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
+
+    for (int i = 0; i < (int)networkedPlayers.size(); i++) {
+        _gameState->setRealPlayer(
+            i,
+            networkedPlayers[i].username,
+            networkedPlayers[i].houseID
+        );
+    }
+    _network->clearQueues();
+}
+
+/**
+ * Updates the three teammate icon images in the house select screen
+ * based on each player's selected house. Uses the same circular remapping
+ * as LobbyScene so that left, right, and top slots always reflect the
+ * correct neighbours relative to the local player.
+ *
+ * Slot order after remap: [0]=right neighbour, [1]=opposite, [2]=left neighbour
+ * matching the _rightPlayerIcon, _upPlayerIcon, _leftPlayerIcon positions.
+ */
+void HouseSelectScene::updateTeammateIcons() {
+    if (!_gameState || !_network) return;
+
+    int localIndex = _network->getLocalPlayerNumber();
+    if (localIndex < 0) return;
+
+    const auto& players = _gameState->getPlayers();
+    int totalSlots = (int)players.size();
+
+    std::vector<std::shared_ptr<cugl::scene2::PolygonNode>> iconImages = {
+        _rightPlayerIconImage, _upPlayerIconImage, _leftPlayerIconImage
+    };
+
+    for (int i = 1; i <= 3; i++) {
+        int slot = (localIndex + i) % totalSlots;
+        auto image = iconImages[i - 1];
+        if (!image) continue;
+
+        std::string house = players[slot]->getHouseName();
+        if (house == "Athena") {
+            image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+        } else {
+            image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+        }
+    }
 }

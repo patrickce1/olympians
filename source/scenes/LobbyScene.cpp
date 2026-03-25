@@ -22,13 +22,17 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
+                     const std::shared_ptr<NetworkController>& networkController,
+                     GameState* gameState){
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
     } else if (!Scene2::initWithHint(Size(0,SCENE_HEIGHT))) {
         return false;
     }
+    
+    _gameState = gameState;
     
     // Start up the input handler
     _assets = assets;
@@ -171,43 +175,83 @@ void LobbyScene::setActive(bool value) {
     }
 }
 
-/** Updates the player handles based on updates to the lobby state */
-void LobbyScene::updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers) {
+/**
+ * Updates the username labels in the lobby UI to match the given player list.
+ * The list is expected to already be in display order (local player last)
+ * as produced by remapPlayersForDisplay().
+ *
+ * @param players  The display-ordered list of players to read names from.
+ */
+void LobbyScene::updateLobbyText(std::vector<Player*> players) {
     for (int i = 0; i < _playerSlots.size(); i++) {
-        if (i < onlinePlayers.size()) {
-            _playerSlots[i]->setText(onlinePlayers[i].username);
-        }
-        else {
-            _playerSlots[i]->setText("AI Player");
+        _playerSlots[i]->setText(players[i]->getPlayerName());
+    }
+}
+
+/**
+ * Updates the player icon images in the lobby UI based on each player's
+ * selected house. The list is expected to already be in display order
+ * (local player last) as produced by remapPlayersForDisplay().
+ *
+ * @param players  The display-ordered list of players to read house names from.
+ */
+void LobbyScene::updateLobbyPlayerIcons(std::vector<Player*> players) {
+    for (int i = 0; i < _playerImages.size(); i++) {
+        auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
+            _playerImages[i]->getChildByName("playerIconImg"));
+        if (image) {
+            if (players[i]->getHouseName() == "Athena") {
+                image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+            } else {
+                image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+            }
         }
     }
 }
 
 /**
- * Updates the player icon images based on the current lobby state.
+ * Remaps the full player list from GameState so the local player always
+ * appears last (bottom slot of the UI). Walks the circular player array
+ * starting one step to the right of the local player, so that left/right
+ * neighbour relationships are preserved visually. Includes both real and
+ * AI players since both are stored in GameState.
  *
- * Iterates through the list of player slots and assigns the appropriate
- * icon texture for each connected player based on their selected house.
- * If a slot does not correspond to an active player, a default icon is used.
+ * This is purely a display remapping — no game or network state is changed.
  *
- * @param onlinePlayers  The list of players currently in the lobby,
- *                       including their selected house information.
+ * @return  A reordered list of raw Player pointers with the local player last.
  */
-void LobbyScene::updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers) {
-    for (int i = 0; i < _playerImages.size(); i++) {
-        auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_playerImages[i]->getChildByName("playerIconImg"));
-        if (image){
-            if (i < onlinePlayers.size()) {
-                if (onlinePlayers[i].houseID == "Athena") {
-                    image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
-                } else {
-                    image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
-                }
-            }
-            else {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
-            }
-        }
+std::vector<Player*> LobbyScene::remapPlayersForDisplay() {
+    int localIndex = _network->getLocalPlayerNumber();
+    const auto& players = _gameState->getPlayers();
+    int totalSlots = (int)players.size();
+
+    std::vector<Player*> remapped;
+    remapped.reserve(totalSlots);
+
+    for (int i = 1; i < totalSlots + 1; i++) {
+        int slot = (localIndex + i) % totalSlots;
+        remapped.push_back(players[slot].get());
+    }
+
+    return remapped;
+}
+
+/**
+ * Syncs the game state player names and houses with the current
+ * networked player list. Called every frame during the lobby so that
+ * _gameState reflects the latest connected player info before the
+ * game scene activates.
+ */
+void LobbyScene::updateNetworkOrder() {
+    if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
+
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    for (int i = 0; i < (int)networkedPlayers.size(); i++) {
+        _gameState->setRealPlayer(
+            i,
+            networkedPlayers[i].username,
+            networkedPlayers[i].houseID
+        );
     }
 }
 
@@ -243,9 +287,14 @@ void LobbyScene::update(float timestep) {
     } else {
         _enterGame->deactivate();
     }
-
-    updateLobbyText(_network->getNetworkedPlayers());
+    
+    // Remap for display only — network order is unchanged
+    updateNetworkOrder();
+    std::vector<Player*> displayOrder = remapPlayersForDisplay();
+    
+    updateLobbyText(displayOrder);
+    updateLobbyPlayerIcons(displayOrder);
     _network->clearQueues();
-    updateLobbyPlayerIcons(_network->getNetworkedPlayers());
+    
 }
 

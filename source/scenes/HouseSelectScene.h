@@ -43,6 +43,9 @@ protected:
     
     /** The player icon (for updating) */
     std::shared_ptr<cugl::scene2::SceneNode> _playerIcon;
+    std::shared_ptr<cugl::scene2::SceneNode> _leftPlayerIcon;
+    std::shared_ptr<cugl::scene2::SceneNode> _rightPlayerIcon;
+    std::shared_ptr<cugl::scene2::SceneNode> _upPlayerIcon;
     
     /** The player icon image (for updating) */
     std::shared_ptr<cugl::scene2::PolygonNode> _playerIconImage;
@@ -71,6 +74,15 @@ protected:
     /** The house selection container that contains the card and direction buttons**/
     std::shared_ptr<cugl::scene2::SceneNode> _houseSelectionCardContainer;
     
+    /** The image node inside the left teammate's icon diamond */
+    std::shared_ptr<cugl::scene2::PolygonNode> _leftPlayerIconImage;
+
+    /** The image node inside the right teammate's icon diamond */
+    std::shared_ptr<cugl::scene2::PolygonNode> _rightPlayerIconImage;
+
+    /** The image node inside the top teammate's icon diamond */
+    std::shared_ptr<cugl::scene2::PolygonNode> _upPlayerIconImage;
+    
     /** Whether the house selection screen is sliding to another index */
     bool _isAnimating = false;
     
@@ -85,6 +97,9 @@ protected:
     
     /** Loads house definitions from JSON for house selection. */
     HouseLoader _houseLoader;
+    
+    /**The state of the game**/
+    GameState* _gameState = nullptr;
 
 public:
 #pragma mark -
@@ -126,7 +141,8 @@ public:
      * @return true if the scene was successfully initialized; false otherwise
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets,
-              const std::shared_ptr<NetworkController>& networkController);
+                                const std::shared_ptr<NetworkController>& networkController,
+                                GameState* gameState);
     
     /**
      * Retrieves and stores references to the house select UI elements.
@@ -218,15 +234,32 @@ private:
     void updateCarouselDots(int newIndex);
     
     /**
-     * Updates the player's respective icon in the diamond based on the house card
-     * they are currently on. If the player has locked their house, there is no change.
+     * Updates the local player's icon in the diamond based on the house card
+     * they are currently on. If commitToGameState is true, also updates the
+     * local player's house in GameState — should only be true when the player
+     * locks in their selection.
      *
-     * @param currentIndex The index of the card we are at.
+     * @param currentIndex      The index of the card we are at.
+     * @param commitToGameState Whether to write the house selection to GameState.
      */
-    void updateSelectedIcon(int newIndex);
+    void updateSelectedIcon(int currentIndex, bool commitToGameState = false);
     
     /** Loads houses definitions from the house JSON to use in house selection. */
     bool loadHouses();
+    
+    /**
+     * Syncs _gameState player names and house selections with the current
+     * networked player list. Called every frame during house selection so
+     * teammate icons stay up to date as other players lock in their houses.
+     */
+    void updateNetworkOrder();
+    
+    /**
+     * Updates the three teammate icon images using the same circular remapping
+     * as LobbyScene, so each neighbour slot always reflects the correct player
+     * relative to the local player. Called every frame in update().
+     */
+    void updateTeammateIcons();
     
 };
 
