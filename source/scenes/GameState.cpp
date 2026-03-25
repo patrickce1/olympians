@@ -29,7 +29,7 @@ void GameState::initPlayers() {
 
     for (int i = 1; i <= 3; i++) {
        auto aiPlayer = std::make_shared<EasyPlayerAI>(
-            "", i,
+            "poseidon", i,
             "AI Player " + std::to_string(i),
             _houseLoader
         );
