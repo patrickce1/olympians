@@ -210,14 +210,10 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<Player*> players) {
         auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
             _playerImages[i]->getChildByName("playerIconImg"));
         if (image) {
-             if (players[i]->getHouseName() == "athena") {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
-            } else if (players[i]->getHouseName() == "ares") {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("aresSIcon"));
-            } else if (players[i]->getHouseName() == "poseidon") {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("poseidonSIcon"));
-            } else if (players[i]->getHouseName() == "demeter") {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("demeterSIcon"));
+            std::string key = players[i]->getHouseName() + "SIcon";
+            
+            if (_assets->get<cugl::graphics::Texture>(key) != nullptr) {
+                image->setTexture(_assets->get<cugl::graphics::Texture>(key));
             } else {
                 image->setTexture(_assets->get<cugl::graphics::Texture>("emptySIcon"));
             }
