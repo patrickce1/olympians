@@ -265,6 +265,14 @@ void LobbyScene::updateNetworkOrder() {
             networkedPlayers[i].houseID
         );
     }
+}
+
+/**
+ Updates the _selectedHouse variable if the local player has selected a house in the
+ house select screen.
+ */
+void LobbyScene::updateLocalPlayerSelectedHouse() {
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
     
     // check if local player has selected house
     int localIndex = _network->getLocalPlayerNumber();
@@ -335,6 +343,8 @@ void LobbyScene::update(float timestep) {
     // Remap for display only — network order is unchanged
     updateNetworkOrder();
     std::vector<Player*> displayOrder = remapPlayersForDisplay();
+    
+    updateLocalPlayerSelectedHouse();
     
     updateLobbyText(displayOrder);
     updateLobbyPlayerIcons(displayOrder);

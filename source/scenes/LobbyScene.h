@@ -197,6 +197,12 @@ private:
      * networked player list. Called every frame during the lobby.
      */
     void updateNetworkOrder();
+    
+    /**
+     Updates the _selectedHouse variable if the local player has selected a house in the
+     house select screen.
+     */
+    void updateLocalPlayerSelectedHouse();
 
     /**
      * Remaps the full player list from GameState so the local player always
