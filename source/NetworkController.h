@@ -113,6 +113,12 @@ public:
     /*Send the GameState state as the new authoritative version of the game to all players*/
     void broadcastGameState(const GameState& state);
 
+    /*Send a message to all clients that the game has been lost*/
+    void broadcastLostGame();
+
+    /*Send a message to all clients that the game has been won*/
+    void broadcastWonGame();
+
     /*Client-Side Lobby Messages*/
     /*Sends player username to the host*/
     void broadcastJoinedLobby();
@@ -139,6 +145,12 @@ public:
 
     /*Returns the most recent version of the authoritative game state*/
     GameStateMessage getStateUpdate() { return _latestGameState; }
+
+    /*Tells us if the host sent a message saying the game was lost*/
+    bool checkGameLost() { return _gameLost; }
+
+    /*Tells us if the host sent a message saying the game was won*/
+    bool checkGameWon() { return _gameWon; }
 
     /**Functions used during the lobby scene*/
 
@@ -225,7 +237,9 @@ protected:
         LOBBY_UPDATE = 5,
         PLAYER_JOIN = 6,
         SELECT_HOUSE = 7,
-        PLAYER_DISCONNECT = 8
+        PLAYER_DISCONNECT = 8,
+        GAME_LOST = 9,
+        GAME_WON = 10
     };
 
     /*Our network connection*/
@@ -250,12 +264,15 @@ private:
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
     GameStateMessage _latestGameState;
+    //win/loss booleans
+    bool _gameWon;
+    bool _gameLost;
     
     // A vector storing the slots containing all the disconnected players that haven't been reassigned.
     std::vector<int> _disconnectedSlots;
 
-    //Boolean that tells us if the game has been started by the host
-    bool gameStarted;
+    //Boolean that tells us if the game has been started by the host in the last network cycle
+    bool _gameStarted;
 
     //Stores the most recent player order that we got. The host's version of this is authoritative
     std::vector<NetworkedPlayer> _onlinePlayers;

@@ -16,6 +16,9 @@ using namespace std;
 /** Example height for now, change as needed */
 #define SCENE_HEIGHT 852
 
+/** Constant to define Box2D obstacle physics base unit */
+constexpr float ITEM_SPEED_UNITS = 1.0f;
+
 #pragma mark -
 #pragma mark HealthState
 
@@ -122,6 +125,21 @@ bool GameScene::initSceneGraph() {
 }
 
 /**
+ * Initializes the Box2D physics world to support physics objects in the scene space.
+ *
+ * @return true if the physics world was successfully created.
+ */
+bool GameScene::initInventoryPhysics() {
+    Rect worldBounds(0.0f, 0.0f, getSize().width, getSize().height);
+    _itemPhysicsWorld = cugl::physics2::ObstacleWorld::alloc(worldBounds, Vec2::ZERO);
+    if (!_itemPhysicsWorld) {
+        CULogError("Failed to create item physics world");
+        return false;
+    }
+    return true;
+}
+
+/**
  * Initialises the ItemController and GameState.
  * ItemController must be initialised first because GameState::init()
  * needs the item database to finish setting up AI players.
@@ -155,12 +173,16 @@ void GameScene::initInputZones(){
     _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.4f, w * 0.9f, h * 0.47f)}};
     
     _supportZones = {
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(0, h * 0.45f, w * 0.15f, h * 0.40f)},
-        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)}
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.45f, w * 0.15f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)},
+    };
+    
+    _inventoryZones = {
+        {InputController::Action::NONE, Rect(w * 0.15f, 0, w * 0.70f, h * 0.35f)}
     };
     
     _passZones = {
-        {InputController::Action::PASS_LEFT,  Rect(0, 0, w * 0.15f, h * 0.35f)},
+        {InputController::Action::PASS_LEFT,  Rect(0,         0, w * 0.15f, h * 0.35f)},
         {InputController::Action::PASS_RIGHT, Rect(w * 0.85f, 0, w * 0.15f, h * 0.35f)}
     };
 }
@@ -211,6 +233,10 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
         return false;
     }
 
+    if (!initInventoryPhysics()) {
+        return false;
+    }
+
     if (!initGameSystems()) {
         return false;
     }
@@ -218,7 +244,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
     setLocalPlayer(0);
-    
+    _status = Status::PLAYING;
     setDebugMode(false);
     setActive(false);
     return true;
@@ -228,8 +254,9 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
  * Disposes of all (non-static) resources allocated to this mode.
  */
 void GameScene::dispose() {
-    if (_active) {
+    if (_active || _scene || _itemPhysicsWorld) {
         removeAllChildren();
+        _scene      = nullptr;
         _gameArea   = nullptr;
         _inventory  = nullptr;
         _attackArea = nullptr;
@@ -243,7 +270,14 @@ void GameScene::dispose() {
         _playerHealthBarText = nullptr;
         _playerHealthBar = nullptr;
         _network = nullptr;
-        _activeIcon = nullptr;
+        _draggedIcon = nullptr;
+        _playerSlots.clear();
+        _itemWidgets.clear();
+        _itemBodies.clear();
+        if (_itemPhysicsWorld) {
+            _itemPhysicsWorld->dispose();
+            _itemPhysicsWorld = nullptr;
+        }
         _gameState.dispose();
         _active = false;
     }
@@ -307,19 +341,25 @@ void GameScene::setActive(bool value) {
  * effect, and clears every player's inventory via GameState::reset().
  */
 void GameScene::reset() {
-    _activeIcon = nullptr;
+    _draggedIcon = nullptr;
+    _draggedItemId = 0;
+    _draggedItemDef = nullptr;
+    _dragStartBodyPosition = Vec2::ZERO;
     _glowAction = InputController::Action::NONE;
+    _status = Status::PLAYING;
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
 
-    for (auto& [id, widget] : _itemWidgets) {
-        if (widget && _inventory) {
-            _inventory->removeChild(widget);
-        }
+    std::vector<ItemInstance::ItemId> itemIds;
+    itemIds.reserve(_itemWidgets.size());
+    for (const auto& [id, widget] : _itemWidgets) {
+        itemIds.push_back(id);
     }
-    _itemWidgets.clear();
+    for (ItemInstance::ItemId itemId : itemIds) {
+        removeItemWidget(itemId);
+    }
 
-    // Delegate inventory clearing to the model.
+    // Delegate inventory clearing and health resetting to the model.
     _gameState.reset();
 }
 
@@ -339,39 +379,58 @@ void GameScene::setLocalPlayer(int assignedIndex) {
 
 /**
  * Handles the local player dropping an attack item on the boss zone.
+ * Applies the dragged attack item to the enemy.
+ *
+ *@param itemId  The id of the item being handled.
  */
-void GameScene::handleAttack() {
+bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
     auto enemy    = _gameState.getEnemy();
     Player* local = _gameState.getLocalPlayer();
-    if (!enemy || !local) return;
+    if (!enemy || !local || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() != itemId) {
+            continue;
+        }
+
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
-            local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+            if (!local->useItemById(itemId, *enemy, _itemController.getDatabase())) {
+                return false;
+            }
             //NETWORKING
             if (!_network->isHost()) {
                 _network->broadcastDamage(def->getEffectiveValue());
             }
             CULog("Player attacked enemy '%s' with item %llu",
-                  enemy->getId().c_str(), (unsigned long long)item.getId());
-            return;
+                  enemy->getId().c_str(), (unsigned long long)itemId);
+            return true;
         }
+        return false;
     }
+    return false;
 }
 
 /**
  * Handles the local player dropping a support item on the left ally zone.
+ *
+ *@param itemId  The id of the item being handled.
  */
-void GameScene::handleSupportLeft() {
+bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getLeftPlayer() : nullptr;
-    if (!target || !target->isAlive()) return;
+    if (!local || !target || !target->isAlive() || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() != itemId) {
+            continue;
+        }
+
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            if (!local->useItemById(itemId, *target, _itemController.getDatabase())) {
+                return false;
+            }
             //NETWORK
             if (_network->isHost()) {
                 target->updateHealth(def->getEffectiveValue());
@@ -379,23 +438,33 @@ void GameScene::handleSupportLeft() {
             else {
                 _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
             }
-            return;
+            return true;
         }
+        return false;
     }
+    return false;
 }
 
 /**
  * Handles the local player dropping a support item on the right ally zone.
+ *
+ *@param itemId  The id of the item being handled.
  */
-void GameScene::handleSupportRight() {
+bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
-    if (!target || !target->isAlive()) return;
+    if (!local || !target || !target->isAlive() || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() != itemId) {
+            continue;
+        }
+
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            if (!local->useItemById(itemId, *target, _itemController.getDatabase())) {
+                return false;
+            }
             //NETWORK
             if (_network->isHost()) {
                 target->updateHealth(def->getEffectiveValue());
@@ -403,53 +472,71 @@ void GameScene::handleSupportRight() {
             else {
                 _network->broadcastHeal(def->getEffectiveValue(), target->getPlayerNumber());
             }
-            return;
+            return true;
         }
+        return false;
     }
+    return false;
 }
 
 /**
- * Passes the first item in the local player's inventory to the left neighbour.
+ * Passes the dragged item in the local player's inventory to the left neighbour.
+ *
+ *@param itemId  The id of the item being handled.
  */
-void GameScene::handlePassLeft() {
+bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getLeftPlayer() : nullptr;
-    if (!target || !target->isAlive() || local->getInventory().empty()) return;
+    if (!local || !target || itemId == 0) return false;
 
-    ItemInstance item = local->getInventory()[0];
-    local->removeItemById(item.getId());
+    for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() != itemId) continue;
 
-    if (!target->isAI()) {
-        CULog("Passing left to a real player with the number %d", target->getPlayerNumber());
+        // Capture defId BEFORE removing the item
+        std::string defId = item.getDefId();
+        local->removeItemById(itemId);
+        
+        if (!target->isAI()) {
+            CULog("Passing left to a real player with the number %d", target->getPlayerNumber());
+        }
+        else {
+            CULog("Passing left to player AI player with number %d", target->getPlayerNumber());
+        }
+
+        _network->broadcastPass(defId, target->getPlayerNumber());
+        return true;
     }
-    else {
-        CULog("Passing left to player AI player with number %d", target->getPlayerNumber());
-    }
-
-    //NETWORK
-    _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
+    return false;
 }
 
 /**
- * Passes the first item in the local player's inventory to the right neighbour.
+ * Passes the dragged item in the local player's inventory to the right neighbour.
+ *
+ *@param itemId  The id of the item being handled.
  */
-void GameScene::handlePassRight() {
+bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
-    if (!target || !target->isAlive() || local->getInventory().empty()) return;
+    if (!local || !target || itemId == 0) return false;
 
-    ItemInstance item = local->getInventory()[0];
-    local->removeItemById(item.getId());
+    for (const ItemInstance& item : local->getInventory()) {
+        if (item.getId() != itemId) continue;
 
-    if (!target->isAI()) {
-        CULog("Passing right to a real player with the number %d", target->getPlayerNumber());
+        // Capture defId BEFORE removing the item
+        std::string defId = item.getDefId();
+        local->removeItemById(itemId);
+
+        if (!target->isAI()) {
+            CULog("Passing right to a real player with the number %d", target->getPlayerNumber());
+        }
+        else {
+            CULog("Passing right to player AI player with number %d", target->getPlayerNumber());
+        }
+
+        _network->broadcastPass(defId, target->getPlayerNumber());
+        return true;
     }
-    else {
-        CULog("Passing right to player AI player with number %d", target->getPlayerNumber());
-    }
-
-    //NETWORK
-    _network->broadcastPass(item.getDefId(), target->getPlayerNumber());
+    return false;
 }
 
 /**
@@ -460,8 +547,9 @@ void GameScene::handlePassRight() {
 void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
     for (PassMessage pass : passes) {
         Player* player = _gameState.getPlayerById(pass.playerID);
-        //for now, passing just gives a random item in the player inventory
-        _itemController.giveRandomItem(_gameState.getLocalPlayer());
+        if (!player) continue;
+        // Give the specific item that was passed, not a random one
+        _itemController.giveItemByID(player, pass.itemID);
     }
 }
 /**
@@ -488,18 +576,32 @@ std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId it
 
 /**
  * Calls the appropriate handle action helper based on the input that we recieved
+ *
+ *@param action  The action the dragged action corresponds to.
+ *@param itemId  The id of the item being handled.
  */
-void GameScene::handlePlayerActions(InputController::Action action) {
+bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId) {
     Player* local = _gameState.getLocalPlayer();
-    if (!local || !local->isAlive()) return;
+    if (!local) return false;
 
     switch (action) {
-        case InputController::Action::DROP_BOSS:       handleAttack();       break;
-        case InputController::Action::DROP_ALLY_LEFT:  handleSupportLeft();  break;
-        case InputController::Action::DROP_ALLY_RIGHT: handleSupportRight(); break;
-        case InputController::Action::PASS_LEFT:       handlePassLeft();     break;
-        case InputController::Action::PASS_RIGHT:      handlePassRight();    break;
-        default: break;
+        case InputController::Action::DROP_BOSS:
+            if (!local->isAlive()) return false;
+            return handleAttack(itemId);
+        case InputController::Action::DROP_ALLY_LEFT:
+            if (!local->isAlive()) return false;
+            return handleSupportLeft(itemId);
+        case InputController::Action::DROP_ALLY_RIGHT:
+            if (!local->isAlive()) return false;
+            return handleSupportRight(itemId);
+        case InputController::Action::DROP_INVALID:
+            return false;
+        case InputController::Action::PASS_LEFT:
+            return handlePassLeft(itemId);
+        case InputController::Action::PASS_RIGHT:
+            return handlePassRight(itemId);
+        default:
+            return false;
     }
 }
 
@@ -563,7 +665,7 @@ void GameScene::updatePlayerAndTeammateIcons() {
  */
 void GameScene::handleResetButton(InputController& input) {
     if (!isDebugMode()){ return; }
-    if (!input.touchEnded() || _activeIcon || !_resetBtn) return;
+    if (!input.touchEnded() || _draggedIcon || !_resetBtn) return;
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
     if (_resetBtn->getBoundingBox().contains(touchPosScreen)) {
@@ -587,11 +689,11 @@ void GameScene::handleResetButton(InputController& input) {
  * @param input     The input controller for this frame.
  */
 void GameScene::handlePlayerInput(InputController& input) {
-    if (!_activeIcon || !input.touchEnded()) return;
+    if (!_draggedIcon || !input.touchEnded()) return;
 
     // 1. Determine which drop zone the item was released into
     Vec2 releaseWorld = screenToWorldCoords(input.getReleasePosition());
-    InputController::Action finalAction = InputController::Action::NONE;
+    InputController::Action finalAction = InputController::Action::DROP_INVALID;
 
     for (const auto& pair : _inputZones) {
         if (pair.second.contains(releaseWorld)) {
@@ -601,19 +703,30 @@ void GameScene::handlePlayerInput(InputController& input) {
     }
 
     if (finalAction != InputController::Action::NONE) {
-        // 2. Dispatch to the appropriate action handler
-        handlePlayerActions(finalAction);
-
-        // 3. Trigger glow effect on the activated zone
-        _glowAction = finalAction;
-        _glowTimer  = _glowDuration;
-        if (_activeIcon) {
-            _activeIcon->setVisible(false);
+        if (handlePlayerActions(finalAction, _draggedItemId)) {
+            // 2. Dispatch to the appropriate action handler
+            // 3. Trigger glow effect on the activated zone
+            _glowAction = finalAction;
+            _glowTimer  = _glowDuration;
+            if (_draggedIcon) {
+                _draggedIcon->setVisible(false);
+            }
+        } else {
+            // Find item physics body and pullback its position to where the item was before drag
+            auto body = _itemBodies.find(_draggedItemId);
+            if (body != _itemBodies.end() && body->second) {
+                body->second->setPosition(_dragStartBodyPosition);
+                body->second->setLinearVelocity(Vec2::ZERO);
+            }
+            if (_draggedIcon) {
+                _draggedIcon->setVisible(true);
+            }
         }
     }
 
-    _activeIcon = nullptr;
+    _draggedIcon = nullptr;
     _draggedItemId = 0;
+    _dragStartBodyPosition = Vec2::ZERO;
     _draggedItemDef = nullptr;
     updateInputZones();
 }
@@ -655,16 +768,24 @@ void GameScene::updateDebugPointer(InputController& input) {
  * Hit-tests item widgets against the initial touch position.
  */
 void GameScene::handleDragInitiation(InputController& input) {
-    if (_activeIcon || !input.isDragging()) return;
+    if (_draggedIcon || !input.isDragging()) return;
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
 
     for (auto& [id, widget] : _itemWidgets) {
         if (!widget) continue;
         if (widget->getBoundingBox().contains(touchPosScreen)) {
-            _activeIcon = widget;
-            _dragOffset = widget->getPosition() - touchPosScreen;
+            _draggedIcon = widget;
             _draggedItemId = id;
+            _dragOffset = widget->getPosition() - touchPosScreen;
+
+            auto body = _itemBodies.find(id);
+            if (body != _itemBodies.end() && body->second) {
+                _dragStartBodyPosition = body->second->getPosition();
+            } else {
+                Size widgetSize = widget->getContentSize();
+                _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+            }
             _draggedItemDef = getHeldItemDef(id);
             updateInputZones();
             break;
@@ -676,10 +797,17 @@ void GameScene::handleDragInitiation(InputController& input) {
  * Moves the active dragged icon to follow the current touch position.
  */
 void GameScene::handleDragTracking(InputController& input) {
-    if (!_activeIcon || (!input.isTouching() && !input.isMouseDown())) return;
+    if (!_draggedIcon || (!input.isTouching() && !input.isMouseDown())) return;
 
     Vec2 dragScene = screenToWorldCoords(input.getDragPos());
-    _activeIcon->setPosition(dragScene + _dragOffset);
+    Vec2 widgetPosition = dragScene + _dragOffset;
+    auto body = _itemBodies.find(_draggedItemId);
+    if (body != _itemBodies.end() && body->second) {
+        Size widgetSize = _draggedIcon->getContentSize();
+        Vec2 center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+        body->second->setPosition(center);
+        body->second->setLinearVelocity(Vec2::ZERO);
+    }
 }
 
 /* Checks if any updates about the state of the game were sent over the network.
@@ -696,10 +824,28 @@ void GameScene::handleNetworkUpdates() {
         _gameState.healUpdates(_network->getHealUpdates());
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
+        //check if we won or lost
+        if (_gameState.didWin()) {
+            _network->broadcastWonGame();
+            _status = Status::WON;
+        }
+        else if(_gameState.didLose()){
+            _network->broadcastLostGame();
+            _status = Status::LOST;
+        }
     }
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        // clients check if the host told us anything about winning/losing
+        if (_network->checkGameWon()) {
+            _status = Status::WON;
+            CULog("We were told that we won");
+        }
+        else if (_network->checkGameLost()) {
+            _status = Status::LOST;
+            CULog("We were told that we lost");
+        }
     }
 
     processNetworkedPasses(_network->getPassUpdates());
@@ -746,15 +892,19 @@ void GameScene::update(float dt, InputController& input) {
     handleNetworkUpdates();
     handleDisconnectedPlayers();
 
-    // now safe to iterate players
     handleItemSpawn(dt);
-    syncInventoryWidgets();
     updateEnemyAndAI(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);
     handleDragInitiation(input);
     handleDragTracking(input);
+
+    if (_itemPhysicsWorld) {
+        _itemPhysicsWorld->update(dt);
+    }
+    syncItemWidgetsToBodies();
+    syncInventoryWidgets();
 
     _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
@@ -800,6 +950,89 @@ cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size& widgetSize) c
     return cugl::Vec2(xDist(rng), yDist(rng));
 }
 
+/** Creates and registers the Box2D body for an item widget.
+ *
+ * @param itemId  The ItemInstance for which the item body is created.
+ * @param widget  The widget to attach the physics body to.
+ */
+std::shared_ptr<cugl::physics2::BoxObstacle> GameScene::createItemBody(
+    ItemInstance::ItemId itemId,
+    const std::shared_ptr<SceneNode>& widget) {
+    if (!_itemPhysicsWorld || !widget) {
+        return nullptr;
+    }
+
+    Size widgetSize = widget->getContentSize();
+    Vec2 center = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+    auto body = cugl::physics2::BoxObstacle::alloc(center, widgetSize);
+    if (!body) {
+        CULogError("Failed to create item body for %llu", (unsigned long long)itemId);
+        return nullptr;
+    }
+
+    body->setName("item_body_" + std::to_string((unsigned long long)itemId));
+    body->setPhysicsUnits(ITEM_SPEED_UNITS);
+    body->setBodyType(b2_kinematicBody);
+    body->setSensor(true);
+    body->setLinearVelocity(Vec2::ZERO);
+    _itemPhysicsWorld->addObstacle(body);
+    _itemBodies[itemId] = body;
+    return body;
+}
+
+/** Updates all inventory widgets so they exactly match their body positions. */
+void GameScene::syncItemWidgetsToBodies() {
+    std::vector<ItemInstance::ItemId> staleIds;
+
+    for (auto& [itemId, body] : _itemBodies) {
+        auto widget = _itemWidgets.find(itemId);
+        if (!body || widget == _itemWidgets.end() || !widget->second) {
+            staleIds.push_back(itemId);
+            continue;
+        }
+
+        Size widgetSize = widget->second->getContentSize();
+        Vec2 bodyPosition = body->getPosition();
+        Vec2 widgetPosition = bodyPosition - Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+        widget->second->setPosition(widgetPosition);
+    }
+
+    for (ItemInstance::ItemId itemId : staleIds) {
+        removeItemWidget(itemId);
+    }
+}
+
+/** Removes the widget and its Box2D body for the given item.
+ *
+ * @param itemId  The itemId representing the ItemInstance to be removed.
+ */
+void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
+    auto widget = _itemWidgets.find(itemId);
+    if (widget != _itemWidgets.end()) {
+        if (_draggedIcon == widget->second) {
+            _draggedIcon = nullptr;
+            _draggedItemId = 0;
+            _dragStartBodyPosition = Vec2::ZERO;
+        }
+        if (widget->second && _inventory) {
+            _inventory->removeChild(widget->second);
+        }
+        _itemWidgets.erase(widget);
+    }
+
+    auto body = _itemBodies.find(itemId);
+    if (body != _itemBodies.end()) {
+        if (body->second && _itemPhysicsWorld) {
+            b2World* world = _itemPhysicsWorld->getWorld();
+            if (world && body->second->getBody()) {
+                body->second->deactivatePhysics(*world);
+            }
+            _itemPhysicsWorld->removeObstacle(body->second);
+        }
+        _itemBodies.erase(body);
+    }
+}
+
 /** Synchronises on-screen item widgets with the local player's current inventory. */
 void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();
@@ -817,18 +1050,18 @@ void GameScene::syncInventoryWidgets() {
             if (!widget) continue;
             widget->setPosition(getRandomInventoryPosition(widget->getContentSize()));
             _itemWidgets.emplace(id, widget);
+            createItemBody(id, widget);
         }
     }
 
-    for (auto it = _itemWidgets.begin(); it != _itemWidgets.end();) {
-        if (liveIds.find(it->first) == liveIds.end()) {
-            if (it->second) {
-                _inventory->removeChild(it->second);
-            }
-            it = _itemWidgets.erase(it);
-        } else {
-            ++it;
+    std::vector<ItemInstance::ItemId> removedIds;
+    for (const auto& [itemId, widget] : _itemWidgets) {
+        if (liveIds.find(itemId) == liveIds.end()) {
+            removedIds.push_back(itemId);
         }
+    }
+    for (ItemInstance::ItemId itemId : removedIds) {
+        removeItemWidget(itemId);
     }
 }
 
@@ -869,6 +1102,21 @@ void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch) {
     }
 }
 
+/** Draws a cyan outline around Box2D debug wireframes for inventory item bodies.
+ *
+ * @param batch  The active sprite batch.
+ */
+void GameScene::renderItemBodyDebug(cugl::graphics::SpriteBatch* batch) {
+    batch->setTexture(nullptr);
+    batch->setGradient(nullptr);
+    batch->setColor(Color4(0, 255, 255, 200));
+
+    for (auto& [itemId, body] : _itemBodies) {
+        if (!body || _itemWidgets.find(itemId) == _itemWidgets.end()) continue;
+        batch->drawMesh(body->getDebugMesh(), body->getGraphicsTransform());
+    }
+}
+
 /** Draws a small red square at the current touch position. */
 void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch* batch) {
     if (!_hasDebugPointer) return;
@@ -893,6 +1141,7 @@ void GameScene::render() {
     if (isDebugMode()){
         renderResetButton(batch.get());
         renderItemWidgetDebug(batch.get());
+        renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
     }
     renderDropZones(batch.get());
@@ -920,6 +1169,7 @@ void GameScene::updateInputZones(){
     }
     
     _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
+    _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
 }
 
 /**

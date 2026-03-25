@@ -203,6 +203,13 @@ public:
      */
     void setEnemy(std::string enemyID);
 
+#pragma mark - Game State Checking
+    /* Returns whether or not the players won based on the current game state*/
+    bool didWin();
+
+    /* Returns whether or not the players lost based on the current game state*/
+    bool didLose();
+
 private:
 
     /**

@@ -27,6 +27,13 @@
  * GameState snapshot over the network without touching any rendering code.
  */
 class GameScene : public cugl::scene2::Scene2{
+public:
+    /*Keeps track of the game state. This is how the app knows when to swap scenes*/
+    enum Status {
+        PLAYING,
+        WON,
+        LOST,
+    };
 protected:
 #pragma mark - Scene Graph Nodes
 
@@ -61,7 +68,13 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
-    /** Input zones: each entry maps an Action to the screen Rect that triggers it.  Defined as the currently active zones*/
+    /** Inventory-only physics world used to attach Box2D bodies to item widgets. */
+    std::shared_ptr<cugl::physics2::ObstacleWorld> _itemPhysicsWorld;
+
+    /** Maps ItemId to the Box2D body representing that inventory widget. */
+    std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::physics2::BoxObstacle>> _itemBodies;
+
+    /** Input zones: each entry maps an Action to the screen Rect that triggers it. */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _inputZones;
     
     /** Zones used for attack on screen. */
@@ -69,6 +82,9 @@ protected:
     
     /** Zones used for support on screen. */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _supportZones;
+    
+    /** Zones used for inventory on screen. */
+    std::vector<std::pair<InputController::Action, cugl::Rect>> _inventoryZones;
     
     /** IZones used for pass on screen. . */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _passZones;
@@ -103,10 +119,13 @@ protected:
 #pragma mark - Drag State
 
     /** The scene node currently being dragged by the player, or nullptr. */
-    std::shared_ptr<cugl::scene2::SceneNode> _activeIcon;
-    
-    /** The item id of the item being currently held. */
-    ItemInstance::ItemId _draggedItemId = ItemInstance::ItemId{};
+    std::shared_ptr<cugl::scene2::SceneNode> _draggedIcon;
+
+    /** The inventory item currently being dragged, or 0 if none is active. */
+    ItemInstance::ItemId _draggedItemId = 0;
+
+    /** The dragged body's pre-drag position, used to restore invalid drops. */
+    cugl::Vec2 _dragStartBodyPosition = cugl::Vec2::ZERO;
 
     /** The ItemDef of the item currently being dragged, or nullptr. */
     std::shared_ptr<const ItemDef> _draggedItemDef = nullptr;
@@ -160,6 +179,8 @@ protected:
     /** Keeps track of whether or not we are the host */
     bool _host;
 
+    Status _status;
+
 public:
 #pragma mark - Constructors
 
@@ -175,6 +196,11 @@ public:
     ~GameScene() { dispose(); }
 
 #pragma mark - Lifecycle
+
+    /**
+    * Returns the current status of the game and whether or not the player wants to go back to a different scene
+    */
+    Status getStatus() { return _status; }
 
     /**
      * Disposes of all (non-static) resources allocated to this mode.
@@ -196,6 +222,16 @@ public:
      * @return true if the root scene node was found in the asset manager.
      */
     bool initSceneGraph();
+
+    /**
+     * Initialises the dedicated Box2D world used for inventory item widgets.
+     *
+     * Bodies in this world are only used for debugging and future inventory
+     * interactions, so the world has zero gravity and scene-space bounds.
+     *
+     * @return true if the physics world was created successfully.
+     */
+    bool initInventoryPhysics();
 
     /**
      * Initialises the ItemController and GameState.
@@ -259,41 +295,50 @@ public:
 
     /**
      * Handles the local player dropping an attack item on the boss zone.
-     * Finds the first attack item in the local player's inventory and
-     * applies it to the enemy.
+     * Applies the dragged attack item to the enemy.
+     *
+     *@param itemId  The id of the item being handled.
      */
-    void handleAttack();
+    bool handleAttack(ItemInstance::ItemId itemId);
 
     /**
      * Handles the local player dropping a support item on the left ally zone.
-     * Finds the first support item and applies it to the left neighbour.
+     * Applies the dragged support item to the left neighbour.
+     *
+     *@param itemId  The id of the item being handled.
      */
-    void handleSupportLeft();
+    bool handleSupportLeft(ItemInstance::ItemId itemId);
 
     /**
      * Handles the local player dropping a support item on the right ally zone.
-     * Finds the first support item and applies it to the right neighbour.
+     * Applies the dragged support item to the right neighbour.
+     *
+     *@param itemId  The id of the item being handled.
      */
-    void handleSupportRight();
+    bool handleSupportRight(ItemInstance::ItemId itemId);
 
     /**
-     * Passes the first item in the local player's inventory to the left neighbour.
+     * Passes the dragged item to the left neighbour.
+     *
+     *@param itemId  The id of the item being handled.
      */
-    void handlePassLeft();
+    bool handlePassLeft(ItemInstance::ItemId itemId);
 
     /**
-     * Passes the first item in the local player's inventory to the right neighbour.
+     * Passes the dragged item to the right neighbour.
+     *
+     *@param itemId  The id of the item being handled.
      */
-    void handlePassRight();
+    bool handlePassRight(ItemInstance::ItemId itemId);
 
     /**
      * Dispatches the resolved drop-zone action to the appropriate handler
      * and resets the input action afterwards.
      * No-op if the local player is not alive.
      *
-     * @param input  The active input controller.
+     * @param itemId  The id of the item being handled.
      */
-    void handlePlayerActions(InputController::Action action);
+    bool handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId);
 
 #pragma mark - Update Helpers
 
@@ -441,6 +486,25 @@ public:
     /** Return a random valid inventory position for a newly spawned item widget */
     cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
 
+    /** Creates and registers the Box2D body for an item widget.
+     *
+     * @param itemId  The ItemInstance for which the item body is created.
+     * @param widget  The widget to attach the physics body to.
+     */
+    std::shared_ptr<cugl::physics2::BoxObstacle> createItemBody(
+        ItemInstance::ItemId itemId,
+        const std::shared_ptr<cugl::scene2::SceneNode>& widget
+    );
+
+    /** Updates all inventory widgets so they exactly match their body positions. */
+    void syncItemWidgetsToBodies();
+
+    /** Removes the widget and its Box2D body for the given item.
+     *
+     * @param itemId  The itemId representing the ItemInstance to be removed.
+     */
+    void removeItemWidget(ItemInstance::ItemId itemId);
+
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
 
@@ -493,6 +557,12 @@ public:
      * @param batch  The active sprite batch.
      */
     void renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch);
+
+    /** Draws a cyan outline around Box2D debug wireframes for inventory item bodies.
+     *
+     * @param batch  The active sprite batch.
+     */
+    void renderItemBodyDebug(cugl::graphics::SpriteBatch* batch);
 
     /**
      * Draws a small red square at the current touch position.

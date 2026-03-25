@@ -73,6 +73,8 @@ bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) 
 	_serializer = NetcodeSerializer();
 	_deserializer = NetcodeDeserializer();
 	_playerName = "";
+	_gameWon = false;
+	_gameLost = false;
 	return true;
 }
 
@@ -210,7 +212,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			break;
 		}
 		case MessageType::GAME_START: {
-			gameStarted = true;
+			_gameStarted = true;
 			break;
 		}
 		case MessageType::PLAYER_JOIN: {
@@ -250,14 +252,22 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			break;
 		}
 		case MessageType::GAME_UPDATE : {
-            GameStateMessage stateMsg;
-            stateMsg.bossHealth = _deserializer.readFloat();
-            stateMsg.player1HP = _deserializer.readFloat();
-            stateMsg.player2HP = _deserializer.readFloat();
-            stateMsg.player3HP = _deserializer.readFloat();
-            stateMsg.player4HP = _deserializer.readFloat();
-            _latestGameState = stateMsg;
-            break;
+			GameStateMessage stateMsg;
+			stateMsg.bossHealth = _deserializer.readFloat();
+			stateMsg.player1HP = _deserializer.readFloat();
+			stateMsg.player2HP = _deserializer.readFloat();
+			stateMsg.player3HP = _deserializer.readFloat();
+			stateMsg.player4HP = _deserializer.readFloat();
+			_latestGameState = stateMsg;
+			break;
+		}
+		case MessageType::GAME_WON: {
+			_gameWon = true;
+			break;
+		}
+		case MessageType::GAME_LOST: {
+			_gameLost = true;
+			break;
 		}
         case MessageType::SELECT_HOUSE: {
             std::string houseID = _deserializer.readString();
@@ -301,6 +311,9 @@ void NetworkController::clearQueues() {
 	attacks.clear();
 	heals.clear();
 	passes.clear();
+	_gameWon = false;
+	_gameLost = false;
+	_gameStarted = false;
     _disconnectedSlots.clear();
 }
 
@@ -390,7 +403,7 @@ void NetworkController::broadcastGameStart(){
  * @return  true if the game has started, false otherwise.
  */
 bool NetworkController::checkGameStarted() {
-	return gameStarted;
+	return _gameStarted;
 }
 
 /**
@@ -429,6 +442,23 @@ void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.reset();
 }
 
+/**
+* Broacasts to clients if the game was won
+*/
+void NetworkController::broadcastWonGame() {
+	_serializer.writeSint32(MessageType::GAME_WON);
+	_network->broadcast(_serializer.serialize());
+	_serializer.reset();
+}
+
+/**
+* Broadcasts to clients if the game was lost
+*/
+void NetworkController::broadcastLostGame() {
+	_serializer.writeSint32(MessageType::GAME_LOST);
+	_network->broadcast(_serializer.serialize());
+	_serializer.reset();
+}
 
 /**
  * Broadcasts the current lobby player list to all connected clients.
