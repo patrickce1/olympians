@@ -43,8 +43,14 @@ protected:
     
     /** The player icon (for updating) */
     std::shared_ptr<cugl::scene2::SceneNode> _playerIcon;
+    
+    /** The image node inside the left teammate's icon diamond in the house select screen. */
     std::shared_ptr<cugl::scene2::PolygonNode> _leftPlayerIcon;
+
+    /** The image node inside the right teammate's icon diamond in the house select screen. */
     std::shared_ptr<cugl::scene2::PolygonNode> _rightPlayerIcon;
+
+    /** The image node inside the top teammate's icon diamond in the house select screen. */
     std::shared_ptr<cugl::scene2::PolygonNode> _upPlayerIcon;
     
     /** The player icon image (for updating) */
