@@ -92,10 +92,10 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     ItemDatabase db;
     bool ok = db.loadFromJson(itemsJson);
     expect(ok, "items: loadFromJson succeeds");
-
+    
     auto allIds = db.getAllDefIds();
     expect(!allIds.empty(), "items: at least one item definition exists");
-
+    
     bool allValid = true;
     for (const std::string& id : allIds) {
         auto def = db.getDef(id);
@@ -109,7 +109,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
         }
     }
     expect(allValid, "items: all defs have positive baseValue");
-
+    
     auto lightningBoltDef = db.getDef("lightning_bolt");
     auto appleDef = db.getDef("apple");
     expect(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
@@ -133,15 +133,15 @@ void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson
     ItemDatabase db;
     bool ok = db.loadHouseMultipliersFromJson(housesJson);
     expect(ok, "houses: loadHouseMultipliersFromJson succeeds");
-
+    
     const ItemDatabase::HouseMultipliers* zeus = db.getHouseMultipliers("Zeus");
     const ItemDatabase::HouseMultipliers* poseidon = db.getHouseMultipliers("Poseidon");
     const ItemDatabase::HouseMultipliers* athena = db.getHouseMultipliers("Athena");
-
+    
     expect(zeus != nullptr, "houses: Zeus multipliers exist");
     expect(poseidon != nullptr, "houses: Poseidon multipliers exist");
     expect(athena != nullptr, "houses: Athena multipliers exist");
-
+    
     bool bounded = true;
     const ItemDatabase::HouseMultipliers* checks[] = { zeus, poseidon, athena };
     for (const auto* entry : checks) {
@@ -169,17 +169,17 @@ void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson
  * - House parsing: "Zeus", "Ares", "none", and other house names
  */
 void testEnumParsers() {
-        expect(ItemDef::typeFromString("attack") == ItemDef::Type::Attack, "parse: type attack");
-        expect(ItemDef::typeFromString("support") == ItemDef::Type::Support, "parse: type support");
-        expect(ItemDef::typeFromString("utility") == ItemDef::Type::Utility, "parse: type utility");
-
-        expect(ItemDef::rarityFromString("common") == ItemDef::Rarity::Common, "parse: rarity common");
-        expect(ItemDef::rarityFromString("rare") == ItemDef::Rarity::Rare, "parse: rarity rare");
-        expect(ItemDef::rarityFromString("divine") == ItemDef::Rarity::Divine, "parse: rarity divine");
-
-        expect(ItemDef::houseFromString("Zeus") == ItemDef::House::Zeus, "parse: house Zeus");
-        expect(ItemDef::houseFromString("Ares") == ItemDef::House::Ares, "parse: house Ares");
-        expect(ItemDef::houseFromString("none") == ItemDef::House::None, "parse: house none");
+    expect(ItemDef::typeFromString("attack") == ItemDef::Type::Attack, "parse: type attack");
+    expect(ItemDef::typeFromString("support") == ItemDef::Type::Support, "parse: type support");
+    expect(ItemDef::typeFromString("utility") == ItemDef::Type::Utility, "parse: type utility");
+    
+    expect(ItemDef::rarityFromString("common") == ItemDef::Rarity::Common, "parse: rarity common");
+    expect(ItemDef::rarityFromString("rare") == ItemDef::Rarity::Rare, "parse: rarity rare");
+    expect(ItemDef::rarityFromString("divine") == ItemDef::Rarity::Divine, "parse: rarity divine");
+    
+    expect(ItemDef::houseFromString("Zeus") == ItemDef::House::Zeus, "parse: house Zeus");
+    expect(ItemDef::houseFromString("Ares") == ItemDef::House::Ares, "parse: house Ares");
+    expect(ItemDef::houseFromString("none") == ItemDef::House::None, "parse: house none");
 }
 
 /**
@@ -194,33 +194,33 @@ void testEnumParsers() {
  * @param itemsJson Parsed JSON object containing item definitions
  */
 void testWeightedRollAndInstanceCreation(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
-        ItemDatabase db;
-        expect(db.loadFromJson(itemsJson), "db: loads for roll/instance tests");
-        db.setStartingPoint(1337);
-
+    ItemDatabase db;
+    expect(db.loadFromJson(itemsJson), "db: loads for roll/instance tests");
+    db.setStartingPoint(1337);
+    
     // Keep the vector alive; constructing from two temporary vectors can produce invalid iterators.
     std::vector<std::string> allIds = db.getAllDefIds();
     std::set<std::string> known(allIds.begin(), allIds.end());
-        bool allRolledKnown = true;
-        bool rolledAtLeastOne = false;
-        for (int i = 0; i < 200; ++i) {
-                std::string rolled = db.rollRandomDefId();
-                if (rolled.empty()) {
-                        continue;
-                }
-                rolledAtLeastOne = true;
-                if (known.find(rolled) == known.end()) {
-                        allRolledKnown = false;
-                        break;
-                }
+    bool allRolledKnown = true;
+    bool rolledAtLeastOne = false;
+    for (int i = 0; i < 200; ++i) {
+        std::string rolled = db.rollRandomDefId();
+        if (rolled.empty()) {
+            continue;
         }
-        expect(rolledAtLeastOne, "db: weighted roll returns at least one item id");
-        expect(allRolledKnown, "db: weighted roll only returns known item ids");
-
+        rolledAtLeastOne = true;
+        if (known.find(rolled) == known.end()) {
+            allRolledKnown = false;
+            break;
+        }
+    }
+    expect(rolledAtLeastOne, "db: weighted roll returns at least one item id");
+    expect(allRolledKnown, "db: weighted roll only returns known item ids");
+    
     auto okInstance = db.createInstance("apple", 42);
-        auto badInstance = db.createInstance("does_not_exist", 999);
-        expect(okInstance != nullptr, "db: createInstance works for known defId");
-        expect(badInstance == nullptr, "db: createInstance fails for unknown defId");
+    auto badInstance = db.createInstance("does_not_exist", 999);
+    expect(okInstance != nullptr, "db: createInstance works for known defId");
+    expect(badInstance == nullptr, "db: createInstance fails for unknown defId");
 }
 
 /**
@@ -234,13 +234,13 @@ void testWeightedRollAndInstanceCreation(const std::shared_ptr<cugl::JsonValue>&
  */
 void testValidationFailures() {
     ItemDatabase db;
-
+    
     auto badRarityJson = readJson("json/tests/items_bad_rarity.json");
     expect(badRarityJson != nullptr, "validation: parse bad-rarity fixture json");
     if (badRarityJson) {
         expect(!db.loadFromJson(badRarityJson), "validation: unsupported rarity is rejected");
     }
-
+    
     auto badTypeJson = readJson("json/tests/items_bad_type.json");
     expect(badTypeJson != nullptr, "validation: parse bad-type fixture json");
     if (badTypeJson) {
@@ -264,9 +264,9 @@ void testScalingFallbacks() {
     auto json = readJson("json/tests/houses_scaling_fallbacks.json");
     expect(json != nullptr, "fallback: parse clamp/fallback house fixture");
     if (!json) return;
-
+    
     expect(db.loadHouseMultipliersFromJson(json), "fallback: house multipliers load with fallback defaults");
-
+    
     const auto* clampHouseMultipliers = db.getHouseMultipliers("ClampHouse");
     const auto* missingHouseMultipliers = db.getHouseMultipliers("MissingHouse");
     expect(clampHouseMultipliers != nullptr, "fallback: ClampHouse scaling exists");
@@ -300,7 +300,7 @@ void testBaseValueDefaults() {
     auto json = readJson("json/tests/items_basevalue_fallbacks.json");
     expect(json != nullptr, "baseValue: parse fallback fixture");
     if (!json) return;
-
+    
     expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
     
     expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
@@ -334,123 +334,103 @@ void testBaseValueDefaults() {
  * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
  */
 void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& itemsJson,
-                                 const std::shared_ptr<cugl::JsonValue>& housesJson,
-                                 const std::string& housesJsonPath,
-                                 const std::string& enemiesJsonPath) {
+                                   const std::shared_ptr<cugl::JsonValue>& housesJson,
+                                   const std::string& housesJsonPath,
+                                   const std::string& enemiesJsonPath) {
     ItemDatabase db;
     expect(db.loadFromJson(itemsJson), "compute: item db load succeeds");
     expect(db.loadHouseMultipliersFromJson(housesJson), "compute: house multipliers load succeeds");
-
-        HouseLoader loader;
-        bool housesOk = loader.loadFromFile(housesJsonPath);
-        expect(housesOk, "compute: house loader init succeeds");
-
-        Enemy enemy;
-        bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
-        expect(enemyOk, "compute: enemy init succeeds");
-
-        if (!housesOk || !enemyOk) return;
-
-        // Attack rare item with matching affinity (Ares + noams_ballista)
-        Player ares("Ares", 1, "Ares Tester", loader);
-        auto instAres = ItemInstance::alloc("noams_ballista", 1001);
-        expect(instAres != nullptr, "compute: create noams_ballista instance (Ares)");
-        if (!instAres) return;
-        ares.addItem(*instAres);
-
-        enemy.setCurrentHealth(enemy.getMaxHealth());
-        float hpBeforeAres = enemy.getCurrentHealth();
-        float resolvedAres = ares.useItemById(instAres->getId(), enemy, db);
-        float expectedAres = 1.5f * (1.0f + 1.0f) * 1.5f; // base * (1 + attack slider) * affinity
-        expect(nearlyEqual(resolvedAres, expectedAres), "compute: matching rare affinity resolves correctly");
-        expect(nearlyEqual(hpBeforeAres - enemy.getCurrentHealth(), expectedAres), "compute: enemy damage equals resolved attack value");
-
-        // Attack rare item without matching affinity (Poseidon + noams_ballista)
-        Player poseidon("Poseidon", 2, "Poseidon Tester", loader);
-        auto instPoseidon = ItemInstance::alloc("noams_ballista", 1002);
-        expect(instPoseidon != nullptr, "compute: create noams_ballista instance (Poseidon)");
-        if (!instPoseidon) return;
-        poseidon.addItem(*instPoseidon);
-
-        enemy.setCurrentHealth(enemy.getMaxHealth());
-        float hpBeforePoseidon = enemy.getCurrentHealth();
-        float resolvedPoseidon = poseidon.useItemById(instPoseidon->getId(), enemy, db);
-        float expectedPoseidon = 1.5f * (1.0f + 0.8f); // no affinity bonus
-        expect(nearlyEqual(resolvedPoseidon, expectedPoseidon), "compute: non-matching rare affinity resolves correctly");
-        expect(nearlyEqual(hpBeforePoseidon - enemy.getCurrentHealth(), expectedPoseidon), "compute: enemy damage without affinity is correct");
-
-        // Support common item (Demeter + apple) should not use affinity
-        Player demeter("Demeter", 3, "Demeter Tester", loader);
-        Player ally("Ares", 4, "Ally", loader);
-        ally.updateHealth(-4.0f);
-
-        auto instApple = ItemInstance::alloc("apple", 1003);
-        expect(instApple != nullptr, "compute: create apple instance");
-        if (!instApple) return;
-        demeter.addItem(*instApple);
-
-        float allyBefore = ally.getCurrentHealth();
-        float resolvedSupport = demeter.useItemById(instApple->getId(), ally, db);
-        float expectedSupport = 2.0f * (1.0f + 0.9f);
-        expect(nearlyEqual(resolvedSupport, expectedSupport), "compute: support scaling resolves correctly");
-        expect(nearlyEqual(ally.getCurrentHealth() - allyBefore, expectedSupport), "compute: support heal equals resolved value");
-
-        // Mismatched target type should return 0 and still consume item
-        Player testAttacker("Ares", 5, "Ares Tester 2", loader);
-        Player testTarget("Zeus", 6, "Zeus Target", loader);
-        auto instAttack = ItemInstance::alloc("noams_ballista", 1004);
-        expect(instAttack != nullptr, "compute: create mismatch attack instance");
-        if (!instAttack) return;
-        testAttacker.addItem(*instAttack);
-        float mismatch = testAttacker.useItemById(instAttack->getId(), testTarget, db);
-        expect(nearlyEqual(mismatch, 0.0f), "compute: attack on player returns 0.0");
-        expect(testAttacker.getInventory().empty(), "compute: mismatch target still consumes item");
-
-        // Missing item id should fail with -1
-        float missing = testAttacker.useItemById(999999, testTarget, db);
-        expect(nearlyEqual(missing, -1.0f), "compute: missing item id returns -1.0");
+    
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    expect(housesOk, "compute: house loader init succeeds");
+    
+    Enemy enemy;
+    bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
+    expect(enemyOk, "compute: enemy init succeeds");
+    
+    if (!housesOk || !enemyOk) return;
+    
+    // Attack rare item with matching affinity (Ares + noams_ballista)
+    Player ares("Ares", 1, "Ares Tester", loader);
+    auto instAres = ItemInstance::alloc("noams_ballista", 1001);
+    expect(instAres != nullptr, "compute: create noams_ballista instance (Ares)");
+    if (!instAres) return;
+    ares.addItem(*instAres);
+    
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    float hpBeforeAres = enemy.getCurrentHealth();
+    float resolvedAres = ares.useItemById(instAres->getId(), enemy, db);
+    float expectedAres = 1.5f * (1.0f + 1.0f) * 1.5f; // base * (1 + attack slider) * affinity
+    expect(nearlyEqual(resolvedAres, expectedAres), "compute: matching rare affinity resolves correctly");
+    expect(nearlyEqual(hpBeforeAres - enemy.getCurrentHealth(), expectedAres), "compute: enemy damage equals resolved attack value");
+    
+    // Attack rare item without matching affinity (Poseidon + noams_ballista)
+    Player poseidon("Poseidon", 2, "Poseidon Tester", loader);
+    auto instPoseidon = ItemInstance::alloc("noams_ballista", 1002);
+    expect(instPoseidon != nullptr, "compute: create noams_ballista instance (Poseidon)");
+    if (!instPoseidon) return;
+    poseidon.addItem(*instPoseidon);
+    
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    float hpBeforePoseidon = enemy.getCurrentHealth();
+    float resolvedPoseidon = poseidon.useItemById(instPoseidon->getId(), enemy, db);
+    float expectedPoseidon = 1.5f * (1.0f + 0.8f); // no affinity bonus
+    expect(nearlyEqual(resolvedPoseidon, expectedPoseidon), "compute: non-matching rare affinity resolves correctly");
+    expect(nearlyEqual(hpBeforePoseidon - enemy.getCurrentHealth(), expectedPoseidon), "compute: enemy damage without affinity is correct");
+    
+    // Support common item (Demeter + apple) should not use affinity
+    Player demeter("Demeter", 3, "Demeter Tester", loader);
+    Player ally("Ares", 4, "Ally", loader);
+    ally.updateHealth(-4.0f);
+    
+    auto instApple = ItemInstance::alloc("apple", 1003);
+    expect(instApple != nullptr, "compute: create apple instance");
+    if (!instApple) return;
+    demeter.addItem(*instApple);
+    
+    float allyBefore = ally.getCurrentHealth();
+    float resolvedSupport = demeter.useItemById(instApple->getId(), ally, db);
+    float expectedSupport = 2.0f * (1.0f + 0.9f);
+    expect(nearlyEqual(resolvedSupport, expectedSupport), "compute: support scaling resolves correctly");
+    expect(nearlyEqual(ally.getCurrentHealth() - allyBefore, expectedSupport), "compute: support heal equals resolved value");
+    
+    // Mismatched target type should return 0 and still consume item
+    Player testAttacker("Ares", 5, "Ares Tester 2", loader);
+    Player testTarget("Zeus", 6, "Zeus Target", loader);
+    auto instAttack = ItemInstance::alloc("noams_ballista", 1004);
+    expect(instAttack != nullptr, "compute: create mismatch attack instance");
+    if (!instAttack) return;
+    testAttacker.addItem(*instAttack);
+    float mismatch = testAttacker.useItemById(instAttack->getId(), testTarget, db);
+    expect(nearlyEqual(mismatch, 0.0f), "compute: attack on player returns 0.0");
+    expect(testAttacker.getInventory().empty(), "compute: mismatch target still consumes item");
+    
+    // Missing item id should fail with -1
+    float missing = testAttacker.useItemById(999999, testTarget, db);
+    expect(nearlyEqual(missing, -1.0f), "compute: missing item id returns -1.0");
+}
 
 } // namespace
 
-/**
- * Runs all item tests with given asset paths.
- *
- * Loads item, house, and enemy data from JSON files and orchestrates all test functions.
- * Resets pass/fail counters and outputs a formatted summary at completion.
- *
- * Test sequence:
- * 1. testItemsLoad            - Item loading and field parsing
- * 2. testHouseMultipliersLoad - House multiplier loading  
- * 3. testEnumParsers          - Enum string parsing
- * 4. testWeightedRollAndInstanceCreation - Weighted random selection
- * 5. testValidationFailures   - Rejection of invalid data
- * 6. testScalingFallbacks     - Clamping and default values
- * 7. testBaseValueDefaults    - baseValue fallback behavior
- * 8. testEffectiveValueComputation - Full computation pipeline
- *
- * @param itemsJsonPath   Asset path to items.json (e.g., "json/items.json")
- * @param housesJsonPath  Asset path to houses.json (e.g., "json/houses.json")
- * @param enemiesJsonPath Asset path to enemies.json (e.g., "json/enemies.json")
- */
 void ItemTests::runAll(const std::string& itemsJsonPath,
-                                             const std::string& housesJsonPath,
-                                             const std::string& enemiesJsonPath) {
+                       const std::string& housesJsonPath,
+                       const std::string& enemiesJsonPath) {
     _passed = 0;
     _failed = 0;
-
     CULog("=========================================");
     CULog("  ItemTests::runAll");
     CULog("=========================================");
-
+    
     auto itemsJson = readJson(itemsJsonPath);
     auto housesJson = readJson(housesJsonPath);
-
+    
     if (!itemsJson || !housesJson) {
         expect(false, "fixtures: item/house JSON must parse");
         printSummary();
         return;
     }
-
+    
     testItemsLoad(itemsJson);
     testHouseMultipliersLoad(housesJson);
     testEnumParsers();
@@ -459,6 +439,6 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testScalingFallbacks();
     testBaseValueDefaults();
     testEffectiveValueComputation(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
-
+    
     printSummary();
 }
