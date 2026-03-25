@@ -290,6 +290,7 @@ void HostSetupScene::slideTo(int newIndex) {
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
     
+    // Set the visibility of all glow overlays to false and the currentIndex card's to true
     for (int i = 0; i < _bossCards.size(); i++) {
         auto card = _bossCards[i];
         if (card) {
