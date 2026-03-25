@@ -644,9 +644,9 @@ void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
  * Updates the player and teammate UI icons to reflect their current health.
  */
 void GameScene::updatePlayerAndTeammateIcons() {
-    auto lPlayer = _gameState.getLocalPlayer();
+    auto localPlayer = _gameState.getLocalPlayer();
 
-    auto apply = [&](auto slot, auto player) {
+    auto applyTexture = [&](auto slot, auto player) {
         slot->setTexture(_assets->get<cugl::graphics::Texture>(
             getHealthTexture(
                 getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
@@ -655,10 +655,10 @@ void GameScene::updatePlayerAndTeammateIcons() {
         );
     };
 
-    apply(_localPlayerSlot, lPlayer);
+    applyTexture(_localPlayerSlot, localPlayer);
     _localPlayerSlot->setScale(0.83f);
-    apply(_leftPlayerSlot,  lPlayer->getLeftPlayer());
-    apply(_rightPlayerSlot, lPlayer->getRightPlayer());
+    applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
+    applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
 }
 
 /**
