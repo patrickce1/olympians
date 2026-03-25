@@ -217,7 +217,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		}
 		case MessageType::PLAYER_JOIN: {
 			std::string playerName = _deserializer.readString();
-			CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
+//			CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
 
 			// check if player is already registered
 			bool alreadyRegistered = false;

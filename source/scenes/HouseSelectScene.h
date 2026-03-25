@@ -43,9 +43,9 @@ protected:
     
     /** The player icon (for updating) */
     std::shared_ptr<cugl::scene2::SceneNode> _playerIcon;
-    std::shared_ptr<cugl::scene2::SceneNode> _leftPlayerIcon;
-    std::shared_ptr<cugl::scene2::SceneNode> _rightPlayerIcon;
-    std::shared_ptr<cugl::scene2::SceneNode> _upPlayerIcon;
+    std::shared_ptr<cugl::scene2::PolygonNode> _leftPlayerIcon;
+    std::shared_ptr<cugl::scene2::PolygonNode> _rightPlayerIcon;
+    std::shared_ptr<cugl::scene2::PolygonNode> _upPlayerIcon;
     
     /** The player icon image (for updating) */
     std::shared_ptr<cugl::scene2::PolygonNode> _playerIconImage;
@@ -73,15 +73,6 @@ protected:
     
     /** The house selection container that contains the card and direction buttons**/
     std::shared_ptr<cugl::scene2::SceneNode> _houseSelectionCardContainer;
-    
-    /** The image node inside the left teammate's icon diamond */
-    std::shared_ptr<cugl::scene2::PolygonNode> _leftPlayerIconImage;
-
-    /** The image node inside the right teammate's icon diamond */
-    std::shared_ptr<cugl::scene2::PolygonNode> _rightPlayerIconImage;
-
-    /** The image node inside the top teammate's icon diamond */
-    std::shared_ptr<cugl::scene2::PolygonNode> _upPlayerIconImage;
     
     /** Whether the house selection screen is sliding to another index */
     bool _isAnimating = false;

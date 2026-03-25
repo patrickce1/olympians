@@ -80,34 +80,16 @@ void HouseSelectScene::setupUI() {
 
     // actuall image, make into widget for access
     _playerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.playerSelectIcon"));
-    _leftPlayerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconLeft"));
-    _rightPlayerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconRight"));
-    _upPlayerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconUp"));
-    
+    _leftPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconLeft")));
+    _rightPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconRight")));
+    _upPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconUp")));
+
     if (_playerIcon) {
         _playerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
                             _playerIcon->getChildByName("emptyLocalIcon"));
         
         _playerIconGlow = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
                             _playerIcon->getChildByName("lockedGlow"));
-    }
-    
-    if (_leftPlayerIcon) {
-        _leftPlayerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
-            _leftPlayerIcon->getChildByName("emptyLocalIcon"));
-        CULog("leftPlayerIconImage found: %d", _leftPlayerIconImage != nullptr);
-    }
-    
-    if (_rightPlayerIcon) {
-        _rightPlayerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
-            _rightPlayerIcon->getChildByName("emptyLocalIcon"));
-        CULog("rightPlayerIconImage found: %d", _rightPlayerIconImage != nullptr);
-    }
-    
-    if (_upPlayerIcon) {
-        _upPlayerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
-            _upPlayerIcon->getChildByName("emptyLocalIcon"));
-        CULog("upPlayerIconImage found: %d", _upPlayerIconImage != nullptr);
     }
     
     _playerIconImage->setAnchor(cugl::Vec2::ANCHOR_CENTER);
@@ -434,27 +416,26 @@ void HouseSelectScene::updateNetworkOrder() {
  */
 void HouseSelectScene::updateTeammateIcons() {
     if (!_gameState || !_network) return;
-
     int localIndex = _network->getLocalPlayerNumber();
     if (localIndex < 0) return;
-
     const auto& players = _gameState->getPlayers();
     int totalSlots = (int)players.size();
 
     std::vector<std::shared_ptr<cugl::scene2::PolygonNode>> iconSlots = {
-        _rightPlayerIconImage, _upPlayerIconImage, _leftPlayerIconImage
+        _rightPlayerIcon, _upPlayerIcon, _leftPlayerIcon
     };
 
     for (int i = 1; i <= 3; i++) {
         int slot = (localIndex + i) % totalSlots;
-        auto iconNode = iconSlots[i - 1];
-        if (!iconNode) continue;
+        auto activeIcon = iconSlots[i - 1];
+        if (!activeIcon) continue;
 
         std::string house = players[slot]->getHouseName();
         if (house == "Athena") {
-            iconNode->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
         } else {
-            iconNode->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
         }
+        
     }
 }
