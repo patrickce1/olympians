@@ -230,15 +230,15 @@ std::vector<Player*> LobbyScene::remapPlayersForDisplay() {
     const auto& players = _gameState->getPlayers();
     int totalSlots = (int)players.size();
 
-    std::vector<Player*> remapped;
-    remapped.reserve(totalSlots);
+    std::vector<Player*> remappedPlayerSlots;
+    remappedPlayerSlots.reserve(totalSlots);
 
     for (int i = 1; i < totalSlots + 1; i++) {
         int slot = (localIndex + i) % totalSlots;
-        remapped.push_back(players[slot].get());
+        remappedPlayerSlots.push_back(players[slot].get());
     }
 
-    return remapped;
+    return remappedPlayerSlots;
 }
 
 /**
