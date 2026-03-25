@@ -925,7 +925,7 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     if (!texture) return nullptr;
 
     auto widget = PolygonNode::allocWithTexture(texture);
-    widget->setContentSize(Size(74, 85));
+    widget->setContentSize(Size(80, 80));
     widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
     widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
     _inventory->addChild(widget);
