@@ -41,6 +41,26 @@
             "affinityBonus": 1.5
         },
         {
+            "id": "Athena",
+            "maxHealth": 5.0,
+            "specialAbilities": ["aegis"],
+            "spritesheetPath": "textures/athena.png",
+            "attack": 0.6,
+            "support": 0.6,
+            "utility": 0.8,
+            "affinityBonus": 1.5
+        },
+        {
+            "id": "Aphrodite",
+            "maxHealth": 5.0,
+            "specialAbilities": ["love"],
+            "spritesheetPath": "textures/aphrodite.png",
+            "attack": 0.6,
+            "support": 0.6,
+            "utility": 0.8,
+            "affinityBonus": 1.5
+        },
+        {
             "id": "Ares",
             "maxHealth": 5.0,
             "specialAbilities": ["armor"],
@@ -51,13 +71,23 @@
             "affinityBonus": 1.5
         },
         {
-            "id": "Athena",
+            "id": "Hephestus",
             "maxHealth": 5.0,
-            "specialAbilities": ["aegis"],
-            "spritesheetPath": "textures/athena.png",
-            "attack": 0.6,
-            "support": 0.6,
-            "utility": 0.8,
+            "specialAbilities": ["mallet"],
+            "spritesheetPath": "textures/hephestus.png",
+            "attack": 1.0,
+            "support": 0.1,
+            "utility": 0.4,
+            "affinityBonus": 1.5
+        },
+        {
+            "id": "Hermes",
+            "maxHealth": 5.0,
+            "specialAbilities": ["speed"],
+            "spritesheetPath": "textures/hermes.png",
+            "attack": 1.0,
+            "support": 0.1,
+            "utility": 0.4,
             "affinityBonus": 1.5
         }
     ]
