@@ -63,6 +63,20 @@ static std::string getHealthTexture(HealthState state, std::string houseID) {
     return "basicTeammateIcon";
 }
 
+/**
+ * Returns whether a damage blink should currently render its red tint.
+ *
+ * The timer counts down from the total blink duration to zero. We alternate the
+ * red overlay on fixed cadence bands until the timer expires.
+ */
+static bool shouldShowDamageBlink(float timer, float interval) {
+    if (timer <= 0.0f || interval <= 0.0f) {
+        return false;
+    }
+    const int phase = static_cast<int>(timer / interval);
+    return (phase % 2) == 0;
+}
+
 #pragma mark -
 #pragma mark Constructors
 
@@ -362,6 +376,7 @@ void GameScene::reset() {
 
     // Delegate inventory clearing and health resetting to the model.
     _gameState.reset();
+    resetTeammateDamageBlinkState();
 }
 
 #pragma mark -
@@ -373,6 +388,7 @@ void GameScene::reset() {
  */
 void GameScene::setLocalPlayer(int assignedIndex) {
     _gameState.setLocalPlayer(assignedIndex);
+    resetTeammateDamageBlinkState();
 }
 
 #pragma mark -
@@ -643,10 +659,12 @@ void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
 /**
  * Updates the player and teammate UI icons to reflect their current health.
  */
-void GameScene::updatePlayerAndTeammateIcons() {
+void GameScene::updatePlayerAndTeammateIcons(float dt) {
     auto localPlayer = _gameState.getLocalPlayer();
+    if (!localPlayer) return;
 
     auto applyTexture = [&](auto slot, auto player) {
+        if (!slot || !player) return;
         slot->setTexture(_assets->get<cugl::graphics::Texture>(
             getHealthTexture(
                 getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
@@ -655,10 +673,60 @@ void GameScene::updatePlayerAndTeammateIcons() {
         );
     };
 
+    auto updateTeammateBlink = [this, dt](auto slot, auto player, float& lastHealth, float& blinkTimer) {
+        if (!slot || !player) return;
+
+        const float currentHealth = player->getCurrentHealth();
+        if (lastHealth >= 0.0f && currentHealth < lastHealth && player->isAlive()) {
+            blinkTimer = _damageBlinkDuration;
+        } else if (blinkTimer > 0.0f) {
+            blinkTimer = std::max(0.0f, blinkTimer - dt);
+        }
+
+        if (!player->isAlive()) {
+            blinkTimer = 0.0f;
+            slot->setColor(Color4(255, 255, 255, 255));
+        } else if (blinkTimer > 0.0f && shouldShowDamageBlink(blinkTimer, _damageBlinkInterval)) {
+            slot->setColor(Color4(255, 96, 96, 255));
+        } else {
+            slot->setColor(Color4(255, 255, 255, 255));
+        }
+
+        lastHealth = currentHealth;
+    };
+
     applyTexture(_localPlayerSlot, localPlayer);
     _localPlayerSlot->setScale(0.83f);
     applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
+    updateTeammateBlink(_leftPlayerSlot, localPlayer->getLeftPlayer(),
+                        _lastLeftPlayerHealth, _leftPlayerDamageBlinkTimer);
+    updateTeammateBlink(_rightPlayerSlot, localPlayer->getRightPlayer(),
+                        _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer);
+}
+
+void GameScene::resetTeammateDamageBlinkState() {
+    _leftPlayerDamageBlinkTimer = 0.0f;
+    _rightPlayerDamageBlinkTimer = 0.0f;
+    _lastLeftPlayerHealth = -1.0f;
+    _lastRightPlayerHealth = -1.0f;
+
+    if (_leftPlayerSlot) {
+        _leftPlayerSlot->setColor(Color4(255, 255, 255, 255));
+    }
+    if (_rightPlayerSlot) {
+        _rightPlayerSlot->setColor(Color4(255, 255, 255, 255));
+    }
+
+    Player* localPlayer = _gameState.getLocalPlayer();
+    if (!localPlayer) return;
+
+    if (Player* leftPlayer = localPlayer->getLeftPlayer()) {
+        _lastLeftPlayerHealth = leftPlayer->getCurrentHealth();
+    }
+    if (Player* rightPlayer = localPlayer->getRightPlayer()) {
+        _lastRightPlayerHealth = rightPlayer->getCurrentHealth();
+    }
 }
 
 /**
@@ -909,7 +977,7 @@ void GameScene::update(float dt, InputController& input) {
 
     _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
-    updatePlayerAndTeammateIcons();
+    updatePlayerAndTeammateIcons(dt);
 }
 
 #pragma mark -
@@ -1313,5 +1381,6 @@ void GameScene::handleDisconnectedPlayers() {
 
         // Step 2b: Both host and clients refresh the teammate name labels.
         refreshTeammateNameLabels();
+        resetTeammateDamageBlinkState();
     }
 }

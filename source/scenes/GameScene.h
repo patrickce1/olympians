@@ -147,6 +147,26 @@ protected:
     /** Maximum duration of a glow effect in seconds. */
     float _glowDuration = 0.3f;
 
+#pragma mark - Teammate Damage Blink State
+
+    /** Seconds remaining on the left teammate damage blink effect. */
+    float _leftPlayerDamageBlinkTimer = 0.0f;
+
+    /** Seconds remaining on the right teammate damage blink effect. */
+    float _rightPlayerDamageBlinkTimer = 0.0f;
+
+    /** Last observed health snapshot for the left teammate. */
+    float _lastLeftPlayerHealth = -1.0f;
+
+    /** Last observed health snapshot for the right teammate. */
+    float _lastRightPlayerHealth = -1.0f;
+
+    /** Total duration of the teammate damage blink effect. */
+    float _damageBlinkDuration = 0.45f;
+
+    /** Blink cadence used for teammate damage flashes. */
+    float _damageBlinkInterval = 0.12f;
+
 #pragma mark - Debug State
     
     /** Determines whether the debug mode is on. This inlcudes reset button, zone lines, etc.*/
@@ -363,8 +383,13 @@ public:
     
     /**
      * Updates the player and teammate UI icons to reflect their current health.
+     *
+     * @param dt Delta time in seconds.
      */
-    void updatePlayerAndTeammateIcons();
+    void updatePlayerAndTeammateIcons(float dt);
+
+    /** Resynchronises teammate damage blink state with the current local player. */
+    void resetTeammateDamageBlinkState();
 
     /**
      * Checks whether the reset button was tapped and calls reset() if so.
