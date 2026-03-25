@@ -1803,16 +1803,16 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard3": {
+                            "demeter": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "demeterPoster",
+                                        "heroName": "-DEMETER-",
+                                        "heroStats": "statsDemeter"
                                     }
                                 },
                                 "layout": {

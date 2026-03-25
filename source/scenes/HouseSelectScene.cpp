@@ -355,6 +355,8 @@ void HouseSelectScene::updateSelectedIcon(int currentIndex) {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("aresSIcon"));
     } else if (selectedHouse.id == "poseidon") {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("poseidonSIcon"));
+    } else if (selectedHouse.id == "demeter") {
+        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("demeterSIcon"));
     } else {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
     }

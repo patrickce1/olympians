@@ -174,6 +174,20 @@
             "wrapS":    "clamp",
             "wrapT":    "clamp"
         },
+        "demeterPoster": {
+            "file": "textures/houseSelect/demeterPoster.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "statsDemeter": {
+            "file": "textures/houseSelect/statsDemeter.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
         "leftScroll": {
             "file": "textures/houseSelect/leftScroll.png"
         },
@@ -217,6 +231,9 @@
             "magfilter":"linear",
             "wrapS":    "clamp",
             "wrapT":    "clamp"
+        },
+        "demeterSIcon": {
+            "file": "textures/houseSelect/demeterSIcon.png"
         },
         "glowOverlayBoss": {
             "file": "textures/hostScene/glowOverlayBoss.png"
@@ -289,6 +306,15 @@
         },
         "poseidonDeath": {
             "file": "textures/gameScene/houseIcons/poseidon/poseidonDeath.png"
+        },
+        "demeterRegular": {
+            "file": "textures/gameScene/houseIcons/demeter/demeterRegular.png"
+        },
+        "demeterMidHealth": {
+            "file": "textures/gameScene/houseIcons/demeter/demeterMidHealth.png"
+        },
+        "demeterDeath": {
+            "file": "textures/gameScene/houseIcons/demeter/demeterDeath.png"
         }
 	},
     "fonts": {
