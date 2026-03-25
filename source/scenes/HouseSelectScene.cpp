@@ -78,11 +78,14 @@ void HouseSelectScene::setupUI() {
     _backOut = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("houseSelectScene.back"));
 
-    // actuall image, make into widget for access
+    // Player and Teammate Icon Widgets
     _playerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.playerSelectIcon"));
-    _leftPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconLeft")));
-    _rightPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconRight")));
-    _upPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconUp")));
+    _leftPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((
+        _assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconLeft")));
+    _rightPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((
+        _assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconRight")));
+    _upPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((
+        _assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconUp")));
 
     if (_playerIcon) {
         _playerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
