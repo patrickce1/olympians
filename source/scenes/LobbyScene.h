@@ -65,7 +65,7 @@ protected:
     
     /** The current status */
     Status _status;
-    
+
     /** The timer for the blinking player icon border */
     float _blinkTimer = 0.0f;
     
@@ -74,6 +74,9 @@ protected:
     
     /** Whether the local player has selected a house */
     bool _hasSelectedHouse;
+
+    /** The state of the game */
+    GameState* _gameState = nullptr;
 
 public:
 #pragma mark -
@@ -109,12 +112,15 @@ public:
      *
      * That is why we have the method {@link #setActive}.
      *
-     * @param assets    The (loaded) assets for this game mode
-     * @param networkController The network controller shared across all scenes
+     * @param assets                             The (loaded) assets for this game mode
+     * @param networkController     The network controller shared across all scenes
+     * @param gameState                       The state of the game
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets,
+              const std::shared_ptr<NetworkController>& networkController,
+              GameState* gameState);
     
     /**
      * Retrieves and stores references to the lobby UI elements.
@@ -178,14 +184,6 @@ private:
      * @param text      The new text value
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
-
-    /**
-     * Updates the the player handles in the lobby UI based on updates to the lobby state.
-     *
-     * @param onlinePlayers A vector of NetworkedPlayer objects representing all
-     *                      players currently connected to the lobby.
-     */
-    void updateLobbyText(std::vector<NetworkedPlayer> onlinePlayers);
     
     /**
      * Updates the image of the boss circle based on the selected enemy.
@@ -195,16 +193,41 @@ private:
     void updateLobbyBossImage(std::string enemyID);
     
     /**
-     * Updates the player icon images based on the current lobby state.
-     *
-     * Iterates through the list of player slots and assigns the appropriate
-     * icon texture for each connected player based on their selected house.
-     * If a slot does not correspond to an active player, a default icon is used.
-     *
-     * @param onlinePlayers  The list of players currently in the lobby,
-     *                       including their selected house information.
+     * Syncs _gameState player names and house selections with the current
+     * networked player list. Called every frame during the lobby.
      */
-    void updateLobbyPlayerIcons(std::vector<NetworkedPlayer> onlinePlayers);
+    void updateNetworkOrder();
+
+    /**
+     * Remaps the full player list from GameState so the local player always
+     * appears last (bottom slot of the UI). Walks the circular player array
+     * starting one step to the right of the local player, so that left/right
+     * neighbour relationships are preserved visually. Includes both real and
+     * AI players since both are stored in GameState.
+     *
+     * This is purely a display remapping — no game or network state is changed.
+     *
+     * @return  A reordered list of raw Player pointers with the local player last.
+     */
+    std::vector<Player*> remapPlayersForDisplay();
+
+    /**
+     * Updates the username labels in the lobby UI to match the given player list.
+     * The list is expected to already be in display order (local player last)
+     * as produced by remapPlayersForDisplay().
+     *
+     * @param players  The display-ordered list of players to read names from.
+     */
+    void updateLobbyText(std::vector<Player*> players);
+
+    /**
+     * Updates the player icon images in the lobby UI based on each player's
+     * selected house. The list is expected to already be in display order
+     * (local player last) as produced by remapPlayersForDisplay().
+     *
+     * @param players  The display-ordered list of players to read house names from.
+     */
+    void updateLobbyPlayerIcons(std::vector<Player*> players);
 };
 
 #endif /* __LOBBY_SCENE_H__ */

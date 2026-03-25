@@ -77,10 +77,17 @@ void GameState::initPlayers() {
 void GameState::setRealPlayer(int playerNumber, const std::string& playerName, const std::string& houseName) {
     if (playerNumber < 0 || playerNumber >= (int)_players.size()) return;
 
+    if (houseName.empty()) {
+        // No house yet — just update the name on the existing player object
+        _players[playerNumber]->setPlayerName(playerName);
+        return;
+    }
+
+    // Full reconstruction with house stats
     _players[playerNumber] = std::make_shared<Player>(
-        houseName,        // ← use actual selected house, not hardcoded "poseidon"
+        houseName,
         playerNumber,
-        playerName,       // ← don't concatenate playerNumber onto the name
+        playerName,
         _houseLoader
     );
     _playerIdMap[playerNumber] = _players[playerNumber].get();

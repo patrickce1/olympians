@@ -246,13 +246,13 @@ void SceneLoader::update(float dt) {
                     CULog("Failed to initialize GameScene");
                 }
                 
-                if (_lobbyScene.init(_assets, _network)) {
+                if (_lobbyScene.init(_assets, _network, &_gameScene.getGameState())) {
                     _lobbyScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize LobbyScene");
                 }
                 
-                if (_houseSelectScene.init(_assets, _network)) {
+                if (_houseSelectScene.init(_assets, _network, &_gameScene.getGameState())) {
                     _houseSelectScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize HouseSelectScene");

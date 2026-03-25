@@ -69,21 +69,20 @@ public:
     void initPlayers();
 
     /**
-     * Replaces the AI placeholder at the given slot with a real human player,
-     * using the house they selected in the character select screen.
+     * Replaces the AI placeholder at the given slot with a real human player.
+     * If houseName is provided, constructs a full Player with house stats.
+     * If houseName is empty, updates only the player's display name without
+     * reconstructing the object — safe to call before house selection.
      *
-     * Called during game setup after the lobby has finalized the player order
-     * and all players have broadcast their house selections. After replacing
-     * the player object, all neighbour pointers in the circular ring are
-     * re-wired so that every player's left/right references remain valid.
+     * After any replacement, all neighbour pointers in the circular ring are
+     * re-wired so every player's left/right references remain valid.
      *
      * @param playerNumber  The 0-based slot index of the player to promote.
      * @param playerName    The display name of the player joining this slot.
-     * @param houseName     The ID of the house the player selected (e.g. "athena").
-     *                      Must match a valid entry in the HouseLoader or player
-     *                      stats will be missing and may cause a crash downstream.
+     * @param houseName     The ID of the house the player selected. If empty,
+     *                      only the name is updated and no reconstruction occurs.
      */
-    void setRealPlayer(int playerNumber, const std::string& playerName, const std::string& houseName);
+    void setRealPlayer(int playerNumber, const std::string& playerName, const std::string& houseName = "");
 
     /**
      * Loads and initialises the enemy from JSON.

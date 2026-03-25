@@ -617,6 +617,18 @@ public:
      * Does nothing if the network is not connected.
      */
     void updateNetworkOrder();
-};
+    
+#pragma mark - Getters
 
+    /**
+     * Returns a reference to the authoritative game state owned by this scene.
+     *
+     * Intended for use by other scenes (e.g. LobbyScene) that need read access
+     * to the player array and circle order without owning or copying the state.
+     * The reference is valid for the lifetime of this GameScene instance.
+     *
+     * @return  A reference to the GameState owned by this scene.
+     */
+    GameState& getGameState() { return _gameState; }
+};
 #endif /* __GAME_SCENE_H__ */
