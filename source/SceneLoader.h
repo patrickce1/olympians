@@ -10,6 +10,7 @@
 #include "InputController.h"
 #include "tests/PlayerTests.h"
 #include "tests/EnemyTests.h"
+#include "tests/ItemTests.h"
 #include "NetworkController.h"
 #include <algorithm>
 #include <cugl/core/CUBase.h>

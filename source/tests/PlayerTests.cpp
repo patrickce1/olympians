@@ -23,6 +23,7 @@
 #include "../items/ItemController.h"
 #include "../HouseLoader.h"
 #include <cugl/cugl.h>
+#include <cmath>
 
 // ─────────────────────────────────────────────
 // Internal helpers — not exposed in the header
@@ -33,7 +34,7 @@ int _passed = 0;
 int _failed = 0;
 
 /** Assertion helper: logs [PASS]/[FAIL] and updates counters. */
-void expect(bool condition, const std::string& label) {
+void assertWithLabel(bool condition, const std::string& label) {
     if (condition) {
         CULog("[PASS] %s", label.c_str());
         _passed++;
@@ -65,8 +66,9 @@ void printHand(const Player& p) {
     }
 }
 
-/** Loads the ItemDatabase from the given items JSON path and seeds time. */
-ItemDatabase loadDatabase(const std::string& itemsJsonPath) {
+/** Loads the ItemDatabase + house multipliers from JSON and seeds time. */
+ItemDatabase loadDatabase(const std::string& itemsJsonPath,
+                         const std::string& housesJsonPath) {
     ItemDatabase db;
 
     auto reader = cugl::JsonReader::alloc(itemsJsonPath);
@@ -85,8 +87,25 @@ ItemDatabase loadDatabase(const std::string& itemsJsonPath) {
         CULogError("PlayerTests: ItemDatabase::loadFromJson failed for '%s'", itemsJsonPath.c_str());
     }
 
+    auto houseReader = cugl::JsonReader::alloc(housesJsonPath);
+    if (!houseReader) {
+        CULogError("PlayerTests: failed to open houses JSON at '%s'", housesJsonPath.c_str());
+    } else {
+        auto housesJson = houseReader->readJson();
+        if (!housesJson) {
+            CULogError("PlayerTests: failed to parse houses JSON at '%s'", housesJsonPath.c_str());
+        } else if (!db.loadHouseMultipliersFromJson(housesJson)) {
+            CULogError("PlayerTests: ItemDatabase::loadHouseMultipliersFromJson failed for '%s'", housesJsonPath.c_str());
+        }
+    }
+
     db.setStartingPointWithTime();
     return db;
+}
+
+/** Returns true if two floats are equal within the given tolerance (error range). */
+bool floatsEqualWithinTolerance(float firstValue, float secondValue, float tolerance = 1e-4f) {
+    return std::fabs(firstValue - secondValue) <= tolerance;
 }
 
 /** Loads house definitions from the given JSON path for use in tests. */
@@ -173,7 +192,7 @@ std::string firstDefIdOfType(const ItemDatabase& db, ItemDef::Type type) {
 static void testInventoryStartsEmpty(const HouseLoader& loader,
                                      const std::string& houseId) {
     auto players = makeTwoPlayers(loader, houseId);
-    expect(players[0]->getInventory().empty(), "Inventory starts empty");
+    assertWithLabel(players[0]->getInventory().empty(), "Inventory starts empty");
 }
 
 /** Ensures addItem increases the inventory count. */
@@ -182,7 +201,7 @@ static void testAddItemIncreasesCount(const HouseLoader& loader,
                                       const std::string& attackDefId) {
     auto players = makeTwoPlayers(loader, houseId);
     players[0]->addItem(makeItem(attackDefId));
-    expect(players[0]->getInventory().size() == 1,
+    assertWithLabel(players[0]->getInventory().size() == 1,
            "addItem: inventory count increases to 1");
 }
 
@@ -194,7 +213,7 @@ static void testRemoveItemDecreasesCount(const HouseLoader& loader,
     ItemInstance item = makeItem(attackDefId);
     players[0]->addItem(item);
     players[0]->removeItemById(item.getId());
-    expect(players[0]->getInventory().empty(),
+    assertWithLabel(players[0]->getInventory().empty(),
            "removeItemById: inventory count drops to 0");
 }
 
@@ -206,7 +225,7 @@ static void testRemoveNonexistentItemIsNoop(const HouseLoader& loader,
     ItemInstance item = makeItem(attackDefId);
     players[0]->addItem(item);
     players[0]->removeItemById(item.getId() + 99999);  // bogus id
-    expect(players[0]->getInventory().size() == 1,
+    assertWithLabel(players[0]->getInventory().size() == 1,
            "removeItemById: does nothing when no id match, real items untouched");
 }
 
@@ -231,7 +250,7 @@ static void testPrintHands(const HouseLoader& loader,
 
     for (const auto& p : players) printHand(*p);
     CULog("──────────────────────────────────────────");
-    expect(true, "printHands: ran without crash");
+    assertWithLabel(true, "printHands: ran without crash");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -254,9 +273,9 @@ static void testPassRightMovesItem(const HouseLoader& loader,
     printHand(*players[0]);
     printHand(*players[1]);
 
-    expect(players[0]->getInventory().empty(),       "passRight: sender inventory is empty");
-    expect(players[1]->getInventory().size() == 1,   "passRight: receiver has 1 item");
-    expect(players[1]->getInventory()[0].getDefId() == attackDefId,
+    assertWithLabel(players[0]->getInventory().empty(),       "passRight: sender inventory is empty");
+    assertWithLabel(players[1]->getInventory().size() == 1,   "passRight: receiver has 1 item");
+    assertWithLabel(players[1]->getInventory()[0].getDefId() == attackDefId,
                                                      "passRight: received item has correct defId");
 }
 
@@ -276,8 +295,8 @@ static void testPassLeftMovesItem(const HouseLoader& loader,
     printHand(*players[0]);
     printHand(*players[1]);
 
-    expect(players[0]->getInventory().empty(),     "passLeft: sender inventory is empty");
-    expect(players[1]->getInventory().size() == 1, "passLeft: receiver has 1 item");
+    assertWithLabel(players[0]->getInventory().empty(),     "passLeft: sender inventory is empty");
+    assertWithLabel(players[1]->getInventory().size() == 1, "passLeft: receiver has 1 item");
 }
 
 /** Confirms passing to a dead player is a no-op and the item remains with sender. */
@@ -286,7 +305,7 @@ static void testPassToDeadPlayerIsNoop(const HouseLoader& loader,
                                        const std::string& attackDefId) {
     auto players = makeTwoPlayers(loader, houseId);
     players[1]->updateHealth(-999999.0f);
-    expect(!players[1]->isAlive(), "passToDeadPlayer: target confirmed dead");
+    assertWithLabel(!players[1]->isAlive(), "passToDeadPlayer: target confirmed dead");
 
     players[0]->addItem(makeItem(attackDefId));
 
@@ -297,7 +316,7 @@ static void testPassToDeadPlayerIsNoop(const HouseLoader& loader,
         target->addItem(item);
     }
 
-    expect(players[0]->getInventory().size() == 1,
+    assertWithLabel(players[0]->getInventory().size() == 1,
            "passToDeadPlayer: item stays with sender");
 }
 
@@ -322,9 +341,9 @@ static void testCircularPassAroundRing(const HouseLoader& loader,
     CULog("── circularPass (4 passes) ───────────────");
     for (const auto& p : players) printHand(*p);
 
-    expect(players[0]->getInventory().size() == 1,
+    assertWithLabel(players[0]->getInventory().size() == 1,
            "circularPass: item returns to origin after full loop");
-    expect(players[1]->getInventory().empty() &&
+    assertWithLabel(players[1]->getInventory().empty() &&
            players[2]->getInventory().empty() &&
            players[3]->getInventory().empty(),
            "circularPass: only origin player holds the item");
@@ -355,8 +374,8 @@ static void testUseAttackItemDamagesEnemy(const HouseLoader& loader,
     CULog("── attackEnemy: hp %.1f → %.1f ───────────",
           hpBefore, enemy.getCurrentHealth());
 
-    expect(enemy.getCurrentHealth() < hpBefore,   "useAttackItem: enemy hp decreased");
-    expect(players[0]->getInventory().empty(),     "useAttackItem: item consumed from inventory");
+    assertWithLabel(enemy.getCurrentHealth() < hpBefore,   "useAttackItem: enemy hp decreased");
+    assertWithLabel(players[0]->getInventory().empty(),     "useAttackItem: item consumed from inventory");
 }
 
 /** Checks using a support item heals an ally and consumes the item. */
@@ -381,8 +400,8 @@ static void testUseSupportItemHealsAlly(const HouseLoader& loader,
     CULog("── healAlly: hp %.1f → %.1f ──────────────",
           hpBefore, players[1]->getCurrentHealth());
 
-    expect(players[1]->getCurrentHealth() > hpBefore, "useSupportItem: ally hp increased");
-    expect(players[0]->getInventory().empty(),         "useSupportItem: item consumed from inventory");
+    assertWithLabel(players[1]->getCurrentHealth() > hpBefore, "useSupportItem: ally hp increased");
+    assertWithLabel(players[0]->getInventory().empty(),         "useSupportItem: item consumed from inventory");
 }
 
 /** Validates attack items used on allies do not change ally hp but are consumed. */
@@ -395,9 +414,9 @@ static void testUseAttackItemOnAllyIsNoop(const HouseLoader& loader,
     players[0]->addItem(makeItem(attackDefId));
     players[0]->useItemById(players[0]->getInventory()[0].getId(), *players[1], db);
 
-    expect(players[1]->getCurrentHealth() == hpBefore,
+    assertWithLabel(players[1]->getCurrentHealth() == hpBefore,
            "useAttackItemOnAlly: attack item does not affect ally hp");
-    expect(players[0]->getInventory().empty(),
+    assertWithLabel(players[0]->getInventory().empty(),
            "useAttackItemOnAlly: item is still consumed");
 }
 
@@ -412,10 +431,61 @@ static void testUseSupportItemOnEnemyIsNoop(const HouseLoader& loader,
     players[0]->addItem(makeItem(supportDefId));
     players[0]->useItemById(players[0]->getInventory()[0].getId(), enemy, db);
 
-    expect(enemy.getCurrentHealth() == hpBefore,
+    assertWithLabel(enemy.getCurrentHealth() == hpBefore,
            "useSupportItemOnEnemy: support item does not affect enemy hp");
-    expect(players[0]->getInventory().empty(),
+    assertWithLabel(players[0]->getInventory().empty(),
            "useSupportItemOnEnemy: item is still consumed");
+}
+
+/** Verifies attack scaling and affinity multiplier on a rare affinity-matching item. */
+static void testAttackScalingAndAffinity(const HouseLoader& loader,
+                                         const ItemDatabase& db,
+                                         Enemy& enemy) {
+    auto matchPlayer = std::make_shared<Player>("Ares", 1, "Ares P1", loader);
+    auto mismatchPlayer = std::make_shared<Player>("Poseidon", 2, "Poseidon P2", loader);
+
+    auto def = db.getDef("noams_ballista");
+    assertWithLabel(def != nullptr, "scalingAttack: noams_ballista def exists");
+    if (!def) return;
+
+    const float matchHpBefore = enemy.getCurrentHealth();
+    matchPlayer->addItem(makeItem("noams_ballista"));
+    const float matchResolved = matchPlayer->useItemById(matchPlayer->getInventory()[0].getId(), enemy, db);
+
+    const float expectedMatch = def->getBaseValue() * (1.0f + 1.0f) * 1.5f; // ares attack 1.0 + affinity
+    assertWithLabel(floatsEqualWithinTolerance(matchResolved, expectedMatch), "scalingAttack: affinity-matching value is correct");
+    assertWithLabel(floatsEqualWithinTolerance(matchHpBefore - enemy.getCurrentHealth(), expectedMatch), "scalingAttack: enemy damage matches resolved value");
+
+    // Reset enemy health for second check
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    const float mismatchHpBefore = enemy.getCurrentHealth();
+    mismatchPlayer->addItem(makeItem("noams_ballista"));
+    const float mismatchResolved = mismatchPlayer->useItemById(mismatchPlayer->getInventory()[0].getId(), enemy, db);
+
+    const float expectedMismatch = def->getBaseValue() * (1.0f + 0.8f); // poseidon attack 0.8, no affinity
+    assertWithLabel(floatsEqualWithinTolerance(mismatchResolved, expectedMismatch), "scalingAttack: non-matching value is correct");
+    assertWithLabel(floatsEqualWithinTolerance(mismatchHpBefore - enemy.getCurrentHealth(), expectedMismatch), "scalingAttack: enemy damage without affinity is correct");
+}
+
+/** Verifies support scaling on a non-affinity common item. */
+static void testSupportScaling(const HouseLoader& loader,
+                               const ItemDatabase& db) {
+    auto healer = std::make_shared<Player>("Demeter", 1, "Demeter P1", loader);
+    auto ally = std::make_shared<Player>("Ares", 2, "Ares P2", loader);
+    ally->updateHealth(-3.0f);
+
+    auto def = db.getDef("apple");
+    assertWithLabel(def != nullptr, "scalingSupport: apple def exists");
+    if (!def) return;
+
+    const float hpBefore = ally->getCurrentHealth();
+    healer->addItem(makeItem("apple"));
+    const float resolved = healer->useItemById(healer->getInventory()[0].getId(), *ally, db);
+
+    const float expected = def->getBaseValue() * (1.0f + 0.9f); // demeter support 0.9
+    const float expectedApplied = std::min(expected, ally->getMaxHealth() - hpBefore);
+    assertWithLabel(floatsEqualWithinTolerance(resolved, expected), "scalingSupport: resolved value is correct");
+    assertWithLabel(floatsEqualWithinTolerance(ally->getCurrentHealth() - hpBefore, expectedApplied), "scalingSupport: heal amount is correct");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -437,9 +507,9 @@ static void testAIIdleWithEmptyInventory(const HouseLoader& loader,
     ItemController items;
     for (int i = 0; i < 10; i++) ai->update(0.5f, enemy, items);
 
-    expect(ai->getInventory().empty(),
+    assertWithLabel(ai->getInventory().empty(),
            "AI idle: inventory stays empty");
-    expect(ai->getState() == PlayerAI::State::IDLE ||
+    assertWithLabel(ai->getState() == PlayerAI::State::IDLE ||
            ai->getState() == PlayerAI::State::PASS,
            "AI idle: state is IDLE or PASS (not ATTACK/SUPPORT)");
 }
@@ -467,7 +537,7 @@ static void testAIActsOnAttackItem(const HouseLoader& loader,
     CULog("── AI attackTest: enemy hp %.1f → %.1f ───",
           hpBefore, enemy.getCurrentHealth());
 
-    expect(ai->getInventory().empty(),
+    assertWithLabel(ai->getInventory().empty(),
            "AI attack: item was consumed or passed after ticks");
 }
 
@@ -497,7 +567,7 @@ static void testAIHealsInjuredNeighbor(const HouseLoader& loader,
     CULog("── AI healTest: neighbor hp %.1f → %.1f ──",
           neighborHpBefore, players[0]->getCurrentHealth());
 
-    expect(players[0]->getCurrentHealth() >= neighborHpBefore,
+    assertWithLabel(players[0]->getCurrentHealth() >= neighborHpBefore,
            "AI heal: injured neighbor hp did not decrease after AI ticks");
 }
 
@@ -529,9 +599,9 @@ static void testAIPassesWhenNoHealTarget(const HouseLoader& loader,
     printHand(*ai);
     printHand(*players[2]);
 
-    expect(ai->getInventory().empty(),
+    assertWithLabel(ai->getInventory().empty(),
            "AI pass: support item left AI player's inventory");
-    expect(itemPassedToNeighbor,
+    assertWithLabel(itemPassedToNeighbor,
            "AI pass: item arrived at a neighbor");
 }
 
@@ -553,7 +623,7 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     CULog("═════════════════════════════════════════");
 
     HouseLoader loader = loadHouses(housesJsonPath);
-    ItemDatabase    db     = loadDatabase(itemsJsonPath);
+    ItemDatabase    db     = loadDatabase(itemsJsonPath, housesJsonPath);
     Enemy           enemy  = loadEnemy(enemiesJsonPath, "enemy1");
 
     const std::string attackDefId  = firstDefIdOfType(db, ItemDef::Type::Attack);
@@ -595,6 +665,10 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     testAIActsOnAttackItem      (loader, houseId, db, enemy, aiConfigPath, attackDefId);
     testAIHealsInjuredNeighbor  (loader, houseId, db, enemy, aiConfigPath, supportDefId);
     testAIPassesWhenNoHealTarget(loader, houseId, db, enemy, aiConfigPath, supportDefId);
+
+    CULog("── Section 6: House scaling ─────────────");
+    testAttackScalingAndAffinity(loader, db, enemy);
+    testSupportScaling(loader, db);
 
     printSummary();
 }

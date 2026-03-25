@@ -1,22 +1,50 @@
 #include "ItemDatabase.h"
+#include <cctype>
 
 using namespace cugl;
+
+/**
+ * Normalizes a house ID by trimming whitespace and converting to lowercase.
+ * Enables case-insensitive house lookups regardless of JSON formatting.
+ *
+ * @param houseID  The house ID string to normalize
+ * @return the normalized ID (trimmed and lowercased)
+ */
+static std::string normalizeHouseID(std::string houseID) {
+    auto notspace = [](unsigned char c){ return !std::isspace(c); };
+    houseID.erase(houseID.begin(), std::find_if(houseID.begin(), houseID.end(), notspace));
+    houseID.erase(std::find_if(houseID.rbegin(), houseID.rend(), notspace).base(), houseID.end());
+    std::transform(houseID.begin(), houseID.end(), houseID.begin(),
+                   [](unsigned char c){ return (char)std::tolower(c); });
+    return houseID;
+}
+
+/**
+ * Clamps a value to the range [0.0, 1.0].
+ * Used internally to validate multiplier slider values.
+ *
+ * @param value  The value to clamp
+ * @return the clamped value (0.0 if value < 0.0, 1.0 if value > 1.0, otherwise value)
+ */
+static float clamp01(float value) {
+    if (value < 0.0f) return 0.0f;
+    if (value > 1.0f) return 1.0f;
+    return value;
+}
 
 /** Clears items from buckets and reinitializes them; buckets contain items of the corresponding rarity */
 void ItemDatabase::clearBuckets() {
     _allDefIds = Bucket();
     _bucketsByRarity.clear();
     _bucketsByRarity[ItemDef::Rarity::Common]    = Bucket();
-    _bucketsByRarity[ItemDef::Rarity::Uncommon]  = Bucket();
     _bucketsByRarity[ItemDef::Rarity::Rare]      = Bucket();
-    _bucketsByRarity[ItemDef::Rarity::Epic]      = Bucket();
-    _bucketsByRarity[ItemDef::Rarity::Legendary] = Bucket();
     _bucketsByRarity[ItemDef::Rarity::Divine]    = Bucket();
 }
 
 /** Clears buckets and the item database collection */
 void ItemDatabase::clear() {
     _defs.clear();
+    _houseMultipliers.clear();
     clearBuckets();
 }
 
@@ -52,11 +80,8 @@ std::shared_ptr<ItemInstance> ItemDatabase::createInstance(const std::string& de
 void ItemDatabase::resetRarityWeights() {
     _rarityWeights.clear();
     _rarityWeights[ItemDef::Rarity::Common]    = 0.45;
-    _rarityWeights[ItemDef::Rarity::Uncommon]  = 0.40;
-    _rarityWeights[ItemDef::Rarity::Rare]      = 0.08;
-    _rarityWeights[ItemDef::Rarity::Epic]      = 0.04;
-    _rarityWeights[ItemDef::Rarity::Legendary] = 0.02;
-    _rarityWeights[ItemDef::Rarity::Divine]    = 0.01;
+    _rarityWeights[ItemDef::Rarity::Rare]      = 0.40;
+    _rarityWeights[ItemDef::Rarity::Divine]    = 0.15;
 }
 
 /** Load rarity weights from a JSON */
@@ -67,21 +92,18 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     if (!json->has("rarityWeights")) return;
     if (!json->get("rarityWeights")->isObject()) return;
 
-    auto rw = json->get("rarityWeights");
+    auto rarityWeightsJson = json->get("rarityWeights");
 
     auto loadOne = [&](const char* key, ItemDef::Rarity rarity) {
-        if (rw->has(key) && rw->get(key)->isNumber()) {
-            double w = rw->get(key)->asDouble();
-            if (w < 0.0) w = 0.0;
-            _rarityWeights[rarity] = w;
+        if (rarityWeightsJson->has(key) && rarityWeightsJson->get(key)->isNumber()) {
+            double weight = rarityWeightsJson->get(key)->asDouble();
+            if (weight < 0.0) weight = 0.0;
+            _rarityWeights[rarity] = weight;
         }
     };
 
     loadOne("Common",    ItemDef::Rarity::Common);
-    loadOne("Uncommon",  ItemDef::Rarity::Uncommon);
     loadOne("Rare",      ItemDef::Rarity::Rare);
-    loadOne("Epic",      ItemDef::Rarity::Epic);
-    loadOne("Legendary", ItemDef::Rarity::Legendary);
     loadOne("Divine",    ItemDef::Rarity::Divine);
 }
 
@@ -153,31 +175,118 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
     clearBuckets();
     loadRarityWeights(json);
 
-    auto arr = json->get("items");
-    for (int i = 0; i < arr->size(); i++) {
-        auto entry = arr->get(i);
-        auto def = ItemDef::alloc(entry);
-        if (!def) {
-            CULog("ItemDatabase: failed to parse item at index %d", i);
+    if (_rarityWeights.empty()) return false;
+
+    auto itemArray = json->get("items");
+    for (int itemIndex = 0; itemIndex < itemArray->size(); itemIndex++) {
+        auto itemEntry = itemArray->get(itemIndex);
+        auto itemDef = ItemDef::alloc(itemEntry);
+        if (!itemDef) {
+            CULog("ItemDatabase: failed to parse item at index %d", itemIndex);
             continue;
         }
 
-        const std::string& id = def->getId();
-        if (_defs.find(id) != _defs.end()) {
-            CULog("ItemDatabase: duplicate item id '%s' (index %d). Overwriting.", id.c_str(), i);
+        const std::string& defID = itemDef->getId();
+        if (_defs.find(defID) != _defs.end()) {
+            CULog("ItemDatabase: duplicate item id '%s' (index %d). Overwriting.", defID.c_str(), itemIndex);
         }
-        _defs[id] = def;
+        _defs[defID] = itemDef;
 
         // Rarity-driven spawn weights
-        double w = rarityBaseWeight(def->getRarity());
+        double rarityWeight = rarityBaseWeight(itemDef->getRarity());
 
         // Add to spawn buckets if spawnable
-        addToBucket(_allDefIds, id, w);
-        addToBucket(_bucketsByRarity[def->getRarity()], id, w);
+        addToBucket(_allDefIds, defID, rarityWeight);
+        addToBucket(_bucketsByRarity[itemDef->getRarity()], defID, rarityWeight);
     }
 
     // Note: _defs may be non-empty even if _allDefs is empty (e.g. all weights 0)
     return !_defs.empty();
+}
+
+/**
+ * Loads house multiplier data from a JSON object.
+ * Expected schema: { "houses": [ { "id": string, "attack": number?, "support": number?, "utility": number?, "affinityBonus": number? }, ... ] }
+ * Missing slider values default to 0.0, clamped to [0.0, 1.0]. Missing affinityBonus defaults to 1.5.
+ *
+ * @param json  The JSON object to parse
+ * @return true if at least one house was successfully parsed, false otherwise
+ */
+bool ItemDatabase::loadHouseMultipliersFromJson(const std::shared_ptr<JsonValue>& json) {
+    _houseMultipliers.clear();
+
+    // Validate root object and "houses" array exist
+    if (!json || !json->isObject()) return false;
+    auto houses = json->get("houses");
+    if (!houses || !houses->isArray()) return false;
+
+    // Process each house entry in the array
+    for (int houseIndex = 0; houseIndex < houses->size(); ++houseIndex) {
+        auto houseEntry = houses->get(houseIndex);
+        // Skip if entry is not an object
+        if (!houseEntry || !houseEntry->isObject()) {
+            continue;
+        }
+        // Skip if "id" field is missing or not a string
+        if (!houseEntry->has("id") || !houseEntry->get("id")->isString()) {
+            continue;
+        }
+
+        // Normalize the house ID (trim whitespace, lowercase) for case-insensitive lookup
+        const std::string houseID = normalizeHouseID(houseEntry->getString("id", ""));
+        if (houseID.empty()) {
+            continue;
+        }
+
+        HouseMultipliers multipliers;
+
+        // Helper lambda to safely read slider values: if field is missing or invalid, use fallback;
+        // otherwise, clamp the value to [0.0, 1.0] to enforce slider bounds
+        auto readSlider = [&](const char* key, float fallback) {
+            if (!houseEntry->has(key) || !houseEntry->get(key)->isNumber()) {
+                return fallback;
+            }
+            float value = houseEntry->getFloat(key);
+            return clamp01(value);
+        };
+
+        // Load attack, support, and utility sliders with default of 0.0 if missing
+        multipliers.attack = readSlider("attack", 0.0f);
+        multipliers.support = readSlider("support", 0.0f);
+        multipliers.utility = readSlider("utility", 0.0f);
+
+        // Load affinityBonus: if missing or invalid, default to 1.5; if present but <= 0, also default to 1.5
+        if (houseEntry->has("affinityBonus") && houseEntry->get("affinityBonus")->isNumber()) {
+            multipliers.affinityBonus = houseEntry->getFloat("affinityBonus");
+            if (multipliers.affinityBonus <= 0.0f) {
+                multipliers.affinityBonus = 1.5f;
+            }
+        } else {
+            multipliers.affinityBonus = 1.5f;
+        }
+
+        // Store multipliers in the map keyed by normalized house ID
+        _houseMultipliers[houseID] = multipliers;
+    }
+
+    // Return true if at least one house was successfully parsed
+    return !_houseMultipliers.empty();
+}
+
+/**
+ * Retrieves house multipliers by house ID.
+ * Performs case-insensitive lookup via house ID normalization.
+ *
+ * @param houseID  The house ID to look up
+ * @return pointer to the HouseMultipliers struct, or nullptr if not found
+ */
+const ItemDatabase::HouseMultipliers* ItemDatabase::getHouseMultipliers(const std::string& houseID) const {
+    const std::string normalizedHouseID = normalizeHouseID(houseID);
+    auto multipliersIterator = _houseMultipliers.find(normalizedHouseID);
+    if (multipliersIterator == _houseMultipliers.end()) {
+        return nullptr;
+    }
+    return &multipliersIterator->second;
 }
 
 /** Rarity-driven weighted roll across all spawnable items */

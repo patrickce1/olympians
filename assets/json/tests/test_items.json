@@ -1,0 +1,46 @@
+{
+    "rarityWeights": {
+        "Common": 1.0
+    },
+    "items": [
+        {
+            "id": "bad_rarity",
+            "type": "attack",
+            "rarity": "legendary",
+            "houseAffinity": "none",
+            "baseValue": 1.0
+        },
+        {
+            "id": "bad_type",
+            "type": "aoe",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 1.0
+        },
+        {
+            "id": "neg_base",
+            "type": "support",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": -5.0
+        },
+        {
+            "id": "missing_base",
+            "type": "support",
+            "rarity": "common",
+            "houseAffinity": "none"
+        }
+    ],
+    "houses": [
+        {
+            "id": "ClampHouse",
+            "attack": 2.0,
+            "support": -3.0,
+            "utility": 0.5,
+            "affinityBonus": -1.0
+        },
+        {
+            "id": "MissingHouse"
+        }
+    ]
+}

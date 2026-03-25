@@ -14,24 +14,24 @@ class ItemDef {
 public:
     enum class Type : uint8_t {
         Attack,
-        Support
+        Support,
+        Utility
     };
     enum class Rarity : uint8_t {
         Common,
-        Uncommon,
         Rare,
-        Epic,
-        Legendary,
         Divine
     };
     enum class House : uint8_t {
         Zeus,
         Poseidon,
         Hades,
-        Ares,
-        Aphrodite,
         Demeter,
-        Dionysus,
+        Ares,
+        Athena,
+        Aphrodite,
+        Hephestus,
+        Hermes,
         None
     };
     
@@ -54,45 +54,58 @@ private:
     /* Rarity of item */
     Rarity _rarity;
     
-    /* Effective value of Item */
-    float _effectiveValue;
-    
-    /* Primary House the item belongs to */
-    House _primaryHouse;
-    
-    /* Secondary House the item belongs to (optional) */
-    House _secondaryHouse;
+    /* Base value of item before house multipliers are applied */
+    float _baseValue = 1.0f;
+
+    /* House affinity tag used for rare/divine affinity bonus matching */
+    House _houseAffinity = House::None;
     
 public:
     ItemDef() = default;
     ~ItemDef() = default;
-    
+
+    /**
+     * Initializes a definition from JSON.
+     *
+     * Required keys: id, type, rarity.
+     * Optional keys: name, description, icon/iconKey, houseAffinity, baseValue.
+     */
     bool init(const std::shared_ptr<cugl::JsonValue>& json);
     
+    /** Allocates and initializes an ItemDef from JSON, returning nullptr on failure */
     static std::shared_ptr<ItemDef> alloc(const std::shared_ptr<cugl::JsonValue>& json) {
         auto result = std::make_shared<ItemDef>();
         return (result->init(json) ? result : nullptr);
     }
     
-    // Getters
+    /** Gets item ID */
     const std::string& getId() const { return _id; }
+    /** Gets item name */
     const std::string& getName() const { return _name; }
+    /** Gets item description */
     const std::string& getDescription() const { return _description; }
+    /** Gets item icon key (used to look up texture in asset manager) */
     const std::string& getIconKey() const { return _iconKey; }
-    const float getEffectiveValue() const { return _effectiveValue; }
-    
+    /** Gets the base value of the item before multipliers are applied */
+    const float getBaseValue() const { return _baseValue; }
+
+    /**
+     * Returns the intended house affinity for this item.
+     * Rare/divine items can receive affinityBonus when this matches player house.
+     */
+    House getHouseAffinity() const { return _houseAffinity; }
+    /** Gets item type */
     Type getType() const { return _type; }
+    /** Gets item rarity */
     Rarity getRarity() const { return _rarity; }
-    House getPrimaryHouse() const { return _primaryHouse; }
-    House getSecondaryHouse() const { return _secondaryHouse; }
     
     /** Extract Type enum from a string */
-    static Type typeFromString(std::string s, Type fallback = Type::Attack);
+    static Type typeFromString(std::string value, Type fallback = Type::Attack);
     /** Extract Rarity enum from a string */
-    static Rarity rarityFromString(std::string s, Rarity fallback = Rarity::Common);
+    static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
     /** Extract House enum from a string */
-    static House houseFromString(std::string s, House fallback = House::None);
-    
+    static House houseFromString(std::string value, House fallback = House::None);
+
 };
 
 #endif // __ITEM_DEF_H__

@@ -26,14 +26,10 @@ private:
     std::string _playerName;
     /** The house name for the house the player is from*/
     std::string _houseId;
-    /** The house that the player hails from*/
-    int _house;
     /** The max health of the player*/
     float _maxHealth;
     /** The current health of the house and player*/
     float _currentHealth;
-    /** The  ability class of the house*/
-    HouseLoader::AbilityClass _abilityClass;
     /** The spritesheet correlating to this house*/
     std::string _spritesheetPath;
     /** The list of the house special abilities*/
@@ -97,11 +93,6 @@ public:
     void setCurrentHealth(float health) { _currentHealth = health; }
     
     /**
-     * Returns the ability class of the house
-     */
-    HouseLoader::AbilityClass getAbilityClass() const { return _abilityClass; }
-    
-    /**
      * Returns the path of the spritesheet for the house
      */
     std::string getSpritesheetPath() const { return _spritesheetPath; }
@@ -148,35 +139,80 @@ public:
     
     /**
      * Uses  an item from the player's inventory by item id.
-     * @param item    The item to use
-     * @return true if the item was found and used, false otherwise
+      * @param itemId  The inventory instance id to consume
+     * @return resolved item magnitude, 0 if consumed but no matching target type, -1 on failure
      */
     template <typename T>
-    bool useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
+    float useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
         for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
             if (item->getId() == itemId) {
                 std::shared_ptr<ItemDef> def = db.getDef(item->getDefId());
                 if (!def) {
-                    CULogError("Player: could not find ItemDef for defId '%s'", item->getDefId().c_str());
-                    return false;
+                    return -1.0f;
+                }
+
+                float houseRoleMultiplier = 0.0f;
+                float affinityBonus = 1.0f;
+                const auto* houseMultipliers = db.getHouseMultipliers(_houseId);
+                if (houseMultipliers) {
+                    switch (def->getType()) {
+                        case ItemDef::Type::Attack:  houseRoleMultiplier = houseMultipliers->attack;  break;
+                        case ItemDef::Type::Support: houseRoleMultiplier = houseMultipliers->support; break;
+                        case ItemDef::Type::Utility: houseRoleMultiplier = houseMultipliers->utility; break;
+                    }
+                    // Affinity bonus only applies to rare/divine items when item affinity matches player house.
+                    const bool affinityEligible =
+                        (def->getRarity() == ItemDef::Rarity::Rare || def->getRarity() == ItemDef::Rarity::Divine);
+                    const bool affinityMatch =
+                        (def->getHouseAffinity() == ItemDef::houseFromString(_houseId, ItemDef::House::None));
+                    if (affinityEligible && affinityMatch) {
+                        affinityBonus = houseMultipliers->affinityBonus;
+                    }
+                }
+
+                float resolvedMagnitude = def->getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
+                if (resolvedMagnitude <= 0.0f) {
+                    resolvedMagnitude = 0.01f;
                 }
 
                 if constexpr (std::is_same<T, Player>::value) {
                     if (def->getType() == ItemDef::Type::Support) {
-                        target.updateHealth(def->getEffectiveValue());
+                        CULog(
+                            "ItemUseCalc: item='%s' type=support playerHouse='%s' effectiveVal = baseVal(%.3f) * classSlider(1+%.3f) * affinity(%.3f) | = %.3f",
+                            def->getId().c_str(),
+                            _houseId.c_str(),
+                            def->getBaseValue(),
+                            houseRoleMultiplier,
+                            affinityBonus,
+                            resolvedMagnitude
+                        );
+                        target.updateHealth(resolvedMagnitude);
+                        _inventory.erase(item);
+                        return resolvedMagnitude;
                     }
                 }
                 else if constexpr (std::is_same<T, Enemy>::value) {
                     if (def->getType() == ItemDef::Type::Attack) {
-                        target.updateHealth(-def->getEffectiveValue());
+                        CULog(
+                            "ItemUseCalc: item='%s' type=attack playerHouse='%s' effectiveVal = baseVal(%.3f) * classSlider(1+%.3f) * affinity(%.3f) | = %.3f",
+                            def->getId().c_str(),
+                            _houseId.c_str(),
+                            def->getBaseValue(),
+                            houseRoleMultiplier,
+                            affinityBonus,
+                            resolvedMagnitude
+                        );
+                        target.updateHealth(-resolvedMagnitude);
+                        _inventory.erase(item);
+                        return resolvedMagnitude;
                     }
                 }
 
                 _inventory.erase(item);
-                return true;
+                return 0.0f;
             }
         }
-        return false;
+        return -1.0f;
     }
     
     /**

@@ -1,0 +1,12 @@
+{
+    "rarityWeights": { "Common": 1.0 },
+    "items": [
+        {
+            "id": "bad_rarity",
+            "type": "attack",
+            "rarity": "legendary",
+            "houseAffinity": "none",
+            "baseValue": 1.0
+        }
+    ]
+}
