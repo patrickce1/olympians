@@ -237,8 +237,8 @@ private:
      * local player's house in GameState — should only be true when the player
      * locks in their selection.
      *
-     * @param currentIndex      The index of the card we are at.
-     * @param commitToGameState Whether to write the house selection to GameState.
+     * @param currentIndex                The index of the card we are at.
+     * @param commitToGameState     Whether to write the house selection to GameState.
      */
     void updateSelectedIcon(int currentIndex, bool commitToGameState = false);
     
