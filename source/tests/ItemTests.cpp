@@ -1,5 +1,5 @@
 // ItemTests.cpp
-// Unit tests for item JSON parsing and house-scaling loading.
+// Unit tests for item JSON parsing and house multipliers loading.
 
 #include "ItemTests.h"
 #include "../items/ItemDatabase.h"
@@ -71,37 +71,29 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     }
     expect(allValid, "items: all defs have positive baseValue");
 
-    // Ensure migration fields are present for all loaded items.
-    bool allHaveExpectedSchema = true;
-    for (const std::string& id : allIds) {
-        auto def = db.getDef(id);
-        if (!def) {
-            allHaveExpectedSchema = false;
-            break;
-        }
-        if (def->getEffect().empty()) {
-            allHaveExpectedSchema = false;
-            break;
-        }
-    }
-    expect(allHaveExpectedSchema, "items: loaded defs expose effect/base/affinity data");
+    auto lightningBoltDef = db.getDef("lightning_bolt");
+    auto appleDef = db.getDef("apple");
+    expect(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
+           "items: lightning_bolt affinity parses as Zeus");
+    expect(appleDef && appleDef->getHouseAffinity() == ItemDef::House::None,
+           "items: apple affinity parses as none");
 }
 
-void testHouseScalingLoad(const std::shared_ptr<cugl::JsonValue>& housesJson) {
+void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson) {
     ItemDatabase db;
-    bool ok = db.loadHouseScalingFromJson(housesJson);
-    expect(ok, "houses: loadHouseScalingFromJson succeeds");
+    bool ok = db.loadHouseMultipliersFromJson(housesJson);
+    expect(ok, "houses: loadHouseMultipliersFromJson succeeds");
 
-    const ItemDatabase::HouseScaling* zeus = db.getHouseScaling("Zeus");
-    const ItemDatabase::HouseScaling* poseidon = db.getHouseScaling("Poseidon");
-    const ItemDatabase::HouseScaling* athena = db.getHouseScaling("Athena");
+    const ItemDatabase::HouseMultipliers* zeus = db.getHouseMultipliers("Zeus");
+    const ItemDatabase::HouseMultipliers* poseidon = db.getHouseMultipliers("Poseidon");
+    const ItemDatabase::HouseMultipliers* athena = db.getHouseMultipliers("Athena");
 
-    expect(zeus != nullptr, "houses: Zeus scaling exists");
-    expect(poseidon != nullptr, "houses: Poseidon scaling exists");
-    expect(athena != nullptr, "houses: Athena scaling exists");
+    expect(zeus != nullptr, "houses: Zeus multipliers exist");
+    expect(poseidon != nullptr, "houses: Poseidon multipliers exist");
+    expect(athena != nullptr, "houses: Athena multipliers exist");
 
     bool bounded = true;
-    const ItemDatabase::HouseScaling* checks[] = { zeus, poseidon, athena };
+    const ItemDatabase::HouseMultipliers* checks[] = { zeus, poseidon, athena };
     for (const auto* entry : checks) {
         if (!entry) {
             bounded = false;
@@ -115,7 +107,7 @@ void testHouseScalingLoad(const std::shared_ptr<cugl::JsonValue>& housesJson) {
             break;
         }
     }
-    expect(bounded, "houses: scaling values are bounded and affinityBonus is positive");
+    expect(bounded, "houses: multipliers are bounded and affinityBonus is positive");
 }
 
 void testEnumParsers() {
@@ -162,85 +154,13 @@ void testWeightedRollAndInstanceCreation(const std::shared_ptr<cugl::JsonValue>&
         expect(badInstance == nullptr, "db: createInstance fails for unknown defId");
 }
 
-void testStrictMigrationAndValidationFailures() {
-        ItemDatabase db;
-
-        auto j1 = readJson("json/tests/items_legacy_keys.json");
-        expect(j1 != nullptr, "strict: parse legacy-keys fixture json");
-        if (j1) {
-                expect(!db.loadFromJson(j1), "strict: deprecated item keys are rejected");
-        }
-
-        auto j2 = readJson("json/tests/items_bad_rarity.json");
-        expect(j2 != nullptr, "strict: parse bad-rarity fixture json");
-        if (j2) {
-                expect(!db.loadFromJson(j2), "strict: unsupported rarity is rejected");
-        }
-
-        auto j3 = readJson("json/tests/items_bad_type.json");
-        expect(j3 != nullptr, "strict: parse bad-type fixture json");
-        if (j3) {
-                expect(!db.loadFromJson(j3), "strict: unsupported item type is rejected");
-        }
-
-        auto j4 = readJson("json/tests/items_legacy_rarity_weights.json");
-        expect(j4 != nullptr, "strict: parse legacy-rarity-weights fixture json");
-        if (j4) {
-                expect(!db.loadFromJson(j4), "strict: legacy rarity weight keys are rejected");
-        }
-}
-
-void testScalingFallbacks() {
-        ItemDatabase db;
-        auto json = readJson("json/tests/houses_scaling_fallbacks.json");
-        expect(json != nullptr, "fallback: parse clamp/fallback house fixture");
-        if (!json) return;
-
-        expect(db.loadHouseScalingFromJson(json), "fallback: house scaling loads with fallback defaults");
-
-        const auto* clamp = db.getHouseScaling("ClampHouse");
-        const auto* missing = db.getHouseScaling("MissingHouse");
-        expect(clamp != nullptr, "fallback: ClampHouse scaling exists");
-        expect(missing != nullptr, "fallback: MissingHouse scaling exists");
-        if (clamp) {
-                expect(nearlyEqual(clamp->attack, 1.0f), "fallback: attack clamped to 1.0");
-                expect(nearlyEqual(clamp->support, 0.0f), "fallback: support clamped to 0.0");
-                expect(nearlyEqual(clamp->utility, 0.5f), "fallback: utility unchanged when valid");
-                expect(nearlyEqual(clamp->affinityBonus, 1.5f), "fallback: non-positive affinityBonus defaults to 1.5");
-        }
-        if (missing) {
-                expect(nearlyEqual(missing->attack, 0.0f), "fallback: missing attack defaults to 0.0");
-                expect(nearlyEqual(missing->support, 0.0f), "fallback: missing support defaults to 0.0");
-                expect(nearlyEqual(missing->utility, 0.0f), "fallback: missing utility defaults to 0.0");
-                expect(nearlyEqual(missing->affinityBonus, 1.5f), "fallback: missing affinityBonus defaults to 1.5");
-        }
-}
-
-void testBaseValueDefaults() {
-        ItemDatabase db;
-        auto json = readJson("json/tests/items_basevalue_fallbacks.json");
-        expect(json != nullptr, "baseValue: parse fallback fixture");
-        if (!json) return;
-
-        expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
-        auto neg = db.getDef("neg_base");
-        auto miss = db.getDef("missing_base");
-        expect(neg != nullptr && miss != nullptr, "baseValue: fallback defs exist");
-        if (neg) {
-                expect(nearlyEqual(neg->getBaseValue(), 1.0f), "baseValue: negative baseValue defaults to 1.0");
-        }
-        if (miss) {
-                expect(nearlyEqual(miss->getBaseValue(), 1.0f), "baseValue: missing baseValue defaults to 1.0");
-        }
-}
-
 void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& itemsJson,
-                                                                     const std::shared_ptr<cugl::JsonValue>& housesJson,
-                                                                     const std::string& housesJsonPath,
-                                                                     const std::string& enemiesJsonPath) {
-        ItemDatabase db;
-        expect(db.loadFromJson(itemsJson), "compute: item db load succeeds");
-        expect(db.loadHouseScalingFromJson(housesJson), "compute: house scaling load succeeds");
+                                 const std::shared_ptr<cugl::JsonValue>& housesJson,
+                                 const std::string& housesJsonPath,
+                                 const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    expect(db.loadFromJson(itemsJson), "compute: item db load succeeds");
+    expect(db.loadHouseMultipliersFromJson(housesJson), "compute: house multipliers load succeeds");
 
         HouseLoader loader;
         bool housesOk = loader.loadFromFile(housesJsonPath);
@@ -312,6 +232,68 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
         expect(nearlyEqual(missing, -1.0f), "compute: missing item id returns -1.0");
 }
 
+void testValidationFailures() {
+    ItemDatabase db;
+
+    auto badRarityJson = readJson("json/tests/items_bad_rarity.json");
+    expect(badRarityJson != nullptr, "validation: parse bad-rarity fixture json");
+    if (badRarityJson) {
+        expect(!db.loadFromJson(badRarityJson), "validation: unsupported rarity is rejected");
+    }
+
+    auto badTypeJson = readJson("json/tests/items_bad_type.json");
+    expect(badTypeJson != nullptr, "validation: parse bad-type fixture json");
+    if (badTypeJson) {
+        expect(!db.loadFromJson(badTypeJson), "validation: unsupported item type is rejected");
+    }
+}
+
+void testScalingFallbacks() {
+    ItemDatabase db;
+    auto json = readJson("json/tests/houses_scaling_fallbacks.json");
+    expect(json != nullptr, "fallback: parse clamp/fallback house fixture");
+    if (!json) return;
+
+    expect(db.loadHouseMultipliersFromJson(json), "fallback: house multipliers load with fallback defaults");
+
+    const auto* clampHouseMultipliers = db.getHouseMultipliers("ClampHouse");
+    const auto* missingHouseMultipliers = db.getHouseMultipliers("MissingHouse");
+    expect(clampHouseMultipliers != nullptr, "fallback: ClampHouse scaling exists");
+    expect(missingHouseMultipliers != nullptr, "fallback: MissingHouse scaling exists");
+    if (clampHouseMultipliers) {
+        expect(nearlyEqual(clampHouseMultipliers->attack, 1.0f), "fallback: attack clamped to 1.0");
+        expect(nearlyEqual(clampHouseMultipliers->support, 0.0f), "fallback: support clamped to 0.0");
+        expect(nearlyEqual(clampHouseMultipliers->utility, 0.5f), "fallback: utility unchanged when valid");
+        expect(nearlyEqual(clampHouseMultipliers->affinityBonus, 1.5f), "fallback: non-positive affinityBonus defaults to 1.5");
+    }
+    if (missingHouseMultipliers) {
+        expect(nearlyEqual(missingHouseMultipliers->attack, 0.0f), "fallback: missing attack defaults to 0.0");
+        expect(nearlyEqual(missingHouseMultipliers->support, 0.0f), "fallback: missing support defaults to 0.0");
+        expect(nearlyEqual(missingHouseMultipliers->utility, 0.0f), "fallback: missing utility defaults to 0.0");
+        expect(nearlyEqual(missingHouseMultipliers->affinityBonus, 1.5f), "fallback: missing affinityBonus defaults to 1.5");
+    }
+}
+
+void testBaseValueDefaults() {
+    ItemDatabase db;
+    auto json = readJson("json/tests/items_basevalue_fallbacks.json");
+    expect(json != nullptr, "baseValue: parse fallback fixture");
+    if (!json) return;
+
+    expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
+    
+    expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
+    auto negativeBaseValueDef = db.getDef("neg_base");
+    auto missingBaseValueDef = db.getDef("missing_base");
+    expect(negativeBaseValueDef != nullptr && missingBaseValueDef != nullptr, "baseValue: fallback defs exist");
+    if (negativeBaseValueDef) {
+        expect(nearlyEqual(negativeBaseValueDef->getBaseValue(), 1.0f), "baseValue: negative baseValue defaults to 1.0");
+    }
+    if (missingBaseValueDef) {
+        expect(nearlyEqual(missingBaseValueDef->getBaseValue(), 1.0f), "baseValue: missing baseValue defaults to 1.0");
+    }
+}
+
 } // namespace
 
 void ItemTests::runAll(const std::string& itemsJsonPath,
@@ -334,10 +316,10 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     }
 
     testItemsLoad(itemsJson);
-    testHouseScalingLoad(housesJson);
+    testHouseMultipliersLoad(housesJson);
     testEnumParsers();
     testWeightedRollAndInstanceCreation(itemsJson);
-    testStrictMigrationAndValidationFailures();
+    testValidationFailures();
     testScalingFallbacks();
     testBaseValueDefaults();
     testEffectiveValueComputation(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);

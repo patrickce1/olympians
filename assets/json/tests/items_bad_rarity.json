@@ -6,8 +6,7 @@
             "type": "attack",
             "rarity": "legendary",
             "houseAffinity": "none",
-            "baseValue": 1.0,
-            "effect": "none"
+            "baseValue": 1.0
         }
     ]
 }

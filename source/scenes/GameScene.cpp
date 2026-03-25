@@ -314,14 +314,14 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
-            const float resolved = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
-            if (resolved <= 0.0f) {
+            const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+            if (resolvedMagnitude <= 0.0f) {
                 return false;
             }
 
             //NETWORKING
-            if (!_network->isHost() && resolved > 0.0f) {
-                _network->broadcastDamage(resolved);
+            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
+                _network->broadcastDamage(resolvedMagnitude);
             }
             CULog("Player attacked enemy '%s' with item %llu",
                   enemy->getId().c_str(), (unsigned long long)itemId);
@@ -349,14 +349,14 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            const float resolved = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-            if (resolved <= 0.0f) {
+            const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            if (resolvedMagnitude <= 0.0f) {
                 return false;
             }
 
             //NETWORK
-            if (!_network->isHost() && resolved > 0.0f) {
-                _network->broadcastHeal(resolved, target->getPlayerNumber());
+            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
+                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
             return true;
         }
@@ -382,14 +382,14 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
-            const float resolved = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-            if (resolved <= 0.0f) {
+            const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
+            if (resolvedMagnitude <= 0.0f) {
                 return false;
             }
 
             //NETWORK
-            if (!_network->isHost() && resolved > 0.0f) {
-                _network->broadcastHeal(resolved, target->getPlayerNumber());
+            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
+                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
             return true;
         }

@@ -10,19 +10,11 @@
 class HouseLoader {
     
 public:
-    
-    /** This is an enum for ability classes*/
-    enum class AbilityClass {
-        HEALER,
-        DAMAGE_DEALER,
-        ALL_ROUNDER
-    };
-    
+
     /** This is a struct with all the properties of our houses defined in the JSON*/
     struct HouseDef {
         std::string id;
         float maxHealth;
-        AbilityClass abilityClass;
         std::string spritesheetPath;
         std::vector<std::string> specialAbilities;
         float attack = 0.0f;
@@ -39,17 +31,10 @@ private:
     std::vector<HouseDef> _housesVector;
     
 public:
-    
-    /**Returns the respective ability class given a string**/
-    AbilityClass parseAbilityClass(const std::string& s) {
-        if (s == "Healer")        return AbilityClass::HEALER;
-        if (s == "Damage Dealer") return AbilityClass::DAMAGE_DEALER;
-        return AbilityClass::ALL_ROUNDER;
-    }
 
     /**
      * Loads all houses from the given JSON file path.
-     * Call this once during sta.
+        * Call this once during startup.
      * @return true if loading succeeded
      */
     bool loadFromFile(const std::string& path) {
@@ -64,50 +49,49 @@ public:
         auto json = reader->readJson();
         if (!json) return false;
         
-        // Gets the house object from JSON
-        auto charArray = json->get("houses");
-        if (!charArray) return false;
+        // Gets the houses array from JSON
+        auto houseArray = json->get("houses");
+        if (!houseArray) return false;
         
         // Creates mapping of house objects to HouseDef
-        for (int i = 0; i < charArray->size(); i++) {
-            auto entry = charArray->get(i);
-            HouseDef def;
-            def.id                = entry->getString("id", "");
-            def.maxHealth         = entry->getFloat("maxHealth");
-            def.abilityClass      = parseAbilityClass(entry->getString("abilityClass"));
-            def.spritesheetPath   = entry->getString("spritesheetPath");
+        for (int houseIndex = 0; houseIndex < houseArray->size(); houseIndex++) {
+            auto houseEntry = houseArray->get(houseIndex);
+            HouseDef houseDef;
+            houseDef.id                = houseEntry->getString("id", "");
+            houseDef.maxHealth         = houseEntry->getFloat("maxHealth");
+            houseDef.spritesheetPath   = houseEntry->getString("spritesheetPath");
 
             auto readSlider = [&](const char* key, float fallback) {
-                if (!entry->has(key) || !entry->get(key)->isNumber()) {
+                if (!houseEntry->has(key) || !houseEntry->get(key)->isNumber()) {
                     return fallback;
                 }
-                float v = entry->getFloat(key);
-                return std::max(0.0f, std::min(1.0f, v));
+                float sliderValue = houseEntry->getFloat(key);
+                return std::max(0.0f, std::min(1.0f, sliderValue));
             };
 
-            def.attack = readSlider("attack", 0.0f);
-            def.support = readSlider("support", 0.0f);
-            def.utility = readSlider("utility", 0.0f);
+            houseDef.attack = readSlider("attack", 0.0f);
+            houseDef.support = readSlider("support", 0.0f);
+            houseDef.utility = readSlider("utility", 0.0f);
 
-            if (entry->has("affinityBonus") && entry->get("affinityBonus")->isNumber()) {
-                def.affinityBonus = entry->getFloat("affinityBonus");
-                if (def.affinityBonus <= 0.0f) {
-                    def.affinityBonus = 1.5f;
+            if (houseEntry->has("affinityBonus") && houseEntry->get("affinityBonus")->isNumber()) {
+                houseDef.affinityBonus = houseEntry->getFloat("affinityBonus");
+                if (houseDef.affinityBonus <= 0.0f) {
+                    houseDef.affinityBonus = 1.5f;
                 }
             } else {
-                def.affinityBonus = 1.5f;
+                houseDef.affinityBonus = 1.5f;
             }
             
             //Parsing the special abilities array
-            auto specialAbilities = entry->get("specialAbilities");
+            auto specialAbilities = houseEntry->get("specialAbilities");
             if (specialAbilities){
                 for (int j=0; j<specialAbilities->size(); j++) {
-                    def.specialAbilities.push_back(specialAbilities->get(j)->asString());
+                    houseDef.specialAbilities.push_back(specialAbilities->get(j)->asString());
                 }
             }
             
-            _houses[def.id] = def;
-            _housesVector.push_back(def);
+            _houses[houseDef.id] = houseDef;
+            _housesVector.push_back(houseDef);
         }
         return true;
     }

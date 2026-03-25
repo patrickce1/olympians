@@ -45,8 +45,8 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
         return false;
     }
 
-    if (!_itemDb.loadHouseScalingFromJson(housesJson)) {
-        CULog("ItemController: failed to load house scaling");
+    if (!_itemDb.loadHouseMultipliersFromJson(housesJson)) {
+        CULog("ItemController: failed to load house multipliers");
         return false;
     }
 

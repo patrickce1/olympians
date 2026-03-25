@@ -3,7 +3,6 @@
         {
             "id": "Zeus",
             "maxHealth": 5.0,
-            "abilityClass": "Damage Dealer",
             "specialAbilities": ["bolt"],
             "spritesheetPath": "textures/zeus.png",
             "attack": 0.9,
@@ -14,7 +13,6 @@
         {
             "id": "Poseidon",
             "maxHealth": 5.0,
-            "abilityClass": "Damage Dealer",
             "specialAbilities": ["whirlpool"],
             "spritesheetPath": "textures/poseidon.png",
             "attack": 0.8,
@@ -25,7 +23,6 @@
         {
             "id": "Hades",
             "maxHealth": 5.0,
-            "abilityClass": "Damage Dealer",
             "specialAbilities": ["resurrect"],
             "spritesheetPath": "textures/hades.png",
             "attack": 0.7,
@@ -36,7 +33,6 @@
         {
             "id": "Demeter",
             "maxHealth": 5.0,
-            "abilityClass": "Healer",
             "specialAbilities": ["harvest"],
             "spritesheetPath": "textures/demeter.png",
             "attack": 0.3,
@@ -47,7 +43,6 @@
         {
             "id": "Ares",
             "maxHealth": 5.0,
-            "abilityClass": "Damage Dealer",
             "specialAbilities": ["armor"],
             "spritesheetPath": "textures/ares.png",
             "attack": 1.0,
@@ -58,7 +53,6 @@
         {
             "id": "Athena",
             "maxHealth": 5.0,
-            "abilityClass": "Damage Dealer",
             "specialAbilities": ["aegis"],
             "spritesheetPath": "textures/athena.png",
             "attack": 0.6,

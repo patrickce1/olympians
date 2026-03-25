@@ -19,7 +19,6 @@ Player::Player(const std::string& houseId, int playerNumber,
     _houseId      = def.id;
     _maxHealth        = def.maxHealth;
     _currentHealth    = def.maxHealth;
-    _abilityClass     = def.abilityClass;
     _spritesheetPath  = def.spritesheetPath;
     _specialAbilities = def.specialAbilities;
 

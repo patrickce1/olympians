@@ -3,17 +3,33 @@
 
 using namespace cugl;
 
-static std::string normalizeHouseId(std::string s) {
+/**
+ * Normalizes a house ID by trimming whitespace and converting to lowercase.
+ * Enables case-insensitive house lookups regardless of JSON formatting.
+ *
+ * @param houseID  The house ID string to normalize
+ * @return the normalized ID (trimmed and lowercased)
+ */
+static std::string normalizeHouseID(std::string houseID) {
     auto notspace = [](unsigned char c){ return !std::isspace(c); };
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), notspace));
-    s.erase(std::find_if(s.rbegin(), s.rend(), notspace).base(), s.end());
-    return s;
+    houseID.erase(houseID.begin(), std::find_if(houseID.begin(), houseID.end(), notspace));
+    houseID.erase(std::find_if(houseID.rbegin(), houseID.rend(), notspace).base(), houseID.end());
+    std::transform(houseID.begin(), houseID.end(), houseID.begin(),
+                   [](unsigned char c){ return (char)std::tolower(c); });
+    return houseID;
 }
 
-static float clamp01(float v) {
-    if (v < 0.0f) return 0.0f;
-    if (v > 1.0f) return 1.0f;
-    return v;
+/**
+ * Clamps a value to the range [0.0, 1.0].
+ * Used internally to validate multiplier slider values.
+ *
+ * @param value  The value to clamp
+ * @return the clamped value (0.0 if value < 0.0, 1.0 if value > 1.0, otherwise value)
+ */
+static float clamp01(float value) {
+    if (value < 0.0f) return 0.0f;
+    if (value > 1.0f) return 1.0f;
+    return value;
 }
 
 /** Clears items from buckets and reinitializes them; buckets contain items of the corresponding rarity */
@@ -28,7 +44,7 @@ void ItemDatabase::clearBuckets() {
 /** Clears buckets and the item database collection */
 void ItemDatabase::clear() {
     _defs.clear();
-    _houseScaling.clear();
+    _houseMultipliers.clear();
     clearBuckets();
 }
 
@@ -76,18 +92,13 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     if (!json->has("rarityWeights")) return;
     if (!json->get("rarityWeights")->isObject()) return;
 
-    auto rw = json->get("rarityWeights");
-
-    if (rw->has("Uncommon") || rw->has("Epic") || rw->has("Legendary")) {
-        _rarityWeights.clear();
-        return;
-    }
+    auto rarityWeightsJson = json->get("rarityWeights");
 
     auto loadOne = [&](const char* key, ItemDef::Rarity rarity) {
-        if (rw->has(key) && rw->get(key)->isNumber()) {
-            double w = rw->get(key)->asDouble();
-            if (w < 0.0) w = 0.0;
-            _rarityWeights[rarity] = w;
+        if (rarityWeightsJson->has(key) && rarityWeightsJson->get(key)->isNumber()) {
+            double weight = rarityWeightsJson->get(key)->asDouble();
+            if (weight < 0.0) weight = 0.0;
+            _rarityWeights[rarity] = weight;
         }
     };
 
@@ -139,11 +150,11 @@ std::string ItemDatabase::rollFromBucket(const Bucket& bucket) {
     double randVal = _rng.getRightOpenDouble(0.0, bucket.total);
 
     // Binary search the prefix sum array for the first entry greater than r (std::upper_bound).
-    auto bucketItem = std::upper_bound(bucket.prefix.begin(), bucket.prefix.end(), randVal);
+    auto bucketItemIt = std::upper_bound(bucket.prefix.begin(), bucket.prefix.end(), randVal);
     
     // The index of that entry corresponds to the selected item, since each
     // prefix[i] marks the upper boundary of item i's weight range.
-    std::size_t prefixIdx = (std::size_t)std::distance(bucket.prefix.begin(), bucketItem);
+    std::size_t prefixIdx = (std::size_t)std::distance(bucket.prefix.begin(), bucketItemIt);
     
     // Clamp to valid range as a safety measure against floating point edge cases
     if (prefixIdx >= bucket.defIds.size()) prefixIdx = bucket.defIds.size() - 1;
@@ -166,89 +177,105 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
 
     if (_rarityWeights.empty()) return false;
 
-    auto arr = json->get("items");
-    for (int i = 0; i < arr->size(); i++) {
-        auto entry = arr->get(i);
-        auto def = ItemDef::alloc(entry);
-        if (!def) {
-            CULog("ItemDatabase: failed to parse item at index %d", i);
+    auto itemArray = json->get("items");
+    for (int itemIndex = 0; itemIndex < itemArray->size(); itemIndex++) {
+        auto itemEntry = itemArray->get(itemIndex);
+        auto itemDef = ItemDef::alloc(itemEntry);
+        if (!itemDef) {
+            CULog("ItemDatabase: failed to parse item at index %d", itemIndex);
             continue;
         }
 
-        const std::string& id = def->getId();
-        if (_defs.find(id) != _defs.end()) {
-            CULog("ItemDatabase: duplicate item id '%s' (index %d). Overwriting.", id.c_str(), i);
+        const std::string& defID = itemDef->getId();
+        if (_defs.find(defID) != _defs.end()) {
+            CULog("ItemDatabase: duplicate item id '%s' (index %d). Overwriting.", defID.c_str(), itemIndex);
         }
-        _defs[id] = def;
+        _defs[defID] = itemDef;
 
         // Rarity-driven spawn weights
-        double w = rarityBaseWeight(def->getRarity());
+        double rarityWeight = rarityBaseWeight(itemDef->getRarity());
 
         // Add to spawn buckets if spawnable
-        addToBucket(_allDefIds, id, w);
-        addToBucket(_bucketsByRarity[def->getRarity()], id, w);
+        addToBucket(_allDefIds, defID, rarityWeight);
+        addToBucket(_bucketsByRarity[itemDef->getRarity()], defID, rarityWeight);
     }
 
     // Note: _defs may be non-empty even if _allDefs is empty (e.g. all weights 0)
     return !_defs.empty();
 }
 
-bool ItemDatabase::loadHouseScalingFromJson(const std::shared_ptr<JsonValue>& json) {
-    _houseScaling.clear();
+/**
+ * Loads house multiplier data from a JSON object.
+ * Expected schema: { "houses": [ { "id": string, "attack": number?, "support": number?, "utility": number?, "affinityBonus": number? }, ... ] }
+ * Missing slider values default to 0.0, clamped to [0.0, 1.0]. Missing affinityBonus defaults to 1.5.
+ *
+ * @param json  The JSON object to parse
+ * @return true if at least one house was successfully parsed, false otherwise
+ */
+bool ItemDatabase::loadHouseMultipliersFromJson(const std::shared_ptr<JsonValue>& json) {
+    _houseMultipliers.clear();
 
     if (!json || !json->isObject()) return false;
     auto houses = json->get("houses");
     if (!houses || !houses->isArray()) return false;
 
-    for (int i = 0; i < houses->size(); ++i) {
-        auto entry = houses->get(i);
-        if (!entry || !entry->isObject()) {
+    for (int houseIndex = 0; houseIndex < houses->size(); ++houseIndex) {
+        auto houseEntry = houses->get(houseIndex);
+        if (!houseEntry || !houseEntry->isObject()) {
             continue;
         }
-        if (!entry->has("id") || !entry->get("id")->isString()) {
-            continue;
-        }
-
-        const std::string id = normalizeHouseId(entry->getString("id", ""));
-        if (id.empty()) {
+        if (!houseEntry->has("id") || !houseEntry->get("id")->isString()) {
             continue;
         }
 
-        HouseScaling scaling;
+        const std::string houseID = normalizeHouseID(houseEntry->getString("id", ""));
+        if (houseID.empty()) {
+            continue;
+        }
+
+        HouseMultipliers multipliers;
 
         auto readSlider = [&](const char* key, float fallback) {
-            if (!entry->has(key) || !entry->get(key)->isNumber()) {
+            if (!houseEntry->has(key) || !houseEntry->get(key)->isNumber()) {
                 return fallback;
             }
-            float value = entry->getFloat(key);
+            float value = houseEntry->getFloat(key);
             return clamp01(value);
         };
 
-        scaling.attack = readSlider("attack", 0.0f);
-        scaling.support = readSlider("support", 0.0f);
-        scaling.utility = readSlider("utility", 0.0f);
+        multipliers.attack = readSlider("attack", 0.0f);
+        multipliers.support = readSlider("support", 0.0f);
+        multipliers.utility = readSlider("utility", 0.0f);
 
-        if (entry->has("affinityBonus") && entry->get("affinityBonus")->isNumber()) {
-            scaling.affinityBonus = entry->getFloat("affinityBonus");
-            if (scaling.affinityBonus <= 0.0f) {
-                scaling.affinityBonus = 1.5f;
+        if (houseEntry->has("affinityBonus") && houseEntry->get("affinityBonus")->isNumber()) {
+            multipliers.affinityBonus = houseEntry->getFloat("affinityBonus");
+            if (multipliers.affinityBonus <= 0.0f) {
+                multipliers.affinityBonus = 1.5f;
             }
         } else {
-            scaling.affinityBonus = 1.5f;
+            multipliers.affinityBonus = 1.5f;
         }
 
-        _houseScaling[id] = scaling;
+        _houseMultipliers[houseID] = multipliers;
     }
 
-    return !_houseScaling.empty();
+    return !_houseMultipliers.empty();
 }
 
-const ItemDatabase::HouseScaling* ItemDatabase::getHouseScaling(const std::string& houseId) const {
-    auto it = _houseScaling.find(houseId);
-    if (it == _houseScaling.end()) {
+/**
+ * Retrieves house multipliers by house ID.
+ * Performs case-insensitive lookup via house ID normalization.
+ *
+ * @param houseID  The house ID to look up
+ * @return pointer to the HouseMultipliers struct, or nullptr if not found
+ */
+const ItemDatabase::HouseMultipliers* ItemDatabase::getHouseMultipliers(const std::string& houseID) const {
+    const std::string normalizedHouseID = normalizeHouseID(houseID);
+    auto multipliersIt = _houseMultipliers.find(normalizedHouseID);
+    if (multipliersIt == _houseMultipliers.end()) {
         return nullptr;
     }
-    return &it->second;
+    return &multipliersIt->second;
 }
 
 /** Rarity-driven weighted roll across all spawnable items */

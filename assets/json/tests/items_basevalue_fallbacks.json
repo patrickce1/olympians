@@ -6,15 +6,13 @@
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": -5.0,
-            "effect": "none"
+            "baseValue": -5.0
         },
         {
             "id": "missing_base",
             "type": "support",
             "rarity": "common",
-            "houseAffinity": "none",
-            "effect": "none"
+            "houseAffinity": "none"
         }
     ]
 }

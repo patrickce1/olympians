@@ -51,19 +51,22 @@ private:
     /* Rarity of item */
     Rarity _rarity;
     
-    /* Base value of item before house scaling */
+    /* Base value of item before house multipliers are applied */
     float _baseValue = 1.0f;
 
-    /* House affinity tag */
+    /* House affinity tag used for rare/divine affinity bonus matching */
     House _houseAffinity = House::None;
-
-    /* Reserved future effect string; currently expected to be "none" */
-    std::string _effect = "none";
     
 public:
     ItemDef() = default;
     ~ItemDef() = default;
-    
+
+    /**
+     * Initializes a definition from JSON.
+     *
+     * Required keys: id, type, rarity.
+     * Optional keys: name, description, icon/iconKey, houseAffinity, baseValue.
+     */
     bool init(const std::shared_ptr<cugl::JsonValue>& json);
     
     static std::shared_ptr<ItemDef> alloc(const std::shared_ptr<cugl::JsonValue>& json) {
@@ -77,8 +80,12 @@ public:
     const std::string& getDescription() const { return _description; }
     const std::string& getIconKey() const { return _iconKey; }
     const float getBaseValue() const { return _baseValue; }
+
+    /**
+     * Returns the intended house affinity for this item.
+     * Rare/divine items can receive affinityBonus when this matches player house.
+     */
     House getHouseAffinity() const { return _houseAffinity; }
-    const std::string& getEffect() const { return _effect; }
 
     // Backwards-compatible shim for callers that still use old naming.
     const float getEffectiveValue() const { return _baseValue; }
@@ -87,11 +94,11 @@ public:
     Rarity getRarity() const { return _rarity; }
     
     /** Extract Type enum from a string */
-    static Type typeFromString(std::string s, Type fallback = Type::Attack);
+    static Type typeFromString(std::string value, Type fallback = Type::Attack);
     /** Extract Rarity enum from a string */
-    static Rarity rarityFromString(std::string s, Rarity fallback = Rarity::Common);
+    static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
     /** Extract House enum from a string */
-    static House houseFromString(std::string s, House fallback = House::None);
+    static House houseFromString(std::string value, House fallback = House::None);
 
 };
 

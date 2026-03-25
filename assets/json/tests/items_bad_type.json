@@ -6,8 +6,7 @@
             "type": "aoe",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 1.0,
-            "effect": "none"
+            "baseValue": 1.0
         }
     ]
 }

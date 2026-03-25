@@ -13,8 +13,7 @@
             "type": "attack",
             "rarity": "divine",
             "houseAffinity": "Zeus",
-            "baseValue": 1.0,
-            "effect": "none"
+            "baseValue": 1.0
         },
         {
             "id": "apple",
@@ -24,8 +23,7 @@
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 2.0,
-            "effect": "none"
+            "baseValue": 2.0
         },
         {
             "id": "noams_ballista",
@@ -35,8 +33,7 @@
             "type": "attack",
             "rarity": "rare",
             "houseAffinity": "Ares",
-            "baseValue": 1.5,
-            "effect": "none"
+            "baseValue": 1.5
         }
     ],
     "itemInterval": 10.0,

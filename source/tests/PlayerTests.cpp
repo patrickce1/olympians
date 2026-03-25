@@ -66,7 +66,7 @@ void printHand(const Player& p) {
     }
 }
 
-/** Loads the ItemDatabase + house scaling from JSON and seeds time. */
+/** Loads the ItemDatabase + house multipliers from JSON and seeds time. */
 ItemDatabase loadDatabase(const std::string& itemsJsonPath,
                          const std::string& housesJsonPath) {
     ItemDatabase db;
@@ -94,8 +94,8 @@ ItemDatabase loadDatabase(const std::string& itemsJsonPath,
         auto housesJson = houseReader->readJson();
         if (!housesJson) {
             CULogError("PlayerTests: failed to parse houses JSON at '%s'", housesJsonPath.c_str());
-        } else if (!db.loadHouseScalingFromJson(housesJson)) {
-            CULogError("PlayerTests: ItemDatabase::loadHouseScalingFromJson failed for '%s'", housesJsonPath.c_str());
+        } else if (!db.loadHouseMultipliersFromJson(housesJson)) {
+            CULogError("PlayerTests: ItemDatabase::loadHouseMultipliersFromJson failed for '%s'", housesJsonPath.c_str());
         }
     }
 
@@ -103,6 +103,7 @@ ItemDatabase loadDatabase(const std::string& itemsJsonPath,
     return db;
 }
 
+/** Returns true if two floats are nearly equal within the given epsilon. */
 bool nearlyEqual(float a, float b, float eps = 1e-4f) {
     return std::fabs(a - b) <= eps;
 }

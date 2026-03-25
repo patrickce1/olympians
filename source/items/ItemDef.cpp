@@ -4,63 +4,96 @@
 
 using namespace cugl;
 
-ItemDef::Type ItemDef::typeFromString(std::string s, Type fallback) {
+/**
+ * Parses an item type from a string.
+ * Accepts "attack", "support", or "utility" (case-insensitive, trimmed).
+ *
+ * @param value     The string to parse
+ * @param fallback  The type to return if parsing fails
+ * @return the parsed type, or fallback if unrecognized
+ */
+ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
     auto notspace = [](unsigned char c){ return !std::isspace(c); };
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), notspace));
-    s.erase(std::find_if(s.rbegin(), s.rend(), notspace).base(), s.end());
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+    value.erase(value.begin(), std::find_if(value.begin(), value.end(), notspace));
+    value.erase(std::find_if(value.rbegin(), value.rend(), notspace).base(), value.end());
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c){ return (char)std::tolower(c); });
 
-    if (s == "attack")    return Type::Attack;
-    if (s == "support")   return Type::Support;
-    if (s == "utility")   return Type::Utility;
+    if (value == "attack")    return Type::Attack;
+    if (value == "support")   return Type::Support;
+    if (value == "utility")   return Type::Utility;
     return fallback;
 }
 
-ItemDef::Rarity ItemDef::rarityFromString(std::string s, Rarity fallback) {
+/**
+ * Parses an item rarity from a string.
+ * Accepts "common", "rare", or "divine" (case-insensitive, trimmed).
+ *
+ * @param value     The string to parse
+ * @param fallback  The rarity to return if parsing fails
+ * @return the parsed rarity, or fallback if unrecognized
+ */
+ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
     auto notspace = [](unsigned char c){ return !std::isspace(c); };
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), notspace));
-    s.erase(std::find_if(s.rbegin(), s.rend(), notspace).base(), s.end());
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+    value.erase(value.begin(), std::find_if(value.begin(), value.end(), notspace));
+    value.erase(std::find_if(value.rbegin(), value.rend(), notspace).base(), value.end());
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c){ return (char)std::tolower(c); });
 
-    if (s == "common")    return Rarity::Common;
-    if (s == "rare")      return Rarity::Rare;
-    if (s == "divine")    return Rarity::Divine;
+    if (value == "common")    return Rarity::Common;
+    if (value == "rare")      return Rarity::Rare;
+    if (value == "divine")    return Rarity::Divine;
     return fallback;
 }
 
-ItemDef::House ItemDef::houseFromString(std::string s, House fallback) {
+/**
+ * Parses a house identifier from a string.
+ * Accepts "zeus", "poseidon", "hades", "demeter", "ares", "athena", or "none" (case-insensitive, trimmed).
+ *
+ * @param value     The string to parse
+ * @param fallback  The house to return if parsing fails
+ * @return the parsed house, or fallback if unrecognized
+ */
+ItemDef::House ItemDef::houseFromString(std::string value, House fallback) {
     auto notspace = [](unsigned char c){ return !std::isspace(c); };
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), notspace));
-    s.erase(std::find_if(s.rbegin(), s.rend(), notspace).base(), s.end());
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+    value.erase(value.begin(), std::find_if(value.begin(), value.end(), notspace));
+    value.erase(std::find_if(value.rbegin(), value.rend(), notspace).base(), value.end());
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c){ return (char)std::tolower(c); });
 
-    if (s == "zeus")      return House::Zeus;
-    if (s == "poseidon")  return House::Poseidon;
-    if (s == "hades")     return House::Hades;
-    if (s == "demeter")   return House::Demeter;
-    if (s == "ares")      return House::Ares;
-    if (s == "athena")    return House::Athena;
-    if (s == "none")      return House::None;
+    if (value == "zeus")      return House::Zeus;
+    if (value == "poseidon")  return House::Poseidon;
+    if (value == "hades")     return House::Hades;
+    if (value == "demeter")   return House::Demeter;
+    if (value == "ares")      return House::Ares;
+    if (value == "athena")    return House::Athena;
+    if (value == "none")      return House::None;
     return fallback;
 }
 
-static std::string normalizeToken(std::string s) {
+/**
+ * Normalizes a token by trimming whitespace and converting to lowercase.
+ * Used internally for case-insensitive enum parsing from JSON strings.
+ *
+ * @param token  The string to normalize
+ * @return the normalized token (trimmed and lowercased)
+ */
+static std::string normalizeToken(std::string token) {
     auto notspace = [](unsigned char c){ return !std::isspace(c); };
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), notspace));
-    s.erase(std::find_if(s.rbegin(), s.rend(), notspace).base(), s.end());
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return (char)std::tolower(c); });
-    return s;
+    token.erase(token.begin(), std::find_if(token.begin(), token.end(), notspace));
+    token.erase(std::find_if(token.rbegin(), token.rend(), notspace).base(), token.end());
+    std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+    return token;
 }
 
+/**
+ * Initializes an ItemDef from a JSON object.
+ * Parses item fields: id (required), name, description, icon/iconKey, type (required),
+ * rarity (required), houseAffinity, and baseValue (with fallbacks for invalid values).
+ *
+ * @param json  The JSON object to parse
+ * @return true if initialization succeeded (id and required enums were valid), false otherwise
+ */
 bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
     if (!json || !json->isObject()) return false;
     if (!json->has("id") || !json->get("id")->isString()) return false;
-
-    // Hard-cut schema migration: reject legacy keys outright.
-    if (json->has("effectiveValue") || json->has("primaryHouse") || json->has("secondaryHouse")) {
-        CULogError("ItemDef: deprecated keys detected (effectiveValue/primaryHouse/secondaryHouse). Failing parse.");
-        return false;
-    }
 
     _id = json->get("id")->asString();
     if (_id.empty()) return false;
@@ -96,15 +129,6 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
         _houseAffinity = houseFromString(json->get("houseAffinity")->asString(), House::None);
     } else {
         _houseAffinity = House::None;
-    }
-
-    if (json->has("effect") && json->get("effect")->isString()) {
-        _effect = json->get("effect")->asString();
-        if (_effect.empty()) {
-            _effect = "none";
-        }
-    } else {
-        _effect = "none";
     }
 
     if (json->has("baseValue") && json->get("baseValue")->isNumber()) {

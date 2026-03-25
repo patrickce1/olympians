@@ -16,7 +16,14 @@
  */
 class ItemDatabase {
 public:
-    struct HouseScaling {
+    /**
+     * Per-house multipliers applied at item use time.
+     *
+     * attack/support/utility are additive sliders in [0,1] and are used as
+     * baseValue * (1 + slider). affinityBonus is an extra multiplier that only
+     * applies for rare/divine items when houseAffinity matches the player's house.
+     */
+    struct HouseMultipliers {
         float attack = 0.0f;
         float support = 0.0f;
         float utility = 0.0f;
@@ -42,8 +49,8 @@ private:
     /** Collection of ItemDef defs based on their defIds */
     std::unordered_map<std::string, std::shared_ptr<ItemDef>> _defs;
 
-    /** Runtime house scaling data keyed by canonical lowercase house id */
-    std::unordered_map<std::string, HouseScaling> _houseScaling;
+    /** Runtime per-house multipliers keyed by normalized house ID */
+    std::unordered_map<std::string, HouseMultipliers> _houseMultipliers;
     
     /** Bucket to contain all defIds so that they may be rolled */
     Bucket _allDefIds;
@@ -130,11 +137,11 @@ public:
     /** Serializable option */
     std::vector<std::string> getAllDefIds() const;
 
-    /** Load house scaling data from parsed houses JSON root. */
-    bool loadHouseScalingFromJson(const std::shared_ptr<cugl::JsonValue>& json);
+    /** Load house multipliers from parsed houses JSON root. */
+    bool loadHouseMultipliersFromJson(const std::shared_ptr<cugl::JsonValue>& json);
 
-    /** Returns house scaling data if present; nullptr otherwise. */
-    const HouseScaling* getHouseScaling(const std::string& houseId) const;
+    /** Returns house multipliers for a house ID if present; nullptr otherwise. */
+    const HouseMultipliers* getHouseMultipliers(const std::string& houseID) const;
 };
 
 #endif // __ITEM_DATABASE_H__
