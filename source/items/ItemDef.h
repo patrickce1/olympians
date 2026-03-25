@@ -29,6 +29,9 @@ public:
         Demeter,
         Ares,
         Athena,
+        Aphrodite,
+        Hephestus,
+        Hermes,
         None
     };
     
