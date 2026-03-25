@@ -164,6 +164,13 @@ public:
     float getSlideAnimationTimer() const { return _slideAnimationTimer; }
     
     /**
+     * Returns the expected settlement duration for this item's slide.
+     *
+     * @return settlement duration threshold (seconds)
+     */
+    float getSlideSettleTime() const { return _slideSettleTime; }
+    
+    /**
      * Returns the origin type of this item's slide motion.
      *
      * @return the SlideOriginType indicating where the slide came from
@@ -221,10 +228,19 @@ public:
     void setSlideOrigin(SlideOriginType origin) { _slideOrigin = origin; }
     
     /**
-     * Public accessor to zone-hit tracking flag (used by GameScene zone detection).
-     * Set to true when item hits an appropriate zone during dropped-item sliding.
+     * Returns whether this item hit a zone during its dropped-item slide.
+     *
+     * @return true if item collided with an appropriate zone, false otherwise
      */
-    bool _zoneHitDuringSlide = false;
+    bool hasZoneHitDuringSlide() const { return _zoneHitDuringSlide; }
+    
+    /**
+     * Sets the zone-hit tracking flag (used by GameScene zone detection).
+     * Set to true when item hits an appropriate zone during dropped-item sliding.
+     *
+     * @param hitZone true if item hit a zone, false otherwise
+     */
+    void setZoneHitDuringSlide(bool hitZone) { _zoneHitDuringSlide = hitZone; }
     
     /**
      * Serializes this ItemInstance to a JSON object.

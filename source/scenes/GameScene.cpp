@@ -23,22 +23,19 @@ constexpr float ITEM_SPEED_UNITS = 1.0f;
 #pragma mark Sliding Item Physics Constants
 
 /** Deceleration rate for sliding items per second (units/sec²) */
-constexpr float ITEM_SLIDE_FRICTION_DECELERATION = 500.0f;
+constexpr float ITEM_SLIDE_FRICTION_DECELERATION = 2500.0f;
 
 /** Velocity threshold below which a sliding item is considered to have settled (units/sec) */
 constexpr float ITEM_SLIDE_VELOCITY_SETTLE_THRESHOLD = 10.0f;
 
-/** Duration of the settlement animation after sliding stops (seconds) */
-constexpr float ITEM_SLIDE_SETTLE_ANIMATION_TIME = 0.5f;
-
 /** Duration of the snapback animation when a dropped item returns to inventory (seconds) */
 constexpr float ITEM_SLIDE_SNAPBACK_ANIMATION_TIME = 0.3f;
 
-/** Upward velocity for items when they spawn from the spawn point (units/sec) */
-constexpr float ITEM_SPAWN_ENTRY_VELOCITY_UPWARD = 400.0f;
+/** Maximum speed cap for sliding items to prevent excessive velocities (units/sec) */
+constexpr float ITEM_MOVEMENT_MAX_SPEED = 2000.0f;
 
-/** Maximum horizontal drift (in either direction) during spawn entry animation (units) */
-constexpr float ITEM_SPAWN_ENTRY_DRIFT_RANGE = 100.0f;
+/** Maximum number of items allowed in inventory at once */
+constexpr int MAX_INVENTORY_ITEMS = 5;
 
 #pragma mark -
 #pragma mark Constructors
@@ -96,7 +93,9 @@ bool GameScene::initSceneGraph() {
  * @return true if the physics world was successfully created.
  */
 bool GameScene::initInventoryPhysics() {
-    Rect worldBounds(0.0f, 0.0f, getSize().width, getSize().height);
+    // Expand bounds beyond screen to accommodate spawning and physics overflow
+    cugl::Size screenSize = getSize();
+    Rect worldBounds(0.0f, -200.0f, screenSize.width, screenSize.height + 300.0f);
     _itemPhysicsWorld = cugl::physics2::ObstacleWorld::alloc(worldBounds, Vec2::ZERO);
     if (!_itemPhysicsWorld) {
         CULogError("Failed to create item physics world");
@@ -638,6 +637,12 @@ void GameScene::handlePlayerInput(InputController& input) {
                 Vec2 currentPos = body->second->getPosition();
                 Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
                 
+                // Clamp drop velocity to maximum speed cap
+                float speed = dropVelocity.length();
+                if (speed > ITEM_MOVEMENT_MAX_SPEED) {
+                    dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
+                }
+                
                 // Store inventory position for snapback target
                 _dragReleasedFromInventoryPos = _dragStartBodyPosition;
                 _dragReleasedItemId = _draggedItemId;
@@ -656,6 +661,12 @@ void GameScene::handlePlayerInput(InputController& input) {
             constexpr float VELOCITY_DT_ESTIMATE = 0.016f;
             Vec2 currentPos = body->second->getPosition();
             Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
+            
+            // Clamp drop velocity to maximum speed cap
+            float speed = dropVelocity.length();
+            if (speed > ITEM_MOVEMENT_MAX_SPEED) {
+                dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
+            }
             
             _dragReleasedFromInventoryPos = _dragStartBodyPosition;
             _dragReleasedItemId = _draggedItemId;
@@ -722,6 +733,12 @@ void GameScene::handleDragInitiation(InputController& input) {
             _draggedIcon = widget;
             _draggedItemId = id;
             _dragOffset = widget->getPosition() - touchPosScreen;
+
+            // Bring item to front of render order when picked up
+            if (_inventory) {
+                _inventory->removeChild(widget);
+                _inventory->addChild(widget);
+            }
 
             auto body = _itemBodies.find(id);
             if (body != _itemBodies.end() && body->second) {
@@ -850,14 +867,14 @@ void GameScene::startItemSliding(ItemInstance::ItemId itemId, const cugl::Vec2& 
     item->setSliding(true);
     item->setSlideVelocity(velocity);
     item->setSlideOrigin(origin);
-    item->setSlideAnimationTimer(item->_slideSettleTime);
+    item->setSlideAnimationTimer(item->getSlideSettleTime());
 
     // Set zone-interaction capability based on origin
     switch (origin) {
         case ItemInstance::SlideOriginType::SLIDE_FROM_DROP:
             // Dropped items can interact with zones immediately
             item->setCanInteractWithZones(true);
-            item->_zoneHitDuringSlide = false;
+            item->setZoneHitDuringSlide(false);
             break;
         case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN:
             // Spawned items cannot interact with zones until settled
@@ -911,16 +928,23 @@ void GameScene::updateSlidingItems(float dt) {
         cugl::Vec2 velocity = item->getSlideVelocity();
         float speed = velocity.length();
         if (speed > ITEM_SLIDE_VELOCITY_SETTLE_THRESHOLD) {
-            // Apply friction
-            velocity *= (1.0f - ITEM_SLIDE_FRICTION_DECELERATION * dt);
+            // Apply friction deceleration: reduce speed by deceleration * dt
+            // Clamp to prevent reversing direction
+            float newSpeed = std::max(0.0f, speed - ITEM_SLIDE_FRICTION_DECELERATION * dt);
+            if (newSpeed > 0.0f) {
+                velocity = velocity.normalize() * newSpeed;
+            } else {
+                velocity = cugl::Vec2::ZERO;
+            }
             item->setSlideVelocity(velocity);
 
             // Update body position
             cugl::Vec2 newPos = itemBody->getPosition() + velocity * dt;
             itemBody->setPosition(newPos);
 
-            // For passed items: clamp to inventory bounds
-            if (item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS) {
+            // For passed/spawned items: clamp to inventory bounds
+            if (item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS ||
+                item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN) {
                 clampItemToBounds(itemBody);
             }
         } else {
@@ -930,15 +954,24 @@ void GameScene::updateSlidingItems(float dt) {
             // Handle settlement based on origin
             switch (item->getSlideOrigin()) {
                 case ItemInstance::SlideOriginType::SLIDE_FROM_DROP: {
-                    // Check if item is off-screen or should snapback
-                    if (!isItemInVisibleArea(itemBody->getPosition()) || !item->_zoneHitDuringSlide) {
+                    // Check if item is within inventory bounds
+                    bool inInventoryBounds = false;
+                    if (_inventory) {
+                        cugl::Rect inventoryBounds = _inventory->getBoundingBox();
+                        inInventoryBounds = inventoryBounds.contains(itemBody->getPosition());
+                    }
+                    
+                    // Only snapback if item is outside inventory bounds AND didn't hit a zone
+                    if (!inInventoryBounds && !item->hasZoneHitDuringSlide()) {
                         // Start snapback animation
                         _snapbackAnimationItemId = itemId;
                         _snapbackStartScreenPos = itemBody->getPosition();
                         _snapbackTargetInventoryPos = _dragReleasedFromInventoryPos;
                         _snapbackAnimationProgress = 0.0f;
                     } else {
-                        // Item hit a zone, mark as settled
+                        // Item is in inventory or hit a zone, mark as settled
+                        // Update snapback target to current position if in valid location
+                        _dragReleasedFromInventoryPos = itemBody->getPosition();
                         item->setSliding(false);
                         itemsToRemove.push_back(itemId);
                     }
@@ -946,6 +979,8 @@ void GameScene::updateSlidingItems(float dt) {
                 }
                 case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN: {
                     // Spawned item settled, now zone-interactive
+                    // Set snapback position to where the item settled
+                    _dragReleasedFromInventoryPos = itemBody->getPosition();
                     item->setCanInteractWithZones(true);
                     item->setSliding(false);
                     itemsToRemove.push_back(itemId);
@@ -963,9 +998,13 @@ void GameScene::updateSlidingItems(float dt) {
         }
 
         // Check for off-screen (for spawn/pass items)
+        // Only remove if they've settled AND are off-screen with a grace zone
         if (item->getSlideOrigin() != ItemInstance::SlideOriginType::SLIDE_FROM_DROP) {
-            if (!isItemInVisibleArea(itemBody->getPosition())) {
-                itemsToRemove.push_back(itemId);
+            if (!item->isSliding()) {
+                // Only check off-screen after item has settled
+                if (!isItemInVisibleArea(itemBody->getPosition())) {
+                    itemsToRemove.push_back(itemId);
+                }
             }
         }
     }
@@ -994,9 +1033,16 @@ void GameScene::updateSnapbackAnimations(float dt) {
             itemBody->setPosition(_snapbackTargetInventoryPos);
         }
 
-        auto item = _slidingItems[_snapbackAnimationItemId];
-        if (item) {
-            item->setSliding(false);
+        // Find and update the item from player inventory
+        auto player = _gameState.getLocalPlayer();
+        if (player) {
+            auto& inventory = const_cast<std::vector<ItemInstance>&>(player->getInventory());
+            for (auto& invItem : inventory) {
+                if (invItem.getId() == _snapbackAnimationItemId) {
+                    invItem.setSliding(false);
+                    break;
+                }
+            }
         }
 
         _slidingItems.erase(_snapbackAnimationItemId);
@@ -1052,7 +1098,7 @@ void GameScene::checkZoneInteractionsForSlidingItems() {
 
             // TODO: Implement zone-type matching and action handling
             // For now, just mark that zone was hit
-            item->_zoneHitDuringSlide = true;
+            item->setZoneHitDuringSlide(true);
         }
     }
 }
@@ -1067,7 +1113,7 @@ void GameScene::clampItemToBounds(std::shared_ptr<cugl::physics2::BoxObstacle> i
     if (!itemBody || !_inventory) return;
 
     // Get inventory bounds
-    cugl::Rect inventoryBounds = _inventory->getWorldBounds();
+    cugl::Rect inventoryBounds = _inventory->getBoundingBox();
 
     // Clamp item position to inventory bounds
     cugl::Vec2 pos = itemBody->getPosition();
@@ -1162,13 +1208,19 @@ cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size& widgetSize) c
     Size dimen = getSize();
     float w = dimen.width;
 
-    const float maxX = std::max(0.0f, inventorySize.width - widgetSize.width - (w * 0.15f));
-    const float maxY = std::max(0.0f, inventorySize.height - widgetSize.height);
+    // Constrain horizontally with inward margin from edges (not at the very edges)
+    const float horizontalMargin = 50.0f;  // Distance from each side
+    const float minX = w * 0.15f + horizontalMargin;
+    const float maxX = minX + std::max(0.0f, inventorySize.width - widgetSize.width - (2.0f * horizontalMargin));
+
+    // Constrain vertically, avoiding the bottom part of inventory (top 70% only)
+    const float minY = inventorySize.height * 0.3f;  // Avoid bottom 30%
+    const float maxY = std::max(minY, inventorySize.height - widgetSize.height - 20.0f);
 
     std::random_device rd;
     std::mt19937 rng(rd());
-    std::uniform_real_distribution<float> xDist(w * 0.15f, maxX);
-    std::uniform_real_distribution<float> yDist(0.0f, maxY);
+    std::uniform_real_distribution<float> xDist(minX, std::max(minX, maxX));
+    std::uniform_real_distribution<float> yDist(minY, std::max(minY, maxY));
 
     return cugl::Vec2(xDist(rng), yDist(rng));
 }
@@ -1269,28 +1321,54 @@ void GameScene::syncInventoryWidgets() {
 
         auto found = _itemWidgets.find(id);
         if (found == _itemWidgets.end()) {
+            // Check inventory limit before creating new widget
+            if (_itemWidgets.size() >= MAX_INVENTORY_ITEMS) {
+                continue;
+            }
+            
             auto widget = createItemWidget(item);
             if (!widget) continue;
-            widget->setPosition(getRandomInventoryPosition(widget->getContentSize()));
+            
+            // Move newly picked up item to front so it appears on top visually
+            // Remove and re-add to bring to front of render order
+            _inventory->removeChild(widget);
+            _inventory->addChild(widget);
+            
+            // Position widget below screen immediately for spawn sliding
+            // This prevents visible flash of widget at random inventory position
+            cugl::Size screenSize = getSize();
+            cugl::Vec2 spawnPos(screenSize.width * 0.5f, -50.0f); // Below screen
+            widget->setPosition(spawnPos);
+            
             _itemWidgets.emplace(id, widget);
             createItemBody(id, widget);
             
             // Initiate spawn sliding animation for newly spawned items
-            // Position item below screen for upward entry animation
             auto itemBody = _itemBodies[id];
             if (itemBody) {
-                Vec2 screenSize = getSize();
-                Vec2 spawnPos(screenSize.width * 0.5f, -50.0f); // Below screen
                 itemBody->setPosition(spawnPos);
                 
-                // Calculate random horizontal drift for spawn entry
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_real_distribution<> dist(-ITEM_SPAWN_ENTRY_DRIFT_RANGE, ITEM_SPAWN_ENTRY_DRIFT_RANGE);
-                float horizontalDrift = static_cast<float>(dist(gen));
+                // Pick a random target position in the inventory
+                Size widgetSize = widget->getContentSize();
+                Vec2 targetPos = getRandomInventoryPosition(widgetSize);
                 
-                // Create spawn velocity: upward + random horizontal drift
-                Vec2 spawnVelocity(horizontalDrift, ITEM_SPAWN_ENTRY_VELOCITY_UPWARD);
+                // Calculate direction and distance to target
+                Vec2 direction = targetPos - spawnPos;
+                float distance = direction.length();
+                
+                // Calculate velocity magnitude needed to reach target with deceleration
+                // Using kinematics: v² = u² - 2*a*d, where final velocity = 0
+                // So: u = sqrt(2 * a * d)
+                float velocityMagnitude = 0.0f;
+                if (distance > 0.0f) {
+                    velocityMagnitude = std::sqrt(2.0f * ITEM_SLIDE_FRICTION_DECELERATION * distance);
+                    // Clamp velocity to maximum speed cap
+                    velocityMagnitude = std::min(velocityMagnitude, ITEM_MOVEMENT_MAX_SPEED);
+                }
+                
+                // Create velocity vector pointing toward target
+                Vec2 spawnVelocity = (distance > 0.0f) ? direction.normalize() * velocityMagnitude : Vec2::ZERO;
+                
                 startItemSliding(id, spawnVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN);
             }
         }
