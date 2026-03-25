@@ -14,11 +14,16 @@ using namespace std;
 /**
  * Initializes the controller contents, and starts the game
  *
- * The constructor does not allocate any objects or memory.  This allows
- * us to have a non-pointer reference to this controller, reducing our
- * memory allocation.  Instead, allocation happens in this method.
+ * In previous labs, this method "started" the scene.  But in this
+ * case, we only use to initialize the scene user interface.  We
+ * do not activate the user interface yet, as an active user
+ * interface will still receive input EVEN WHEN IT IS HIDDEN.
  *
- * @param assets    The (loaded) assets for this game mode
+ * That is why we have the method {@link #setActive}.
+ *
+ * @param assets                             The (loaded) assets for this game mode
+ * @param networkController     The network controller shared across all scenes
+ * @param gameState                       The state of the game
  *
  * @return true if the controller is initialized properly, false otherwise.
  */

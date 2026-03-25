@@ -126,8 +126,9 @@ public:
      *
      * Activation and input handling are controlled separately via setActive().
      *
-     * @param assets              The loaded asset manager used to retrieve scene resources
+     * @param assets                           The loaded asset manager used to retrieve scene resources
      * @param networkController   The network controller used for multiplayer communication
+     * @param gameState                     The state of the game
      *
      * @return true if the scene was successfully initialized; false otherwise
      */

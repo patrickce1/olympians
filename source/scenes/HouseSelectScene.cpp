@@ -25,8 +25,9 @@ using namespace std;
  *
  * Activation and input handling are controlled separately via setActive().
  *
- * @param assets              The loaded asset manager used to retrieve scene resources
+ * @param assets                           The loaded asset manager used to retrieve scene resources
  * @param networkController   The network controller used for multiplayer communication
+ * @param gameState                     The state of the game
  *
  * @return true if the scene was successfully initialized; false otherwise
  */
@@ -419,8 +420,10 @@ void HouseSelectScene::updateNetworkOrder() {
  */
 void HouseSelectScene::updateTeammateIcons() {
     if (!_gameState || !_network) return;
+    
     int localIndex = _network->getLocalPlayerNumber();
     if (localIndex < 0) return;
+    
     const auto& players = _gameState->getPlayers();
     int totalSlots = (int)players.size();
 
