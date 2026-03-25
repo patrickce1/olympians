@@ -116,6 +116,7 @@ protected:
     /** Slots already demoted to Easy AI this session; prevents re-demoting each frame. */
     std::unordered_set<int> _slotsDemotedToAI;
     
+    /** The sprite node representing the boss character frame in the scene based on the spritesheets. */
     std::shared_ptr<cugl::scene2::SpriteNode> _bossSprite;
 
 #pragma mark - Drag State

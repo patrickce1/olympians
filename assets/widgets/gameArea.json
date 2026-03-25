@@ -78,7 +78,7 @@
                 "type": "Sprite",
                 "format": { "type": "Anchored" },
                 "data": {
-                    "texture": "cyclopsFourIdle",
+                    "texture": "cyclopsIdle",
                     "anchor": [
                         0.5,
                         0
@@ -93,8 +93,7 @@
                     ],
                     "visible": true,
                     "cols": 4,
-                    "rows": 1,
-                    "frame":  0
+                    "rows": 3
                 },
                 "layout": {
                     "x_anchor": "center",

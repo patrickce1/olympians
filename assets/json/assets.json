@@ -315,6 +315,9 @@
         },
         "demeterDeath": {
             "file": "textures/gameScene/houseIcons/demeter/demeterDeath.png"
+        },
+        "cyclopsIdle" : {
+            "file": "textures/gameScene/cyclops/idleDirections.png"
         }
 	},
     "fonts": {
