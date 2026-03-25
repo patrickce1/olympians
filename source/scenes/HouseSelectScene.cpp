@@ -478,7 +478,7 @@ void HouseSelectScene::updateTeammateIcons() {
         } else if (house == "demeter") {
             activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("demeterSIcon"));
         } else {
-            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("teamSelectIconEmpty"));
+            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
         }
         activeIcon->setScale(0.92);
     }
