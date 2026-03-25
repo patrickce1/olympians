@@ -22,7 +22,7 @@ int _failed = 0;   ///< Count of failed test assertions.
  * @param condition Boolean condition to test; true logs [PASS], false logs [FAIL]
  * @param label    Test label text describing what is being asserted
  */
-void expect(bool condition, const std::string& label) {
+void assertWithLabel(bool condition, const std::string& label) {
     if (condition) {
         CULog("[PASS] %s", label.c_str());
         _passed++;
@@ -42,17 +42,19 @@ void printSummary() {
 }
 
 /**
- * Compares two floats for near-equality using absolute tolerance.
+ * Compares two floats for equality within an error range (tolerance).
  *
- * Useful for floating-point arithmetic comparisons where exact equality is unreliable.
+ * Useful for floating-point arithmetic comparisons where exact equality is unreliable due to
+ * rounding errors or precision loss in calculations. Two values are considered equal if their
+ * absolute difference is within the specified tolerance.
  *
- * @param a   First value to compare
- * @param b   Second value to compare
- * @param eps Epsilon tolerance for comparison (default: 1e-4)
- * @return    True if |a - b| <= eps, false otherwise
+ * @param firstValue   First value to compare
+ * @param secondValue  Second value to compare
+ * @param tolerance    Error range/tolerance for comparison (default: 1e-4)
+ * @return            True if |firstValue - secondValue| <= tolerance, false otherwise
  */
-bool nearlyEqual(float a, float b, float eps = 1e-4f) {
-    return std::fabs(a - b) <= eps;
+bool floatsEqualWithinTolerance(float firstValue, float secondValue, float tolerance = 1e-4f) {
+    return std::fabs(firstValue - secondValue) <= tolerance;
 }
 
 /**
@@ -91,10 +93,10 @@ std::shared_ptr<cugl::JsonValue> readJson(const std::string& path) {
 void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     ItemDatabase db;
     bool ok = db.loadFromJson(itemsJson);
-    expect(ok, "items: loadFromJson succeeds");
+    assertWithLabel(ok, "items: loadFromJson succeeds");
     
     auto allIds = db.getAllDefIds();
-    expect(!allIds.empty(), "items: at least one item definition exists");
+    assertWithLabel(!allIds.empty(), "items: at least one item definition exists");
     
     bool allValid = true;
     for (const std::string& id : allIds) {
@@ -108,13 +110,13 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
             break;
         }
     }
-    expect(allValid, "items: all defs have positive baseValue");
+    assertWithLabel(allValid, "items: all defs have positive baseValue");
     
     auto lightningBoltDef = db.getDef("lightning_bolt");
     auto appleDef = db.getDef("apple");
-    expect(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
+    assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
            "items: lightning_bolt affinity parses as Zeus");
-    expect(appleDef && appleDef->getHouseAffinity() == ItemDef::House::None,
+    assertWithLabel(appleDef && appleDef->getHouseAffinity() == ItemDef::House::None,
            "items: apple affinity parses as none");
 }
 
@@ -132,18 +134,17 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
 void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson) {
     ItemDatabase db;
     bool ok = db.loadHouseMultipliersFromJson(housesJson);
-    expect(ok, "houses: loadHouseMultipliersFromJson succeeds");
-    
+    assertWithLabel(ok, "houses: loadHouseMultipliersFromJson succeeds");
+
     const ItemDatabase::HouseMultipliers* zeus = db.getHouseMultipliers("Zeus");
     const ItemDatabase::HouseMultipliers* poseidon = db.getHouseMultipliers("Poseidon");
     const ItemDatabase::HouseMultipliers* athena = db.getHouseMultipliers("Athena");
-    
-    expect(zeus != nullptr, "houses: Zeus multipliers exist");
-    expect(poseidon != nullptr, "houses: Poseidon multipliers exist");
-    expect(athena != nullptr, "houses: Athena multipliers exist");
-    
-    bool bounded = true;
+
+    assertWithLabel(zeus != nullptr, "houses: Zeus multipliers exist");
+    assertWithLabel(poseidon != nullptr, "houses: Poseidon multipliers exist");
+    assertWithLabel(athena != nullptr, "houses: Athena multipliers exist");
     const ItemDatabase::HouseMultipliers* checks[] = { zeus, poseidon, athena };
+    bool bounded = true;
     for (const auto* entry : checks) {
         if (!entry) {
             bounded = false;
@@ -157,7 +158,7 @@ void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson
             break;
         }
     }
-    expect(bounded, "houses: multipliers are bounded and affinityBonus is positive");
+    assertWithLabel(bounded, "houses: multipliers are bounded and affinityBonus is positive");
 }
 
 /**
@@ -169,17 +170,17 @@ void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson
  * - House parsing: "Zeus", "Ares", "none", and other house names
  */
 void testEnumParsers() {
-    expect(ItemDef::typeFromString("attack") == ItemDef::Type::Attack, "parse: type attack");
-    expect(ItemDef::typeFromString("support") == ItemDef::Type::Support, "parse: type support");
-    expect(ItemDef::typeFromString("utility") == ItemDef::Type::Utility, "parse: type utility");
+    assertWithLabel(ItemDef::typeFromString("attack") == ItemDef::Type::Attack, "parse: type attack");
+    assertWithLabel(ItemDef::typeFromString("support") == ItemDef::Type::Support, "parse: type support");
+    assertWithLabel(ItemDef::typeFromString("utility") == ItemDef::Type::Utility, "parse: type utility");
     
-    expect(ItemDef::rarityFromString("common") == ItemDef::Rarity::Common, "parse: rarity common");
-    expect(ItemDef::rarityFromString("rare") == ItemDef::Rarity::Rare, "parse: rarity rare");
-    expect(ItemDef::rarityFromString("divine") == ItemDef::Rarity::Divine, "parse: rarity divine");
+    assertWithLabel(ItemDef::rarityFromString("common") == ItemDef::Rarity::Common, "parse: rarity common");
+    assertWithLabel(ItemDef::rarityFromString("rare") == ItemDef::Rarity::Rare, "parse: rarity rare");
+    assertWithLabel(ItemDef::rarityFromString("divine") == ItemDef::Rarity::Divine, "parse: rarity divine");
     
-    expect(ItemDef::houseFromString("Zeus") == ItemDef::House::Zeus, "parse: house Zeus");
-    expect(ItemDef::houseFromString("Ares") == ItemDef::House::Ares, "parse: house Ares");
-    expect(ItemDef::houseFromString("none") == ItemDef::House::None, "parse: house none");
+    assertWithLabel(ItemDef::houseFromString("Zeus") == ItemDef::House::Zeus, "parse: house Zeus");
+    assertWithLabel(ItemDef::houseFromString("Ares") == ItemDef::House::Ares, "parse: house Ares");
+    assertWithLabel(ItemDef::houseFromString("none") == ItemDef::House::None, "parse: house none");
 }
 
 /**
@@ -195,7 +196,7 @@ void testEnumParsers() {
  */
 void testWeightedRollAndInstanceCreation(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     ItemDatabase db;
-    expect(db.loadFromJson(itemsJson), "db: loads for roll/instance tests");
+    assertWithLabel(db.loadFromJson(itemsJson), "db: loads for roll/instance tests");
     db.setStartingPoint(1337);
     
     // Keep the vector alive; constructing from two temporary vectors can produce invalid iterators.
@@ -214,13 +215,13 @@ void testWeightedRollAndInstanceCreation(const std::shared_ptr<cugl::JsonValue>&
             break;
         }
     }
-    expect(rolledAtLeastOne, "db: weighted roll returns at least one item id");
-    expect(allRolledKnown, "db: weighted roll only returns known item ids");
+    assertWithLabel(rolledAtLeastOne, "db: weighted roll returns at least one item id");
+    assertWithLabel(allRolledKnown, "db: weighted roll only returns known item ids");
     
     auto okInstance = db.createInstance("apple", 42);
     auto badInstance = db.createInstance("does_not_exist", 999);
-    expect(okInstance != nullptr, "db: createInstance works for known defId");
-    expect(badInstance == nullptr, "db: createInstance fails for unknown defId");
+    assertWithLabel(okInstance != nullptr, "db: createInstance works for known defId");
+    assertWithLabel(badInstance == nullptr, "db: createInstance fails for unknown defId");
 }
 
 /**
@@ -234,17 +235,17 @@ void testWeightedRollAndInstanceCreation(const std::shared_ptr<cugl::JsonValue>&
  */
 void testValidationFailures() {
     ItemDatabase db;
-    
+
     auto badRarityJson = readJson("json/tests/items_bad_rarity.json");
-    expect(badRarityJson != nullptr, "validation: parse bad-rarity fixture json");
+    assertWithLabel(badRarityJson != nullptr, "validation: parse bad-rarity fixture json");
     if (badRarityJson) {
-        expect(!db.loadFromJson(badRarityJson), "validation: unsupported rarity is rejected");
+        assertWithLabel(!db.loadFromJson(badRarityJson), "validation: unsupported rarity is rejected");
     }
-    
+
     auto badTypeJson = readJson("json/tests/items_bad_type.json");
-    expect(badTypeJson != nullptr, "validation: parse bad-type fixture json");
+    assertWithLabel(badTypeJson != nullptr, "validation: parse bad-type fixture json");
     if (badTypeJson) {
-        expect(!db.loadFromJson(badTypeJson), "validation: unsupported item type is rejected");
+        assertWithLabel(!db.loadFromJson(badTypeJson), "validation: unsupported item type is rejected");
     }
 }
 
@@ -262,26 +263,26 @@ void testValidationFailures() {
 void testScalingFallbacks() {
     ItemDatabase db;
     auto json = readJson("json/tests/houses_scaling_fallbacks.json");
-    expect(json != nullptr, "fallback: parse clamp/fallback house fixture");
+    assertWithLabel(json != nullptr, "fallback: parse clamp/fallback house fixture");
     if (!json) return;
-    
-    expect(db.loadHouseMultipliersFromJson(json), "fallback: house multipliers load with fallback defaults");
-    
+
+    assertWithLabel(db.loadHouseMultipliersFromJson(json), "fallback: house multipliers load with fallback defaults");
+
     const auto* clampHouseMultipliers = db.getHouseMultipliers("ClampHouse");
     const auto* missingHouseMultipliers = db.getHouseMultipliers("MissingHouse");
-    expect(clampHouseMultipliers != nullptr, "fallback: ClampHouse scaling exists");
-    expect(missingHouseMultipliers != nullptr, "fallback: MissingHouse scaling exists");
+    assertWithLabel(clampHouseMultipliers != nullptr, "fallback: ClampHouse scaling exists");
+    assertWithLabel(missingHouseMultipliers != nullptr, "fallback: MissingHouse scaling exists");
     if (clampHouseMultipliers) {
-        expect(nearlyEqual(clampHouseMultipliers->attack, 1.0f), "fallback: attack clamped to 1.0");
-        expect(nearlyEqual(clampHouseMultipliers->support, 0.0f), "fallback: support clamped to 0.0");
-        expect(nearlyEqual(clampHouseMultipliers->utility, 0.5f), "fallback: utility unchanged when valid");
-        expect(nearlyEqual(clampHouseMultipliers->affinityBonus, 1.5f), "fallback: non-positive affinityBonus defaults to 1.5");
+        assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->attack, 1.0f), "fallback: attack clamped to 1.0");
+        assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->support, 0.0f), "fallback: support clamped to 0.0");
+        assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->utility, 0.5f), "fallback: utility unchanged when valid");
+        assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->affinityBonus, 1.5f), "fallback: non-positive affinityBonus defaults to 1.5");
     }
     if (missingHouseMultipliers) {
-        expect(nearlyEqual(missingHouseMultipliers->attack, 0.0f), "fallback: missing attack defaults to 0.0");
-        expect(nearlyEqual(missingHouseMultipliers->support, 0.0f), "fallback: missing support defaults to 0.0");
-        expect(nearlyEqual(missingHouseMultipliers->utility, 0.0f), "fallback: missing utility defaults to 0.0");
-        expect(nearlyEqual(missingHouseMultipliers->affinityBonus, 1.5f), "fallback: missing affinityBonus defaults to 1.5");
+        assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->attack, 0.0f), "fallback: missing attack defaults to 0.0");
+        assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->support, 0.0f), "fallback: missing support defaults to 0.0");
+        assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->utility, 0.0f), "fallback: missing utility defaults to 0.0");
+        assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->affinityBonus, 1.5f), "fallback: missing affinityBonus defaults to 1.5");
     }
 }
 
@@ -298,20 +299,20 @@ void testScalingFallbacks() {
 void testBaseValueDefaults() {
     ItemDatabase db;
     auto json = readJson("json/tests/items_basevalue_fallbacks.json");
-    expect(json != nullptr, "baseValue: parse fallback fixture");
+    assertWithLabel(json != nullptr, "baseValue: parse fallback fixture");
     if (!json) return;
+
+    assertWithLabel(db.loadFromJson(json), "baseValue: fixture loads with defaults");
     
-    expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
-    
-    expect(db.loadFromJson(json), "baseValue: fixture loads with defaults");
+    assertWithLabel(db.loadFromJson(json), "baseValue: fixture loads with defaults");
     auto negativeBaseValueDef = db.getDef("neg_base");
     auto missingBaseValueDef = db.getDef("missing_base");
-    expect(negativeBaseValueDef != nullptr && missingBaseValueDef != nullptr, "baseValue: fallback defs exist");
+    assertWithLabel(negativeBaseValueDef != nullptr && missingBaseValueDef != nullptr, "baseValue: fallback defs exist");
     if (negativeBaseValueDef) {
-        expect(nearlyEqual(negativeBaseValueDef->getBaseValue(), 1.0f), "baseValue: negative baseValue defaults to 1.0");
+        assertWithLabel(floatsEqualWithinTolerance(negativeBaseValueDef->getBaseValue(), 1.0f), "baseValue: negative baseValue defaults to 1.0");
     }
     if (missingBaseValueDef) {
-        expect(nearlyEqual(missingBaseValueDef->getBaseValue(), 1.0f), "baseValue: missing baseValue defaults to 1.0");
+        assertWithLabel(floatsEqualWithinTolerance(missingBaseValueDef->getBaseValue(), 1.0f), "baseValue: missing baseValue defaults to 1.0");
     }
 }
 
@@ -338,23 +339,19 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
                                    const std::string& housesJsonPath,
                                    const std::string& enemiesJsonPath) {
     ItemDatabase db;
-    expect(db.loadFromJson(itemsJson), "compute: item db load succeeds");
-    expect(db.loadHouseMultipliersFromJson(housesJson), "compute: house multipliers load succeeds");
-    
-    HouseLoader loader;
-    bool housesOk = loader.loadFromFile(housesJsonPath);
-    expect(housesOk, "compute: house loader init succeeds");
-    
-    Enemy enemy;
-    bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
-    expect(enemyOk, "compute: enemy init succeeds");
-    
-    if (!housesOk || !enemyOk) return;
-    
-    // Attack rare item with matching affinity (Ares + noams_ballista)
-    Player ares("Ares", 1, "Ares Tester", loader);
+    assertWithLabel(db.loadFromJson(itemsJson), "compute: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "compute: house multipliers load succeeds");
+
+        HouseLoader loader;
+        bool housesOk = loader.loadFromFile(housesJsonPath);
+        assertWithLabel(housesOk, "compute: house loader init succeeds");
+
+        Enemy enemy;
+        bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
+        assertWithLabel(enemyOk, "compute: enemy init succeeds");
+    Player ares("Ares", 2, "Ares Tester", loader);
     auto instAres = ItemInstance::alloc("noams_ballista", 1001);
-    expect(instAres != nullptr, "compute: create noams_ballista instance (Ares)");
+    assertWithLabel(instAres != nullptr, "compute: create noams_ballista instance (Ares)");
     if (!instAres) return;
     ares.addItem(*instAres);
     
@@ -362,13 +359,12 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
     float hpBeforeAres = enemy.getCurrentHealth();
     float resolvedAres = ares.useItemById(instAres->getId(), enemy, db);
     float expectedAres = 1.5f * (1.0f + 1.0f) * 1.5f; // base * (1 + attack slider) * affinity
-    expect(nearlyEqual(resolvedAres, expectedAres), "compute: matching rare affinity resolves correctly");
-    expect(nearlyEqual(hpBeforeAres - enemy.getCurrentHealth(), expectedAres), "compute: enemy damage equals resolved attack value");
-    
+        assertWithLabel(floatsEqualWithinTolerance(resolvedAres, expectedAres), "compute: matching rare affinity resolves correctly");
+        assertWithLabel(floatsEqualWithinTolerance(hpBeforeAres - enemy.getCurrentHealth(), expectedAres), "compute: enemy damage equals resolved attack value");
     // Attack rare item without matching affinity (Poseidon + noams_ballista)
     Player poseidon("Poseidon", 2, "Poseidon Tester", loader);
     auto instPoseidon = ItemInstance::alloc("noams_ballista", 1002);
-    expect(instPoseidon != nullptr, "compute: create noams_ballista instance (Poseidon)");
+    assertWithLabel(instPoseidon != nullptr, "compute: create noams_ballista instance (Poseidon)");
     if (!instPoseidon) return;
     poseidon.addItem(*instPoseidon);
     
@@ -376,39 +372,37 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
     float hpBeforePoseidon = enemy.getCurrentHealth();
     float resolvedPoseidon = poseidon.useItemById(instPoseidon->getId(), enemy, db);
     float expectedPoseidon = 1.5f * (1.0f + 0.8f); // no affinity bonus
-    expect(nearlyEqual(resolvedPoseidon, expectedPoseidon), "compute: non-matching rare affinity resolves correctly");
-    expect(nearlyEqual(hpBeforePoseidon - enemy.getCurrentHealth(), expectedPoseidon), "compute: enemy damage without affinity is correct");
-    
+        assertWithLabel(floatsEqualWithinTolerance(resolvedPoseidon, expectedPoseidon), "compute: non-matching rare affinity resolves correctly");
+        assertWithLabel(floatsEqualWithinTolerance(hpBeforePoseidon - enemy.getCurrentHealth(), expectedPoseidon), "compute: enemy damage without affinity is correct");
     // Support common item (Demeter + apple) should not use affinity
     Player demeter("Demeter", 3, "Demeter Tester", loader);
     Player ally("Ares", 4, "Ally", loader);
     ally.updateHealth(-4.0f);
     
     auto instApple = ItemInstance::alloc("apple", 1003);
-    expect(instApple != nullptr, "compute: create apple instance");
+    assertWithLabel(instApple != nullptr, "compute: create apple instance");
     if (!instApple) return;
     demeter.addItem(*instApple);
     
     float allyBefore = ally.getCurrentHealth();
     float resolvedSupport = demeter.useItemById(instApple->getId(), ally, db);
     float expectedSupport = 2.0f * (1.0f + 0.9f);
-    expect(nearlyEqual(resolvedSupport, expectedSupport), "compute: support scaling resolves correctly");
-    expect(nearlyEqual(ally.getCurrentHealth() - allyBefore, expectedSupport), "compute: support heal equals resolved value");
-    
+        assertWithLabel(floatsEqualWithinTolerance(resolvedSupport, expectedSupport), "compute: support scaling resolves correctly");
+        assertWithLabel(floatsEqualWithinTolerance(ally.getCurrentHealth() - allyBefore, expectedSupport), "compute: support heal equals resolved value");
     // Mismatched target type should return 0 and still consume item
     Player testAttacker("Ares", 5, "Ares Tester 2", loader);
     Player testTarget("Zeus", 6, "Zeus Target", loader);
     auto instAttack = ItemInstance::alloc("noams_ballista", 1004);
-    expect(instAttack != nullptr, "compute: create mismatch attack instance");
+    assertWithLabel(instAttack != nullptr, "compute: create mismatch attack instance");
     if (!instAttack) return;
     testAttacker.addItem(*instAttack);
-    float mismatch = testAttacker.useItemById(instAttack->getId(), testTarget, db);
-    expect(nearlyEqual(mismatch, 0.0f), "compute: attack on player returns 0.0");
-    expect(testAttacker.getInventory().empty(), "compute: mismatch target still consumes item");
-    
+    float mismatchResult = testAttacker.useItemById(instAttack->getId(), testTarget, db);
+    assertWithLabel(floatsEqualWithinTolerance(mismatchResult, 0.0f), "compute: attack on player returns 0.0");
+    assertWithLabel(testAttacker.getInventory().empty(), "compute: mismatch target still consumes item");
+
     // Missing item id should fail with -1
-    float missing = testAttacker.useItemById(999999, testTarget, db);
-    expect(nearlyEqual(missing, -1.0f), "compute: missing item id returns -1.0");
+    float missingItemResult = testAttacker.useItemById(999999, testTarget, db);
+    assertWithLabel(floatsEqualWithinTolerance(missingItemResult, -1.0f), "compute: missing item id returns -1.0");
 }
 
 } // namespace
@@ -426,7 +420,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     auto housesJson = readJson(housesJsonPath);
     
     if (!itemsJson || !housesJson) {
-        expect(false, "fixtures: item/house JSON must parse");
+        assertWithLabel(false, "fixtures: item/house JSON must parse");
         printSummary();
         return;
     }

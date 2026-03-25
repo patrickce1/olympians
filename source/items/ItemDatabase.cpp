@@ -150,11 +150,11 @@ std::string ItemDatabase::rollFromBucket(const Bucket& bucket) {
     double randVal = _rng.getRightOpenDouble(0.0, bucket.total);
 
     // Binary search the prefix sum array for the first entry greater than r (std::upper_bound).
-    auto bucketItemIt = std::upper_bound(bucket.prefix.begin(), bucket.prefix.end(), randVal);
+    auto bucketItem = std::upper_bound(bucket.prefix.begin(), bucket.prefix.end(), randVal);
     
     // The index of that entry corresponds to the selected item, since each
     // prefix[i] marks the upper boundary of item i's weight range.
-    std::size_t prefixIdx = (std::size_t)std::distance(bucket.prefix.begin(), bucketItemIt);
+    std::size_t prefixIdx = (std::size_t)std::distance(bucket.prefix.begin(), bucketItem);
     
     // Clamp to valid range as a safety measure against floating point edge cases
     if (prefixIdx >= bucket.defIds.size()) prefixIdx = bucket.defIds.size() - 1;
@@ -215,19 +215,24 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
 bool ItemDatabase::loadHouseMultipliersFromJson(const std::shared_ptr<JsonValue>& json) {
     _houseMultipliers.clear();
 
+    // Validate root object and "houses" array exist
     if (!json || !json->isObject()) return false;
     auto houses = json->get("houses");
     if (!houses || !houses->isArray()) return false;
 
+    // Process each house entry in the array
     for (int houseIndex = 0; houseIndex < houses->size(); ++houseIndex) {
         auto houseEntry = houses->get(houseIndex);
+        // Skip if entry is not an object
         if (!houseEntry || !houseEntry->isObject()) {
             continue;
         }
+        // Skip if "id" field is missing or not a string
         if (!houseEntry->has("id") || !houseEntry->get("id")->isString()) {
             continue;
         }
 
+        // Normalize the house ID (trim whitespace, lowercase) for case-insensitive lookup
         const std::string houseID = normalizeHouseID(houseEntry->getString("id", ""));
         if (houseID.empty()) {
             continue;
@@ -235,6 +240,8 @@ bool ItemDatabase::loadHouseMultipliersFromJson(const std::shared_ptr<JsonValue>
 
         HouseMultipliers multipliers;
 
+        // Helper lambda to safely read slider values: if field is missing or invalid, use fallback;
+        // otherwise, clamp the value to [0.0, 1.0] to enforce slider bounds
         auto readSlider = [&](const char* key, float fallback) {
             if (!houseEntry->has(key) || !houseEntry->get(key)->isNumber()) {
                 return fallback;
@@ -243,10 +250,12 @@ bool ItemDatabase::loadHouseMultipliersFromJson(const std::shared_ptr<JsonValue>
             return clamp01(value);
         };
 
+        // Load attack, support, and utility sliders with default of 0.0 if missing
         multipliers.attack = readSlider("attack", 0.0f);
         multipliers.support = readSlider("support", 0.0f);
         multipliers.utility = readSlider("utility", 0.0f);
 
+        // Load affinityBonus: if missing or invalid, default to 1.5; if present but <= 0, also default to 1.5
         if (houseEntry->has("affinityBonus") && houseEntry->get("affinityBonus")->isNumber()) {
             multipliers.affinityBonus = houseEntry->getFloat("affinityBonus");
             if (multipliers.affinityBonus <= 0.0f) {
@@ -256,9 +265,11 @@ bool ItemDatabase::loadHouseMultipliersFromJson(const std::shared_ptr<JsonValue>
             multipliers.affinityBonus = 1.5f;
         }
 
+        // Store multipliers in the map keyed by normalized house ID
         _houseMultipliers[houseID] = multipliers;
     }
 
+    // Return true if at least one house was successfully parsed
     return !_houseMultipliers.empty();
 }
 
@@ -271,11 +282,11 @@ bool ItemDatabase::loadHouseMultipliersFromJson(const std::shared_ptr<JsonValue>
  */
 const ItemDatabase::HouseMultipliers* ItemDatabase::getHouseMultipliers(const std::string& houseID) const {
     const std::string normalizedHouseID = normalizeHouseID(houseID);
-    auto multipliersIt = _houseMultipliers.find(normalizedHouseID);
-    if (multipliersIt == _houseMultipliers.end()) {
+    auto multipliersIterator = _houseMultipliers.find(normalizedHouseID);
+    if (multipliersIterator == _houseMultipliers.end()) {
         return nullptr;
     }
-    return &multipliersIt->second;
+    return &multipliersIterator->second;
 }
 
 /** Rarity-driven weighted roll across all spawnable items */

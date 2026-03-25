@@ -69,16 +69,21 @@ public:
      */
     bool init(const std::shared_ptr<cugl::JsonValue>& json);
     
+    /** Allocates and initializes an ItemDef from JSON, returning nullptr on failure */
     static std::shared_ptr<ItemDef> alloc(const std::shared_ptr<cugl::JsonValue>& json) {
         auto result = std::make_shared<ItemDef>();
         return (result->init(json) ? result : nullptr);
     }
     
-    // Getters
+    /** Gets item ID */
     const std::string& getId() const { return _id; }
+    /** Gets item name */
     const std::string& getName() const { return _name; }
+    /** Gets item description */
     const std::string& getDescription() const { return _description; }
+    /** Gets item icon key (used to look up texture in asset manager) */
     const std::string& getIconKey() const { return _iconKey; }
+    /** Gets the base value of the item before multipliers are applied */
     const float getBaseValue() const { return _baseValue; }
 
     /**
@@ -86,11 +91,9 @@ public:
      * Rare/divine items can receive affinityBonus when this matches player house.
      */
     House getHouseAffinity() const { return _houseAffinity; }
-
-    // Backwards-compatible shim for callers that still use old naming.
-    const float getEffectiveValue() const { return _baseValue; }
-    
+    /** Gets item type */
     Type getType() const { return _type; }
+    /** Gets item rarity */
     Rarity getRarity() const { return _rarity; }
     
     /** Extract Type enum from a string */
