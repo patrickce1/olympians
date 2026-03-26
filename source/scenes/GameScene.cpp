@@ -1237,8 +1237,8 @@ void GameScene::update(float dt, InputController& input) {
     
     checkZoneInteractionsForSlidingItems();
     
-    syncItemWidgetsToBodies();
     syncInventoryWidgets();
+    syncItemWidgetsToBodies();
 
     _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
