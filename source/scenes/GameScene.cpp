@@ -1563,12 +1563,20 @@ void GameScene::render() {
  * If a support item is held, the support zones are added to _inputZones.
  */
 void GameScene::updateInputZones(){
-    // Always keep all zones active for sliding items to trigger actions
-    // Visual highlighting will be handled separately based on held item
-    _inputZones = _attackZones;
-    _inputZones.insert(_inputZones.end(), _supportZones.begin(), _supportZones.end());
-    _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
-    _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
+    Player* local = _gameState.getLocalPlayer();
+    
+    // Dead players can only pass items or put them in inventory
+    // They cannot attack or support
+    if (local && !local->isAlive()) {
+        _inputZones = _passZones;
+        _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
+    } else {
+        // Alive players have access to all zones
+        _inputZones = _attackZones;
+        _inputZones.insert(_inputZones.end(), _supportZones.begin(), _supportZones.end());
+        _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
+        _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
+    }
 }
 
 /**

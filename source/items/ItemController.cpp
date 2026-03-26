@@ -130,18 +130,16 @@ void ItemController::giveRandomItem(Player* player) {
  * Used when a passed item needs to be added to a player's inventory,
  * since the item definition ID is what travels over the network.
  *
- * Unlike giveRandomItem(), this method bypasses the inventory cap check
- * since a passed item should always be deliverable to its recipient.
+ * Unlike giveRandomItem(), this method bypasses both the inventory cap check
+ * and the alive status check, since a passed item should always be deliverable
+ * to its recipient regardless of whether they're dead. (Dead players can't use
+ * items, but they can receive passes to hold.)
  *
  * @param player    The player receiving the item.
  * @param itemDefId The definition ID string of the item to give.
+ * @return          The ItemId of the newly created item, or 0 if creation failed.
  */
 ItemInstance::ItemId ItemController::giveItemByID(Player* player, const std::string& itemDefId) {
-    if (!player->isAlive()) {
-        CULog("[ItemController] Player is not alive");
-        return 0;
-    }
-
     if (itemDefId.empty()) {
         CULog("[ItemController] giveItemById: itemDefId is empty");
         return 0;
