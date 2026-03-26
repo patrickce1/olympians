@@ -19,12 +19,12 @@ public:
         DEFENSE_MOVE,
     };
 
-    enum class EventType { DAMAGE, UNKNOWN };
+    enum class EventType { DAMAGE, HEAL, DAMAGE_MODIFIER, UNKNOWN };
 
     struct EventDef {
         EventType type = EventType::UNKNOWN;
-        int target = 0;                            // relative index offset
-        float amount = 0.0f;
+        int target = 0;                            // relative index offset. What player to attack or what side to modify. Heal ignores this and self targets
+        float amount = 0.0f;                       // damage amount, heal amount, or multiplier change
         float duration = 0.0f;
     };
 
