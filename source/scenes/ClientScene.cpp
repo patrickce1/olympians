@@ -66,6 +66,8 @@ void ClientScene::setupUI() {
 
     _backOut = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("clientScene.back"));
+    
+    _hostButton = std::dynamic_pointer_cast<scene2::Button>( _assets->get<scene2::SceneNode>("clientScene.joinHeader.host"));
 
     _gameId = std::dynamic_pointer_cast<scene2::TextField>(
         _assets->get<scene2::SceneNode>("clientScene.center.gameID.text"));
@@ -75,10 +77,10 @@ void ClientScene::setupUI() {
 
     // Create placeholder text for text-field
     std::shared_ptr<cugl::scene2::Label> placeID = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.placeholder"));
-    placeID->setText("Enter Game ID");
+    placeID->setText("ENTER GAME ID");
     
     std::shared_ptr<cugl::scene2::Label> placeName = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.placeholder"));
-    placeName->setText("Enter Name");
+    placeName->setText("ENTER NAME");
     
     // Set the placeholders to invsible when typing starts
     _gameId->addTypeListener([this, placeID](const std::string& name, const std::string& value) {
@@ -116,6 +118,13 @@ void ClientScene::setupListeners() {
             _status = Status::ABORT;
         }
     });
+    
+    _hostButton->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::HOST;
+            _hostButton->setDown(false);
+        }
+    });
 }
 
 /**
@@ -126,6 +135,7 @@ void ClientScene::dispose() {
         removeAllChildren();
         _enterGame = nullptr;
         _backOut = nullptr;
+        _hostButton = nullptr;
         _gameId = nullptr;
         _playerId = nullptr;
         _active = false;
@@ -150,15 +160,19 @@ void ClientScene::setActive(bool value) {
             _enterGame->activate();
             _gameId->activate();
             _backOut->activate();
+            _hostButton->activate();
             _playerId->activate();
             // Don't reset the room id
         } else {
             _gameId->deactivate();
+            _playerId->deactivate();
             _enterGame->deactivate();
             _backOut->deactivate();
+            _hostButton->deactivate();
             // If any were pressed, reset them
             _enterGame->setDown(false);
             _backOut->setDown(false);
+            _hostButton->setDown(false);
         }
     }
 }

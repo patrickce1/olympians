@@ -7,9 +7,7 @@
         "font"   : ["children","text","data","font"],
         "halign" : ["children","text","data","halign"],
         "valign" : ["children","text","data","valign"],
-        "foreground"  : ["children","text","data","foreground"],
-        "background"  : ["children","text","data","background"],
-        "framecolor"  : ["children","frame","data","color"]
+        "foreground"  : ["children","text","data","foreground"]
     },
     "contents": {
         "type"   : "Node",
@@ -18,74 +16,76 @@
         },
         "data"   : {
             "anchor"  : [0.5,0.5],
-            "size"    : [280, 53]
+            "size"    : [254, 40]
         },
         "children": {
-            "text": {
-                "type"   : "TextField",
+            "frame": {
+                "type": "Image",
                 "data": {
-                    "anchor"   : [0.5, 0.5],
-                    "font"     : "gideon romanRegular24",
-                    "text"     : "Text",
-                    "padding"  : [15, 10, 15, 10],
-                    "halign"   : "left",
-                    "valign"   : "middle",
-                    "background" : "#e4e4e4ff",
-                    "foreground": "#000000ff",
-                    "cursor": true
+                    "texture": "textfieldBG",
+                    "anchor": [
+                        0.5,
+                        1.5
+                    ],
+                    "size": [
+                        254,
+                        40
+                    ],
+                    "angle": 0,
+                    "visible": true
                 },
-                "layout" : {
-                    "x_anchor" : "fill",
-                    "y_anchor" : "fill",
-                    "x_offset" : 2,
-                    "y_offset" : 2,
-                    "absolute" : true
-                    
+                "layout": {
+                "x_anchor": "fill",
+                "y_anchor": "fill",
+                "absolute": true,
+                "x_offset": 0,
+                "y_offset": 0
                 }
             },
             "placeholder": {
                 "type": "Label",
                 "data": {
                     "anchor": [0.5, 0.5],
-                    "font": "gideon romanRegular24",
+                    "font": "gideon romanRegular16",
                     "text": "",
+                    "padding"  : [20, 10, 20, 10],
                     "halign": "left",
                     "valign": "middle",
-                    "foreground": "#808080ff"
+                    "foreground": "#AF8B5Bff"
+                    
                 },
                 "layout": {
                     "x_anchor": "fill",
                     "y_anchor": "fill",
-                    "x_offset": 15,
-                    "y_offset": 2,
+                    "x_offset": 0,
+                    "y_offset": 0,
                     "absolute": true
                 }
             },
-            "frame": {
-                "type": "Path",
+            "text": {
+                "type"   : "TextField",
                 "data": {
-                    "color": "#000000ff",
-                    "stroke": 1,
-                    "joint": "round",
-                    "path": {
-                        "vertices": [
-                            279.5,47,
-                            277.89,50.89,
-                            274,52.5,
-                            5.5,52.5,
-                            1.61,50.89,
-                            0,47,
-                            0,5.5,
-                            1.61,1.61,
-                            5.5,0,
-                            274,0,
-                            277.89,1.61,
-                            279.5,5.5
-                        ],
-                        "closed": true
-                    }
+                    "anchor"   : [0.5, 0.5],
+                    "font"     : "gideon romanRegular16",
+                    "text"     : "Text",
+                    "padding"  : [20, 10, 20, 10],
+                    "halign"   : "left",
+                    "valign"   : "middle",
+                    "foreground": "#ffd9a9ff",
+                    "cursor": true,
+                    "cursorcolor" : "#FFE5C3ff",
+                    "cursorwidth" : 1
+                },
+                "layout" : {
+                    "x_anchor" : "fill",
+                    "y_anchor" : "fill",
+                    "x_offset" : 0,
+                    "y_offset" : 0,
+                    "absolute" : true
+                    
                 }
             }
         }
     }
 }
+

@@ -1,0 +1,90 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Button",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0,
+                0
+            ],
+            "size": [
+                260,
+                45
+            ],
+            "angle": 0,
+            "visible": true,
+            "upnode": "buttonSmallBG"
+        },
+        "children": {
+            "buttonSmallBG": {
+                "type": "Image",
+                "data": {
+                    "texture": "buttonSmallBG",
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        260,
+                        45
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "label": {
+                "type": "Label",
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        46,
+                        19
+                    ],
+                    "position": [
+                        107,
+                        12
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "font": "gideon romanRegular16",
+                    "text": "LOCK",
+                    "foreground": "#ffd9a9ff",
+                    "background": "#00000000",
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "valign": "middle",
+                    "halign": "center"
+                },
+                "children": {},
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.41,
+                    "y_offset": -0.31
+                }
+            }
+        }
+    }
+}

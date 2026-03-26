@@ -119,6 +119,9 @@ void HouseSelectScene::setupUI() {
             _houseCarouselDotIndicators.push_back(houseCarouselDotsContainer->getChild(i));
         }
     }
+    
+    _backgroundImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_assets->get<scene2::SceneNode>
+                                                                            ("houseSelectScene.showroomImage"));
 }
 
 /**
@@ -269,6 +272,8 @@ void HouseSelectScene::update(float timestep) {
             _houseSelectionCardContainer->setPosition(next);
         }
     }
+    
+    updateBossBGImage(_network->getEnemy());
 }
 
 /**
@@ -358,9 +363,10 @@ void HouseSelectScene::updateSelectedIcon(int currentIndex, bool commitToGameSta
     if (!_playerIconImage) return;
 
     const HouseLoader::HouseDef& selectedHouse = _houseLoader.getAllOrdered()[currentIndex];
-
-    if (selectedHouse.id == "Athena") {
-        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+    
+    std::string key = selectedHouse.id + "SIcon";
+    if (_assets->get<cugl::graphics::Texture>(key) != nullptr) {
+        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>(key));
     } else {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
     }
@@ -374,6 +380,26 @@ void HouseSelectScene::updateSelectedIcon(int currentIndex, bool commitToGameSta
                 selectedHouse.id
             );
         }
+    }
+}
+
+/**
+ * Updates the background image of the boss display based on the selected enemy.
+ *
+ * @param enemyID The identifier of the enemy whose background should be displayed.
+ */
+void HouseSelectScene::updateBossBGImage(std::string enemyID) {
+    if (enemyID == "" && _currentBoss == "") {
+        return;
+    } else if (enemyID == _currentBoss) {
+        return;
+    }
+    
+    _currentBoss = enemyID;
+    if (_currentBoss == "cyclops") {
+        _backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>("cyclopsShowroom"));
+    } else if (_currentBoss == "cerberus") {
+        _backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusShowroom"));
     }
 }
 
@@ -437,11 +463,13 @@ void HouseSelectScene::updateTeammateIcons() {
         if (!activeIcon) continue;
 
         std::string house = players[slot]->getHouseName();
-        if (house == "Athena") {
-            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+        
+        std::string key = house + "SIcon";
+        if (_assets->get<cugl::graphics::Texture>(key) != nullptr) {
+            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>(key));
         } else {
             activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
         }
-        
+        activeIcon->setScale(0.92);
     }
 }

@@ -21,6 +21,8 @@ public:
     enum Status {
         /** Client has not yet entered a room */
         IDLE,
+        /** Client switches to host game screen */
+        HOST,
         /** Client is connecting to the host */
         JOIN,
         /** Client is waiting on host to start game */
@@ -47,6 +49,8 @@ protected:
     std::shared_ptr<cugl::scene2::TextField> _gameId;
     /** The game id label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _playerId;
+    /** The host game button for the menu scene */
+    std::shared_ptr<cugl::scene2::Button> _hostButton;
     
     /** The current status */
     Status _status;
