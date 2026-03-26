@@ -55,7 +55,7 @@
                     "y_offset": 0
                 }
             },
-            "cyclopsShowroom": {
+            "showroomImage": {
                 "type": "Image",
                 "data": {
                     "texture": "cyclopsShowroom",
@@ -1803,16 +1803,16 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard3": {
+                            "demeter": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "demeterPoster",
+                                        "heroName": "-DEMETER-",
+                                        "heroStats": "statsDemeter"
                                     }
                                 },
                                 "layout": {
@@ -1847,16 +1847,16 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard5": {
+                            "poseidon": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "poseidonPoster",
+                                        "heroName": "-POSEIDON-",
+                                        "heroStats": "statsPoseidon"
                                     }
                                 },
                                 "layout": {
@@ -1869,16 +1869,16 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard6": {
+                            "ares": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "aresPoster",
+                                        "heroName": "-ARES-",
+                                        "heroStats": "statsAres"
                                     }
                                 },
                                 "layout": {
@@ -2239,7 +2239,7 @@
                         "data": {
                             "key": "teamHouseIcon",
                             "variables": {
-                                "houseImage" : "teamSelectIconEmpty"
+                                "houseImage" : "emptyLocalIcon"
                             }
                         },
                         "layout": {
@@ -2255,7 +2255,7 @@
                         "data": {
                             "key": "teamHouseIcon",
                             "variables": {
-                                "houseImage" : "teamSelectIconEmpty"
+                                "houseImage" : "emptyLocalIcon"
                             }
                         },
                         "layout": {
@@ -2271,7 +2271,7 @@
                         "data": {
                             "key": "teamHouseIcon",
                             "variables": {
-                                "houseImage" : "teamSelectIconEmpty"
+                                "houseImage" : "emptyLocalIcon"
                             }
                         },
                         "layout": {

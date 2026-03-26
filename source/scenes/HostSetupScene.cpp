@@ -10,7 +10,9 @@ using namespace std;
 /** Regardless of logo, lock the height to this */
 #define SCENE_HEIGHT  852
 /** Role card width */
-#define ROLE_CARD_WIDTH 177.22
+#define ROLE_CARD_WIDTH 251
+/** Interpolation smoothing factor*/
+#define SMOOTHING_FACTOR 0.2f
 
 
 #pragma mark -
@@ -37,9 +39,10 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, con
         return false;
     }
     
-    // Start up the input handler
+    // Start up asset manager, network controller, and enemy loader
     _assets = assets;
     _network = networkController;
+    loadBosses();
     
     Size dimen = getSize();
     
@@ -73,33 +76,44 @@ void HostSetupScene::setupUI() {
 
     _backOut = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("hostSetupScene.back"));
+    
+    _joinButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("hostSetupScene.join"));
 
     _hostName = std::dynamic_pointer_cast<scene2::TextField>(
         _assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
 
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.leftscroll"));
+        _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.directionButtons.leftScroll"));
 
     _rightButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.rightscroll"));
+        _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.directionButtons.rightScroll"));
 
-    _container = _assets->get<scene2::SceneNode>("hostSetupScene.roleCarousel");
+    _bossSelectionCardContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.bossCardContainer");
 
-    if (_container) {
-        _items.push_back(_container->getChild(0));
-        _items.push_back(_container->getChild(1));
-        _items.push_back(_container->getChild(2));
+    if (_bossSelectionCardContainer) {
+        for (int i = 0; i < 3; i++) {
+            _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
+        }
     }
 
     std::shared_ptr<cugl::scene2::Label> placeName =
         std::dynamic_pointer_cast<scene2::Label>(
             _assets->get<scene2::SceneNode>("hostSetupScene.hostName.placeholder"));
 
-    placeName->setText("Enter Name");
+    placeName->setText("ENTER NAME");
 
     _hostName->addTypeListener([placeName](const std::string& name, const std::string& value) {
         placeName->setVisible(value.empty());
     });
+    
+    auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossSelectionCarouselIcons");
+    
+    if (bossCarouselDotsContainer) {
+        for (int i = 0; i < 3; i++) {
+            _bossCarouselDotIndicators.push_back(bossCarouselDotsContainer->getChild(i));
+        }
+    }
 }
 
 /**
@@ -115,6 +129,11 @@ void HostSetupScene::setupListeners() {
             if(_hostName->getText() != ""){
                 _network->hostRoom();
                 _network->setPlayerName(_hostName->getText());
+                
+                // Get the selected boss using carousel index
+                EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
+                _network->setEnemy(selectedBoss.id);
+                
                 _status = Status::START;
             }
         }
@@ -123,6 +142,13 @@ void HostSetupScene::setupListeners() {
     _backOut->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
+        }
+    });
+    
+    _joinButton->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::CLIENT;
+            _joinButton->setDown(false);
         }
     });
 
@@ -143,11 +169,12 @@ void HostSetupScene::dispose() {
         removeAllChildren();
         _startGame = nullptr;
         _backOut = nullptr;
+        _joinButton = nullptr;
         _hostName = nullptr;
-        _items.clear();
+        _bossCards.clear();
         _leftButton = nullptr;
         _rightButton = nullptr;
-        _container = nullptr;
+        _bossSelectionCardContainer = nullptr;
         _active = false;
     }
     _network = nullptr;
@@ -172,18 +199,21 @@ void HostSetupScene::setActive(bool value) {
             _rightButton->activate();
             _hostName->activate();
             _backOut->activate();
+            _joinButton->activate();
         } else {
             _startGame->deactivate();
             _leftButton->deactivate();
             _rightButton->deactivate();
             _backOut->deactivate();
             _hostName->deactivate();
+            _joinButton->deactivate();
             
             // If any were pressed, reset them
             _startGame->setDown(false);
             _backOut->setDown(false);
             _leftButton->setDown(false);
             _rightButton->setDown(false);
+            _joinButton->setDown(false);
         }
     }
 }
@@ -213,14 +243,14 @@ void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, c
  */
 void HostSetupScene::update(float timestep) {
     if (_isAnimating) {
-        Vec2 current = _container->getPosition();
-        Vec2 next = current.lerp(_slideTarget, 0.2f); // 0.2 = smoothing factor
+        Vec2 current = _bossSelectionCardContainer->getPosition();
+        Vec2 next = current.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor
 
         if (current.distance(_slideTarget) < 1.0f) {
-            _container->setPosition(_slideTarget);
+            _bossSelectionCardContainer->setPosition(_slideTarget);
             _isAnimating = false;
         } else {
-            _container->setPosition(next);
+            _bossSelectionCardContainer->setPosition(next);
         }
     }
 }
@@ -247,17 +277,62 @@ void HostSetupScene::configureStartButton() {
  */
 void HostSetupScene::slideTo(int newIndex) {
     if (_isAnimating) return;
-    if (newIndex < 0 || newIndex >= _items.size()) return;
+    if (newIndex < 0 || newIndex >= _bossCards.size()) return;
 
     _isAnimating = true;
 
-    float shiftAmount = ROLE_CARD_WIDTH + 24;
+    float shiftAmount = ROLE_CARD_WIDTH;
     
     int deltaIndex = newIndex - _currentIndex;
-    Vec2 currentPos = _container->getPosition();
+    Vec2 currentPos = _bossSelectionCardContainer->getPosition();
     float targetX = currentPos.x - (deltaIndex * shiftAmount);
     
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
+    
+    // Set the visibility of all glow overlays to false and the currentIndex card's to true
+    for (int i = 0; i < _bossCards.size(); i++) {
+        auto card = _bossCards[i];
+        if (card) {
+            auto glow = card->getChildByName("glowOverlay");
+            if (glow){
+                glow->setVisible(false);
+                if (i == newIndex) {
+                    glow->setVisible(true);
+                }
+            }
+        }
+    }
 
+    updateCarouselDots(newIndex);
+}
+
+/**
+ * Updates the circular indicators at the bottom of what card in the carousel
+ * we are currently at.
+ *
+ * @param currentIndex The index of the card we are at.
+ */
+void HostSetupScene::updateCarouselDots(int currentIndex) {
+    for (int i = 0; i < _bossCarouselDotIndicators.size(); i++) {
+        auto node = _bossCarouselDotIndicators[i];
+        
+        auto fill   = node->getChildByName("fill");
+        
+        if (i == currentIndex) {
+            fill->setColor(Color4("#4c3214ff"));
+        } else {
+            fill->setColor(Color4("#9d7137ff"));
+        }
+    }
+}
+
+/** Loads boss definitions from the enemies JSON to use in selection. */
+bool HostSetupScene::loadBosses() {
+    const std::string enemiesJsonPath = "json/enemies.json";
+    if (!_enemyLoader.loadFromFile(enemiesJsonPath)) {
+        CULog("HostSetupScene: Failed to load enemies.json");
+        return false;
+    }
+    return true;
 }

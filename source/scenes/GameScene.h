@@ -56,8 +56,11 @@ protected:
     /** The node representing the boss character in the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
 
-    /** UI slots used to display each teammate's avatar. */
-    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _playerSlots;
+    /** UI slot used to display left teammate's avatar. */
+    std::shared_ptr<cugl::scene2::PolygonNode> _leftPlayerSlot;
+    
+    /** UI slot used to display right teammate's avatar. */
+    std::shared_ptr<cugl::scene2::PolygonNode> _rightPlayerSlot;
 
     /** The player's inventory UI container node. */
     std::shared_ptr<cugl::scene2::SceneNode> _inventory;
@@ -92,8 +95,17 @@ protected:
     /** The boss health bar */
     std::shared_ptr<cugl::scene2::ProgressBar> _bossHealthBar;
     
+    /** The boss health bar text showing amount of health left */
+    std::shared_ptr<cugl::scene2::Label> _bossHealthBarText;
+    
     /** The player's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBar;
+    
+    /** The player's health bar text showing amount of health left */
+    std::shared_ptr<cugl::scene2::Label> _playerHealthBarText;
+    
+    /** UI slot used to display player's avatar in inventory. */
+    std::shared_ptr<cugl::scene2::PolygonNode> _localPlayerSlot;
     
     /** Left teammate username label */
     std::shared_ptr<cugl::scene2::Label> _leftPlayerName;
@@ -103,6 +115,9 @@ protected:
     
     /** Slots already demoted to Easy AI this session; prevents re-demoting each frame. */
     std::unordered_set<int> _slotsDemotedToAI;
+    
+    /** The sprite node representing the boss character frame in the scene based on the spritesheets. */
+    std::shared_ptr<cugl::scene2::SpriteNode> _bossSprite;
 
 #pragma mark - Drag State
 
@@ -229,6 +244,15 @@ public:
      * @return true if both systems initialised successfully.
      */
     bool initGameSystems();
+    
+    /**
+     * Initializes the background and boss images for the current game scene.
+     *
+     * This function sets the visual assets for both the background and the boss
+     * based on the active enemy in the game state. It retrieves the enemy ID and
+     * uses it to construct texture keys for the corresponding assets.
+     */
+    void initBackgroundAndBossImage();
 
     /**
      * Initialises the scene graph and all game systems.
@@ -336,6 +360,11 @@ public:
      * @param dt Delta time in seconds
      */
     void updatePlayerAndEnemyHealthUI(float dt);
+    
+    /**
+     * Updates the player and teammate UI icons to reflect their current health.
+     */
+    void updatePlayerAndTeammateIcons();
 
     /**
      * Checks whether the reset button was tapped and calls reset() if so.

@@ -24,12 +24,12 @@ bool GameState::initHouses() {
 void GameState::initPlayers() {
     _players.reserve(4);
 
-    auto humanPlayer = std::make_shared<Player>("Poseidon", 0, "Player 1", _houseLoader);
+    auto humanPlayer = std::make_shared<Player>("", 0, "Player 1", _houseLoader);
     _players.push_back(humanPlayer);
 
     for (int i = 1; i <= 3; i++) {
        auto aiPlayer = std::make_shared<EasyPlayerAI>(
-            "Poseidon", i,
+            "poseidon", i,
             "AI Player " + std::to_string(i),
             _houseLoader
         );
@@ -69,7 +69,7 @@ void GameState::initPlayers() {
  *
  * @param playerNumber  The 0-based slot index of the player to promote.
  * @param playerName    The display name of the player joining this slot.
- * @param houseName     The ID of the house the player selected (e.g. "Athena").
+ * @param houseName     The ID of the house the player selected (e.g. "athena").
  *                      Must match a valid house definition in the HouseLoader.
  *                      Passing an unrecognized ID will produce a player with
  *                      default/missing stats and may cause a crash downstream.
@@ -111,7 +111,7 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
 bool GameState::initEnemy() {
     const std::string enemyJsonPath = "json/enemies.json";
     _enemy = std::make_shared<Enemy>();
-    if (!_enemy->init("enemy1", enemyJsonPath)) {
+    if (!_enemy->init("cyclops", enemyJsonPath)) {
         CULog("GameState: Failed to initialize enemy");
         return false;
     }
@@ -201,6 +201,19 @@ void GameState::setLocalPlayer(int assignedIndex) {
     );
     _localPlayer = _players[assignedIndex].get();
 }
+
+/**
+ * Assigns the enemy for the game session.
+ *
+ * @param enemyID  the unique ID of the chosen enemy.
+ */
+void GameState::setEnemy(std::string enemyID) {
+    const std::string enemyJsonPath = "json/enemies.json";
+    if (_enemy == nullptr) {
+        _enemy = std::make_shared<Enemy>();
+    }
+    _enemy->init(enemyID, enemyJsonPath);
+};
 
 /**
  * Returns the player associated with a given network player ID.

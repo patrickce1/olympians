@@ -13,7 +13,6 @@ public:
         NONE,
         START_GAME,
         OPEN_SETTINGS,
-        JOIN_GAME
     };
 
 protected:
@@ -24,7 +23,6 @@ protected:
 
     /** Menu buttons. */
     std::shared_ptr<cugl::scene2::Button> _playButton;
-    std::shared_ptr<cugl::scene2::Button> _joinButton;
     std::shared_ptr<cugl::scene2::Button> _settingsButton;
 //    std::shared_ptr<cugl::scene2::Button> _itemsButton;
 

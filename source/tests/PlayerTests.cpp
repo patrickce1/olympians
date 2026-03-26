@@ -624,11 +624,11 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
 
     HouseLoader loader = loadHouses(housesJsonPath);
     ItemDatabase    db     = loadDatabase(itemsJsonPath, housesJsonPath);
-    Enemy           enemy  = loadEnemy(enemiesJsonPath, "enemy1");
+    Enemy           enemy  = loadEnemy(enemiesJsonPath, "cyclops");
 
     const std::string attackDefId  = firstDefIdOfType(db, ItemDef::Type::Attack);
     const std::string supportDefId = firstDefIdOfType(db, ItemDef::Type::Support);
-    const std::string houseId  = "Poseidon";
+    const std::string houseId  = "poseidon";
 
     if (attackDefId.empty())  CULogError("PlayerTests: no Attack item found in '%s'",  itemsJsonPath.c_str());
     if (supportDefId.empty()) CULogError("PlayerTests: no Support item found in '%s'", itemsJsonPath.c_str());

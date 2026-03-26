@@ -20,6 +20,50 @@ using namespace std;
 constexpr float ITEM_SPEED_UNITS = 1.0f;
 
 #pragma mark -
+#pragma mark HealthState
+
+/**
+ * @enum HealthState
+ * Represents a player’s health condition for UI purposes.
+ *
+ * - FULL: Player has maximum health.
+ * - HALF: Player has below 50% health.
+ * - DEAD: Player has zero health.
+ */
+enum class HealthState { FULL, HALF, DEAD };
+
+/**
+ * Determines the health state of a player based on current and maximum health.
+ *
+ * @param current Current health value of the player.
+ * @param max Maximum health value of the player.
+ * @return HealthState corresponding to FULL, HALF, or DEAD.
+ */
+static HealthState getHealthState(float current, float max) {
+    if (max <= 0 || current <= 0) return HealthState::DEAD;
+    float ratio = current / max;
+    if (ratio <= 0.5f) return HealthState::HALF;
+    return HealthState::FULL;
+}
+
+/**
+ * Returns the texture name to use for a player icon based on health and house.
+ *
+ * @param state HealthState of the player.
+ * @param houseName The player's house or class (used to select house-specific icons).
+ * @return std::string The texture identifier corresponding to this health state and house.
+ */
+static std::string getHealthTexture(HealthState state, std::string houseID) {
+    if (houseID.empty()) return "basicTeammateIcon";
+    switch (state) {
+        case HealthState::FULL: return houseID + "Regular";
+        case HealthState::HALF: return houseID + "MidHealth";
+        case HealthState::DEAD: return houseID + "Death";
+    }
+    return "basicTeammateIcon";
+}
+
+#pragma mark -
 #pragma mark Constructors
 
 /**
@@ -47,8 +91,11 @@ bool GameScene::initSceneGraph() {
 
     if (_gameArea) {
         // Left and right teammate icon
-        _playerSlots.push_back(_gameArea->getChildByName("leftIcon"));
-        _playerSlots.push_back(_gameArea->getChildByName("rightIcon"));
+        _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("leftIcon")
+                                                                         ->getChild(0));
+        
+        _rightPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("rightIcon")
+                                                                          ->getChild(0));
         
         _leftPlayerName = std::dynamic_pointer_cast<scene2::Label>(
              _assets->get<scene2::SceneNode>("gameScene.gameArea.leftName.username"));
@@ -58,11 +105,21 @@ bool GameScene::initSceneGraph() {
         
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.healthFill"));
+        
+        _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
+        
+        _bossSprite = std::dynamic_pointer_cast<scene2::SpriteNode>((_gameArea->getChildByName("bossIdle")));
     }
     
     if (_inventory) {
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
+        
+        _playerHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.label"));
+        
+        _localPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_assets->get<scene2::SceneNode>("gameScene.inventory.playerLiveIcon.playerImage"));
     }
     
     addChild(_scene);
@@ -133,6 +190,24 @@ void GameScene::initInputZones(){
 }
 
 /**
+ * Initializes the background and boss images for the current game scene.
+ *
+ * This function sets the visual assets for both the background and the boss
+ * based on the active enemy in the game state. It retrieves the enemy ID and
+ * uses it to construct texture keys for the corresponding assets.
+ */
+void GameScene::initBackgroundAndBossImage() {
+    if (!_network) return;
+    
+    auto boss = _gameState.getEnemy()->getId();
+    auto backgroundImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("background"));
+    backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>(boss + "Background"));
+    
+    auto bossImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("boss"));
+    bossImage->setTexture(_assets->get<cugl::graphics::Texture>(boss));
+}
+
+/**
  * Initialises the scene graph and all game systems.
  *
  * Builds the scene graph from the asset manager, initialises the
@@ -188,13 +263,16 @@ void GameScene::dispose() {
         _inventory  = nullptr;
         _attackArea = nullptr;
         _bossNode   = nullptr;
+        _leftPlayerSlot = nullptr;
+        _rightPlayerSlot = nullptr;
         _leftPlayerName = nullptr;
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
+        _bossHealthBarText = nullptr;
+        _playerHealthBarText = nullptr;
         _playerHealthBar = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
-        _playerSlots.clear();
         _itemWidgets.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
@@ -236,6 +314,10 @@ void GameScene::updateNetworkOrder() {
 
         _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
         _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
+        
+        _gameState.setEnemy(_network->getEnemy());
+        
+        initBackgroundAndBossImage();
     }
 }
 
@@ -551,9 +633,33 @@ void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
     if (!enemy || !enemy->isAlive()) return;
     
     _bossHealthBar->setProgress(enemy->getCurrentHealth()/enemy->getMaxHealth());
+    _bossHealthBarText->setText(std::to_string((int)enemy->getCurrentHealth()) + "/" + std::to_string((int)enemy->getMaxHealth()));
     
     auto player = _gameState.getLocalPlayer();
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
+    _playerHealthBarText->setText(std::to_string((int)player->getCurrentHealth()) + "/" + std::to_string((int)player->getMaxHealth()));
+}
+
+/**
+ * Updates the player and teammate UI icons to reflect their current health.
+ */
+void GameScene::updatePlayerAndTeammateIcons() {
+    auto localPlayer = _gameState.getLocalPlayer();
+
+    // Given each player and their respective slot, set the texture depending on their health state.
+    auto applyTexture = [&](auto slot, auto player) {
+        slot->setTexture(_assets->get<cugl::graphics::Texture>(
+            getHealthTexture(
+                getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
+                             player->getHouseName()
+            ))
+        );
+    };
+
+    applyTexture(_localPlayerSlot, localPlayer);
+    _localPlayerSlot->setScale(0.83f);
+    applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
+    applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
 }
 
 /**
@@ -804,6 +910,7 @@ void GameScene::update(float dt, InputController& input) {
 
     _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
+    updatePlayerAndTeammateIcons();
 }
 
 #pragma mark -
@@ -821,7 +928,7 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     if (!texture) return nullptr;
 
     auto widget = PolygonNode::allocWithTexture(texture);
-    widget->setContentSize(Size(74, 85));
+    widget->setContentSize(Size(80, 80));
     widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
     widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
     _inventory->addChild(widget);

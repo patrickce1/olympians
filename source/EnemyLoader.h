@@ -43,6 +43,8 @@ public:
 
 private:
     std::unordered_map<std::string, EnemyDef> _enemies;
+    /** A ordered vector of all enemies/bosses for selection */
+    std::vector<EnemyDef> _enemiesVector;
 
 private:
     static EventType parseEventType(const std::string& s) {
@@ -125,6 +127,7 @@ public:
                   def.spritesheetPath.c_str());
 
             _enemies[def.id] = def;
+            _enemiesVector.push_back(def);
         }
         return true;
     }
@@ -132,6 +135,8 @@ public:
     bool has(const std::string& id) const { return _enemies.count(id) > 0; }
     const EnemyDef& get(const std::string& id) const { return _enemies.at(id); }
     const std::unordered_map<std::string, EnemyDef>& getAll() const { return _enemies; }
+    /** Returns all the mapping of enemy id -> EnemyDef */
+    const std::vector<EnemyDef>& getAllOrdered() const { return _enemiesVector; }
 };
 
 #endif /* !__ENEMY_LOADER_H__ */
