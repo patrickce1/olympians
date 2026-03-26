@@ -135,7 +135,7 @@ void GameScene::initInputZones(){
     float w = dimen.width;
     float h = dimen.height;
     
-    _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.4f, w * 0.9f, h * 0.47f)}};
+    _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.45f, w * 0.9f, h * 0.40f)}};
     
     _supportZones = {
         {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.45f, w * 0.15f, h * 0.40f)},
@@ -643,10 +643,6 @@ void GameScene::handlePlayerInput(InputController& input) {
                     dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
                 }
                 
-                // Store inventory position for snapback target
-                _dragReleasedFromInventoryPos = _dragStartBodyPosition;
-                _dragReleasedItemId = _draggedItemId;
-                
                 // Initiate sliding with the calculated velocity
                 startItemSliding(_draggedItemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
             }
@@ -667,9 +663,6 @@ void GameScene::handlePlayerInput(InputController& input) {
             if (speed > ITEM_MOVEMENT_MAX_SPEED) {
                 dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
             }
-            
-            _dragReleasedFromInventoryPos = _dragStartBodyPosition;
-            _dragReleasedItemId = _draggedItemId;
             
             startItemSliding(_draggedItemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
         }
@@ -747,6 +740,7 @@ void GameScene::handleDragInitiation(InputController& input) {
                 Size widgetSize = widget->getContentSize();
                 _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
             }
+            
             _draggedItemDef = getHeldItemDef(id);
             updateInputZones();
             break;
@@ -961,17 +955,21 @@ void GameScene::updateSlidingItems(float dt) {
                         inInventoryBounds = inventoryBounds.contains(itemBody->getPosition());
                     }
                     
-                    // Only snapback if item is outside inventory bounds AND didn't hit a zone
-                    if (!inInventoryBounds && !item->hasZoneHitDuringSlide()) {
-                        // Start snapback animation
+                    if (!inInventoryBounds) {
+                        // Out of bounds - snapback to random inventory position
+                        auto widget = _itemWidgets[itemId];
+                        cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
+                        cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
+                        
                         _snapbackAnimationItemId = itemId;
                         _snapbackStartScreenPos = itemBody->getPosition();
-                        _snapbackTargetInventoryPos = _dragReleasedFromInventoryPos;
+                        _snapbackTargetInventoryPos = randomTarget;
                         _snapbackAnimationProgress = 0.0f;
+                        
+                        // Stop sliding so snapback animation takes over
+                        item->setSliding(false);
                     } else {
-                        // Item is in inventory or hit a zone, mark as settled
-                        // Update snapback target to current position if in valid location
-                        _dragReleasedFromInventoryPos = itemBody->getPosition();
+                        // In bounds, just settle
                         item->setSliding(false);
                         itemsToRemove.push_back(itemId);
                     }
@@ -979,8 +977,6 @@ void GameScene::updateSlidingItems(float dt) {
                 }
                 case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN: {
                     // Spawned item settled, now zone-interactive
-                    // Set snapback position to where the item settled
-                    _dragReleasedFromInventoryPos = itemBody->getPosition();
                     item->setCanInteractWithZones(true);
                     item->setSliding(false);
                     itemsToRemove.push_back(itemId);
@@ -1170,8 +1166,8 @@ void GameScene::update(float dt, InputController& input) {
         _itemPhysicsWorld->update(dt);
     }
     
-    // Check zone interactions after physics update
-    checkZoneInteractionsForSlidingItems();
+    // TODO: Re-enable zone interactions once simplified
+    // checkZoneInteractionsForSlidingItems();
     
     syncItemWidgetsToBodies();
     syncInventoryWidgets();

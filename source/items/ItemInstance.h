@@ -93,6 +93,7 @@ private:
     float _slideSettleTime = 2.0f;                              // Configurable settlement duration (seconds)
     SlideOriginType _slideOrigin = SlideOriginType::SLIDE_FROM_SPAWN; // Where the slide came from
     bool _zoneHitDuringSlide = false;                           // Tracks if item hit zone during dropped slide
+    cugl::Vec2 _snapbackPosition{0.0f, 0.0f};                   // Position to return to if dropped out of bounds
     
 public:
     ItemInstance() = default;
@@ -241,6 +242,22 @@ public:
      * @param hitZone true if item hit a zone, false otherwise
      */
     void setZoneHitDuringSlide(bool hitZone) { _zoneHitDuringSlide = hitZone; }
+    
+    /**
+     * Returns the snapback position for this item.
+     * This is where the item should return to if dropped out of bounds.
+     *
+     * @return the snapback position as a Vec2
+     */
+    const cugl::Vec2& getSnapbackPosition() const { return _snapbackPosition; }
+    
+    /**
+     * Sets the snapback position for this item.
+     * This position is set when the item is dragged or first spawns.
+     *
+     * @param position the position to snap back to if dropped out of bounds
+     */
+    void setSnapbackPosition(const cugl::Vec2& position) { _snapbackPosition = position; }
     
     /**
      * Serializes this ItemInstance to a JSON object.
