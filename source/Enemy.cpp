@@ -37,13 +37,14 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     _spritesheetPath = def.spritesheetPath;
     _maxHealth = def.maxHealth;
     _currentHealth = def.maxHealth;
-    _states = def.states;
+    _states = def.states; //replace with a getStates method
 
-    if (_states.count("idle") == 0) {
+    //maybe add a check for every type of state because all are expected
+    if (_states.count(EnemyLoader::State::IDLE) == 0) {
         CULog("Enemy '%s' missing idle state", enemyId.c_str());
         return false;
     }
-    enterState("idle");
+    enterState(EnemyLoader::State::IDLE);
 
     _attackLockout = 0.0f;
     _retargetLikelihood = def.ai.retargetLikelihood;
@@ -60,11 +61,12 @@ const EnemyLoader::StateDef* Enemy::getCurrentStateDef() const {
 }
 
 /** Returns true if successfully enters requested state. False and idle otherwise. */
-bool Enemy::requestState(const std::string& stateName) {
-    if (_states.count(stateName) == 0) return false;    // State doesn't exist
-    if (_attackLockout > 0.0f && stateName != "idle") return false; // Lockout is active, only allow idle
+bool Enemy::requestState(EnemyLoader::State state) {
+    if (_states.count(state) == 0) return false;    // State doesn't exist
+    if (_attackLockout > 0.0f && state != EnemyLoader::State::IDLE) return false; // Lockout is active, only allow idle
+    //change this to work for defense and attacks
 
-    enterState(stateName);
+    enterState(state);
     return true;
 }
 
@@ -76,8 +78,8 @@ void Enemy::setRetargetLikelihood(float v) {
 }
 
 /** Immediately enters the state and resets timers. */
-void Enemy::enterState(const std::string& stateName) {
-    _currentState = stateName;
+void Enemy::enterState(EnemyLoader::State state) {
+    _currentState = state;
     _stateTime = 0.0f;
     _eventsFiredThisState = false;
 }
@@ -105,7 +107,7 @@ void Enemy::fireEvents() {
     for (const auto& ev : st->events) {
         FiredEvent fe;
         fe.def = ev;
-        fe.stateName = st->name;
+        fe.state = st->state;
         _firedEvents.push_back(fe);
     }
 
@@ -120,14 +122,15 @@ void Enemy::applyCooldown() {
 }
 
 /** Returns the next state if defined by current state or "idle" by default. */
-std::string Enemy::getNextStateOrIdle() const {
+EnemyLoader::State Enemy::getNextStateOrIdle() const {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
-    if (!st) return "idle";
+    if (!st) return EnemyLoader::State::IDLE;
 
-    if (!st->nextState.empty() && _states.count(st->nextState) > 0) {
+    if (_states.count(st->nextState) > 0) {
         return st->nextState;
     }
-    return "idle";
+
+    return EnemyLoader::State::IDLE;
 }
 
 /** Main update loop for enemy. Handles firing events, applying cooldown, transition to next state. */

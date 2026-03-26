@@ -8,6 +8,7 @@
 
 #include "Enemy.h"
 #include "Player.h"
+#include "NetworkMessage.h"
 
 /**
  * EnemyController
@@ -25,9 +26,11 @@ public:
 
     void enterIdle(const std::shared_ptr<Enemy>& enemy,
                    std::vector<std::shared_ptr<Player>>& players);
+
     void update(float dt,
                 const std::shared_ptr<Enemy>& enemy,
-                std::vector<std::shared_ptr<Player>>& players);
+                std::vector<std::shared_ptr<Player>>& players,
+                std::vector<AttackMessage> attacks);
 
 private:
     cugl::Random _rng;
@@ -53,6 +56,9 @@ private:
     void resolveDamageEvent(const std::shared_ptr<Enemy>& enemy,
                             std::vector<std::shared_ptr<Player>>& players,
                             const Enemy::FiredEvent& fe);
+
+    // Handler used to figure out how to react to player damage
+    void handleDamageLogic(std::shared_ptr<Enemy>& enemy, float damage, int playerIndex);
 };
 
 #endif /* __ENEMY_CONTROLLER_H__ */

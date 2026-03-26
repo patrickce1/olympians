@@ -19,7 +19,28 @@ class Enemy {
 public:
     struct FiredEvent {
         EnemyLoader::EventDef def;   // type, target offset, amount, etc.
-        std::string stateName;       // state that fired this event (debug)
+        EnemyLoader::State state;       // state that fired this event (debug)
+    };
+
+    //This represents the weak points and shields of the boss
+    struct BossSide {
+        float multiplier;           // how much damage is changed (ex. 0.5 means damage is halved)
+        bool enabled;               // whether the multipler should be on right now. If false, all damage is 1x
+    };
+    
+    // Enum that tracks which boss this is
+    enum Bosses {
+        CYCLOPS = 0,
+        CERBERUS = 1,
+    };
+
+    // This is an EXAMPLE of how we can store extra data about specific bosses (not implemented yet)
+    // We would just make this and allow the controller figure out the behavior
+    // Also custom animations based on head state r here
+    struct Cerberus {
+        int head1Health;
+        int head2Health;
+        int head3Health;
     };
 
 private:
@@ -32,9 +53,10 @@ private:
     float _maxHealth = 0.0f;
     float _currentHealth = 0.0f;
 
-    std::unordered_map<std::string, EnemyLoader::StateDef> _states;
+    std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef> _states;
 
-    std::string _currentState = "idle";
+    EnemyLoader::State _currentState = EnemyLoader::State::IDLE;
+    //how long we have been in this state
     float _stateTime = 0.0f;
     bool _eventsFiredThisState = false;
 
@@ -43,6 +65,8 @@ private:
     float _retargetLikelihood = 0.0f;
 
     std::vector<FiredEvent> _firedEvents;
+
+    std::vector<BossSide> _sides;
 
 public:
     Enemy() = default;
@@ -61,18 +85,25 @@ public:
     int getTargetIndex() const { return _targetIndex; }
     int setTargetIndex(int index) { _targetIndex = index;  }
 
-    const std::string& getCurrentStateName() const { return _currentState; }
+    EnemyLoader::State getCurrentState() const { return _currentState; }
+    float getStateTime() const { return _stateTime; }
     const EnemyLoader::StateDef* getCurrentStateDef() const;
 
     float getAttackLockoutRemaining() const { return _attackLockout; }
     bool canStartNonIdleState() const { return _attackLockout <= 0.0f; }
     float getRetargetLikelihood() const { return _retargetLikelihood; }
     void  setRetargetLikelihood(float v);
+
+    //returns the multiplier data for that side
+    BossSide getSide(int index);
+    
+    //lets you enable/disable the data for that side
+    void activateSide(int index, bool activate);
     
     // Expose state defs so controller can pick attacks by tag
-    const std::unordered_map<std::string, EnemyLoader::StateDef>& getStates() const { return _states; }
+    const std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef>& getStates() const { return _states; }
 
-    bool requestState(const std::string& stateName);
+    bool requestState(EnemyLoader::State state);
     void update(float dt);
 
     std::vector<FiredEvent> takeFiredEvents();
@@ -81,12 +112,13 @@ public:
     void updateHealth(float delta);
 
 private:
-    void enterState(const std::string& stateName);
+    void enterState(EnemyLoader::State state);
     void tick(float dt);
     bool readyToFire() const;
     void fireEvents();
     void applyCooldown();
-    std::string getNextStateOrIdle() const;
+    EnemyLoader::State getNextStateOrIdle() const;
+    
 };
 
 #endif /* !__ENEMY_H__ */

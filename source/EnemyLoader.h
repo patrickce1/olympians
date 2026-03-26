@@ -8,6 +8,17 @@
 
 class EnemyLoader {
 public:
+    //keeps track of the current state the boss is in
+    //since every boss follows the pattern of Passive, 3 Attacks, and 1 Defensive move, we can just universally apply this
+    enum State {
+        IDLE,
+        PASSIVE_SPECIAL,             // special states that come as a result of our passive. Ex. Cerberus stun. Doesn't apply to all
+        ATTACK_1,
+        ATTACK_2,
+        ATTACK_3,
+        DEFENSE_MOVE,
+    };
+
     enum class EventType { DAMAGE, UNKNOWN };
 
     struct EventDef {
@@ -18,12 +29,12 @@ public:
     };
 
     struct StateDef {
-        std::string name;
+        State state;
         int animationRow = 0;
         std::string tag;
         float buildUpTime = 0.0f;
         float cooldownTime = 0.0f;
-        std::string nextState;
+        State nextState = IDLE;
         std::vector<EventDef> events;
     };
 
@@ -38,7 +49,7 @@ public:
         float maxHealth = 0.0f;
         std::string spritesheetPath;
         AIConfig ai;
-        std::unordered_map<std::string, StateDef> states;
+        std::unordered_map<State, StateDef> states;
     };
 
 private:
@@ -80,12 +91,12 @@ public:
                 if (!st) continue;
 
                 StateDef sdef;
-                sdef.name = st->_key;
+                sdef.state = State::IDLE; //TODO: make a "read state" function that standardizes
                 sdef.animationRow = st->getInt("animationRow", 0);
                 sdef.tag = st->getString("tag", "");
                 sdef.buildUpTime  = st->getFloat("buildUpTime", 0.0f);
                 sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
-                sdef.nextState    = st->getString("nextState", "idle");
+                sdef.nextState    = st->getString("nextState", "idle"); //TODO: read state function again
 
                 auto aiObj = entry->get("ai");
                 if (aiObj && aiObj->isObject()) {
@@ -111,7 +122,7 @@ public:
                     }
                 }
 
-                def.states[sdef.name] = sdef;
+                def.states[sdef.state] = sdef;
             }
 
             CUAssertLog(def.states.count("idle") > 0,
