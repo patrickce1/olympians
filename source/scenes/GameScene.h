@@ -195,9 +195,6 @@ protected:
      */
     GameState _gameState;
 
-    /** Keeps track of whether or not we are the host */
-    bool _host;
-
     Status _status;
 
 public:

@@ -87,13 +87,8 @@ private:
     // Sliding state tracking
     bool _isSliding = false;                                    // Whether item is currently sliding/animating
     bool _canInteractWithZones = false;                         // Whether item can trigger drop zones
-    bool _isBeingPassed = false;                                // Whether item is in transit during a pass
     cugl::Vec2 _slideVelocity{0.0f, 0.0f};                      // Current velocity during slide animation
-    float _slideAnimationTimer = 0.0f;                          // Countdown timer for slide/settlement
-    float _slideSettleTime = 2.0f;                              // Configurable settlement duration (seconds)
     SlideOriginType _slideOrigin = SlideOriginType::SLIDE_FROM_SPAWN; // Where the slide came from
-    bool _zoneHitDuringSlide = false;                           // Tracks if item hit zone during dropped slide
-    cugl::Vec2 _snapbackPosition{0.0f, 0.0f};                   // Position to return to if dropped out of bounds
     int _passDirection = 0;                                      // Direction passed from: 0=none, 1=left, 2=right
     
 public:
@@ -144,33 +139,11 @@ public:
     bool canInteractWithZones() const { return _canInteractWithZones; }
     
     /**
-     * Returns whether this item is currently being passed to another player.
-     * Items marked as being passed cannot interact with zones until settled.
-     *
-     * @return true if item is in transit during a pass, false otherwise
-     */
-    bool isBeingPassed() const { return _isBeingPassed; }
-    
-    /**
      * Returns the current velocity of this item during sliding animation.
      *
      * @return a Vec2 representing velocity (units/sec)
      */
     const cugl::Vec2& getSlideVelocity() const { return _slideVelocity; }
-    
-    /**
-     * Returns the countdown timer for this item's slide/settlement animation.
-     *
-     * @return time remaining in slide animation (seconds)
-     */
-    float getSlideAnimationTimer() const { return _slideAnimationTimer; }
-    
-    /**
-     * Returns the expected settlement duration for this item's slide.
-     *
-     * @return settlement duration threshold (seconds)
-     */
-    float getSlideSettleTime() const { return _slideSettleTime; }
     
     /**
      * Returns the origin type of this item's slide motion.
@@ -195,13 +168,6 @@ public:
     void setCanInteractWithZones(bool canInteract) { _canInteractWithZones = canInteract; }
     
     /**
-     * Sets whether this item is currently being passed to another player.
-     *
-     * @param isBeingPassed true to mark item as in transit, false once settled
-     */
-    void setIsBeingPassed(bool isBeingPassed) { _isBeingPassed = isBeingPassed; }
-    
-    /**
      * Sets the velocity for this item's slide animation.
      *
      * @param velocity a Vec2 representing velocity (units/sec)
@@ -209,56 +175,11 @@ public:
     void setSlideVelocity(const cugl::Vec2& velocity) { _slideVelocity = velocity; }
     
     /**
-     * Sets the countdown timer for this item's slide/settlement animation.
-     *
-     * @param timer time remaining in slide animation (seconds)
-     */
-    void setSlideAnimationTimer(float timer) { _slideAnimationTimer = timer; }
-    
-    /**
-     * Sets the expected settlement duration for this item's slide.
-     *
-     * @param settleTime how long until item is fully settled (seconds)
-     */
-    void setSlideSettleTime(float settleTime) { _slideSettleTime = settleTime; }
-    
-    /**
      * Sets the origin type of this item's slide motion.
      *
      * @param origin the SlideOriginType indicating where the slide came from
      */
     void setSlideOrigin(SlideOriginType origin) { _slideOrigin = origin; }
-    
-    /**
-     * Returns whether this item hit a zone during its dropped-item slide.
-     *
-     * @return true if item collided with an appropriate zone, false otherwise
-     */
-    bool hasZoneHitDuringSlide() const { return _zoneHitDuringSlide; }
-    
-    /**
-     * Sets the zone-hit tracking flag (used by GameScene zone detection).
-     * Set to true when item hits an appropriate zone during dropped-item sliding.
-     *
-     * @param hitZone true if item hit a zone, false otherwise
-     */
-    void setZoneHitDuringSlide(bool hitZone) { _zoneHitDuringSlide = hitZone; }
-    
-    /**
-     * Returns the snapback position for this item.
-     * This is where the item should return to if dropped out of bounds.
-     *
-     * @return the snapback position as a Vec2
-     */
-    const cugl::Vec2& getSnapbackPosition() const { return _snapbackPosition; }
-    
-    /**
-     * Sets the snapback position for this item.
-     * This position is set when the item is dragged or first spawns.
-     *
-     * @param position the position to snap back to if dropped out of bounds
-     */
-    void setSnapbackPosition(const cugl::Vec2& position) { _snapbackPosition = position; }
     
     /**
      * Returns which side this item was passed from.

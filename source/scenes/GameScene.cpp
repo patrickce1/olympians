@@ -34,8 +34,6 @@ constexpr float ITEM_SLIDE_SNAPBACK_ANIMATION_TIME = 0.3f;
 /** Maximum speed cap for sliding items to prevent excessive velocities (units/sec) */
 constexpr float ITEM_MOVEMENT_MAX_SPEED = 2000.0f;
 
-/** Maximum number of items allowed in inventory at once */
-constexpr int MAX_INVENTORY_ITEMS = 5;
 
 #pragma mark -
 #pragma mark Constructors
@@ -141,8 +139,8 @@ void GameScene::initInputZones(){
     _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.45f, w * 0.9f, h * 0.40f)}};
     
     _supportZones = {
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(0,         h * 0.45f, w * 0.15f, h * 0.40f)},
-        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.85f, h * 0.45f, w * 0.15f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.45f, w * 0.399f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.75f,   h * 0.45f, w * 0.399f, h * 0.40f)},
     };
     
     _inventoryZones = {
@@ -912,14 +910,12 @@ void GameScene::startItemSliding(ItemInstance::ItemId itemId, const cugl::Vec2& 
     item->setSliding(true);
     item->setSlideVelocity(velocity);
     item->setSlideOrigin(origin);
-    item->setSlideAnimationTimer(item->getSlideSettleTime());
 
     // Set zone-interaction capability based on origin
     switch (origin) {
         case ItemInstance::SlideOriginType::SLIDE_FROM_DROP:
             // Dropped items can interact with zones immediately
             item->setCanInteractWithZones(true);
-            item->setZoneHitDuringSlide(false);
             break;
         case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN:
             // Spawned items cannot interact with zones until settled
@@ -928,7 +924,6 @@ void GameScene::startItemSliding(ItemInstance::ItemId itemId, const cugl::Vec2& 
         case ItemInstance::SlideOriginType::SLIDE_FROM_PASS:
             // Passed items cannot interact with zones until settled
             item->setCanInteractWithZones(false);
-            item->setIsBeingPassed(true);
             break;
     }
 
@@ -1036,7 +1031,6 @@ void GameScene::updateSlidingItems(float dt) {
                 case ItemInstance::SlideOriginType::SLIDE_FROM_PASS: {
                     // Passed item settled, now zone-interactive
                     item->setCanInteractWithZones(true);
-                    item->setIsBeingPassed(false);
                     item->setSliding(false);
                     itemsToRemove.push_back(itemId);
                     break;
@@ -1158,10 +1152,9 @@ void GameScene::checkZoneInteractionsForSlidingItems() {
                 typeMatches = true;
             }
             
-            if (typeMatches && !item->hasZoneHitDuringSlide()) {
+            if (typeMatches) {
                 // First time hitting a matching zone - trigger the action immediately
                 handlePlayerActions(action, itemId);
-                item->setZoneHitDuringSlide(true);
                 break;
             }
         }
@@ -1393,6 +1386,9 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
         }
         _itemBodies.erase(body);
     }
+    
+    // Clean up pass tracking to prevent memory leak
+    _passedItemIds.erase(itemId);
 }
 
 /** Helper function to spawn an item widget from a given position with animation.
@@ -1496,7 +1492,24 @@ void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
 
 /** Draws zone outlines and a fading glow on the last successfully used zone. */
 void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
-    // Zone glow disabled - zones are still active for gameplay but not visually displayed
+    // Draw outlines for all zones
+    batch->setColor(Color4(0, 255, 0, 255));
+    for (const auto& [action, zone] : _attackZones) {
+        Path2 path(zone);
+        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+    }
+    for (const auto& [action, zone] : _supportZones) {
+        Path2 path(zone);
+        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+    }
+    for (const auto& [action, zone] : _passZones) {
+        Path2 path(zone);
+        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+    }
+    for (const auto& [action, zone] : _inventoryZones) {
+        Path2 path(zone);
+        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+    }
 }
 
 /** Draws a magenta outline around each visible item widget's bounding box. */
