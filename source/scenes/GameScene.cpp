@@ -143,12 +143,12 @@ void GameScene::initInputZones(){
     };
     
     _inventoryZones = {
-        {InputController::Action::NONE, Rect(w * 0.15f, 0, w * 0.70f, h * 0.35f)}
+        {InputController::Action::NONE, Rect(w * 0.10f, 0, w * 0.80f, h * 0.35f)}
     };
     
     _passZones = {
-        {InputController::Action::PASS_LEFT,  Rect(0,         0, w * 0.15f, h * 0.35f)},
-        {InputController::Action::PASS_RIGHT, Rect(w * 0.85f, 0, w * 0.15f, h * 0.35f)}
+        {InputController::Action::PASS_LEFT,  Rect(-w * 0.149f, 0, w * 0.15f, h * 0.35f)},
+        {InputController::Action::PASS_RIGHT, Rect(w * 0.999f,   0, w * 0.15f, h * 0.35f)}
     };
 }
 
@@ -1087,14 +1087,32 @@ void GameScene::checkZoneInteractionsForSlidingItems() {
         if (!itemBody) continue;
 
         cugl::Vec2 itemPos = itemBody->getPosition();
+        auto itemDef = _itemController.getDatabase().getDef(item->getDefId());
+        if (!itemDef) continue;
 
-        // Check against all zones with strict type matching
+        // Check against all zones
         for (auto& [action, zone] : _inputZones) {
             if (!zone.contains(itemPos)) continue;
 
-            // TODO: Implement zone-type matching and action handling
-            // For now, just mark that zone was hit
-            item->setZoneHitDuringSlide(true);
+            // Check for type matching
+            bool typeMatches = false;
+            
+            if (action == InputController::Action::DROP_BOSS && itemDef->getType() == ItemDef::Type::Attack) {
+                typeMatches = true;
+            } else if ((action == InputController::Action::DROP_ALLY_LEFT || action == InputController::Action::DROP_ALLY_RIGHT) 
+                       && itemDef->getType() == ItemDef::Type::Support) {
+                typeMatches = true;
+            } else if (action == InputController::Action::PASS_LEFT || action == InputController::Action::PASS_RIGHT) {
+                // Pass zones work with any item type
+                typeMatches = true;
+            }
+            
+            if (typeMatches && !item->hasZoneHitDuringSlide()) {
+                // First time hitting a matching zone - trigger the action immediately
+                handlePlayerActions(action, itemId);
+                item->setZoneHitDuringSlide(true);
+                break;
+            }
         }
     }
 }
@@ -1166,8 +1184,7 @@ void GameScene::update(float dt, InputController& input) {
         _itemPhysicsWorld->update(dt);
     }
     
-    // TODO: Re-enable zone interactions once simplified
-    // checkZoneInteractionsForSlidingItems();
+    checkZoneInteractionsForSlidingItems();
     
     syncItemWidgetsToBodies();
     syncInventoryWidgets();
@@ -1395,17 +1412,7 @@ void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
 
 /** Draws zone outlines and a fading glow on the last successfully used zone. */
 void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
-    for (auto& [action, rect] : _inputZones) {
-        Path2 path(rect);
-        if (action == _glowAction && _glowTimer > 0) {
-            float t = _glowTimer / _glowDuration;
-            Uint8 alpha = (Uint8)(150 * t);
-            batch->setColor(Color4(0, 255, 0, alpha));
-            batch->fill(path, Vec2::ZERO, Affine2::IDENTITY);
-        }
-        batch->setColor(Color4(0, 255, 0, 80));
-        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
-    }
+    // Zone glow disabled - zones are still active for gameplay but not visually displayed
 }
 
 /** Draws a magenta outline around each visible item widget's bounding box. */
@@ -1472,18 +1479,10 @@ void GameScene::render() {
  * If a support item is held, the support zones are added to _inputZones.
  */
 void GameScene::updateInputZones(){
-    if (!_draggedItemDef){
-        _inputZones = {};
-        return;
-    }
-    
-    if (_draggedItemDef->getType() == ItemDef::Type::Attack){
-        _inputZones = _attackZones;
-    }
-    else {
-        _inputZones = _supportZones;
-    }
-    
+    // Always keep all zones active for sliding items to trigger actions
+    // Visual highlighting will be handled separately based on held item
+    _inputZones = _attackZones;
+    _inputZones.insert(_inputZones.end(), _supportZones.begin(), _supportZones.end());
     _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
     _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
 }
