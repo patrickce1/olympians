@@ -264,6 +264,9 @@ public:
      * @return true if both systems initialised successfully.
      */
     bool initGameSystems();
+
+    /** Loads data-driven tuning values used by teammate damage blink UI. */
+    void initDamageBlinkConfig();
     
     /**
      * Initializes the background and boss images for the current game scene.

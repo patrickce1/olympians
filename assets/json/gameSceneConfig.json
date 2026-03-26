@@ -1,0 +1,6 @@
+{
+    "teammateDamageBlink": {
+        "duration": 0.45,
+        "interval": 0.12
+    }
+}

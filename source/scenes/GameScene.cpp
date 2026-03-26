@@ -173,6 +173,34 @@ bool GameScene::initGameSystems() {
 }
 
 /**
+ * Loads data-driven tuning values used by teammate damage blink UI.
+ *
+ * Missing or invalid fields leave the current defaults unchanged.
+ */
+void GameScene::initDamageBlinkConfig() {
+    if (!_assets) {
+        return;
+    }
+
+    auto config = _assets->get<JsonValue>("gameSceneConfig");
+    if (!config || !config->isObject()) {
+        return;
+    }
+
+    auto blinkConfig = config->get("teammateDamageBlink");
+    if (!blinkConfig || !blinkConfig->isObject()) {
+        return;
+    }
+
+    if (blinkConfig->has("duration") && blinkConfig->get("duration")->isNumber()) {
+        _damageBlinkDuration = std::max(0.0f, blinkConfig->getFloat("duration"));
+    }
+    if (blinkConfig->has("interval") && blinkConfig->get("interval")->isNumber()) {
+        _damageBlinkInterval = std::max(0.0f, blinkConfig->getFloat("interval"));
+    }
+}
+
+/**
  * Initializes touch/mouse input zones mapped to game actions.
  *
  * Divides the screen into named rectangular regions scaled to the current
@@ -242,7 +270,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
 
     _assets = assets;
     _network = networkController;
-
+    
+    initDamageBlinkConfig();
     initInputZones();
 
     if (!initSceneGraph()) {

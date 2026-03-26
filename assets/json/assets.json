@@ -371,7 +371,8 @@
         }
     },
     "jsons": {
-        "server": "json/server.json"
+        "server": "json/server.json",
+        "gameSceneConfig": "json/gameSceneConfig.json"
     },
     "widgets": {
         "scene":       "json/scenes/gameScene.json",
