@@ -54,7 +54,15 @@ public:
      * @param player    The player receiving the item.
      * @param itemDefId The definition ID string of the item to give.
      */
-    void giveItemByID(Player* player, const std::string& itemDefId);
+    /**
+     * Creates an item instance from a definition ID and adds it to the player's inventory.
+     * Returns the unique ID of the created item for tracking purposes.
+     * 
+     * @param player      The player receiving the item
+     * @param itemDefId   The definition ID of the item to create
+     * @return            The ItemId of the newly created item, or 0 if creation failed
+     */
+    ItemInstance::ItemId giveItemByID(Player* player, const std::string& itemDefId);
 };
 
 #endif // __ITEM_CONTROLLER_H__

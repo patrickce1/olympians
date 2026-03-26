@@ -126,6 +126,11 @@ protected:
     /** Set of ItemIds currently sliding/animating. */
     std::unordered_set<ItemInstance::ItemId> _slidingItems;
 
+    /** Set of ItemIds that are in transit as passes (not natural spawns). 
+     *  These bypass inventory limits and animate from sides instead of center-bottom.
+     *  Items are added here when passed (human or networked) and removed when picked up. */
+    std::unordered_set<ItemInstance::ItemId> _passedItemIds;
+
     /** Item body position from previous frame, used to calculate release velocity. */
     cugl::Vec2 _dragPreviousFrameItemBodyPos = cugl::Vec2::ZERO;
 
@@ -419,7 +424,8 @@ public:
     void handleDragTracking(InputController& input);
 
     /**
-    * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory
+    * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory.
+    * Marks received items as passes so they bypass inventory limits and spawn from sides.
     * If we are the host, it will also give the correct items to the AI
     * Intended usage: get the pass message vector from the network controller and pass into this function
     */
@@ -534,6 +540,13 @@ public:
 
     /** Return a random valid inventory position for a newly spawned item widget */
     cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
+    
+    /** Return a spawn position for a passed item based on which side it came from
+     *
+     * @param passDirection  0 for none, 1 for passed from left, 2 for passed from right
+     * @return               The spawn position below the side the item came from
+     */
+    cugl::Vec2 getPassSpawnPosition(int passDirection) const;
 
     /** Creates and registers the Box2D body for an item widget.
      *
@@ -553,6 +566,15 @@ public:
      * @param itemId  The itemId representing the ItemInstance to be removed.
      */
     void removeItemWidget(ItemInstance::ItemId itemId);
+
+    /**
+     * Helper function to spawn an item widget from a given position with animation.
+     *
+     * @param item       The ItemInstance to spawn
+     * @param spawnPos   The world position to spawn from
+     * @param slideOrigin The origin type of the slide (SPAWN or PASS)
+     */
+    void _spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spawnPos, ItemInstance::SlideOriginType slideOrigin);
 
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();

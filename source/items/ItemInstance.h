@@ -94,6 +94,7 @@ private:
     SlideOriginType _slideOrigin = SlideOriginType::SLIDE_FROM_SPAWN; // Where the slide came from
     bool _zoneHitDuringSlide = false;                           // Tracks if item hit zone during dropped slide
     cugl::Vec2 _snapbackPosition{0.0f, 0.0f};                   // Position to return to if dropped out of bounds
+    int _passDirection = 0;                                      // Direction passed from: 0=none, 1=left, 2=right
     
 public:
     ItemInstance() = default;
@@ -258,6 +259,21 @@ public:
      * @param position the position to snap back to if dropped out of bounds
      */
     void setSnapbackPosition(const cugl::Vec2& position) { _snapbackPosition = position; }
+    
+    /**
+     * Returns which side this item was passed from.
+     * Used for determining spawn animation direction for passed items.
+     *
+     * @return 0 if not passed, 1 if passed from left, 2 if passed from right
+     */
+    int getPassDirection() const { return _passDirection; }
+    
+    /**
+     * Sets which side this item was passed from.
+     *
+     * @param direction 0 for not passed, 1 for passed from left, 2 for passed from right
+     */
+    void setPassDirection(int direction) { _passDirection = direction; }
     
     /**
      * Serializes this ItemInstance to a JSON object.

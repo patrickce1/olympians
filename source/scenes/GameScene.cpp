@@ -94,8 +94,11 @@ bool GameScene::initSceneGraph() {
  */
 bool GameScene::initInventoryPhysics() {
     // Expand bounds beyond screen to accommodate spawning and physics overflow
+    // Must include side spawn positions (-10% to 110% of screen width)
+    // and account for item body sizes
     cugl::Size screenSize = getSize();
-    Rect worldBounds(0.0f, -200.0f, screenSize.width, screenSize.height + 300.0f);
+    Rect worldBounds(-screenSize.width * 0.25f, -300.0f, 
+                     screenSize.width * 1.5f, screenSize.height + 400.0f);
     _itemPhysicsWorld = cugl::physics2::ObstacleWorld::alloc(worldBounds, Vec2::ZERO);
     if (!_itemPhysicsWorld) {
         CULogError("Failed to create item physics world");
@@ -428,6 +431,23 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
     Player* target = local ? local->getLeftPlayer() : nullptr;
     if (!local || !target || itemId == 0) return false;
 
+    // For real players, verify they're still in the networked players list
+    if (!target->isAI()) {
+        const auto& networkedPlayers = _network->getNetworkedPlayers();
+        int targetSlot = target->getPlayerNumber();
+        if (targetSlot >= (int)networkedPlayers.size()) {
+            CULog("Cannot pass to player %d: player slot out of range", targetSlot);
+            return false;
+        }
+    }
+
+    // Check if target player is in disconnected slots
+    const auto& disconnected = _network->getDisconnectedSlots();
+    if (std::find(disconnected.begin(), disconnected.end(), target->getPlayerNumber()) != disconnected.end()) {
+        CULog("Cannot pass to player %d: player is disconnected", target->getPlayerNumber());
+        return false;
+    }
+
     for (const ItemInstance& item : local->getInventory()) {
         if (item.getId() != itemId) continue;
 
@@ -442,7 +462,7 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
             CULog("Passing left to player AI player with number %d", target->getPlayerNumber());
         }
 
-        _network->broadcastPass(defId, target->getPlayerNumber());
+        _network->broadcastPass(defId, target->getPlayerNumber(), 1);  // Direction 1 = left
         return true;
     }
     return false;
@@ -458,13 +478,30 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
     Player* target = local ? local->getRightPlayer() : nullptr;
     if (!local || !target || itemId == 0) return false;
 
+    // For real players, verify they're still in the networked players list
+    if (!target->isAI()) {
+        const auto& networkedPlayers = _network->getNetworkedPlayers();
+        int targetSlot = target->getPlayerNumber();
+        if (targetSlot >= (int)networkedPlayers.size()) {
+            CULog("Cannot pass to player %d: player slot out of range", targetSlot);
+            return false;
+        }
+    }
+
+    // Check if target player is in disconnected slots
+    const auto& disconnected = _network->getDisconnectedSlots();
+    if (std::find(disconnected.begin(), disconnected.end(), target->getPlayerNumber()) != disconnected.end()) {
+        CULog("Cannot pass to player %d: player is disconnected", target->getPlayerNumber());
+        return false;
+    }
+
     for (const ItemInstance& item : local->getInventory()) {
         if (item.getId() != itemId) continue;
 
         // Capture defId BEFORE removing the item
         std::string defId = item.getDefId();
         local->removeItemById(itemId);
-
+        
         if (!target->isAI()) {
             CULog("Passing right to a real player with the number %d", target->getPlayerNumber());
         }
@@ -472,7 +509,7 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
             CULog("Passing right to player AI player with number %d", target->getPlayerNumber());
         }
 
-        _network->broadcastPass(defId, target->getPlayerNumber());
+        _network->broadcastPass(defId, target->getPlayerNumber(), 2);  // Direction 2 = right
         return true;
     }
     return false;
@@ -484,11 +521,25 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
 * Intended usage: get the pass message vector from the network controller and pass into this function
 */
 void GameScene::processNetworkedPasses(std::vector<PassMessage> passes) {
-    for (PassMessage pass : passes) {
-        Player* player = _gameState.getPlayerById(pass.playerID);
-        if (!player) continue;
-        // Give the specific item that was passed, not a random one
-        _itemController.giveItemByID(player, pass.itemID);
+    for (const PassMessage& pass : passes) {
+        Player* receiver = _gameState.getPlayerById(pass.playerID);
+        if (!receiver) continue;
+        
+        // Add item to inventory and get its unique ID
+        ItemInstance::ItemId itemId = _itemController.giveItemByID(receiver, pass.itemID);
+        if (itemId == 0) continue;
+        
+        // Track it as a passed item so it bypasses inventory limits and spawns from side
+        _passedItemIds.insert(itemId);
+        
+        // Set pass direction on the item for animation
+        auto& inventory = const_cast<std::vector<ItemInstance>&>(receiver->getInventory());
+        for (auto& item : inventory) {
+            if (item.getId() == itemId) {
+                item.setPassDirection(pass.passDirection);
+                break;
+            }
+        }
     }
 }
 /**
@@ -936,9 +987,9 @@ void GameScene::updateSlidingItems(float dt) {
             cugl::Vec2 newPos = itemBody->getPosition() + velocity * dt;
             itemBody->setPosition(newPos);
 
-            // For passed/spawned items: clamp to inventory bounds
-            if (item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS ||
-                item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN) {
+            // Only clamp natural spawned items to inventory bounds during slide
+            // Passed items should animate in from outside without clamping
+            if (item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN) {
                 clampItemToBounds(itemBody);
             }
         } else {
@@ -1079,7 +1130,7 @@ void GameScene::checkZoneInteractionsForSlidingItems() {
             }
         }
         
-        if (!item || !item->canInteractWithZones() || !item->isSliding()) {
+        if (!item || !item->canInteractWithZones() || !item->isSliding() || item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS) {
             continue;
         }
 
@@ -1238,6 +1289,29 @@ cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size& widgetSize) c
     return cugl::Vec2(xDist(rng), yDist(rng));
 }
 
+/**
+ * Returns a spawn position for a passed item based on which side it came from.
+ * Items spawn at the side edge horizontally (at pass zone height).
+ *
+ * @param passDirection  0 for none, 1 for passed from left, 2 for passed from right
+ * @return               The spawn position in world coordinates
+ */
+cugl::Vec2 GameScene::getPassSpawnPosition(int passDirection) const {
+    cugl::Size screenSize = getSize();
+    float x = screenSize.width * 0.5f;  // Default to center
+    float y = screenSize.height * 0.2f;  // Spawn at middle pass zone height
+    
+    if (passDirection == 1) {
+        // Passed from left (sender on left) - receiver sees it from their right
+        x = screenSize.width * 1.1f;
+    } else if (passDirection == 2) {
+        // Passed from right (sender on right) - receiver sees it from their left
+        x = -screenSize.width * 0.1f;
+    }
+    
+    return cugl::Vec2(x, y);  // At side edge, pass zone height
+}
+
 /** Creates and registers the Box2D body for an item widget.
  *
  * @param itemId  The ItemInstance for which the item body is created.
@@ -1321,68 +1395,78 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
     }
 }
 
+/** Helper function to spawn an item widget from a given position with animation.
+ *
+ * @param item       The ItemInstance to spawn
+ * @param spawnPos   The world position to spawn from
+ * @param slideOrigin The origin type of the slide (SPAWN or PASS)
+ */
+void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spawnPos, ItemInstance::SlideOriginType slideOrigin) {
+    ItemInstance::ItemId id = item.getId();
+    
+    auto widget = createItemWidget(item);
+    if (!widget) return;
+    
+    // Move newly picked up item to front so it appears on top visually
+    _inventory->removeChild(widget);
+    _inventory->addChild(widget);
+    
+    widget->setPosition(spawnPos);
+    _itemWidgets.emplace(id, widget);
+    createItemBody(id, widget);
+    
+    auto itemBody = _itemBodies[id];
+    if (!itemBody) return;
+    
+    itemBody->setPosition(spawnPos);
+    
+    // Pick a random target position in the inventory
+    cugl::Size widgetSize = widget->getContentSize();
+    cugl::Vec2 targetPos = getRandomInventoryPosition(widgetSize);
+    
+    // Calculate direction and distance to target
+    cugl::Vec2 direction = targetPos - spawnPos;
+    float distance = direction.length();
+    
+    // Calculate velocity magnitude needed to reach target with deceleration
+    float velocityMagnitude = 0.0f;
+    if (distance > 0.0f) {
+        velocityMagnitude = std::sqrt(2.0f * ITEM_SLIDE_FRICTION_DECELERATION * distance);
+        velocityMagnitude = std::min(velocityMagnitude, ITEM_MOVEMENT_MAX_SPEED);
+    }
+    
+    cugl::Vec2 spawnVelocity = (distance > 0.0f) ? direction.normalize() * velocityMagnitude : cugl::Vec2::ZERO;
+    startItemSliding(id, spawnVelocity, slideOrigin);
+}
+
 /** Synchronises on-screen item widgets with the local player's current inventory. */
 void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();
     if (!_inventory || !local) return;
 
     std::unordered_set<ItemInstance::ItemId> liveIds;
-
+    
     for (const ItemInstance& item : local->getInventory()) {
         ItemInstance::ItemId id = item.getId();
         liveIds.insert(id);
 
         auto found = _itemWidgets.find(id);
         if (found == _itemWidgets.end()) {
-            // Check inventory limit before creating new widget
-            if (_itemWidgets.size() >= MAX_INVENTORY_ITEMS) {
-                continue;
-            }
-            
-            auto widget = createItemWidget(item);
-            if (!widget) continue;
-            
-            // Move newly picked up item to front so it appears on top visually
-            // Remove and re-add to bring to front of render order
-            _inventory->removeChild(widget);
-            _inventory->addChild(widget);
-            
-            // Position widget below screen immediately for spawn sliding
-            // This prevents visible flash of widget at random inventory position
+            // Check if this is a passed item (by tracking set OR passDirection metadata)
+            bool isPassedItem = (_passedItemIds.find(id) != _passedItemIds.end()) ||
+                               (item.getPassDirection() != 0);
             cugl::Size screenSize = getSize();
-            cugl::Vec2 spawnPos(screenSize.width * 0.5f, -50.0f); // Below screen
-            widget->setPosition(spawnPos);
+            cugl::Vec2 spawnPos;
             
-            _itemWidgets.emplace(id, widget);
-            createItemBody(id, widget);
-            
-            // Initiate spawn sliding animation for newly spawned items
-            auto itemBody = _itemBodies[id];
-            if (itemBody) {
-                itemBody->setPosition(spawnPos);
-                
-                // Pick a random target position in the inventory
-                Size widgetSize = widget->getContentSize();
-                Vec2 targetPos = getRandomInventoryPosition(widgetSize);
-                
-                // Calculate direction and distance to target
-                Vec2 direction = targetPos - spawnPos;
-                float distance = direction.length();
-                
-                // Calculate velocity magnitude needed to reach target with deceleration
-                // Using kinematics: v² = u² - 2*a*d, where final velocity = 0
-                // So: u = sqrt(2 * a * d)
-                float velocityMagnitude = 0.0f;
-                if (distance > 0.0f) {
-                    velocityMagnitude = std::sqrt(2.0f * ITEM_SLIDE_FRICTION_DECELERATION * distance);
-                    // Clamp velocity to maximum speed cap
-                    velocityMagnitude = std::min(velocityMagnitude, ITEM_MOVEMENT_MAX_SPEED);
-                }
-                
-                // Create velocity vector pointing toward target
-                Vec2 spawnVelocity = (distance > 0.0f) ? direction.normalize() * velocityMagnitude : Vec2::ZERO;
-                
-                startItemSliding(id, spawnVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN);
+            if (isPassedItem) {
+                // PASSED ITEMS: Always spawn from side, no limit checks
+                spawnPos = getPassSpawnPosition(item.getPassDirection());
+                _spawnItemFromPosition(item, spawnPos, ItemInstance::SlideOriginType::SLIDE_FROM_PASS);
+            } else {
+                // NATURAL SPAWNS: ItemController already rejected if inventory was full.
+                // Just spawn from center-bottom.
+                spawnPos = cugl::Vec2(screenSize.width * 0.5f, -50.0f);
+                _spawnItemFromPosition(item, spawnPos, ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN);
             }
         }
     }

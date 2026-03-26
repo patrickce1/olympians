@@ -136,23 +136,25 @@ void ItemController::giveRandomItem(Player* player) {
  * @param player    The player receiving the item.
  * @param itemDefId The definition ID string of the item to give.
  */
-void ItemController::giveItemByID(Player* player, const std::string& itemDefId) {
+ItemInstance::ItemId ItemController::giveItemByID(Player* player, const std::string& itemDefId) {
     if (!player->isAlive()) {
         CULog("[ItemController] Player is not alive");
-        return;
+        return 0;
     }
 
     if (itemDefId.empty()) {
         CULog("[ItemController] giveItemById: itemDefId is empty");
-        return;
+        return 0;
     }
 
-    auto itemInstance = _itemDb.createInstance(itemDefId, _idGen.next());
+    ItemInstance::ItemId itemId = _idGen.next();
+    auto itemInstance = _itemDb.createInstance(itemDefId, itemId);
     if (!itemInstance) {
         CULog("[ItemController] giveItemById: failed to create instance for defId '%s'", itemDefId.c_str());
-        return;
+        return 0;
     }
 
     player->addItem(*itemInstance);
+    return itemId;
 }
 
