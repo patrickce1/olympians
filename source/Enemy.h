@@ -21,12 +21,6 @@ public:
         EnemyLoader::EventDef def;   // type, target offset, amount, etc.
         EnemyLoader::State state;       // state that fired this event (debug)
     };
-
-    //This represents the weak points and shields of the boss
-    struct BossSide {
-        float multiplier;           // how much damage is changed (ex. 0.5 means damage is halved)
-        bool enabled;               // whether the multipler should be on right now. If false, all damage is 1x
-    };
     
     // Enum that tracks which boss this is
     enum Bosses {
@@ -54,6 +48,7 @@ private:
     float _currentHealth = 0.0f;
 
     std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef> _states;
+    std::unordered_map<int, float> _sideMultipliers; //stores the multipliers for each side. The sides are relative, so 0 would be direction boss facing
 
     EnemyLoader::State _currentState = EnemyLoader::State::IDLE;
     //how long we have been in this state
@@ -65,8 +60,6 @@ private:
     float _retargetLikelihood = 0.0f;
 
     std::vector<FiredEvent> _firedEvents;
-
-    std::vector<BossSide> _sides;
 
 public:
     Enemy() = default;
@@ -95,10 +88,10 @@ public:
     void  setRetargetLikelihood(float v);
 
     //returns the multiplier data for that side
-    BossSide getSide(int index);
+    float getSideMultiplier(int index);
     
-    //lets you enable/disable the data for that side
-    void activateSide(int index, bool activate);
+    //lets you change the multipler value for that side
+    void changeSideMultiplier(int index, float multiplier);
     
     // Expose state defs so controller can pick attacks by tag
     const std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef>& getStates() const { return _states; }

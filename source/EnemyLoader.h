@@ -61,6 +61,15 @@ private:
         return EventType::UNKNOWN;
     }
 
+    static State parseStateType(const std::string& s) {
+        if (s == "attack_1")        return State::ATTACK_1;
+        if (s == "attack_2")        return State::ATTACK_2;
+        if (s == "attack_3")        return State::ATTACK_3;
+        if (s == "defensive_move")  return State::DEFENSE_MOVE;
+        if (s == "passive_special") return State::PASSIVE_SPECIAL;
+        return State::IDLE;
+    }
+
 public:
     bool loadFromFile(const std::string& path) {
         auto reader = cugl::JsonReader::alloc(path);
