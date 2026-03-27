@@ -21,23 +21,13 @@ public:
         EnemyLoader::EventDef def;   // type, target offset, amount, etc.
         EnemyLoader::State state;       // state that fired this event (debug)
     };
-    
-    // Enum that tracks which boss this is
-    enum Bosses {
-        CYCLOPS = 0,
-        CERBERUS = 1,
+
+    //below are EXAMPLES for how. This isn't implemented, this is just theoretically how we would do it
+    struct Cyclops {
+        float eyeMultiplier; //default damage boost when you get Cyclops
     };
 
-    // This is an EXAMPLE of how we can store extra data about specific bosses (not implemented yet)
-    // We would just make this and allow the controller figure out the behavior
-    // Also custom animations based on head state r here
-    struct Cerberus {
-        int head1Health;
-        int head2Health;
-        int head3Health;
-    };
-
-private:
+protected:
     std::string _enemyId;
     std::string _name;
     std::string _spritesheetPath;
@@ -48,7 +38,7 @@ private:
     float _currentHealth = 0.0f;
 
     std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef> _states;
-    std::unordered_map<int, float> _sideMultipliers; //stores the multipliers for each side. The sides are relative, so 0 would be direction boss facing
+    std::unordered_map<int, float> _sideMultipliers; //stores the damage multipliers for each side. The sides are relative, so 0 would be direction boss facing
 
     EnemyLoader::State _currentState = EnemyLoader::State::IDLE;
     //how long we have been in this state

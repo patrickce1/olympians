@@ -31,7 +31,7 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     }
 
     const EnemyLoader::EnemyDef& def = sLoader.get(enemyId);
-
+    
     _enemyId = def.id;
     _name = def.name;
     _spritesheetPath = def.spritesheetPath;

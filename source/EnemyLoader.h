@@ -21,6 +21,12 @@ public:
 
     enum class EventType { DAMAGE, HEAL, DAMAGE_MODIFIER, UNKNOWN };
 
+    // Enum that tracks which boss this is
+    enum Boss {
+        CYCLOPS = 0,
+        CERBERUS = 1,
+    };
+
     struct EventDef {
         EventType type = EventType::UNKNOWN;
         int target = 0;                            // relative index offset. What player to attack or what side to modify. Heal ignores this and self targets
@@ -45,7 +51,7 @@ public:
     AIConfig ai;
     struct EnemyDef {
         std::string id;
-        std::string name;
+        Boss name;
         float maxHealth = 0.0f;
         std::string spritesheetPath;
         AIConfig ai;
@@ -57,7 +63,9 @@ private:
 
 private:
     static EventType parseEventType(const std::string& s) {
-        if (s == "DAMAGE") return EventType::DAMAGE;
+        if (s == "DAMAGE")           return EventType::DAMAGE;
+        if (s == "HEAL")             return EventType::HEAL;
+        if (s == "DAMAGE_MODIFIER")  return EventType::DAMAGE_MODIFIER;
         return EventType::UNKNOWN;
     }
 
@@ -68,6 +76,14 @@ private:
         if (s == "defensive_move")  return State::DEFENSE_MOVE;
         if (s == "passive_special") return State::PASSIVE_SPECIAL;
         return State::IDLE;
+    }
+
+    // checks which boss the string matches and returns that boss
+    static Boss parseBoss(const std::string& s) {
+        if (s == "cyclops")  return Boss::CYCLOPS;
+        if (s == "cerberus") return Boss::CERBERUS;
+        CUAssertLog(false, "Unknown boss type: %s", s.c_str());
+        return Boss::CYCLOPS;
     }
 
 public:
@@ -87,7 +103,7 @@ public:
 
             EnemyDef def;
             def.id = entry->getString("id");
-            def.name = entry->getString("name");
+            def.name = parseBoss(entry->getString("name"));
             def.maxHealth = entry->getFloat("maxHealth");
             def.spritesheetPath = entry->getString("spritesheetPath");
 
@@ -100,12 +116,12 @@ public:
                 if (!st) continue;
 
                 StateDef sdef;
-                sdef.state = State::IDLE; //TODO: make a "read state" function that standardizes
+                sdef.state = parseStateType(st->_key); //TODO: make a "read state" function that standardizes
                 sdef.animationRow = st->getInt("animationRow", 0);
                 sdef.tag = st->getString("tag", "");
                 sdef.buildUpTime  = st->getFloat("buildUpTime", 0.0f);
                 sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
-                sdef.nextState    = st->getString("nextState", "idle"); //TODO: read state function again
+                sdef.nextState    = parseStateType(st->getString("nextState", "idle")); //TODO: read state function again
 
                 auto aiObj = entry->get("ai");
                 if (aiObj && aiObj->isObject()) {
@@ -122,11 +138,11 @@ public:
                         EventDef edef;
                         edef.type = parseEventType(ev->getString("type", ""));
 
-                        if (edef.type == EventType::DAMAGE) {
+                        if (edef.type == EventType::DAMAGE || edef.type == EventType::DAMAGE_MODIFIER) {
                             edef.target = ev->getInt("target", 0);
-                            edef.amount = ev->getFloat("amount", 0.0f);
-                            edef.duration = ev->getFloat("duration", 0.0f);
                         }
+                        edef.amount = ev->getFloat("amount", 0.0f);
+                        edef.duration = ev->getFloat("duration", 0.0f);
                         sdef.events.push_back(edef);
                     }
                 }
