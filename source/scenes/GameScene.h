@@ -15,6 +15,21 @@
 #include "../NetworkMessage.h"
 
 /**
+ * Represents the state of a single snapback animation for a dropped item.
+ * Multiple items can be snapping back simultaneously.
+ */
+struct SnapbackAnimation {
+    /** Screen position where the snapback animation starts. */
+    cugl::Vec2 startPos;
+    
+    /** Target inventory position for snapback animation. */
+    cugl::Vec2 targetPos;
+    
+    /** Normalized progress of snapback animation (0.0 to 1.0). */
+    float progress = 0.0f;
+};
+
+/**
  * Controller for the core game scene.
  *
  * GameScene is a pure controller: it owns the scene graph, handles input,
@@ -155,17 +170,8 @@ protected:
     /** Original inventory position of the item being dropped (target for snapback animation). */
     cugl::Vec2 _dragReleasedFromInventoryPos = cugl::Vec2::ZERO;
 
-    /** ItemId of item currently animating back to inventory via snapback. */
-    ItemInstance::ItemId _snapbackAnimationItemId = 0;
-
-    /** Screen position where snapback animation starts. */
-    cugl::Vec2 _snapbackStartScreenPos = cugl::Vec2::ZERO;
-
-    /** Target inventory position for snapback animation. */
-    cugl::Vec2 _snapbackTargetInventoryPos = cugl::Vec2::ZERO;
-
-    /** Normalized progress of snapback animation (0.0 to 1.0). */
-    float _snapbackAnimationProgress = 0.0f;
+    /** Map of ItemId to active snapback animations. Multiple items can be snapping back simultaneously. */
+    std::unordered_map<ItemInstance::ItemId, SnapbackAnimation> _snapbackAnimations;
 
 #pragma mark - Glow Effect State
 
@@ -495,6 +501,49 @@ public:
      * @param dt  Delta time in seconds.
      */
     void updateSlidingItems(float dt);
+    
+    /**
+     * Updates friction deceleration for a sliding item and its body position.
+     * Called each frame to slow down items based on ITEM_SLIDE_FRICTION_DECELERATION.
+     *
+     * @param item       The item instance to update.
+     * @param itemBody   The Box2D body representing the item.
+     * @param dt         Delta time in seconds.
+     * @return           true if the item is still sliding (speed > threshold), false if settled.
+     */
+    bool updateItemFriction(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, float dt);
+    
+    /**
+     * Handles settlement logic for dropped items.
+     * Checks if the item is within inventory bounds and initiates snapback or settles accordingly.
+     *
+     * @param item       The item instance that has settled.
+     * @param itemBody   The Box2D body representing the item.
+     * @param itemId     The ID of the item.
+     * @return           true if the item should be removed from sliding set.
+     */
+    bool handleSettledItemDrop(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, ItemInstance::ItemId itemId);
+    
+    /**
+     * Handles settlement logic for spawned/passed items.
+     * Enables zone interactions once the item has settled from its spawn.
+     *
+     * @param item   The item that has settled.
+     * @param itemId The ID of the item.
+     * @return       true (spawned/passed items are always removed from sliding set after settlement).
+     */
+    bool handleSpawnedItemSettled(ItemInstance* item, ItemInstance::ItemId itemId);
+    
+    
+    /**
+     * Checks if a settled item should be removed due to being off-screen.
+     * Only applies to spawned and passed items; dropped items are exempted.
+     *
+     * @param item     The item instance to check.
+     * @param itemBody The Box2D body representing the item.
+     * @return         true if the item is off-screen and should be removed.
+     */
+    bool shouldRemoveOffscreenItem(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody);
     
     /**
      * Updates snapback animations for dropped items returning to inventory.

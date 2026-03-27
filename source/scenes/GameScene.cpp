@@ -29,6 +29,8 @@ constexpr float ITEM_SLIDE_VELOCITY_SETTLE_THRESHOLD = 10.0f;
 constexpr float ITEM_SLIDE_SNAPBACK_ANIMATION_TIME = 0.3f;
 /** Maximum speed cap for sliding items to prevent excessive velocities (units/sec) */
 constexpr float ITEM_MOVEMENT_MAX_SPEED = 2000.0f;
+// Use a nominal dt for velocity estimation to avoid frame-rate dependency
+constexpr float VELOCITY_DT_ESTIMATE = 0.016f; // ~60fps estimate
 
 #pragma mark HealthState
 
@@ -781,8 +783,7 @@ void GameScene::handlePlayerInput(InputController& input) {
             auto body = _itemBodies.find(_draggedItemId);
             if (body != _itemBodies.end() && body->second) {
                 // Calculate drop velocity from position delta divided by small time step
-                // Use a nominal dt for velocity estimation to avoid frame-rate dependency
-                constexpr float VELOCITY_DT_ESTIMATE = 0.016f; // ~60fps estimate
+
                 Vec2 currentPos = body->second->getPosition();
                 Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
                 
@@ -977,7 +978,6 @@ void GameScene::handleItemSpawn(float dt) {
     }
 }
 
-#pragma mark -
 #pragma mark Sliding Items Physics
 
 /**
@@ -1028,6 +1028,127 @@ void GameScene::startItemSliding(ItemInstance::ItemId itemId, const cugl::Vec2& 
     _slidingItems.insert(itemId);
 }
 
+#pragma mark -
+#pragma mark Sliding Items Physics
+
+/**
+ * Updates friction deceleration for a sliding item and its body position.
+ * Called each frame to slow down items based on ITEM_SLIDE_FRICTION_DECELERATION.
+ *
+ * @param item       The item instance to update.
+ * @param itemBody   The Box2D body representing the item.
+ * @param dt         Delta time in seconds.
+ * @return           true if the item is still sliding (speed > threshold), false if settled.
+ */
+bool GameScene::updateItemFriction(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, float dt) {
+    cugl::Vec2 velocity = item->getSlideVelocity();
+    float speed = velocity.length();
+    
+    if (speed > ITEM_SLIDE_VELOCITY_SETTLE_THRESHOLD) {
+        // Apply friction deceleration: reduce speed by deceleration * dt
+        // Clamp to prevent reversing direction
+        float newSpeed = std::max(0.0f, speed - ITEM_SLIDE_FRICTION_DECELERATION * dt);
+        if (newSpeed > 0.0f) {
+            velocity = velocity.normalize() * newSpeed;
+        } else {
+            velocity = cugl::Vec2::ZERO;
+        }
+        item->setSlideVelocity(velocity);
+
+        // Update body position
+        cugl::Vec2 newPos = itemBody->getPosition() + velocity * dt;
+        itemBody->setPosition(newPos);
+
+        // Only clamp natural spawned items to inventory bounds during slide
+        // Passed items should animate in from outside without clamping
+        if (item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN) {
+            clampItemToBounds(itemBody);
+        }
+        
+        return true; // Still sliding
+    }
+    
+    return false; // Settled
+}
+
+/**
+ * Handles settlement logic for dropped items.
+ * Checks if the item is within inventory bounds and initiates snapback or settles accordingly.
+ *
+ * @param item       The item instance that has settled.
+ * @param itemBody   The Box2D body representing the item.
+ * @param itemId     The ID of the item.
+ * @return           true if the item should be removed from sliding set.
+ */
+bool GameScene::handleSettledItemDrop(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, ItemInstance::ItemId itemId) {
+    // Check if item is within inventory bounds
+    bool inInventoryBounds = false;
+    if (_inventory) {
+        cugl::Rect inventoryBounds = _inventory->getBoundingBox();
+        inInventoryBounds = inventoryBounds.contains(itemBody->getPosition());
+    }
+    
+    if (!inInventoryBounds) {
+        // Out of bounds - snapback to random inventory position
+        auto widget = _itemWidgets[itemId];
+        cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
+        cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
+        
+        // Add to snapback animations map; supports multiple simultaneous snapbacks
+        SnapbackAnimation anim;
+        anim.startPos = itemBody->getPosition();
+        anim.targetPos = randomTarget;
+        anim.progress = 0.0f;
+        _snapbackAnimations[itemId] = anim;
+        
+        // Stop sliding so snapback animation takes over
+        item->setSliding(false);
+        return false; // Don't remove yet; snapback animation will handle it
+    } else {
+        // In bounds, just settle
+        item->setSliding(false);
+        return true; // Remove from sliding set
+    }
+}
+
+/**
+ * Handles settlement logic for spawned items.
+ * Enables zone interactions once the item has settled from its spawn/pass.
+ *
+ * @param item   The spawned item that has settled.
+ * @param itemId The ID of the item.
+ * @return       true (always removed from sliding set after settlement).
+ */
+bool GameScene::handleSpawnedItemSettled(ItemInstance* item, ItemInstance::ItemId itemId) {
+    // Spawned/passed item settled, now zone-interactive
+    item->setCanInteractWithZones(true);
+    item->setSliding(false);
+    return true; // Always remove from sliding set
+}
+
+/**
+ * Checks if a settled item should be removed due to being off-screen.
+ * Only applies to spawned and passed items; dropped items are exempted.
+ *
+ * @param item     The item instance to check.
+ * @param itemBody The Box2D body representing the item.
+ * @return         true if the item is off-screen and should be removed.
+ */
+bool GameScene::shouldRemoveOffscreenItem(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody) {
+    // Only check off-screen for spawn/pass items
+    if (item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_DROP) {
+        return false; // Dropped items never removed for being off-screen
+    }
+    
+    // Only check after item has settled
+    if (item->isSliding()) {
+        return false;
+    }
+    
+    // Check if position is off-screen
+    return !isItemInVisibleArea(itemBody->getPosition());
+}
+
 /**
  * Updates all sliding items each frame, applying friction and checking boundaries.
  * Handles settlement and snapback animations for dropped items.
@@ -1062,89 +1183,33 @@ void GameScene::updateSlidingItems(float dt) {
             continue;
         }
 
-        // Apply friction deceleration
-        cugl::Vec2 velocity = item->getSlideVelocity();
-        float speed = velocity.length();
-        if (speed > ITEM_SLIDE_VELOCITY_SETTLE_THRESHOLD) {
-            // Apply friction deceleration: reduce speed by deceleration * dt
-            // Clamp to prevent reversing direction
-            float newSpeed = std::max(0.0f, speed - ITEM_SLIDE_FRICTION_DECELERATION * dt);
-            if (newSpeed > 0.0f) {
-                velocity = velocity.normalize() * newSpeed;
-            } else {
-                velocity = cugl::Vec2::ZERO;
-            }
-            item->setSlideVelocity(velocity);
-
-            // Update body position
-            cugl::Vec2 newPos = itemBody->getPosition() + velocity * dt;
-            itemBody->setPosition(newPos);
-
-            // Only clamp natural spawned items to inventory bounds during slide
-            // Passed items should animate in from outside without clamping
-            if (item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN) {
-                clampItemToBounds(itemBody);
-            }
-        } else {
-            // Velocity has settled
-            item->setSlideVelocity(cugl::Vec2::ZERO);
-
-            // Handle settlement based on origin
+        // Update friction and check if still sliding
+        bool stillSliding = updateItemFriction(item, itemBody, dt);
+        
+        if (!stillSliding) {
+            // Item has settled; handle based on origin type
+            bool shouldRemove = false;
+            
             switch (item->getSlideOrigin()) {
-                case ItemInstance::SlideOriginType::SLIDE_FROM_DROP: {
-                    // Check if item is within inventory bounds
-                    bool inInventoryBounds = false;
-                    if (_inventory) {
-                        cugl::Rect inventoryBounds = _inventory->getBoundingBox();
-                        inInventoryBounds = inventoryBounds.contains(itemBody->getPosition());
-                    }
-                    
-                    if (!inInventoryBounds) {
-                        // Out of bounds - snapback to random inventory position
-                        auto widget = _itemWidgets[itemId];
-                        cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
-                        cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
-                        
-                        _snapbackAnimationItemId = itemId;
-                        _snapbackStartScreenPos = itemBody->getPosition();
-                        _snapbackTargetInventoryPos = randomTarget;
-                        _snapbackAnimationProgress = 0.0f;
-                        
-                        // Stop sliding so snapback animation takes over
-                        item->setSliding(false);
-                    } else {
-                        // In bounds, just settle
-                        item->setSliding(false);
-                        itemsToRemove.push_back(itemId);
-                    }
+                case ItemInstance::SlideOriginType::SLIDE_FROM_DROP:
+                    shouldRemove = handleSettledItemDrop(item, itemBody, itemId);
                     break;
-                }
-                case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN: {
-                    // Spawned item settled, now zone-interactive
-                    item->setCanInteractWithZones(true);
-                    item->setSliding(false);
-                    itemsToRemove.push_back(itemId);
+                case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN:
+                    shouldRemove = handleSpawnedItemSettled(item, itemId);
                     break;
-                }
-                case ItemInstance::SlideOriginType::SLIDE_FROM_PASS: {
-                    // Passed item settled, now zone-interactive
-                    item->setCanInteractWithZones(true);
-                    item->setSliding(false);
-                    itemsToRemove.push_back(itemId);
+                case ItemInstance::SlideOriginType::SLIDE_FROM_PASS:
+                    shouldRemove = handleSpawnedItemSettled(item, itemId);
                     break;
-                }
+            }
+            
+            if (shouldRemove) {
+                itemsToRemove.push_back(itemId);
             }
         }
 
-        // Check for off-screen (for spawn/pass items)
-        // Only remove if they've settled AND are off-screen with a grace zone
-        if (item->getSlideOrigin() != ItemInstance::SlideOriginType::SLIDE_FROM_DROP) {
-            if (!item->isSliding()) {
-                // Only check off-screen after item has settled
-                if (!isItemInVisibleArea(itemBody->getPosition())) {
-                    itemsToRemove.push_back(itemId);
-                }
-            }
+        // Check for off-screen removal
+        if (shouldRemoveOffscreenItem(item, itemBody)) {
+            itemsToRemove.push_back(itemId);
         }
     }
 
@@ -1157,47 +1222,54 @@ void GameScene::updateSlidingItems(float dt) {
 /**
  * Updates snapback animations for dropped items returning to inventory.
  * Smoothly interpolates item positions back to their original inventory locations.
+ * Supports multiple simultaneous snapbacks.
  *
  * @param dt  Delta time in seconds.
  */
 void GameScene::updateSnapbackAnimations(float dt) {
-    if (_snapbackAnimationItemId == 0) return;
+    std::vector<ItemInstance::ItemId> completedAnimations;
 
-    _snapbackAnimationProgress += dt / ITEM_SLIDE_SNAPBACK_ANIMATION_TIME;
+    for (auto& [itemId, anim] : _snapbackAnimations) {
+        anim.progress += dt / ITEM_SLIDE_SNAPBACK_ANIMATION_TIME;
 
-    if (_snapbackAnimationProgress >= 1.0f) {
-        // Animation complete
-        auto itemBody = _itemBodies[_snapbackAnimationItemId];
-        if (itemBody) {
-            itemBody->setPosition(_snapbackTargetInventoryPos);
-        }
+        if (anim.progress >= 1.0f) {
+            // Animation complete
+            auto itemBody = _itemBodies[itemId];
+            if (itemBody) {
+                itemBody->setPosition(anim.targetPos);
+            }
 
-        // Find and update the item from player inventory
-        auto player = _gameState.getLocalPlayer();
-        if (player) {
-            auto& inventory = const_cast<std::vector<ItemInstance>&>(player->getInventory());
-            for (auto& invItem : inventory) {
-                if (invItem.getId() == _snapbackAnimationItemId) {
-                    invItem.setSliding(false);
-                    break;
+            // Find and update the item from player inventory
+            auto player = _gameState.getLocalPlayer();
+            if (player) {
+                auto& inventory = const_cast<std::vector<ItemInstance>&>(player->getInventory());
+                for (auto& invItem : inventory) {
+                    if (invItem.getId() == itemId) {
+                        invItem.setSliding(false);
+                        break;
+                    }
                 }
             }
-        }
 
-        _slidingItems.erase(_snapbackAnimationItemId);
-        _snapbackAnimationItemId = 0;
-    } else {
-        // Interpolate position
-        auto itemBody = _itemBodies[_snapbackAnimationItemId];
-        if (itemBody) {
-            // Use cubic-out easing for smooth animation
-            float t = _snapbackAnimationProgress;
-            float eased = 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
-            
-            cugl::Vec2 pos = _snapbackStartScreenPos + 
-                           (_snapbackTargetInventoryPos - _snapbackStartScreenPos) * eased;
-            itemBody->setPosition(pos);
+            _slidingItems.erase(itemId);
+            completedAnimations.push_back(itemId);
+        } else {
+            // Interpolate position
+            auto itemBody = _itemBodies[itemId];
+            if (itemBody) {
+                // Use cubic-out easing for smooth animation
+                float t = anim.progress;
+                float eased = 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
+                
+                cugl::Vec2 pos = anim.startPos + (anim.targetPos - anim.startPos) * eased;
+                itemBody->setPosition(pos);
+            }
         }
+    }
+
+    // Remove completed animations
+    for (auto itemId : completedAnimations) {
+        _snapbackAnimations.erase(itemId);
     }
 }
 
