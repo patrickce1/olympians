@@ -44,17 +44,6 @@ public:
     const ItemDatabase& getDatabase() const { return _itemDb; }
     
     /**
-     * Gives a specific item to the player by its definition ID.
-     * Used when a passed item needs to be added to a player's inventory,
-     * since the item definition ID is what travels over the network.
-     *
-     * Unlike giveRandomItem(), this method bypasses the inventory cap check
-     * since a passed item should always be deliverable to its recipient.
-     *
-     * @param player    The player receiving the item.
-     * @param itemDefId The definition ID string of the item to give.
-     */
-    /**
      * Creates an item instance from a definition ID and adds it to the player's inventory.
      * Returns the unique ID of the created item for tracking purposes.
      * 

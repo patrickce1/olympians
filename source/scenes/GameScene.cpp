@@ -19,22 +19,16 @@ using namespace std;
 /** Constant to define Box2D obstacle physics base unit */
 constexpr float ITEM_SPEED_UNITS = 1.0f;
 
-#pragma mark -
-
 #pragma mark Sliding Item Physics Constants
 
 /** Deceleration rate for sliding items per second (units/sec²) */
 constexpr float ITEM_SLIDE_FRICTION_DECELERATION = 2500.0f;
-
 /** Velocity threshold below which a sliding item is considered to have settled (units/sec) */
 constexpr float ITEM_SLIDE_VELOCITY_SETTLE_THRESHOLD = 10.0f;
-
 /** Duration of the snapback animation when a dropped item returns to inventory (seconds) */
 constexpr float ITEM_SLIDE_SNAPBACK_ANIMATION_TIME = 0.3f;
-
 /** Maximum speed cap for sliding items to prevent excessive velocities (units/sec) */
 constexpr float ITEM_MOVEMENT_MAX_SPEED = 2000.0f;
-
 
 #pragma mark HealthState
 

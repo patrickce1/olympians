@@ -81,9 +81,10 @@ public:
     };
     
 private:
+    // Unique identifier for this item instance, assigned by the host's IdGenerator
     ItemId _id = 0;
+    // The definition ID linking this instance to its ItemDef
     std::string _defId;
-    
     // Whether item is currently sliding/animating (e.g. after being dropped or passed, before settling into inventory)
     bool _isSliding = false; 
     // Whether item can trigger drop zones (true for dropped items, false for spawned/passed until settled)
