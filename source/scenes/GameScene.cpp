@@ -1258,8 +1258,8 @@ void GameScene::updateSnapbackAnimations(float dt) {
             auto itemBody = _itemBodies[itemId];
             if (itemBody) {
                 // Use cubic-out easing for smooth animation
-                float t = anim.progress;
-                float eased = 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
+                float progress = anim.progress;
+                float eased = 1.0f - (1.0f - progress) * (1.0f - progress) * (1.0f - progress);
                 
                 cugl::Vec2 pos = anim.startPos + (anim.targetPos - anim.startPos) * eased;
                 itemBody->setPosition(pos);
@@ -1274,11 +1274,12 @@ void GameScene::updateSnapbackAnimations(float dt) {
 }
 
 /**
- * Checks for zone interactions with zone-interactive sliding items.
- * Handles strict item-type matching (attack↔attack, support↔support).
+ * Processes zone interactions for zone-interactive sliding items.
+ * Verifies strict item-type matching (attack↔attack, support↔support)
+ * and triggers the appropriate action if a match is found.
  * Called once per frame after sliding velocity updates.
  */
-void GameScene::checkZoneInteractionsForSlidingItems() {
+void GameScene::processZoneInteractionsForSlidingItems() {
     auto player = _gameState.getLocalPlayer();
     if (!player) return;
 
@@ -1398,7 +1399,7 @@ void GameScene::update(float dt, InputController& input) {
         _itemPhysicsWorld->update(dt);
     }
     
-    checkZoneInteractionsForSlidingItems();
+    processZoneInteractionsForSlidingItems();
     
     syncInventoryWidgets();
     syncItemWidgetsToBodies();

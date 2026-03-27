@@ -554,11 +554,12 @@ public:
     void updateSnapbackAnimations(float dt);
     
     /**
-     * Checks for zone interactions with zone-interactive sliding items.
-     * Handles strict item-type matching (attack↔attack, support↔support).
+     * Processes zone interactions for zone-interactive sliding items.
+     * Verifies strict item-type matching (attack↔attack, support↔support)
+     * and triggers the appropriate action if a match is found.
      * Called once per frame after sliding velocity updates.
      */
-    void checkZoneInteractionsForSlidingItems();
+    void processZoneInteractionsForSlidingItems();
     
     /**
      * Clamps a passed item's position to the inventory zone bounds.

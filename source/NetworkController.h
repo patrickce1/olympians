@@ -101,10 +101,14 @@ public:
     /*Tells the host that the boss has been damaged for damageAmount*/
     void broadcastDamage(float damageAmount);
 
-    /*Sends a message to the corresponding player that item with the definition itemDefID has been passed to them.
-    * If sent to an AI player, the host handles it, otherwise, handled by the player on their end.
-    * The playerID tells us which numbered player they are in the cicle.
-    * The passDirection indicates which direction: 1=left, 2=right */
+    /**
+     * Sends a message to the corresponding player that an item with the given definition has been passed to them.
+     * If sent to an AI player, the host handles it; otherwise, the receiving player handles it on their end.
+     *
+     * @param itemDefID     The item definition ID of the item being passed.
+     * @param playerID      The player's position in the circle (0-based).
+     * @param passDirection The direction the item is being passed: 1 for left, 2 for right.
+     */
     void broadcastPass(const std::string& itemDefID, int playerID, int passDirection);
 
     /*Sends a message to the host that the player located at playerID in the cicle got healed for healAmount.*/
