@@ -84,12 +84,16 @@ private:
     ItemId _id = 0;
     std::string _defId;
     
-    // Sliding state tracking
-    bool _isSliding = false;                                    // Whether item is currently sliding/animating
-    bool _canInteractWithZones = false;                         // Whether item can trigger drop zones
-    cugl::Vec2 _slideVelocity{0.0f, 0.0f};                      // Current velocity during slide animation
-    SlideOriginType _slideOrigin = SlideOriginType::SLIDE_FROM_SPAWN; // Where the slide came from
-    int _passDirection = 0;                                      // Direction passed from: 0=none, 1=left, 2=right
+    // Whether item is currently sliding/animating (e.g. after being dropped or passed, before settling into inventory)
+    bool _isSliding = false; 
+    // Whether item can trigger drop zones (true for dropped items, false for spawned/passed until settled)
+    bool _canInteractWithZones = false;
+    // Current velocity during slide animation 
+    cugl::Vec2 _slideVelocity{0.0f, 0.0f}; 
+    // Where the slide came from (PASS, DROP, or SPAWN)
+    SlideOriginType _slideOrigin = SlideOriginType::SLIDE_FROM_SPAWN; 
+    // Direction passed from: 0=none, 1=left, 2=right
+    int _passDirection = 0; 
     
 public:
     ItemInstance() = default;

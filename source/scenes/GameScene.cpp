@@ -79,7 +79,6 @@ static std::string getHealthTexture(HealthState state, std::string houseID) {
     return "basicTeammateIcon";
 }
 
-
 #pragma mark -
 #pragma mark Constructors
 
@@ -914,9 +913,7 @@ void GameScene::handleDragTracking(InputController& input) {
     Vec2 widgetPosition = dragScene + _dragOffset;
     auto body = _itemBodies.find(_draggedItemId);
     if (body != _itemBodies.end() && body->second) {
-        // Store current position before update for velocity calculation
-        _dragPreviousFrameItemBodyPos = body->second->getPosition();
-        
+        _dragPreviousFrameItemBodyPos = body->second->getPosition(); // Store current position for velocity calculation
         Size widgetSize = _draggedIcon->getContentSize();
         Vec2 center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
         body->second->setPosition(center);
