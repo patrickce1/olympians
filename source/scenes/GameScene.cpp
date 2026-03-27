@@ -1597,23 +1597,37 @@ void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
 
 /** Draws zone outlines and a fading glow on the last successfully used zone. */
 void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
-    // Draw outlines for all zones
     batch->setColor(Color4(0, 255, 0, 255));
-    for (const auto& [action, zone] : _attackZones) {
-        Path2 path(zone);
-        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
-    }
-    for (const auto& [action, zone] : _supportZones) {
-        Path2 path(zone);
-        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
-    }
-    for (const auto& [action, zone] : _passZones) {
-        Path2 path(zone);
-        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
-    }
-    for (const auto& [action, zone] : _inventoryZones) {
-        Path2 path(zone);
-        batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+    
+    // Only render zones if holding an item
+    if (_draggedItemId != 0) {
+        // Always render pass and inventory zones when holding any item
+        for (const auto& [action, zone] : _passZones) {
+            Path2 path(zone);
+            batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+        }
+        for (const auto& [action, zone] : _inventoryZones) {
+            Path2 path(zone);
+            batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+        }
+        
+        // Render attack/support zones based on item type
+        auto itemDef = getHeldItemDef(_draggedItemId);
+        if (itemDef) {
+            if (itemDef->getType() == ItemDef::Type::Attack) {
+                // Render attack zones when holding attack item
+                for (const auto& [action, zone] : _attackZones) {
+                    Path2 path(zone);
+                    batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+                }
+            } else {
+                // Render support zones when holding heal/support item
+                for (const auto& [action, zone] : _supportZones) {
+                    Path2 path(zone);
+                    batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+                }
+            }
+        }
     }
 }
 
