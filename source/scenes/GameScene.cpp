@@ -109,7 +109,7 @@ bool GameScene::initSceneGraph() {
         _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
         
-        _bossSprite = std::dynamic_pointer_cast<scene2::SpriteNode>((_gameArea->getChildByName("bossIdle")));
+        _bossSprite = std::dynamic_pointer_cast<scene2::SpriteNode>((_gameArea->getChildByName("bossAnimationSpace")));
     }
     
     if (_inventory) {
@@ -203,7 +203,7 @@ void GameScene::initBackgroundAndBossImage() {
     auto backgroundImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("background"));
     backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>(boss + "Background"));
     
-    auto bossImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("boss"));
+    auto bossImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("bossIdle"));
     bossImage->setTexture(_assets->get<cugl::graphics::Texture>(boss));
 }
 
