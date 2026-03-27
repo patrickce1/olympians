@@ -734,6 +734,9 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
                         _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer);
 }
 
+/**
+ * Resynchronises teammate damage blink state with the current local player.
+ */
 void GameScene::resetTeammateDamageBlinkState() {
     _leftPlayerDamageBlinkTimer = 0.0f;
     _rightPlayerDamageBlinkTimer = 0.0f;
