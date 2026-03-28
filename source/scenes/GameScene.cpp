@@ -1127,6 +1127,27 @@ bool GameScene::handleSpawnedItemSettled(ItemInstance* item, ItemInstance::ItemI
 }
 
 /**
+ * Dispatches settlement handling based on item origin type.
+ * Returns whether the item should be removed from the sliding set.
+ *
+ * @param item     The settled item to handle.
+ * @param itemBody The Box2D body representing the item.
+ * @param itemId   The ID of the item.
+ * @return         true if the item should be removed from sliding set, false if still animating (snapback).
+ */
+bool GameScene::handleSettledItem(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, ItemInstance::ItemId itemId) {
+    switch (item->getSlideOrigin()) {
+        case ItemInstance::SlideOriginType::SLIDE_FROM_DROP:
+            return handleSettledItemDrop(item, itemBody, itemId);
+        case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN:
+            return handleSpawnedItemSettled(item, itemId);
+        case ItemInstance::SlideOriginType::SLIDE_FROM_PASS:
+            return handleSpawnedItemSettled(item, itemId);
+    }
+    return true; // Default: remove from sliding set
+}
+
+/**
  * Checks if a settled item should be removed due to being off-screen.
  * Only applies to spawned and passed items; dropped items are exempted.
  *
@@ -1188,20 +1209,7 @@ void GameScene::updateSlidingItems(float dt) {
         
         if (!stillSliding) {
             // Item has settled; handle based on origin type
-            bool shouldRemove = false;
-            
-            switch (item->getSlideOrigin()) {
-                case ItemInstance::SlideOriginType::SLIDE_FROM_DROP:
-                    shouldRemove = handleSettledItemDrop(item, itemBody, itemId);
-                    break;
-                case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN:
-                    shouldRemove = handleSpawnedItemSettled(item, itemId);
-                    break;
-                case ItemInstance::SlideOriginType::SLIDE_FROM_PASS:
-                    shouldRemove = handleSpawnedItemSettled(item, itemId);
-                    break;
-            }
-            
+            bool shouldRemove = handleSettledItem(item, itemBody, itemId);
             if (shouldRemove) {
                 itemsToRemove.push_back(itemId);
             }

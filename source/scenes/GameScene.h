@@ -525,6 +525,17 @@ public:
     bool handleSettledItemDrop(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, ItemInstance::ItemId itemId);
     
     /**
+     * Dispatches settlement handling based on item origin type.
+     * Returns whether the item should be removed from the sliding set.
+     *
+     * @param item     The settled item to handle.
+     * @param itemBody The Box2D body representing the item.
+     * @param itemId   The ID of the item.
+     * @return         true if the item should be removed from sliding set, false if still animating (snapback).
+     */
+    bool handleSettledItem(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, ItemInstance::ItemId itemId);
+    
+    /**
      * Handles settlement logic for spawned/passed items.
      * Enables zone interactions once the item has settled from its spawn.
      *
