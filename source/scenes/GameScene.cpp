@@ -143,7 +143,7 @@ bool GameScene::initSceneGraph() {
  *
  * @return true if the physics world was successfully created.
  */
-bool GameScene::initInventoryPhysics() {
+bool GameScene::initPhysicsWorld() {
     // Expand bounds beyond screen to accommodate spawning and physics overflow
     // Must include side spawn positions (-10% to 110% of screen width)
     // and account for item body sizes
@@ -252,7 +252,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
         return false;
     }
 
-    if (!initInventoryPhysics()) {
+    if (!initPhysicsWorld()) {
         return false;
     }
 

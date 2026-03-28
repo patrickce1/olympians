@@ -264,14 +264,11 @@ public:
     bool initSceneGraph();
 
     /**
-     * Initialises the dedicated Box2D world used for inventory item widgets.
-     *
-     * Bodies in this world are only used for debugging and future inventory
-     * interactions, so the world has zero gravity and scene-space bounds.
+     * Initialises the inventory physics world and Box2D bodies for item widgets.
      *
      * @return true if the physics world was created successfully.
      */
-    bool initInventoryPhysics();
+    bool initPhysicsWorld();
 
     /**
      * Initialises the ItemController and GameState.
