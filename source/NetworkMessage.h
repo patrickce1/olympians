@@ -41,7 +41,8 @@ struct HealMessage {
 * If the item is passed to a real player, the passing message is sent to that player for them to handle themselves */
 struct PassMessage {
     std::string itemID;
-    int playerID;
+    int playerID;      // Receiver's player ID
+    int passDirection; // Direction: 1=left, 2=right
 };
 
 /* Message sent by the host to other players about the current state of the game
