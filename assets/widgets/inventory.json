@@ -54,7 +54,7 @@
                 "data": {
                     "anchor": [
                         0,
-                        1
+                        0
                     ],
                     "size": [
                         239.65,
@@ -167,7 +167,7 @@
                     "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0.26,
-                    "y_offset": 0.30
+                    "y_offset": 0.2
                 }
             },
             "playerLiveIcon": {

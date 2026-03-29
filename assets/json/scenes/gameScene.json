@@ -153,7 +153,7 @@
                         },
                         "data": {
                             "anchor": [
-                                0,
+                                0.5,
                                 0
                             ],
                             "size": [
@@ -161,10 +161,6 @@
                                 16.07
                             ],
                             "angle": 0,
-                            "position": [
-                                93.92,
-                                57.11
-                            ],
                             "visible": true
                         },
                         "children": {
@@ -264,10 +260,10 @@
                             }
                         },
                         "layout": {
-                            "x_anchor": "left",
+                            "x_anchor": "center",
                             "y_anchor": "bottom",
                             "absolute": false,
-                            "x_offset": 0.24,
+                            "x_offset": 0,
                             "y_offset": 0.1
                         }
                     },
