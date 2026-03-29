@@ -91,6 +91,9 @@ bool GameScene::initSceneGraph() {
 
     if (_gameArea) {
         _gameArea->setContentWidth(dimen.width);
+        auto gameAreaBG = _gameArea->getChildByName("background");
+        gameAreaBG->setContentWidth(dimen.width);
+        
         // Left and right teammate icon
         _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("leftIcon")
                                                                          ->getChild(0));
