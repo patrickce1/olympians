@@ -90,6 +90,7 @@ bool GameScene::initSceneGraph() {
     _resetBtn  = _scene->getChildByName("resetButton");
 
     if (_gameArea) {
+        _gameArea->setContentWidth(dimen.width);
         // Left and right teammate icon
         _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("leftIcon")
                                                                          ->getChild(0));
@@ -113,6 +114,9 @@ bool GameScene::initSceneGraph() {
     }
     
     if (_inventory) {
+        auto invBG = _inventory->getChildByName<cugl::scene2::NinePatch>("background");
+        invBG->setContentWidth(dimen.width);
+        
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
         
