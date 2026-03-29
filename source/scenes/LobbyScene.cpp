@@ -210,14 +210,10 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<Player*> players) {
         auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
             _playerImages[i]->getChildByName("playerIconImg"));
         if (image) {
-             if (players[i]->getHouseName() == "athena") {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
-            } else if (players[i]->getHouseName() == "ares") {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("aresSIcon"));
-            } else if (players[i]->getHouseName() == "poseidon") {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("poseidonSIcon"));
-            } else if (players[i]->getHouseName() == "demeter") {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("demeterSIcon"));
+            std::string key = players[i]->getHouseName() + "SIcon";
+            
+            if (_assets->get<cugl::graphics::Texture>(key) != nullptr) {
+                image->setTexture(_assets->get<cugl::graphics::Texture>(key));
             } else {
                 image->setTexture(_assets->get<cugl::graphics::Texture>("emptySIcon"));
             }
@@ -269,6 +265,14 @@ void LobbyScene::updateNetworkOrder() {
             networkedPlayers[i].houseID
         );
     }
+}
+
+/**
+ Updates the _selectedHouse variable if the local player has selected a house in the
+ house select screen.
+ */
+void LobbyScene::updateLocalPlayerSelectedHouse() {
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
     
     // check if local player has selected house
     int localIndex = _network->getLocalPlayerNumber();
@@ -339,6 +343,8 @@ void LobbyScene::update(float timestep) {
     // Remap for display only — network order is unchanged
     updateNetworkOrder();
     std::vector<Player*> displayOrder = remapPlayersForDisplay();
+    
+    updateLocalPlayerSelectedHouse();
     
     updateLobbyText(displayOrder);
     updateLobbyPlayerIcons(displayOrder);

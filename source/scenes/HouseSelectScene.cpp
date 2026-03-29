@@ -363,15 +363,10 @@ void HouseSelectScene::updateSelectedIcon(int currentIndex, bool commitToGameSta
     if (!_playerIconImage) return;
 
     const HouseLoader::HouseDef& selectedHouse = _houseLoader.getAllOrdered()[currentIndex];
-
-    if (selectedHouse.id == "athena") {
-        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
-    } else if (selectedHouse.id == "ares") {
-        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("aresSIcon"));
-    } else if (selectedHouse.id == "poseidon") {
-        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("poseidonSIcon"));
-    } else if (selectedHouse.id == "demeter") {
-        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("demeterSIcon"));
+    
+    std::string key = selectedHouse.id + "SIcon";
+    if (_assets->get<cugl::graphics::Texture>(key) != nullptr) {
+        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>(key));
     } else {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
     }
@@ -468,14 +463,10 @@ void HouseSelectScene::updateTeammateIcons() {
         if (!activeIcon) continue;
 
         std::string house = players[slot]->getHouseName();
-        if (house == "athena") {
-            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
-        } else if (house == "ares") {
-            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("aresSIcon"));
-        } else if (house== "poseidon") {
-            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("poseidonSIcon"));
-        } else if (house == "demeter") {
-            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("demeterSIcon"));
+        
+        std::string key = house + "SIcon";
+        if (_assets->get<cugl::graphics::Texture>(key) != nullptr) {
+            activeIcon->setTexture(_assets->get<cugl::graphics::Texture>(key));
         } else {
             activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
         }

@@ -15,6 +15,21 @@
 #include "../NetworkMessage.h"
 
 /**
+ * Represents the state of a single snapback animation for a dropped item.
+ * Multiple items can be snapping back simultaneously.
+ */
+struct SnapbackAnimation {
+    /** Screen position where the snapback animation starts. */
+    cugl::Vec2 startPos;
+    
+    /** Target inventory position for snapback animation. */
+    cugl::Vec2 targetPos;
+    
+    /** Normalized progress of snapback animation (0.0 to 1.0). */
+    float progress = 0.0f;
+};
+
+/**
  * Controller for the core game scene.
  *
  * GameScene is a pure controller: it owns the scene graph, handles input,
@@ -136,6 +151,28 @@ protected:
     /** Offset from the icon's origin to the touch point, applied during drag. */
     cugl::Vec2 _dragOffset;
 
+#pragma mark - Sliding Items State
+
+    /** Set of ItemIds currently sliding/animating. */
+    std::unordered_set<ItemInstance::ItemId> _slidingItems;
+
+    /** Set of ItemIds that are in transit as passes (not natural spawns). 
+     *  These bypass inventory limits and animate from sides instead of center-bottom.
+     *  Items are added here when passed (human or networked) and removed when picked up. */
+    std::unordered_set<ItemInstance::ItemId> _passedItemIds;
+
+    /** Item body position from previous frame, used to calculate release velocity. */
+    cugl::Vec2 _dragPreviousFrameItemBodyPos = cugl::Vec2::ZERO;
+
+    /** ItemId of the item currently being dragged/released. */
+    ItemInstance::ItemId _dragReleasedItemId = 0;
+
+    /** Original inventory position of the item being dropped (target for snapback animation). */
+    cugl::Vec2 _dragReleasedFromInventoryPos = cugl::Vec2::ZERO;
+
+    /** Map of ItemId to active snapback animations. Multiple items can be snapping back simultaneously. */
+    std::unordered_map<ItemInstance::ItemId, SnapbackAnimation> _snapbackAnimations;
+
 #pragma mark - Glow Effect State
 
     /** The drop zone action whose region should currently glow. */
@@ -198,7 +235,7 @@ protected:
      * rendering or input code.
      */
     GameState _gameState;
-
+    
     /** Keeps track of whether or not we are the host */
     bool _host;
 
@@ -247,14 +284,11 @@ public:
     bool initSceneGraph();
 
     /**
-     * Initialises the dedicated Box2D world used for inventory item widgets.
-     *
-     * Bodies in this world are only used for debugging and future inventory
-     * interactions, so the world has zero gravity and scene-space bounds.
+     * Initialises the inventory physics world and Box2D bodies for item widgets.
      *
      * @return true if the physics world was created successfully.
      */
-    bool initInventoryPhysics();
+    bool initPhysicsWorld();
 
     /**
      * Initialises the ItemController and GameState.
@@ -450,7 +484,8 @@ public:
     void handleDragTracking(InputController& input);
 
     /**
-    * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory
+    * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory.
+    * Marks received items as passes so they bypass inventory limits and spawn from sides.
     * If we are the host, it will also give the correct items to the AI
     * Intended usage: get the pass message vector from the network controller and pass into this function
     */
@@ -473,6 +508,110 @@ public:
      * @param dt  Delta time in seconds.
      */
     void handleItemSpawn(float dt);
+    
+    /**
+     * Initializes a sliding item with the given velocity and origin type.
+     * Marks the item as sliding and configures its state based on origin.
+     *
+     * @param itemId        The ID of the item to start sliding
+     * @param velocity      Initial velocity vector (units/sec)
+     * @param origin        The SlideOriginType indicating where the slide came from
+     */
+    void startItemSliding(ItemInstance::ItemId itemId, const cugl::Vec2& velocity, ItemInstance::SlideOriginType origin);
+    
+    /**
+     * Updates all sliding items each frame, applying friction and checking boundaries.
+     * Handles settlement and snapback animations for dropped items.
+     *
+     * @param dt  Delta time in seconds.
+     */
+    void updateSlidingItems(float dt);
+    
+    /**
+     * Updates friction deceleration for a sliding item and its body position.
+     * Called each frame to slow down items based on ITEM_SLIDE_FRICTION_DECELERATION.
+     *
+     * @param item       The item instance to update.
+     * @param itemBody   The Box2D body representing the item.
+     * @param dt         Delta time in seconds.
+     * @return           true if the item is still sliding (speed > threshold), false if settled.
+     */
+    bool updateItemFriction(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, float dt);
+    
+    /**
+     * Handles settlement logic for dropped items.
+     * Checks if the item is within inventory bounds and initiates snapback or settles accordingly.
+     *
+     * @param item       The item instance that has settled.
+     * @param itemBody   The Box2D body representing the item.
+     * @param itemId     The ID of the item.
+     * @return           true if the item should be removed from sliding set.
+     */
+    bool handleSettledItemDrop(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, ItemInstance::ItemId itemId);
+    
+    /**
+     * Dispatches settlement handling based on item origin type.
+     * Returns whether the item should be removed from the sliding set.
+     *
+     * @param item     The settled item to handle.
+     * @param itemBody The Box2D body representing the item.
+     * @param itemId   The ID of the item.
+     * @return         true if the item should be removed from sliding set, false if still animating (snapback).
+     */
+    bool handleSettledItem(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, ItemInstance::ItemId itemId);
+    
+    /**
+     * Handles settlement logic for spawned/passed items.
+     * Enables zone interactions once the item has settled from its spawn.
+     *
+     * @param item   The item that has settled.
+     * @param itemId The ID of the item.
+     * @return       true (spawned/passed items are always removed from sliding set after settlement).
+     */
+    bool handleSpawnedItemSettled(ItemInstance* item, ItemInstance::ItemId itemId);
+    
+    
+    /**
+     * Checks if a settled item should be removed due to being off-screen.
+     * Only applies to spawned and passed items; dropped items are exempted.
+     *
+     * @param item     The item instance to check.
+     * @param itemBody The Box2D body representing the item.
+     * @return         true if the item is off-screen and should be removed.
+     */
+    bool shouldRemoveOffscreenItem(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody);
+    
+    /**
+     * Updates snapback animations for dropped items returning to inventory.
+     * Smoothly interpolates item positions back to their original inventory locations.
+     *
+     * @param dt  Delta time in seconds.
+     */
+    void updateSnapbackAnimations(float dt);
+    
+    /**
+     * Processes zone interactions for zone-interactive sliding items.
+     * Verifies strict item-type matching (attack↔attack, support↔support)
+     * and triggers the appropriate action if a match is found.
+     * Called once per frame after sliding velocity updates.
+     */
+    void processZoneInteractionsForSlidingItems();
+    
+    /**
+     * Clamps a passed item's position to the inventory zone bounds.
+     * Prevents passed items from sliding outside the valid inventory area.
+     *
+     * @param itemBody      The Box2D body to clamp
+     */
+    void clampItemToBounds(std::shared_ptr<cugl::physics2::BoxObstacle> itemBody);
+    
+    /**
+     * Checks if an item's position is within visible screen bounds.
+     *
+     * @param position      The screen position to check
+     * @return true if position is within visible area, false otherwise
+     */
+    bool isItemInVisibleArea(const cugl::Vec2& position);
     
     /**
      * Top-level disconnect handler. Called every frame from update().
@@ -516,6 +655,13 @@ public:
 
     /** Return a random valid inventory position for a newly spawned item widget */
     cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
+    
+    /** Return a spawn position for a passed item based on which side it came from
+     *
+     * @param passDirection  0 for none, 1 for passed from left, 2 for passed from right
+     * @return               The spawn position below the side the item came from
+     */
+    cugl::Vec2 getPassSpawnPosition(int passDirection) const;
 
     /** Creates and registers the Box2D body for an item widget.
      *
@@ -535,6 +681,15 @@ public:
      * @param itemId  The itemId representing the ItemInstance to be removed.
      */
     void removeItemWidget(ItemInstance::ItemId itemId);
+
+    /**
+     * Helper function to spawn an item widget from a given position with animation.
+     *
+     * @param item       The ItemInstance to spawn
+     * @param spawnPos   The world position to spawn from
+     * @param slideOrigin The origin type of the slide (SPAWN or PASS)
+     */
+    void _spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spawnPos, ItemInstance::SlideOriginType slideOrigin);
 
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();

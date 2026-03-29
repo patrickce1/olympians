@@ -205,9 +205,11 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		case MessageType::PLAYER_PASS: {
 			std::string itemID = _deserializer.readString();
 			int passRecieverID = _deserializer.readSint32();
+			int passDirection = _deserializer.readSint32();
 			PassMessage passMsg;
 			passMsg.itemID = itemID;
 			passMsg.playerID = passRecieverID;
+			passMsg.passDirection = passDirection;
 			passes.push_back(passMsg);
 			break;
 		}
@@ -369,10 +371,11 @@ bool NetworkController::checkRealPlayer(int playerID) {
  * @param itemDefID The definition ID of the item being passed.
  * @param playerID  The 0-based index of the player to pass the item to.
  */
-void NetworkController::broadcastPass(const std::string& itemDefID, int playerID) {
+void NetworkController::broadcastPass(const std::string& itemDefID, int playerID, int passDirection) {
 	_serializer.writeSint32(MessageType::PLAYER_PASS);
 	_serializer.writeString(itemDefID);
 	_serializer.writeSint32(playerID);
+	_serializer.writeSint32(passDirection);
 	
 	CULog("Sending broadcasting message to player %d", playerID);
 	if (checkRealPlayer(playerID)) {
@@ -617,16 +620,6 @@ void NetworkController::setLocalHouse(const std::string& houseID) {
         _onlinePlayers[0].houseID = houseID;
         broadcastLobbyState();
     }
-}
-
-/**
- * Sets the enemy of the game using their unique Enemy ID. Should be called once after
- * the host chooses a boss.
- *
- * @param enemyID  The unique of the boss from enemies.json
- */
-void NetworkController::setEnemy(const std::string& enemyID) {
-    _enemy = enemyID;
 }
 
 /** Returns true if every player in the lobby has selected a house. */
