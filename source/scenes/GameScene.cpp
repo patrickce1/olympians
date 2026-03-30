@@ -1073,7 +1073,8 @@ bool GameScene::updateItemFriction(ItemInstance* item, std::shared_ptr<cugl::phy
 
 /**
  * Handles settlement logic for dropped items.
- * Checks if the item is within inventory bounds and initiates snapback or settles accordingly.
+ * Checks if the item is within inventory bounds or in a matching interaction zone.
+ * Initiates snapback only if the item is out of bounds AND not in a valid zone.
  *
  * @param item       The item instance that has settled.
  * @param itemBody   The Box2D body representing the item.
@@ -1088,27 +1089,53 @@ bool GameScene::handleSettledItemDrop(ItemInstance* item, std::shared_ptr<cugl::
         inInventoryBounds = inventoryBounds.contains(itemBody->getPosition());
     }
     
-    if (!inInventoryBounds) {
-        // Out of bounds - snapback to random inventory position
-        auto widget = _itemWidgets[itemId];
-        cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
-        cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
-        
-        // Add to snapback animations map; supports multiple simultaneous snapbacks
-        SnapbackAnimation anim;
-        anim.startPos = itemBody->getPosition();
-        anim.targetPos = randomTarget;
-        anim.progress = 0.0f;
-        _snapbackAnimations[itemId] = anim;
-        
-        // Stop sliding so snapback animation takes over
-        item->setSliding(false);
-        return false; // Don't remove yet; snapback animation will handle it
-    } else {
+    if (inInventoryBounds) {
         // In bounds, just settle
         item->setSliding(false);
         return true; // Remove from sliding set
     }
+    
+    // Out of inventory bounds - check if it's in a matching interaction zone
+    cugl::Vec2 itemPos = itemBody->getPosition();
+    auto itemDef = _itemController.getDatabase().getDef(item->getDefId());
+    
+    if (itemDef) {
+        for (auto& [action, zone] : _inputZones) {
+            if (!zone.contains(itemPos)) continue;
+            
+            // Check for type matching
+            bool typeMatches = false;
+            if (action == InputController::Action::DROP_BOSS && itemDef->getType() == ItemDef::Type::Attack) {
+                typeMatches = true;
+            } else if ((action == InputController::Action::DROP_ALLY_LEFT || action == InputController::Action::DROP_ALLY_RIGHT) 
+                       && itemDef->getType() == ItemDef::Type::Support) {
+                typeMatches = true;
+            }
+            
+            if (typeMatches) {
+                // Item is in a matching zone; enable zone interaction and let it be processed next frame
+                item->setCanInteractWithZones(true);
+                item->setSliding(false);
+                return false; // Keep in sliding set to be processed by zone interaction logic
+            }
+        }
+    }
+    
+    // Not in any valid zone and outside inventory - snapback to random inventory position
+    auto widget = _itemWidgets[itemId];
+    cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
+    cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
+    
+    // Add to snapback animations map; supports multiple simultaneous snapbacks
+    SnapbackAnimation anim;
+    anim.startPos = itemBody->getPosition();
+    anim.targetPos = randomTarget;
+    anim.progress = 0.0f;
+    _snapbackAnimations[itemId] = anim;
+    
+    // Stop sliding so snapback animation takes over
+    item->setSliding(false);
+    return false; // Don't remove yet; snapback animation will handle it
 }
 
 /**
@@ -1303,7 +1330,9 @@ void GameScene::processZoneInteractionsForSlidingItems() {
             }
         }
         
-        if (!item || !item->canInteractWithZones() || !item->isSliding() || item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS) {
+        // Skip if: no item, can't interact, or is a passed item
+        // Allow interaction for both sliding items and settled items that are zone-interactive (e.g., dropped items in zones)
+        if (!item || !item->canInteractWithZones() || item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS) {
             continue;
         }
 
