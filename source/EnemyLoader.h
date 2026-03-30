@@ -40,7 +40,7 @@ public:
         std::string tag;
         float buildUpTime = 0.0f;
         float cooldownTime = 0.0f;
-        State nextState = IDLE;
+        State nextState = IDLE;                   //TODO: remove this next state and make it random
         std::vector<EventDef> events;
     };
 
@@ -56,6 +56,7 @@ public:
         std::string spritesheetPath;
         AIConfig ai;
         std::unordered_map<State, StateDef> states;
+        std::shared_ptr<cugl::JsonValue> customData;
     };
 
 private:
@@ -106,6 +107,7 @@ public:
             def.name = parseBoss(entry->getString("name"));
             def.maxHealth = entry->getFloat("maxHealth");
             def.spritesheetPath = entry->getString("spritesheetPath");
+            def.customData = entry->get("customData");
 
             auto statesObj = entry->get("states");
             CUAssertLog(statesObj && statesObj->isObject(),

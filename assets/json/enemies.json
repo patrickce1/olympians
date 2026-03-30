@@ -1,20 +1,23 @@
 {
     "enemies": [
         {
-            "id": "enemy1",
-            "name": "Enemy 1",
+            "id": "Cyclops",
+            "name": "Cyclops",
             "maxHealth": 20.0,
             "spritesheetPath": "textures/enemy1.png",
-            "ai": {
+            "ai": 
                 "retargetLikelihood": 0.5
-            },
+            },	    
+	    "customData": {
+    	        "eyeMultiplier": 2.0
+	    },
             "states": {
                 "idle": {
                     "tag": "idle",
                     "animationRow": 0
                 },
-                "attack1": {
-                    "tag": "attack",
+                "attack_1": {
+                    "tag": "club",
                     "animationRow": 1,
                     "buildUpTime": 4.0,
                     "cooldownTime": 0.0,
@@ -25,10 +28,10 @@
                             "amount": 1.0
                         }
                     ],
-                    "nextState": "attack1_p2"
+                    "nextState": "attack_2"
                 },
-                "attack1_p2": {
-                    "tag": "follow_up",
+                "attack_2": {
+                    "tag": "stomp",
                     "animationRow": 2,
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
@@ -37,12 +40,28 @@
                             "type": "DAMAGE",
                             "target": 0,
                             "amount": 1.0
+                        },
+			{
+                            "type": "DAMAGE",
+                            "target": 1,
+                            "amount": 1.0
+                        },
+			{
+                            "type": "DAMAGE",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+			{
+                            "type": "DAMAGE",
+                            "target": 3,
+                            "amount": 1.0
                         }
+
                     ],
                     "nextState": "idle"
                 },
-                "attack2": {
-                    "tag": "attack",
+                "attack_3": {
+                    "tag": "boulder toss",
                     "animationRow": 3,
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
@@ -59,7 +78,21 @@
                         }
                     ],
                     "nextState": "idle"
-                }
+                },
+		"defensive_move" : {
+		    "tag": "boulder toss",
+                    "animationRow": 3,
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 5.0,
+                    "events": [
+                        {
+                            "type": "DAMAGE_MODIFIER",
+                            "target": 0,
+                            "amount": 0.0
+                        }
+		    ],
+		    "nextState": "idle"
+		}
             }
         }
     ]

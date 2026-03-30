@@ -22,16 +22,14 @@ public:
         EnemyLoader::State state;       // state that fired this event (debug)
     };
 
-    //below are EXAMPLES for how. This isn't implemented, this is just theoretically how we would do it
-    struct Cyclops {
-        float eyeMultiplier; //default damage boost when you get Cyclops
-    };
-
 protected:
     std::string _enemyId;
     std::string _name;
     std::string _spritesheetPath;
 
+    //for bosses we have custom data. Subclasses can use this to extract any class-specific data
+    std::shared_ptr<cugl::JsonValue> _customData;
+    
     int _targetIndex = -1;
 
     float _maxHealth = 0.0f;
@@ -87,21 +85,23 @@ public:
     const std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef>& getStates() const { return _states; }
 
     bool requestState(EnemyLoader::State state);
-    void update(float dt);
+    void virtual update(float dt);
 
     std::vector<FiredEvent> takeFiredEvents();
 
     // Positive heals, negative damages; clamps to [0, maxHealth]
     void updateHealth(float delta);
 
-private:
+    // Handles taking damage and records the hits that we took
+    void takeDamage(float damage, int playerIndex);
+
+protected:
     void enterState(EnemyLoader::State state);
     void tick(float dt);
     bool readyToFire() const;
     void fireEvents();
     void applyCooldown();
     EnemyLoader::State getNextStateOrIdle() const;
-    
 };
 
 #endif /* !__ENEMY_H__ */

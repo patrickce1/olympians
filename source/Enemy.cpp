@@ -38,6 +38,7 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     _maxHealth = def.maxHealth;
     _currentHealth = def.maxHealth;
     _states = def.states; //replace with a getStates method
+    _customData = def.customData;
 
     //maybe add a check for every type of state because all are expected
     if (_states.count(EnemyLoader::State::IDLE) == 0) {
@@ -48,7 +49,6 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
 
     _attackLockout = 0.0f;
     _retargetLikelihood = def.ai.retargetLikelihood;
-    
     
     return true;
 }

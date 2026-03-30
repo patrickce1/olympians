@@ -56,9 +56,6 @@ private:
     void resolveDamageEvent(const std::shared_ptr<Enemy>& enemy,
                             std::vector<std::shared_ptr<Player>>& players,
                             const Enemy::FiredEvent& fe);
-
-    // Handler used to figure out how to react to player damage
-    void handleDamageLogic(std::shared_ptr<Enemy>& enemy, float damage, int playerIndex);
 };
 
 #endif /* __ENEMY_CONTROLLER_H__ */
