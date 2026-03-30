@@ -373,6 +373,23 @@
     "jsons": {
         "server": "json/server.json"
     },
+    "audio": {
+        "select": {
+            "file": "sounds/select.wav"
+        },
+        "deselect": {
+            "file": "sounds/deselect.wav"
+        },
+        "whoosh": {
+            "file": "sounds/whoosh.wav"
+        },
+        "thud": {
+            "file": "sounds/thud.wav"
+        },
+        "lobby": {
+            "file": "sounds/lobby.ogg"
+        }
+    },
     "widgets": {
         "scene":       "json/scenes/gameScene.json",
         "gameArea":   "widgets/gameArea.json",
