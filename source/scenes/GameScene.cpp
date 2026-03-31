@@ -235,7 +235,7 @@ void GameScene::initBackgroundAndBossImage() {
  * @param assets  The loaded asset manager.
  * @return true if initialisation succeeded, false otherwise.
  */
-bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio) {
     if (assets == nullptr) {
         return false;
     }
@@ -245,6 +245,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
 
     _assets = assets;
     _network = networkController;
+    _audio = audio;
 
     initInputZones();
 
@@ -890,7 +891,9 @@ void GameScene::handleDragInitiation(InputController& input) {
                 Size widgetSize = widget->getContentSize();
                 _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
             }
-            
+
+            _audio->playSoundUnique("select");
+
             _draggedItemDef = getHeldItemDef(id);
             updateInputZones();
             break;

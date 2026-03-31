@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include "GameState.h"
 #include "../InputController.h"
+#include "../AudioController.h"
 #include "../items/ItemController.h"
 #include "../Enemy.h"
 #include "../EnemyLoader.h"
@@ -58,6 +59,9 @@ protected:
     /** Network controller. Responsible for sending networking messages and process messages sent
      * over the network. */
     std::shared_ptr<NetworkController> _network;
+
+    /** Audio controller. Manages all audio playback (music and sound effects). */
+    AudioController* _audio;
 
     /** The root scene node for this scene graph. */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
@@ -300,7 +304,9 @@ public:
      * @param networkController The network controller shared across all scenes
      * @return true if initialisation succeeded, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, 
+              const std::shared_ptr<NetworkController>& networkController,
+              AudioController* audio);
 
     /**
      * Activates or deactivates the scene and its UI.

@@ -19,6 +19,12 @@ class AudioController {
 protected:
     /** Reference to the asset manager for loading sounds */
     std::shared_ptr<AssetManager> _assets;
+    
+    /** Counter for generating unique sound keys */
+    int _soundCounter = 0;
+    
+    /** Key of the currently playing music track */
+    std::string _currentMusicKey = "";
 
 public:
     /**
@@ -174,6 +180,19 @@ public:
      * @return the current music volume level
      */
     float getMusicVolume() const;
-};
 
+    /**
+     * Plays a sound effect with an automatically generated unique key.
+     *
+     * Useful for sound effects that may be triggered multiple times in quick
+     * succession. Each call generates a unique key, allowing multiple instances
+     * of the same sound to play simultaneously.
+     *
+     * @param soundKey The key to retrieve the sound from the asset manager
+     * @param loop Whether the sound should loop continuously
+     * @param volume The playback volume (0.0 to 1.0)
+     * @return true if the sound was successfully added to the audio engine
+     */
+    bool playSoundUnique(const std::string& soundKey, bool loop = false, float volume = 1.0f);
+};
 #endif /* __AUDIO_CONTROLLER_H__ */

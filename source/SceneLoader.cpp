@@ -260,7 +260,7 @@ void SceneLoader::update(float dt) {
                     CULog("Failed to initialize ClientScene");
                 }
                 
-                if (_gameScene.init(_assets, _network)) {
+                if (_gameScene.init(_assets, _network, &_audio)) {
                     _gameScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize GameScene");
@@ -301,6 +301,7 @@ void SceneLoader::update(float dt) {
             switch (_clientScene.getStatus()) {
                 case ClientScene::Status::START:
                     CULog("Transitioning to LobbyScene...");
+                    _audio.playMusic("lobby", true);
                     _lobbyScene.setActive(true);
                     _clientScene.setActive(false);
                     _currentScene = State::LOBBY;
@@ -326,6 +327,7 @@ void SceneLoader::update(float dt) {
             switch (_hostSetupScene.getStatus()) {
                 case HostSetupScene::Status::START:
                     CULog("Transitioning to LobbyScene...");
+                    _audio.playMusic("lobby", true);
                     _lobbyScene.setActive(true);
                     _hostSetupScene.setActive(false);
                     _currentScene = State::LOBBY;
@@ -351,6 +353,7 @@ void SceneLoader::update(float dt) {
             switch (_lobbyScene.getStatus()) {
                 case LobbyScene::Status::START:
                     CULog("Transitioning to GameScene...");
+                    _audio.playMusic("battle", true);
                     _gameScene.setActive(true);
                     _lobbyScene.setActive(false);
                     _currentScene = State::GAME;
@@ -375,6 +378,7 @@ void SceneLoader::update(float dt) {
             _houseSelectScene.update(dt);
             switch (_houseSelectScene.getStatus()) {
                 case HouseSelectScene::Status::ABORT:
+                    _audio.playMusic("lobby", true);
                     _lobbyScene.setActive(true);
                     _houseSelectScene.setActive(false);
                     _currentScene = State::LOBBY;
@@ -409,12 +413,14 @@ void SceneLoader::update(float dt) {
             //this will be changed to a proper win/lose scene later
             switch (_gameScene.getStatus()) {
                 case GameScene::Status::LOST:
+                    _audio.playMusic("lobby", true);
                     _lobbyScene.setActive(true);
                     _gameScene.setActive(false);
                     _currentScene = State::LOBBY;
                     _gameScene.reset();
                     break;
                 case GameScene::Status::WON:
+                    _audio.playMusic("lobby", true);
                     _lobbyScene.setActive(true);
                     _gameScene.setActive(false);
                     _currentScene = State::LOBBY;

@@ -394,6 +394,21 @@
             "file":     "sounds/thud.wav",
             "stream":   false
         },
+        "attack": {
+            "type":     "sample",
+            "file":     "sounds/attack.wav",
+            "stream":   false
+        },
+        "battle": {
+            "type":     "sample",
+            "file":     "sounds/battle.ogg",
+            "stream":   true
+        },
+        "support": {
+            "type":     "sample",
+            "file":     "sounds/support.wav",
+            "stream":   false
+        },
         "lobby": {
             "type":     "sample",
             "file":     "sounds/lobby.ogg",

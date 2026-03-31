@@ -203,6 +203,12 @@ void AudioController::resumeAllSounds() {
  * @param loop Whether the music should loop continuously
  */
 void AudioController::playMusic(const std::string& soundKey, bool loop) {
+    // Don't restart music if the same track is already playing
+    if (_currentMusicKey == soundKey) {
+        CULog("AudioController: Music '%s' already playing, skipping restart", soundKey.c_str());
+        return;
+    }
+
     if (_assets == nullptr) {
         CULog("AudioController::playMusic: assets not initialized");
         return;
@@ -227,6 +233,7 @@ void AudioController::playMusic(const std::string& soundKey, bool loop) {
     }
 
     musicQueue->play(sound, loop);
+    _currentMusicKey = soundKey;
     CULog("AudioController: Playing music '%s' (loop=%d)", soundKey.c_str(), loop);
 }
 
@@ -306,4 +313,17 @@ float AudioController::getMusicVolume() const {
         }
     }
     return 0.0f;
+}
+
+/**
+ * Plays a sound effect with an automatically generated unique key.
+ *
+ * @param soundKey The key to retrieve the sound from the asset manager
+ * @param loop Whether the sound should loop continuously
+ * @param volume The playback volume (0.0 to 1.0)
+ * @return true if the sound was successfully added to the audio engine
+ */
+bool AudioController::playSoundUnique(const std::string& soundKey, bool loop, float volume) {
+    std::string uniqueKey = soundKey + "_" + std::to_string(_soundCounter++);
+    return playSound(uniqueKey, soundKey, loop, volume);
 }
