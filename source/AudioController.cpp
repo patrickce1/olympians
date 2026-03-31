@@ -201,8 +201,9 @@ void AudioController::resumeAllSounds() {
  *
  * @param soundKey The key to retrieve the music from the asset manager
  * @param loop Whether the music should loop continuously
+ * @param volume The music volume (0.0 to 1.0)
  */
-void AudioController::playMusic(const std::string& soundKey, bool loop) {
+void AudioController::playMusic(const std::string& soundKey, bool loop, float volume) {
     // Don't restart music if the same track is already playing
     if (_currentMusicKey == soundKey) {
         CULog("AudioController: Music '%s' already playing, skipping restart", soundKey.c_str());
@@ -233,8 +234,9 @@ void AudioController::playMusic(const std::string& soundKey, bool loop) {
     }
 
     musicQueue->play(sound, loop);
+    musicQueue->setVolume(volume);
     _currentMusicKey = soundKey;
-    CULog("AudioController: Playing music '%s' (loop=%d)", soundKey.c_str(), loop);
+    CULog("AudioController: Playing music '%s' (loop=%d, volume=%.2f)", soundKey.c_str(), loop, volume);
 }
 
 /**

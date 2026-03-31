@@ -543,6 +543,8 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
         }
 
         _network->broadcastPass(defId, target->getPlayerNumber(), 1);  // Direction 1 = left
+        _audio->playSoundUnique("whoosh", false, 1.0f);
+
         return true;
     }
     return false;
@@ -590,6 +592,7 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
         }
 
         _network->broadcastPass(defId, target->getPlayerNumber(), 2);  // Direction 2 = right
+        _audio->playSoundUnique("whoosh", false, 1.0f);
         return true;
     }
     return false;
@@ -807,18 +810,20 @@ void GameScene::handlePlayerInput(InputController& input) {
         } else {
             // Item action failed - slide the item back
             slideReleasedItem(_draggedItemId);
-            _audio->playSoundUnique("whoosh");
             if (_draggedIcon) {
                 _draggedIcon->setVisible(true);
             }
+            _audio->playSoundUnique("deselect", false, 0.8f);
+            
         }
     } else {
         // If no zone was detected, slide the item
         slideReleasedItem(_draggedItemId);
-        _audio->playSoundUnique("whoosh");
         if (_draggedIcon) {
             _draggedIcon->setVisible(true);
         }
+        _audio->playSoundUnique("deselect", false, 0.8f);
+
     }
 
     _draggedIcon = nullptr;
@@ -873,6 +878,9 @@ void GameScene::handleDragInitiation(InputController& input) {
     for (auto& [id, widget] : _itemWidgets) {
         if (!widget) continue;
         if (widget->getBoundingBox().contains(touchPosScreen)) {
+
+            _audio->playSoundUnique("select", false, 0.5f);
+
             _draggedIcon = widget;
             _draggedItemId = id;
             _dragOffset = widget->getPosition() - touchPosScreen;
