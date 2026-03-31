@@ -233,7 +233,7 @@ void SceneLoader::update(float dt) {
                 // Initialize and start audio controller
                 if (_audio.init(_assets)) {
                     _audio.startAudioEngine();
-                    _audio.playSound("lobbyMusic", "lobby", true, 1.0f);
+                    _audio.playMusic("lobby", true);
                 } else {
                     CULog("Warning: Failed to initialize audio controller");
                 }

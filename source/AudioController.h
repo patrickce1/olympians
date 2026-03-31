@@ -58,7 +58,10 @@ public:
     void stopAudioEngine();
 
     /**
-     * Plays a sound from the asset manager.
+     * Plays a sound effect from the asset manager.
+     *
+     * Sound effects use a limited slot-based system (separate from music).
+     * Multiple effects can play simultaneously. For background music, use playMusic() instead.
      *
      * @param key The unique identifier for this playback instance
      * @param soundKey The key to retrieve the sound from the asset manager
@@ -127,6 +130,50 @@ public:
      * Resumes all paused sounds.
      */
     void resumeAllSounds();
+
+    /**
+     * Plays a music track from the asset manager through the music queue.
+     *
+     * Music is played on a separate queue from sound effects, allowing
+     * seamless background music playback without interference from SFX.
+     *
+     * @param soundKey The key to retrieve the music from the asset manager
+     * @param loop Whether the music should loop continuously
+     */
+    void playMusic(const std::string& soundKey, bool loop = true);
+
+    /**
+     * Stops the currently playing music track.
+     *
+     * @param fade The fade-out duration in seconds (0 for immediate stop)
+     */
+    void stopMusic(float fade = 0.5f);
+
+    /**
+     * Pauses the currently playing music.
+     *
+     * @param fade The fade-out duration in seconds (0 for immediate pause)
+     */
+    void pauseMusic(float fade = 0.5f);
+
+    /**
+     * Resumes the paused music.
+     */
+    void resumeMusic();
+
+    /**
+     * Sets the volume of the music track.
+     *
+     * @param volume The music volume (0.0 to 1.0)
+     */
+    void setMusicVolume(float volume);
+
+    /**
+     * Gets the current volume of the music track.
+     *
+     * @return the current music volume level
+     */
+    float getMusicVolume() const;
 };
 
 #endif /* __AUDIO_CONTROLLER_H__ */
