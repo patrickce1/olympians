@@ -113,7 +113,15 @@ bool GameScene::initSceneGraph() {
         _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
         
+        // This is the boss animation sprite, you can change the texture and set frames as needed.
         _bossSprite = std::dynamic_pointer_cast<scene2::SpriteNode>((_gameArea->getChildByName("bossAnimationSpace")));
+        
+        // This is the special effects node, this is where all the animated effects will go.
+        _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
+        _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+        _scene->addChild(_specialEffectsLayer);
+        
+        
     }
     
     if (_inventory) {
