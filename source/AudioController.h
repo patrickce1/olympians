@@ -25,6 +25,29 @@ protected:
     
     /** Key of the currently playing music track */
     std::string _currentMusicKey = "";
+    
+    /** Master volume multiplier for music (0.0 to 1.0) */
+    float _musicVolumeMultiplier = 1.0f;
+    
+    /** Master volume multiplier for sound effects (0.0 to 1.0) */
+    float _sfxVolumeMultiplier = 1.0f;
+    
+    /** Map of sound/music keys to their default volumes from assets.json */
+    std::unordered_map<std::string, float> _defaultVolumes;
+
+    /**
+     * Loads sound/music default volumes from assets.json
+     */
+    void loadDefaultVolumes();
+    
+    /**
+     * Gets the default volume for a sound key from the loaded volumes map.
+     * Returns 1.0f if not found.
+     *
+     * @param soundKey The sound asset key
+     * @return the default volume (0.0 to 1.0)
+     */
+    float getDefaultVolume(const std::string& soundKey) const;
 
 public:
     /**
@@ -181,6 +204,36 @@ public:
      * @return the current music volume level
      */
     float getMusicVolume() const;
+
+    /**
+     * Sets the music volume multiplier for all music playback.
+     * This multiplies with the default volume set in JSON.
+     *
+     * @param multiplier The music volume multiplier (0.0 to 1.0)
+     */
+    void setMusicVolumeMultiplier(float multiplier);
+
+    /**
+     * Gets the current music volume multiplier.
+     *
+     * @return the music volume multiplier
+     */
+    float getMusicVolumeMultiplier() const;
+
+    /**
+     * Sets the SFX volume multiplier for all sound effects.
+     * This multiplies with the default volume set in JSON.
+     *
+     * @param multiplier The SFX volume multiplier (0.0 to 1.0)
+     */
+    void setSFXVolumeMultiplier(float multiplier);
+
+    /**
+     * Gets the current SFX volume multiplier.
+     *
+     * @return the SFX volume multiplier
+     */
+    float getSFXVolumeMultiplier() const;
 
     /**
      * Plays a sound effect with an automatically generated unique key.

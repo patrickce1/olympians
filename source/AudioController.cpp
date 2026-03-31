@@ -17,6 +17,7 @@ bool AudioController::init(const std::shared_ptr<AssetManager>& assets) {
         return false;
     }
     _assets = assets;
+    loadDefaultVolumes();
     return true;
 }
 
@@ -81,9 +82,21 @@ bool AudioController::playSound(const std::string& key, const std::string& sound
         return false;
     }
 
-    bool success = engine->play(key, sound, loop, volume, force);
+    // Use default volume from JSON if volume is 1.0f (default parameter)
+    float finalVolume = volume;
+    if (volume == 1.0f) {
+        finalVolume = getDefaultVolume(soundKey);
+    }
+    
+    // Apply SFX volume multiplier
+    finalVolume *= _sfxVolumeMultiplier;
+    
+    // Clamp to valid range
+    finalVolume = std::max(0.0f, std::min(1.0f, finalVolume));
+
+    bool success = engine->play(key, sound, loop, finalVolume, force);
     if (success) {
-        CULog("AudioController: Playing sound '%s' with key '%s'", soundKey.c_str(), key.c_str());
+        CULog("AudioController: Playing sound '%s' with key '%s' (volume=%.2f)", soundKey.c_str(), key.c_str(), finalVolume);
     } else {
         CULog("AudioController: Failed to play sound '%s' (no available slots)", soundKey.c_str());
     }
@@ -233,12 +246,24 @@ void AudioController::playMusic(const std::string& soundKey, bool loop, float vo
         return;
     }
 
+    // Use default volume from JSON if volume is 1.0f (default parameter)
+    float finalVolume = volume;
+    if (volume == 1.0f) {
+        finalVolume = getDefaultVolume(soundKey);
+    }
+    
+    // Apply music volume multiplier
+    finalVolume *= _musicVolumeMultiplier;
+    
+    // Clamp to valid range
+    finalVolume = std::max(0.0f, std::min(1.0f, finalVolume));
+    
     // Set volume on the sound before queuing
-    sound->setVolume(volume);
+    sound->setVolume(finalVolume);
     
     musicQueue->play(sound, loop);
     _currentMusicKey = soundKey;
-    CULog("AudioController: Playing music '%s' (loop=%d, volume=%.2f)", soundKey.c_str(), loop, volume);
+    CULog("AudioController: Playing music '%s' (loop=%d, volume=%.2f)", soundKey.c_str(), loop, finalVolume);
 }
 
 /**
@@ -330,4 +355,97 @@ float AudioController::getMusicVolume() const {
 bool AudioController::playSoundUnique(const std::string& soundKey, bool loop, float volume) {
     std::string uniqueKey = soundKey + "_" + std::to_string(_soundCounter++);
     return playSound(uniqueKey, soundKey, loop, volume);
+}
+
+/**
+ * Sets the music volume multiplier for all music playback.
+ * This multiplies with the default volume set in JSON.
+ *
+ * @param multiplier The music volume multiplier (0.0 to 1.0)
+ */
+void AudioController::setMusicVolumeMultiplier(float multiplier) {
+    _musicVolumeMultiplier = std::max(0.0f, std::min(1.0f, multiplier));
+    CULog("AudioController: Set music volume multiplier to %.2f", _musicVolumeMultiplier);
+}
+
+/**
+ * Gets the current music volume multiplier.
+ *
+ * @return the music volume multiplier
+ */
+float AudioController::getMusicVolumeMultiplier() const {
+    return _musicVolumeMultiplier;
+}
+
+/**
+ * Sets the SFX volume multiplier for all sound effects.
+ * This multiplies with the default volume set in JSON.
+ *
+ * @param multiplier The SFX volume multiplier (0.0 to 1.0)
+ */
+void AudioController::setSFXVolumeMultiplier(float multiplier) {
+    _sfxVolumeMultiplier = std::max(0.0f, std::min(1.0f, multiplier));
+    CULog("AudioController: Set SFX volume multiplier to %.2f", _sfxVolumeMultiplier);
+}
+
+/**
+ * Gets the current SFX volume multiplier.
+ *
+ * @return the SFX volume multiplier
+ */
+float AudioController::getSFXVolumeMultiplier() const {
+    return _sfxVolumeMultiplier;
+}
+
+/**
+ * Loads sound/music default volumes from assets.json
+ */
+void AudioController::loadDefaultVolumes() {
+    _defaultVolumes.clear();
+    
+    // Try to load assets.json using JsonReader
+    auto reader = JsonReader::allocWithAsset("json/assets.json");
+    if (reader == nullptr) {
+        CULog("AudioController: Failed to load assets.json");
+        return;
+    }
+    
+    auto assetsJson = reader->readJson();
+    if (assetsJson == nullptr) {
+        CULog("AudioController: Failed to parse assets.json");
+        return;
+    }
+    
+    // Read sounds section
+    auto soundsJson = assetsJson->get("sounds");
+    if (soundsJson == nullptr || !soundsJson->isObject()) {
+        CULog("AudioController: No sounds section in assets.json");
+        return;
+    }
+    
+    // Iterate through all sounds dynamically from JSON object children
+    const auto& children = soundsJson->children();
+    for (const auto& soundEntry : children) {
+        std::string soundName = soundEntry->key();
+        if (soundEntry->isObject() && soundEntry->has("volume")) {
+            float volume = soundEntry->get("volume")->asFloat();
+            _defaultVolumes[soundName] = volume;
+            CULog("AudioController: Loaded default volume for '%s': %.2f", soundName.c_str(), volume);
+        }
+    }
+}
+
+/**
+ * Gets the default volume for a sound key from the loaded volumes map.
+ * Returns 1.0f if not found.
+ *
+ * @param soundKey The sound asset key
+ * @return the default volume (0.0 to 1.0)
+ */
+float AudioController::getDefaultVolume(const std::string& soundKey) const {
+    auto it = _defaultVolumes.find(soundKey);
+    if (it != _defaultVolumes.end()) {
+        return it->second;
+    }
+    return 1.0f;  // Default to 1.0f if not found
 }

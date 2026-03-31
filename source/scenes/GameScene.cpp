@@ -423,13 +423,14 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastDamage(resolvedMagnitude);
             }
-            CULog("Player attacked enemy '%s' with item %llu",
-                  enemy->getId().c_str(), (unsigned long long)itemId);
+            CULog("Player attacked enemy '%s' with item %llu (damage: %.1f)",
+                  enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
             _audio->playSoundUnique("attack");
             
             // Host hears enemy take damage immediately
             if (_network->isHost() && _audio) {
-                _audio->playSoundUnique("enemy_hurt", false, 0.6f);
+                _audio->playSoundUnique("enemy_hurt");
+                CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
             }
             return true;
         }
@@ -465,6 +466,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
             _audio->playSoundUnique("support");
+            CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }
         return false;
@@ -499,6 +501,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
             _audio->playSoundUnique("support");
+            CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }
         return false;
@@ -548,7 +551,7 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
         }
 
         _network->broadcastPass(defId, target->getPlayerNumber(), 1);  // Direction 1 = left
-        _audio->playSoundUnique("whoosh", false, 0.85f);
+        _audio->playSoundUnique("whoosh");
 
         return true;
     }
@@ -597,7 +600,7 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
         }
 
         _network->broadcastPass(defId, target->getPlayerNumber(), 2);  // Direction 2 = right
-        _audio->playSoundUnique("whoosh", false, 0.85f);
+        _audio->playSoundUnique("whoosh");
         return true;
     }
     return false;
@@ -693,24 +696,37 @@ void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
 
-    // Track player health before enemy update to detect damage
+    // Track player and enemy health before any updates to detect damage
     auto player = _gameState.getLocalPlayer();
     // Only track health if local player is not AI (AI players shouldn't hear their own hurt sounds)
     float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
+    float enemyHealthBefore = enemy->getCurrentHealth();
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
-    
-    // Play player hurt sound if local human player took damage from enemy
-    if (player && !dynamic_cast<PlayerAI*>(player) && player->getCurrentHealth() < playerHealthBefore && _audio) {
-        _audio->playSoundUnique("player_hurt", false, 0.6f);
-    } else if (player && !dynamic_cast<PlayerAI*>(player) && player->getCurrentHealth() > playerHealthBefore && _audio) {
-        _audio->playSoundUnique("player_heal", false, 0.8f);
-    }
 
+    // Update AI players - this is when they attack the boss AND heal teammates
     for (auto& player : _gameState.getPlayers()) {
         if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
             ai->update(dt, *enemy, _itemController);
         }
+    }
+    
+    // Play player hurt/heal sounds AFTER all updates (enemy AND AI)
+    // This way we catch damage from enemy AND heals from AI teammates
+    if (player && !dynamic_cast<PlayerAI*>(player)) {
+        if (player->getCurrentHealth() < playerHealthBefore && _audio) {
+            _audio->playSoundUnique("player_hurt");
+            CULog("updateEnemyAndAI: Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
+        } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
+            _audio->playSoundUnique("player_heal");
+            CULog("updateEnemyAndAI: Local player healed from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
+        }
+    }
+    
+    // Play enemy hurt sound if AI players attacked the boss
+    if (enemy->getCurrentHealth() < enemyHealthBefore && _audio) {
+        _audio->playSoundUnique("enemy_hurt");
+        CULog("updateEnemyAndAI: Enemy damaged from %.1f to %.1f (AI attack)", enemyHealthBefore, enemy->getCurrentHealth());
     }
 }
 
@@ -830,7 +846,7 @@ void GameScene::handlePlayerInput(InputController& input) {
             if (_draggedIcon) {
                 _draggedIcon->setVisible(true);
             }
-            _audio->playSoundUnique("deselect", false, 0.5f);
+            _audio->playSoundUnique("deselect");
         }
     } else {
         // If no zone was detected, slide the item
@@ -838,7 +854,7 @@ void GameScene::handlePlayerInput(InputController& input) {
         if (_draggedIcon) {
             _draggedIcon->setVisible(true);
         }
-        _audio->playSoundUnique("deselect", false, 0.5f);
+        _audio->playSoundUnique("deselect");
 
     }
 
@@ -895,7 +911,7 @@ void GameScene::handleDragInitiation(InputController& input) {
         if (!widget) continue;
         if (widget->getBoundingBox().contains(touchPosScreen)) {
 
-            _audio->playSoundUnique("select", false, 0.5f);
+            _audio->playSoundUnique("select");
 
             _draggedIcon = widget;
             _draggedItemId = id;
@@ -949,7 +965,7 @@ void GameScene::handleNetworkUpdates() {
     _network->getNetworkUpdates();
 
     if (_network->isHost()) {
-        // Track player and enemy health before updates to detect changes
+        // Track local player and enemy health before updates to detect changes
         auto player = _gameState.getLocalPlayer();
         float playerHealthBefore = player ? player->getCurrentHealth() : 0.0f;
         float enemyHealthBefore = _gameState.getEnemy()->getCurrentHealth();
@@ -958,12 +974,19 @@ void GameScene::handleNetworkUpdates() {
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         
-        // Play sounds if damage/heals were detected from network updates
-        if (player && player->getCurrentHealth() > playerHealthBefore && _audio) {
-            _audio->playSoundUnique("player_heal", false, 0.6f);
+        // Play sounds only for LOCAL player health changes (they can be healed by teammates)
+        if (player) {
+            if (player->getCurrentHealth() > playerHealthBefore && _audio) {
+                _audio->playSoundUnique("player_heal");
+                CULog("Host: Local player healed from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
+            } else if (player->getCurrentHealth() < playerHealthBefore && _audio) {
+                _audio->playSoundUnique("player_hurt");
+                CULog("Host: Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
+            }
         }
         if (_gameState.getEnemy()->getCurrentHealth() < enemyHealthBefore && _audio) {
-            _audio->playSoundUnique("enemy_hurt", false, 0.6f);
+            _audio->playSoundUnique("enemy_hurt");
+            CULog("Host: Enemy damaged from %.1f to %.1f", enemyHealthBefore, _gameState.getEnemy()->getCurrentHealth());
         }
         
         // broadcast authoritative state to all clients
@@ -990,13 +1013,16 @@ void GameScene::handleNetworkUpdates() {
         // Play sounds if damage was detected
         if (player) {
             if (player->getCurrentHealth() < playerHealthBefore && _audio) {
-                _audio->playSoundUnique("player_hurt", false, 0.4f);
+                _audio->playSoundUnique("player_hurt");
+                CULog("Client: Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
             } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
-                _audio->playSoundUnique("player_heal", false, 0.6f);
+                _audio->playSoundUnique("player_heal");
+                CULog("Client: Local player healed from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
             }
         }
         if (_gameState.getEnemy()->getCurrentHealth() < enemyHealthBefore && _audio) {
-            _audio->playSoundUnique("enemy_hurt", false, 0.45f);
+            _audio->playSoundUnique("enemy_hurt");
+            CULog("Client: Enemy damaged from %.1f to %.1f", enemyHealthBefore, _gameState.getEnemy()->getCurrentHealth());
         }
         
         // clients check if the host told us anything about winning/losing
@@ -1075,14 +1101,14 @@ void GameScene::startItemSliding(ItemInstance::ItemId itemId, const cugl::Vec2& 
             // Spawned items cannot interact with zones until settled
             item->setCanInteractWithZones(false);
             if (_audio) {
-                _audio->playSoundUnique("whoosh", false, 0.85f);
+                _audio->playSoundUnique("whoosh");
             }
             break;
         case ItemInstance::SlideOriginType::SLIDE_FROM_PASS:
             // Passed items cannot interact with zones until settled
             item->setCanInteractWithZones(false);
             if (_audio) {
-                _audio->playSoundUnique("whoosh", false, 0.85f);
+                _audio->playSoundUnique("whoosh");
             }
             break;
     }
