@@ -426,6 +426,11 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
             CULog("Player attacked enemy '%s' with item %llu",
                   enemy->getId().c_str(), (unsigned long long)itemId);
             _audio->playSoundUnique("attack");
+            
+            // Host hears enemy take damage immediately
+            if (_network->isHost() && _audio) {
+                _audio->playSoundUnique("enemy_hurt", false, 0.6f);
+            }
             return true;
         }
         return false;
@@ -543,7 +548,7 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
         }
 
         _network->broadcastPass(defId, target->getPlayerNumber(), 1);  // Direction 1 = left
-        _audio->playSoundUnique("whoosh", false, 1.0f);
+        _audio->playSoundUnique("whoosh", false, 0.85f);
 
         return true;
     }
@@ -592,7 +597,7 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
         }
 
         _network->broadcastPass(defId, target->getPlayerNumber(), 2);  // Direction 2 = right
-        _audio->playSoundUnique("whoosh", false, 1.0f);
+        _audio->playSoundUnique("whoosh", false, 0.85f);
         return true;
     }
     return false;
@@ -688,7 +693,19 @@ void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
 
+    // Track player health before enemy update to detect damage
+    auto player = _gameState.getLocalPlayer();
+    // Only track health if local player is not AI (AI players shouldn't hear their own hurt sounds)
+    float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
+
     _enemyController.update(dt, enemy, _gameState.getPlayers());
+    
+    // Play player hurt sound if local human player took damage from enemy
+    if (player && !dynamic_cast<PlayerAI*>(player) && player->getCurrentHealth() < playerHealthBefore && _audio) {
+        _audio->playSoundUnique("player_hurt", false, 0.6f);
+    } else if (player && !dynamic_cast<PlayerAI*>(player) && player->getCurrentHealth() > playerHealthBefore && _audio) {
+        _audio->playSoundUnique("player_heal", false, 0.8f);
+    }
 
     for (auto& player : _gameState.getPlayers()) {
         if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
@@ -813,8 +830,7 @@ void GameScene::handlePlayerInput(InputController& input) {
             if (_draggedIcon) {
                 _draggedIcon->setVisible(true);
             }
-            _audio->playSoundUnique("deselect", false, 0.8f);
-            
+            _audio->playSoundUnique("deselect", false, 0.5f);
         }
     } else {
         // If no zone was detected, slide the item
@@ -822,7 +838,7 @@ void GameScene::handlePlayerInput(InputController& input) {
         if (_draggedIcon) {
             _draggedIcon->setVisible(true);
         }
-        _audio->playSoundUnique("deselect", false, 0.8f);
+        _audio->playSoundUnique("deselect", false, 0.5f);
 
     }
 
@@ -933,9 +949,23 @@ void GameScene::handleNetworkUpdates() {
     _network->getNetworkUpdates();
 
     if (_network->isHost()) {
+        // Track player and enemy health before updates to detect changes
+        auto player = _gameState.getLocalPlayer();
+        float playerHealthBefore = player ? player->getCurrentHealth() : 0.0f;
+        float enemyHealthBefore = _gameState.getEnemy()->getCurrentHealth();
+        
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
+        
+        // Play sounds if damage/heals were detected from network updates
+        if (player && player->getCurrentHealth() > playerHealthBefore && _audio) {
+            _audio->playSoundUnique("player_heal", false, 0.6f);
+        }
+        if (_gameState.getEnemy()->getCurrentHealth() < enemyHealthBefore && _audio) {
+            _audio->playSoundUnique("enemy_hurt", false, 0.6f);
+        }
+        
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
         //check if we won or lost
@@ -949,8 +979,26 @@ void GameScene::handleNetworkUpdates() {
         }
     }
     else {
+        // Track player and enemy health before updates to detect damage
+        auto player = _gameState.getLocalPlayer();
+        float playerHealthBefore = player ? player->getCurrentHealth() : 0.0f;
+        float enemyHealthBefore = _gameState.getEnemy()->getCurrentHealth();
+        
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        
+        // Play sounds if damage was detected
+        if (player) {
+            if (player->getCurrentHealth() < playerHealthBefore && _audio) {
+                _audio->playSoundUnique("player_hurt", false, 0.4f);
+            } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
+                _audio->playSoundUnique("player_heal", false, 0.6f);
+            }
+        }
+        if (_gameState.getEnemy()->getCurrentHealth() < enemyHealthBefore && _audio) {
+            _audio->playSoundUnique("enemy_hurt", false, 0.45f);
+        }
+        
         // clients check if the host told us anything about winning/losing
         if (_network->checkGameWon()) {
             _status = Status::WON;
@@ -1026,10 +1074,16 @@ void GameScene::startItemSliding(ItemInstance::ItemId itemId, const cugl::Vec2& 
         case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN:
             // Spawned items cannot interact with zones until settled
             item->setCanInteractWithZones(false);
+            if (_audio) {
+                _audio->playSoundUnique("whoosh", false, 0.85f);
+            }
             break;
         case ItemInstance::SlideOriginType::SLIDE_FROM_PASS:
             // Passed items cannot interact with zones until settled
             item->setCanInteractWithZones(false);
+            if (_audio) {
+                _audio->playSoundUnique("whoosh", false, 0.85f);
+            }
             break;
     }
 

@@ -233,8 +233,10 @@ void AudioController::playMusic(const std::string& soundKey, bool loop, float vo
         return;
     }
 
+    // Set volume on the sound before queuing
+    sound->setVolume(volume);
+    
     musicQueue->play(sound, loop);
-    musicQueue->setVolume(volume);
     _currentMusicKey = soundKey;
     CULog("AudioController: Playing music '%s' (loop=%d, volume=%.2f)", soundKey.c_str(), loop, volume);
 }

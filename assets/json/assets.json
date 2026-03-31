@@ -413,6 +413,21 @@
             "type":     "sample",
             "file":     "sounds/lobby.ogg",
             "stream":   true
+        },
+        "enemy_hurt": {
+            "type":     "sample",
+            "file":     "sounds/enemy_hurt.wav",
+            "stream":   false
+        },
+        "player_heal": {
+            "type":     "sample",
+            "file":     "sounds/player_heal.wav",
+            "stream":   false
+        },
+        "player_hurt": {
+            "type":     "sample",
+            "file":     "sounds/player_hurt.wav",
+            "stream":   false
         }
     },
     "widgets": {

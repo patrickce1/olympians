@@ -195,20 +195,5 @@ public:
      * @return true if the sound was successfully added to the audio engine
      */
     bool playSoundUnique(const std::string& soundKey, bool loop = false, float volume = 1.0f);
-
-    /**
-     * Plays a sound effect with an automatically generated unique key and random pitch variation.
-     *
-     * The pitch is randomly varied around 1.0 by the specified range,
-     * making repeated sounds feel more natural and non-repetitive.
-     *
-     * @param soundKey The key to retrieve the sound from the asset manager
-     * @param loop Whether the sound should loop continuously
-     * @param volume The playback volume (0.0 to 1.0)
-     * @param pitchVariationRange The pitch variation range (e.g., 0.1 for ±10%)
-     * @return true if the sound was successfully added to the audio engine
-     */
-    bool playSoundWithPitchVariation(const std::string& soundKey, bool loop = false,
-                                     float volume = 1.0f, float pitchVariationRange = 0.1f);
 };
 #endif /* __AUDIO_CONTROLLER_H__ */
