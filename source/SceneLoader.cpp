@@ -66,6 +66,7 @@ void SceneLoader::onStartup() {
 
     // You have to attach the individual loaders for each asset type
     _assets->attach<Texture>(TextureLoader::alloc()->getHook());
+    _assets->attach<Sound>(SoundLoader::alloc()->getHook());
     _assets->attach<Font>(FontLoader::alloc()->getHook());
     _assets->attach<JsonValue>(JsonLoader::alloc()->getHook());
     _assets->attach<WidgetValue>(WidgetLoader::alloc()->getHook());
@@ -89,7 +90,7 @@ void SceneLoader::onStartup() {
     _loadingScene->setActive(true);
     _loadingScene->start();
     _currentScene = State::LOAD;
-    
+
     // Build the scene from these assets
     Application::onStartup();
     
@@ -180,6 +181,10 @@ void SceneLoader::onShutdown() {
 #endif
     Input::deactivate<TextInput>();
     Input::deactivate<Keyboard>();
+    
+    // Dispose audio controller
+    _audio.dispose();
+
     Application::onShutdown();
 }
 
@@ -224,7 +229,16 @@ void SceneLoader::update(float dt) {
 
                 //NETWORK
                 _network->init(_assets); //assets loaded, load network controller
+                
+                // Initialize and start audio controller
+                if (_audio.init(_assets)) {
+                    _audio.startAudioEngine();
+                    _audio.playSound("lobbyMusic", "lobby", true, 1.0f);
+                } else {
+                    CULog("Warning: Failed to initialize audio controller");
+                }
 
+                
                 if (_menuScene.init(_assets)) {
                     _menuScene.setSpriteBatch(_batch);
                     _menuScene.setActive(true);

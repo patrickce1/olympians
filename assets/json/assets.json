@@ -373,21 +373,31 @@
     "jsons": {
         "server": "json/server.json"
     },
-    "audio": {
+    "sounds": {
         "select": {
-            "file": "sounds/select.wav"
+            "type":     "sample",
+            "file":     "sounds/select.wav",
+            "stream":   false
         },
         "deselect": {
-            "file": "sounds/deselect.wav"
+            "type":     "sample",
+            "file":     "sounds/deselect.wav",
+            "stream":   false
         },
         "whoosh": {
-            "file": "sounds/whoosh.wav"
+            "type":     "sample",
+            "file":     "sounds/whoosh.wav",
+            "stream":   false
         },
         "thud": {
-            "file": "sounds/thud.wav"
+            "type":     "sample",
+            "file":     "sounds/thud.wav",
+            "stream":   false
         },
         "lobby": {
-            "file": "sounds/lobby.ogg"
+            "type":     "sample",
+            "file":     "sounds/lobby.ogg",
+            "stream":   true
         }
     },
     "widgets": {

@@ -8,6 +8,7 @@
 #include "scenes/LobbyScene.h"
 #include "scenes/HouseSelectScene.h"
 #include "InputController.h"
+#include "AudioController.h"
 #include "tests/PlayerTests.h"
 #include "tests/EnemyTests.h"
 #include "tests/ItemTests.h"
@@ -46,6 +47,9 @@ protected:
     
     /*Input controller. Used to extract input data*/
     InputController _input;
+
+    /*Audio controller. Used to manage all audio playback*/
+    AudioController _audio;
 
     /*Network controller used across scenes. Used for recieving and processing networking messages*/
     std::shared_ptr<NetworkController> _network;
