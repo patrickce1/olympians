@@ -12,6 +12,15 @@
  */
 class ItemInstance {
 public:
+    /**
+     * Enum tracking the origin of a sliding item's motion
+     */
+    enum class SlideOriginType : std::uint8_t {
+        SLIDE_FROM_SPAWN = 0,   // Item sliding up from spawn point
+        SLIDE_FROM_DROP = 1,    // Item sliding after being dropped by player
+        SLIDE_FROM_PASS = 2     // Item sliding during pass between players
+    };
+public:
     using ItemId = std::uint64_t;
     
     /**
@@ -72,8 +81,20 @@ public:
     };
     
 private:
+    // Unique identifier for this item instance, assigned by the host's IdGenerator
     ItemId _id = 0;
+    // The definition ID linking this instance to its ItemDef
     std::string _defId;
+    // Whether item is currently sliding/animating (e.g. after being dropped or passed, before settling into inventory)
+    bool _isSliding = false; 
+    // Whether item can trigger drop zones (true for dropped items, false for spawned/passed until settled)
+    bool _canInteractWithZones = false;
+    // Current velocity during slide animation 
+    cugl::Vec2 _slideVelocity{0.0f, 0.0f}; 
+    // Where the slide came from (PASS, DROP, or SPAWN)
+    SlideOriginType _slideOrigin = SlideOriginType::SLIDE_FROM_SPAWN; 
+    // Direction passed from: 0=none, 1=left, 2=right
+    int _passDirection = 0; 
     
 public:
     ItemInstance() = default;
@@ -105,6 +126,80 @@ public:
     // Getters
     ItemId getId() const { return _id; }
     const std::string& getDefId() const { return _defId; }
+    
+    // Sliding state getters
+    /**
+     * Returns whether this item is currently sliding or animating.
+     *
+     * @return true if item is sliding, false otherwise
+     */
+    bool isSliding() const { return _isSliding; }
+    
+    /**
+     * Returns whether this item can trigger drop zones.
+     * Dropped items can interact immediately; spawned/passed items only after settling.
+     *
+     * @return true if item can interact with zones, false otherwise
+     */
+    bool canInteractWithZones() const { return _canInteractWithZones; }
+    
+    /**
+     * Returns the current velocity of this item during sliding animation.
+     *
+     * @return a Vec2 representing velocity (units/sec)
+     */
+    const cugl::Vec2& getSlideVelocity() const { return _slideVelocity; }
+    
+    /**
+     * Returns the origin type of this item's slide motion.
+     *
+     * @return the SlideOriginType indicating where the slide came from
+     */
+    SlideOriginType getSlideOrigin() const { return _slideOrigin; }
+    
+    // Sliding state setters
+    /**
+     * Sets whether this item is currently sliding or animating.
+     *
+     * @param isSliding true to mark item as sliding, false to mark as settled
+     */
+    void setSliding(bool isSliding) { _isSliding = isSliding; }
+    
+    /**
+     * Sets whether this item can trigger drop zones.
+     *
+     * @param canInteract true to enable zone interaction, false to disable
+     */
+    void setCanInteractWithZones(bool canInteract) { _canInteractWithZones = canInteract; }
+    
+    /**
+     * Sets the velocity for this item's slide animation.
+     *
+     * @param velocity a Vec2 representing velocity (units/sec)
+     */
+    void setSlideVelocity(const cugl::Vec2& velocity) { _slideVelocity = velocity; }
+    
+    /**
+     * Sets the origin type of this item's slide motion.
+     *
+     * @param origin the SlideOriginType indicating where the slide came from
+     */
+    void setSlideOrigin(SlideOriginType origin) { _slideOrigin = origin; }
+    
+    /**
+     * Returns which side this item was passed from.
+     * Used for determining spawn animation direction for passed items.
+     *
+     * @return 0 if not passed, 1 if passed from left, 2 if passed from right
+     */
+    int getPassDirection() const { return _passDirection; }
+    
+    /**
+     * Sets which side this item was passed from.
+     *
+     * @param direction 0 for not passed, 1 for passed from left, 2 for passed from right
+     */
+    void setPassDirection(int direction) { _passDirection = direction; }
     
     /**
      * Serializes this ItemInstance to a JSON object.

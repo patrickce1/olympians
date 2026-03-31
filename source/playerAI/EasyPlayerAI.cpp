@@ -212,10 +212,24 @@ void EasyPlayerAI::actPass() {
     const auto& inventory = getInventory();
     ItemInstance item     = inventory[rand() % inventory.size()];
     Player* chosenTarget  = targets[rand() % targets.size()];
+    
+    // Determine pass direction based on which neighbor receives the item
+    int passDirection = 0;
+    if (chosenTarget == getLeftPlayer()) {
+        passDirection = 1;  // Passing left
+    } else if (chosenTarget == getRightPlayer()) {
+        passDirection = 2;  // Passing right
+    }
+    
     CULog("[EasyPlayerAI '%s'] actPass — passing item %llu to '%s'",
           getPlayerName().c_str(),
           (unsigned long long)item.getId(),
           chosenTarget->getPlayerName().c_str());
     removeItemById(item.getId());
+    
+    // Set pass direction on the item so it spawns from the correct side
+    item.setPassDirection(passDirection);
+    item.setSlideOrigin(ItemInstance::SlideOriginType::SLIDE_FROM_PASS);
+    
     chosenTarget->addItem(item);
 }
