@@ -118,10 +118,9 @@
                         }
                     },
                     "bossAnimationSpace": {
-                        "type": "Sprite",
+                        "type": "Node",
                         "format": { "type": "Anchored" },
                         "data": {
-                            "texture": "cyclopsIdle",
                             "anchor": [
                                 0.5,
                                 0
@@ -134,10 +133,9 @@
                                 0,
                                 0
                             ],
-                            "visible": false,
-                            "cols": 4,
-                            "rows": 3
+                            "visible": false
                         },
+                        "children": {},
                         "layout": {
                             "x_anchor": "center",
                             "y_anchor": "bottom",
