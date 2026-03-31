@@ -234,6 +234,7 @@ void SceneLoader::update(float dt) {
                 if (_audio.init(_assets)) {
                     _audio.startAudioEngine();
                     _audio.playMusic("lobby", true);
+                    _audio.setMusicVolume(0.2f);  // Set music to 50% volume by default
                 } else {
                     CULog("Warning: Failed to initialize audio controller");
                 }

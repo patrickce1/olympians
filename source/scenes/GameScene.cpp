@@ -425,6 +425,7 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
             }
             CULog("Player attacked enemy '%s' with item %llu",
                   enemy->getId().c_str(), (unsigned long long)itemId);
+            _audio->playSoundUnique("attack");
             return true;
         }
         return false;
@@ -458,6 +459,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
+            _audio->playSoundUnique("support");
             return true;
         }
         return false;
@@ -491,6 +493,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
+            _audio->playSoundUnique("support");
             return true;
         }
         return false;
@@ -743,6 +746,28 @@ void GameScene::handleResetButton(InputController& input) {
 }
 
 /**
+ * Initiates sliding for a released item by calculating velocity and starting animation.
+ * Used when an item is dropped on an invalid zone or outside any zone.
+ *
+ * @param itemId  The ID of the item to start sliding
+ */
+void GameScene::slideReleasedItem(ItemInstance::ItemId itemId) {
+    auto body = _itemBodies.find(itemId);
+    if (body != _itemBodies.end() && body->second) {
+        Vec2 currentPos = body->second->getPosition();
+        Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
+        
+        // Clamp drop velocity to maximum speed cap
+        float speed = dropVelocity.length();
+        if (speed > ITEM_MOVEMENT_MAX_SPEED) {
+            dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
+        }
+        
+        startItemSliding(itemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
+    }
+}
+
+/**
  * Handles the full pipeline of a player's drag-and-drop input for one frame.
  *
  * When the player releases a dragged item, this function:
@@ -780,43 +805,17 @@ void GameScene::handlePlayerInput(InputController& input) {
                 _draggedIcon->setVisible(false);
             }
         } else {
-            // Item action failed or invalid zone - initiate sliding instead of static reset
-            auto body = _itemBodies.find(_draggedItemId);
-            if (body != _itemBodies.end() && body->second) {
-                // Calculate drop velocity from position delta divided by small time step
-
-                Vec2 currentPos = body->second->getPosition();
-                Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
-                
-                // Clamp drop velocity to maximum speed cap
-                float speed = dropVelocity.length();
-                if (speed > ITEM_MOVEMENT_MAX_SPEED) {
-                    dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
-                }
-                
-                // Initiate sliding with the calculated velocity
-                startItemSliding(_draggedItemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
-            }
+            // Item action failed - slide the item back
+            slideReleasedItem(_draggedItemId);
+            _audio->playSoundUnique("whoosh");
             if (_draggedIcon) {
                 _draggedIcon->setVisible(true);
             }
         }
     } else {
-        // If no zone was even detected, still slide the item
-        auto body = _itemBodies.find(_draggedItemId);
-        if (body != _itemBodies.end() && body->second) {
-            constexpr float VELOCITY_DT_ESTIMATE = 0.016f;
-            Vec2 currentPos = body->second->getPosition();
-            Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
-            
-            // Clamp drop velocity to maximum speed cap
-            float speed = dropVelocity.length();
-            if (speed > ITEM_MOVEMENT_MAX_SPEED) {
-                dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
-            }
-            
-            startItemSliding(_draggedItemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
-        }
+        // If no zone was detected, slide the item
+        slideReleasedItem(_draggedItemId);
+        _audio->playSoundUnique("whoosh");
         if (_draggedIcon) {
             _draggedIcon->setVisible(true);
         }
@@ -891,8 +890,6 @@ void GameScene::handleDragInitiation(InputController& input) {
                 Size widgetSize = widget->getContentSize();
                 _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
             }
-
-            _audio->playSoundUnique("select");
 
             _draggedItemDef = getHeldItemDef(id);
             updateInputZones();

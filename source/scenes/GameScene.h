@@ -146,6 +146,9 @@ protected:
     /** The inventory item currently being dragged, or 0 if none is active. */
     ItemInstance::ItemId _draggedItemId = 0;
 
+    /** Whether the select sound has been played for the current touch. */
+    bool _selectSoundPlayedThisTouch = false;
+
     /** The dragged body's pre-drag position, used to restore invalid drops. */
     cugl::Vec2 _dragStartBodyPosition = cugl::Vec2::ZERO;
 
@@ -428,6 +431,15 @@ public:
      * @param input     The input controller for this frame.
      */
     void handlePlayerInput(InputController& input);
+
+    /**
+     * Initiates sliding for a released item by calculating velocity based on drag motion
+     * and clamping to maximum speed. Used when an item is dropped on an invalid zone
+     * or outside any zone.
+     *
+     * @param itemId  The ID of the item to start sliding
+     */
+    void slideReleasedItem(ItemInstance::ItemId itemId);
 
     /**
      * Decrements the glow timer each frame. Clears the active glow action
