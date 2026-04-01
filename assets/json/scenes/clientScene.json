@@ -434,6 +434,19 @@
                     "x_offset": 0.05,
                     "y_offset": -0.06
                 }
+            },
+            "keypad": {
+                "type": "Widget",
+                "data": {
+                    "key": "keypad",
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
             }
         }
     }
