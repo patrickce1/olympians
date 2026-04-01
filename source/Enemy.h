@@ -50,6 +50,8 @@ protected:
     std::vector<FiredEvent> _firedEvents;
 
 public:
+    static const int NUM_PLAYERS = 4;
+
     Enemy() = default;
     
     bool init(const std::string& enemyId, const std::string& jsonPath);
@@ -76,10 +78,13 @@ public:
     void  setRetargetLikelihood(float v);
 
     //returns the multiplier data for that side
-    float getSideMultiplier(int index);
+    //this index IS NOT relative. This is the ABSOLUTE index from the perspective of the host
+    //so 0 would be whatever side facing the host
+    float getSideMultiplier(int absoluteIndex);
     
     //lets you change the multipler value for that side
-    void changeSideMultiplier(int index, float multiplier);
+    //this is RELATIVE. So 0 would be directly where boss is facing
+    void setSideMultiplier(int relativeIndex, float multiplier);
     
     // Expose state defs so controller can pick attacks by tag
     const std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef>& getStates() const { return _states; }
@@ -93,7 +98,8 @@ public:
     void updateHealth(float delta);
 
     // Handles taking damage and records the hits that we took
-    void takeDamage(float damage, int playerIndex);
+    // Override this if custom logic is needed for taking damage
+    void virtual takeDamage(float damage, int playerIndex);
 
 protected:
     void enterState(EnemyLoader::State state);

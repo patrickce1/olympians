@@ -142,13 +142,17 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
 
 /** Resolves the fired events (if any) of the enemy on this frame. Removes the processed events from the buffer. */
 void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players, const std::vector<Enemy::FiredEvent>& events) {
-    for (const auto& fe : events) {
-        switch (fe.def.type) {
+    for (const auto& event : events) {
+        switch (event.def.type) {
             case EnemyLoader::EventType::DAMAGE:
-                resolveDamageEvent(enemy, players, fe);
+                resolveDamageEvent(enemy, players, event);
                 break;
+            case EnemyLoader::EventType::SIDE_MODIFIER:
+                resolveSideMultiplierEvent(enemy, event);
+            case EnemyLoader::EventType::HEAL:
+                resolveHealEvent(enemy, event);
             default:
-                CULog("[EnemyController] Event: Unhandled event type in state '%s' for enemy '%s'", fe.stateName.c_str(), enemy->getId().c_str());
+                CULog("[EnemyController] Event: Unhandled event type in state '%s' for enemy '%s'", event.stateName.c_str(), enemy->getId().c_str());
                 break;
         }
     }
@@ -184,3 +188,4 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
               players[victim]->getCurrentHealth());
     }
 }
+

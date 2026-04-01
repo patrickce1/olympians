@@ -19,7 +19,7 @@ public:
         DEFENSE_MOVE,
     };
 
-    enum class EventType { DAMAGE, HEAL, DAMAGE_MODIFIER, UNKNOWN };
+    enum class EventType { DAMAGE, HEAL, SIDE_MODIFIER, UNKNOWN };
 
     // Enum that tracks which boss this is
     enum Boss {
@@ -66,7 +66,7 @@ private:
     static EventType parseEventType(const std::string& s) {
         if (s == "DAMAGE")           return EventType::DAMAGE;
         if (s == "HEAL")             return EventType::HEAL;
-        if (s == "DAMAGE_MODIFIER")  return EventType::DAMAGE_MODIFIER;
+        if (s == "SIDE_MODIFIER")  return EventType::SIDE_MODIFIER;
         return EventType::UNKNOWN;
     }
 
@@ -140,7 +140,7 @@ public:
                         EventDef edef;
                         edef.type = parseEventType(ev->getString("type", ""));
 
-                        if (edef.type == EventType::DAMAGE || edef.type == EventType::DAMAGE_MODIFIER) {
+                        if (edef.type == EventType::DAMAGE || edef.type == EventType::SIDE_MODIFIER) {
                             edef.target = ev->getInt("target", 0);
                         }
                         edef.amount = ev->getFloat("amount", 0.0f);

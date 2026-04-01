@@ -56,6 +56,12 @@ private:
     void resolveDamageEvent(const std::shared_ptr<Enemy>& enemy,
                             std::vector<std::shared_ptr<Player>>& players,
                             const Enemy::FiredEvent& fe);
+    
+    void resolveSideMultiplierEvent(const std::shared_ptr<Enemy>& enemy,
+        const Enemy::FiredEvent& fe);
+
+    void resolveHealEvent(const std::shared_ptr<Enemy>& enemy,
+        const Enemy::FiredEvent& fe);
 };
 
 #endif /* __ENEMY_CONTROLLER_H__ */

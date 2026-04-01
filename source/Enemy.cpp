@@ -157,3 +157,28 @@ void Enemy::updateHealth(float delta) {
     if (_currentHealth > _maxHealth) _currentHealth = _maxHealth;
     if (_currentHealth < 0.0f) _currentHealth = 0.0f;
 }
+
+void Enemy::takeDamage(float damage, int playerIndex) {
+    //find out which side we got hit from
+        // get relative index based on which side of the boss the player is on
+    int relativeIndex = (playerIndex - _targetIndex + NUM_PLAYERS) % NUM_PLAYERS;
+
+    float multiplier = 1.0f;
+    if (relativeIndex < _sideMultipliers.size()) {
+        multiplier = _sideMultipliers[relativeIndex];
+    }
+
+    updateHealth(-(damage * multiplier));
+}
+
+void Enemy::setSideMultiplier(int relativeIndex, float multiplier) {
+    _sideMultipliers[relativeIndex] = multiplier;
+}
+
+float Enemy::getSideMultiplier(int absoluteIndex) {
+    int relativeIndex = (absoluteIndex - _targetIndex + NUM_PLAYERS) % NUM_PLAYERS;
+    if (relativeIndex < _sideMultipliers.size()) {
+        return _sideMultipliers[relativeIndex];
+    }
+    return 1.0f;
+}
