@@ -47,10 +47,16 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _backOut;
     /** The game id label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _gameId;
+    /** The game id placeholder label */
+    std::shared_ptr<cugl::scene2::Label> _placeID;
     /** The game id label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _playerId;
     /** The host game button for the menu scene */
     std::shared_ptr<cugl::scene2::Button> _hostButton;
+    
+    std::string _inputBuffer = "";
+    
+    std::vector<std::shared_ptr<cugl::scene2::Button>> _keypadButtons;
     
     /** The current status */
     Status _status;
@@ -114,6 +120,8 @@ public:
      */
     void setupListeners();
     
+    void initKeypad();
+    
     /**
      * Sets whether the scene is currently active
      *
@@ -158,6 +166,9 @@ private:
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
     
+    void appendDigit(int digit);
+    
+    void removeLastChar();
 };
 
 #endif /* __CLIENT_SCENE_H__ */

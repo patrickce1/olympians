@@ -438,7 +438,7 @@
             "keypad": {
                 "type": "Widget",
                 "data": {
-                    "key": "keypad",
+                    "key": "keypad"
                 },
                 "layout": {
                     "x_anchor": "center",
