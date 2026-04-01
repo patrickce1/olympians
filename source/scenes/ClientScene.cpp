@@ -84,16 +84,19 @@ void ClientScene::setupUI() {
     std::shared_ptr<cugl::scene2::Label> placeName = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.placeholder"));
     placeName->setText("ENTER NAME");
     
-//    // Set the placeholders to invsible when typing starts
-//    _gameId->addTypeListener([this, _placeID](const std::string& name, const std::string& value) {
-//        _placeID->setVisible(value.empty());
-//    });
-//    
+    // Set the placeholders to invsible when typing starts
     _playerId->addTypeListener([this, placeName](const std::string& name, const std::string& value) {
         placeName->setVisible(value.empty());
     });
 }
 
+/**
+ * Initializes keypad buttons, activates them, and attaches input listeners.
+ *
+ * This method retrieves button nodes from the asset manager, binds digit
+ * and backspace actions to their respective handlers, and stores buttons
+ * in a collection for batch state control.
+ */
 void ClientScene::initKeypad() {
     for (int i = 0; i <= 9; i++) {
         auto button = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.keypad.key" + std::to_string(i)));
@@ -228,6 +231,11 @@ void ClientScene::update(float timestep) {
     // IMPLEMENT ME
 }
 
+/**
+ * Appends a numeric digit to the input buffer and updates the UI.
+ *
+ * @param digit The digit (0–9) to append to the input buffer.
+ */
 void ClientScene::appendDigit(int digit) {
     if (_inputBuffer.size() >= 6) return;
 
@@ -236,6 +244,9 @@ void ClientScene::appendDigit(int digit) {
     _placeID->setVisible(_inputBuffer.empty());
 }
 
+/**
+ * Removes the last character from the input buffer and updates the UI.
+ */
 void ClientScene::removeLastChar() {
     if (!_inputBuffer.empty()) {
         _inputBuffer.pop_back();
@@ -243,4 +254,3 @@ void ClientScene::removeLastChar() {
         _placeID->setVisible(_inputBuffer.empty());
     }
 }
-
