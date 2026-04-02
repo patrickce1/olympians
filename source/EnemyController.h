@@ -8,7 +8,6 @@
 
 #include "Enemy.h"
 #include "Player.h"
-#include "NetworkMessage.h"
 
 /**
  * EnemyController
@@ -29,8 +28,7 @@ public:
 
     void update(float dt,
                 const std::shared_ptr<Enemy>& enemy,
-                std::vector<std::shared_ptr<Player>>& players,
-                std::vector<AttackMessage> attacks);
+                std::vector<std::shared_ptr<Player>>& players);
 
 private:
     cugl::Random _rng;
@@ -39,15 +37,15 @@ private:
     int randomIndex(int n);
     int wrapIndex(int i, int n) const;
 
-    void handleIdleEntryIfNeeded(const std::string& prevState,
-                                 const std::string& curState,
+    void handleIdleEntryIfNeeded(EnemyLoader::State prevState,
+                                 EnemyLoader::State curState,
                                  const std::shared_ptr<Enemy>& enemy,
                                  std::vector<std::shared_ptr<Player>>& players);
 
     void maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy,
                                   std::vector<std::shared_ptr<Player>>& players);
 
-    std::string chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
+    EnemyLoader::State chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
 
     void resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy,
                             std::vector<std::shared_ptr<Player>>& players,

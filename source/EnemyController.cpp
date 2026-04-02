@@ -80,43 +80,43 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
 }
 
 /** Checks whether the enemy has just entered idle on this frame. */
-void EnemyController::handleIdleEntryIfNeeded(const std::string& prevState, const std::string& curState, const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
-    if (curState == "idle" && prevState != "idle") {
+void EnemyController::handleIdleEntryIfNeeded(EnemyLoader::State prevState, EnemyLoader::State curState, const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
+    if (curState == EnemyLoader::State::IDLE && prevState != EnemyLoader::State::IDLE) {
         maybeRetargetOnIdleEntry(enemy, players);
     }
 }
 
 /** Chooses the next state tagged with "attack" for the enemy to enter. */
-std::string EnemyController::chooseNextAttackState(const std::shared_ptr<Enemy>& enemy) {
-    std::vector<std::string> attacks;
+EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<Enemy>& enemy) {
+    std::vector<EnemyLoader::State> attacks;
 
     const auto& states = enemy->getStates();
     for (const auto& pair : states) {
-        const std::string& name = pair.first;
+        EnemyLoader::State state = pair.first;
         const auto& def = pair.second;
 
         if (def.tag == "attack") {
-            attacks.push_back(name);
+            attacks.push_back(state);
         }
     }
 
     if (attacks.empty()) { CULog("[EnemyController] Attack: No attack states available"); return ""; }
 
     int idx = (int)(_rng.getUint32() % (Uint32)attacks.size());
-    CULog("[EnemyController] State: '%s' (Attack)", attacks[idx].c_str());
+    CULog("[EnemyController] State: '%d' (Attack)", attacks[idx]);
     return attacks[idx];
 }
 
 void EnemyController::enterIdle(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
     CULog("[EnemyController] State: '%s' (Idle)", enemy->getId().c_str());
-    enemy->requestState("idle");
+    enemy->requestState(EnemyLoader::State::IDLE);
     maybeRetargetOnIdleEntry(enemy, players);
 }
 
 /** Main update loop for enemy controller. Handles state changes and attack events. */
 void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
 
-    std::string prev = enemy->getCurrentStateName();
+    EnemyLoader::State prev = enemy->getCurrentState();
     
     enemy->update(dt);
 
@@ -125,17 +125,18 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
         resolveEnemyEvents(enemy, players, events);
     }
     
-    std::string cur = enemy->getCurrentStateName();
-    if (cur != prev) { CULog("[EnemyController] State: '%s' -> '%s'", prev.c_str(), cur.c_str()); }
+    EnemyLoader::State cur = enemy->getCurrentState();
+    if (cur != prev) { CULog("[EnemyController] State: '%d' -> '%d'", prev, cur); }
 
     handleIdleEntryIfNeeded(prev, cur, enemy, players);
 
     // If idle and not locked out, pick an attack by tag and start it
-    if (cur == "idle" && enemy->canStartNonIdleState() && anyPlayersAlive(players)) {
-        std::string nextAttack = chooseNextAttackState(enemy);
-        if (!nextAttack.empty()) {
+    if (cur == EnemyLoader::State::IDLE && enemy->canStartNonIdleState() && anyPlayersAlive(players)) {
+        EnemyLoader::State nextAttack = chooseNextAttackState(enemy);
+        //TODO: figure out a guard here. Before was !nextAttack.empty()
+        if (true) {
             enemy->requestState(nextAttack);
-            cur = enemy->getCurrentStateName();
+            cur = enemy->getCurrentState();
         }
     }
 }
@@ -152,7 +153,7 @@ void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, st
             case EnemyLoader::EventType::HEAL:
                 resolveHealEvent(enemy, event);
             default:
-                CULog("[EnemyController] Event: Unhandled event type in state '%s' for enemy '%s'", event.stateName.c_str(), enemy->getId().c_str());
+                CULog("[EnemyController] Event: Unhandled event type in state '%d' for enemy '%s'", event.state, enemy->getId().c_str());
                 break;
         }
     }
@@ -172,20 +173,30 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
     
     // Victim was killed before event completed
     if (!players[victim]->isAlive()) {
-        CULog("[EnemyController] Event: Enemy '%s', state '%s', Player[%d] was already dead",
+        CULog("[EnemyController] Event: Enemy '%s', state '%d', Player[%d] was already dead",
               enemy->getId().c_str(),
-              fe.stateName.c_str(),
+              fe.state,
               victim);
     } else {
         float damage = fe.def.amount;
         players[victim]->updateHealth(-damage);
 
-        CULog("[EnemyController] Event: Enemy '%s', state '%s', DAMAGE %.1f, Player[%d] Health -> %.1f",
+        CULog("[EnemyController] Event: Enemy '%s', state '%d', DAMAGE %.1f, Player[%d] Health -> %.1f",
               enemy->getId().c_str(),
-              fe.stateName.c_str(),
+              fe.state,
               damage,
               victim,
               players[victim]->getCurrentHealth());
     }
 }
 
+void EnemyController::resolveSideMultiplierEvent(const std::shared_ptr<Enemy>& enemy, const Enemy::FiredEvent& event) {
+    enemy->setSideMultiplier(event.def.target, event.def.amount);
+}
+
+void EnemyController::resolveHealEvent(const std::shared_ptr<Enemy>& enemy, const Enemy::FiredEvent& event) {
+    //we can only heal if we haven't died yet
+    if (enemy->getCurrentHealth() > 0) {
+        enemy->updateHealth(event.def.amount);
+    }
+}
