@@ -31,23 +31,22 @@
                         0
                     ],
                     "size": [
-                        397,
-                        662
+                        151,
+                        251
                     ],
                     "angle": 0,
                     "position": [
                         0,
                         4
                     ],
-                    "visible": true,
-                    "color": [255, 255, 255, 100]
+                    "visible": true
                 },
                 "layout": {
                     "x_anchor": "right",
                     "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": 0
+                    "y_offset": -0.02
                 }
             },
             "lock": {
