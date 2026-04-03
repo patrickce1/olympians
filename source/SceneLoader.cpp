@@ -162,6 +162,7 @@ void SceneLoader::onShutdown() {
     _menuScene.dispose();
     _lobbyScene.dispose();
     _houseSelectScene.dispose();
+    _bossSelectScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
     netcode::NetworkLayer::stop();
@@ -369,6 +370,18 @@ void SceneLoader::update(float dt) {
                     break;
             }
             break;
+        case State::BOSSSELECT:
+            _bossSelectScene.update(dt);
+            switch (_bossSelectScene.getStatus()) {
+                case BossSelectScene::Status::ABORT:
+                    _lobbyScene.setActive(true);
+                    _bossSelectScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                default:
+                    break;
+            }
+            break;
         case State::GAME:
             InputController::Action action = _input.getAction();
                 switch (action) {
@@ -448,6 +461,9 @@ void SceneLoader::draw() {
             break;
         case State::HOUSESELECT:
             _houseSelectScene.render();
+            break;
+        case State::BOSSSELECT:
+            _bossSelectScene.render();
             break;
     }
 }
