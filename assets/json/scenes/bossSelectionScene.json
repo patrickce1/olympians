@@ -118,7 +118,7 @@
                             "angle": 0,
                             "visible": true,
                             "font": "gideon romanRegular16",
-                            "text": "LOCK",
+                            "text": "SELECT BOSS",
                             "foreground": "#ffd9a9ff",
                             "background": "#00000000",
                             "padding": [
