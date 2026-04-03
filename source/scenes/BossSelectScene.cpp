@@ -166,7 +166,7 @@ void BossSelectScene::setActive(bool value) {
             _leftButton->activate();
             _rightButton->activate();
             _backOut->activate();
-            _lockButton->activate();
+            configureLockButton();
         } else {
             _leftButton->deactivate();
             _rightButton->deactivate();
