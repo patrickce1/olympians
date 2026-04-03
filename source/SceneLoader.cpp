@@ -264,6 +264,12 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize HouseSelectScene");
                 }
+                
+                if (_bossSelectScene.init(_assets, _network)) {
+                    _bossSelectScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize BossSelectScene");
+                }
             }
             break;
         case State::MENU:
@@ -347,6 +353,12 @@ void SceneLoader::update(float dt) {
                     _houseSelectScene.setActive(true);
                     _lobbyScene.setActive(false);
                     _currentScene = State::HOUSESELECT;
+                    break;
+                case LobbyScene::Status::BOSSSELECT:
+                    CULog("Transitioning to BossSelectScene...");
+                    _bossSelectScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::BOSSSELECT;
                     break;
                 case LobbyScene::Status::ABORT:
                     CULog("Transitioning to MenuScene...");

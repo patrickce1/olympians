@@ -116,7 +116,10 @@ void BossSelectScene::setupListeners() {
     
     _lockButton->addListener([this](const std::string& name, bool down) {
         if (down) {
-            _status = Status::LOCK;
+            EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
+            _network->setEnemy(selectedBoss.id);
+            
+            _status = Status::ABORT;
         }
     });
 

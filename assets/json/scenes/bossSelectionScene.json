@@ -22,6 +22,34 @@
             "visible": true
         },
         "children": {
+            "clouds": {
+                "type": "Image",
+                "data": {
+                    "texture": "cloudBottom",
+                    "anchor": [
+                        1,
+                        0
+                    ],
+                    "size": [
+                        397,
+                        662
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        4
+                    ],
+                    "visible": true,
+                    "color": [255, 255, 255, 100]
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
             "lock": {
                 "type": "Button",
                 "format": {
@@ -1032,12 +1060,12 @@
                 },
                 "data": {
                     "anchor": [
-                        0,
+                        0.5,
                         1
                     ],
                     "size": [
-                        283,
-                        29
+                        313,
+                        32
                     ],
                     "angle": 0,
                     "position": [
@@ -1051,11 +1079,11 @@
                         "type": "Label",
                         "data": {
                             "anchor": [
-                                0,
-                                1
+                                0.5,
+                                0.5
                             ],
                             "size": [
-                                171,
+                                195,
                                 29
                             ],
                             "position": [
@@ -1075,14 +1103,14 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "left"
+                            "halign": "center"
                         },
                         "children": {},
                         "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
                             "absolute": false,
-                            "x_offset": 0.2,
+                            "x_offset": 0,
                             "y_offset": 0
                         }
                     },
@@ -1091,11 +1119,11 @@
                         "data": {
                             "texture": "brackets",
                             "anchor": [
-                                0,
-                                1
+                                0.5,
+                                0.5
                             ],
                             "size": [
-                                283,
+                                313,
                                 29
                             ],
                             "angle": 0,
@@ -1106,20 +1134,20 @@
                             "visible": true
                         },
                         "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
                             "absolute": false,
                             "x_offset": 0,
-                            "y_offset": -0.17
+                            "y_offset": 0
                         }
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.14,
-                    "y_offset": -0.17
+                    "x_offset": 0,
+                    "y_offset": -0.15
                 }
             },
             "back": {
@@ -1177,8 +1205,8 @@
                     "x_anchor": "left",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.05,
-                    "y_offset": -0.06
+                    "x_offset": 0.08,
+                    "y_offset": -0.08
                 }
             }
         }

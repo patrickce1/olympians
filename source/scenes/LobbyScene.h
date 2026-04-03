@@ -25,6 +25,7 @@ public:
         IDLE,
         WAIT,
         SELECT,
+        BOSSSELECT,
         START,
         ABORT
     };
@@ -48,8 +49,11 @@ protected:
     /** Current boss id */
     std::string _currentBoss = "";
     
-    /** Circular boss image (maybe button)*/
+    /** Circular boss image */
     std::shared_ptr<cugl::scene2::PolygonNode> _bossImage;
+    
+    /** Circular boss image button to go to boss select scene */
+    std::shared_ptr<cugl::scene2::Button> _bossLobbyButton;
     
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;

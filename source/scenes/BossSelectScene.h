@@ -21,8 +21,6 @@ public:
     enum Status {
         /**  */
         WAIT,
-        /** Host selects boss and switches back to lobby screen */
-        LOCK,
         /** Selection was aborted; back to lobby */
         ABORT
     };
