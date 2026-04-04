@@ -73,7 +73,6 @@ void SceneLoader::onStartup() {
 
     // This reads the given JSON file and uses it to load all other assets
     _assets->loadDirectory("json/scenes/loading.json");
-    _assets->loadDirectory("json/itemTextures.json");
 
     // Activate mouse or touch screen input as appropriate
     // We have to do this BEFORE the scene, because the scene has a button
