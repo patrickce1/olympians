@@ -1425,8 +1425,10 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
     if (!itemDef) return nullptr;
 
-    const std::string textureKey =
-        (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
+//    const std::string textureKey =
+//        (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
+    
+    const std::string textureKey = itemDef->getIconKey();
 
     auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
     if (!texture) return nullptr;

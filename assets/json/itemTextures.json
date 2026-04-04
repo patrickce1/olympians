@@ -1,0 +1,58 @@
+{
+    "item_sword": {
+      "type": "texture",
+      "file": "textures/items/sword_n.png"
+    },
+    "item_apple": {
+        "type": "texture",
+        "file": "textures/items/apple_n.png"
+    },
+    "item_nectar": {
+      "type": "texture",
+      "file": "textures/items/nectar_n.png"
+    },
+    "item_arrow": {
+      "type": "texture",
+      "file": "textures/items/arrow_n.png"
+    },
+    "item_shield": {
+      "type": "texture",
+      "file": "textures/items/shield_n.png"
+    },
+    "item_lightning": {
+        "type": "texture",
+        "file": "textures/items/lightning_r.png"
+    },
+    "item_trident": {
+        "type": "texture",
+        "file": "textures/items/trident_r.png"
+    },
+    "item_helm": {
+        "type": "texture",
+        "file": "textures/items/helm_r.png"
+    },
+    "item_cornucopia": {
+        "type": "texture",
+        "file": "textures/items/cornucopia_r.png"
+    },
+    "item_mallet": {
+        "type": "texture",
+        "file": "textures/items/mallet_r.png"
+    },
+    "item_aegis": {
+        "type": "texture",
+        "file": "textures/items/aegis_r.png"
+    },
+    "item_spear": {
+        "type": "texture",
+        "file": "textures/items/spear_r.png"
+    },
+    "item_poseidons_tide": {
+        "type": "texture",
+        "file": "textures/items/poseidons_tide_d.png"
+    },
+    "item_noams_ballista": {
+        "type": "texture",
+        "file": "textures/items/spear_r.png"
+    }
+}
