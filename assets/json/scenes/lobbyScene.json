@@ -52,7 +52,7 @@
                 },
                 "data": {
                     "anchor": [
-                        0,
+                        0.5,
                         1
                     ],
                     "size": [
@@ -136,10 +136,10 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.07,
+                    "x_offset": 0,
                     "y_offset": -0.86
                 }
             },
@@ -150,7 +150,7 @@
                 },
                 "data": {
                     "anchor": [
-                        0,
+                        0.5,
                         1
                     ],
                     "size": [
@@ -172,7 +172,7 @@
                         },
                         "data": {
                             "anchor": [
-                                0,
+                                0.5,
                                 1
                             ],
                             "size": [
@@ -243,10 +243,10 @@
                             }
                         },
                         "layout": {
-                            "x_anchor": "left",
+                            "x_anchor": "center",
                             "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0.15,
+                            "x_offset": 0,
                             "y_offset": -0.18
                         }
                     },
@@ -924,10 +924,10 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.03,
+                    "x_offset": 0,
                     "y_offset": -0.26
                 }
             },
