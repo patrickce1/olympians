@@ -48,9 +48,9 @@ protected:
     /** The game id label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _gameId;
     /** The game id placeholder label */
-    std::shared_ptr<cugl::scene2::Label> _placeID;
+    std::shared_ptr<cugl::scene2::Label> _textFieldPlaceholder;
     /** The game id label (for updating) */
-    std::shared_ptr<cugl::scene2::TextField> _playerId;
+    std::shared_ptr<cugl::scene2::TextField> _playerName;
     /** The host game button for the menu scene */
     std::shared_ptr<cugl::scene2::Button> _hostButton;
     /** Stores the current user input for the gameID as a numeric string.*/

@@ -73,20 +73,19 @@ void ClientScene::setupUI() {
     _gameId = std::dynamic_pointer_cast<scene2::TextField>(
         _assets->get<scene2::SceneNode>("clientScene.center.gameID.text"));
 
-    _playerId = std::dynamic_pointer_cast<scene2::TextField>(
+    _playerName = std::dynamic_pointer_cast<scene2::TextField>(
         _assets->get<scene2::SceneNode>("clientScene.center.playerName.text"));
 
     // Create placeholder text for text-field
-    _placeID = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.placeholder"));
-    _placeID->setText("ENTER GAME ID");
+    _textFieldPlaceholder = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.placeholder"));
+    _textFieldPlaceholder->setText("ENTER GAME ID");
     
-    
-    std::shared_ptr<cugl::scene2::Label> placeName = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.placeholder"));
-    placeName->setText("ENTER NAME");
+    std::shared_ptr<cugl::scene2::Label> playerNamePlaceholder = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.placeholder"));
+    playerNamePlaceholder->setText("ENTER NAME");
     
     // Set the placeholders to invsible when typing starts
-    _playerId->addTypeListener([this, placeName](const std::string& name, const std::string& value) {
-        placeName->setVisible(value.empty());
+    _playerName->addTypeListener([this, playerNamePlaceholder](const std::string& name, const std::string& value) {
+        playerNamePlaceholder->setVisible(value.empty());
     });
 }
 
@@ -127,9 +126,9 @@ void ClientScene::setupListeners() {
 
     _enterGame->addListener([this](const std::string& name, bool down) {
         if (down) {
-            if(_gameId->getText() != "" && _playerId->getText() != ""){
+            if(_gameId->getText() != "" && _playerName->getText() != ""){
                 _network->joinRoom(_gameId->getText());
-                _network->setPlayerName(_playerId->getText());
+                _network->setPlayerName(_playerName->getText());
                 _status = Status::START;
             } else {
                 _enterGame->setDown(true);
@@ -161,7 +160,7 @@ void ClientScene::dispose() {
         _backOut = nullptr;
         _hostButton = nullptr;
         _gameId = nullptr;
-        _playerId = nullptr;
+        _playerName = nullptr;
         _active = false;
         _keypadButtons.clear();
     }
@@ -185,12 +184,12 @@ void ClientScene::setActive(bool value) {
             _enterGame->activate();
             _backOut->activate();
             _hostButton->activate();
-            _playerId->activate();
+            _playerName->activate();
             for (auto& button : _keypadButtons) {
                 button->activate(); 
             }
         } else {
-            _playerId->deactivate();
+            _playerName->deactivate();
             _enterGame->deactivate();
             _backOut->deactivate();
             _hostButton->deactivate();
@@ -221,17 +220,6 @@ void ClientScene::updateText(const std::shared_ptr<scene2::Button>& button, cons
 }
 
 /**
- * The method called to update the scene.
- *
- * We need to update this method to constantly talk to the server
- *
- * @param timestep  The amount of time (in seconds) since the last frame
- */
-void ClientScene::update(float timestep) {
-    // IMPLEMENT ME
-}
-
-/**
  * Appends a numeric digit to the input buffer and updates the UI.
  *
  * @param digit The digit (0–9) to append to the input buffer.
@@ -241,7 +229,7 @@ void ClientScene::appendDigit(int digit) {
 
     _inputBuffer += std::to_string(digit);
     _gameId->setText(_inputBuffer);
-    _placeID->setVisible(_inputBuffer.empty());
+        _textFieldPlaceholder->setVisible(_inputBuffer.empty());
 }
 
 /**
@@ -251,6 +239,6 @@ void ClientScene::removeLastChar() {
     if (!_inputBuffer.empty()) {
         _inputBuffer.pop_back();
         _gameId->setText(_inputBuffer);
-        _placeID->setVisible(_inputBuffer.empty());
+            _textFieldPlaceholder->setVisible(_inputBuffer.empty());
     }
 }
