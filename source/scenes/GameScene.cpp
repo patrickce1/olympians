@@ -715,7 +715,12 @@ void GameScene::updateEnemyAndAI(float dt) {
     // This way we catch damage from enemy AND heals from AI teammates
     if (player && !dynamic_cast<PlayerAI*>(player)) {
         if (player->getCurrentHealth() < playerHealthBefore && _audio) {
-            _audio->playSoundUnique("player_hurt");
+            std::string house = player->getHouseName();
+            if (house == "athena" || house == "aphrodite" || house == "demeter") {
+                _audio->playSoundUnique("player_hurt");
+            } else {
+                _audio->playSoundUnique("player_hurt_deep");
+            }
             CULog("updateEnemyAndAI: Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
         } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
             _audio->playSoundUnique("player_heal");
@@ -980,7 +985,12 @@ void GameScene::handleNetworkUpdates() {
                 _audio->playSoundUnique("player_heal");
                 CULog("Host: Local player healed from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
             } else if (player->getCurrentHealth() < playerHealthBefore && _audio) {
-                _audio->playSoundUnique("player_hurt");
+                std::string house = player->getHouseName();
+                if (house == "athena" || house == "aphrodite" || house == "demeter") {
+                    _audio->playSoundUnique("player_hurt");
+                } else {
+                    _audio->playSoundUnique("player_hurt_deep");
+                }
                 CULog("Host: Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
             }
         }
@@ -1013,7 +1023,12 @@ void GameScene::handleNetworkUpdates() {
         // Play sounds if damage was detected
         if (player) {
             if (player->getCurrentHealth() < playerHealthBefore && _audio) {
-                _audio->playSoundUnique("player_hurt");
+                std::string house = player->getHouseName();
+                if (house == "athena" || house == "aphrodite" || house == "demeter") {
+                    _audio->playSoundUnique("player_hurt");
+                } else {
+                    _audio->playSoundUnique("player_hurt_deep");
+                }
                 CULog("Client: Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
             } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
                 _audio->playSoundUnique("player_heal");

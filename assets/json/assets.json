@@ -433,6 +433,12 @@
             "file":     "sounds/player_hurt.wav",
             "stream":   false,
             "volume":   0.45
+        },
+        "player_hurt_deep": {
+            "type":     "sample",
+            "file":     "sounds/player_hurt_deep.wav",
+            "stream":   false,
+            "volume":   0.45
         }
     },
     "widgets": {
