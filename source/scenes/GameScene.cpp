@@ -116,6 +116,10 @@ bool GameScene::initSceneGraph() {
     _resetBtn  = _scene->getChildByName("resetButton");
 
     if (_gameArea) {
+        _gameArea->setContentWidth(dimen.width);
+        auto gameAreaBG = _gameArea->getChildByName("background");
+        gameAreaBG->setContentWidth(dimen.width);
+        
         // Left and right teammate icon
         _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("leftIcon")
                                                                          ->getChild(0));
@@ -135,10 +139,19 @@ bool GameScene::initSceneGraph() {
         _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
         
-        _bossSprite = std::dynamic_pointer_cast<scene2::SpriteNode>((_gameArea->getChildByName("bossIdle")));
+        // This is the boss animation sprite, you can change the texture and set frames as needed.
+        _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
+        
+        // This is the special effects node, this is where all the animated effects will go.
+        _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
+        _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+        _scene->addChild(_specialEffectsLayer);
     }
     
     if (_inventory) {
+        auto invBG = _inventory->getChildByName<cugl::scene2::NinePatch>("background");
+        invBG->setContentWidth(dimen.width);
+        
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
         
@@ -262,7 +275,7 @@ void GameScene::initBackgroundAndBossImage() {
     auto backgroundImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("background"));
     backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>(boss + "Background"));
     
-    auto bossImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("boss"));
+    auto bossImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("bossIdle"));
     bossImage->setTexture(_assets->get<cugl::graphics::Texture>(boss));
 }
 
