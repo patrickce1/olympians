@@ -79,7 +79,9 @@ void LobbyScene::setupUI() {
     _gameId = std::dynamic_pointer_cast<scene2::Label>(
         _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
 
-    _bossImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_assets->get<scene2::SceneNode>("lobbyScene.tableArea.bossCircle.bossLobbyImage"));
+    _bossImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_assets->get<scene2::SceneNode>("lobbyScene.tableArea.bossCircle.bossLobbyButton.bossLobbyImage"));
+    
+    _bossLobbyButton = std::dynamic_pointer_cast<cugl::scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.tableArea.bossCircle.bossLobbyButton"));
     
     _playerInfoContainer = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
 
@@ -122,6 +124,12 @@ void LobbyScene::setupListeners() {
         }
     });
     
+    _bossLobbyButton->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::BOSSSELECT;
+        }
+    });
+    
     // Add listeners to all player icon buttons to open the house select screen
     for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages) {
         icon->addListener([this](const std::string& name, bool down) {
@@ -145,6 +153,7 @@ void LobbyScene::dispose() {
         _backOut = nullptr;
         _gameId = nullptr;
         _bossImage = nullptr;
+        _bossLobbyButton = nullptr;
         _playerInfoContainer = nullptr;
         _active = false;
     }
@@ -167,12 +176,14 @@ void LobbyScene::setActive(bool value) {
             _status = IDLE;
             _enterGame->deactivate();
             _backOut->activate();
+            _bossLobbyButton->activate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->activate();
             }
         } else {
             _backOut->deactivate();
             _enterGame->deactivate();
+            _bossLobbyButton->deactivate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->deactivate();
                 icon->setDown(false);
@@ -181,6 +192,7 @@ void LobbyScene::setActive(bool value) {
             // If any were pressed, reset them
             _enterGame->setDown(false);
             _backOut->setDown(false);
+            _bossLobbyButton->setDown(false);
         }
     }
 }
