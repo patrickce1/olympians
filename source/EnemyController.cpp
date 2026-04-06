@@ -208,7 +208,7 @@ void EnemyController::resolveHealEvent(const std::shared_ptr<Enemy>& enemy, cons
 
 bool EnemyController::shouldDefend(const std::shared_ptr<Enemy>& enemy) {
     float random = _rng.getClosedFloat(0, 1);
-    if (random <= 0.05) {
+    if (random <= enemy->getDefenseLikelihood()) {
         return true;
     }
     return enemy->shouldDefend();

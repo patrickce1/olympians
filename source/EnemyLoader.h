@@ -46,6 +46,7 @@ public:
 
     struct AIConfig {
         float retargetLikelihood = 0.0f;
+        float defenseLikelihood = 0.0f;
     };
 
     AIConfig ai;
@@ -83,8 +84,8 @@ private:
 
     // checks which boss the string matches and returns that boss
     static Boss parseBoss(const std::string& s) {
-        if (s == "cyclops")  return Boss::CYCLOPS;
-        if (s == "cerberus") return Boss::CERBERUS;
+        if (s == "Cyclops")  return Boss::CYCLOPS;
+        if (s == "Cerberus") return Boss::CERBERUS;
         CUAssertLog(false, "Unknown boss type: %s", s.c_str());
         return Boss::CYCLOPS;
     }
@@ -131,6 +132,7 @@ public:
                 if (aiObj && aiObj->isObject()) {
                     def.ai.retargetLikelihood =
                         aiObj->getFloat("retargetLikelihood", 0.0f);
+                    def.ai.defenseLikelihood = aiObj->getFloat("defenseLikelihood", 0.05f);
                 }
                 
                 auto evArr = st->get("events");

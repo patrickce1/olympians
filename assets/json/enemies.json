@@ -3,73 +3,12 @@
         {
             "id": "cyclops",
             "name": "Cyclops",
-            "maxHealth": 20.0,
+            "maxHealth": 100.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
-                "retargetLikelihood": 0.5
+                "retargetLikelihood": 0.5,
+		"defenseLikelihood": 1.0
             },
-            "states": {
-                "idle": {
-                    "tag": "idle",
-                    "animationRow": 0
-                },
-                "attack1": {
-                    "tag": "attack",
-                    "animationRow": 1,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 0.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        }
-                    ],
-                    "nextState": "attack1_p2"
-                },
-                "attack1_p2": {
-                    "tag": "follow_up",
-                    "animationRow": 2,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        }
-                    ],
-                    "nextState": "idle"
-                },
-                "attack2": {
-                    "tag": "attack",
-                    "animationRow": 3,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        },
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        }
-                    ],
-                    "nextState": "idle"
-                }
-            }
-        },
-        {
-            "id": "cerberus",
-            "name": "Cerberus",
-            "maxHealth": 20.0,
-            "spritesheetPath": "textures/cerberus.png",
-            "ai": {
-                "retargetLikelihood": 0.5
-            },	    
 	    "customData": {
     	        "eyeMultiplier": 2.0
 	    },
@@ -142,14 +81,29 @@
                     "nextState": "idle"
                 },
 		"defensive_move" : {
-		    "tag": "boulder toss",
-                    "animationRow": 3,
+		    "tag": "eye cover",
+                    "animationRow": 4,
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
                         {
-                            "type": "DAMAGE_MODIFIER",
+                            "type": "SIDE_MODIFIER",
                             "target": 0,
+                            "amount": 0.0
+                        },
+			{
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 0.0
+                        },
+			{
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 0.0
+                        },
+			{
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
                             "amount": 0.0
                         }
 		    ],

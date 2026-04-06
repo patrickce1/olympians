@@ -46,6 +46,7 @@ protected:
     // Blocks starting non-idle states while > 0
     float _attackLockout = 0.0f;
     float _retargetLikelihood = 0.0f;
+    float _defenseLikelihood = 0.0f;
 
     std::vector<FiredEvent> _firedEvents;
 
@@ -76,7 +77,9 @@ public:
     float getAttackLockoutRemaining() const { return _attackLockout; }
     bool canStartNonIdleState() const { return _attackLockout <= 0.0f; }
     float getRetargetLikelihood() const { return _retargetLikelihood; }
+    float getDefenseLikelihood() const { return _defenseLikelihood; }
     void  setRetargetLikelihood(float v);
+    void setDefenseLikelihood(float d) { _defenseLikelihood = d; }
 
     //Checks if this enemy should use their defensive move
     //This can and should be overwritten for each boss to have custom logic on when they decide to use their defensive move

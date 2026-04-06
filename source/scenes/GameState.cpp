@@ -240,7 +240,7 @@ Player* GameState::getPlayerBySlot(int slot) const {
 /* Goes through the list of attack messages in attacks and applies the damage specified to the boss*/
 void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
     for (AttackMessage attack : attacks) {
-        _enemy->updateHealth(-1 * attack.damage);
+        _enemy->updateHealth(-1 * attack.damage); //TODO make this work over network 
     }
 }
 

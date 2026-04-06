@@ -53,6 +53,7 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
 
     _attackLockout = 0.0f;
     _retargetLikelihood = def.ai.retargetLikelihood;
+    _defenseLikelihood = def.ai.defenseLikelihood;
     
     return true;
 }
