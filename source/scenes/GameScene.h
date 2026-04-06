@@ -307,9 +307,7 @@ public:
      * @param networkController The network controller shared across all scenes
      * @return true if initialisation succeeded, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets, 
-              const std::shared_ptr<NetworkController>& networkController,
-              AudioController* audio);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio);
 
     /**
      * Activates or deactivates the scene and its UI.
