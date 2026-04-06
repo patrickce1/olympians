@@ -2,7 +2,7 @@
     "enemies": [
         {
             "id": "cyclops",
-            "name": "Cyclops",
+            "name": "cyclops",
             "maxHealth": 100.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
@@ -89,17 +89,17 @@
                         {
                             "type": "SIDE_MODIFIER",
                             "target": 0,
-                            "amount": 0.0
+                            "amount": 0.5
                         },
 			{
                             "type": "SIDE_MODIFIER",
                             "target": 1,
-                            "amount": 0.0
+                            "amount": 0.5
                         },
 			{
                             "type": "SIDE_MODIFIER",
                             "target": 2,
-                            "amount": 0.0
+                            "amount": 0.5
                         },
 			{
                             "type": "SIDE_MODIFIER",
@@ -113,7 +113,7 @@
         },
 	{
             "id": "cerberus",
-            "name": "Cerberus",
+            "name": "cerberus",
             "maxHealth": 100.0,
             "spritesheetPath": "textures/cerberus.png",
             "ai": {

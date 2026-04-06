@@ -71,7 +71,7 @@ public:
 
     EnemyLoader::State getCurrentState() const { return _currentState; }
     float getStateTime() const { return _stateTime; }
-    float setStateTime(float stateTime) { _stateTime = stateTime; }
+    void setStateTime(float stateTime) { _stateTime = stateTime; }
     const EnemyLoader::StateDef* getCurrentStateDef() const;
 
     float getAttackLockoutRemaining() const { return _attackLockout; }

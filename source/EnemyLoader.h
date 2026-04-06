@@ -84,8 +84,8 @@ private:
 
     // checks which boss the string matches and returns that boss
     static Boss parseBoss(const std::string& s) {
-        if (s == "Cyclops")  return Boss::CYCLOPS;
-        if (s == "Cerberus") return Boss::CERBERUS;
+        if (s == "cyclops")  return Boss::CYCLOPS;
+        if (s == "cerberus") return Boss::CERBERUS;
         CUAssertLog(false, "Unknown boss type: %s", s.c_str());
         return Boss::CYCLOPS;
     }

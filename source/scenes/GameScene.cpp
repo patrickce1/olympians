@@ -433,7 +433,7 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
 
             //NETWORKING
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
-                _network->broadcastDamage(resolvedMagnitude);
+                _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
             }
             CULog("Player attacked enemy '%s' with item %llu",
                   enemy->getId().c_str(), (unsigned long long)itemId);
