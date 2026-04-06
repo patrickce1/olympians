@@ -39,6 +39,10 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     _currentHealth = def.maxHealth;
     _states = def.states; //replace with a getStates method
     _customData = def.customData;
+    
+    for (int i = 0; i < NUM_PLAYERS; i++) {
+        _sideMultipliers[i] = 1.0f;
+    }
 
     //maybe add a check for every type of state because all are expected
     if (_states.count(EnemyLoader::State::IDLE) == 0) {
@@ -64,7 +68,7 @@ const EnemyLoader::StateDef* Enemy::getCurrentStateDef() const {
 bool Enemy::requestState(EnemyLoader::State state) {
     if (_states.count(state) == 0) return false;    // State doesn't exist
     if (_attackLockout > 0.0f && state != EnemyLoader::State::IDLE) return false; // Lockout is active, only allow idle
-    //change this to work for defense and attacks
+    //TODO change this to work for defense and attacks
 
     enterState(state);
     return true;
@@ -181,4 +185,9 @@ float Enemy::getSideMultiplier(int absoluteIndex) {
         return _sideMultipliers[relativeIndex];
     }
     return 1.0f;
+}
+
+//By default our shouldDefend will say we should defend if we're less than 
+bool Enemy::shouldDefend() {
+    return false;
 }

@@ -100,7 +100,7 @@ EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<
         }
     }
 
-    if (attacks.empty()) { CULog("[EnemyController] Attack: No attack states available"); return ""; }
+    if (attacks.empty()) { CULog("[EnemyController] Attack: No attack states available"); return EnemyLoader::State::IDLE; }
 
     int idx = (int)(_rng.getUint32() % (Uint32)attacks.size());
     CULog("[EnemyController] State: '%d' (Attack)", attacks[idx]);
@@ -132,11 +132,16 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
 
     // If idle and not locked out, pick an attack by tag and start it
     if (cur == EnemyLoader::State::IDLE && enemy->canStartNonIdleState() && anyPlayersAlive(players)) {
-        EnemyLoader::State nextAttack = chooseNextAttackState(enemy);
-        //TODO: figure out a guard here. Before was !nextAttack.empty()
-        if (true) {
-            enemy->requestState(nextAttack);
-            cur = enemy->getCurrentState();
+        if (shouldDefend(enemy)) {
+            enemy->requestState(EnemyLoader::State::DEFENSE_MOVE);
+        }
+        else {
+            EnemyLoader::State nextAttack = chooseNextAttackState(enemy);
+            //TODO: figure out a guard here. Before was !nextAttack.empty()
+            if (true) {
+                enemy->requestState(nextAttack);
+                cur = enemy->getCurrentState();
+            }
         }
     }
 }
@@ -199,4 +204,12 @@ void EnemyController::resolveHealEvent(const std::shared_ptr<Enemy>& enemy, cons
     if (enemy->getCurrentHealth() > 0) {
         enemy->updateHealth(event.def.amount);
     }
+}
+
+bool EnemyController::shouldDefend(const std::shared_ptr<Enemy>& enemy) {
+    float random = _rng.getClosedFloat(0, 1);
+    if (random <= 0.05) {
+        return true;
+    }
+    return enemy->shouldDefend();
 }

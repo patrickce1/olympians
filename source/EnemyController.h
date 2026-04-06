@@ -47,6 +47,10 @@ private:
 
     EnemyLoader::State chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
 
+    //There's a small chance the boss decides to enter a defensive move on a random roll
+    //Also if the defensive condition on the enemy itself is met the boss will also be asked to enter defend mode
+    bool shouldDefend(const std::shared_ptr<Enemy>& enemy);
+
     void resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy,
                             std::vector<std::shared_ptr<Player>>& players,
                             const std::vector<Enemy::FiredEvent>& events);

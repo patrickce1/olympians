@@ -66,16 +66,21 @@ public:
     void setCurrentHealth(float health) { _currentHealth = health; }
 
     int getTargetIndex() const { return _targetIndex; }
-    int setTargetIndex(int index) { _targetIndex = index;  }
+    void setTargetIndex(int index) { _targetIndex = index;  }
 
     EnemyLoader::State getCurrentState() const { return _currentState; }
     float getStateTime() const { return _stateTime; }
+    float setStateTime(float stateTime) { _stateTime = stateTime; }
     const EnemyLoader::StateDef* getCurrentStateDef() const;
 
     float getAttackLockoutRemaining() const { return _attackLockout; }
     bool canStartNonIdleState() const { return _attackLockout <= 0.0f; }
     float getRetargetLikelihood() const { return _retargetLikelihood; }
     void  setRetargetLikelihood(float v);
+
+    //Checks if this enemy should use their defensive move
+    //This can and should be overwritten for each boss to have custom logic on when they decide to use their defensive move
+    bool virtual shouldDefend();
 
     //returns the multiplier data for that side
     //this index IS NOT relative. This is the ABSOLUTE index from the perspective of the host

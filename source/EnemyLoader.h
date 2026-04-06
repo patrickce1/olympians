@@ -152,15 +152,15 @@ public:
                 def.states[sdef.state] = sdef;
             }
 
-            CUAssertLog(def.states.count("idle") > 0,
-                        "Enemy '%s' must define an 'idle' state", def.id.c_str());
+            CUAssertLog(def.states.count(State::IDLE) > 0,
+                "Enemy '%s' must define an 'idle' state", def.id.c_str());
 
-            CULog("Loaded Enemy: id=%s name=%s maxHealth=%.2f states=%zu sprite=%s",
-                  def.id.c_str(),
-                  def.name.c_str(),
-                  def.maxHealth,
-                  def.states.size(),
-                  def.spritesheetPath.c_str());
+            CULog("Loaded Enemy: id=%s name=%d maxHealth=%.2f states=%zu sprite=%s",
+                def.id.c_str(),
+                def.name,        // Boss enum, use %d
+                def.maxHealth,
+                def.states.size(),
+                def.spritesheetPath.c_str());
 
             _enemies[def.id] = def;
         }
