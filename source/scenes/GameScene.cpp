@@ -781,36 +781,73 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
         );
     };
 
-    auto updateTeammateBlink = [this, dt](auto slot, auto player, float& lastHealth, float& blinkTimer) {
-        if (!slot || !player) return;
-
-        const float currentHealth = player->getCurrentHealth();
-        if (lastHealth >= 0.0f && currentHealth < lastHealth && player->isAlive()) {
-            blinkTimer = _damageBlinkDuration;
-        } else if (blinkTimer > 0.0f) {
-            blinkTimer = std::max(0.0f, blinkTimer - dt);
-        }
-
-        if (!player->isAlive()) {
-            blinkTimer = 0.0f;
-            slot->setColor(Color4(255, 255, 255, 255));
-        } else if (blinkTimer > 0.0f && shouldShowDamageBlink(blinkTimer, _damageBlinkInterval)) {
-            slot->setColor(Color4(255, 96, 96, 255));
-        } else {
-            slot->setColor(Color4(255, 255, 255, 255));
-        }
-
-        lastHealth = currentHealth;
-    };
-
     applyTexture(_localPlayerSlot, localPlayer);
     _localPlayerSlot->setScale(0.83f);
     applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
     updateTeammateBlink(_leftPlayerSlot, localPlayer->getLeftPlayer(),
-                        _lastLeftPlayerHealth, _leftPlayerDamageBlinkTimer);
+                        _lastLeftPlayerHealth, _leftPlayerDamageBlinkTimer, _leftPlayerHealBlinkTimer, dt);
     updateTeammateBlink(_rightPlayerSlot, localPlayer->getRightPlayer(),
-                        _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer);
+                        _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer, _rightPlayerHealBlinkTimer, dt);
+}
+
+/**
+ * Updates one teammate icon's blink state and tint based on health deltas.
+ *
+ * @param slot              The teammate icon node to tint.
+ * @param player            The teammate whose health drives the icon state.
+ * @param lastHealth        The previous observed health snapshot for this teammate.
+ * @param damageBlinkTimer  Countdown used for red damage blinking.
+ * @param healBlinkTimer    Countdown used for the green heal flash.
+ * @param dt                Delta time in seconds.
+ */
+void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonNode>& slot,
+                                    Player* player,
+                                    float& lastHealth,
+                                    float& damageBlinkTimer,
+                                    float& healBlinkTimer,
+                                    float dt) {
+    if (!slot || !player) return;
+
+    const float currentHealth = player->getCurrentHealth();
+    const bool hasPriorSnapshot = lastHealth >= 0.0f;
+    const bool isAlive = player->isAlive();
+    bool startedNewBlink = false;
+
+    if (hasPriorSnapshot && isAlive) {
+        if (currentHealth < lastHealth) {
+            damageBlinkTimer = _damageBlinkDuration;
+            healBlinkTimer = 0.0f;
+            startedNewBlink = true;
+        } else if (currentHealth > lastHealth) {
+            healBlinkTimer = _damageBlinkDuration / 2;
+            damageBlinkTimer = 0.0f;
+            startedNewBlink = true;
+        }
+    }
+
+    if (!startedNewBlink) {
+        if (damageBlinkTimer > 0.0f) {
+            damageBlinkTimer = std::max(0.0f, damageBlinkTimer - dt);
+        }
+        if (healBlinkTimer > 0.0f) {
+            healBlinkTimer = std::max(0.0f, healBlinkTimer - dt);
+        }
+    }
+
+    if (!isAlive) {
+        damageBlinkTimer = 0.0f;
+        healBlinkTimer = 0.0f;
+        slot->setColor(Color4(255, 255, 255, 255));
+    } else if (healBlinkTimer > 0.0f) {
+        slot->setColor(Color4(120, 255, 120, 255));
+    } else if (damageBlinkTimer > 0.0f && shouldShowDamageBlink(damageBlinkTimer, _damageBlinkInterval)) {
+        slot->setColor(Color4(255, 96, 96, 255));
+    } else {
+        slot->setColor(Color4(255, 255, 255, 255));
+    }
+
+    lastHealth = currentHealth;
 }
 
 /**
@@ -819,6 +856,8 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
 void GameScene::resetTeammateDamageBlinkState() {
     _leftPlayerDamageBlinkTimer = 0.0f;
     _rightPlayerDamageBlinkTimer = 0.0f;
+    _leftPlayerHealBlinkTimer = 0.0f;
+    _rightPlayerHealBlinkTimer = 0.0f;
     _lastLeftPlayerHealth = -1.0f;
     _lastRightPlayerHealth = -1.0f;
 

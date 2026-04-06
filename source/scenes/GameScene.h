@@ -195,6 +195,12 @@ protected:
     /** Seconds remaining on the right teammate damage blink effect. */
     float _rightPlayerDamageBlinkTimer = 0.0f;
 
+    /** Seconds remaining on the left teammate heal blink effect. */
+    float _leftPlayerHealBlinkTimer = 0.0f;
+
+    /** Seconds remaining on the right teammate heal blink effect. */
+    float _rightPlayerHealBlinkTimer = 0.0f;
+
     /** Last observed health snapshot for the left teammate. */
     float _lastLeftPlayerHealth = -1.0f;
 
@@ -427,6 +433,25 @@ public:
      * @param dt Delta time in seconds.
      */
     void updatePlayerAndTeammateIcons(float dt);
+
+    /**
+     * Updates one teammate icon's blink state and tint based on health deltas.
+     *
+     * @param slot              The teammate icon node to tint.
+     * @param player            The teammate whose health drives the icon state.
+     * @param lastHealth        The previous observed health snapshot for this teammate.
+     * @param damageBlinkTimer  Countdown used for red damage blinking.
+     * @param healBlinkTimer    Countdown used for the green heal flash.
+     * @param dt                Delta time in seconds.
+     */
+    void updateTeammateBlink(
+        const std::shared_ptr<cugl::scene2::PolygonNode>& slot,
+        Player* player,
+        float& lastHealth,
+        float& damageBlinkTimer,
+        float& healBlinkTimer,
+        float dt
+    );
 
     /** Resynchronises teammate damage blink state with the current local player. */
     void resetTeammateDamageBlinkState();
