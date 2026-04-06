@@ -969,86 +969,60 @@ void GameScene::handleNetworkUpdates() {
     /*Networking pull cycle*/
     _network->getNetworkUpdates();
 
+    // Track player and enemy health before updates to detect changes
+    auto player = _gameState.getLocalPlayer();
+    float playerHealthBefore = player ? player->getCurrentHealth() : 0.0f;
+    float enemyHealthBefore = _gameState.getEnemy()->getCurrentHealth();
+
     if (_network->isHost()) {
-        // Track local player and enemy health before updates to detect changes
-        auto player = _gameState.getLocalPlayer();
-        float playerHealthBefore = player ? player->getCurrentHealth() : 0.0f;
-        float enemyHealthBefore = _gameState.getEnemy()->getCurrentHealth();
-        
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         
-        // Play sounds only for LOCAL player health changes (they can be healed by teammates)
-        if (player) {
-            if (player->getCurrentHealth() > playerHealthBefore && _audio) {
-                _audio->playSoundUnique("player_heal");
-                CULog("Host: Local player healed from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
-            } else if (player->getCurrentHealth() < playerHealthBefore && _audio) {
-                std::string house = player->getHouseName();
-                if (house == "athena" || house == "aphrodite" || house == "demeter") {
-                    _audio->playSoundUnique("player_hurt");
-                } else {
-                    _audio->playSoundUnique("player_hurt_deep");
-                }
-                CULog("Host: Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
-            }
-        }
-        if (_gameState.getEnemy()->getCurrentHealth() < enemyHealthBefore && _audio) {
-            _audio->playSoundUnique("enemy_hurt");
-            CULog("Host: Enemy damaged from %.1f to %.1f", enemyHealthBefore, _gameState.getEnemy()->getCurrentHealth());
-        }
-        
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
-        //check if we won or lost
-        if (_gameState.didWin()) {
-            _network->broadcastWonGame();
-            _status = Status::WON;
-        }
-        else if(_gameState.didLose()){
-            _network->broadcastLostGame();
-            _status = Status::LOST;
-        }
     }
     else {
-        // Track player and enemy health before updates to detect damage
-        auto player = _gameState.getLocalPlayer();
-        float playerHealthBefore = player ? player->getCurrentHealth() : 0.0f;
-        float enemyHealthBefore = _gameState.getEnemy()->getCurrentHealth();
-        
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
-        
-        // Play sounds if damage was detected
-        if (player) {
-            if (player->getCurrentHealth() < playerHealthBefore && _audio) {
-                std::string house = player->getHouseName();
-                if (house == "athena" || house == "aphrodite" || house == "demeter") {
-                    _audio->playSoundUnique("player_hurt");
-                } else {
-                    _audio->playSoundUnique("player_hurt_deep");
-                }
-                CULog("Client: Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
-            } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
-                _audio->playSoundUnique("player_heal");
-                CULog("Client: Local player healed from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
+    }
+    
+    // Play sounds for LOCAL player health changes (common to both host and client)
+    if (player) {
+        if (player->getCurrentHealth() > playerHealthBefore && _audio) {
+            _audio->playSoundUnique("player_heal");
+            CULog("Local player healed from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
+        } else if (player->getCurrentHealth() < playerHealthBefore && _audio) {
+            std::string house = player->getHouseName();
+            if (house == "athena" || house == "aphrodite" || house == "demeter") {
+                _audio->playSoundUnique("player_hurt");
+            } else {
+                _audio->playSoundUnique("player_hurt_deep");
             }
+            CULog("Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
         }
-        if (_gameState.getEnemy()->getCurrentHealth() < enemyHealthBefore && _audio) {
-            _audio->playSoundUnique("enemy_hurt");
-            CULog("Client: Enemy damaged from %.1f to %.1f", enemyHealthBefore, _gameState.getEnemy()->getCurrentHealth());
+    }
+    
+    // Play enemy hurt sound (common to both host and client)
+    if (_gameState.getEnemy()->getCurrentHealth() < enemyHealthBefore && _audio) {
+        _audio->playSoundUnique("enemy_hurt");
+        CULog("Enemy damaged from %.1f to %.1f", enemyHealthBefore, _gameState.getEnemy()->getCurrentHealth());
+    }
+    
+    // Check if we won or lost (common to both host and client)
+    if (_gameState.didWin()) {
+        if (_network->isHost()) {
+            _network->broadcastWonGame();
         }
-        
-        // clients check if the host told us anything about winning/losing
-        if (_network->checkGameWon()) {
-            _status = Status::WON;
-            CULog("We were told that we won");
+        _status = Status::WON;
+        CULog("We won!");
+    }
+    else if(_gameState.didLose()){
+        if (_network->isHost()) {
+            _network->broadcastLostGame();
         }
-        else if (_network->checkGameLost()) {
-            _status = Status::LOST;
-            CULog("We were told that we lost");
-        }
+        _status = Status::LOST;
+        CULog("We lost!");
     }
 
     processNetworkedPasses(_network->getPassUpdates());
