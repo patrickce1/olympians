@@ -1,0 +1,1214 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0,
+                0
+            ],
+            "size": [
+                393,
+                852
+            ],
+            "angle": 0,
+            "position": [
+                0,
+                0
+            ],
+            "visible": true
+        },
+        "children": {
+            "clouds": {
+                "type": "Image",
+                "data": {
+                    "texture": "cloudBottom",
+                    "anchor": [
+                        1,
+                        0
+                    ],
+                    "size": [
+                        151,
+                        251
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        4
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.02
+                }
+            },
+            "lock": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        340,
+                        51
+                    ],
+                    "angle": 0,
+                    "position": [
+                        27,
+                        85
+                    ],
+                    "visible": true,
+                    "upnode": "buttonMedBG"
+                },
+                "children": {
+                    "buttonMedBG": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "buttonMedBG",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                340,
+                                51
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "LOCK": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                1
+                            ],
+                            "size": [
+                                100,
+                                19
+                            ],
+                            "position": [
+                                120,
+                                16
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular16",
+                            "text": "SELECT BOSS",
+                            "foreground": "#ffd9a9ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.31
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.84
+                }
+            },
+            "bossSelectionCarouselIcons": {
+                "type": "Node",
+                "format": {
+                    "type": "Float",
+                    "x_alignment": "left",
+                    "y_alignment": "middle",
+                    "orientation": "horizontal"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        33.6,
+                        8
+                    ],
+                    "angle": 0,
+                    "position": [
+                        176.4,
+                        224
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "Ellipse 0": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Anchored"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "angle": 0,
+                            "size": [
+                                8,
+                                8
+                            ],
+                            "position": [
+                                4,
+                                4
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "fill": {
+                                "type": "Solid",
+                                "data": {
+                                    "polygon": [
+                                        4,
+                                        0,
+                                        3.6,
+                                        1.74,
+                                        2.49,
+                                        3.13,
+                                        0.89,
+                                        3.9,
+                                        -0.89,
+                                        3.9,
+                                        -2.49,
+                                        3.13,
+                                        -3.6,
+                                        1.74,
+                                        -4,
+                                        0,
+                                        -3.6,
+                                        -1.74,
+                                        -2.49,
+                                        -3.13,
+                                        -0.89,
+                                        -3.9,
+                                        0.89,
+                                        -3.9,
+                                        2.49,
+                                        -3.13,
+                                        3.6,
+                                        -1.74
+                                    ],
+                                    "color": "#9d7137ff",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            },
+                            "stroke": {
+                                "type": "Path",
+                                "data": {
+                                    "color": "#9d7137ff",
+                                    "path": {
+                                        "vertices": [
+                                            3.75,
+                                            0,
+                                            3.66,
+                                            0.83,
+                                            3.38,
+                                            1.63,
+                                            2.93,
+                                            2.34,
+                                            2.34,
+                                            2.93,
+                                            1.63,
+                                            3.38,
+                                            0.83,
+                                            3.66,
+                                            0,
+                                            3.75,
+                                            -0.83,
+                                            3.66,
+                                            -1.63,
+                                            3.38,
+                                            -2.34,
+                                            2.93,
+                                            -2.93,
+                                            2.34,
+                                            -3.38,
+                                            1.63,
+                                            -3.66,
+                                            0.83,
+                                            -3.75,
+                                            0,
+                                            -3.66,
+                                            -0.83,
+                                            -3.38,
+                                            -1.63,
+                                            -2.93,
+                                            -2.34,
+                                            -2.34,
+                                            -2.93,
+                                            -1.63,
+                                            -3.38,
+                                            -0.83,
+                                            -3.66,
+                                            0,
+                                            -3.75,
+                                            0.83,
+                                            -3.66,
+                                            1.63,
+                                            -3.38,
+                                            2.34,
+                                            -2.93,
+                                            2.93,
+                                            -2.34,
+                                            3.38,
+                                            -1.63,
+                                            3.66,
+                                            -0.83
+                                        ],
+                                        "closed": true
+                                    },
+                                    "stroke": 1,
+                                    "joint": "square",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            }
+                        },
+                        "layout": {
+                            "priority": 0,
+                            "padding": [
+                                0,
+                                0,
+                                4.800000190734863,
+                                0
+                            ]
+                        }
+                    },
+                    "Ellipse 1": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Anchored"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "angle": 0,
+                            "size": [
+                                8,
+                                8
+                            ],
+                            "position": [
+                                16.800000190734863,
+                                4
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "fill": {
+                                "type": "Solid",
+                                "data": {
+                                    "polygon": [
+                                        4,
+                                        0,
+                                        3.6,
+                                        1.74,
+                                        2.49,
+                                        3.13,
+                                        0.89,
+                                        3.9,
+                                        -0.89,
+                                        3.9,
+                                        -2.49,
+                                        3.13,
+                                        -3.6,
+                                        1.74,
+                                        -4,
+                                        0,
+                                        -3.6,
+                                        -1.74,
+                                        -2.49,
+                                        -3.13,
+                                        -0.89,
+                                        -3.9,
+                                        0.89,
+                                        -3.9,
+                                        2.49,
+                                        -3.13,
+                                        3.6,
+                                        -1.74
+                                    ],
+                                    "color": "#4c3214ff",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            },
+                            "stroke": {
+                                "type": "Path",
+                                "data": {
+                                    "color": "#9d7137ff",
+                                    "path": {
+                                        "vertices": [
+                                            3.75,
+                                            0,
+                                            3.66,
+                                            0.83,
+                                            3.38,
+                                            1.63,
+                                            2.93,
+                                            2.34,
+                                            2.34,
+                                            2.93,
+                                            1.63,
+                                            3.38,
+                                            0.83,
+                                            3.66,
+                                            0,
+                                            3.75,
+                                            -0.83,
+                                            3.66,
+                                            -1.63,
+                                            3.38,
+                                            -2.34,
+                                            2.93,
+                                            -2.93,
+                                            2.34,
+                                            -3.38,
+                                            1.63,
+                                            -3.66,
+                                            0.83,
+                                            -3.75,
+                                            0,
+                                            -3.66,
+                                            -0.83,
+                                            -3.38,
+                                            -1.63,
+                                            -2.93,
+                                            -2.34,
+                                            -2.34,
+                                            -2.93,
+                                            -1.63,
+                                            -3.38,
+                                            -0.83,
+                                            -3.66,
+                                            0,
+                                            -3.75,
+                                            0.83,
+                                            -3.66,
+                                            1.63,
+                                            -3.38,
+                                            2.34,
+                                            -2.93,
+                                            2.93,
+                                            -2.34,
+                                            3.38,
+                                            -1.63,
+                                            3.66,
+                                            -0.83
+                                        ],
+                                        "closed": true
+                                    },
+                                    "stroke": 1,
+                                    "joint": "square",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            }
+                        },
+                        "layout": {
+                            "priority": 1,
+                            "padding": [
+                                0,
+                                0,
+                                4.800000190734863,
+                                0
+                            ]
+                        }
+                    },
+                    "Ellipse 3": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Anchored"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "angle": 0,
+                            "size": [
+                                8,
+                                8
+                            ],
+                            "position": [
+                                29.600000381469727,
+                                4
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "fill": {
+                                "type": "Solid",
+                                "data": {
+                                    "polygon": [
+                                        4,
+                                        0,
+                                        3.6,
+                                        1.74,
+                                        2.49,
+                                        3.13,
+                                        0.89,
+                                        3.9,
+                                        -0.89,
+                                        3.9,
+                                        -2.49,
+                                        3.13,
+                                        -3.6,
+                                        1.74,
+                                        -4,
+                                        0,
+                                        -3.6,
+                                        -1.74,
+                                        -2.49,
+                                        -3.13,
+                                        -0.89,
+                                        -3.9,
+                                        0.89,
+                                        -3.9,
+                                        2.49,
+                                        -3.13,
+                                        3.6,
+                                        -1.74
+                                    ],
+                                    "color": "#9d7137ff",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            },
+                            "stroke": {
+                                "type": "Path",
+                                "data": {
+                                    "color": "#9d7137ff",
+                                    "path": {
+                                        "vertices": [
+                                            3.75,
+                                            0,
+                                            3.66,
+                                            0.83,
+                                            3.38,
+                                            1.63,
+                                            2.93,
+                                            2.34,
+                                            2.34,
+                                            2.93,
+                                            1.63,
+                                            3.38,
+                                            0.83,
+                                            3.66,
+                                            0,
+                                            3.75,
+                                            -0.83,
+                                            3.66,
+                                            -1.63,
+                                            3.38,
+                                            -2.34,
+                                            2.93,
+                                            -2.93,
+                                            2.34,
+                                            -3.38,
+                                            1.63,
+                                            -3.66,
+                                            0.83,
+                                            -3.75,
+                                            0,
+                                            -3.66,
+                                            -0.83,
+                                            -3.38,
+                                            -1.63,
+                                            -2.93,
+                                            -2.34,
+                                            -2.34,
+                                            -2.93,
+                                            -1.63,
+                                            -3.38,
+                                            -0.83,
+                                            -3.66,
+                                            0,
+                                            -3.75,
+                                            0.83,
+                                            -3.66,
+                                            1.63,
+                                            -3.38,
+                                            2.34,
+                                            -2.93,
+                                            2.93,
+                                            -2.34,
+                                            3.38,
+                                            -1.63,
+                                            3.66,
+                                            -0.83
+                                        ],
+                                        "closed": true
+                                    },
+                                    "stroke": 1,
+                                    "joint": "square",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            }
+                        },
+                        "layout": {
+                            "priority": 2,
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ]
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.73
+                }
+            },
+            "bossCarousel": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        788,
+                        462
+                    ],
+                    "angle": 0,
+                    "position": [
+                        -199,
+                        226
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "bossCardContainer": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "center",
+                            "y_alignment": "middle",
+                            "orientation": "horizontal"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                1
+                            ],
+                            "size": [
+                                788,
+                                462
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "cyclopsCard": {
+                                "type": "Widget",
+                                "format": { "type": "Anchored" },
+                                "data": {
+                                    "key": "bossCard",
+                                    "variables": {
+                                        "image": "cyclopsPoster",
+                                        "description": "Cyclops, the lone guardian of the cave, blinded by rage and hunger. Defeat it to escape its domain.",
+                                        "name": "-CYCLOPS-",
+                                        "glow": false
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        -35,
+                                        0
+                                    ]
+                                }
+                            },
+                            "cerberusCard": {
+                                "type": "Widget",
+                                "format": { "type": "Anchored" },
+                                "data": {
+                                    "key": "bossCard",
+                                    "variables": {
+                                        "image": "cerberusPoster",
+                                        "description": "Hades’ companion gone rogue, defeat it and bring him back to Hell. Attacks.....Defenses....",
+                                        "name": "-CERBERUS-",
+                                        "glow": true
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        -35,
+                                        0
+                                    ]
+                                }
+                            },
+                            "emptyCard": {
+                                "type": "Widget",
+                                "format": { "type": "Anchored" },
+                                "data": {
+                                    "key": "bossCard",
+                                    "variables": {
+                                        "image": "bossPosterEmpty",
+                                        "description": "",
+                                        "name": "-BOSS-",
+                                        "glow": false
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 2,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "fade": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "center",
+                            "y_alignment": "middle",
+                            "orientation": "horizontal"
+                        },
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                409,
+                                458
+                            ],
+                            "angle": 0,
+                            "position": [
+                                198,
+                                -8
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "leftFade": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "leftFade",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        72,
+                                        458
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        37,
+                                        229
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        262,
+                                        0
+                                    ]
+                                }
+                            },
+                            "rightFade": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "rightFade",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        73,
+                                        458
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        371.5,
+                                        229
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                    0,
+                                    0,
+                                    0,
+                                    0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.24,
+                            "y_offset": -0.03
+                        }
+                    },
+                    "directionButtons": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "center",
+                            "y_alignment": "middle",
+                            "orientation": "horizontal"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                273,
+                                48
+                            ],
+                            "angle": 0,
+                            "position": [
+                                258,
+                                197
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "leftScroll": {
+                                "type": "Button",
+                                "format": {
+                                    "type": "Anchored"
+                                },
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        26.5,
+                                        48
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        13.25,
+                                        24
+                                    ],
+                                    "visible": true,
+                                    "upnode": "leftScroll"
+                                },
+                                "children": {
+                                    "leftScroll": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "leftScroll",
+                                            "anchor": [
+                                                0,
+                                                1
+                                            ],
+                                            "size": [
+                                                26.5,
+                                                48
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                0,
+                                                0
+                                            ],
+                                            "visible": true
+                                        },
+                                        "layout": {
+                                            "x_anchor": "left",
+                                            "y_anchor": "top",
+                                            "absolute": false,
+                                            "x_offset": 0,
+                                            "y_offset": 0
+                                        }
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        220,
+                                        0
+                                    ]
+                                }
+                            },
+                            "rightScroll": {
+                                "type": "Button",
+                                "format": {
+                                    "type": "Anchored"
+                                },
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        26.5,
+                                        48
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        259.75,
+                                        24
+                                    ],
+                                    "visible": true,
+                                    "upnode": "rightScroll"
+                                },
+                                "children": {
+                                    "rightscroll": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "rightScroll",
+                                            "anchor": [
+                                                0,
+                                                1
+                                            ],
+                                            "size": [
+                                                26.5,
+                                                48
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                0,
+                                                0
+                                            ],
+                                            "visible": true
+                                        },
+                                        "layout": {
+                                            "x_anchor": "left",
+                                            "y_anchor": "top",
+                                            "absolute": false,
+                                            "x_offset": 0,
+                                            "y_offset": 0
+                                        }
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0.001,
+                            "y_offset": -0.02
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.19
+                }
+            },
+            "header": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        313,
+                        32
+                    ],
+                    "angle": 0,
+                    "position": [
+                        55,
+                        678
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "label": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                195,
+                                29
+                            ],
+                            "position": [
+                                56,
+                                0
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular24",
+                            "text": "BOSS SELECTION",
+                            "foreground": "#ffd9a9ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "brackets": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "brackets",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                313,
+                                29
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                4
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.15
+                }
+            },
+            "back": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        42,
+                        42
+                    ],
+                    "angle": 0,
+                    "position": [
+                        17,
+                        737
+                    ],
+                    "visible": true,
+                    "upnode": "buttonBackBG"
+                },
+                "children": {
+                    "buttonbackBG": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "buttonBackBG",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                42,
+                                42
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.08,
+                    "y_offset": -0.08
+                }
+            }
+        }
+    }
+}
+
