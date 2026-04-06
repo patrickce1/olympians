@@ -132,8 +132,6 @@ bool GameScene::initSceneGraph() {
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
         _scene->addChild(_specialEffectsLayer);
-        
-        
     }
     
     if (_inventory) {
