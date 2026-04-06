@@ -419,6 +419,7 @@
         "menuScene":   "json/scenes/menuScene.json",
         "lobbyScene": "json/scenes/lobbyScene.json",
         "houseSelectScene": "json/scenes/houseSelectionScene.json",
+        "bossSelectScene": "json/scenes/bossSelectionScene.json",
         "heroCard" : "widgets/houseSelect/heroCard.json",
         "teamHouseIcon" : "widgets/houseSelect/teamHouseIcon.json",
         "playerHouseIcon" : "widgets/houseSelect/playerHouseIcon.json",
@@ -484,6 +485,15 @@
             "format": { "type": "Anchored"},
             "data": {
                 "key": "houseSelectScene",
+                "variables": {}
+            }
+        },
+        "bossSelectScene": {
+            "type": "Widget",
+            "comment": "Root node of the boss select scene",
+            "format": { "type": "Anchored"},
+            "data": {
+                "key": "bossSelectScene",
                 "variables": {}
             }
         }

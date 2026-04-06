@@ -7,12 +7,12 @@
         },
         "data": {
             "anchor": [
-                0.5,
+                0,
                 0
             ],
             "size": [
-                395,
-                304
+                393,
+                302
             ],
             "angle": 0,
             "position": [
@@ -23,23 +23,24 @@
         },
         "children": {
             "background": {
-                "type": "Image",
+                "type": "Ninepatch",
                 "data": {
                     "texture": "inventoryBackground",
                     "anchor": [
                         0,
-                        1
+                        0
                     ],
                     "size": [
-                        395,
-                        304
+                        393,
+                        302
                     ],
                     "angle": 0,
-                    "visible": true
+                    "visible": true,
+                    "interior" : [53, 70, 285, 195]
                 },
                 "layout": {
                     "x_anchor": "left",
-                    "y_anchor": "top",
+                    "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0,
                     "y_offset": 0
@@ -53,7 +54,7 @@
                 "data": {
                     "anchor": [
                         0,
-                        1
+                        0
                     ],
                     "size": [
                         239.65,
@@ -163,10 +164,10 @@
                 },
                 "layout": {
                     "x_anchor": "left",
-                    "y_anchor": "top",
+                    "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0.26,
-                    "y_offset": -0.72
+                    "y_offset": 0.2
                 }
             },
             "playerLiveIcon": {

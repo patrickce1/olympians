@@ -150,15 +150,6 @@ public:
      */
     Status getStatus() const { return _status; }
     
-    /**
-     * The method called to update the scene.
-     *
-     * We need to update this method to constantly talk to the server
-     *
-     * @param timestep  The amount of time (in seconds) since the last frame
-     */
-    void update(float timestep) override;
-    
 private:
     /**
      * Updates the text in the given button.

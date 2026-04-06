@@ -162,6 +162,7 @@ void SceneLoader::onShutdown() {
     _menuScene.dispose();
     _lobbyScene.dispose();
     _houseSelectScene.dispose();
+    _bossSelectScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
     netcode::NetworkLayer::stop();
@@ -263,6 +264,12 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize HouseSelectScene");
                 }
+                
+                if (_bossSelectScene.init(_assets, _network)) {
+                    _bossSelectScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize BossSelectScene");
+                }
             }
             break;
         case State::MENU:
@@ -347,6 +354,12 @@ void SceneLoader::update(float dt) {
                     _lobbyScene.setActive(false);
                     _currentScene = State::HOUSESELECT;
                     break;
+                case LobbyScene::Status::BOSSSELECT:
+                    CULog("Transitioning to BossSelectScene...");
+                    _bossSelectScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::BOSSSELECT;
+                    break;
                 case LobbyScene::Status::ABORT:
                     CULog("Transitioning to MenuScene...");
                     _menuScene.setActive(true);
@@ -363,6 +376,18 @@ void SceneLoader::update(float dt) {
                 case HouseSelectScene::Status::ABORT:
                     _lobbyScene.setActive(true);
                     _houseSelectScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case State::BOSSSELECT:
+            _bossSelectScene.update(dt);
+            switch (_bossSelectScene.getStatus()) {
+                case BossSelectScene::Status::ABORT:
+                    _lobbyScene.setActive(true);
+                    _bossSelectScene.setActive(false);
                     _currentScene = State::LOBBY;
                     break;
                 default:
@@ -448,6 +473,9 @@ void SceneLoader::draw() {
             break;
         case State::HOUSESELECT:
             _houseSelectScene.render();
+            break;
+        case State::BOSSSELECT:
+            _bossSelectScene.render();
             break;
     }
 }
