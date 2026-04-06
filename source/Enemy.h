@@ -109,8 +109,10 @@ public:
     // Override this if custom logic is needed for taking damage
     void virtual takeDamage(float damage, int playerIndex);
 
-protected:
+    //this has to be public for networking purposes
     void enterState(EnemyLoader::State state);
+
+protected:
     void tick(float dt);
     bool readyToFire() const;
     void fireEvents();

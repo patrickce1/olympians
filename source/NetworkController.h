@@ -99,7 +99,7 @@ public:
 
     /* Atomic style update functions. The following are ONLY SENT TO THE HOST*/
     /*Tells the host that the boss has been damaged for damageAmount*/
-    void broadcastDamage(float damageAmount);
+    void broadcastDamage(float damageAmount, int playerIndex);
 
     /**
      * Sends a message to the corresponding player that an item with the given definition has been passed to them.

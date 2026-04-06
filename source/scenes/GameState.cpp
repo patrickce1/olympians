@@ -240,7 +240,7 @@ Player* GameState::getPlayerBySlot(int slot) const {
 /* Goes through the list of attack messages in attacks and applies the damage specified to the boss*/
 void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
     for (AttackMessage attack : attacks) {
-        _enemy->updateHealth(-1 * attack.damage); //TODO make this work over network 
+        _enemy->takeDamage(attack.damage, attack.damageDirection);
     }
 }
 
@@ -264,6 +264,9 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
 void GameState::networkUpdate(GameStateMessage newState) {
     // update boss health
     _enemy->setCurrentHealth(newState.bossHealth);
+    _enemy->enterState((EnemyLoader::State) newState.bossState);
+    _enemy->setStateTime(newState.stateTime);
+    _enemy->setTargetIndex(newState.bossTarget);
 
     // update player health
     std::vector<float> healths = {
