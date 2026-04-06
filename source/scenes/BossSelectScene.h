@@ -9,7 +9,7 @@
 #include "../NetworkController.h"
 
 /**
- * [Write header]
+ * This class provides the interface to make the boss select scene.
  */
 class BossSelectScene : public cugl::scene2::Scene2 {
 public:
