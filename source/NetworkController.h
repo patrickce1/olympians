@@ -101,10 +101,15 @@ public:
     /*Tells the host that the boss has been damaged for damageAmount*/
     void broadcastDamage(float damageAmount);
 
-    /*Sends a message to the corresponding player that item with the definition itemDefID has been passed to them.
-    * If sent to an AI player, the host handles it, otherwise, handled by the player on their end.
-    * The playerID tells us which numbered player they are in the cicle*/
-    void broadcastPass(const std::string& itemDefID, int playerID);
+    /**
+     * Sends a message to the corresponding player that an item with the given definition has been passed to them.
+     * If sent to an AI player, the host handles it; otherwise, the receiving player handles it on their end.
+     *
+     * @param itemDefID     The item definition ID of the item being passed.
+     * @param playerID      The player's position in the circle (0-based).
+     * @param passDirection The direction the item is being passed: 1 for left, 2 for right.
+     */
+    void broadcastPass(const std::string& itemDefID, int playerID, int passDirection);
 
     /*Sends a message to the host that the player located at playerID in the cicle got healed for healAmount.*/
     void broadcastHeal(float healAmount, int playerID);
@@ -204,10 +209,21 @@ public:
      * Should be called on the host immediately after broadcastSelectedHouse()
      * when the host locks in their house selection.
      *
-     * @param houseID  The ID of the house the host selected (e.g. "Athena").
+     * @param houseID  The ID of the house the host selected (e.g. "athena").
      *                 Must match a valid entry in the HouseLoader.
      */
     void setLocalHouse(const std::string& houseID);
+    
+    /** Returns the enemy ID of the chosen boss for the game. */
+    std::string getEnemy() { return _enemy; };
+    
+    /**
+     * Sets the enemy of the game using their unique Enemy ID. Should be called once after
+     * the host chooses a boss.
+     *
+     * @param enemyID  The unique of the boss from enemies.json
+     */
+    void setEnemy(const std::string& enemyID) { _enemy = enemyID; }
     
     /** Returns true if every player in the lobby has selected a house. */
     bool allPlayersSelectedHouse() const;
@@ -268,6 +284,9 @@ private:
 
     //Player's chosen username
     std::string _playerName;
+    
+    // Enemy for the game
+    std::string _enemy;
     
     //Used internally to handle the different types of networking messages that come in 
     void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);

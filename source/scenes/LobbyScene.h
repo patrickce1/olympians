@@ -45,8 +45,11 @@ protected:
     /** The game id label */
     std::shared_ptr<cugl::scene2::Label> _gameId;
     
+    /** Current boss id */
+    std::string _currentBoss = "";
+    
     /** Circular boss image (maybe button)*/
-    std::shared_ptr<cugl::scene2::SceneNode> _bossImage;
+    std::shared_ptr<cugl::scene2::PolygonNode> _bossImage;
     
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
@@ -57,10 +60,22 @@ protected:
     /** A container that stores labels and other info for visualizing the house and username choices of players */
     std::shared_ptr<cugl::scene2::SceneNode> _playerInfoContainer;
     
+    /** The glowing blinker for the local player's icon(bottom icon) to notify them to pick house  */
+    std::shared_ptr<cugl::scene2::SceneNode> _localPlayerIconIndicator;
+    
     /** The current status */
     Status _status;
+
+    /** The timer for the blinking player icon border */
+    float _blinkTimer = 0.0f;
     
-    // The state of the game
+    /** Whether the player icon border is visible */
+    bool _blinkOn = true;
+    
+    /** Whether the local player has selected a house */
+    bool _hasSelectedHouse;
+
+    /** The state of the game */
     GameState* _gameState = nullptr;
 
 public:
@@ -171,10 +186,23 @@ private:
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
     
     /**
+     * Updates the image of the boss circle based on the selected enemy.
+     *
+     * @param enemyID The identifier of the enemy whose background should be displayed.
+     */
+    void updateLobbyBossImage(std::string enemyID);
+    
+    /**
      * Syncs _gameState player names and house selections with the current
      * networked player list. Called every frame during the lobby.
      */
     void updateNetworkOrder();
+    
+    /**
+     Updates the _selectedHouse variable if the local player has selected a house in the
+     house select screen.
+     */
+    void updateLocalPlayerSelectedHouse();
 
     /**
      * Remaps the full player list from GameState so the local player always

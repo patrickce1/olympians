@@ -11,8 +11,8 @@
                 0
             ],
             "size": [
-                395,
-                304
+                393,
+                302
             ],
             "angle": 0,
             "position": [
@@ -23,7 +23,7 @@
         },
         "children": {
             "background": {
-                "type": "Image",
+                "type": "Ninepatch",
                 "data": {
                     "texture": "inventoryBackground",
                     "anchor": [
@@ -31,15 +31,12 @@
                         0
                     ],
                     "size": [
-                        395,
-                        300
+                        393,
+                        302
                     ],
                     "angle": 0,
-                    "position": [
-                        0,
-                        0
-                    ],
-                    "visible": true
+                    "visible": true,
+                    "interior" : [53, 70, 285, 195]
                 },
                 "layout": {
                     "x_anchor": "left",
@@ -60,13 +57,13 @@
                         0
                     ],
                     "size": [
-                        285.18,
-                        11.57
+                        239.65,
+                        24
                     ],
                     "angle": 0,
                     "position": [
-                        87.35,
-                        46.43
+                        102,
+                        60
                     ],
                     "visible": true
                 },
@@ -77,25 +74,25 @@
                             "texture": "playerHealthFrame",
                             "anchor": [
                                 0,
-                                0
+                                1
                             ],
                             "size": [
-                                285.5,
-                                12
+                                243,
+                                15
                             ],
                             "angle": 0,
                             "position": [
-                                0,
-                                -0.43
+                                -2,
+                                4
                             ],
                             "visible": true
                         },
                         "layout": {
                             "x_anchor": "left",
-                            "y_anchor": "bottom",
+                            "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0,
-                            "y_offset": -0.04
+                            "x_offset": -0.01,
+                            "y_offset": -0.21
                         }
                     },
                     "healthBarFill": {
@@ -104,25 +101,64 @@
                             "texture": "playerHealthFill",
                             "anchor": [
                                 0,
-                                0
+                                1
                             ],
                             "size": [
-                                282,
-                                8
+                                237,
+                                9
                             ],
                             "angle": 0,
                             "position": [
-                                1.65,
-                                2
+                                1,
+                                7.5
                             ],
                             "visible": true
                         },
                         "layout": {
                             "x_anchor": "left",
-                            "y_anchor": "bottom",
+                            "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0.01,
-                            "y_offset": 0.17
+                            "x_offset": 0,
+                            "y_offset": -0.31
+                        }
+                    },
+                    "label": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                71,
+                                24
+                            ],
+                            "position": [
+                                80,
+                                0
+                            ],
+                            "angle": 0,
+                            "visible": false,
+                            "font": "gideon romanRegular20",
+                            "text": "100/100",
+                            "foreground": "#ffffffff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.33,
+                            "y_offset": 0
                         }
                     }
                 },
@@ -130,8 +166,8 @@
                     "x_anchor": "left",
                     "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": 0.22,
-                    "y_offset": 0.15
+                    "x_offset": 0.26,
+                    "y_offset": 0.2
                 }
             },
             "playerLiveIcon": {
@@ -150,8 +186,8 @@
                     ],
                     "angle": 0,
                     "position": [
-                        -11.08,
-                        12.44
+                        1.92,
+                        30.44
                     ],
                     "visible": true
                 },
@@ -165,8 +201,8 @@
                                 0
                             ],
                             "size": [
-                                57,
-                                57
+                                69,
+                                69
                             ],
                             "angle": 0,
                             "position": [
@@ -215,8 +251,8 @@
                     "x_anchor": "left",
                     "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": -0.03,
-                    "y_offset": 0.04
+                    "x_offset": 0,
+                    "y_offset": 0.1
                 }
             }
         }

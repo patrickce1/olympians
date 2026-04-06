@@ -1,7 +1,7 @@
 {
     "houses": [
         {
-            "id": "Zeus",
+            "id": "zeus",
             "maxHealth": 5.0,
             "specialAbilities": ["bolt"],
             "spritesheetPath": "textures/zeus.png",
@@ -11,47 +11,7 @@
             "affinityBonus": 1.5
         },
         {
-            "id": "Poseidon",
-            "maxHealth": 5.0,
-            "specialAbilities": ["whirlpool"],
-            "spritesheetPath": "textures/poseidon.png",
-            "attack": 0.8,
-            "support": 0.3,
-            "utility": 0.5,
-            "affinityBonus": 1.5
-        },
-        {
-            "id": "Hades",
-            "maxHealth": 5.0,
-            "specialAbilities": ["resurrect"],
-            "spritesheetPath": "textures/hades.png",
-            "attack": 0.7,
-            "support": 0.4,
-            "utility": 0.7,
-            "affinityBonus": 1.5
-        },
-        {
-            "id": "Demeter",
-            "maxHealth": 5.0,
-            "specialAbilities": ["harvest"],
-            "spritesheetPath": "textures/demeter.png",
-            "attack": 0.3,
-            "support": 0.9,
-            "utility": 0.5,
-            "affinityBonus": 1.5
-        },
-        {
-            "id": "Athena",
-            "maxHealth": 5.0,
-            "specialAbilities": ["aegis"],
-            "spritesheetPath": "textures/athena.png",
-            "attack": 0.6,
-            "support": 0.6,
-            "utility": 0.8,
-            "affinityBonus": 1.5
-        },
-        {
-            "id": "Aphrodite",
+            "id": "aphrodite",
             "maxHealth": 5.0,
             "specialAbilities": ["love"],
             "spritesheetPath": "textures/aphrodite.png",
@@ -61,7 +21,47 @@
             "affinityBonus": 1.5
         },
         {
-            "id": "Ares",
+            "id": "hades",
+            "maxHealth": 5.0,
+            "specialAbilities": ["resurrect"],
+            "spritesheetPath": "textures/hades.png",
+            "attack": 0.7,
+            "support": 0.4,
+            "utility": 0.7,
+            "affinityBonus": 1.5
+        },
+        {
+            "id": "demeter",
+            "maxHealth": 5.0,
+            "specialAbilities": ["harvest"],
+            "spritesheetPath": "textures/demeter.png",
+            "attack": 0.3,
+            "support": 0.9,
+            "utility": 0.5,
+            "affinityBonus": 1.5
+        },
+        {
+            "id": "athena",
+            "maxHealth": 5.0,
+            "specialAbilities": ["aegis"],
+            "spritesheetPath": "textures/athena.png",
+            "attack": 0.6,
+            "support": 0.6,
+            "utility": 0.8,
+            "affinityBonus": 1.5
+        },
+        {
+            "id": "poseidon",
+            "maxHealth": 5.0,
+            "specialAbilities": ["whirlpool"],
+            "spritesheetPath": "textures/poseidon.png",
+            "attack": 0.8,
+            "support": 0.3,
+            "utility": 0.5,
+            "affinityBonus": 1.5
+        },
+        {
+            "id": "ares",
             "maxHealth": 5.0,
             "specialAbilities": ["armor"],
             "spritesheetPath": "textures/ares.png",
@@ -71,7 +71,7 @@
             "affinityBonus": 1.5
         },
         {
-            "id": "Hephestus",
+            "id": "hephestus",
             "maxHealth": 5.0,
             "specialAbilities": ["mallet"],
             "spritesheetPath": "textures/hephestus.png",
@@ -81,7 +81,7 @@
             "affinityBonus": 1.5
         },
         {
-            "id": "Hermes",
+            "id": "hermes",
             "maxHealth": 5.0,
             "specialAbilities": ["speed"],
             "spritesheetPath": "textures/hermes.png",

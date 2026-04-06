@@ -9,7 +9,8 @@ using namespace std;
 
 /** Regardless of logo, lock the height to this */
 #define SCENE_HEIGHT  852
-
+/** Player Icon Blink Timer */
+#define BLINK_TIMER  0.5f
 
 /**
  * Initializes the controller contents, and starts the game
@@ -78,6 +79,8 @@ void LobbyScene::setupUI() {
     _gameId = std::dynamic_pointer_cast<scene2::Label>(
         _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
 
+    _bossImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_assets->get<scene2::SceneNode>("lobbyScene.tableArea.bossCircle.bossLobbyImage"));
+    
     _playerInfoContainer = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
 
     if (_playerInfoContainer) {
@@ -95,6 +98,8 @@ void LobbyScene::setupUI() {
             _playerImages.push_back(image);
         }
     }
+    
+    _localPlayerIconIndicator = _assets->get<scene2::SceneNode>("lobbyScene.tableArea.playerCard3.glowBorder");
 }
 
 /**
@@ -205,10 +210,12 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<Player*> players) {
         auto image = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
             _playerImages[i]->getChildByName("playerIconImg"));
         if (image) {
-            if (players[i]->getHouseName() == "Athena") {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("athenaSIcon"));
+            std::string key = players[i]->getHouseName() + "SIcon";
+            
+            if (_assets->get<cugl::graphics::Texture>(key) != nullptr) {
+                image->setTexture(_assets->get<cugl::graphics::Texture>(key));
             } else {
-                image->setTexture(_assets->get<cugl::graphics::Texture>("playerIcon"));
+                image->setTexture(_assets->get<cugl::graphics::Texture>("emptySIcon"));
             }
         }
     }
@@ -261,6 +268,44 @@ void LobbyScene::updateNetworkOrder() {
 }
 
 /**
+ Updates the _selectedHouse variable if the local player has selected a house in the
+ house select screen.
+ */
+void LobbyScene::updateLocalPlayerSelectedHouse() {
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    
+    // check if local player has selected house
+    int localIndex = _network->getLocalPlayerNumber();
+
+    if (localIndex < networkedPlayers.size()) {
+        const auto& player = networkedPlayers[localIndex];
+        _hasSelectedHouse = (!player.houseID.empty());
+    } else {
+        _hasSelectedHouse = false;
+    }
+}
+
+/**
+ * Updates the image of the boss circle based on the selected enemy.
+ *
+ * @param enemyID The identifier of the enemy whose background should be displayed.
+ */
+void LobbyScene::updateLobbyBossImage(std::string enemyID) {
+    if (enemyID == "" && _currentBoss == "") {
+        return;
+    } else if (enemyID == _currentBoss) {
+        return;
+    }
+    
+    _currentBoss = enemyID;
+    if (_currentBoss == "cyclops") {
+        _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cyclopsLobbyImage"));
+    } else if (_currentBoss == "cerberus") {
+        _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusLobbyImage"));
+    }
+}
+
+/**
  * The method called to update the scene.
  *
  * We need to update this method to constantly talk to the server
@@ -273,9 +318,11 @@ void LobbyScene::update(float timestep) {
         _gameId->setText(_network->getRoom());
         _network->broadcastJoinedLobby();
         _network->getNetworkUpdates();
+        // change boss icon to the currently chosen boss
+        updateLobbyBossImage(_network->getEnemy());
     }
     else {
-        _gameId->setText("waiting...");
+        _gameId->setText("#####");
     }
 
     if (!_network->isHost()) {
@@ -297,8 +344,22 @@ void LobbyScene::update(float timestep) {
     updateNetworkOrder();
     std::vector<Player*> displayOrder = remapPlayersForDisplay();
     
+    updateLocalPlayerSelectedHouse();
+    
     updateLobbyText(displayOrder);
     updateLobbyPlayerIcons(displayOrder);
     _network->clearQueues();
+    
+    if (!_hasSelectedHouse) {
+        _blinkTimer += timestep;
+
+        if (_blinkTimer >= BLINK_TIMER) {
+            _blinkTimer = 0.0f;
+            _blinkOn = !_blinkOn;
+            _localPlayerIconIndicator->setVisible(_blinkOn);
+        }
+    } else {
+        _localPlayerIconIndicator->setVisible(true);
+    }
 }
 

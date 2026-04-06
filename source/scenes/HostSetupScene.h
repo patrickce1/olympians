@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include "../EnemyLoader.h"
 #include "../NetworkController.h"
 
 /**
@@ -24,6 +25,8 @@ public:
     enum Status {
         /** Host is waiting on a connection */
         WAIT,
+        /** Host switches to client screen */
+        CLIENT,
         /** Time to start the game */
         START,
         /** Game was aborted; back to main menu */
@@ -40,14 +43,20 @@ protected:
     /** The menu button for starting a game */
     std::shared_ptr<cugl::scene2::Button> _startGame;
     
-    /** The back button for the menu scene */
+    /** The back button for the host setup scene */
     std::shared_ptr<cugl::scene2::Button> _backOut;
+    
+    /** The join game (client scene) button for the host setup scene */
+    std::shared_ptr<cugl::scene2::Button> _joinButton;
     
     /** The player label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _hostName;
     
     /** The boss selection node list */
-    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _items;
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _bossCards;
+    
+    /** The boss selection indicator list */
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _bossCarouselDotIndicators;
     
     /** The current index of the boss shown in the boss selection screen*/
     int _currentIndex = 1;
@@ -59,7 +68,7 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _rightButton;
     
     /** The boss selection container **/
-    std::shared_ptr<cugl::scene2::SceneNode> _container; // holds items
+    std::shared_ptr<cugl::scene2::SceneNode> _bossSelectionCardContainer; // holds items
     
     /** Whether the boss selection screen is sliding to another index */
     bool _isAnimating = false;
@@ -72,6 +81,9 @@ protected:
     
     /** The current status */
     Status _status;
+    
+    /** Loads enemy definitions from JSON for boss selection. */
+    EnemyLoader _enemyLoader;
 
 public:
 #pragma mark -
@@ -195,6 +207,17 @@ private:
      * @param newIndex The index of the item to slide to.
      */
     void slideTo(int index);
+    
+    /**
+     * Updates the circular indicators at the bottom of what card in the carousel
+     * we are currently at.
+     *
+     * @param currentIndex The index of the card we are at.
+     */
+    void updateCarouselDots(int currentIndex);
+    
+    /** Loads boss definitions from the enemies JSON to use in selection. */
+    bool loadBosses();
 };
 
 #endif /* __HOST_SETUP_SCENE_H__ */

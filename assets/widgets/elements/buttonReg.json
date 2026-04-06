@@ -1,0 +1,92 @@
+{
+    "variables": {
+        "label": ["children", "label", "data", "text"]
+    },
+    "contents": {
+        "type": "Button",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0,
+                0
+            ],
+            "size": [
+                424,
+                64
+            ],
+            "angle": 0,
+            "visible": true,
+            "upnode": "buttonBGReg"
+        },
+        "children": {
+            "buttonBGReg": {
+                "type": "Image",
+                "data": {
+                    "texture": "buttonBG",
+                    "anchor": [
+                        0.5,
+                        0.5
+                    ],
+                    "size": [
+                        426,
+                        64
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "label": {
+                "type": "Label",
+                "data": {
+                    "anchor": [
+                        0.5,
+                        0.5
+                    ],
+                    "size": [
+                        125,
+                        24
+                    ],
+                    "position": [
+                        150,
+                        20
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "font": "gideon romanRegular20",
+                    "text": "START GAME",
+                    "foreground": "#ffd9a9ff",
+                    "background": "#00000000",
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "valign": "top",
+                    "halign": "center"
+                },
+                "children": {},
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            }
+        }
+    }
+}

@@ -59,10 +59,16 @@
             "file": "textures/playerIcon.png"
         },
         "cerberusBackground": {
-            "file": "textures/gameScene/background.png"
+            "file": "textures/gameScene/cerberus/background.png"
         },
         "cerberus": {
-            "file": "textures/gameScene/cerberus.png"
+            "file": "textures/gameScene/cerberus/cerberus.png"
+        },
+        "cyclopsBackground": {
+            "file": "textures/gameScene/cyclops/background.png"
+        },
+        "cyclops": {
+            "file": "textures/gameScene/cyclops/cyclops.png"
         },
         "healthFrame": {
             "file": "textures/gameScene/healthFrame.png"
@@ -74,7 +80,7 @@
             "file": "textures/gameScene/leftIcon.png"
         },
         "inventoryBackground": {
-            "file": "textures/gameScene/inventoryBackground.png"
+            "file": "textures/gameScene/inventoryBackground1.png"
         },
         "playerHealthFrame": {
             "file": "textures/gameScene/healthBarFrame.png"
@@ -97,12 +103,26 @@
         "debugReset" : {
             "file": "textures/attack.png"
         },
-        
+        "buttonBG": {
+            "file": "textures/elements/buttonBG.png"
+        },
+        "buttonMedBG": {
+            "file": "textures/elements/buttonMedBG.png"
+        },
+        "buttonSmallBG": {
+            "file": "textures/elements/buttonSmallBG.png"
+        },
+        "textfieldBG": {
+            "file": "textures/elements/textfieldBG.png"
+        },
+        "cloudBottom": {
+            "file": "textures/clientCloud.png"
+        },
         "cyclopsShowroom": {
             "file": "textures/houseSelect/cyclopsShowroom.png"
         },
-        "cerebrusShowroom": {
-            "file": "textures/houseSelect/cerebrusShowroomSM.png"
+        "cerberusShowroom": {
+            "file": "textures/houseSelect/cerberusShowroom.png"
         },
         "buttonSmallBG": {
             "file": "textures/houseSelect/buttonSmallBG.png"
@@ -118,15 +138,53 @@
         },
         "athenaPoster": {
             "file": "textures/houseSelect/athenaPoster.png",
-            "minfilter":"linear",
-            "magfilter":"linear",
+            "minfilter": "linear",
+            "magfilter": "linear",
             "wrapS":    "clamp",
             "wrapT":    "clamp"
         },
         "statsAthena": {
             "file": "textures/houseSelect/statsAthena.png",
-            "minfilter":"linear",
-            "magfilter":"linear",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "poseidonPoster": {
+            "file": "textures/houseSelect/poseidonPoster.png"
+        },
+        "statsPoseidon": {
+            "file": "textures/houseSelect/statsPoseidon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "aresPoster": {
+            "file": "textures/houseSelect/aresPoster.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "statsAres": {
+            "file": "textures/houseSelect/statsAres.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "demeterPoster": {
+            "file": "textures/houseSelect/demeterPoster.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "statsDemeter": {
+            "file": "textures/houseSelect/statsDemeter.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
             "wrapS":    "clamp",
             "wrapT":    "clamp"
         },
@@ -163,7 +221,137 @@
             "magfilter":"linear",
             "wrapS":    "clamp",
             "wrapT":    "clamp"
-        }
+        },
+        "poseidonSIcon": {
+            "file": "textures/houseSelect/poseidonSIcon.png"
+        },
+        "aresSIcon": {
+            "file": "textures/houseSelect/aresSIcon.png",
+            "minfilter":"linear",
+            "magfilter":"linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "demeterSIcon": {
+            "file": "textures/houseSelect/demeterSIcon.png"
+        },
+        "glowOverlayBoss": {
+            "file": "textures/hostScene/glowOverlayBoss.png"
+        },
+        "cyclopsPoster": {
+            "file": "textures/hostScene/cyclopsPoster.png"
+        },
+        "cerberusPoster": {
+            "file": "textures/hostScene/cerberusPoster.png"
+        },
+        "bossPosterEmpty": {
+            "file": "textures/hostScene/bossPosterEmpty.png"
+        },
+        "brackets": {
+            "file": "textures/hostScene/brackets.png"
+        },
+        "leftFade": {
+            "file": "textures/hostScene/leftFade.png"
+        },
+        "rightFade": {
+            "file": "textures/hostScene/rightFade.png"
+        },
+        "cloudTopRight": {
+            "file": "textures/lobbyScene/cloudTopRight.png"
+        },
+        "bossCircleFrame": {
+            "file": "textures/lobbyScene/bossCircleFrame.png"
+        },
+        "emptyLobbyImage": {
+            "file": "textures/lobbyScene/emptyLobbyImage.png"
+        },
+        "cyclopsLobbyImage": {
+            "file": "textures/lobbyScene/cyclopsLobbyImage.png"
+        },
+        "cerberusLobbyImage": {
+            "file": "textures/lobbyScene/cerberusLobbyImage.png"
+        },
+        "glowBorder": {
+            "file": "textures/lobbyScene/glowBorder.png"
+        },
+        "playerIconBG": {
+            "file": "textures/lobbyScene/playerIconBG.png"
+        },
+        "emptySIcon": {
+            "file": "textures/lobbyScene/emptySIcon.png"
+        },
+        "athenaRegular": {
+            "file": "textures/gameScene/houseIcons/athena/athenaRegular.png"
+        },
+        "athenaMidHealth": {
+            "file": "textures/gameScene/houseIcons/athena/athenaMidHealth.png"
+        },
+        "athenaDeath": {
+            "file": "textures/gameScene/houseIcons/athena/athenaDeath.png"
+        },
+        "aresRegular": {
+            "file": "textures/gameScene/houseIcons/ares/aresRegular.png"
+        },
+        "aresMidHealth": {
+            "file": "textures/gameScene/houseIcons/ares/aresMidHealth.png"
+        },
+        "aresDeath": {
+            "file": "textures/gameScene/houseIcons/ares/aresDeath.png"
+        },
+        "poseidonRegular": {
+            "file": "textures/gameScene/houseIcons/poseidon/poseidonRegular.png"
+        },
+        "poseidonMidHealth": {
+            "file": "textures/gameScene/houseIcons/poseidon/poseidonMidHealth.png"
+        },
+        "poseidonDeath": {
+            "file": "textures/gameScene/houseIcons/poseidon/poseidonDeath.png"
+        },
+        "demeterRegular": {
+            "file": "textures/gameScene/houseIcons/demeter/demeterRegular.png"
+        },
+        "demeterMidHealth": {
+            "file": "textures/gameScene/houseIcons/demeter/demeterMidHealth.png"
+        },
+        "demeterDeath": {
+            "file": "textures/gameScene/houseIcons/demeter/demeterDeath.png"
+        },
+        "cyclopsIdle" : {
+            "file": "textures/gameScene/cyclops/idleDirections.png"
+        },
+            "key1": {
+                "file": "textures/keypad/key1.png"
+            },
+            "key2": {
+                "file": "textures/keypad/key2.png"
+            },
+            "key3": {
+                "file": "textures/keypad/key3.png"
+            },
+            "key4": {
+                "file": "textures/keypad/key4.png"
+            },
+            "key5": {
+                "file": "textures/keypad/key5.png"
+            },
+            "key6": {
+                "file": "textures/keypad/key6.png"
+            },
+            "key7": {
+                "file": "textures/keypad/key7.png"
+            },
+            "key8": {
+                "file": "textures/keypad/key8.png"
+            },
+            "key9": {
+                "file": "textures/keypad/key9.png"
+            },
+            "key0": {
+                "file": "textures/keypad/key0.png"
+            },
+            "backspace": {
+                "file": "textures/keypad/backspace.png"
+            }
 	},
     "fonts": {
         "felt": {
@@ -198,13 +386,21 @@
           "file": "fonts/GideonRoman-Regular.ttf",
           "size": 48
         },
+        "gideon romanRegular18": {
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 18
+        },
         "menuTitle": {
-            "file":     "fonts/GideonRoman-Regular.ttf",
-            "size":     60
+            "file":     "fonts/GRECOromanLubedWrestling.ttf",
+            "size":     48
         },
         "menuLabel": {
             "file":     "fonts/Roboto-Bold.ttf",
             "size":     42
+        },
+        "bossDescriptionLabel": {
+            "file":     "fonts/GRECOromanLubedWrestling.ttf",
+            "size":     12
         }
     },
     "jsons": {
@@ -219,14 +415,18 @@
         "client": "json/scenes/clientScene.json",
         "textfield": "widgets/elements/textfield.json",
         "hostSetup": "json/scenes/hostSetupScene.json",
-        "roleCard": "widgets/elements/roleCard.json",
-        "bossSelection": "widgets/bossSelection.json",
+        "bossCard": "widgets/elements/bossCard.json",
         "menuScene":   "json/scenes/menuScene.json",
         "lobbyScene": "json/scenes/lobbyScene.json",
         "houseSelectScene": "json/scenes/houseSelectionScene.json",
         "heroCard" : "widgets/houseSelect/heroCard.json",
         "teamHouseIcon" : "widgets/houseSelect/teamHouseIcon.json",
-        "playerHouseIcon" : "widgets/houseSelect/playerHouseIcon.json"
+        "playerHouseIcon" : "widgets/houseSelect/playerHouseIcon.json",
+        "buttonRegular": "widgets/elements/buttonReg.json",
+        "buttonMedium": "widgets/elements/buttonMedium.json",
+        "buttonSmall": "widgets/elements/buttonSmall.json",
+        "textfield": "widgets/elements/textfield.json",
+        "keypad": "widgets/elements/keypad.json"
     },
     "scene2s": {
         "gameScene": {

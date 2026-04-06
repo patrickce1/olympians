@@ -7,8 +7,8 @@
         },
         "data": {
             "anchor": [
-                0,
-                0
+                0.5,
+                1
             ],
             "size": [
                 393, 598
@@ -24,9 +24,9 @@
             "background": {
                 "type": "Image",
                 "data": {
-                    "texture": "cerberusBackground",
+                    "texture": "cyclopsBackground",
                     "anchor": [
-                        0,
+                        0.5,
                         0
                     ],
                     "size": [
@@ -41,34 +41,62 @@
                     "visible": true
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0,
                     "y_offset": -0.09
                 }
             },
-            "cerberus": {
+            "bossIdle": {
                 "type": "Image",
                 "data": {
-                    "texture": "cerberus",
+                    "texture": "cyclops",
                     "anchor": [
-                        0,
+                        0.5,
                         0
                     ],
                     "size": [
-                        355.48,
-                        511.54
+                        393, 598
                     ],
                     "angle": 0,
                     "position": [
-                        20,
-                        0.46
+                        0,
+                        0
                     ],
                     "visible": true
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "bossAnimationSpace": {
+                "type": "Sprite",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "texture": "cyclopsIdle",
+                    "anchor": [
+                        0.5,
+                        0
+                    ],
+                    "size": [
+                        393, 598
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": false,
+                    "cols": 4,
+                    "rows": 3
+                },
+                "layout": {
+                    "x_anchor": "center",
                     "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0,
@@ -151,6 +179,45 @@
                             "x_offset": 0.02,
                             "y_offset": 0.19
                         }
+                    },
+                    "label": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                0.5
+                            ],
+                            "size": [
+                                71,
+                                24
+                            ],
+                            "position": [
+                                74.0810546875,
+                                0
+                            ],
+                            "angle": 0,
+                            "visible": false,
+                            "font": "gideon romanRegular20",
+                            "text": "100/100",
+                            "foreground": "#ffffffff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0.35,
+                            "y_offset": 0
+                        }
                     }
                 },
                 "layout": {
@@ -224,7 +291,7 @@
                                 85,
                                 0
                             ],
-                            "color": "#f4ba33ff",
+                            "color": "#DD8E2Fff",
                             "anchor": [
                                 0,
                                 1
@@ -327,7 +394,7 @@
                                 85,
                                 0
                             ],
-                            "color": "#f4ba33ff",
+                            "color": "#DD8E2Fff",
                             "anchor": [
                                 0,
                                 1
