@@ -978,7 +978,6 @@ void GameScene::handleNetworkUpdates() {
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
-        
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
     }
