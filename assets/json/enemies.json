@@ -110,6 +110,65 @@
 		    "nextState": "idle"
 		}
             }
+        },
+	{
+            "id": "cerberus",
+            "name": "Cerberus",
+            "maxHealth": 100.0,
+            "spritesheetPath": "textures/cerberus.png",
+            "ai": {
+                "retargetLikelihood": 0.5,
+		"defenseLikelihood": 1.0
+            },
+	    "customData": {
+    	        "eyeMultiplier": 2.0
+	    },
+            "states": {
+                "idle": {
+                    "tag": "idle",
+                    "animationRow": 0
+                },
+                "attack_1": {
+                    "tag": "",
+                    "animationRow": 1,
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 0.0,
+                    "events": [
+                    ],
+                    "nextState": "idle"
+                },
+                "attack_2": {
+                    "tag": "",
+                    "animationRow": 2,
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 5.0,
+                    "events": [
+                    ],
+                    "nextState": "idle"
+                },
+                "attack_3": {
+                    "tag": "",
+                    "animationRow": 3,
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 5.0,
+                    "events": [
+                    ],
+                    "nextState": "idle"
+                },
+		"defensive_move" : {
+		    "tag": "test heal move",
+                    "animationRow": 4,
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 5.0,
+                    "events": [
+			{
+                            "type": "HEAL",
+                            "amount": 10.0
+                        }
+		    ],
+		    "nextState": "idle"
+		}
+            }
         }
     ]
 }
