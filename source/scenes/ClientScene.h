@@ -47,10 +47,16 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _backOut;
     /** The game id label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _gameId;
+    /** The game id placeholder label */
+    std::shared_ptr<cugl::scene2::Label> _textFieldPlaceholder;
     /** The game id label (for updating) */
-    std::shared_ptr<cugl::scene2::TextField> _playerId;
+    std::shared_ptr<cugl::scene2::TextField> _playerName;
     /** The host game button for the menu scene */
     std::shared_ptr<cugl::scene2::Button> _hostButton;
+    /** Stores the current user input for the gameID as a numeric string.*/
+    std::string _inputBuffer = "";
+    /** Collection of all keypad buttons fir gameID (digits + backspace). */
+    std::vector<std::shared_ptr<cugl::scene2::Button>> _keypadButtons;
     
     /** The current status */
     Status _status;
@@ -115,6 +121,15 @@ public:
     void setupListeners();
     
     /**
+     * Initializes keypad buttons, activates them, and attaches input listeners.
+     *
+     * This method retrieves button nodes from the asset manager, binds digit
+     * and backspace actions to their respective handlers, and stores buttons
+     * in a collection for batch state control.
+     */
+    void initKeypad();
+    
+    /**
      * Sets whether the scene is currently active
      *
      * This method should be used to toggle all the UI elements.  Buttons
@@ -158,6 +173,17 @@ private:
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
     
+    /**
+     * Appends a numeric digit to the input buffer and updates the UI.
+     *
+     * @param digit The digit (0–9) to append to the input buffer.
+     */
+    void appendDigit(int digit);
+    
+    /**
+     * Removes the last character from the input buffer and updates the UI.
+     */
+    void removeLastChar();
 };
 
 #endif /* __CLIENT_SCENE_H__ */
