@@ -48,7 +48,7 @@
                     "y_offset": -0.09
                 }
             },
-            "boss": {
+            "bossIdle": {
                 "type": "Image",
                 "data": {
                     "texture": "cyclops",
@@ -64,7 +64,7 @@
                         0,
                         0
                     ],
-                    "visible": false
+                    "visible": true
                 },
                 "layout": {
                     "x_anchor": "center",
@@ -74,7 +74,7 @@
                     "y_offset": 0
                 }
             },
-            "bossIdle": {
+            "bossAnimationSpace": {
                 "type": "Sprite",
                 "format": { "type": "Anchored" },
                 "data": {
@@ -91,7 +91,7 @@
                         0,
                         0
                     ],
-                    "visible": true,
+                    "visible": false,
                     "cols": 4,
                     "rows": 3
                 },
