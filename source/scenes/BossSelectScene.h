@@ -33,7 +33,7 @@ protected:
     std::shared_ptr<NetworkController> _network;
     
     /** The back button for the boss select scene */
-    std::shared_ptr<cugl::scene2::Button> _backOut;
+    std::shared_ptr<cugl::scene2::Button> _backButton;
     
     /** The lock button to change boss in the boss select scene */
     std::shared_ptr<cugl::scene2::Button> _lockButton;

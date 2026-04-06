@@ -73,7 +73,7 @@ bool BossSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, co
  */
 void BossSelectScene::setupUI() {
 
-    _backOut = std::dynamic_pointer_cast<scene2::Button>(
+    _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("bossSelectScene.back"));
     
     _lockButton = std::dynamic_pointer_cast<scene2::Button>(
@@ -110,7 +110,7 @@ void BossSelectScene::setupUI() {
  */
 void BossSelectScene::setupListeners() {
     
-    _backOut->addListener([this](const std::string& name, bool down) {
+    _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
         }
@@ -140,7 +140,7 @@ void BossSelectScene::setupListeners() {
 void BossSelectScene::dispose() {
     if (_active) {
         removeAllChildren();
-        _backOut = nullptr;
+        _backButton = nullptr;
         _lockButton = nullptr;
         _bossCards.clear();
         _leftButton = nullptr;
@@ -167,16 +167,16 @@ void BossSelectScene::setActive(bool value) {
             _status = WAIT;
             _leftButton->activate();
             _rightButton->activate();
-            _backOut->activate();
+            _backButton->activate();
             configureLockButton();
         } else {
             _leftButton->deactivate();
             _rightButton->deactivate();
-            _backOut->deactivate();
+            _backButton->deactivate();
             _lockButton->deactivate();
             
             // If any were pressed, reset them
-            _backOut->setDown(false);
+            _backButton->setDown(false);
             _leftButton->setDown(false);
             _rightButton->setDown(false);
             _lockButton->setDown(false);
@@ -193,14 +193,14 @@ void BossSelectScene::setActive(bool value) {
  */
 void BossSelectScene::update(float timestep) {
     if (_isAnimating) {
-        Vec2 current = _bossSelectionCardContainer->getPosition();
-        Vec2 next = current.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor
+        Vec2 bossCardContainerPos = _bossSelectionCardContainer->getPosition();
+        Vec2 interpolatedPos = bossCardContainerPos.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor
 
-        if (current.distance(_slideTarget) < 1.0f) {
+        if (bossCardContainerPos.distance(_slideTarget) < 1.0f) {
             _bossSelectionCardContainer->setPosition(_slideTarget);
             _isAnimating = false;
         } else {
-            _bossSelectionCardContainer->setPosition(next);
+            _bossSelectionCardContainer->setPosition(interpolatedPos);
         }
     }
 }
