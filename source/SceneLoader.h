@@ -7,6 +7,7 @@
 #include "scenes/MenuScene.h"
 #include "scenes/LobbyScene.h"
 #include "scenes/HouseSelectScene.h"
+#include "scenes/BossSelectScene.h"
 #include "InputController.h"
 #include "tests/PlayerTests.h"
 #include "tests/EnemyTests.h"
@@ -30,6 +31,7 @@ protected:
         LOBBY,
         MENU,
         HOUSESELECT,
+        BOSSSELECT,
         GAME
     };
 
@@ -73,6 +75,9 @@ protected:
     
     /*The scene where the player choose what house they want to represent*/
     HouseSelectScene _houseSelectScene;
+    
+    /*The scene where the host changes what boss they want to play with and where other player can view all the different bosses */
+    BossSelectScene _bossSelectScene;
     //more scenes to come...
 
 public:

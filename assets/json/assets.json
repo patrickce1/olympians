@@ -318,7 +318,40 @@
         },
         "cyclopsIdle" : {
             "file": "textures/gameScene/cyclops/idleDirections.png"
-        }
+        },
+            "key1": {
+                "file": "textures/keypad/key1.png"
+            },
+            "key2": {
+                "file": "textures/keypad/key2.png"
+            },
+            "key3": {
+                "file": "textures/keypad/key3.png"
+            },
+            "key4": {
+                "file": "textures/keypad/key4.png"
+            },
+            "key5": {
+                "file": "textures/keypad/key5.png"
+            },
+            "key6": {
+                "file": "textures/keypad/key6.png"
+            },
+            "key7": {
+                "file": "textures/keypad/key7.png"
+            },
+            "key8": {
+                "file": "textures/keypad/key8.png"
+            },
+            "key9": {
+                "file": "textures/keypad/key9.png"
+            },
+            "key0": {
+                "file": "textures/keypad/key0.png"
+            },
+            "backspace": {
+                "file": "textures/keypad/backspace.png"
+            }
 	},
     "fonts": {
         "felt": {
@@ -386,13 +419,15 @@
         "menuScene":   "json/scenes/menuScene.json",
         "lobbyScene": "json/scenes/lobbyScene.json",
         "houseSelectScene": "json/scenes/houseSelectionScene.json",
+        "bossSelectScene": "json/scenes/bossSelectionScene.json",
         "heroCard" : "widgets/houseSelect/heroCard.json",
         "teamHouseIcon" : "widgets/houseSelect/teamHouseIcon.json",
         "playerHouseIcon" : "widgets/houseSelect/playerHouseIcon.json",
         "buttonRegular": "widgets/elements/buttonReg.json",
         "buttonMedium": "widgets/elements/buttonMedium.json",
         "buttonSmall": "widgets/elements/buttonSmall.json",
-        "textfield": "widgets/elements/textfield.json"
+        "textfield": "widgets/elements/textfield.json",
+        "keypad": "widgets/elements/keypad.json"
     },
     "scene2s": {
         "gameScene": {
@@ -450,6 +485,15 @@
             "format": { "type": "Anchored"},
             "data": {
                 "key": "houseSelectScene",
+                "variables": {}
+            }
+        },
+        "bossSelectScene": {
+            "type": "Widget",
+            "comment": "Root node of the boss select scene",
+            "format": { "type": "Anchored"},
+            "data": {
+                "key": "bossSelectScene",
                 "variables": {}
             }
         }
