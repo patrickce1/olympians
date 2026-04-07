@@ -138,6 +138,9 @@ public:
     /*Sends an update notifying players about changes to the house selections*/
     void broadcastSelectedHouse(std::string& house);
 
+    /*Sends an update notifying about the new hosue*/
+    void broadcastSelectedBoss();
+
     /*Getters for the queues and game state used during the gameplay*/
     /*Returns all the networking messages about attacks we recieved after calling getNetworkUpdate()*/
     const std::vector<AttackMessage>& getAttackUpdates() const { return attacks; }
@@ -244,7 +247,8 @@ protected:
         SELECT_HOUSE = 7,
         PLAYER_DISCONNECT = 8,
         GAME_LOST = 9,
-        GAME_WON = 10
+        GAME_WON = 10,
+        BOSS_SELECTION = 11
     };
 
     /*Our network connection*/

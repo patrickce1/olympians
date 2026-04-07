@@ -238,7 +238,9 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				newPlayer.username = playerName;
 				_onlinePlayers.push_back(newPlayer);
 				broadcastLobbyState();
+				broadcastSelectedBoss();
 			}
+
 			break;
 		}
 		case MessageType::LOBBY_UPDATE: {
@@ -291,6 +293,9 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _disconnectedSlots.push_back(slot);
             break;
         }
+		case MessageType::BOSS_SELECTION: {
+			_enemy = _deserializer.readString();
+		}
 	}
 }
 
@@ -590,6 +595,8 @@ void NetworkController::registerDisconnectCallback() {
                     broadcastPlayerDisconnected(i);
                     broadcastLobbyState();
                 }
+
+				broadcastSelectedBoss();
                 break;
             }
         }
@@ -637,4 +644,11 @@ bool NetworkController::allPlayersSelectedHouse() const {
         if (player.houseID.empty()) return false;
     }
     return true;
+}
+
+void NetworkController::broadcastSelectedBoss() {
+	_serializer.writeSint32(MessageType::BOSS_SELECTION);
+	_serializer.writeString(_enemy);
+	_network->broadcast(_serializer.serialize());
+	_serializer.reset();
 }

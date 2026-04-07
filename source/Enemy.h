@@ -55,7 +55,7 @@ public:
 
     Enemy() = default;
     
-    bool init(const std::string& enemyId, const std::string& jsonPath);
+    bool virtual init(const std::string& enemyId, const std::string& jsonPath);
 
     const std::string& getId() const { return _enemyId; }
     const std::string& getName() const { return _name; }

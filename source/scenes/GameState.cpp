@@ -208,9 +208,18 @@ void GameState::setLocalPlayer(int assignedIndex) {
  * @param enemyID  the unique ID of the chosen enemy.
  */
 void GameState::setEnemy(std::string enemyID) {
+    CULog("String that came in %s", enemyID.c_str());
     const std::string enemyJsonPath = "json/enemies.json";
     if (_enemy == nullptr) {
-        _enemy = std::make_shared<Enemy>();
+        if (enemyID.compare("cyclops")) {
+            CULog("making cyclops");
+            _enemy = std::make_shared<Cyclops>();
+        }
+        else if (enemyID.compare("cerberus")) {
+            //for cerberus, make a separate class
+            CULog("making cerberus");
+            _enemy = std::make_shared<Enemy>();
+        }
     }
     _enemy->init(enemyID, enemyJsonPath);
 };

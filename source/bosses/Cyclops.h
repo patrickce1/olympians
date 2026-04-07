@@ -6,9 +6,9 @@ private:
 	float _eyeMultiplier;
 
 public:
-	Cyclops();
+	Cyclops() {}
 
-	bool init(const std::string& jsonPath);
+	bool init(const std::string& enemyId, const std::string& jsonPath) override;
 	
 	void update(float dt) override;
 };
