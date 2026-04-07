@@ -67,6 +67,17 @@ public:
      * Later, when we have reordering ability, this can be changed
      */
     void initPlayers();
+    
+    /**
+     * Randomly assigns a house to every player slot that does not yet have one,
+     * reconstructing AI slots as EasyPlayerAI with a real house and re-running
+     * their init so AI behavior is preserved. Real player slots are untouched.
+     * Should be called once when the game scene activates, after updateNetworkOrder()
+     * has synced real players from the network.
+     *
+     * @param itemController  The ItemController whose database AI players need.
+     */
+    void assignMissingHouses(ItemController& itemController);
 
     /**
      * Replaces the AI placeholder at the given slot with a real human player.

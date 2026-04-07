@@ -361,9 +361,11 @@ void GameScene::setActive(bool value) {
         if (value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
+            updateNetworkOrder();
+            _gameState.assignMissingHouses(_itemController);
+
         }
     }
-    updateNetworkOrder();
 }
 
 /**

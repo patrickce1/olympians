@@ -1,5 +1,6 @@
 #include <cugl/cugl.h>
 #include "GameState.h"
+#include <cstdlib>
 
 /**
  * Loads house definitions from JSON into the house loader.
@@ -293,4 +294,42 @@ bool GameState::didLose() {
         && _players[1]->getCurrentHealth() <= 0
         && _players[2]->getCurrentHealth() <= 0
         && _players[3]->getCurrentHealth() <= 0;
+}
+
+/**
+ * Randomly assigns a house to every player slot that does not yet have one,
+ * reconstructing AI slots as EasyPlayerAI with a real house and re-running
+ * their init so AI behavior is preserved. Real player slots are untouched.
+ * Should be called once when the game scene activates, after updateNetworkOrder()
+ * has synced real players from the network.
+ *
+ * @param itemController  The ItemController whose database AI players need.
+ */
+void GameState::assignMissingHouses(ItemController& itemController) {
+    const auto& allHouses = _houseLoader.getAllOrdered();
+    if (allHouses.empty()) return;
+
+    const int n = (int)_players.size();
+    for (int i = 0; i < n; i++) {
+        if (!_players[i]->getHouseName().empty()) continue;
+
+        std::string randomHouse = allHouses[rand() % allHouses.size()].id;
+
+        // Preserve name and slot, reconstruct as EasyPlayerAI with a real house
+        auto aiPlayer = std::make_shared<EasyPlayerAI>(
+            randomHouse,
+            i,
+            _players[i]->getPlayerName(),
+            _houseLoader
+        );
+        aiPlayer->init(itemController.getDatabase(), "json/playerAI.json");
+        _players[i] = aiPlayer;
+        _playerIdMap[i] = aiPlayer.get();
+    }
+
+    // Re-wire neighbour ring
+    for (int i = 0; i < n; i++) {
+        _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
+        _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+    }
 }
