@@ -992,8 +992,7 @@ void GameScene::handleNetworkUpdates() {
             _audio->playSoundUnique("player_heal");
             CULog("Local player healed from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
         } else if (player->getCurrentHealth() < playerHealthBefore && _audio) {
-            std::string house = player->getHouseName();
-            if (house == "athena" || house == "aphrodite" || house == "demeter") {
+            if (player->isFemaleHouse()) {
                 _audio->playSoundUnique("player_hurt");
             } else {
                 _audio->playSoundUnique("player_hurt_deep");
