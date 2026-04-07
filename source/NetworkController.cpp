@@ -334,6 +334,7 @@ void NetworkController::clearQueues() {
  * Called by non-host clients when the local player attacks the boss.
  *
  * @param damage    The amount of damage dealt to the boss.
+ * @param playerIndex Which player is dealing damage to a player
  */
 void NetworkController::broadcastDamage(float damage, int playerIndex) {
 	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
@@ -646,6 +647,7 @@ bool NetworkController::allPlayersSelectedHouse() const {
     return true;
 }
 
+/*Sends over the network which boss is currently selected by the host*/
 void NetworkController::broadcastSelectedBoss() {
 	_serializer.writeSint32(MessageType::BOSS_SELECTION);
 	_serializer.writeString(_enemy);

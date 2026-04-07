@@ -1,4 +1,14 @@
 // EnemyTests.cpp
+// Unit tests for Enemy + EnemyController state flow + event resolution.
+//
+// HOW TO RUN:
+//   Call EnemyTests::runAll() from your app startup AFTER cugl is initialized
+//   but BEFORE the game loop starts, e.g. in AppDelegate::onStartup().
+//   All results print via CULog as [PASS] or [FAIL]. Remove the call before shipping.
+//
+//   Example:
+//     EnemyTests::runAll("json/enemies.json", "json/houses.json");
+
 #include "EnemyTests.h"
 #include "../Enemy.h"
 #include "../EnemyController.h"

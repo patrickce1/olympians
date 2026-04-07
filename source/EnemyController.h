@@ -59,9 +59,11 @@ private:
                             std::vector<std::shared_ptr<Player>>& players,
                             const Enemy::FiredEvent& fe);
     
+    //helper that handles applying a change in the side multipliers
     void resolveSideMultiplierEvent(const std::shared_ptr<Enemy>& enemy,
         const Enemy::FiredEvent& fe);
-
+    
+    //helper that heals the boss based on the event
     void resolveHealEvent(const std::shared_ptr<Enemy>& enemy,
         const Enemy::FiredEvent& fe);
 };

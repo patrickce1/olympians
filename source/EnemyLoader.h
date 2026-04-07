@@ -12,7 +12,7 @@ public:
     //since every boss follows the pattern of Passive, 3 Attacks, and 1 Defensive move, we can just universally apply this
     enum State {
         IDLE,
-        PASSIVE_SPECIAL,             // special states that come as a result of our passive. Ex. Cerberus stun. Doesn't apply to all
+        PASSIVE_SPECIAL,             // special states that come as a result of our passive. Ex. Cerberus stun. Doesn't apply to all bosses
         ATTACK_1,
         ATTACK_2,
         ATTACK_3,
@@ -40,7 +40,7 @@ public:
         std::string tag;
         float buildUpTime = 0.0f;
         float cooldownTime = 0.0f;
-        State nextState = IDLE;                   //TODO: remove this next state and make it random
+        State nextState = IDLE;                
         std::vector<EventDef> events;
     };
 
@@ -73,6 +73,7 @@ private:
         return EventType::UNKNOWN;
     }
 
+    //parses a string name of the attack and matches it to one of the enums
     static State parseStateType(const std::string& s) {
         if (s == "attack_1")        return State::ATTACK_1;
         if (s == "attack_2")        return State::ATTACK_2;
@@ -121,12 +122,12 @@ public:
                 if (!st) continue;
 
                 StateDef sdef;
-                sdef.state = parseStateType(st->_key); //TODO: make a "read state" function that standardizes
+                sdef.state = parseStateType(st->_key); 
                 sdef.animationRow = st->getInt("animationRow", 0);
                 sdef.tag = st->getString("tag", "");
                 sdef.buildUpTime  = st->getFloat("buildUpTime", 0.0f);
                 sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
-                sdef.nextState    = parseStateType(st->getString("nextState", "idle")); //TODO: read state function again
+                sdef.nextState    = parseStateType(st->getString("nextState", "idle"));
 
                 auto aiObj = entry->get("ai");
                 if (aiObj && aiObj->isObject()) {
@@ -161,7 +162,7 @@ public:
 
             CULog("Loaded Enemy: id=%s name=%d maxHealth=%.2f states=%zu sprite=%s",
                 def.id.c_str(),
-                def.name,        // Boss enum, use %d
+                def.name,
                 def.maxHealth,
                 def.states.size(),
                 def.spritesheetPath.c_str());

@@ -131,11 +131,8 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
         }
         else {
             EnemyLoader::State nextAttack = chooseNextAttackState(enemy);
-            //TODO: figure out a guard here. Before was !nextAttack.empty()
-            if (true) {
-                enemy->requestState(nextAttack);
-                cur = enemy->getCurrentState();
-            }
+            enemy->requestState(nextAttack);
+            cur = enemy->getCurrentState();
         }
     }
 }
@@ -191,10 +188,12 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
     }
 }
 
+//helper that handles applying a change in the side multipliers
 void EnemyController::resolveSideMultiplierEvent(const std::shared_ptr<Enemy>& enemy, const Enemy::FiredEvent& event) {
     enemy->setSideMultiplier(event.def.target, event.def.amount);
 }
 
+//helper that heals the boss based on the event
 void EnemyController::resolveHealEvent(const std::shared_ptr<Enemy>& enemy, const Enemy::FiredEvent& event) {
     //we can only heal if we haven't died yet
     if (enemy->getCurrentHealth() > 0) {
@@ -202,6 +201,7 @@ void EnemyController::resolveHealEvent(const std::shared_ptr<Enemy>& enemy, cons
     }
 }
 
+//does a randomized roll or checks if the enemy's shouldDefend condition is achieved
 bool EnemyController::shouldDefend(const std::shared_ptr<Enemy>& enemy) {
     float random = _rng.getClosedFloat(0, 1);
     if (random <= enemy->getDefenseLikelihood()) {

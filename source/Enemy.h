@@ -81,17 +81,17 @@ public:
     void  setRetargetLikelihood(float v);
     void setDefenseLikelihood(float d) { _defenseLikelihood = d; }
 
-    //Checks if this enemy should use their defensive move
-    //This can and should be overwritten for each boss to have custom logic on when they decide to use their defensive move
+    /*Checks if this enemy should use their defensive move
+    This can and should be overwritten for each boss to have custom logic on when they decide to use their defensive move*/
     bool virtual shouldDefend();
 
-    //returns the multiplier data for that side
-    //this index IS NOT relative. This is the ABSOLUTE index from the perspective of the host
-    //so 0 would be whatever side facing the host
+    /* returns the multiplier data for that side
+    this index IS NOT relative. This is the ABSOLUTE index from the perspective of the host
+    so 0 would be whatever side facing the host*/
     float getSideMultiplier(int absoluteIndex);
     
-    //lets you change the multipler value for that side
-    //this is RELATIVE. So 0 would be directly where boss is facing
+    /* lets you change the multipler value for that side
+    this is RELATIVE. So 0 would be directly where boss is facing*/
     void setSideMultiplier(int relativeIndex, float multiplier);
     
     // Expose state defs so controller can pick attacks by tag
@@ -105,11 +105,13 @@ public:
     // Positive heals, negative damages; clamps to [0, maxHealth]
     void updateHealth(float delta);
 
-    // Handles taking damage and records the hits that we took
-    // Override this if custom logic is needed for taking damage
+    /* Handles taking damage and records the hits that we took
+    Use this method instead of updateHealth() to 
+        apply the damage multipliers on each side
+    Override this if custom logic is needed for taking damage*/
     void virtual takeDamage(float damage, int playerIndex);
 
-    //this has to be public for networking purposes
+    //automatically enters the state requested
     void enterState(EnemyLoader::State state);
 
 protected:
