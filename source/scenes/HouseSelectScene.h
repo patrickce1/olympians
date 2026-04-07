@@ -39,7 +39,7 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _lockButton;
     
     /** The back button for the houseSelect scene */
-    std::shared_ptr<cugl::scene2::Button> _backOut;
+    std::shared_ptr<cugl::scene2::Button> _backButton;
     
     /** The player icon (for updating) */
     std::shared_ptr<cugl::scene2::SceneNode> _playerIcon;

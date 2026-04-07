@@ -76,7 +76,7 @@ void HouseSelectScene::setupUI() {
     _lockButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("houseSelectScene.lock"));
 
-    _backOut = std::dynamic_pointer_cast<scene2::Button>(
+    _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("houseSelectScene.back"));
 
     // Player and Teammate Icon Widgets
@@ -165,7 +165,7 @@ void HouseSelectScene::setupListeners() {
         }
     });
 
-    _backOut->addListener([this](const std::string& name, bool down) {
+    _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
         }
@@ -187,7 +187,7 @@ void HouseSelectScene::dispose() {
     if (_active){
         removeAllChildren();
         _lockButton = nullptr;
-        _backOut = nullptr;
+        _backButton = nullptr;
         _playerIcon = nullptr;
         _playerIconImage = nullptr;
         _playerIconGlow = nullptr;
@@ -215,19 +215,23 @@ void HouseSelectScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = WAITING;
+            _locked = false;
+            _playerIconGlow->setVisible(false);
+            updateText(_lockButton, "Lock");
+            slideTo(4);
             _lockButton->activate();
             _leftButton->activate();
             _rightButton->activate();
-            _backOut->activate();
+            _backButton->activate();
         } else {
             _lockButton->deactivate();
             _leftButton->deactivate();
             _rightButton->deactivate();
-            _backOut->deactivate();
+            _backButton->deactivate();
             
             // If any were pressed, reset them
             _lockButton->setDown(false);
-            _backOut->setDown(false);
+            _backButton->setDown(false);
             _leftButton->setDown(false);
             _rightButton->setDown(false);
         }
@@ -258,7 +262,17 @@ void HouseSelectScene::updateText(const std::shared_ptr<scene2::Button>& button,
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void HouseSelectScene::update(float timestep) {
-    updateNetworkOrder();
+    _network->getNetworkUpdates();
+
+    // Check kick BEFORE clearQueues wipes the flag
+    if (!_network->isHost() && _network->wasSessionTerminated()) {
+        _network->clearQueues();
+        _network->disconnect();
+        _status = Status::ABORT;
+        return;
+    }
+    
+    updateNetworkOrder();   // this will call getNetworkUpdates + clearQueues internally
     updateTeammateIcons();
     // The carousel move logic
     if (_isAnimating) {
@@ -424,6 +438,8 @@ void HouseSelectScene::updateNetworkOrder() {
 
     _network->getNetworkUpdates();
     const auto& networkedPlayers = _network->getNetworkedPlayers();
+
+    if (networkedPlayers.empty()) return;
 
     for (int i = 0; i < (int)networkedPlayers.size(); i++) {
         _gameState->setRealPlayer(

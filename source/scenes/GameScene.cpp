@@ -1941,3 +1941,12 @@ void GameScene::handleDisconnectedPlayers() {
         refreshTeammateNameLabels();
     }
 }
+
+/**
+ * Disposes and re-initialises the GameState for a fresh session.
+ * Call this when aborting the lobby to clear all player house selections.
+ */
+void GameScene::resetGameState() {
+    _gameState.dispose();
+    _gameState.init(_itemController);
+}

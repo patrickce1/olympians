@@ -73,7 +73,7 @@ void LobbyScene::setupUI() {
     _enterGame = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("lobbyScene.start"));
 
-    _backOut = std::dynamic_pointer_cast<scene2::Button>(
+    _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("lobbyScene.back"));
 
     _gameId = std::dynamic_pointer_cast<scene2::Label>(
@@ -118,8 +118,12 @@ void LobbyScene::setupListeners() {
         }
     });
 
-    _backOut->addListener([this](const std::string& name, bool down) {
+    _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_network->isHost()) {
+                _network->broadcastSessionTerminated();
+                _pendingDisconnect = true;
+            }
             _status = Status::ABORT;
         }
     });
@@ -150,7 +154,7 @@ void LobbyScene::dispose() {
         _playerSlots.clear();
         _playerImages.clear();
         _enterGame = nullptr;
-        _backOut = nullptr;
+        _backButton = nullptr;
         _gameId = nullptr;
         _bossImage = nullptr;
         _bossLobbyButton = nullptr;
@@ -175,13 +179,17 @@ void LobbyScene::setActive(bool value) {
         if (value) {
             _status = IDLE;
             _enterGame->deactivate();
-            _backOut->activate();
+            _backButton->activate();
             _bossLobbyButton->activate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->activate();
             }
         } else {
-            _backOut->deactivate();
+            if (_pendingDisconnect) {
+                _network->disconnect();
+                _pendingDisconnect = false;
+            }
+            _backButton->deactivate();
             _enterGame->deactivate();
             _bossLobbyButton->deactivate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
@@ -191,7 +199,7 @@ void LobbyScene::setActive(bool value) {
             
             // If any were pressed, reset them
             _enterGame->setDown(false);
-            _backOut->setDown(false);
+            _backButton->setDown(false);
             _bossLobbyButton->setDown(false);
         }
     }
@@ -339,9 +347,14 @@ void LobbyScene::update(float timestep) {
 
     if (!_network->isHost()) {
         _network->getNetworkUpdates();
-        bool gameStarted = _network->checkGameStarted();
-        if (gameStarted) {
+        if (_network->checkGameStarted()) {
             _status = START;
+        }
+        if (_network->wasSessionTerminated()) {
+            _network->clearQueues();
+            _network->disconnect();
+            _status = Status::ABORT;
+            return;
         }
     }
     

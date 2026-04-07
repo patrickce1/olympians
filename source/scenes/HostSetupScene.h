@@ -44,7 +44,7 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _startGame;
     
     /** The back button for the host setup scene */
-    std::shared_ptr<cugl::scene2::Button> _backOut;
+    std::shared_ptr<cugl::scene2::Button> _backButton;
     
     /** The join game (client scene) button for the host setup scene */
     std::shared_ptr<cugl::scene2::Button> _joinButton;

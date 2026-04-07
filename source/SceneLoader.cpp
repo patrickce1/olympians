@@ -362,6 +362,7 @@ void SceneLoader::update(float dt) {
                     break;
                 case LobbyScene::Status::ABORT:
                     CULog("Transitioning to MenuScene...");
+                    _gameScene.resetGameState();
                     _menuScene.setActive(true);
                     _lobbyScene.setActive(false);
                     _currentScene = State::MENU;
@@ -374,9 +375,16 @@ void SceneLoader::update(float dt) {
             _houseSelectScene.update(dt);
             switch (_houseSelectScene.getStatus()) {
                 case HouseSelectScene::Status::ABORT:
-                    _lobbyScene.setActive(true);
-                    _houseSelectScene.setActive(false);
-                    _currentScene = State::LOBBY;
+                    if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
+                        _gameScene.resetGameState();
+                        _menuScene.setActive(true);
+                        _houseSelectScene.setActive(false);
+                        _currentScene = State::MENU;
+                    } else {
+                        _lobbyScene.setActive(true);
+                        _houseSelectScene.setActive(false);
+                        _currentScene = State::LOBBY;
+                    }
                     break;
                 default:
                     break;

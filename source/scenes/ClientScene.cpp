@@ -65,7 +65,7 @@ void ClientScene::setupUI() {
     _enterGame = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("clientScene.enter"));
 
-    _backOut = std::dynamic_pointer_cast<scene2::Button>(
+    _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("clientScene.back"));
     
     _hostButton = std::dynamic_pointer_cast<scene2::Button>( _assets->get<scene2::SceneNode>("clientScene.joinHeader.host"));
@@ -136,7 +136,7 @@ void ClientScene::setupListeners() {
         }
     });
 
-    _backOut->addListener([this](const std::string& name, bool down) {
+    _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
         }
@@ -157,7 +157,7 @@ void ClientScene::dispose() {
     if (_active) {
         removeAllChildren();
         _enterGame = nullptr;
-        _backOut = nullptr;
+        _backButton = nullptr;
         _hostButton = nullptr;
         _gameId = nullptr;
         _playerName = nullptr;
@@ -182,7 +182,7 @@ void ClientScene::setActive(bool value) {
         if (value) {
             _status = IDLE;
             _enterGame->activate();
-            _backOut->activate();
+            _backButton->activate();
             _hostButton->activate();
             _playerName->activate();
             for (auto& button : _keypadButtons) {
@@ -191,11 +191,11 @@ void ClientScene::setActive(bool value) {
         } else {
             _playerName->deactivate();
             _enterGame->deactivate();
-            _backOut->deactivate();
+            _backButton->deactivate();
             _hostButton->deactivate();
             // If any were pressed, reset them
             _enterGame->setDown(false);
-            _backOut->setDown(false);
+            _backButton->setDown(false);
             _hostButton->setDown(false);
             for (auto& button : _keypadButtons) {
                 button->deactivate();
