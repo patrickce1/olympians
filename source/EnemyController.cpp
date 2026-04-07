@@ -90,15 +90,9 @@ void EnemyController::handleIdleEntryIfNeeded(EnemyLoader::State prevState, Enem
 EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<Enemy>& enemy) {
     std::vector<EnemyLoader::State> attacks;
 
-    const auto& states = enemy->getStates();
-    for (const auto& pair : states) {
-        EnemyLoader::State state = pair.first;
-        const auto& def = pair.second;
-
-        if (def.tag == "attack") {
-            attacks.push_back(state);
-        }
-    }
+    attacks.push_back(EnemyLoader::State::ATTACK_1);
+    attacks.push_back(EnemyLoader::State::ATTACK_2);
+    attacks.push_back(EnemyLoader::State::ATTACK_3);
 
     if (attacks.empty()) { CULog("[EnemyController] Attack: No attack states available"); return EnemyLoader::State::IDLE; }
 

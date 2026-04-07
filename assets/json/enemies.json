@@ -7,7 +7,7 @@
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-		"defenseLikelihood": 1.0
+		"defenseLikelihood": 0.25
             },
 	    "customData": {
     	        "eyeMultiplier": 2.0
@@ -89,17 +89,17 @@
                         {
                             "type": "SIDE_MODIFIER",
                             "target": 0,
-                            "amount": 0.5
+                            "amount": 2.0
                         },
 			{
                             "type": "SIDE_MODIFIER",
                             "target": 1,
-                            "amount": 0.5
+                            "amount": 1.0
                         },
 			{
                             "type": "SIDE_MODIFIER",
                             "target": 2,
-                            "amount": 0.5
+                            "amount": 1.0
                         },
 			{
                             "type": "SIDE_MODIFIER",
