@@ -364,9 +364,9 @@ void SceneLoader::update(float dt) {
                     CULog("Transitioning to MenuScene...");
                     _gameScene.resetGameState();
                     _houseSelectScene.setPendingReset(true);
-                    _menuScene.setActive(true);
+                    _hostSetupScene.setActive(true);
                     _lobbyScene.setActive(false);
-                    _currentScene = State::MENU;
+                    _currentScene = State::HOSTSETUP;
                     break;
                 default:
                     break;;
@@ -379,9 +379,9 @@ void SceneLoader::update(float dt) {
                     if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
                         _gameScene.resetGameState();
                         _houseSelectScene.setPendingReset(true);
-                        _menuScene.setActive(true);
+                        _hostSetupScene.setActive(true);
                         _houseSelectScene.setActive(false);
-                        _currentScene = State::MENU;
+                        _currentScene = State::HOSTSETUP;
                     } else {
                         _lobbyScene.setActive(true);
                         _houseSelectScene.setActive(false);
@@ -399,9 +399,9 @@ void SceneLoader::update(float dt) {
                     if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
                         _gameScene.resetGameState();
                         _houseSelectScene.setPendingReset(true);
-                        _menuScene.setActive(true);
+                        _hostSetupScene.setActive(true);
                         _bossSelectScene.setActive(false);
-                        _currentScene = State::MENU;
+                        _currentScene = State::HOSTSETUP;
                     } else {
                         _lobbyScene.setActive(true);
                         _bossSelectScene.setActive(false);
