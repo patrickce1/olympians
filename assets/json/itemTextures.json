@@ -36,11 +36,11 @@
         "item_spear": {
             "file": "textures/items/spear_r.png"
         },
-        "item_poseidons_tide": {
+        "item_poseidon_tide": {
             "file": "textures/items/poseidons_tide_d.png"
         },
-        "item_noams_ballista": {
-            "file": "textures/items/spear_r.png"
+        item_zeus_thunderstorm: {
+            "file": "textures/items/zeus_thunderstorm_d.png"
         }
     }
 }

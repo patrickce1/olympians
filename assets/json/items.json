@@ -116,7 +116,7 @@
             "baseValue": 1.0
         },
         {
-            "id": "Spear",
+            "id": "spear",
             "name": "Spear",
             "description": " ",
             "icon": "item_spear",
@@ -126,14 +126,24 @@
             "baseValue": 1.0
         },
         {
-            "id": "noams_ballista",
-            "name": "Noam's Ballista",
-            "description": "A ballista constructed by the great Deadalus.",
-            "icon": "item_noams_ballista",
+            "id": "zeus_thunderstorm",
+            "name": "Zeus' Thunderstorm",
+            "description": " ",
+            "icon": "item_zeus_thunderstorm",
             "type": "attack",
-            "rarity": "rare",
-            "houseAffinity": "Ares",
-            "baseValue": 1.5
+            "rarity": "divine",
+            "houseAffinity": "Zeus",
+            "baseValue": 1.0
+        },
+        {
+            "id": "poseidon_tide",
+            "name": "Poseidon's Tide",
+            "description": " ",
+            "icon": "item_poseidon_tide",
+            "type": "attack",
+            "rarity": "divine",
+            "houseAffinity": "Poseidon",
+            "baseValue": 1.0
         }
     ],
     "itemInterval": 10.0,
