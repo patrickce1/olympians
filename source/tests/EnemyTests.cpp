@@ -324,6 +324,98 @@ static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonP
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SECTION 5 — Boss specific mechanics
+// ─────────────────────────────────────────────────────────────────────────────
+
+static void testCerberusHealMove(const std::string& enemiesJsonPath,
+    const std::string& housesJsonPath) {
+    auto enemy = makeEnemy(enemiesJsonPath, "cerberus");
+    if (!enemy) return;
+
+    // Lower health so there's room to heal
+    enemy->updateHealth(-50.0f);
+    float healthBeforeHeal = enemy->getCurrentHealth();
+    expect(healthBeforeHeal < enemy->getMaxHealth(), "cerberus heal: health lowered before heal");
+
+    EnemyController controller;
+    HouseLoader loader = loadHouses(housesJsonPath);
+    auto players = makePlayersRing(loader, "poseidon", 4);
+
+    // Force defense so heal fires
+    enemy->setDefenseLikelihood(1.0f);
+
+    bool healed = false;
+    for (int i = 0; i < 240; i++) {
+        controller.update(0.5f, enemy, players);
+        if (enemy->getCurrentHealth() > healthBeforeHeal) {
+            healed = true;
+            break;
+        }
+    }
+
+    expect(healed, "cerberus heal: health increased after heal move fired");
+}
+
+static void testCyclopsMultiplierScalesDamage(const std::string& enemiesJsonPath,
+    const std::string& housesJsonPath) {
+    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
+    if (!enemy) return;
+
+    // Hardcode a 2x multiplier on relative side 1
+    enemy->setSideMultiplier(1, 2.0f);
+    enemy->setTargetIndex(0);
+
+    float healthBefore = enemy->getCurrentHealth();
+    float rawDamage = 10.0f;
+
+    // Player at absolute index 1 is relative side 1 from target 0 → should hit for 20
+    enemy->takeDamage(rawDamage, 1);
+
+    float actualDamage = healthBefore - enemy->getCurrentHealth();
+    expect(std::abs(actualDamage - (rawDamage * 2.0f)) < 0.01f,
+        "cyclops multiplier: damage scaled by 2x for side 1");
+}
+
+static void testCyclopsDefensiveMove(const std::string& enemiesJsonPath,
+    const std::string& housesJsonPath) {
+    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
+    if (!enemy) return;
+
+    EnemyController controller;
+    HouseLoader loader = loadHouses(housesJsonPath);
+    auto players = makePlayersRing(loader, "poseidon", 4);
+
+    enemy->setDefenseLikelihood(1.0f);
+    enemy->setTargetIndex(0);
+
+    // Run for a bit so the passive SIDE_MODIFIER events fire
+    for (int i = 0; i < 240; i++) {
+        controller.update(0.5f, enemy, players);
+    }
+
+    // Direction 0 (facing player) should be 2x
+    float mult0 = enemy->getSideMultiplier(0);
+    expect(std::abs(mult0 - 2.0f) < 0.01f, "cyclops passive: direction 0 has 2x multiplier");
+
+    float healthBefore0 = enemy->getCurrentHealth();
+    float rawDamage = 10.0f;
+    enemy->takeDamage(rawDamage, 0);
+    float actualDamage0 = healthBefore0 - enemy->getCurrentHealth();
+    expect(std::abs(actualDamage0 - (rawDamage * 2.0f)) < 0.01f,
+        "cyclops passive: direction 0 takes 2x damage");
+
+    // Direction 3 (behind player) should be 0x — no damage
+    float mult3 = enemy->getSideMultiplier(3);
+    expect(std::abs(mult3 - 0.0f) < 0.01f, "cyclops passive: direction 3 has 0x multiplier");
+
+    float healthBefore3 = enemy->getCurrentHealth();
+    enemy->takeDamage(rawDamage, 3);
+    float actualDamage3 = healthBefore3 - enemy->getCurrentHealth();
+    expect(std::abs(actualDamage3 - 0.0f) < 0.01f,
+        "cyclops passive: direction 3 takes no damage");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -353,6 +445,11 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
     testControllerStartsAttackFromIdle(enemiesJsonPath, housesJsonPath);
     testControllerDoesNotAttackWhenAllPlayersDead(enemiesJsonPath, housesJsonPath);
     testControllerDamageEventHitsSomeone(enemiesJsonPath, housesJsonPath);
+
+    CULog("── Section 5: Boss mechanics ────────────");
+    testCerberusHealMove(enemiesJsonPath, housesJsonPath);
+    testCyclopsMultiplierScalesDamage(enemiesJsonPath, housesJsonPath);
+    testCyclopsDefensiveMove(enemiesJsonPath, housesJsonPath);
 
     printSummary();
 }
