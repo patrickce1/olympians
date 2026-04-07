@@ -149,8 +149,10 @@ void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, st
                 break;
             case EnemyLoader::EventType::SIDE_MODIFIER:
                 resolveSideMultiplierEvent(enemy, event);
+                break;
             case EnemyLoader::EventType::HEAL:
                 resolveHealEvent(enemy, event);
+                break;
             default:
                 CULog("[EnemyController] Event: Unhandled event type in state '%d' for enemy '%s'", event.state, enemy->getId().c_str());
                 break;

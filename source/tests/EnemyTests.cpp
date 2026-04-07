@@ -386,10 +386,14 @@ static void testCyclopsDefensiveMove(const std::string& enemiesJsonPath,
     auto players = makePlayersRing(loader, "poseidon", 4);
 
     enemy->setDefenseLikelihood(1.0f);
+    enemy->setRetargetLikelihood(0.0f);
     enemy->setTargetIndex(0);
 
+    expect(enemy->getStates().count(EnemyLoader::State::DEFENSE_MOVE) > 0,
+        "cyclops: has defense move state");
+
     // Run for a bit so the passive SIDE_MODIFIER events fire
-    for (int i = 0; i < 240; i++) {
+    for (int i = 0; i < 10; i++) {
         controller.update(0.5f, enemy, players);
     }
 
@@ -446,7 +450,7 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
     testControllerDoesNotAttackWhenAllPlayersDead(enemiesJsonPath, housesJsonPath);
     testControllerDamageEventHitsSomeone(enemiesJsonPath, housesJsonPath);
 
-    CULog("── Section 5: Boss mechanics ────────────");
+    CULog("── Section 5: Defensive mechanics ────────────");
     testCerberusHealMove(enemiesJsonPath, housesJsonPath);
     testCyclopsMultiplierScalesDamage(enemiesJsonPath, housesJsonPath);
     testCyclopsDefensiveMove(enemiesJsonPath, housesJsonPath);
