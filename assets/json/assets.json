@@ -360,7 +360,7 @@
         },
         "sans": {
             "file":     "fonts/Roboto-Bold.ttf",
-            "size":     64
+            "size":     20
         },
         "gideon romanRegular20": {
             "file": "fonts/GideonRoman-Regular.ttf",
