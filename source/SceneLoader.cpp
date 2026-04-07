@@ -396,9 +396,17 @@ void SceneLoader::update(float dt) {
             _bossSelectScene.update(dt);
             switch (_bossSelectScene.getStatus()) {
                 case BossSelectScene::Status::ABORT:
-                    _lobbyScene.setActive(true);
-                    _bossSelectScene.setActive(false);
-                    _currentScene = State::LOBBY;
+                    if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
+                        _gameScene.resetGameState();
+                        _houseSelectScene.setPendingReset(true);
+                        _menuScene.setActive(true);
+                        _bossSelectScene.setActive(false);
+                        _currentScene = State::MENU;
+                    } else {
+                        _lobbyScene.setActive(true);
+                        _bossSelectScene.setActive(false);
+                        _currentScene = State::LOBBY;
+                    }
                     break;
                 default:
                     break;
