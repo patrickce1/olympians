@@ -218,7 +218,7 @@ void HouseSelectScene::setActive(bool value) {
             if (_pendingReset) {
                 _locked = false;
                 _playerIconGlow->setVisible(false);
-                updateText(_lockButton, "Lock");
+                updateText(_lockButton, "LOCK");
                 slideTo(4);
                 _pendingReset = false;
             }
