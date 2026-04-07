@@ -711,28 +711,8 @@ void GameScene::updateEnemyAndAI(float dt) {
         }
     }
     
-    // Play player hurt/heal sounds AFTER all updates (enemy AND AI)
-    // This way we catch damage from enemy AND heals from AI teammates
-    if (player && !dynamic_cast<PlayerAI*>(player)) {
-        if (player->getCurrentHealth() < playerHealthBefore && _audio) {
-            std::string house = player->getHouseName();
-            if (house == "athena" || house == "aphrodite" || house == "demeter") {
-                _audio->playSoundUnique("player_hurt");
-            } else {
-                _audio->playSoundUnique("player_hurt_deep");
-            }
-            CULog("updateEnemyAndAI: Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
-        } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
-            _audio->playSoundUnique("player_heal");
-            CULog("updateEnemyAndAI: Local player healed from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
-        }
-    }
-    
-    // Play enemy hurt sound if AI players attacked the boss
-    if (enemy->getCurrentHealth() < enemyHealthBefore && _audio) {
-        _audio->playSoundUnique("enemy_hurt");
-        CULog("updateEnemyAndAI: Enemy damaged from %.1f to %.1f (AI attack)", enemyHealthBefore, enemy->getCurrentHealth());
-    }
+    // Play sounds for LOCAL player and enemy health changes after all updates
+    playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
 }
 
 /**
@@ -986,26 +966,8 @@ void GameScene::handleNetworkUpdates() {
         _gameState.networkUpdate(_network->getStateUpdate());
     }
     
-    // Play sounds for LOCAL player health changes (common to both host and client)
-    if (player) {
-        if (player->getCurrentHealth() > playerHealthBefore && _audio) {
-            _audio->playSoundUnique("player_heal");
-            CULog("Local player healed from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
-        } else if (player->getCurrentHealth() < playerHealthBefore && _audio) {
-            if (player->isFemaleHouse()) {
-                _audio->playSoundUnique("player_hurt");
-            } else {
-                _audio->playSoundUnique("player_hurt_deep");
-            }
-            CULog("Local player hurt from %.1f to %.1f", playerHealthBefore, player->getCurrentHealth());
-        }
-    }
-    
-    // Play enemy hurt sound (common to both host and client)
-    if (_gameState.getEnemy()->getCurrentHealth() < enemyHealthBefore && _audio) {
-        _audio->playSoundUnique("enemy_hurt");
-        CULog("Enemy damaged from %.1f to %.1f", enemyHealthBefore, _gameState.getEnemy()->getCurrentHealth());
-    }
+    // Play sounds for LOCAL player and enemy health changes after all updates
+    playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
     
     // Check if we won or lost (common to both host and client)
     if (_gameState.didWin()) {
@@ -1024,6 +986,30 @@ void GameScene::handleNetworkUpdates() {
     }
 
     processNetworkedPasses(_network->getPassUpdates());
+}
+
+/** 
+ * Plays appropriate hurt/heal sounds based on changes in player and enemy health.
+ * Should be called after processing all enemy and AI updates, so we capture all 
+ * health changes in one place and avoid playing multiple overlapping sounds for the same health change.
+ */
+void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore) {
+    auto player = _gameState.getLocalPlayer();
+    auto enemy = _gameState.getEnemy();
+    
+    // Only play sounds for non-AI local players
+    if (player && !dynamic_cast<PlayerAI*>(player)) {
+        if (player->getCurrentHealth() < playerHealthBefore && _audio) {
+            std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
+            _audio->playSoundUnique(soundKey);
+        } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
+            _audio->playSoundUnique("player_heal");
+        }
+    }
+    
+    if (enemy->getCurrentHealth() < enemyHealthBefore && _audio) {
+        _audio->playSoundUnique("enemy_hurt");
+    }
 }
 
 /**

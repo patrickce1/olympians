@@ -396,6 +396,19 @@ public:
     void updateEnemyAndAI(float dt);
     
     /**
+     * Plays health and damage indicator sounds based on health changes.
+     * Called after game state updates to detect and play appropriate audio feedback
+     * for player damage, healing, and enemy damage. 
+     *
+     * Only plays player hurt/heal sounds for non-AI local player. Also plays enemy hurt
+     * sounds. Uses the player's house to determine which hurt sound variant to play.
+     *
+     * @param playerHealthBefore  The player's health before state updates
+     * @param enemyHealthBefore   The enemy's health before state updates
+     */
+    void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore);
+    
+    /**
      * Updates the progress bar with the current ratios of player and enemy health.
      *
      * @param dt Delta time in seconds
