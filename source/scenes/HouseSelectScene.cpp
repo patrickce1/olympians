@@ -215,10 +215,13 @@ void HouseSelectScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = WAITING;
-            _locked = false;
-            _playerIconGlow->setVisible(false);
-            updateText(_lockButton, "Lock");
-            slideTo(4);
+            if (_pendingReset) {
+                _locked = false;
+                _playerIconGlow->setVisible(false);
+                updateText(_lockButton, "Lock");
+                slideTo(4);
+                _pendingReset = false;
+            }
             _lockButton->activate();
             _leftButton->activate();
             _rightButton->activate();

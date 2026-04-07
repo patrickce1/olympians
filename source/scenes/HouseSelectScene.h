@@ -28,6 +28,15 @@ public:
         ABORT
     };
     
+    /**
+     * Primes the scene to perform a full UI reset on its next activation.
+     * Should be called when the session has ended and the player is being
+     * returned to the main menu — not during normal lobby navigation.
+     *
+     * @param reset  true to schedule a reset on the next setActive(true) call.
+     */
+    void setPendingReset(bool reset) { _pendingReset = reset; }
+    
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
@@ -61,6 +70,20 @@ protected:
     
     /** Whether the played has locked down a house.*/
     bool _locked = false;
+    
+    /**
+     * Whether the scene should perform a full UI reset on its next activation.
+     *
+     * Set to true via setPendingReset() when the local player is returned to
+     * the main menu due to session termination — either because the host backed
+     * out of the lobby or because the host disconnected while the client was
+     * in this scene. When false, setActive(true) preserves the player's current
+     * carousel position and lock state, allowing seamless navigation back and
+     * forth between the lobby and house select during an active session.
+     *
+     * Automatically reset to false after the reset fires in setActive(true).
+     */
+    bool _pendingReset = false;
     
     /** The house selection node list */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _houseCards;
