@@ -1746,10 +1746,6 @@ void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
             Path2 path(zone);
             batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
         }
-        // for (const auto& [action, zone] : _inventoryZones) {
-        //     Path2 path(zone);
-        //     batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
-        // }
         
         // Render attack/support zones based on item type
         auto itemDef = getHeldItemDef(_draggedItemId);
