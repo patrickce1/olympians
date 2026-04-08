@@ -361,10 +361,19 @@ void SceneLoader::update(float dt) {
                     _currentScene = State::BOSSSELECT;
                     break;
                 case LobbyScene::Status::ABORT:
-                    CULog("Transitioning to MenuScene...");
-                    _menuScene.setActive(true);
-                    _lobbyScene.setActive(false);
-                    _currentScene = State::MENU;
+                    _gameScene.resetGameState();
+                    _houseSelectScene.setPendingReset(true);
+                    if (_network->isHost()) {
+                        CULog("Transitioning to HostSetupScene...");
+                        _hostSetupScene.setActive(true);
+                        _lobbyScene.setActive(false);   // disconnect fires here
+                        _currentScene = State::HOSTSETUP;
+                    } else {
+                        CULog("Transitioning to CleintScene...");
+                        _clientScene.setActive(true);
+                        _lobbyScene.setActive(false);   // disconnect fires here
+                        _currentScene = State::CLIENT;
+                    }
                     break;
                 default:
                     break;;
@@ -374,9 +383,17 @@ void SceneLoader::update(float dt) {
             _houseSelectScene.update(dt);
             switch (_houseSelectScene.getStatus()) {
                 case HouseSelectScene::Status::ABORT:
-                    _lobbyScene.setActive(true);
-                    _houseSelectScene.setActive(false);
-                    _currentScene = State::LOBBY;
+                    if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
+                        _gameScene.resetGameState();
+                        _houseSelectScene.setPendingReset(true);
+                        _hostSetupScene.setActive(true);
+                        _houseSelectScene.setActive(false);
+                        _currentScene = State::HOSTSETUP;
+                    } else {
+                        _lobbyScene.setActive(true);
+                        _houseSelectScene.setActive(false);
+                        _currentScene = State::LOBBY;
+                    }
                     break;
                 default:
                     break;
@@ -386,9 +403,17 @@ void SceneLoader::update(float dt) {
             _bossSelectScene.update(dt);
             switch (_bossSelectScene.getStatus()) {
                 case BossSelectScene::Status::ABORT:
-                    _lobbyScene.setActive(true);
-                    _bossSelectScene.setActive(false);
-                    _currentScene = State::LOBBY;
+                    if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
+                        _gameScene.resetGameState();
+                        _houseSelectScene.setPendingReset(true);
+                        _hostSetupScene.setActive(true);
+                        _bossSelectScene.setActive(false);
+                        _currentScene = State::HOSTSETUP;
+                    } else {
+                        _lobbyScene.setActive(true);
+                        _bossSelectScene.setActive(false);
+                        _currentScene = State::LOBBY;
+                    }
                     break;
                 default:
                     break;

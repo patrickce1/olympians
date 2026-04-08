@@ -361,9 +361,11 @@ void GameScene::setActive(bool value) {
         if (value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
+            updateNetworkOrder();
+            _gameState.assignMissingHouses(_itemController);
+
         }
     }
-    updateNetworkOrder();
 }
 
 /**
@@ -1851,37 +1853,18 @@ void GameScene::demoteSlotToAI(int slot) {
 
     CULog("GameScene: host demoting slot %d to EasyPlayerAI", slot);
 
-    // Snapshot the disconnected player's state before overwriting.
+    // Snapshot state before overwriting
     float savedHealth    = player->getCurrentHealth();
     auto  savedInventory = player->getInventory();
 
-    // Construct the replacement AI. GameScene owns this step because
-    // _itemController and _gameState.getCharacterLoader() both live here.
-    auto aiPlayer = std::make_shared<EasyPlayerAI>(
-        player->getHouseName(),
-        slot,
-        player->getPlayerName(),
-        _gameState.getHouseLoader()
-    );
-    aiPlayer->init(_itemController.getDatabase(), "json/playerAI.json");
+    // Delegate the actual demotion to GameState
+    _gameState.demoteToAI(slot);
 
-    // Swap the slot in the player array.
-    auto& players = _gameState.getPlayers();
-    players[slot] = aiPlayer;
-
-    // Re-wire the full circular neighbour ring so every player's
-    // left/right pointers are valid after the swap.
-    const int n = (int)players.size();
-    for (int i = 0; i < n; i++) {
-        players[i]->setLeftPlayer (players[(i - 1 + n) % n].get());
-        players[i]->setRightPlayer(players[(i + 1)     % n].get());
-    }
-
-    // Restore the disconnected player's health and inventory onto the
-    // new AI so the game continues without a state jump.
-    aiPlayer->setCurrentHealth(savedHealth);
+    // Restore health and inventory onto the new AI
+    Player* newAI = _gameState.getPlayerBySlot(slot);
+    newAI->setCurrentHealth(savedHealth);
     for (const ItemInstance& item : savedInventory) {
-        aiPlayer->addItem(item);
+        newAI->addItem(item);
     }
 }
 
@@ -1940,4 +1923,13 @@ void GameScene::handleDisconnectedPlayers() {
         // Step 2b: Both host and clients refresh the teammate name labels.
         refreshTeammateNameLabels();
     }
+}
+
+/**
+ * Disposes and re-initialises the GameState for a fresh session.
+ * Call this when aborting the lobby to clear all player house selections.
+ */
+void GameScene::resetGameState() {
+    _gameState.dispose();
+    _gameState.init(_itemController);
 }
