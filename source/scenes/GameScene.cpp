@@ -1168,6 +1168,7 @@ bool GameScene::handleSettledItemDrop(ItemInstance* item, std::shared_ptr<cugl::
     }
     
     // Not in any valid zone and outside inventory - snapback to inventory
+    item->setCanInteractWithZones(false); // Prevent zone interactions during snapback
     item->setSliding(false);
     initiateSnapbackAnimation(itemId, itemPos);
     return false; // Don't remove yet; snapback animation will handle it
