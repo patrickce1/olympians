@@ -361,12 +361,19 @@ void SceneLoader::update(float dt) {
                     _currentScene = State::BOSSSELECT;
                     break;
                 case LobbyScene::Status::ABORT:
-                    CULog("Transitioning to MenuScene...");
                     _gameScene.resetGameState();
                     _houseSelectScene.setPendingReset(true);
-                    _hostSetupScene.setActive(true);
-                    _lobbyScene.setActive(false);
-                    _currentScene = State::HOSTSETUP;
+                    if (_network->isHost()) {
+                        CULog("Transitioning to HostSetupScene...");
+                        _hostSetupScene.setActive(true);
+                        _lobbyScene.setActive(false);   // disconnect fires here
+                        _currentScene = State::HOSTSETUP;
+                    } else {
+                        CULog("Transitioning to CleintScene...");
+                        _clientScene.setActive(true);
+                        _lobbyScene.setActive(false);   // disconnect fires here
+                        _currentScene = State::CLIENT;
+                    }
                     break;
                 default:
                     break;;
