@@ -214,8 +214,8 @@ void GameScene::initInputZones(){
     };
     
     _passZones = {
-        {InputController::Action::PASS_LEFT,  Rect(-w * 0.149f, 0, w * 0.15f, h * 0.35f)},
-        {InputController::Action::PASS_RIGHT, Rect(w * 0.999f,   0, w * 0.15f, h * 0.35f)}
+        {InputController::Action::PASS_LEFT,  Rect(-w * 0.149f, 0, w * 0.18f, h * 0.35f)},
+        {InputController::Action::PASS_RIGHT, Rect(w * 0.971f,   0, w * 0.18f, h * 0.35f)}
     };
 }
 
@@ -1087,43 +1087,91 @@ bool GameScene::updateItemFriction(ItemInstance* item, std::shared_ptr<cugl::phy
 }
 
 /**
+ * Checks if an item is in a matching interaction zone.
+ * Iterates through all input zones and checks if the item position falls within
+ * a zone and if its type matches the zone's expected type (Attack↔DROP_BOSS, Support↔DROP_ALLY_*).
+ *
+ * @param itemPos  The item's current world position
+ * @param itemDef  The item definition containing type information
+ * @return         true if the item is in a valid matching zone, false otherwise
+ */
+bool GameScene::isItemInMatchingZone(const cugl::Vec2& itemPos, const std::shared_ptr<ItemDef>& itemDef) {
+    if (!itemDef) return false;
+    
+    for (auto& [action, zone] : _inputZones) {
+        if (!zone.contains(itemPos)) continue;
+        
+        // Check for type matching
+        if (action == InputController::Action::DROP_BOSS && itemDef->getType() == ItemDef::Type::Attack) {
+            return true;
+        }
+        if ((action == InputController::Action::DROP_ALLY_LEFT || action == InputController::Action::DROP_ALLY_RIGHT) 
+            && itemDef->getType() == ItemDef::Type::Support) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Initiates a snapback animation for an item returned to inventory.
+ * Retrieves the item's widget (or uses default size), calculates a random
+ * target position in the inventory, and creates a snapback animation entry.
+ *
+ * @param itemId   The ID of the item to snapback
+ * @param fromPos  The item's current world position (animation start point)
+ */
+void GameScene::initiateSnapbackAnimation(ItemInstance::ItemId itemId, const cugl::Vec2& fromPos) {
+    auto widget = _itemWidgets[itemId];
+    cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
+    cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
+    
+    SnapbackAnimation anim;
+    anim.startPos = fromPos;
+    anim.targetPos = randomTarget;
+    anim.progress = 0.0f;
+    _snapbackAnimations[itemId] = anim;
+}
+
+/**
  * Handles settlement logic for dropped items.
- * Checks if the item is within inventory bounds and initiates snapback or settles accordingly.
+ * Checks if the item is within inventory bounds, then in matching interaction zones,
+ * and finally initiates snapback if neither condition is met.
  *
  * @param item       The item instance that has settled.
  * @param itemBody   The Box2D body representing the item.
  * @param itemId     The ID of the item.
- * @return           true if the item should be removed from sliding set.
+ * @return           true if the item should be removed from sliding set, false if animating/processing.
  */
 bool GameScene::handleSettledItemDrop(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, ItemInstance::ItemId itemId) {
     // Check if item is within inventory bounds
     bool inInventoryBounds = false;
     if (_inventory) {
-        cugl::Rect inventoryBounds = _inventory->getBoundingBox();
-        inInventoryBounds = inventoryBounds.contains(itemBody->getPosition());
+        inInventoryBounds = _inventory->getBoundingBox().contains(itemBody->getPosition());
     }
     
-    if (!inInventoryBounds) {
-        // Out of bounds - snapback to random inventory position
-        auto widget = _itemWidgets[itemId];
-        cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
-        cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
-        
-        // Add to snapback animations map; supports multiple simultaneous snapbacks
-        SnapbackAnimation anim;
-        anim.startPos = itemBody->getPosition();
-        anim.targetPos = randomTarget;
-        anim.progress = 0.0f;
-        _snapbackAnimations[itemId] = anim;
-        
-        // Stop sliding so snapback animation takes over
-        item->setSliding(false);
-        return false; // Don't remove yet; snapback animation will handle it
-    } else {
+    if (inInventoryBounds) {
         // In bounds, just settle
         item->setSliding(false);
-        return true; // Remove from sliding set
+        return true;
     }
+    
+    // Out of bounds - check if it's in a matching interaction zone
+    cugl::Vec2 itemPos = itemBody->getPosition();
+    auto itemDef = _itemController.getDatabase().getDef(item->getDefId());
+    
+    if (isItemInMatchingZone(itemPos, itemDef)) {
+        // Item is in a matching zone; enable zone interaction and let it be processed next frame
+        item->setCanInteractWithZones(true);
+        item->setSliding(false);
+        return false; // Keep in sliding set to be processed by zone interaction logic
+    }
+    
+    // Not in any valid zone and outside inventory - snapback to inventory
+    item->setCanInteractWithZones(false); // Prevent zone interactions during snapback
+    item->setSliding(false);
+    initiateSnapbackAnimation(itemId, itemPos);
+    return false; // Don't remove yet; snapback animation will handle it
 }
 
 /**
@@ -1318,7 +1366,9 @@ void GameScene::processZoneInteractionsForSlidingItems() {
             }
         }
         
-        if (!item || !item->canInteractWithZones() || !item->isSliding() || item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS) {
+        // Skip if: no item, can't interact, or is a passed item
+        // Allow interaction for both sliding items and settled items that are zone-interactive (e.g., dropped items in zones)
+        if (!item || !item->canInteractWithZones() || item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS) {
             continue;
         }
 
@@ -1693,10 +1743,6 @@ void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
     if (_draggedItemId != 0) {
         // Always render pass and inventory zones when holding any item
         for (const auto& [action, zone] : _passZones) {
-            Path2 path(zone);
-            batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
-        }
-        for (const auto& [action, zone] : _inventoryZones) {
             Path2 path(zone);
             batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
         }

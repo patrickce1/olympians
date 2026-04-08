@@ -551,6 +551,26 @@ public:
      */
     bool handleSpawnedItemSettled(ItemInstance* item, ItemInstance::ItemId itemId);
     
+    /**
+     * Checks if an item is in a matching interaction zone.
+     * Verifies that the item position is within a zone and that its type matches
+     * the zone's expected item type (Attack items for boss zones, Support for ally zones).
+     *
+     * @param itemPos  The item's current world position
+     * @param itemDef  The item definition containing type information
+     * @return         true if the item is in a valid matching zone, false otherwise
+     */
+    bool isItemInMatchingZone(const cugl::Vec2& itemPos, const std::shared_ptr<ItemDef>& itemDef);
+    
+    /**
+     * Initiates a snapback animation for an item returned to inventory.
+     * Creates a snapback animation entry with a random target inventory position
+     * and adds it to the animations queue.
+     *
+     * @param itemId   The ID of the item to snapback
+     * @param fromPos  The item's current world position (animation start point)
+     */
+    void initiateSnapbackAnimation(ItemInstance::ItemId itemId, const cugl::Vec2& fromPos);
     
     /**
      * Checks if a settled item should be removed due to being off-screen.
