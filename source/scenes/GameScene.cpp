@@ -214,8 +214,8 @@ void GameScene::initInputZones(){
     };
     
     _passZones = {
-        {InputController::Action::PASS_LEFT,  Rect(-w * 0.149f, 0, w * 0.15f, h * 0.35f)},
-        {InputController::Action::PASS_RIGHT, Rect(w * 0.999f,   0, w * 0.15f, h * 0.35f)}
+        {InputController::Action::PASS_LEFT,  Rect(-w * 0.149f, 0, w * 0.18f, h * 0.35f)},
+        {InputController::Action::PASS_RIGHT, Rect(w * 0.971f,   0, w * 0.18f, h * 0.35f)}
     };
 }
 
@@ -1745,10 +1745,10 @@ void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
             Path2 path(zone);
             batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
         }
-        for (const auto& [action, zone] : _inventoryZones) {
-            Path2 path(zone);
-            batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
-        }
+        // for (const auto& [action, zone] : _inventoryZones) {
+        //     Path2 path(zone);
+        //     batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
+        // }
         
         // Render attack/support zones based on item type
         auto itemDef = getHeldItemDef(_draggedItemId);
