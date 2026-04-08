@@ -102,6 +102,10 @@ bool GameScene::initSceneGraph() {
     _resetBtn  = _scene->getChildByName("resetButton");
 
     if (_gameArea) {
+        _gameArea->setContentWidth(dimen.width);
+        auto gameAreaBG = _gameArea->getChildByName("background");
+        gameAreaBG->setContentWidth(dimen.width);
+        
         // Left and right teammate icon
         _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("leftIcon")
                                                                          ->getChild(0));
@@ -121,10 +125,19 @@ bool GameScene::initSceneGraph() {
         _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
         
-        _bossSprite = std::dynamic_pointer_cast<scene2::SpriteNode>((_gameArea->getChildByName("bossIdle")));
+        // This is the boss animation sprite, you can change the texture and set frames as needed.
+        _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
+        
+        // This is the special effects node, this is where all the animated effects will go.
+        _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
+        _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+        _scene->addChild(_specialEffectsLayer);
     }
     
     if (_inventory) {
+        auto invBG = _inventory->getChildByName<cugl::scene2::NinePatch>("background");
+        invBG->setContentWidth(dimen.width);
+        
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
         
@@ -220,7 +233,7 @@ void GameScene::initBackgroundAndBossImage() {
     auto backgroundImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("background"));
     backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>(boss + "Background"));
     
-    auto bossImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("boss"));
+    auto bossImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("bossIdle"));
     bossImage->setTexture(_assets->get<cugl::graphics::Texture>(boss));
 }
 
@@ -349,9 +362,11 @@ void GameScene::setActive(bool value) {
         if (value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
+            updateNetworkOrder();
+            _gameState.assignMissingHouses(_itemController);
+
         }
     }
-    updateNetworkOrder();
 }
 
 /**
@@ -1899,37 +1914,18 @@ void GameScene::demoteSlotToAI(int slot) {
 
     CULog("GameScene: host demoting slot %d to EasyPlayerAI", slot);
 
-    // Snapshot the disconnected player's state before overwriting.
+    // Snapshot state before overwriting
     float savedHealth    = player->getCurrentHealth();
     auto  savedInventory = player->getInventory();
 
-    // Construct the replacement AI. GameScene owns this step because
-    // _itemController and _gameState.getCharacterLoader() both live here.
-    auto aiPlayer = std::make_shared<EasyPlayerAI>(
-        player->getHouseName(),
-        slot,
-        player->getPlayerName(),
-        _gameState.getHouseLoader()
-    );
-    aiPlayer->init(_itemController.getDatabase(), "json/playerAI.json");
+    // Delegate the actual demotion to GameState
+    _gameState.demoteToAI(slot);
 
-    // Swap the slot in the player array.
-    auto& players = _gameState.getPlayers();
-    players[slot] = aiPlayer;
-
-    // Re-wire the full circular neighbour ring so every player's
-    // left/right pointers are valid after the swap.
-    const int n = (int)players.size();
-    for (int i = 0; i < n; i++) {
-        players[i]->setLeftPlayer (players[(i - 1 + n) % n].get());
-        players[i]->setRightPlayer(players[(i + 1)     % n].get());
-    }
-
-    // Restore the disconnected player's health and inventory onto the
-    // new AI so the game continues without a state jump.
-    aiPlayer->setCurrentHealth(savedHealth);
+    // Restore health and inventory onto the new AI
+    Player* newAI = _gameState.getPlayerBySlot(slot);
+    newAI->setCurrentHealth(savedHealth);
     for (const ItemInstance& item : savedInventory) {
-        aiPlayer->addItem(item);
+        newAI->addItem(item);
     }
 }
 
@@ -1988,4 +1984,13 @@ void GameScene::handleDisconnectedPlayers() {
         // Step 2b: Both host and clients refresh the teammate name labels.
         refreshTeammateNameLabels();
     }
+}
+
+/**
+ * Disposes and re-initialises the GameState for a fresh session.
+ * Call this when aborting the lobby to clear all player house selections.
+ */
+void GameScene::resetGameState() {
+    _gameState.dispose();
+    _gameState.init(_itemController);
 }

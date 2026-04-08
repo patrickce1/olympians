@@ -136,7 +136,10 @@ protected:
     std::unordered_set<int> _slotsDemotedToAI;
     
     /** The sprite node representing the boss character frame in the scene based on the spritesheets. */
-    std::shared_ptr<cugl::scene2::SpriteNode> _bossSprite;
+    std::shared_ptr<cugl::scene2::SceneNode> _bossSprite;
+    
+    /** The scene node representing the animated special effects to be populated in the scene based on the spritesheets. */
+    std::shared_ptr<cugl::scene2::SceneNode> _specialEffectsLayer;
 
 #pragma mark - Drag State
 
@@ -336,6 +339,12 @@ public:
     void setLocalPlayer(int assignedIndex);
 
 #pragma mark - Action Handlers
+    
+    /**
+     * Disposes and re-initialises the GameState for a fresh session.
+     * Call this when aborting the lobby to clear all player house selections.
+     */
+    void resetGameState();
 
     /**
      * Handles the local player dropping an attack item on the boss zone.
