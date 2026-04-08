@@ -1087,69 +1087,89 @@ bool GameScene::updateItemFriction(ItemInstance* item, std::shared_ptr<cugl::phy
 }
 
 /**
+ * Checks if an item is in a matching interaction zone.
+ * Iterates through all input zones and checks if the item position falls within
+ * a zone and if its type matches the zone's expected type (Attack↔DROP_BOSS, Support↔DROP_ALLY_*).
+ *
+ * @param itemPos  The item's current world position
+ * @param itemDef  The item definition containing type information
+ * @return         true if the item is in a valid matching zone, false otherwise
+ */
+bool GameScene::isItemInMatchingZone(const cugl::Vec2& itemPos, const std::shared_ptr<ItemDef>& itemDef) {
+    if (!itemDef) return false;
+    
+    for (auto& [action, zone] : _inputZones) {
+        if (!zone.contains(itemPos)) continue;
+        
+        // Check for type matching
+        if (action == InputController::Action::DROP_BOSS && itemDef->getType() == ItemDef::Type::Attack) {
+            return true;
+        }
+        if ((action == InputController::Action::DROP_ALLY_LEFT || action == InputController::Action::DROP_ALLY_RIGHT) 
+            && itemDef->getType() == ItemDef::Type::Support) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Initiates a snapback animation for an item returned to inventory.
+ * Retrieves the item's widget (or uses default size), calculates a random
+ * target position in the inventory, and creates a snapback animation entry.
+ *
+ * @param itemId   The ID of the item to snapback
+ * @param fromPos  The item's current world position (animation start point)
+ */
+void GameScene::initiateSnapbackAnimation(ItemInstance::ItemId itemId, const cugl::Vec2& fromPos) {
+    auto widget = _itemWidgets[itemId];
+    cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
+    cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
+    
+    SnapbackAnimation anim;
+    anim.startPos = fromPos;
+    anim.targetPos = randomTarget;
+    anim.progress = 0.0f;
+    _snapbackAnimations[itemId] = anim;
+}
+
+/**
  * Handles settlement logic for dropped items.
- * Checks if the item is within inventory bounds or in a matching interaction zone.
- * Initiates snapback only if the item is out of bounds AND not in a valid zone.
+ * Checks if the item is within inventory bounds, then in matching interaction zones,
+ * and finally initiates snapback if neither condition is met.
  *
  * @param item       The item instance that has settled.
  * @param itemBody   The Box2D body representing the item.
  * @param itemId     The ID of the item.
- * @return           true if the item should be removed from sliding set.
+ * @return           true if the item should be removed from sliding set, false if animating/processing.
  */
 bool GameScene::handleSettledItemDrop(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, ItemInstance::ItemId itemId) {
     // Check if item is within inventory bounds
     bool inInventoryBounds = false;
     if (_inventory) {
-        cugl::Rect inventoryBounds = _inventory->getBoundingBox();
-        inInventoryBounds = inventoryBounds.contains(itemBody->getPosition());
+        inInventoryBounds = _inventory->getBoundingBox().contains(itemBody->getPosition());
     }
     
     if (inInventoryBounds) {
         // In bounds, just settle
         item->setSliding(false);
-        return true; // Remove from sliding set
+        return true;
     }
     
-    // Out of inventory bounds - check if it's in a matching interaction zone
+    // Out of bounds - check if it's in a matching interaction zone
     cugl::Vec2 itemPos = itemBody->getPosition();
     auto itemDef = _itemController.getDatabase().getDef(item->getDefId());
     
-    if (itemDef) {
-        for (auto& [action, zone] : _inputZones) {
-            if (!zone.contains(itemPos)) continue;
-            
-            // Check for type matching
-            bool typeMatches = false;
-            if (action == InputController::Action::DROP_BOSS && itemDef->getType() == ItemDef::Type::Attack) {
-                typeMatches = true;
-            } else if ((action == InputController::Action::DROP_ALLY_LEFT || action == InputController::Action::DROP_ALLY_RIGHT) 
-                       && itemDef->getType() == ItemDef::Type::Support) {
-                typeMatches = true;
-            }
-            
-            if (typeMatches) {
-                // Item is in a matching zone; enable zone interaction and let it be processed next frame
-                item->setCanInteractWithZones(true);
-                item->setSliding(false);
-                return false; // Keep in sliding set to be processed by zone interaction logic
-            }
-        }
+    if (isItemInMatchingZone(itemPos, itemDef)) {
+        // Item is in a matching zone; enable zone interaction and let it be processed next frame
+        item->setCanInteractWithZones(true);
+        item->setSliding(false);
+        return false; // Keep in sliding set to be processed by zone interaction logic
     }
     
-    // Not in any valid zone and outside inventory - snapback to random inventory position
-    auto widget = _itemWidgets[itemId];
-    cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
-    cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
-    
-    // Add to snapback animations map; supports multiple simultaneous snapbacks
-    SnapbackAnimation anim;
-    anim.startPos = itemBody->getPosition();
-    anim.targetPos = randomTarget;
-    anim.progress = 0.0f;
-    _snapbackAnimations[itemId] = anim;
-    
-    // Stop sliding so snapback animation takes over
+    // Not in any valid zone and outside inventory - snapback to inventory
     item->setSliding(false);
+    initiateSnapbackAnimation(itemId, itemPos);
     return false; // Don't remove yet; snapback animation will handle it
 }
 
