@@ -192,6 +192,21 @@ void BossSelectScene::setActive(bool value) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void BossSelectScene::update(float timestep) {
+    // Kick client if host terminated the session
+    if (!_network->isHost()) {
+        if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
+            _status = Status::ABORT;
+            return;
+        }
+        _network->getNetworkUpdates();
+        if (_network->wasSessionTerminated()) {
+            _network->clearQueues();
+            _network->disconnect();
+            _status = Status::ABORT;
+            return;
+        }
+    }
+    
     if (_isAnimating) {
         Vec2 bossCardContainerPos = _bossSelectionCardContainer->getPosition();
         Vec2 interpolatedPos = bossCardContainerPos.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor

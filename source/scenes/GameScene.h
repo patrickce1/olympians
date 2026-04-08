@@ -332,6 +332,12 @@ public:
     void setLocalPlayer(int assignedIndex);
 
 #pragma mark - Action Handlers
+    
+    /**
+     * Disposes and re-initialises the GameState for a fresh session.
+     * Call this when aborting the lobby to clear all player house selections.
+     */
+    void resetGameState();
 
     /**
      * Handles the local player dropping an attack item on the boss zone.

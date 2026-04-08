@@ -29,7 +29,7 @@
                 },
                 "data": {
                     "anchor": [
-                        0,
+                        0.5,
                         1
                     ],
                     "size": [
@@ -84,8 +84,8 @@
                                 19
                             ],
                             "position": [
-                                120.00009155273438,
-                                16
+                                170,
+                                25
                             ],
                             "angle": 0,
                             "visible": true,
@@ -113,10 +113,10 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.07,
+                    "x_offset": 0,
                     "y_offset": -0.84
                 }
             },
@@ -818,7 +818,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        72,
+                                        351,
                                         458
                                     ],
                                     "angle": 0,
@@ -833,7 +833,7 @@
                                     "padding": [
                                         0,
                                         0,
-                                        262,
+                                        320,
                                         0
                                     ]
                                 }
@@ -847,7 +847,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        73,
+                                        351,
                                         458
                                     ],
                                     "angle": 0,
@@ -860,7 +860,7 @@
                                 "layout": {
                                     "priority": 1,
                                     "padding": [
-                                    0,
+                                    320,
                                     0,
                                     0,
                                     0
@@ -1048,7 +1048,7 @@
                 },
                 "data": {
                     "anchor": [
-                        0,
+                        0.5,
                         1
                     ],
                     "size": [
@@ -1067,7 +1067,7 @@
                         "type": "Label",
                         "data": {
                             "anchor": [
-                                0,
+                                0.5,
                                 1
                             ],
                             "size": [
@@ -1091,14 +1091,14 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "left"
+                            "halign": "center"
                         },
                         "children": {},
                         "layout": {
-                            "x_anchor": "left",
+                            "x_anchor": "center",
                             "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0.2,
+                            "x_offset": 0,
                             "y_offset": 0
                         }
                     },
@@ -1131,10 +1131,10 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.14,
+                    "x_offset": 0,
                     "y_offset": -0.17
                 }
             },
