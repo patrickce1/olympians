@@ -207,6 +207,13 @@ void BossSelectScene::update(float timestep) {
         }
     }
     
+    // forward to game scene if host started while we were here
+    if (_network->checkGameStarted()) {
+        _network->clearQueues();
+        _status = Status::GAMESCENE_START;
+        return;
+    }
+    
     if (_isAnimating) {
         Vec2 bossCardContainerPos = _bossSelectionCardContainer->getPosition();
         Vec2 interpolatedPos = bossCardContainerPos.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor
