@@ -102,6 +102,13 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
         return;
     }
 
+    // Already a real player for this same house; keep existing instance/state
+    // and only refresh display name.
+    if (!_players[playerNumber]->isAI() && _players[playerNumber]->getHouseName() == houseName) {
+        _players[playerNumber]->setPlayerName(playerName);
+        return;
+    }
+
     // Full reconstruction with house stats
     _players[playerNumber] = std::make_shared<Player>(
         houseName,
@@ -115,6 +122,32 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
     for (int i = 0; i < n; i++) {
         _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
         _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+    }
+}
+
+/**
+ * Swaps two player slots in the model. First check that the swap would be valid. Then reorient each player's left and right.
+ *
+ * @param slotA  The first slot index.
+ * @param slotB  The second slot index.
+ */
+void GameState::swapPlayerSlots(int slotA, int slotB) {
+    const int count = static_cast<int>(_players.size());
+    if (slotA < 0 || slotB < 0 || slotA >= count || slotB >= count || slotA == slotB) {
+        return;
+    }
+
+    std::swap(_players[slotA], _players[slotB]);
+
+    for (int i = 0; i < count; i++) {
+        _playerIdMap[i] = _players[i].get();
+    }
+
+    for (int i = 0; i < count; i++) {
+        int leftIdx  = (i - 1 + count) % count;
+        int rightIdx = (i + 1) % count;
+        _players[i]->setLeftPlayer (_players[leftIdx].get());
+        _players[i]->setRightPlayer(_players[rightIdx].get());
     }
 }
 

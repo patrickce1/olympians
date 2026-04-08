@@ -11,6 +11,8 @@ using namespace std;
 #define SCENE_HEIGHT  852
 /** Player Icon Blink Timer */
 #define BLINK_TIMER  0.5f
+/** Minimum pointer travel before a press is treated as a drag. */
+#define LOBBY_DRAG_THRESHOLD 12.0f
 
 /**
  * Initializes the controller contents, and starts the game
@@ -54,6 +56,7 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
     // Setup UI and listeners
     setupUI();
     setupListeners();
+    setupDragInput();
     
     _status = Status::IDLE;
     
@@ -89,6 +92,8 @@ void LobbyScene::setupUI() {
         for (int i = 0; i <= 3; i++) {
             std::string cardName = "playerCard" + std::to_string(i);
             auto card = _playerInfoContainer->getChildByName(cardName);
+            _playerCards.push_back(card);
+            _playerCardHomePositions.push_back(card ? card->getPosition() : Vec2::ZERO);
             auto label = std::dynamic_pointer_cast<scene2::Label>(
                 card->getChildByName("username")
             );
@@ -137,14 +142,91 @@ void LobbyScene::setupListeners() {
         }
     });
     
-    // Add listeners to all player icon buttons to open the house select screen
-    for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages) {
-        icon->addListener([this](const std::string& name, bool down) {
+    // Add listeners to all player icon buttons. Down arms drag on the exact
+    // clickable icon region; release keeps the normal house-select behavior.
+    for (int i = 0; i < (int)_playerImages.size(); i++) {
+        auto icon = _playerImages[i];
+        icon->addListener([this, i](const std::string& name, bool down) {
+            const int lockedDisplayIndex = static_cast<int>(_playerImages.size()) - 1;
             if (down) {
-                CULog("down");
+                if (i == lockedDisplayIndex) {
+                    return;
+                }
+                _draggedCardIndex = i;
+                _pointerDown = true;
+                _isDraggingCard = false;
+                _didDragCard = false;
+                _pendingDragInit = true;
+                return;
+            }
+
+            if (!down && !_didDragCard) {
                 _status = Status::SELECT;
             }
         });
+    }
+}
+
+/**
+ * Initializes touch and mouse listeners used for lobby drag-and-drop.
+ */
+void LobbyScene::setupDragInput() {
+    _touch = Input::get<Touchscreen>();
+    if (_touch) {
+        _touchListenerKey = _touch->acquireKey();
+        _touch->addBeginListener(_touchListenerKey, [this](const TouchEvent& event, bool focus) {
+            if (!_active) return;
+        });
+        _touch->addMotionListener(_touchListenerKey, [this](const TouchEvent& event, const Vec2& prev, bool focus) {
+            if (!_active) return;
+            if (_pendingDragInit) {
+                handlePointerDown(screenToWorldCoords(event.position));
+            }
+            handlePointerDrag(screenToWorldCoords(event.position));
+        });
+        _touch->addEndListener(_touchListenerKey, [this](const TouchEvent& event, bool focus) {
+            if (!_active) return;
+            handlePointerUp(screenToWorldCoords(event.position));
+        });
+    }
+
+    _mouse = Input::get<Mouse>();
+    if (_mouse) {
+        _mouseListenerKey = _mouse->acquireKey();
+        _mouse->setPointerAwareness(Mouse::PointerAwareness::DRAG);
+        _mouse->addPressListener(_mouseListenerKey, [this](const MouseEvent& event, Uint8 clicks, bool focus) {
+            if (!_active) return;
+        });
+        _mouse->addDragListener(_mouseListenerKey, [this](const MouseEvent& event, const Vec2& previous, bool focus) {
+            if (!_active) return;
+            if (_pendingDragInit) {
+                handlePointerDown(screenToWorldCoords(event.position));
+            }
+            handlePointerDrag(screenToWorldCoords(event.position));
+        });
+        _mouse->addReleaseListener(_mouseListenerKey, [this](const MouseEvent& event, Uint8 clicks, bool focus) {
+            if (!_active) return;
+            handlePointerUp(screenToWorldCoords(event.position));
+        });
+    }
+}
+
+/**
+ * Removes any touch/mouse listeners registered by setupDragInput().
+ */
+void LobbyScene::disposeDragInput() {
+    if (_touch) {
+        _touch->removeBeginListener(_touchListenerKey);
+        _touch->removeMotionListener(_touchListenerKey);
+        _touch->removeEndListener(_touchListenerKey);
+        _touch = nullptr;
+    }
+
+    if (_mouse) {
+        _mouse->removePressListener(_mouseListenerKey);
+        _mouse->removeDragListener(_mouseListenerKey);
+        _mouse->removeReleaseListener(_mouseListenerKey);
+        _mouse = nullptr;
     }
 }
 
@@ -156,6 +238,8 @@ void LobbyScene::dispose() {
         removeAllChildren();
         _playerSlots.clear();
         _playerImages.clear();
+        _playerCards.clear();
+        _playerCardHomePositions.clear();
         _enterGame = nullptr;
         _backButton = nullptr;
         _gameId = nullptr;
@@ -164,6 +248,7 @@ void LobbyScene::dispose() {
         _playerInfoContainer = nullptr;
         _active = false;
     }
+    disposeDragInput();
     _network = nullptr;
 }
 
@@ -180,7 +265,14 @@ void LobbyScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
         if (value) {
+            //Setup everyhing for interaction
             _status = IDLE;
+            _pointerDown = false;
+            _isDraggingCard = false;
+            _draggedCardIndex = -1;
+            _didDragCard = false;
+            _pendingDragInit = false;
+            _sentJoinMessage = false;
             _enterGame->deactivate();
             _backButton->activate();
             _bossLobbyButton->activate();
@@ -195,6 +287,10 @@ void LobbyScene::setActive(bool value) {
             _backButton->deactivate();
             _enterGame->deactivate();
             _bossLobbyButton->deactivate();
+            _pointerDown = false;
+            _isDraggingCard = false;
+            _draggedCardIndex = -1;
+            _pendingDragInit = false;
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->deactivate();
                 icon->setDown(false);
@@ -204,7 +300,158 @@ void LobbyScene::setActive(bool value) {
             _enterGame->setDown(false);
             _backButton->setDown(false);
             _bossLobbyButton->setDown(false);
+
+            for (int i = 0; i < (int)_playerCards.size() && i < (int)_playerCardHomePositions.size(); i++) {
+                if (_playerCards[i]) {
+                    _playerCards[i]->setPosition(_playerCardHomePositions[i]);
+                }
+            }
         }
+    }
+}
+
+/**
+ * Starts a potential drag if the pointer pressed on a player card.
+ *
+ * @param scenePos  Pointer location in scene coordinates.
+ */
+void LobbyScene::handlePointerDown(const cugl::Vec2& scenePos) {
+    if (_draggedCardIndex < 0 || _draggedCardIndex >= (int)_playerCards.size()) {
+        _pointerDown = false;
+        _pendingDragInit = false;
+        return;
+    }
+
+    _pointerStartPos = scenePos;
+    _pendingDragInit = false;
+
+    if (_draggedCardIndex >= 0 && _draggedCardIndex < (int)_playerCards.size() && _playerCards[_draggedCardIndex]) {
+        Vec2 localPos = _playerInfoContainer->worldToNodeCoords(scenePos);
+        _dragOffset = _playerCards[_draggedCardIndex]->getPosition() - localPos;
+    }
+}
+
+/**
+ * Updates the currently dragged card position.
+ *
+ * @param scenePos  Pointer location in scene coordinates.
+ */
+void LobbyScene::handlePointerDrag(const cugl::Vec2& scenePos) {
+    if (!_pointerDown || _draggedCardIndex < 0 || _draggedCardIndex >= (int)_playerCards.size()) {
+        return;
+    }
+
+    auto card = _playerCards[_draggedCardIndex];
+    if (!card) {
+        return;
+    }
+    Vec2 localPos = _playerInfoContainer->worldToNodeCoords(scenePos);
+
+
+    if (!_isDraggingCard && localPos.distance(_pointerStartPos) >= LOBBY_DRAG_THRESHOLD) {
+        _isDraggingCard = true;
+        _didDragCard = true;
+    }
+
+    if (_isDraggingCard) {
+        card->setPosition(localPos + _dragOffset);
+    }
+}
+
+/**
+ * Ends drag handling and performs a slot swap if dropped over another card.
+ *
+ * @param scenePos  Pointer location in scene coordinates.
+ */
+void LobbyScene::handlePointerUp(const cugl::Vec2& scenePos) {
+    if (!_pointerDown) {
+        return;
+    }
+
+    _pointerDown = false;
+
+    if (_draggedCardIndex >= 0 && _draggedCardIndex < (int)_playerCards.size()) {
+        if (_isDraggingCard) {
+            int targetIndex = findCardAt(scenePos, _draggedCardIndex);
+            const int lockedDisplayIndex = static_cast<int>(_playerCards.size()) - 1;
+            if (targetIndex >= 0 && targetIndex != _draggedCardIndex && targetIndex != lockedDisplayIndex) {
+                swapPlayersByDisplayIndex(_draggedCardIndex, targetIndex);
+            }
+        }
+
+        if (_draggedCardIndex < (int)_playerCardHomePositions.size() && _playerCards[_draggedCardIndex]) {
+            _playerCards[_draggedCardIndex]->setPosition(_playerCardHomePositions[_draggedCardIndex]);
+        }
+    }
+
+    _isDraggingCard = false;
+    _draggedCardIndex = -1;
+}
+
+/**
+ * Returns the card index at a scene position. (What is underneath the pointer)
+ *
+ * @param scenePos  Pointer location in scene coordinates.
+ * @param ignore    Card index to skip during hit-test.
+ * @return          Card index, or -1 if no card is hit.
+ */
+int LobbyScene::findCardAt(const cugl::Vec2& scenePos, int ignore) const {
+    if (!_playerInfoContainer) return -1;
+    Vec2 localPos = _playerInfoContainer->worldToNodeCoords(scenePos);
+    for (int i = 0; i < (int)_playerCards.size(); i++) {
+        if (i == ignore) continue;
+        if (_playerCards[i] && _playerCards[i]->getBoundingBox().contains(localPos)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/**
+ * Converts a display-slot index (0..N-1 in lobby UI order) to the
+ * underlying model/network slot index.
+ *
+ * @param displayIndex  The lobby card index in display order.
+ * @return              The backing model slot, or -1 if unavailable.
+ */
+int LobbyScene::displayIndexToModelIndex(int displayIndex) const {
+    if (!_network || !_gameState) {
+        return -1;
+    }
+
+    const int totalSlots = static_cast<int>(_gameState->getPlayers().size());
+    const int localIndex = _network->getLocalPlayerNumber();
+    if (totalSlots <= 0 || localIndex < 0 || displayIndex < 0 || displayIndex >= totalSlots) {
+        return -1;
+    }
+
+    return (localIndex + displayIndex + 1) % totalSlots;
+}
+
+/**
+ * Swaps two players selected by their display-slot indices.
+ *
+ * @param displayA  First lobby card index.
+ * @param displayB  Second lobby card index.
+ */
+void LobbyScene::swapPlayersByDisplayIndex(int displayA, int displayB) {
+    if (!_network || !_gameState || !_network->isHost()) {
+        return;
+    }
+
+    const int lockedDisplayIndex = static_cast<int>(_playerCards.size()) - 1;
+    if (displayA == lockedDisplayIndex || displayB == lockedDisplayIndex) {
+        return;
+    }
+
+    const int modelA = displayIndexToModelIndex(displayA);
+    const int modelB = displayIndexToModelIndex(displayB);
+    if (modelA < 0 || modelB < 0 || modelA == modelB) {
+        return;
+    }
+
+    if (_network->swapLobbyPlayers(modelA, modelB)) {
+        _gameState->swapPlayerSlots(modelA, modelB);
     }
 }
 
@@ -351,7 +598,10 @@ void LobbyScene::update(float timestep) {
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
         _gameId->setText(_network->getRoom());
-        _network->broadcastJoinedLobby();
+        if (!_sentJoinMessage) {
+            _network->broadcastJoinedLobby();
+            _sentJoinMessage = true;
+        }
         _network->getNetworkUpdates();
         // change boss icon to the currently chosen boss
         updateLobbyBossImage(_network->getEnemy());
@@ -359,7 +609,7 @@ void LobbyScene::update(float timestep) {
     else {
         _gameId->setText("#####");
     }
-
+    
     if (!_network->isHost()) {
         _network->getNetworkUpdates();
         if (_network->checkGameStarted()) {
@@ -375,7 +625,7 @@ void LobbyScene::update(float timestep) {
     
     // Only the host can start; only enable the button when all players have locked in a house.
     if (_network->isHost() && _network->allPlayersSelectedHouse()) {
-            _enterGame->activate();
+        _enterGame->activate();
     } else {
         _enterGame->deactivate();
     }
@@ -392,7 +642,7 @@ void LobbyScene::update(float timestep) {
     
     if (!_hasSelectedHouse) {
         _blinkTimer += timestep;
-
+        
         if (_blinkTimer >= BLINK_TIMER) {
             _blinkTimer = 0.0f;
             _blinkOn = !_blinkOn;
@@ -402,4 +652,3 @@ void LobbyScene::update(float timestep) {
         _localPlayerIconIndicator->setVisible(true);
     }
 }
-

@@ -8,6 +8,9 @@ using namespace cugl::scene2;
 using namespace cugl::netcode;
 using namespace std;
 
+/** Total lobby slots (1 host + up to 3 other players/AI placeholders). */
+static constexpr int LOBBY_SLOT_COUNT = 4;
+
 /*HELPERS*/
 
 /**
@@ -241,7 +244,26 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				NetworkedPlayer newPlayer;
 				newPlayer.networkID = senderID;
 				newPlayer.username = playerName;
-				_onlinePlayers.push_back(newPlayer);
+
+				bool assigned = false;
+				for (int i = 0; i < (int)_onlinePlayers.size(); i++) {
+					// Fill the first AI placeholder before appending.
+					if (_onlinePlayers[i].networkID.empty()) {
+						newPlayer.houseID = _onlinePlayers[i].houseID;
+						_onlinePlayers[i] = newPlayer;
+						assigned = true;
+						break;
+					}
+				}
+
+				if (!assigned) {
+					if ((int)_onlinePlayers.size() < LOBBY_SLOT_COUNT) {
+						_onlinePlayers.push_back(newPlayer);
+					} else {
+						CULog("HOST rejected join from %s because lobby is full", senderID.c_str());
+						break;
+					}
+				}
 				broadcastLobbyState();
 			}
 			break;
@@ -367,12 +389,12 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
  * @return          true if the player is a real networked player, false if AI.
  */
 bool NetworkController::checkRealPlayer(int playerID) {
-	if (playerID >= _onlinePlayers.size() ) {
+	if (playerID < 0 || playerID >= (int)_onlinePlayers.size()) {
 		return false;
 	}
-	else {
-		return true;
-	}
+
+	// AI placeholders have an empty networkID.
+	return !_onlinePlayers[playerID].networkID.empty();
 }
 
 /**
@@ -511,6 +533,24 @@ void NetworkController::broadcastSelectedHouse(std::string& house) {
 }
 
 /**
+ * Host-only helper to swap two lobby slots and rebroadcast the lobby state.
+ *
+ * @param slotA  The first slot index in _onlinePlayers.
+ * @param slotB  The second slot index in _onlinePlayers.
+ */
+bool NetworkController::swapLobbyPlayers(int slotA, int slotB) {
+	const int count = static_cast<int>(_onlinePlayers.size());
+    //Only host may swap. Only allow valid swaps (in bounds and not itself)
+	if (!isHost() || slotA < 0 || slotB < 0 || slotA >= count || slotB >= count || slotA == slotB) {
+		return false;
+	}
+
+	std::swap(_onlinePlayers[slotA], _onlinePlayers[slotB]);
+	broadcastLobbyState();
+	return true;
+}
+
+/**
  * Sets the local player's display name and registers them in the online
  * players list as the first entry. Should be called once after the player
  * enters their name, before connecting to or hosting a lobby.
@@ -524,6 +564,15 @@ void NetworkController::setPlayerName(const std::string& name) {
 		newPlayer.username = name;
 		newPlayer.networkID = _network->getUUID();
 		_onlinePlayers.push_back(newPlayer);
+
+		// Host keeps a fixed 4-slot lobby order so AI slots can be swapped. Use placeholder ai, such that network matches underlying state.
+		if (isHost()) {
+			for (int i = 1; i < LOBBY_SLOT_COUNT; i++) {
+				NetworkedPlayer aiPlaceholder;
+				aiPlaceholder.username = "AI Player " + std::to_string(i);
+				_onlinePlayers.push_back(aiPlaceholder);
+			}
+		}
 	}
 }
 
@@ -585,14 +634,18 @@ void NetworkController::registerDisconnectCallback() {
             if (_onlinePlayers[i].networkID == peerID) {
                 CULog("NetworkController: slot %d disconnected", i);
                 _disconnectedSlots.push_back(i);
-                
-                // Remove from _onlinePlayers so future lookups are accurate.
-                _onlinePlayers.erase(_onlinePlayers.begin() + i);
-                
+
                 // Notify all remaining clients if we are the host.
                 if (isHost()) {
+					// Replace disconnected real player with AI placeholder, keeping slot order stable.
+					NetworkedPlayer aiPlaceholder;
+					aiPlaceholder.username = "AI Player " + std::to_string(i);
+					_onlinePlayers[i] = aiPlaceholder;
                     broadcastPlayerDisconnected(i);
                     broadcastLobbyState();
+				} else {
+					// Non-host can compact its local list if this callback fires.
+					_onlinePlayers.erase(_onlinePlayers.begin() + i);
                 }
                 break;
             }
@@ -636,11 +689,16 @@ void NetworkController::setLocalHouse(const std::string& houseID) {
 
 /** Returns true if every player in the lobby has selected a house. */
 bool NetworkController::allPlayersSelectedHouse() const {
-    if (_onlinePlayers.empty()) return false;
+	if (_onlinePlayers.empty()) return false;
+	bool hasRealPlayers = false;
     for (const NetworkedPlayer& player : _onlinePlayers) {
+		if (player.networkID.empty()) {
+			continue;
+		}
+		hasRealPlayers = true;
         if (player.houseID.empty()) return false;
     }
-    return true;
+	return hasRealPlayers;
 }
 
 /*HOST ONLY. Notifies all clients that the host has exited the lobby and the session is over.*/

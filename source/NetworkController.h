@@ -2,6 +2,7 @@
 #ifndef __NETWORKING_CONTROLLER__
 #define __NETWORKING_CONTROLLER__
 
+#include <cstddef>
 #include <cugl/cugl.h>
 #include "NetworkMessage.h"
 #include "scenes/GameState.h"
@@ -233,6 +234,9 @@ public:
     
     /** Returns true if every player in the lobby has selected a house. */
     bool allPlayersSelectedHouse() const;
+    
+    /**Swap players in slotA and slotB in positional space.**/
+    bool swapLobbyPlayers(int slotA, int slotB);
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -297,7 +301,7 @@ private:
     
     // Enemy for the game
     std::string _enemy;
-    
+
     //Used internally to handle the different types of networking messages that come in 
     void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);
 };

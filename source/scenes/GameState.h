@@ -197,6 +197,17 @@ public:
     /** Returns the character loader, needed when constructing replacement players. */
     const HouseLoader& getHouseLoader() const { return _houseLoader; }
 
+    /**
+     * Swaps two player slots in the authoritative model.
+     *
+     * This updates storage order, refreshes the player ID map, and rewires
+     * left/right neighbours for the full ring.
+     *
+     * @param slotA  The first slot index.
+     * @param slotB  The second slot index.
+     */
+    void swapPlayerSlots(int slotA, int slotB);
+
 #pragma mark - Enemy Access
 
     /**

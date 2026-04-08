@@ -61,6 +61,12 @@ protected:
     /** Player icon buttons (to update when they select house) */
     std::vector<std::shared_ptr<cugl::scene2::Button>> _playerImages;
 
+    /** Player card nodes used for drag hit-testing and temporary movement. */
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _playerCards;
+
+    /** Home positions for each player card while idle. */
+    std::vector<cugl::Vec2> _playerCardHomePositions;
+
     /** A container that stores labels and other info for visualizing the house and username choices of players */
     std::shared_ptr<cugl::scene2::SceneNode> _playerInfoContainer;
     
@@ -82,8 +88,44 @@ protected:
     /** Whether the local player has selected a house */
     bool _hasSelectedHouse;
 
+    /** True once this activation has sent the PLAYER_JOIN message. */
+    bool _sentJoinMessage = false;
+
     /** The state of the game */
     GameState* _gameState = nullptr;
+
+    /** Touchscreen input device used for lobby drag interactions. */
+    cugl::Touchscreen* _touch = nullptr;
+
+    /** Mouse input device used for desktop drag interactions. */
+    cugl::Mouse* _mouse = nullptr;
+
+    /** Listener key for touch callbacks. */
+    Uint32 _touchListenerKey = 0;
+
+    /** Listener key for mouse callbacks. */
+    Uint32 _mouseListenerKey = 0;
+
+    /** True while pointer is currently held down. */
+    bool _pointerDown = false;
+
+    /** True once the current pointer interaction becomes a drag. */
+    bool _isDraggingCard = false;
+
+    /** Set when a drag occurred; used to suppress icon tap-to-select on release. */
+    bool _didDragCard = false;
+
+    /** The index of the card currently being dragged, or -1 when none. */
+    int _draggedCardIndex = -1;
+
+    /** Pointer position where current press began. */
+    cugl::Vec2 _pointerStartPos;
+
+    /** Offset from pointer to card origin at drag start. */
+    cugl::Vec2 _dragOffset;
+
+    /** True when a drag start has been armed by a playerIcon button-down event. */
+    bool _pendingDragInit = false;
 
 public:
 #pragma mark -
@@ -241,6 +283,63 @@ private:
      * @param players  The display-ordered list of players to read house names from.
      */
     void updateLobbyPlayerIcons(std::vector<Player*> players);
+
+    /**
+     * Initializes touch and mouse listeners used for lobby drag-and-drop.
+     */
+    void setupDragInput();
+
+    /**
+     * Removes any touch/mouse listeners registered by setupDragInput().
+     */
+    void disposeDragInput();
+
+    /**
+     * Starts a potential drag if the pointer pressed on a player card.
+     *
+     * @param scenePos  Pointer location in scene coordinates.
+     */
+    void handlePointerDown(const cugl::Vec2& scenePos);
+
+    /**
+     * Updates the currently dragged card position.
+     *
+     * @param scenePos  Pointer location in scene coordinates.
+     */
+    void handlePointerDrag(const cugl::Vec2& scenePos);
+
+    /**
+     * Ends drag handling and performs a slot swap if dropped over another card.
+     *
+     * @param scenePos  Pointer location in scene coordinates.
+     */
+    void handlePointerUp(const cugl::Vec2& scenePos);
+
+    /**
+     * Returns the card index at a scene position.
+     *
+     * @param scenePos  Pointer location in scene coordinates.
+     * @param ignore    Card index to skip during hit-test.
+     * @return          Card index, or -1 if no card is hit.
+     */
+    int findCardAt(const cugl::Vec2& scenePos, int ignore = -1) const;
+
+    /**
+     * Converts a display-slot index (0..N-1 in lobby UI order) to the
+     * underlying model/network slot index.
+     *
+     * @param displayIndex  The lobby card index in display order.
+     * @return              The backing model slot, or -1 if unavailable.
+     */
+    int displayIndexToModelIndex(int displayIndex) const;
+
+    /**
+     * Swaps two players selected by their display-slot indices.
+     *
+     * @param displayA  First lobby card index.
+     * @param displayB  Second lobby card index.
+     */
+    void swapPlayersByDisplayIndex(int displayA, int displayB);
 };
 
 #endif /* __LOBBY_SCENE_H__ */
