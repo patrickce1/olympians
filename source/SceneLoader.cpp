@@ -399,6 +399,13 @@ void SceneLoader::update(float dt) {
         case State::HOUSESELECT:
             _houseSelectScene.update(dt);
             switch (_houseSelectScene.getStatus()) {
+                case HouseSelectScene::Status::GAMESCENE_START:
+                    CULog("Transitioning to GameScene from HouseSelect...");
+                    _audio.playMusic("battle");
+                    _gameScene.setActive(true);
+                    _houseSelectScene.setActive(false);
+                    _currentScene = State::GAME;
+                    break;
                 case HouseSelectScene::Status::ABORT:
                     if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
                         _gameScene.resetGameState();
@@ -419,6 +426,13 @@ void SceneLoader::update(float dt) {
         case State::BOSSSELECT:
             _bossSelectScene.update(dt);
             switch (_bossSelectScene.getStatus()) {
+                case BossSelectScene::Status::GAMESCENE_START:
+                    CULog("Transitioning to GameScene from BossSelect...");
+                    _audio.playMusic("battle");
+                    _gameScene.setActive(true);
+                    _bossSelectScene.setActive(false);
+                    _currentScene = State::GAME;
+                    break;
                 case BossSelectScene::Status::ABORT:
                     if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
                         _gameScene.resetGameState();

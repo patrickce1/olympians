@@ -335,7 +335,7 @@
                         },
                         "layout": {
                             "priority": 0,
-                            "padding": [0,12,0,0]
+                            "padding": [0,16,0,0]
                         }
                     },
                     "playerName": {
@@ -357,7 +357,7 @@
                     "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": 0.12
+                    "y_offset": 0.16
                 }
             },
             "enter": {
@@ -373,7 +373,7 @@
                     "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": 0.02
+                    "y_offset": 0.03
                 }
             },
             "back": {

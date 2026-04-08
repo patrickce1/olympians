@@ -117,7 +117,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.84
+                    "y_offset": -0.855
                 }
             },
             "hostName": {
@@ -133,7 +133,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.8
+                    "y_offset": -0.26
                 }
             },
             "bossSelectionCarouselIcons": {
@@ -659,7 +659,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.73
+                    "y_offset": -0.82
                 }
             },
             "bossCarousel": {
@@ -1038,7 +1038,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.19
+                    "y_offset": -0.28
                 }
             },
             "header": {

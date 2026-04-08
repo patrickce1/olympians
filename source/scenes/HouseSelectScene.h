@@ -25,7 +25,9 @@ public:
         /** Player has locked in a house; ready to proceed */
         LOCKED,
         /** Player canceled or left house select; back to lobby */
-        ABORT
+        ABORT,
+        /** Game scene has been started by host*/
+        GAMESCENE_START
     };
     
     /**
