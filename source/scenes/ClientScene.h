@@ -44,7 +44,7 @@ protected:
     /** The menu button for entering a game */
     std::shared_ptr<cugl::scene2::Button> _enterGame;
     /** The back button for the menu scene */
-    std::shared_ptr<cugl::scene2::Button> _backOut;
+    std::shared_ptr<cugl::scene2::Button> _backButton;
     /** The game id label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _gameId;
     /** The game id placeholder label */
