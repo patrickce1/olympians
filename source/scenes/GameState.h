@@ -219,6 +219,15 @@ public:
 
     /* Returns whether or not the players lost based on the current game state*/
     bool didLose();
+    
+    /**
+     * Replaces the player at the given slot with a default AI placeholder,
+     * re-wires the neighbour ring, and updates the player ID map.
+     * Called when a real player disconnects from the lobby before the game starts.
+     *
+     * @param slot  The 0-based slot index of the player to demote.
+     */
+    void demoteToAI(int slot);
 
 private:
 

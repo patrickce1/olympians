@@ -333,3 +333,28 @@ void GameState::assignMissingHouses(ItemController& itemController) {
         _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
     }
 }
+
+/**
+ * Replaces the player at the given slot with a default AI placeholder,
+ * re-wires the neighbour ring, and updates the player ID map.
+ * Called when a real player disconnects from the lobby before the game starts.
+ *
+ * @param slot  The 0-based slot index of the player to demote.
+ */
+void GameState::demoteToAI(int slot) {
+    if (slot < 0 || slot >= (int)_players.size()) return;
+
+    _players[slot] = std::make_shared<EasyPlayerAI>(
+        "",
+        slot,
+        "AI Player " + std::to_string(slot),
+        _houseLoader
+    );
+    _playerIdMap[slot] = _players[slot].get();
+
+    const int n = (int)_players.size();
+    for (int i = 0; i < n; i++) {
+        _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
+        _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+    }
+}

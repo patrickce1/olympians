@@ -123,6 +123,9 @@ void LobbyScene::setupListeners() {
             if (_network->isHost()) {
                 _network->broadcastSessionTerminated();
                 _pendingDisconnect = true;
+            } else {
+                // Client leaving — disconnect so host is notified via disconnect callback
+                _pendingDisconnect = true;
             }
             _status = Status::ABORT;
         }
@@ -278,12 +281,24 @@ void LobbyScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
     const auto& networkedPlayers = _network->getNetworkedPlayers();
-    for (int i = 0; i < (int)networkedPlayers.size(); i++) {
+    const int realCount = (int)networkedPlayers.size();
+    const int totalSlots = (int)_gameState->getPlayers().size();
+
+    for (int i = 0; i < realCount; i++) {
         _gameState->setRealPlayer(
             i,
             networkedPlayers[i].username,
             networkedPlayers[i].houseID
         );
+    }
+
+    // Host only: demote any slots beyond the current real player count back to AI
+    if (_network->isHost()) {
+        for (int i = realCount; i < totalSlots; i++) {
+            if (!_gameState->getPlayerBySlot(i)->isAI()) {
+                _gameState->demoteToAI(i);
+            }
+        }
     }
 }
 
