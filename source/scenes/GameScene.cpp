@@ -248,7 +248,7 @@ void GameScene::initBackgroundAndBossImage() {
  * @param assets  The loaded asset manager.
  * @return true if initialisation succeeded, false otherwise.
  */
-bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio) {
     if (assets == nullptr) {
         return false;
     }
@@ -258,6 +258,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
 
     _assets = assets;
     _network = networkController;
+    _audio = audio;
 
     initInputZones();
 
@@ -437,8 +438,15 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastDamage(resolvedMagnitude);
             }
-            CULog("Player attacked enemy '%s' with item %llu",
-                  enemy->getId().c_str(), (unsigned long long)itemId);
+            CULog("Player attacked enemy '%s' with item %llu (damage: %.1f)",
+                  enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
+            _audio->playSoundUnique("attack");
+            
+            // Host hears enemy take damage immediately
+            if (_network->isHost() && _audio) {
+                _audio->playSoundUnique("enemy_hurt");
+                CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+            }
             return true;
         }
         return false;
@@ -472,6 +480,8 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
+            _audio->playSoundUnique("support");
+            CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }
         return false;
@@ -505,6 +515,8 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
+            _audio->playSoundUnique("support");
+            CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }
         return false;
@@ -554,6 +566,8 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
         }
 
         _network->broadcastPass(defId, target->getPlayerNumber(), 1);  // Direction 1 = left
+        _audio->playSoundUnique("whoosh");
+
         return true;
     }
     return false;
@@ -601,6 +615,7 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
         }
 
         _network->broadcastPass(defId, target->getPlayerNumber(), 2);  // Direction 2 = right
+        _audio->playSoundUnique("whoosh");
         return true;
     }
     return false;
@@ -696,13 +711,23 @@ void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
 
+    // Track player and enemy health before any updates to detect damage
+    auto player = _gameState.getLocalPlayer();
+    // Only track health if local player is not AI (AI players shouldn't hear their own hurt sounds)
+    float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
+    float enemyHealthBefore = enemy->getCurrentHealth();
+
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
+    // Update AI players - this is when they attack the boss AND heal teammates
     for (auto& player : _gameState.getPlayers()) {
         if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
             ai->update(dt, *enemy, _itemController);
         }
     }
+    
+    // Play sounds for LOCAL player and enemy health changes after all updates
+    playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
 }
 
 /**
@@ -757,6 +782,28 @@ void GameScene::handleResetButton(InputController& input) {
 }
 
 /**
+ * Initiates sliding for a released item by calculating velocity and starting animation.
+ * Used when an item is dropped on an invalid zone or outside any zone.
+ *
+ * @param itemId  The ID of the item to start sliding
+ */
+void GameScene::slideReleasedItem(ItemInstance::ItemId itemId) {
+    auto body = _itemBodies.find(itemId);
+    if (body != _itemBodies.end() && body->second) {
+        Vec2 currentPos = body->second->getPosition();
+        Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
+        
+        // Clamp drop velocity to maximum speed cap
+        float speed = dropVelocity.length();
+        if (speed > ITEM_MOVEMENT_MAX_SPEED) {
+            dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
+        }
+        
+        startItemSliding(itemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
+    }
+}
+
+/**
  * Handles the full pipeline of a player's drag-and-drop input for one frame.
  *
  * When the player releases a dragged item, this function:
@@ -794,46 +841,21 @@ void GameScene::handlePlayerInput(InputController& input) {
                 _draggedIcon->setVisible(false);
             }
         } else {
-            // Item action failed or invalid zone - initiate sliding instead of static reset
-            auto body = _itemBodies.find(_draggedItemId);
-            if (body != _itemBodies.end() && body->second) {
-                // Calculate drop velocity from position delta divided by small time step
-
-                Vec2 currentPos = body->second->getPosition();
-                Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
-                
-                // Clamp drop velocity to maximum speed cap
-                float speed = dropVelocity.length();
-                if (speed > ITEM_MOVEMENT_MAX_SPEED) {
-                    dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
-                }
-                
-                // Initiate sliding with the calculated velocity
-                startItemSliding(_draggedItemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
-            }
+            // Item action failed - slide the item back
+            slideReleasedItem(_draggedItemId);
             if (_draggedIcon) {
                 _draggedIcon->setVisible(true);
             }
+            _audio->playSoundUnique("deselect");
         }
     } else {
-        // If no zone was even detected, still slide the item
-        auto body = _itemBodies.find(_draggedItemId);
-        if (body != _itemBodies.end() && body->second) {
-            constexpr float VELOCITY_DT_ESTIMATE = 0.016f;
-            Vec2 currentPos = body->second->getPosition();
-            Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
-            
-            // Clamp drop velocity to maximum speed cap
-            float speed = dropVelocity.length();
-            if (speed > ITEM_MOVEMENT_MAX_SPEED) {
-                dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
-            }
-            
-            startItemSliding(_draggedItemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
-        }
+        // If no zone was detected, slide the item
+        slideReleasedItem(_draggedItemId);
         if (_draggedIcon) {
             _draggedIcon->setVisible(true);
         }
+        _audio->playSoundUnique("deselect");
+
     }
 
     _draggedIcon = nullptr;
@@ -888,6 +910,9 @@ void GameScene::handleDragInitiation(InputController& input) {
     for (auto& [id, widget] : _itemWidgets) {
         if (!widget) continue;
         if (widget->getBoundingBox().contains(touchPosScreen)) {
+
+            _audio->playSoundUnique("select");
+
             _draggedIcon = widget;
             _draggedItemId = id;
             _dragOffset = widget->getPosition() - touchPosScreen;
@@ -905,7 +930,7 @@ void GameScene::handleDragInitiation(InputController& input) {
                 Size widgetSize = widget->getContentSize();
                 _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
             }
-            
+
             _draggedItemDef = getHeldItemDef(id);
             updateInputZones();
             break;
@@ -939,37 +964,67 @@ void GameScene::handleNetworkUpdates() {
     /*Networking pull cycle*/
     _network->getNetworkUpdates();
 
+    // Track player and enemy health before updates to detect changes
+    auto player = _gameState.getLocalPlayer();
+    float playerHealthBefore = player ? player->getCurrentHealth() : 0.0f;
+    float enemyHealthBefore = _gameState.getEnemy()->getCurrentHealth();
+
     if (_network->isHost()) {
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
-        //check if we won or lost
-        if (_gameState.didWin()) {
-            _network->broadcastWonGame();
-            _status = Status::WON;
-        }
-        else if(_gameState.didLose()){
-            _network->broadcastLostGame();
-            _status = Status::LOST;
-        }
     }
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
-        // clients check if the host told us anything about winning/losing
-        if (_network->checkGameWon()) {
-            _status = Status::WON;
-            CULog("We were told that we won");
+    }
+    
+    // Play sounds for LOCAL player and enemy health changes after all updates
+    playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
+    
+    // Check if we won or lost (common to both host and client)
+    if (_gameState.didWin()) {
+        if (_network->isHost()) {
+            _network->broadcastWonGame();
         }
-        else if (_network->checkGameLost()) {
-            _status = Status::LOST;
-            CULog("We were told that we lost");
+        _status = Status::WON;
+        CULog("We won!");
+    }
+    else if(_gameState.didLose()){
+        if (_network->isHost()) {
+            _network->broadcastLostGame();
         }
+        _status = Status::LOST;
+        CULog("We lost!");
     }
 
     processNetworkedPasses(_network->getPassUpdates());
+}
+
+/** 
+ * Plays appropriate hurt/heal sounds based on changes in player and enemy health.
+ * Should be called after processing all enemy and AI updates, so we capture all 
+ * health changes in one place and avoid playing multiple overlapping sounds for the same health change.
+ */
+void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore) {
+    auto player = _gameState.getLocalPlayer();
+    auto enemy = _gameState.getEnemy();
+    
+    // Only play sounds for non-AI local players
+    if (player && !dynamic_cast<PlayerAI*>(player)) {
+        if (player->getCurrentHealth() < playerHealthBefore && _audio) {
+            std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
+            _audio->playSoundUnique(soundKey);
+        } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
+            _audio->playSoundUnique("player_heal");
+        }
+    }
+    
+    if (enemy->getCurrentHealth() < enemyHealthBefore && _audio) {
+        _audio->playSoundUnique("enemy_hurt");
+    }
 }
 
 /**
@@ -1033,10 +1088,16 @@ void GameScene::startItemSliding(ItemInstance::ItemId itemId, const cugl::Vec2& 
         case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN:
             // Spawned items cannot interact with zones until settled
             item->setCanInteractWithZones(false);
+            if (_audio) {
+                _audio->playSoundUnique("whoosh");
+            }
             break;
         case ItemInstance::SlideOriginType::SLIDE_FROM_PASS:
             // Passed items cannot interact with zones until settled
             item->setCanInteractWithZones(false);
+            if (_audio) {
+                _audio->playSoundUnique("whoosh");
+            }
             break;
     }
 

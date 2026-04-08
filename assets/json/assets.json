@@ -406,6 +406,74 @@
     "jsons": {
         "server": "json/server.json"
     },
+    "sounds": {
+        "select": {
+            "type":     "sample",
+            "file":     "sounds/select.wav",
+            "stream":   false,
+            "volume":   0.6
+        },
+        "deselect": {
+            "type":     "sample",
+            "file":     "sounds/deselect.wav",
+            "stream":   false,
+            "volume":   0.5
+        },
+        "whoosh": {
+            "type":     "sample",
+            "file":     "sounds/whoosh.wav",
+            "stream":   false,
+            "volume":   0.4
+        },
+        "attack": {
+            "type":     "sample",
+            "file":     "sounds/attack.wav",
+            "stream":   false,
+            "volume":   0.5
+        },
+        "battle": {
+            "type":     "sample",
+            "file":     "sounds/battle.ogg",
+            "stream":   true,
+            "volume":   0.4
+        },
+        "support": {
+            "type":     "sample",
+            "file":     "sounds/support.wav",
+            "stream":   false,
+            "volume":   0.4
+        },
+        "lobby": {
+            "type":     "sample",
+            "file":     "sounds/lobby.ogg",
+            "stream":   true,
+            "volume":   0.4
+        },
+        "enemy_hurt": {
+            "type":     "sample",
+            "file":     "sounds/enemy_hurt.wav",
+            "stream":   false,
+            "volume":   0.45
+        },
+        "player_heal": {
+            "type":     "sample",
+            "file":     "sounds/player_heal.wav",
+            "stream":   false,
+            "volume":   1.0
+        },
+        "player_hurt": {
+            "type":     "sample",
+            "file":     "sounds/player_hurt.wav",
+            "stream":   false,
+            "volume":   0.45
+        },
+        "player_hurt_deep": {
+            "type":     "sample",
+            "file":     "sounds/player_hurt_deep.wav",
+            "stream":   false,
+            "volume":   0.45
+        }
+    },
     "widgets": {
         "scene":       "json/scenes/gameScene.json",
         "gameArea":   "widgets/gameArea.json",
