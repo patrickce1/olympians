@@ -127,6 +127,27 @@ protected:
     /** True when a drag start has been armed by a playerIcon button-down event. */
     bool _pendingDragInit = false;
 
+    /** True while two cards are visually sliding between slots after a swap drop. */
+    bool _isSwapAnimating = false;
+
+    /** Elapsed time for the current swap animation (seconds). */
+    float _swapAnimElapsed = 0.0f;
+
+    /** Duration of the visual swap animation (seconds). */
+    float _swapAnimDuration = 0.14f;
+
+    /** Display indices of the cards currently being animated. */
+    int _swapAnimDisplayA = -1;
+    int _swapAnimDisplayB = -1;
+
+    /** Starting positions of both cards for the current swap animation. */
+    cugl::Vec2 _swapAnimStartA = cugl::Vec2::ZERO;
+    cugl::Vec2 _swapAnimStartB = cugl::Vec2::ZERO;
+
+    /** Model indices queued to swap once the animation finishes. */
+    int _pendingModelSwapA = -1;
+    int _pendingModelSwapB = -1;
+
 public:
 #pragma mark -
 #pragma mark Constructors
@@ -340,6 +361,24 @@ private:
      * @param displayB  Second lobby card index.
      */
     void swapPlayersByDisplayIndex(int displayA, int displayB);
+
+    /**
+     * Starts a visual slide animation for two display slots.
+     *
+     * @param displayA  First display-slot index.
+     * @param displayB  Second display-slot index.
+     * @param modelA    First backing model index.
+     * @param modelB    Second backing model index.
+     */
+    void beginSwapAnimation(int displayA, int displayB, int modelA, int modelB);
+
+    /**
+     * Advances any in-progress swap animation and commits model/network swap
+     * once the animation reaches completion.
+     *
+     * @param timestep  Delta time in seconds.
+     */
+    void updateSwapAnimation(float timestep);
 };
 
 #endif /* __LOBBY_SCENE_H__ */

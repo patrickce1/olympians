@@ -272,6 +272,12 @@ void LobbyScene::setActive(bool value) {
             _draggedCardIndex = -1;
             _didDragCard = false;
             _pendingDragInit = false;
+            _isSwapAnimating = false;
+            _swapAnimElapsed = 0.0f;
+            _swapAnimDisplayA = -1;
+            _swapAnimDisplayB = -1;
+            _pendingModelSwapA = -1;
+            _pendingModelSwapB = -1;
             _sentJoinMessage = false;
             _enterGame->deactivate();
             _backButton->activate();
@@ -291,6 +297,12 @@ void LobbyScene::setActive(bool value) {
             _isDraggingCard = false;
             _draggedCardIndex = -1;
             _pendingDragInit = false;
+            _isSwapAnimating = false;
+            _swapAnimElapsed = 0.0f;
+            _swapAnimDisplayA = -1;
+            _swapAnimDisplayB = -1;
+            _pendingModelSwapA = -1;
+            _pendingModelSwapB = -1;
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->deactivate();
                 icon->setDown(false);
@@ -316,6 +328,12 @@ void LobbyScene::setActive(bool value) {
  * @param scenePos  Pointer location in scene coordinates.
  */
 void LobbyScene::handlePointerDown(const cugl::Vec2& scenePos) {
+    if (_isSwapAnimating) {
+        _pointerDown = false;
+        _pendingDragInit = false;
+        return;
+    }
+
     if (_draggedCardIndex < 0 || _draggedCardIndex >= (int)_playerCards.size()) {
         _pointerDown = false;
         _pendingDragInit = false;
@@ -337,6 +355,10 @@ void LobbyScene::handlePointerDown(const cugl::Vec2& scenePos) {
  * @param scenePos  Pointer location in scene coordinates.
  */
 void LobbyScene::handlePointerDrag(const cugl::Vec2& scenePos) {
+    if (_isSwapAnimating) {
+        return;
+    }
+
     if (!_pointerDown || _draggedCardIndex < 0 || _draggedCardIndex >= (int)_playerCards.size()) {
         return;
     }
@@ -364,11 +386,17 @@ void LobbyScene::handlePointerDrag(const cugl::Vec2& scenePos) {
  * @param scenePos  Pointer location in scene coordinates.
  */
 void LobbyScene::handlePointerUp(const cugl::Vec2& scenePos) {
+    if (_isSwapAnimating) {
+        _pointerDown = false;
+        return;
+    }
+
     if (!_pointerDown) {
         return;
     }
 
     _pointerDown = false;
+    bool startedSwapAnim = false;
 
     if (_draggedCardIndex >= 0 && _draggedCardIndex < (int)_playerCards.size()) {
         if (_isDraggingCard) {
@@ -376,10 +404,11 @@ void LobbyScene::handlePointerUp(const cugl::Vec2& scenePos) {
             const int lockedDisplayIndex = static_cast<int>(_playerCards.size()) - 1;
             if (targetIndex >= 0 && targetIndex != _draggedCardIndex && targetIndex != lockedDisplayIndex) {
                 swapPlayersByDisplayIndex(_draggedCardIndex, targetIndex);
+                startedSwapAnim = _isSwapAnimating;
             }
         }
 
-        if (_draggedCardIndex < (int)_playerCardHomePositions.size() && _playerCards[_draggedCardIndex]) {
+        if (!startedSwapAnim && _draggedCardIndex < (int)_playerCardHomePositions.size() && _playerCards[_draggedCardIndex]) {
             _playerCards[_draggedCardIndex]->setPosition(_playerCardHomePositions[_draggedCardIndex]);
         }
     }
@@ -450,8 +479,71 @@ void LobbyScene::swapPlayersByDisplayIndex(int displayA, int displayB) {
         return;
     }
 
-    if (_network->swapLobbyPlayers(modelA, modelB)) {
-        _gameState->swapPlayerSlots(modelA, modelB);
+    beginSwapAnimation(displayA, displayB, modelA, modelB);
+}
+
+void LobbyScene::beginSwapAnimation(int displayA, int displayB, int modelA, int modelB) {
+    if (displayA < 0 || displayB < 0 || displayA >= (int)_playerCards.size() || displayB >= (int)_playerCards.size()) {
+        return;
+    }
+
+    auto cardA = _playerCards[displayA];
+    auto cardB = _playerCards[displayB];
+    if (!cardA || !cardB) {
+        return;
+    }
+
+    _isSwapAnimating = true;
+    _swapAnimElapsed = 0.0f;
+    _swapAnimDisplayA = displayA;
+    _swapAnimDisplayB = displayB;
+    _swapAnimStartA = cardA->getPosition();
+    _swapAnimStartB = cardB->getPosition();
+    _pendingModelSwapA = modelA;
+    _pendingModelSwapB = modelB;
+}
+
+void LobbyScene::updateSwapAnimation(float timestep) {
+    if (!_isSwapAnimating) {
+        return;
+    }
+
+    if (_swapAnimDisplayA < 0 || _swapAnimDisplayB < 0 ||
+        _swapAnimDisplayA >= (int)_playerCards.size() || _swapAnimDisplayB >= (int)_playerCards.size() ||
+        !_playerCards[_swapAnimDisplayA] || !_playerCards[_swapAnimDisplayB] ||
+        _swapAnimDisplayA >= (int)_playerCardHomePositions.size() || _swapAnimDisplayB >= (int)_playerCardHomePositions.size()) {
+        _isSwapAnimating = false;
+        return;
+    }
+
+    _swapAnimElapsed += timestep;
+    const float duration = (_swapAnimDuration <= 0.0f ? 0.001f : _swapAnimDuration);
+    float t = _swapAnimElapsed / duration;
+    if (t > 1.0f) {
+        t = 1.0f;
+    }
+
+    const Vec2 endA = _playerCardHomePositions[_swapAnimDisplayB];
+    const Vec2 endB = _playerCardHomePositions[_swapAnimDisplayA];
+    _playerCards[_swapAnimDisplayA]->setPosition(_swapAnimStartA.lerp(endA, t));
+    _playerCards[_swapAnimDisplayB]->setPosition(_swapAnimStartB.lerp(endB, t));
+
+    if (t >= 1.0f) {
+        _playerCards[_swapAnimDisplayA]->setPosition(_playerCardHomePositions[_swapAnimDisplayA]);
+        _playerCards[_swapAnimDisplayB]->setPosition(_playerCardHomePositions[_swapAnimDisplayB]);
+
+        if (_pendingModelSwapA >= 0 && _pendingModelSwapB >= 0 && _pendingModelSwapA != _pendingModelSwapB) {
+            if (_network->swapLobbyPlayers(_pendingModelSwapA, _pendingModelSwapB)) {
+                _gameState->swapPlayerSlots(_pendingModelSwapA, _pendingModelSwapB);
+            }
+        }
+
+        _isSwapAnimating = false;
+        _swapAnimElapsed = 0.0f;
+        _swapAnimDisplayA = -1;
+        _swapAnimDisplayB = -1;
+        _pendingModelSwapA = -1;
+        _pendingModelSwapB = -1;
     }
 }
 
@@ -595,6 +687,8 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void LobbyScene::update(float timestep) {
+    updateSwapAnimation(timestep);
+
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
         _gameId->setText(_network->getRoom());
