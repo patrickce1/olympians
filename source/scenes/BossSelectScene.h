@@ -22,7 +22,9 @@ public:
         /**  */
         WAIT,
         /** Selection was aborted; back to lobby */
-        ABORT
+        ABORT,
+        /** Game scene has been started by host**/
+        GAMESCENE_START
     };
     
 protected:

@@ -66,6 +66,7 @@ void SceneLoader::onStartup() {
 
     // You have to attach the individual loaders for each asset type
     _assets->attach<Texture>(TextureLoader::alloc()->getHook());
+    _assets->attach<Sound>(SoundLoader::alloc()->getHook());
     _assets->attach<Font>(FontLoader::alloc()->getHook());
     _assets->attach<JsonValue>(JsonLoader::alloc()->getHook());
     _assets->attach<WidgetValue>(WidgetLoader::alloc()->getHook());
@@ -89,7 +90,7 @@ void SceneLoader::onStartup() {
     _loadingScene->setActive(true);
     _loadingScene->start();
     _currentScene = State::LOAD;
-    
+
     // Build the scene from these assets
     Application::onStartup();
     
@@ -181,6 +182,10 @@ void SceneLoader::onShutdown() {
 #endif
     Input::deactivate<TextInput>();
     Input::deactivate<Keyboard>();
+    
+    // Dispose audio controller
+    _audio.dispose();
+
     Application::onShutdown();
 }
 
@@ -225,7 +230,16 @@ void SceneLoader::update(float dt) {
 
                 //NETWORK
                 _network->init(_assets); //assets loaded, load network controller
+                
+                // Initialize and start audio controller
+                if (_audio.init(_assets)) {
+                    _audio.startAudioEngine();
+                    _audio.playMusic("lobby");
+                } else {
+                    CULog("Warning: Failed to initialize audio controller");
+                }
 
+                
                 if (_menuScene.init(_assets)) {
                     _menuScene.setSpriteBatch(_batch);
                     _menuScene.setActive(true);
@@ -247,7 +261,7 @@ void SceneLoader::update(float dt) {
                     CULog("Failed to initialize ClientScene");
                 }
                 
-                if (_gameScene.init(_assets, _network)) {
+                if (_gameScene.init(_assets, _network, &_audio)) {
                     _gameScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize GameScene");
@@ -294,6 +308,7 @@ void SceneLoader::update(float dt) {
             switch (_clientScene.getStatus()) {
                 case ClientScene::Status::START:
                     CULog("Transitioning to LobbyScene...");
+                    _audio.playMusic("lobby");
                     _lobbyScene.setActive(true);
                     _clientScene.setActive(false);
                     _currentScene = State::LOBBY;
@@ -319,6 +334,7 @@ void SceneLoader::update(float dt) {
             switch (_hostSetupScene.getStatus()) {
                 case HostSetupScene::Status::START:
                     CULog("Transitioning to LobbyScene...");
+                    _audio.playMusic("lobby");
                     _lobbyScene.setActive(true);
                     _hostSetupScene.setActive(false);
                     _currentScene = State::LOBBY;
@@ -344,6 +360,7 @@ void SceneLoader::update(float dt) {
             switch (_lobbyScene.getStatus()) {
                 case LobbyScene::Status::START:
                     CULog("Transitioning to GameScene...");
+                    _audio.playMusic("battle");
                     _gameScene.setActive(true);
                     _lobbyScene.setActive(false);
                     _currentScene = State::GAME;
@@ -382,6 +399,13 @@ void SceneLoader::update(float dt) {
         case State::HOUSESELECT:
             _houseSelectScene.update(dt);
             switch (_houseSelectScene.getStatus()) {
+                case HouseSelectScene::Status::GAMESCENE_START:
+                    CULog("Transitioning to GameScene from HouseSelect...");
+                    _audio.playMusic("battle");
+                    _gameScene.setActive(true);
+                    _houseSelectScene.setActive(false);
+                    _currentScene = State::GAME;
+                    break;
                 case HouseSelectScene::Status::ABORT:
                     if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
                         _gameScene.resetGameState();
@@ -402,6 +426,13 @@ void SceneLoader::update(float dt) {
         case State::BOSSSELECT:
             _bossSelectScene.update(dt);
             switch (_bossSelectScene.getStatus()) {
+                case BossSelectScene::Status::GAMESCENE_START:
+                    CULog("Transitioning to GameScene from BossSelect...");
+                    _audio.playMusic("battle");
+                    _gameScene.setActive(true);
+                    _bossSelectScene.setActive(false);
+                    _currentScene = State::GAME;
+                    break;
                 case BossSelectScene::Status::ABORT:
                     if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
                         _gameScene.resetGameState();
@@ -445,12 +476,14 @@ void SceneLoader::update(float dt) {
             //this will be changed to a proper win/lose scene later
             switch (_gameScene.getStatus()) {
                 case GameScene::Status::LOST:
+                    _audio.playMusic("lobby");
                     _lobbyScene.setActive(true);
                     _gameScene.setActive(false);
                     _currentScene = State::LOBBY;
                     _gameScene.reset();
                     break;
                 case GameScene::Status::WON:
+                    _audio.playMusic("lobby");
                     _lobbyScene.setActive(true);
                     _gameScene.setActive(false);
                     _currentScene = State::LOBBY;
