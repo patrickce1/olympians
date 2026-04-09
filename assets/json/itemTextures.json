@@ -39,7 +39,7 @@
         "item_poseidon_tide": {
             "file": "textures/items/poseidons_tide_d.png"
         },
-        item_zeus_thunderstorm: {
+        "item_zeus_thunderstorm": {
             "file": "textures/items/zeus_thunderstorm_d.png"
         }
     }

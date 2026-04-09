@@ -1,8 +1,8 @@
 {
     "rarityWeights": {
-        "Common": 0.45,
-        "Rare": 0.40,
-        "Divine": 0.15
+        "common": 0.45,
+        "rare": 0.40,
+        "divine": 0.15
     },
     "items": [
         {
@@ -13,7 +13,8 @@
             "type": "attack",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 2.0
+            "baseValue": 2.0,
+            "effects": []
         },
         {
             "id": "apple",
@@ -23,7 +24,8 @@
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 2.0
+            "baseValue": 2.0,
+            "effects": []
         },
         {
             "id": "nectar",
@@ -33,7 +35,8 @@
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 1.0
+            "baseValue": 1.0,
+            "effects": []
         },
         {
             "id": "arrow",
@@ -43,17 +46,27 @@
             "type": "attack",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 1.0
+            "baseValue": 1.0,
+            "effects": []
         },
         {
             "id": "shield",
             "name": "Shield",
-            "description": "Help a brother out",
+            "description": "Help a brother out.",
             "icon": "item_shield",
-            "type": "utility",
+            "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 1.0
+            "baseValue": 1.0,
+            "effects": [
+                {
+                    "type": "shield",
+                    "target": "",
+                    "multiplier": 0.5,
+                    "duration": 5.0,
+                    "stacking": "refresh"
+                }
+            ]
         },
         {
             "id": "lightning_bolt",
@@ -62,8 +75,9 @@
             "icon": "item_lightning",
             "type": "attack",
             "rarity": "rare",
-            "houseAffinity": "Zeus",
-            "baseValue": 1.0
+            "houseAffinity": "zeus",
+            "baseValue": 1.0,
+            "effects": []
         },
         {
             "id": "trident",
@@ -72,18 +86,20 @@
             "icon": "item_trident",
             "type": "attack",
             "rarity": "rare",
-            "houseAffinity": "Poseidon",
-            "baseValue": 1.0
+            "houseAffinity": "poseidon",
+            "baseValue": 1.0,
+            "effects": []
         },
         {
             "id": "helm",
             "name": "Helm",
             "description": " ",
             "icon": "item_helm",
-            "type": "utlity",
+            "type": "support",
             "rarity": "rare",
-            "houseAffinity": "Hades",
-            "baseValue": 1.0
+            "houseAffinity": "hades",
+            "baseValue": 1.0,
+            "effects": []
         },
         {
             "id": "cornucopia",
@@ -92,8 +108,9 @@
             "icon": "item_cornucopia",
             "type": "support",
             "rarity": "rare",
-            "houseAffinity": "Demeter",
-            "baseValue": 1.0
+            "houseAffinity": "demeter",
+            "baseValue": 1.0,
+            "effects": []
         },
         {
             "id": "mallet",
@@ -102,8 +119,9 @@
             "icon": "item_mallet",
             "type": "attack",
             "rarity": "rare",
-            "houseAffinity": "Hephestus",
-            "baseValue": 1.0
+            "houseAffinity": "hephaestus",
+            "baseValue": 1.0,
+            "effects": []
         },
         {
             "id": "aegis",
@@ -112,8 +130,9 @@
             "icon": "item_aegis",
             "type": "utility",
             "rarity": "rare",
-            "houseAffinity": "Athena",
-            "baseValue": 1.0
+            "houseAffinity": "athena",
+            "baseValue": 1.0,
+            "effects": []
         },
         {
             "id": "spear",
@@ -122,28 +141,31 @@
             "icon": "item_spear",
             "type": "attack",
             "rarity": "rare",
-            "houseAffinity": "Ares",
-            "baseValue": 1.0
+            "houseAffinity": "ares",
+            "baseValue": 1.0,
+            "effects": []
         },
         {
-            "id": "zeus_thunderstorm",
-            "name": "Zeus' Thunderstorm",
+            "id": "thunderstorm",
+            "name": "Thunderstorm",
             "description": " ",
             "icon": "item_zeus_thunderstorm",
             "type": "attack",
             "rarity": "divine",
-            "houseAffinity": "Zeus",
-            "baseValue": 1.0
+            "houseAffinity": "zeus",
+            "baseValue": 1.0,
+            "effects": []
         },
         {
-            "id": "poseidon_tide",
-            "name": "Poseidon's Tide",
+            "id": "tide",
+            "name": "Tide",
             "description": " ",
             "icon": "item_poseidon_tide",
             "type": "attack",
             "rarity": "divine",
-            "houseAffinity": "Poseidon",
-            "baseValue": 1.0
+            "houseAffinity": "poseidon",
+            "baseValue": 1.0,
+            "effects": []
         }
     ],
     "itemInterval": 10.0,
