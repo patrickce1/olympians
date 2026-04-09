@@ -798,7 +798,7 @@
                                 1
                             ],
                             "size": [
-                                409,
+                                870,
                                 458
                             ],
                             "angle": 0,
@@ -833,7 +833,7 @@
                                     "padding": [
                                         0,
                                         0,
-                                        320,
+                                        145,
                                         0
                                     ]
                                 }
@@ -860,7 +860,7 @@
                                 "layout": {
                                     "priority": 1,
                                     "padding": [
-                                    320,
+                                    0,
                                     0,
                                     0,
                                     0
@@ -872,7 +872,7 @@
                             "x_anchor": "left",
                             "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0.24,
+                            "x_offset": 0.0,
                             "y_offset": -0.03
                         }
                     },
