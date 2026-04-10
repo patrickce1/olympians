@@ -16,7 +16,7 @@
         },
         "data"   : {
             "anchor"  : [0.5,0.5],
-            "size"    : [254, 40]
+            "size"    : [254, 50]
         },
         "children": {
             "frame": {
@@ -25,11 +25,11 @@
                     "texture": "textfieldBG",
                     "anchor": [
                         0.5,
-                        1.5
+                        0.5
                     ],
                     "size": [
                         254,
-                        40
+                        50
                     ],
                     "angle": 0,
                     "visible": true
@@ -46,7 +46,7 @@
                 "type": "Label",
                 "data": {
                     "anchor": [0.5, 0.5],
-                    "font": "gideon romanRegular16",
+                    "font": "gideon romanRegular20",
                     "text": "",
                     "padding"  : [20, 10, 20, 10],
                     "halign": "left",
@@ -66,7 +66,7 @@
                 "type"   : "TextField",
                 "data": {
                     "anchor"   : [0.5, 0.5],
-                    "font"     : "gideon romanRegular16",
+                    "font"     : "gideon romanRegular20",
                     "text"     : "Text",
                     "padding"  : [20, 10, 20, 10],
                     "halign"   : "left",

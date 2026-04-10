@@ -335,7 +335,7 @@
                         },
                         "layout": {
                             "priority": 0,
-                            "padding": [0,12,0,0]
+                            "padding": [0,16,0,0]
                         }
                     },
                     "playerName": {
@@ -357,7 +357,7 @@
                     "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": 0.04
+                    "y_offset": 0.16
                 }
             },
             "enter": {
@@ -373,7 +373,7 @@
                     "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.06
+                    "y_offset": 0.03
                 }
             },
             "back": {
@@ -433,6 +433,19 @@
                     "absolute": false,
                     "x_offset": 0.05,
                     "y_offset": -0.06
+                }
+            },
+            "keypad": {
+                "type": "Widget",
+                "data": {
+                    "key": "keypad"
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0.04
                 }
             }
         }

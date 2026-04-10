@@ -7,7 +7,9 @@
 #include "scenes/MenuScene.h"
 #include "scenes/LobbyScene.h"
 #include "scenes/HouseSelectScene.h"
+#include "scenes/BossSelectScene.h"
 #include "InputController.h"
+#include "AudioController.h"
 #include "tests/PlayerTests.h"
 #include "tests/EnemyTests.h"
 #include "tests/ItemTests.h"
@@ -30,6 +32,7 @@ protected:
         LOBBY,
         MENU,
         HOUSESELECT,
+        BOSSSELECT,
         GAME
     };
 
@@ -46,6 +49,9 @@ protected:
     
     /*Input controller. Used to extract input data*/
     InputController _input;
+
+    /*Audio controller. Used to manage all audio playback*/
+    AudioController _audio;
 
     /*Network controller used across scenes. Used for recieving and processing networking messages*/
     std::shared_ptr<NetworkController> _network;
@@ -73,6 +79,9 @@ protected:
     
     /*The scene where the player choose what house they want to represent*/
     HouseSelectScene _houseSelectScene;
+    
+    /*The scene where the host changes what boss they want to play with and where other player can view all the different bosses */
+    BossSelectScene _bossSelectScene;
     //more scenes to come...
 
 public:

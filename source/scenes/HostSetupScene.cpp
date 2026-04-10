@@ -74,7 +74,7 @@ void HostSetupScene::setupUI() {
     _startGame = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("hostSetupScene.start"));
 
-    _backOut = std::dynamic_pointer_cast<scene2::Button>(
+    _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("hostSetupScene.back"));
     
     _joinButton = std::dynamic_pointer_cast<scene2::Button>(
@@ -139,7 +139,7 @@ void HostSetupScene::setupListeners() {
         }
     });
 
-    _backOut->addListener([this](const std::string& name, bool down) {
+    _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
         }
@@ -168,7 +168,7 @@ void HostSetupScene::dispose() {
     if (_active) {
         removeAllChildren();
         _startGame = nullptr;
-        _backOut = nullptr;
+        _backButton = nullptr;
         _joinButton = nullptr;
         _hostName = nullptr;
         _bossCards.clear();
@@ -198,19 +198,19 @@ void HostSetupScene::setActive(bool value) {
             _leftButton->activate();
             _rightButton->activate();
             _hostName->activate();
-            _backOut->activate();
+            _backButton->activate();
             _joinButton->activate();
         } else {
             _startGame->deactivate();
             _leftButton->deactivate();
             _rightButton->deactivate();
-            _backOut->deactivate();
+            _backButton->deactivate();
             _hostName->deactivate();
             _joinButton->deactivate();
             
             // If any were pressed, reset them
             _startGame->setDown(false);
-            _backOut->setDown(false);
+            _backButton->setDown(false);
             _leftButton->setDown(false);
             _rightButton->setDown(false);
             _joinButton->setDown(false);
