@@ -254,7 +254,7 @@ protected:
         PLAYER_DISCONNECT = 8,
         GAME_LOST = 9,
         GAME_WON = 10,
-        BOSS_SELECTION = 11
+        BOSS_SELECTION = 11,
         SESSION_TERMINATED = 12
     };
 
