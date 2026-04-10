@@ -1,5 +1,5 @@
-#ifndef __HOST_SETUP_SCENE_H__
-#define __HOST_SETUP_SCENE_H__
+#ifndef __BOSS_SELECT_SCENE_H__
+#define __BOSS_SELECT_SCENE_H__
 
 #include <cugl/cugl.h>
 #include <iostream>
@@ -9,13 +9,9 @@
 #include "../NetworkController.h"
 
 /**
- * This class provides the interface to make a new game.
- *
- * Most games have a since "matching" scene whose purpose is to initialize the
- * network controller.  We have separate the host from the client to make the
- * code a little more clear.
+ * This class provides the interface to make the boss select scene.
  */
-class HostSetupScene : public cugl::scene2::Scene2 {
+class BossSelectScene : public cugl::scene2::Scene2 {
 public:
     /**
      * The configuration status
@@ -23,14 +19,12 @@ public:
      * This is how the application knows to switch to the next scene.
      */
     enum Status {
-        /** Host is waiting on a connection */
+        /**  */
         WAIT,
-        /** Host switches to client screen */
-        CLIENT,
-        /** Time to start the game */
-        START,
-        /** Game was aborted; back to main menu */
-        ABORT
+        /** Selection was aborted; back to lobby */
+        ABORT,
+        /** Game scene has been started by host**/
+        GAMESCENE_START
     };
     
 protected:
@@ -39,18 +33,12 @@ protected:
 
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
-
-    /** The menu button for starting a game */
-    std::shared_ptr<cugl::scene2::Button> _startGame;
     
-    /** The back button for the host setup scene */
+    /** The back button for the boss select scene */
     std::shared_ptr<cugl::scene2::Button> _backButton;
     
-    /** The join game (client scene) button for the host setup scene */
-    std::shared_ptr<cugl::scene2::Button> _joinButton;
-    
-    /** The player label (for updating) */
-    std::shared_ptr<cugl::scene2::TextField> _hostName;
+    /** The lock button to change boss in the boss select scene */
+    std::shared_ptr<cugl::scene2::Button> _lockButton;
     
     /** The boss selection node list */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _bossCards;
@@ -89,12 +77,12 @@ public:
 #pragma mark -
 #pragma mark Constructors
     /**
-     * Creates a new host scene with the default values.
+     * Creates a new bost select scene with the default values.
      *
      * This constructor does not allocate any objects or start the game.
      * This allows us to use the object without a heap pointer.
      */
-    HostSetupScene() : cugl::scene2::Scene2() {}
+    BossSelectScene() : cugl::scene2::Scene2() {}
     
     /**
      * Disposes of all (non-static) resources allocated to this mode.
@@ -102,7 +90,7 @@ public:
      * This method is different from dispose() in that it ALSO shuts off any
      * static resources, like the input controller.
      */
-    ~HostSetupScene() { dispose(); }
+    ~BossSelectScene() { dispose(); }
     
     /**
      * Disposes of all (non-static) resources allocated to this mode.
@@ -127,17 +115,17 @@ public:
     bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
     
     /**
-     * Retrieves and stores references to the host setup UI elements.
+     * Retrieves and stores references to the BossSelectScene UI elements.
      *
      * This method looks up UI components from the scene graph including the
-     * start button, back button, host name text field, carousel navigation
+     * lock button, back button, carousel navigation
      * buttons, and the role carousel container. It also initializes the
-     * carousel item list and configures the placeholder label.
+     * carousel item list.
      */
     void setupUI();
     
     /**
-     * Attaches input listeners to the host setup buttons.
+     * Attaches input listeners to the boss select buttons.
      *
      * This method assigns callbacks for starting the game, returning to the
      * previous menu, and navigating the role selection carousel.
@@ -168,34 +156,20 @@ public:
     /**
      * The method called to update the scene.
      *
-     * We need to update this method to constantly talk to the server
-     *
      * @param timestep  The amount of time (in seconds) since the last frame
      */
     void update(float timestep) override;
     
 
 private:
-    /**
-     * Updates the text in the given button.
-     *
-     * Techincally a button does not contain text. A button is simply a scene graph
-     * node with one child for the up state and another for the down state. So to
-     * change the text in one of our buttons, we have to descend the scene graph.
-     * This method simplifies this process for you.
-     *
-     * @param button    The button to modify
-     * @param text      The new text value
-     */
-    void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
     
     /**
-     * Reconfigures the start button for this scene
+     * Reconfigures the lock button for this scene
      *
      * This is necessary because what the buttons do depends on the state of the
      * networking.
      */
-    void configureStartButton();
+    void configureLockButton();
     
     /**
      * Initiates a slide animation to center the item at `newIndex`.
@@ -220,4 +194,5 @@ private:
     bool loadBosses();
 };
 
-#endif /* __HOST_SETUP_SCENE_H__ */
+#endif /* __BOSS_SELECT_SCENE_H__ */
+

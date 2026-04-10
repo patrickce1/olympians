@@ -29,6 +29,7 @@ modules:
     - scene2
     - netcode
     - physics2
+    - audio
 
 # This must be one of portrait, landscape, portrait-flipped, landscape-flipped,
 targets:                        # The target platforms to build for

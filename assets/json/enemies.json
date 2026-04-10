@@ -7,7 +7,7 @@
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-		"defenseLikelihood": 0.25
+                "defenseLikelihood": 0.25
             },
 	    "customData": {
     	        "eyeMultiplier": 2.0
@@ -118,7 +118,7 @@
             "spritesheetPath": "textures/cerberus.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-		"defenseLikelihood": 1.0
+                "defenseLikelihood": 1.0
             },
 	    "customData": {
     	        "eyeMultiplier": 2.0
@@ -140,8 +140,8 @@
                 "attack_2": {
                     "tag": "",
                     "animationRow": 2,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
+                    "buildUpTime": 3.0,
+                    "cooldownTime": 1.0,
                     "events": [
                     ],
                     "nextState": "idle"
@@ -149,8 +149,8 @@
                 "attack_3": {
                     "tag": "",
                     "animationRow": 3,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
+                    "buildUpTime": 3.0,
+                    "cooldownTime": 1.0,
                     "events": [
                     ],
                     "nextState": "idle"

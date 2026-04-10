@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include "GameState.h"
 #include "../InputController.h"
+#include "../AudioController.h"
 #include "../items/ItemController.h"
 #include "../Enemy.h"
 #include "../EnemyLoader.h"
@@ -58,6 +59,9 @@ protected:
     /** Network controller. Responsible for sending networking messages and process messages sent
      * over the network. */
     std::shared_ptr<NetworkController> _network;
+
+    /** Audio controller. Manages all audio playback (music and sound effects). */
+    AudioController* _audio;
 
     /** The root scene node for this scene graph. */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
@@ -144,6 +148,9 @@ protected:
 
     /** The inventory item currently being dragged, or 0 if none is active. */
     ItemInstance::ItemId _draggedItemId = 0;
+
+    /** Whether the select sound has been played for the current touch. */
+    bool _selectSoundPlayedThisTouch = false;
 
     /** The dragged body's pre-drag position, used to restore invalid drops. */
     cugl::Vec2 _dragStartBodyPosition = cugl::Vec2::ZERO;
@@ -303,7 +310,7 @@ public:
      * @param networkController The network controller shared across all scenes
      * @return true if initialisation succeeded, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio);
 
     /**
      * Activates or deactivates the scene and its UI.
@@ -332,6 +339,12 @@ public:
     void setLocalPlayer(int assignedIndex);
 
 #pragma mark - Action Handlers
+    
+    /**
+     * Disposes and re-initialises the GameState for a fresh session.
+     * Call this when aborting the lobby to clear all player house selections.
+     */
+    void resetGameState();
 
     /**
      * Handles the local player dropping an attack item on the boss zone.
@@ -392,6 +405,19 @@ public:
     void updateEnemyAndAI(float dt);
     
     /**
+     * Plays health and damage indicator sounds based on health changes.
+     * Called after game state updates to detect and play appropriate audio feedback
+     * for player damage, healing, and enemy damage. 
+     *
+     * Only plays player hurt/heal sounds for non-AI local player. Also plays enemy hurt
+     * sounds. Uses the player's house to determine which hurt sound variant to play.
+     *
+     * @param playerHealthBefore  The player's health before state updates
+     * @param enemyHealthBefore   The enemy's health before state updates
+     */
+    void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore);
+    
+    /**
      * Updates the progress bar with the current ratios of player and enemy health.
      *
      * @param dt Delta time in seconds
@@ -425,6 +451,15 @@ public:
      * @param input     The input controller for this frame.
      */
     void handlePlayerInput(InputController& input);
+
+    /**
+     * Initiates sliding for a released item by calculating velocity based on drag motion
+     * and clamping to maximum speed. Used when an item is dropped on an invalid zone
+     * or outside any zone.
+     *
+     * @param itemId  The ID of the item to start sliding
+     */
+    void slideReleasedItem(ItemInstance::ItemId itemId);
 
     /**
      * Decrements the glow timer each frame. Clears the active glow action
@@ -545,6 +580,26 @@ public:
      */
     bool handleSpawnedItemSettled(ItemInstance* item, ItemInstance::ItemId itemId);
     
+    /**
+     * Checks if an item is in a matching interaction zone.
+     * Verifies that the item position is within a zone and that its type matches
+     * the zone's expected item type (Attack items for boss zones, Support for ally zones).
+     *
+     * @param itemPos  The item's current world position
+     * @param itemDef  The item definition containing type information
+     * @return         true if the item is in a valid matching zone, false otherwise
+     */
+    bool isItemInMatchingZone(const cugl::Vec2& itemPos, const std::shared_ptr<ItemDef>& itemDef);
+    
+    /**
+     * Initiates a snapback animation for an item returned to inventory.
+     * Creates a snapback animation entry with a random target inventory position
+     * and adds it to the animations queue.
+     *
+     * @param itemId   The ID of the item to snapback
+     * @param fromPos  The item's current world position (animation start point)
+     */
+    void initiateSnapbackAnimation(ItemInstance::ItemId itemId, const cugl::Vec2& fromPos);
     
     /**
      * Checks if a settled item should be removed due to being off-screen.

@@ -1,4 +1,4 @@
-#include "HostSetupScene.h"
+#include "BossSelectScene.h"
 
 using namespace cugl;
 using namespace cugl::netcode;
@@ -17,21 +17,23 @@ using namespace std;
 
 #pragma mark -
 #pragma mark Provided Methods
+
 /**
- * Initializes the controller contents, and starts the game
+ * Initializes the boss selection scene.
  *
- * In previous labs, this method "started" the scene.  But in this
- * case, we only use to initialize the scene user interface.  We
- * do not activate the user interface yet, as an active user
- * interface will still receive input EVEN WHEN IT IS HIDDEN.
+ * This method sets up all UI elements, binds necessary callbacks,
+ * and stores references to shared resources such as the asset manager
+ * and network controller. It prepares the scene for use but does not
+ * make it active or responsive to input.
  *
- * That is why we have the method {@link #setActive}.
+ * Activation and input handling are controlled separately via setActive().
  *
- * @param assets    The (loaded) assets for this game mode
+ * @param assets                           The loaded asset manager used to retrieve scene resources
+ * @param networkController   The network controller used for multiplayer communication
  *
- * @return true if the controller is initialized properly, false otherwise.
+ * @return true if the scene was successfully initialized; false otherwise
  */
-bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool BossSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -47,7 +49,7 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, con
     Size dimen = getSize();
     
     // Acquire the scene built by the asset loader and resize it the scene
-    std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("hostSetupScene");
+    std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("bossSelectScene");
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
 
@@ -62,52 +64,36 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, con
 }
 
 /**
- * Retrieves and stores references to the host setup UI elements.
+ * Retrieves and stores references to the BossSelectScene UI elements.
  *
  * This method looks up UI components from the scene graph including the
- * start button, back button, host name text field, carousel navigation
+ * lock button, back button, carousel navigation
  * buttons, and the role carousel container. It also initializes the
- * carousel item list and configures the placeholder label.
+ * carousel item list.
  */
-void HostSetupScene::setupUI() {
-
-    _startGame = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.start"));
+void BossSelectScene::setupUI() {
 
     _backButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.back"));
+        _assets->get<scene2::SceneNode>("bossSelectScene.back"));
     
-    _joinButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.join"));
-
-    _hostName = std::dynamic_pointer_cast<scene2::TextField>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
+    _lockButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("bossSelectScene.lock"));
 
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.directionButtons.leftScroll"));
+        _assets->get<scene2::SceneNode>("bossSelectScene.bossCarousel.directionButtons.leftScroll"));
 
     _rightButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.directionButtons.rightScroll"));
+        _assets->get<scene2::SceneNode>("bossSelectScene.bossCarousel.directionButtons.rightScroll"));
 
-    _bossSelectionCardContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.bossCardContainer");
+    _bossSelectionCardContainer = _assets->get<scene2::SceneNode>("bossSelectScene.bossCarousel.bossCardContainer");
 
     if (_bossSelectionCardContainer) {
         for (int i = 0; i < 3; i++) {
             _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
         }
     }
-
-    std::shared_ptr<cugl::scene2::Label> placeName =
-        std::dynamic_pointer_cast<scene2::Label>(
-            _assets->get<scene2::SceneNode>("hostSetupScene.hostName.placeholder"));
-
-    placeName->setText("ENTER NAME");
-
-    _hostName->addTypeListener([placeName](const std::string& name, const std::string& value) {
-        placeName->setVisible(value.empty());
-    });
     
-    auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossSelectionCarouselIcons");
+    auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("bossSelectScene.bossSelectionCarouselIcons");
     
     if (bossCarouselDotsContainer) {
         for (int i = 0; i < 3; i++) {
@@ -117,38 +103,25 @@ void HostSetupScene::setupUI() {
 }
 
 /**
- * Attaches input listeners to the host setup buttons.
+ * Attaches input listeners to the boss select buttons.
  *
  * This method assigns callbacks for starting the game, returning to the
  * previous menu, and navigating the role selection carousel.
  */
-void HostSetupScene::setupListeners() {
+void BossSelectScene::setupListeners() {
     
-    _startGame->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            if(_hostName->getText() != ""){
-                _network->hostRoom();
-                _network->setPlayerName(_hostName->getText());
-                
-                // Get the selected boss using carousel index
-                EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
-                _network->setEnemy(selectedBoss.id);
-                
-                _status = Status::START;
-            }
-        }
-    });
-
     _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
         }
     });
     
-    _joinButton->addListener([this](const std::string& name, bool down) {
+    _lockButton->addListener([this](const std::string& name, bool down) {
         if (down) {
-            _status = Status::CLIENT;
-            _joinButton->setDown(false);
+            EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
+            _network->setEnemy(selectedBoss.id);
+            
+            _status = Status::ABORT;
         }
     });
 
@@ -164,13 +137,11 @@ void HostSetupScene::setupListeners() {
 /**
  * Disposes of all (non-static) resources allocated to this mode.
  */
-void HostSetupScene::dispose() {
+void BossSelectScene::dispose() {
     if (_active) {
         removeAllChildren();
-        _startGame = nullptr;
         _backButton = nullptr;
-        _joinButton = nullptr;
-        _hostName = nullptr;
+        _lockButton = nullptr;
         _bossCards.clear();
         _leftButton = nullptr;
         _rightButton = nullptr;
@@ -189,49 +160,28 @@ void HostSetupScene::dispose() {
  *
  * @param value whether the scene is currently active
  */
-void HostSetupScene::setActive(bool value) {
+void BossSelectScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
         if (value) {
             _status = WAIT;
-            _startGame->activate();
             _leftButton->activate();
             _rightButton->activate();
-            _hostName->activate();
             _backButton->activate();
-            _joinButton->activate();
+            configureLockButton();
         } else {
-            _startGame->deactivate();
             _leftButton->deactivate();
             _rightButton->deactivate();
             _backButton->deactivate();
-            _hostName->deactivate();
-            _joinButton->deactivate();
+            _lockButton->deactivate();
             
             // If any were pressed, reset them
-            _startGame->setDown(false);
             _backButton->setDown(false);
             _leftButton->setDown(false);
             _rightButton->setDown(false);
-            _joinButton->setDown(false);
+            _lockButton->setDown(false);
         }
     }
-}
-
-/**
- * Updates the text in the given button.
- *
- * Techincally a button does not contain text. A button is simply a scene graph
- * node with one child for the up state and another for the down state. So to
- * change the text in one of our buttons, we have to descend the scene graph.
- * This method simplifies this process for you.
- *
- * @param button    The button to modify
- * @param text      The new text value
- */
-void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, const std::string text) {
-    auto label = std::dynamic_pointer_cast<scene2::Label>(button->getChildByName("up")->getChildByName("label"));
-    label->setText(text);
 }
 
 /**
@@ -241,29 +191,56 @@ void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, c
  *
  * @param timestep  The amount of time (in seconds) since the last frame
  */
-void HostSetupScene::update(float timestep) {
+void BossSelectScene::update(float timestep) {
+    // Kick client if host terminated the session
+    if (!_network->isHost()) {
+        if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
+            _status = Status::ABORT;
+            return;
+        }
+        _network->getNetworkUpdates();
+        if (_network->wasSessionTerminated()) {
+            _network->clearQueues();
+            _network->disconnect();
+            _status = Status::ABORT;
+            return;
+        }
+    }
+    
+    // forward to game scene if host started while we were here
+    if (_network->checkGameStarted()) {
+        _network->clearQueues();
+        _status = Status::GAMESCENE_START;
+        return;
+    }
+    
     if (_isAnimating) {
-        Vec2 current = _bossSelectionCardContainer->getPosition();
-        Vec2 next = current.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor
+        Vec2 bossCardContainerPos = _bossSelectionCardContainer->getPosition();
+        Vec2 interpolatedPos = bossCardContainerPos.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor
 
-        if (current.distance(_slideTarget) < 1.0f) {
+        if (bossCardContainerPos.distance(_slideTarget) < 1.0f) {
             _bossSelectionCardContainer->setPosition(_slideTarget);
             _isAnimating = false;
         } else {
-            _bossSelectionCardContainer->setPosition(next);
+            _bossSelectionCardContainer->setPosition(interpolatedPos);
         }
     }
 }
 
 /**
- * Reconfigures the start button for this scene
+ * Reconfigures the lock button for this scene
  *
  * This is necessary because what the buttons do depends on the state of the
  * networking.
  */
-void HostSetupScene::configureStartButton() {
-    updateText(_startGame,"Start Game");
-    _startGame->activate();
+void BossSelectScene::configureLockButton() {
+    if (_network->isHost()) {
+        _lockButton->activate();
+        _lockButton->SceneNode::setColor(Color4::WHITE);
+    } else {
+        _lockButton->deactivate();
+        _lockButton->SceneNode::setColor(Color4(255, 255, 255, 125));
+    }
 }
 
 /**
@@ -275,7 +252,7 @@ void HostSetupScene::configureStartButton() {
  *
  * @param newIndex The index of the item to slide to.
  */
-void HostSetupScene::slideTo(int newIndex) {
+void BossSelectScene::slideTo(int newIndex) {
     if (_isAnimating) return;
     if (newIndex < 0 || newIndex >= _bossCards.size()) return;
 
@@ -313,7 +290,7 @@ void HostSetupScene::slideTo(int newIndex) {
  *
  * @param currentIndex The index of the card we are at.
  */
-void HostSetupScene::updateCarouselDots(int currentIndex) {
+void BossSelectScene::updateCarouselDots(int currentIndex) {
     for (int i = 0; i < _bossCarouselDotIndicators.size(); i++) {
         auto node = _bossCarouselDotIndicators[i];
         
@@ -328,7 +305,7 @@ void HostSetupScene::updateCarouselDots(int currentIndex) {
 }
 
 /** Loads boss definitions from the enemies JSON to use in selection. */
-bool HostSetupScene::loadBosses() {
+bool BossSelectScene::loadBosses() {
     const std::string enemiesJsonPath = "json/enemies.json";
     if (!_enemyLoader.loadFromFile(enemiesJsonPath)) {
         CULog("HostSetupScene: Failed to load enemies.json");
@@ -336,3 +313,4 @@ bool HostSetupScene::loadBosses() {
     }
     return true;
 }
+

@@ -214,8 +214,8 @@ void GameScene::initInputZones(){
     };
     
     _passZones = {
-        {InputController::Action::PASS_LEFT,  Rect(-w * 0.149f, 0, w * 0.15f, h * 0.35f)},
-        {InputController::Action::PASS_RIGHT, Rect(w * 0.999f,   0, w * 0.15f, h * 0.35f)}
+        {InputController::Action::PASS_LEFT,  Rect(-w * 0.149f, 0, w * 0.18f, h * 0.35f)},
+        {InputController::Action::PASS_RIGHT, Rect(w * 0.971f,   0, w * 0.18f, h * 0.35f)}
     };
 }
 
@@ -248,7 +248,7 @@ void GameScene::initBackgroundAndBossImage() {
  * @param assets  The loaded asset manager.
  * @return true if initialisation succeeded, false otherwise.
  */
-bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio) {
     if (assets == nullptr) {
         return false;
     }
@@ -258,6 +258,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
 
     _assets = assets;
     _network = networkController;
+    _audio = audio;
 
     initInputZones();
 
@@ -361,9 +362,11 @@ void GameScene::setActive(bool value) {
         if (value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
+            updateNetworkOrder();
+            _gameState.assignMissingHouses(_itemController);
+
         }
     }
-    updateNetworkOrder();
 }
 
 /**
@@ -435,8 +438,15 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
             }
-            CULog("Player attacked enemy '%s' with item %llu",
-                  enemy->getId().c_str(), (unsigned long long)itemId);
+            CULog("Player attacked enemy '%s' with item %llu (damage: %.1f)",
+                  enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
+            _audio->playSoundUnique("attack");
+            
+            // Host hears enemy take damage immediately
+            if (_network->isHost() && _audio) {
+                _audio->playSoundUnique("enemy_hurt");
+                CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+            }
             return true;
         }
         return false;
@@ -470,6 +480,8 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
+            _audio->playSoundUnique("support");
+            CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }
         return false;
@@ -503,6 +515,8 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
+            _audio->playSoundUnique("support");
+            CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }
         return false;
@@ -552,6 +566,8 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
         }
 
         _network->broadcastPass(defId, target->getPlayerNumber(), 1);  // Direction 1 = left
+        _audio->playSoundUnique("whoosh");
+
         return true;
     }
     return false;
@@ -599,6 +615,7 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
         }
 
         _network->broadcastPass(defId, target->getPlayerNumber(), 2);  // Direction 2 = right
+        _audio->playSoundUnique("whoosh");
         return true;
     }
     return false;
@@ -694,13 +711,23 @@ void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
 
+    // Track player and enemy health before any updates to detect damage
+    auto player = _gameState.getLocalPlayer();
+    // Only track health if local player is not AI (AI players shouldn't hear their own hurt sounds)
+    float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
+    float enemyHealthBefore = enemy->getCurrentHealth();
+
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
+    // Update AI players - this is when they attack the boss AND heal teammates
     for (auto& player : _gameState.getPlayers()) {
         if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
             ai->update(dt, *enemy, _itemController);
         }
     }
+    
+    // Play sounds for LOCAL player and enemy health changes after all updates
+    playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
 }
 
 /**
@@ -755,6 +782,28 @@ void GameScene::handleResetButton(InputController& input) {
 }
 
 /**
+ * Initiates sliding for a released item by calculating velocity and starting animation.
+ * Used when an item is dropped on an invalid zone or outside any zone.
+ *
+ * @param itemId  The ID of the item to start sliding
+ */
+void GameScene::slideReleasedItem(ItemInstance::ItemId itemId) {
+    auto body = _itemBodies.find(itemId);
+    if (body != _itemBodies.end() && body->second) {
+        Vec2 currentPos = body->second->getPosition();
+        Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
+        
+        // Clamp drop velocity to maximum speed cap
+        float speed = dropVelocity.length();
+        if (speed > ITEM_MOVEMENT_MAX_SPEED) {
+            dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
+        }
+        
+        startItemSliding(itemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
+    }
+}
+
+/**
  * Handles the full pipeline of a player's drag-and-drop input for one frame.
  *
  * When the player releases a dragged item, this function:
@@ -792,46 +841,21 @@ void GameScene::handlePlayerInput(InputController& input) {
                 _draggedIcon->setVisible(false);
             }
         } else {
-            // Item action failed or invalid zone - initiate sliding instead of static reset
-            auto body = _itemBodies.find(_draggedItemId);
-            if (body != _itemBodies.end() && body->second) {
-                // Calculate drop velocity from position delta divided by small time step
-
-                Vec2 currentPos = body->second->getPosition();
-                Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
-                
-                // Clamp drop velocity to maximum speed cap
-                float speed = dropVelocity.length();
-                if (speed > ITEM_MOVEMENT_MAX_SPEED) {
-                    dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
-                }
-                
-                // Initiate sliding with the calculated velocity
-                startItemSliding(_draggedItemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
-            }
+            // Item action failed - slide the item back
+            slideReleasedItem(_draggedItemId);
             if (_draggedIcon) {
                 _draggedIcon->setVisible(true);
             }
+            _audio->playSoundUnique("deselect");
         }
     } else {
-        // If no zone was even detected, still slide the item
-        auto body = _itemBodies.find(_draggedItemId);
-        if (body != _itemBodies.end() && body->second) {
-            constexpr float VELOCITY_DT_ESTIMATE = 0.016f;
-            Vec2 currentPos = body->second->getPosition();
-            Vec2 dropVelocity = (currentPos - _dragPreviousFrameItemBodyPos) / VELOCITY_DT_ESTIMATE;
-            
-            // Clamp drop velocity to maximum speed cap
-            float speed = dropVelocity.length();
-            if (speed > ITEM_MOVEMENT_MAX_SPEED) {
-                dropVelocity = dropVelocity.normalize() * ITEM_MOVEMENT_MAX_SPEED;
-            }
-            
-            startItemSliding(_draggedItemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
-        }
+        // If no zone was detected, slide the item
+        slideReleasedItem(_draggedItemId);
         if (_draggedIcon) {
             _draggedIcon->setVisible(true);
         }
+        _audio->playSoundUnique("deselect");
+
     }
 
     _draggedIcon = nullptr;
@@ -886,6 +910,9 @@ void GameScene::handleDragInitiation(InputController& input) {
     for (auto& [id, widget] : _itemWidgets) {
         if (!widget) continue;
         if (widget->getBoundingBox().contains(touchPosScreen)) {
+
+            _audio->playSoundUnique("select");
+
             _draggedIcon = widget;
             _draggedItemId = id;
             _dragOffset = widget->getPosition() - touchPosScreen;
@@ -903,7 +930,7 @@ void GameScene::handleDragInitiation(InputController& input) {
                 Size widgetSize = widget->getContentSize();
                 _dragStartBodyPosition = widget->getPosition() + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
             }
-            
+
             _draggedItemDef = getHeldItemDef(id);
             updateInputZones();
             break;
@@ -937,37 +964,67 @@ void GameScene::handleNetworkUpdates() {
     /*Networking pull cycle*/
     _network->getNetworkUpdates();
 
+    // Track player and enemy health before updates to detect changes
+    auto player = _gameState.getLocalPlayer();
+    float playerHealthBefore = player ? player->getCurrentHealth() : 0.0f;
+    float enemyHealthBefore = _gameState.getEnemy()->getCurrentHealth();
+
     if (_network->isHost()) {
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
-        //check if we won or lost
-        if (_gameState.didWin()) {
-            _network->broadcastWonGame();
-            _status = Status::WON;
-        }
-        else if(_gameState.didLose()){
-            _network->broadcastLostGame();
-            _status = Status::LOST;
-        }
     }
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
-        // clients check if the host told us anything about winning/losing
-        if (_network->checkGameWon()) {
-            _status = Status::WON;
-            CULog("We were told that we won");
+    }
+    
+    // Play sounds for LOCAL player and enemy health changes after all updates
+    playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
+    
+    // Check if we won or lost (common to both host and client)
+    if (_gameState.didWin()) {
+        if (_network->isHost()) {
+            _network->broadcastWonGame();
         }
-        else if (_network->checkGameLost()) {
-            _status = Status::LOST;
-            CULog("We were told that we lost");
+        _status = Status::WON;
+        CULog("We won!");
+    }
+    else if(_gameState.didLose()){
+        if (_network->isHost()) {
+            _network->broadcastLostGame();
         }
+        _status = Status::LOST;
+        CULog("We lost!");
     }
 
     processNetworkedPasses(_network->getPassUpdates());
+}
+
+/** 
+ * Plays appropriate hurt/heal sounds based on changes in player and enemy health.
+ * Should be called after processing all enemy and AI updates, so we capture all 
+ * health changes in one place and avoid playing multiple overlapping sounds for the same health change.
+ */
+void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore) {
+    auto player = _gameState.getLocalPlayer();
+    auto enemy = _gameState.getEnemy();
+    
+    // Only play sounds for non-AI local players
+    if (player && !dynamic_cast<PlayerAI*>(player)) {
+        if (player->getCurrentHealth() < playerHealthBefore && _audio) {
+            std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
+            _audio->playSoundUnique(soundKey);
+        } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
+            _audio->playSoundUnique("player_heal");
+        }
+    }
+    
+    if (enemy->getCurrentHealth() < enemyHealthBefore && _audio) {
+        _audio->playSoundUnique("enemy_hurt");
+    }
 }
 
 /**
@@ -1031,10 +1088,16 @@ void GameScene::startItemSliding(ItemInstance::ItemId itemId, const cugl::Vec2& 
         case ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN:
             // Spawned items cannot interact with zones until settled
             item->setCanInteractWithZones(false);
+            if (_audio) {
+                _audio->playSoundUnique("whoosh");
+            }
             break;
         case ItemInstance::SlideOriginType::SLIDE_FROM_PASS:
             // Passed items cannot interact with zones until settled
             item->setCanInteractWithZones(false);
+            if (_audio) {
+                _audio->playSoundUnique("whoosh");
+            }
             break;
     }
 
@@ -1085,43 +1148,91 @@ bool GameScene::updateItemFriction(ItemInstance* item, std::shared_ptr<cugl::phy
 }
 
 /**
+ * Checks if an item is in a matching interaction zone.
+ * Iterates through all input zones and checks if the item position falls within
+ * a zone and if its type matches the zone's expected type (Attack↔DROP_BOSS, Support↔DROP_ALLY_*).
+ *
+ * @param itemPos  The item's current world position
+ * @param itemDef  The item definition containing type information
+ * @return         true if the item is in a valid matching zone, false otherwise
+ */
+bool GameScene::isItemInMatchingZone(const cugl::Vec2& itemPos, const std::shared_ptr<ItemDef>& itemDef) {
+    if (!itemDef) return false;
+    
+    for (auto& [action, zone] : _inputZones) {
+        if (!zone.contains(itemPos)) continue;
+        
+        // Check for type matching
+        if (action == InputController::Action::DROP_BOSS && itemDef->getType() == ItemDef::Type::Attack) {
+            return true;
+        }
+        if ((action == InputController::Action::DROP_ALLY_LEFT || action == InputController::Action::DROP_ALLY_RIGHT) 
+            && itemDef->getType() == ItemDef::Type::Support) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Initiates a snapback animation for an item returned to inventory.
+ * Retrieves the item's widget (or uses default size), calculates a random
+ * target position in the inventory, and creates a snapback animation entry.
+ *
+ * @param itemId   The ID of the item to snapback
+ * @param fromPos  The item's current world position (animation start point)
+ */
+void GameScene::initiateSnapbackAnimation(ItemInstance::ItemId itemId, const cugl::Vec2& fromPos) {
+    auto widget = _itemWidgets[itemId];
+    cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
+    cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
+    
+    SnapbackAnimation anim;
+    anim.startPos = fromPos;
+    anim.targetPos = randomTarget;
+    anim.progress = 0.0f;
+    _snapbackAnimations[itemId] = anim;
+}
+
+/**
  * Handles settlement logic for dropped items.
- * Checks if the item is within inventory bounds and initiates snapback or settles accordingly.
+ * Checks if the item is within inventory bounds, then in matching interaction zones,
+ * and finally initiates snapback if neither condition is met.
  *
  * @param item       The item instance that has settled.
  * @param itemBody   The Box2D body representing the item.
  * @param itemId     The ID of the item.
- * @return           true if the item should be removed from sliding set.
+ * @return           true if the item should be removed from sliding set, false if animating/processing.
  */
 bool GameScene::handleSettledItemDrop(ItemInstance* item, std::shared_ptr<cugl::physics2::BoxObstacle> itemBody, ItemInstance::ItemId itemId) {
     // Check if item is within inventory bounds
     bool inInventoryBounds = false;
     if (_inventory) {
-        cugl::Rect inventoryBounds = _inventory->getBoundingBox();
-        inInventoryBounds = inventoryBounds.contains(itemBody->getPosition());
+        inInventoryBounds = _inventory->getBoundingBox().contains(itemBody->getPosition());
     }
     
-    if (!inInventoryBounds) {
-        // Out of bounds - snapback to random inventory position
-        auto widget = _itemWidgets[itemId];
-        cugl::Size widgetSize = widget ? widget->getContentSize() : cugl::Size(50, 50);
-        cugl::Vec2 randomTarget = getRandomInventoryPosition(widgetSize);
-        
-        // Add to snapback animations map; supports multiple simultaneous snapbacks
-        SnapbackAnimation anim;
-        anim.startPos = itemBody->getPosition();
-        anim.targetPos = randomTarget;
-        anim.progress = 0.0f;
-        _snapbackAnimations[itemId] = anim;
-        
-        // Stop sliding so snapback animation takes over
-        item->setSliding(false);
-        return false; // Don't remove yet; snapback animation will handle it
-    } else {
+    if (inInventoryBounds) {
         // In bounds, just settle
         item->setSliding(false);
-        return true; // Remove from sliding set
+        return true;
     }
+    
+    // Out of bounds - check if it's in a matching interaction zone
+    cugl::Vec2 itemPos = itemBody->getPosition();
+    auto itemDef = _itemController.getDatabase().getDef(item->getDefId());
+    
+    if (isItemInMatchingZone(itemPos, itemDef)) {
+        // Item is in a matching zone; enable zone interaction and let it be processed next frame
+        item->setCanInteractWithZones(true);
+        item->setSliding(false);
+        return false; // Keep in sliding set to be processed by zone interaction logic
+    }
+    
+    // Not in any valid zone and outside inventory - snapback to inventory
+    item->setCanInteractWithZones(false); // Prevent zone interactions during snapback
+    item->setSliding(false);
+    initiateSnapbackAnimation(itemId, itemPos);
+    return false; // Don't remove yet; snapback animation will handle it
 }
 
 /**
@@ -1316,7 +1427,9 @@ void GameScene::processZoneInteractionsForSlidingItems() {
             }
         }
         
-        if (!item || !item->canInteractWithZones() || !item->isSliding() || item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS) {
+        // Skip if: no item, can't interact, or is a passed item
+        // Allow interaction for both sliding items and settled items that are zone-interactive (e.g., dropped items in zones)
+        if (!item || !item->canInteractWithZones() || item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS) {
             continue;
         }
 
@@ -1694,10 +1807,6 @@ void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
             Path2 path(zone);
             batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
         }
-        for (const auto& [action, zone] : _inventoryZones) {
-            Path2 path(zone);
-            batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
-        }
         
         // Render attack/support zones based on item type
         auto itemDef = getHeldItemDef(_draggedItemId);
@@ -1851,37 +1960,18 @@ void GameScene::demoteSlotToAI(int slot) {
 
     CULog("GameScene: host demoting slot %d to EasyPlayerAI", slot);
 
-    // Snapshot the disconnected player's state before overwriting.
+    // Snapshot state before overwriting
     float savedHealth    = player->getCurrentHealth();
     auto  savedInventory = player->getInventory();
 
-    // Construct the replacement AI. GameScene owns this step because
-    // _itemController and _gameState.getCharacterLoader() both live here.
-    auto aiPlayer = std::make_shared<EasyPlayerAI>(
-        player->getHouseName(),
-        slot,
-        player->getPlayerName(),
-        _gameState.getHouseLoader()
-    );
-    aiPlayer->init(_itemController.getDatabase(), "json/playerAI.json");
+    // Delegate the actual demotion to GameState
+    _gameState.demoteToAI(slot);
 
-    // Swap the slot in the player array.
-    auto& players = _gameState.getPlayers();
-    players[slot] = aiPlayer;
-
-    // Re-wire the full circular neighbour ring so every player's
-    // left/right pointers are valid after the swap.
-    const int n = (int)players.size();
-    for (int i = 0; i < n; i++) {
-        players[i]->setLeftPlayer (players[(i - 1 + n) % n].get());
-        players[i]->setRightPlayer(players[(i + 1)     % n].get());
-    }
-
-    // Restore the disconnected player's health and inventory onto the
-    // new AI so the game continues without a state jump.
-    aiPlayer->setCurrentHealth(savedHealth);
+    // Restore health and inventory onto the new AI
+    Player* newAI = _gameState.getPlayerBySlot(slot);
+    newAI->setCurrentHealth(savedHealth);
     for (const ItemInstance& item : savedInventory) {
-        aiPlayer->addItem(item);
+        newAI->addItem(item);
     }
 }
 
@@ -1940,4 +2030,13 @@ void GameScene::handleDisconnectedPlayers() {
         // Step 2b: Both host and clients refresh the teammate name labels.
         refreshTeammateNameLabels();
     }
+}
+
+/**
+ * Disposes and re-initialises the GameState for a fresh session.
+ * Call this when aborting the lobby to clear all player house selections.
+ */
+void GameScene::resetGameState() {
+    _gameState.dispose();
+    _gameState.init(_itemController);
 }
