@@ -19,18 +19,12 @@ public:
      * This is how the application knows to switch to the next scene.
      */
     enum Status {
-        /** Client has not yet entered a room */
-        IDLE,
-        /** Client switches to host game screen */
-        HOST,
-        /** Client is connecting to the host */
-        JOIN,
-        /** Client is waiting on host to start game */
-        WAIT,
-        /** Time to start the game */
-        START,
-        /** Game was aborted; back to main menu */
-        ABORT
+        IDLE,       // waiting for user input
+        START,      // connection confirmed — SceneLoader transitions to lobby
+        JOINING,    // join attempt in flight — polling checkConnection()
+        ERROR_DISPLAY, // showing error popup before resetting to IDLE
+        ABORT,      // user pressed back
+        HOST        // user wants to switch to host flow
     };
     
 protected:
@@ -57,9 +51,16 @@ protected:
     std::string _inputBuffer = "";
     /** Collection of all keypad buttons fir gameID (digits + backspace). */
     std::vector<std::shared_ptr<cugl::scene2::Button>> _keypadButtons;
-    
+    /** Optional error-popup node (may be nullptr if absent from JSON scene). */
+    std::shared_ptr<cugl::scene2::SceneNode> _errorPopup;
+    /** Seconds elapsed since the current join attempt began. */
+    float _joinTimer;
+    /** Seconds elapsed since the error popup was shown. */
+    float _errorTimer;
     /** The current status */
     Status _status;
+    /** Whether the Input is pending to be disabled*/
+    bool _pendingInputDisable = false;
     
 public:
 #pragma mark -
@@ -150,6 +151,13 @@ public:
      */
     Status getStatus() const { return _status; }
     
+    /**
+     * Updates the scene each frame. Polls the network while joining and
+     * manages the error-popup countdown.
+     * @param timestep  Seconds since the last frame.
+     */
+    void update(float timestep);
+    
 private:
     /**
      * Updates the text in the given button.
@@ -175,6 +183,21 @@ private:
      * Removes the last character from the input buffer and updates the UI.
      */
     void removeLastChar();
+    
+    /**
+     * Enables or disables all interactive input controls.
+     * @param enabled  Whether controls should accept input.
+     */
+    void setInputEnabled(bool enabled);
+ 
+    /**
+     * Displays the error popup with the given message and enters ERROR_DISPLAY.
+     * @param message  Human-readable error text.
+     */
+    void showError(const std::string& message);
+ 
+    /** Hides the error popup and resets to IDLE. */
+    void dismissError();
 };
 
 #endif /* __CLIENT_SCENE_H__ */
