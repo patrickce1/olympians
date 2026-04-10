@@ -181,6 +181,7 @@ void LobbyScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = IDLE;
+            _currentBoss = "";
             _enterGame->deactivate();
             _backButton->activate();
             _bossLobbyButton->activate();
@@ -352,16 +353,13 @@ void LobbyScene::update(float timestep) {
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
         _gameId->setText(_network->getRoom());
         _network->broadcastJoinedLobby();
-        _network->getNetworkUpdates();
-        // change boss icon to the currently chosen boss
-        updateLobbyBossImage(_network->getEnemy());
     }
     else {
         _gameId->setText("#####");
     }
 
+    _network->getNetworkUpdates();
     if (!_network->isHost()) {
-        _network->getNetworkUpdates();
         if (_network->checkGameStarted()) {
             _status = START;
         }
@@ -372,6 +370,9 @@ void LobbyScene::update(float timestep) {
             return;
         }
     }
+    
+    // change boss icon to the currently chosen boss
+    updateLobbyBossImage(_network->getEnemy());
     
     // Only the host can start; only enable the button when all players have locked in a house.
     if (_network->isHost() && _network->allPlayersSelectedHouse()) {

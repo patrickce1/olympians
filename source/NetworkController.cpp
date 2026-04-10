@@ -251,13 +251,14 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			_onlinePlayers.clear();
 			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
 			// re-pair the flattened vector back into pairs
-			for (int i = 0; i < playerData.size(); i += 3) {
+            for (int i = 0; i < (int)playerData.size() - 1; i += 3) {
 				NetworkedPlayer newPlayer;
 				newPlayer.networkID = playerData[i];
 				newPlayer.username = playerData[i + 1];
                 newPlayer.houseID = playerData[i+2];
 				_onlinePlayers.push_back(newPlayer);
 			}
+            _enemy = playerData.back();
 			break;
 		}
 		case MessageType::GAME_UPDATE : {
@@ -295,6 +296,10 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
         }
         case SESSION_TERMINATED: {
             _sessionTerminated = true;
+            break;
+        }
+        case MessageType::BOSS_SELECT: {
+            _enemy = _deserializer.readString();
             break;
         }
 	}
@@ -410,6 +415,7 @@ void NetworkController::broadcastGameStart(){
 	_serializer.writeSint32(MessageType::GAME_START);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
+    _gameStarted = true;
 }
 
 /**
@@ -489,6 +495,7 @@ void NetworkController::broadcastLobbyState() {
 		serializablePlayers.push_back(player.username);
         serializablePlayers.push_back(player.houseID);
 	}
+    serializablePlayers.push_back(_enemy);
 
 	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
 	_serializer.writeStringVector(serializablePlayers);
@@ -649,4 +656,22 @@ void NetworkController::broadcastSessionTerminated() {
     _serializer.writeSint32(SESSION_TERMINATED);
     auto msg = _serializer.serialize();
     _network->broadcast(msg);
+}
+
+/**
+ * Broadcasts the host's selected boss enemy to all connected clients.
+ * Should be called by the host immediately after the player confirms
+ * their boss selection in the boss select screen.
+ *
+ * Clients will update their local _enemy field upon receiving this
+ * message, which is then read by getEnemy() to update the lobby UI.
+ *
+ * @param enemyID  The unique identifier of the selected enemy (e.g. "cyclops", "cerberus").
+ *                 Must match a valid entry in the enemy JSON definition file.
+ */
+void NetworkController::broadcastBossSelection(const std::string& enemyID) {
+    _serializer.writeSint32(MessageType::BOSS_SELECT);
+    _serializer.writeString(enemyID);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }
