@@ -203,11 +203,11 @@ bool GameScene::initGameSystems() {
 }
 
 /**
- * Loads data-driven tuning values used by teammate damage blink UI.
+ * Loads data-driven tuning values used by teammate blink UI.
  *
  * Missing or invalid fields leave the current defaults unchanged.
  */
-void GameScene::initDamageBlinkConfig() {
+void GameScene::initBlinkConfig() {
     if (!_assets) {
         return;
     }
@@ -217,16 +217,16 @@ void GameScene::initDamageBlinkConfig() {
         return;
     }
 
-    auto blinkConfig = config->get("teammateDamageBlink");
+    auto blinkConfig = config->get("teammateBlink");
     if (!blinkConfig || !blinkConfig->isObject()) {
         return;
     }
 
     if (blinkConfig->has("duration") && blinkConfig->get("duration")->isNumber()) {
-        _damageBlinkDuration = std::max(0.0f, blinkConfig->getFloat("duration"));
+        _blinkDuration = std::max(0.0f, blinkConfig->getFloat("duration"));
     }
     if (blinkConfig->has("interval") && blinkConfig->get("interval")->isNumber()) {
-        _damageBlinkInterval = std::max(0.0f, blinkConfig->getFloat("interval"));
+        _blinkInterval = std::max(0.0f, blinkConfig->getFloat("interval"));
     }
 }
 
@@ -302,7 +302,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     _network = networkController;
     _audio = audio;
     
-    initDamageBlinkConfig();
+    initBlinkConfig();
     initInputZones();
 
     if (!initSceneGraph()) {
@@ -440,7 +440,7 @@ void GameScene::reset() {
 
     // Delegate inventory clearing and health resetting to the model.
     _gameState.reset();
-    resetTeammateDamageBlinkState();
+    resetTeammateBlinkState();
 }
 
 #pragma mark -
@@ -452,7 +452,7 @@ void GameScene::reset() {
  */
 void GameScene::setLocalPlayer(int assignedIndex) {
     _gameState.setLocalPlayer(assignedIndex);
-    resetTeammateDamageBlinkState();
+    resetTeammateBlinkState();
 }
 
 #pragma mark -
@@ -845,11 +845,11 @@ void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonN
 
     if (hasPriorSnapshot && isAlive) {
         if (currentHealth < lastHealth) {
-            damageBlinkTimer = _damageBlinkDuration;
+            damageBlinkTimer = _blinkDuration;
             healBlinkTimer = 0.0f;
             startedNewBlink = true;
         } else if (currentHealth > lastHealth) {
-            healBlinkTimer = _damageBlinkDuration / 2;
+            healBlinkTimer = _blinkDuration / 2;
             damageBlinkTimer = 0.0f;
             startedNewBlink = true;
         }
@@ -870,7 +870,7 @@ void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonN
         slot->setColor(Color4(255, 255, 255, 255));
     } else if (healBlinkTimer > 0.0f) {
         slot->setColor(Color4(176, 224, 176, 255));
-    } else if (damageBlinkTimer > 0.0f && shouldShowDamageBlink(damageBlinkTimer, _damageBlinkInterval)) {
+    } else if (damageBlinkTimer > 0.0f && shouldShowDamageBlink(damageBlinkTimer, _blinkInterval)) {
         slot->setColor(Color4(224, 160, 160, 255));
     } else {
         slot->setColor(Color4(255, 255, 255, 255));
@@ -880,9 +880,9 @@ void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonN
 }
 
 /**
- * Resynchronises teammate damage blink state with the current local player.
+ * Resynchronises teammate blink state with the current local player.
  */
-void GameScene::resetTeammateDamageBlinkState() {
+void GameScene::resetTeammateBlinkState() {
     _leftPlayerDamageBlinkTimer = 0.0f;
     _rightPlayerDamageBlinkTimer = 0.0f;
     _leftPlayerHealBlinkTimer = 0.0f;
@@ -2169,7 +2169,7 @@ void GameScene::handleDisconnectedPlayers() {
 
         // Step 2b: Both host and clients refresh the teammate name labels.
         refreshTeammateNameLabels();
-        resetTeammateDamageBlinkState();
+        resetTeammateBlinkState();
     }
 }
 

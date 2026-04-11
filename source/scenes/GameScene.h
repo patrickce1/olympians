@@ -194,7 +194,7 @@ protected:
     /** Maximum duration of a glow effect in seconds. */
     float _glowDuration = 0.3f;
 
-#pragma mark - Teammate Damage Blink State
+#pragma mark - Teammate Blink State
 
     /** Seconds remaining on the left teammate damage blink effect. */
     float _leftPlayerDamageBlinkTimer = 0.0f;
@@ -214,11 +214,11 @@ protected:
     /** Last observed health snapshot for the right teammate. */
     float _lastRightPlayerHealth = -1.0f;
 
-    /** Total duration of the teammate damage blink effect. */
-    float _damageBlinkDuration = 0.45f;
+    /** Total duration of the teammate blink effect. */
+    float _blinkDuration = 0.45f;
 
-    /** Blink cadence used for teammate damage flashes. */
-    float _damageBlinkInterval = 0.12f;
+    /** Blink cadence used for teammate flashes. */
+    float _blinkInterval = 0.12f;
 
 #pragma mark - Debug State
     
@@ -315,8 +315,8 @@ public:
      */
     bool initGameSystems();
 
-    /** Loads data-driven tuning values used by teammate damage blink UI. */
-    void initDamageBlinkConfig();
+    /** Loads data-driven tuning values used by teammate blink UI. */
+    void initBlinkConfig();
     
     /**
      * Initializes the background and boss images for the current game scene.
@@ -479,8 +479,8 @@ public:
         float dt
     );
 
-    /** Resynchronises teammate damage blink state with the current local player. */
-    void resetTeammateDamageBlinkState();
+    /** Resynchronises teammate blink state with the current local player. */
+    void resetTeammateBlinkState();
 
     /**
      * Checks whether the reset button was tapped and calls reset() if so.
