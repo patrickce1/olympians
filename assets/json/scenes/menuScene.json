@@ -23,22 +23,13 @@
     },
     "children": {
         "background": {
-            "type": "Solid",
+            "type": "Image",
             "data": {
-                "polygon": [
-                    800,
-                    852,
-                    0,
-                    852,
-                    0,
-                    0,
-                    800,
-                    0
-                ],
-                "color": "#1E1410ff",
+                "texture": "menuBG",
+                "size": [400, 867],
                 "anchor": [
-                    0,
-                    0
+                    0.5,
+                    0.5
                 ],
                 "position": [
                     0,
@@ -48,11 +39,46 @@
                 "angle": 0
             },
             "layout": {
-                "x_anchor": "left",
-                "y_anchor": "bottom",
+                "x_anchor": "center",
+                "y_anchor": "middle",
                 "absolute": false,
                 "x_offset": 0,
                 "y_offset": 0
+            }
+        },
+        "droptext": {
+            "type": "Label",
+            "data": {
+                "anchor": [
+                    0.5,
+                    0.5
+                ],
+                "size": [
+                    340,
+                    80
+                ],
+                "angle": 0,
+                "visible": true,
+                "font": "menuTitle",
+                "text": "OLYMPIANS",
+                "foreground": "#00000066",
+                "background": "#00000000",
+                "padding": [
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "valign": "middle",
+                "halign": "center"
+            },
+            "children": {},
+            "layout": {
+                "x_anchor": "center",
+                "y_anchor": "middle",
+                "absolute": false,
+                "x_offset": 0,
+                "y_offset": 0.145
             }
         },
         "title": {
@@ -74,7 +100,9 @@
                 "visible": true,
                 "font": "menuTitle",
                 "text": "OLYMPIANS",
-                "foreground": "#FDC782ff",
+                "dropshadow": true,
+                "dropoffset": [0,-4],
+                "foreground": "#FFEBD1ff",
                 "background": "#00000000",
                 "padding": [
                     0,
@@ -88,10 +116,10 @@
             "children": {},
             "layout": {
                 "x_anchor": "center",
-                "y_anchor": "top",
-                "absolute": true,
+                "y_anchor": "middle",
+                "absolute": false,
                 "x_offset": 0,
-                "y_offset": -175
+                "y_offset": 0.15
             }
         },
         "menu": {
@@ -123,7 +151,7 @@
                     "type": "Widget",
                     "format": { "type": "Anchored" },
                     "data": {
-                        "key": "buttonRegular",
+                        "key": "buttonMedium",
                         "variables": {
                             "label" : "START GAME"
                         }
@@ -132,7 +160,7 @@
                         "priority": 0,
                         "padding": [
                             0,
-                            19,
+                            15,
                             0,
                             0
                         ]
@@ -143,7 +171,7 @@
                     "type": "Widget",
                     "format": { "type": "Anchored" },
                     "data": {
-                        "key": "buttonRegular",
+                        "key": "buttonMedium",
                         "variables": {
                             "label" : "SETTINGS"
                         }
@@ -165,7 +193,7 @@
                 "y_anchor": "bottom",
                 "absolute": false,
                 "x_offset": 0,
-                "y_offset": 0.15
+                "y_offset": 0.06
             }
         }
     }

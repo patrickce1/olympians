@@ -357,6 +357,9 @@
         },
         "loadingCircle": {
             "file": "textures/elements/loadingCircle.png"
+        },
+        "menuBG": {
+            "file": "textures/menuBG.png"
         }
 	},
     "fonts": {
@@ -398,7 +401,7 @@
         },
         "menuTitle": {
             "file":     "fonts/GRECOromanLubedWrestling.ttf",
-            "size":     48
+            "size":     50
         },
         "menuLabel": {
             "file":     "fonts/Roboto-Bold.ttf",
@@ -407,6 +410,10 @@
         "bossDescriptionLabel": {
             "file":     "fonts/GRECOromanLubedWrestling.ttf",
             "size":     12
+        },
+        "gamePin": {
+            "file":     "fonts/GRECOromanLubedWrestling.ttf",
+            "size":     48
         }
     },
     "jsons": {

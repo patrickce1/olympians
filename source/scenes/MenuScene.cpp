@@ -34,6 +34,11 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     _scene->setContentSize(getSize());
     _scene->doLayout();
 
+    auto label = std::dynamic_pointer_cast<Label>(_scene->getChildByName("title"));
+    if (!label){
+        label->setShadowBlur(4.0f);
+    }
+//    setShadowBlur
     auto menuNode = _scene->getChildByName("menu");
     if (!menuNode) {
         CULog("MenuScene: missing node 'menu'");
