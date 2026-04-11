@@ -6,7 +6,7 @@
             "maxHealth": 20.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
-                "retargetLikelihood": 0.5
+                "retargetLikelihood": 0.9
             },
             "states": {
                 "idle": {
@@ -68,7 +68,7 @@
             "maxHealth": 20.0,
             "spritesheetPath": "textures/cerberus.png",
             "ai": {
-                "retargetLikelihood": 0.5
+                "retargetLikelihood": 0.9
             },
             "states": {
                 "idle": {
@@ -92,8 +92,8 @@
                 "attack1_p2": {
                     "tag": "follow_up",
                     "animationRow": 2,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
+                    "buildUpTime": 3.0,
+                    "cooldownTime": 1.0,
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -106,8 +106,8 @@
                 "attack2": {
                     "tag": "attack",
                     "animationRow": 3,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
+                    "buildUpTime": 3.0,
+                    "cooldownTime": 1.0,
                     "events": [
                         {
                             "type": "DAMAGE",

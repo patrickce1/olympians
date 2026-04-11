@@ -73,13 +73,15 @@ void LobbyScene::setupUI() {
     _enterGame = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("lobbyScene.start"));
 
-    _backOut = std::dynamic_pointer_cast<scene2::Button>(
+    _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("lobbyScene.back"));
 
     _gameId = std::dynamic_pointer_cast<scene2::Label>(
         _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
 
-    _bossImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_assets->get<scene2::SceneNode>("lobbyScene.tableArea.bossCircle.bossLobbyImage"));
+    _bossImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_assets->get<scene2::SceneNode>("lobbyScene.tableArea.bossCircle.bossLobbyButton.bossLobbyImage"));
+    
+    _bossLobbyButton = std::dynamic_pointer_cast<cugl::scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.tableArea.bossCircle.bossLobbyButton"));
     
     _playerInfoContainer = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
 
@@ -116,9 +118,22 @@ void LobbyScene::setupListeners() {
         }
     });
 
-    _backOut->addListener([this](const std::string& name, bool down) {
+    _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_network->isHost()) {
+                _network->broadcastSessionTerminated();
+                _pendingDisconnect = true;
+            } else {
+                // Client leaving — disconnect so host is notified via disconnect callback
+                _pendingDisconnect = true;
+            }
             _status = Status::ABORT;
+        }
+    });
+    
+    _bossLobbyButton->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::BOSSSELECT;
         }
     });
     
@@ -142,9 +157,10 @@ void LobbyScene::dispose() {
         _playerSlots.clear();
         _playerImages.clear();
         _enterGame = nullptr;
-        _backOut = nullptr;
+        _backButton = nullptr;
         _gameId = nullptr;
         _bossImage = nullptr;
+        _bossLobbyButton = nullptr;
         _playerInfoContainer = nullptr;
         _active = false;
     }
@@ -166,13 +182,19 @@ void LobbyScene::setActive(bool value) {
         if (value) {
             _status = IDLE;
             _enterGame->deactivate();
-            _backOut->activate();
+            _backButton->activate();
+            _bossLobbyButton->activate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->activate();
             }
         } else {
-            _backOut->deactivate();
+            if (_pendingDisconnect) {
+                _network->disconnect();
+                _pendingDisconnect = false;
+            }
+            _backButton->deactivate();
             _enterGame->deactivate();
+            _bossLobbyButton->deactivate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->deactivate();
                 icon->setDown(false);
@@ -180,7 +202,8 @@ void LobbyScene::setActive(bool value) {
             
             // If any were pressed, reset them
             _enterGame->setDown(false);
-            _backOut->setDown(false);
+            _backButton->setDown(false);
+            _bossLobbyButton->setDown(false);
         }
     }
 }
@@ -258,12 +281,24 @@ void LobbyScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
     const auto& networkedPlayers = _network->getNetworkedPlayers();
-    for (int i = 0; i < (int)networkedPlayers.size(); i++) {
+    const int realCount = (int)networkedPlayers.size();
+    const int totalSlots = (int)_gameState->getPlayers().size();
+
+    for (int i = 0; i < realCount; i++) {
         _gameState->setRealPlayer(
             i,
             networkedPlayers[i].username,
             networkedPlayers[i].houseID
         );
+    }
+
+    // Host only: demote any slots beyond the current real player count back to AI
+    if (_network->isHost()) {
+        for (int i = realCount; i < totalSlots; i++) {
+            if (!_gameState->getPlayerBySlot(i)->isAI()) {
+                _gameState->demoteToAI(i);
+            }
+        }
     }
 }
 
@@ -315,7 +350,16 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
 void LobbyScene::update(float timestep) {
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
-        _gameId->setText(_network->getRoom());
+        std::string roomNum = _network->getRoom();
+        _gameId->setText(roomNum);
+        
+        // Invalid room — server connected but room doesn't exist
+        if (roomNum == "#####" || roomNum == "nullstr") {
+            _network->disconnect();
+            _status = Status::ABORT;
+            return;
+        }
+        
         _network->broadcastJoinedLobby();
         _network->getNetworkUpdates();
         // change boss icon to the currently chosen boss
@@ -327,9 +371,14 @@ void LobbyScene::update(float timestep) {
 
     if (!_network->isHost()) {
         _network->getNetworkUpdates();
-        bool gameStarted = _network->checkGameStarted();
-        if (gameStarted) {
+        if (_network->checkGameStarted()) {
             _status = START;
+        }
+        if (_network->wasSessionTerminated()) {
+            _network->clearQueues();
+            _network->disconnect();
+            _status = Status::ABORT;
+            return;
         }
     }
     

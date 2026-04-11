@@ -137,6 +137,12 @@ public:
     
     /*Sends an update notifying players about changes to the house selections*/
     void broadcastSelectedHouse(std::string& house);
+    
+    /*HOST ONLY. Notifies all clients that the host has exited the lobby and the session is over.*/
+    void broadcastSessionTerminated();
+
+    /*Returns true if a SESSION_TERMINATED message was received this network cycle. CLIENT ONLY.*/
+    bool wasSessionTerminated() const { return _sessionTerminated; }
 
     /*Getters for the queues and game state used during the gameplay*/
     /*Returns all the networking messages about attacks we recieved after calling getNetworkUpdate()*/
@@ -244,7 +250,8 @@ protected:
         SELECT_HOUSE = 7,
         PLAYER_DISCONNECT = 8,
         GAME_LOST = 9,
-        GAME_WON = 10
+        GAME_WON = 10,
+        SESSION_TERMINATED = 11
     };
 
     /*Our network connection*/
@@ -281,6 +288,9 @@ private:
 
     //Stores the most recent player order that we got. The host's version of this is authoritative
     std::vector<NetworkedPlayer> _onlinePlayers;
+    
+    // True if host sent SESSION_TERMINATED this network cycle
+    bool _sessionTerminated = false;
 
     //Player's chosen username
     std::string _playerName;

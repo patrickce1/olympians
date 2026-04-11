@@ -80,6 +80,14 @@ public:
     std::string getHouseName() const { return _houseId; }
     
     /**
+     * Returns whether the player's house is female (for sound effect purposes)
+     */
+    bool isFemaleHouse() const {
+        std::string house = getHouseName();
+        return house == "athena" || house == "aphrodite" || house == "demeter";
+    }
+
+    /**
      * Return the max health of the house/player
      */
     float getMaxHealth() const { return _maxHealth; }
@@ -158,7 +166,6 @@ public:
                     switch (def->getType()) {
                         case ItemDef::Type::Attack:  houseRoleMultiplier = houseMultipliers->attack;  break;
                         case ItemDef::Type::Support: houseRoleMultiplier = houseMultipliers->support; break;
-                        case ItemDef::Type::Utility: houseRoleMultiplier = houseMultipliers->utility; break;
                     }
                     // Affinity bonus only applies to rare/divine items when item affinity matches player house.
                     const bool affinityEligible =
