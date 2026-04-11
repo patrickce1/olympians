@@ -188,12 +188,12 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
     }
 }
 
-//helper that handles applying a change in the side multipliers
+/** Applies side modifiers to the boss based on a side modifier event */
 void EnemyController::resolveSideMultiplierEvent(const std::shared_ptr<Enemy>& enemy, const Enemy::FiredEvent& event) {
     enemy->setSideMultiplier(event.def.target, event.def.amount);
 }
 
-//helper that heals the boss based on the event
+/** Applies a heal to the boss based on a heal event */
 void EnemyController::resolveHealEvent(const std::shared_ptr<Enemy>& enemy, const Enemy::FiredEvent& event) {
     //we can only heal if we haven't died yet
     if (enemy->getCurrentHealth() > 0) {
@@ -201,7 +201,8 @@ void EnemyController::resolveHealEvent(const std::shared_ptr<Enemy>& enemy, cons
     }
 }
 
-//does a randomized roll or checks if the enemy's shouldDefend condition is achieved
+/* Determines whether the boss should enter a defensive state.
+   Returns true if a random chance roll succeeds, or if the enemy's defensive condition is met.*/
 bool EnemyController::shouldDefend(const std::shared_ptr<Enemy>& enemy) {
     float random = _rng.getClosedFloat(0, 1);
     if (random <= enemy->getDefenseLikelihood()) {
