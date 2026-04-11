@@ -294,7 +294,7 @@ void GameState::networkUpdate(GameStateMessage newState) {
     _enemy->enterState((EnemyLoader::State) newState.bossState);
     _enemy->setStateTime(newState.stateTime);
 
-    //update up boss direction
+    //update boss direction
     _enemy->setTargetIndex(newState.bossTarget);
 
     // update player health

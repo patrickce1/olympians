@@ -27,7 +27,9 @@ protected:
     std::string _name;
     std::string _spritesheetPath;
 
-    //for bosses we have custom data. Subclasses can use this to extract any class-specific data
+    /* Stores any custom data that was encoutered when loading the enemy
+       Used by bosses that extend the enemy class to store data related to
+       custom behavior */
     std::shared_ptr<cugl::JsonValue> _customData;
     
     int _targetIndex = -1;
@@ -36,10 +38,13 @@ protected:
     float _currentHealth = 0.0f;
 
     std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef> _states;
-    std::unordered_map<int, float> _sideMultipliers; //stores the damage multipliers for each side. The sides are relative, so 0 would be direction boss facing
+    
+    //Stores the damage multipliers for each side. The sides are relative, so 0 would be direction boss facing
+    std::unordered_map<int, float> _sideMultipliers; 
 
     EnemyLoader::State _currentState = EnemyLoader::State::IDLE;
-    //how long we have been in this state
+    
+    //How long we have been in this state
     float _stateTime = 0.0f;
     bool _eventsFiredThisState = false;
 
@@ -86,15 +91,14 @@ public:
     This can and should be overwritten for each boss to have custom logic on when they decide to use their defensive move */
     bool virtual shouldDefend();
 
-    /* Returns the multiplier data for side absoluteIndex. 
-    * The index is not relative to the boss' direction, but the absolute 
-    * Where 0 is the location of the host by default
-    this index IS NOT relative. This is the ABSOLUTE index from the perspective of the host
-    so 0 would be whatever side facing the host */
+    /* Returns the multiplier data for the given absolute side index.
+     * Index 0 corresponds to the side facing the host, regardless of the boss' direction.
+     * This index is absolute, not relative to the boss' orientation.
+     */
     float getSideMultiplier(int absoluteIndex);
     
-    /* lets you change the multipler value for that side
-    this is RELATIVE. So 0 would be directly where boss is facing*/
+    /* Lets you change the multipler value on the side equal to relativeIndex
+    As the name suggests, this index is RELATIVE. So 0 would be the direction where boss is facing*/
     void setSideMultiplier(int relativeIndex, float multiplier);
     
     /* Expose state defs so controller can pick attacks by tag */ 
@@ -112,8 +116,8 @@ public:
     //Positive heals, negative damages; clamps to [0, maxHealth]
     void updateHealth(float delta);
 
-    /* Handles taking damage and records the hits that we took
-    Use this method instead of updateHealth() for appropriate damage multiplication*/
+    /* Handles taking damage and applying the side modifiers
+    Use this method instead of updateHealth() for appropriate damage multiplication */
     void virtual takeDamage(float damage, int playerIndex);
 
     /** Immediately enters the state and resets timers. */

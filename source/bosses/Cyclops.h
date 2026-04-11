@@ -1,6 +1,7 @@
 #include "../Enemy.h"
 #include <cugl/cugl.h>
 
+/* This class represents the Cyclops and allows the implementation of any custom behavior associated with this boss */
 class Cyclops : public Enemy {
 private:
 	//keeps track of what the default multiplier is for damage to the eye

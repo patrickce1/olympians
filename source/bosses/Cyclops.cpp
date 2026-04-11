@@ -1,7 +1,7 @@
 #include "Cyclops.h"
 
-//the entire class will be implemented in a future pr
-//this included as an example for future boss implementers
+//For now, this is a demo class that will be implemented in a future pr
+//This included as an example for future boss implementers
 
 bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
 	bool success = Enemy::init("cyclops", jsonPath);
