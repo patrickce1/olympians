@@ -50,9 +50,7 @@ void Player::updateHealth(float delta) {
         // Barrier applies first as percentage mitigation, then shield removes a fixed amount.
         if (_hasBarrier && _barrierDuration > 0.0f) {
             incomingDamage *= _barrierMultiplier;
-            _hasBarrier = false;
             _barrierMultiplier = 1.0f;
-            _barrierDuration = 0.0f;
         }
 
         if (_hasShield && _shieldDuration > 0.0f) {
