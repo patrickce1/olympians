@@ -20,7 +20,6 @@ ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
 
     if (value == "attack")    return Type::Attack;
     if (value == "support")   return Type::Support;
-    if (value == "utility")   return Type::Utility;
     return fallback;
 }
 

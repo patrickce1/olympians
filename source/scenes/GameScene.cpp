@@ -273,6 +273,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     if (!initGameSystems()) {
         return false;
     }
+    
+    _assets->loadDirectory("json/itemTextures.json");
 
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
@@ -1550,15 +1552,14 @@ void GameScene::update(float dt, InputController& input) {
 std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
     auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
     if (!itemDef) return nullptr;
-
-    const std::string textureKey =
-        (itemDef->getType() == ItemDef::Type::Attack) ? "attack" : "heal";
+    
+    const std::string textureKey = itemDef->getIconKey();
 
     auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
     if (!texture) return nullptr;
 
     auto widget = PolygonNode::allocWithTexture(texture);
-    widget->setContentSize(Size(80, 80));
+    widget->setContentSize(Size(100, 100));
     widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
     widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
     _inventory->addChild(widget);
