@@ -161,9 +161,11 @@ void Enemy::updateHealth(float delta) {
     if (_currentHealth < 0.0f) _currentHealth = 0.0f;
 }
 
+/* Handles taking damage and records the hits that we took
+Use this method instead of updateHealth() for appropriate damage multiplication */
 void Enemy::takeDamage(float damage, int playerIndex) {
     //find out which side we got hit from
-        // get relative index based on which side of the boss the player is on
+    // get relative index based on which side of the boss the player is on
     int relativeIndex = (playerIndex - _targetIndex + NUM_PLAYERS) % NUM_PLAYERS;
 
     float multiplier = 1.0f;

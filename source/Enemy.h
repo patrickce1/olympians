@@ -56,9 +56,10 @@ public:
     Enemy() = default;
     
     bool virtual init(const std::string& enemyId, const std::string& jsonPath);
-
     const std::string& getId() const { return _enemyId; }
     const std::string& getName() const { return _name; }
+    
+    /*Returns the file path to the sprite sheet*/
     const std::string& getSpritesheetPath() const { return _spritesheetPath; }
 
     float getMaxHealth() const { return _maxHealth; }
@@ -81,44 +82,57 @@ public:
     void  setRetargetLikelihood(float v);
     void setDefenseLikelihood(float d) { _defenseLikelihood = d; }
 
-    /*Checks if this enemy should use their defensive move
-    This can and should be overwritten for each boss to have custom logic on when they decide to use their defensive move*/
+    /* Checks if this enemy should use their defensive move
+    This can and should be overwritten for each boss to have custom logic on when they decide to use their defensive move */
     bool virtual shouldDefend();
 
-    /* returns the multiplier data for that side
+    /* Returns the multiplier data for side absoluteIndex. 
+    * The index is not relative to the boss' direction, but the absolute 
+    * Where 0 is the location of the host by default
     this index IS NOT relative. This is the ABSOLUTE index from the perspective of the host
-    so 0 would be whatever side facing the host*/
+    so 0 would be whatever side facing the host */
     float getSideMultiplier(int absoluteIndex);
     
     /* lets you change the multipler value for that side
     this is RELATIVE. So 0 would be directly where boss is facing*/
     void setSideMultiplier(int relativeIndex, float multiplier);
     
-    // Expose state defs so controller can pick attacks by tag
+    /* Expose state defs so controller can pick attacks by tag */ 
     const std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef>& getStates() const { return _states; }
 
+    /** Returns true if successfully enters requested state. False and idle otherwise. */
     bool requestState(EnemyLoader::State state);
+
+    /** Main update loop for enemy. Handles firing events, applying cooldown, transition to next state. */
     void virtual update(float dt);
 
+    /** Return contents of current event buffer and clears it.*/
     std::vector<FiredEvent> takeFiredEvents();
 
-    // Positive heals, negative damages; clamps to [0, maxHealth]
+    //Positive heals, negative damages; clamps to [0, maxHealth]
     void updateHealth(float delta);
 
     /* Handles taking damage and records the hits that we took
-    Use this method instead of updateHealth() to 
-        apply the damage multipliers on each side
-    Override this if custom logic is needed for taking damage*/
+    Use this method instead of updateHealth() for appropriate damage multiplication*/
     void virtual takeDamage(float damage, int playerIndex);
 
-    //automatically enters the state requested
+    /** Immediately enters the state and resets timers. */
     void enterState(EnemyLoader::State state);
 
 protected:
+    /** Updates timers.*/
     void tick(float dt);
+
+    /** Returns true if buildUp time has passed and events have not yet fired in this state.*/
     bool readyToFire() const;
+
+    /** Fires events from this state, adding them to the events buffer.*/
     void fireEvents();
+
+    /** Sets the cooldown timer based on the current state of the enemy. */
     void applyCooldown();
+
+    /** Returns the next state if defined by current state or "idle" by default. */
     EnemyLoader::State getNextStateOrIdle() const;
 };
 

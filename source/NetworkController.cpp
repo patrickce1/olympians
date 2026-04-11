@@ -609,7 +609,6 @@ void NetworkController::registerDisconnectCallback() {
                     broadcastLobbyState();
                 }
 
-				broadcastSelectedBoss();
                 break;
             }
         }
@@ -659,13 +658,6 @@ bool NetworkController::allPlayersSelectedHouse() const {
     return true;
 }
 
-/*Sends over the network which boss is currently selected by the host*/
-void NetworkController::broadcastSelectedBoss() {
-	_serializer.writeSint32(MessageType::BOSS_SELECTION);
-	_serializer.writeString(_enemy);
-	_network->broadcast(_serializer.serialize());
-	_serializer.reset();
-}
 /*HOST ONLY. Notifies all clients that the host has exited the lobby and the session is over.*/
 void NetworkController::broadcastSessionTerminated() {
     _serializer.reset();

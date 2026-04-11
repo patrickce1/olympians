@@ -144,9 +144,6 @@ public:
     /*Returns true if a SESSION_TERMINATED message was received this network cycle. CLIENT ONLY.*/
     bool wasSessionTerminated() const { return _sessionTerminated; }
 
-    /*Sends an update notifying about the new hosue*/
-    void broadcastSelectedBoss();
-
     /*Getters for the queues and game state used during the gameplay*/
     /*Returns all the networking messages about attacks we recieved after calling getNetworkUpdate()*/
     const std::vector<AttackMessage>& getAttackUpdates() const { return attacks; }
@@ -254,8 +251,7 @@ protected:
         PLAYER_DISCONNECT = 8,
         GAME_LOST = 9,
         GAME_WON = 10,
-        BOSS_SELECTION = 11,
-        SESSION_TERMINATED = 12
+        SESSION_TERMINATED = 11
     };
 
     /*Our network connection*/
