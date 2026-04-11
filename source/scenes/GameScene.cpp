@@ -869,9 +869,9 @@ void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonN
         healBlinkTimer = 0.0f;
         slot->setColor(Color4(255, 255, 255, 255));
     } else if (healBlinkTimer > 0.0f) {
-        slot->setColor(Color4(120, 255, 120, 255));
+        slot->setColor(Color4(176, 224, 176, 255));
     } else if (damageBlinkTimer > 0.0f && shouldShowDamageBlink(damageBlinkTimer, _damageBlinkInterval)) {
-        slot->setColor(Color4(255, 96, 96, 255));
+        slot->setColor(Color4(224, 160, 160, 255));
     } else {
         slot->setColor(Color4(255, 255, 255, 255));
     }
