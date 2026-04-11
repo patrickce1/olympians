@@ -37,14 +37,17 @@ private:
     int randomIndex(int n);
     int wrapIndex(int i, int n) const;
 
+    /** Checks whether the enemy has just entered idle on this frame. */
     void handleIdleEntryIfNeeded(EnemyLoader::State prevState,
                                  EnemyLoader::State curState,
                                  const std::shared_ptr<Enemy>& enemy,
                                  std::vector<std::shared_ptr<Player>>& players);
 
+    /** Upon entering idle state, this function possibly chooses a new target for the enemy. */
     void maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy,
                                   std::vector<std::shared_ptr<Player>>& players);
 
+    /** Chooses the next state tagged with "attack" for the enemy to enter. */
     EnemyLoader::State chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
 
     /* Determines whether the boss should enter a defensive state.

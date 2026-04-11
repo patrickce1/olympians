@@ -65,6 +65,7 @@ private:
     std::vector<EnemyDef> _enemiesVector;
 
 private:
+    /** Parses an event type string from JSON into an EventType enum. */
     static EventType parseEventType(const std::string& s) {
         if (s == "DAMAGE")           return EventType::DAMAGE;
         if (s == "HEAL")             return EventType::HEAL;
@@ -72,7 +73,7 @@ private:
         return EventType::UNKNOWN;
     }
 
-    //Parses a string name of the attack and matches it to one of the state enums
+    /** Parses a state name string from JSON into a State enum. */
     static State parseStateType(const std::string& s) {
         if (s == "attack_1")        return State::ATTACK_1;
         if (s == "attack_2")        return State::ATTACK_2;
@@ -82,7 +83,7 @@ private:
         return State::IDLE;
     }
 
-    //Checks which boss the string matches and returns that boss
+    /** Parses a boss name string from JSON into a Boss enum. */
     static Boss parseBoss(const std::string& s) {
         if (s == "cyclops")  return Boss::CYCLOPS;
         if (s == "cerberus") return Boss::CERBERUS;
@@ -91,6 +92,7 @@ private:
     }
 
 public:
+    /** Loads and parses all enemy definitions from a JSON file at the given path. Returns true on success. */
     bool loadFromFile(const std::string& path) {
         auto reader = cugl::JsonReader::alloc(path);
         if (!reader) return false;

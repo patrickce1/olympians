@@ -161,7 +161,7 @@ void Enemy::updateHealth(float delta) {
     if (_currentHealth < 0.0f) _currentHealth = 0.0f;
 }
 
-/* Handles taking damage and applying the side modifiers
+/** Handles taking damage and applying the side modifiers
 Use this method instead of updateHealth() for appropriate damage multiplication */
 void Enemy::takeDamage(float damage, int playerIndex) {
     //get relative index based on which side of the boss the player is on
@@ -175,17 +175,15 @@ void Enemy::takeDamage(float damage, int playerIndex) {
     updateHealth(-(damage * multiplier));
 }
 
-/* Lets you change the multipler value on the side equal to relativeIndex
-   As the name suggests, this index is RELATIVE. So 0 would be the direction where boss is facing 
-*/
+/** Lets you change the multipler value on the side equal to relativeIndex
+   As the name suggests, this index is RELATIVE. So 0 would be the direction where boss is facing */
 void Enemy::setSideMultiplier(int relativeIndex, float multiplier) {
     _sideMultipliers[relativeIndex] = multiplier;
 }
 
-/* Returns the multiplier data for the given absolute side index.
+/** Returns the multiplier data for the given absolute side index.
  * Index 0 corresponds to the side facing the host, regardless of the boss' direction.
- * This index is absolute, not relative to the boss' orientation.
- */
+ * This index is absolute, not relative to the boss' orientation. */
 float Enemy::getSideMultiplier(int absoluteIndex) {
     int relativeIndex = (absoluteIndex - _targetIndex + NUM_PLAYERS) % NUM_PLAYERS;
     if (relativeIndex < _sideMultipliers.size()) {
@@ -194,7 +192,8 @@ float Enemy::getSideMultiplier(int absoluteIndex) {
     return 1.0f;
 }
 
-//By default just returns false
+/** Checks if this enemy should use their defensive move
+This can and should be overwritten for each boss to have custom logic on when they decide to use their defensive move */
 bool Enemy::shouldDefend() {
     return false;
 }
