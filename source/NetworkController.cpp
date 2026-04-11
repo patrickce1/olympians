@@ -118,8 +118,15 @@ std::string NetworkController::getRoom() {
  * Should be called when leaving a lobby or game session.
  */
 void NetworkController::disconnect() {
-	_network->close();
-	_network = nullptr;
+    _network->close();
+    _network = nullptr;
+    _onlinePlayers.clear();
+    _gameStarted = false;
+    _gameWon = false;
+    _gameLost = false;
+    _sessionTerminated = false;
+    _disconnectedSlots.clear();
+    _enemy = "";
 }
 
 /**
@@ -304,6 +311,10 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _disconnectedSlots.push_back(slot);
             break;
         }
+        case SESSION_TERMINATED: {
+            _sessionTerminated = true;
+            break;
+        }
 	}
 }
 
@@ -336,6 +347,7 @@ void NetworkController::clearQueues() {
 	_gameWon = false;
 	_gameLost = false;
 	_gameStarted = false;
+    _sessionTerminated = false;
     _disconnectedSlots.clear();
 }
 
@@ -684,4 +696,12 @@ bool NetworkController::allPlayersSelectedHouse() const {
         if (player.houseID.empty()) return false;
     }
     return true;
+}
+
+/*HOST ONLY. Notifies all clients that the host has exited the lobby and the session is over.*/
+void NetworkController::broadcastSessionTerminated() {
+    _serializer.reset();
+    _serializer.writeSint32(SESSION_TERMINATED);
+    auto msg = _serializer.serialize();
+    _network->broadcast(msg);
 }

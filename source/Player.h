@@ -87,6 +87,14 @@ public:
     std::string getHouseName() const { return _houseId; }
     
     /**
+     * Returns whether the player's house is female (for sound effect purposes)
+     */
+    bool isFemaleHouse() const {
+        std::string house = getHouseName();
+        return house == "athena" || house == "aphrodite" || house == "demeter";
+    }
+
+    /**
      * Return the max health of the house/player
      */
     float getMaxHealth() const { return _maxHealth; }

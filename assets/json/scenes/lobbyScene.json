@@ -52,7 +52,7 @@
                 },
                 "data": {
                     "anchor": [
-                        0,
+                        0.5,
                         1
                     ],
                     "size": [
@@ -136,11 +136,11 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.07,
-                    "y_offset": -0.86
+                    "x_offset": 0,
+                    "y_offset": -0.855
                 }
             },
             "tableArea": {
@@ -150,7 +150,7 @@
                 },
                 "data": {
                     "anchor": [
-                        0,
+                        0.5,
                         1
                     ],
                     "size": [
@@ -172,7 +172,7 @@
                         },
                         "data": {
                             "anchor": [
-                                0,
+                                0.5,
                                 1
                             ],
                             "size": [
@@ -214,10 +214,9 @@
                                     "y_offset": 0
                                 }
                             },
-                            "bossLobbyImage": {
-                                "type": "Image",
+                            "bossLobbyButton": {
+                                "type": "Button",
                                 "data": {
-                                    "texture": "emptyLobbyImage",
                                     "anchor": [
                                         0,
                                         1
@@ -231,7 +230,33 @@
                                         17,
                                         15
                                     ],
-                                    "visible": true
+                                    "visible": true,
+                                    "upnode": "bossLobbyImage"
+                                },
+                                "children": {
+                                    "bossLobbyImage": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "emptyLobbyImage",
+                                            "anchor": [
+                                                0.5,
+                                                0.5
+                                            ],
+                                            "size": [
+                                                228,
+                                                228
+                                            ],
+                                            "angle": 0,
+                                            "visible": true
+                                        },
+                                        "layout": {
+                                            "x_anchor": "center",
+                                            "y_anchor": "middle",
+                                            "absolute": false,
+                                            "x_offset": 0,
+                                            "y_offset": 0
+                                        }
+                                    }
                                 },
                                 "layout": {
                                     "x_anchor": "left",
@@ -243,10 +268,10 @@
                             }
                         },
                         "layout": {
-                            "x_anchor": "left",
+                            "x_anchor": "center",
                             "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0.15,
+                            "x_offset": 0,
                             "y_offset": -0.18
                         }
                     },
@@ -924,10 +949,10 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.03,
+                    "x_offset": 0,
                     "y_offset": -0.26
                 }
             },

@@ -21,16 +21,21 @@ public:
     enum Status {
         /** Client has not yet entered a room */
         IDLE,
-        /** Client switches to host game screen */
-        HOST,
-        /** Client is connecting to the host */
-        JOIN,
-        /** Client is waiting on host to start game */
-        WAIT,
-        /** Time to start the game */
+
+        /** Connection confirmed — SceneLoader transitions to lobby */
         START,
+
+        /** Client is connecting to the host */
+        JOINING,
+
+        /** Join attempt failed — error popup is displayed before resetting to IDLE */
+        ERROR_DISPLAY,
+
         /** Game was aborted; back to main menu */
-        ABORT
+        ABORT,
+
+        /** Client switches to host game screen */
+        HOST
     };
     
 protected:
@@ -44,16 +49,35 @@ protected:
     /** The menu button for entering a game */
     std::shared_ptr<cugl::scene2::Button> _enterGame;
     /** The back button for the menu scene */
-    std::shared_ptr<cugl::scene2::Button> _backOut;
+    std::shared_ptr<cugl::scene2::Button> _backButton;
     /** The game id label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _gameId;
+    /** The game id placeholder label */
+    std::shared_ptr<cugl::scene2::Label> _textFieldPlaceholder;
     /** The game id label (for updating) */
-    std::shared_ptr<cugl::scene2::TextField> _playerId;
+    std::shared_ptr<cugl::scene2::TextField> _playerName;
     /** The host game button for the menu scene */
     std::shared_ptr<cugl::scene2::Button> _hostButton;
-    
+    /** Stores the current user input for the gameID as a numeric string.*/
+    std::string _inputBuffer = "";
+    /** Collection of all keypad buttons fir gameID (digits + backspace). */
+    std::vector<std::shared_ptr<cugl::scene2::Button>> _keypadButtons;
+    /** Optional error-popup node (may be nullptr if absent from JSON scene). */
+    std::shared_ptr<cugl::scene2::SceneNode> _errorPopup;
+    /** Loading overlay node */
+    std::shared_ptr<cugl::scene2::SceneNode> _loading;
+    /** Loading spinning circle node */
+    std::shared_ptr<cugl::scene2::SceneNode> _spinner;
+    /** Seconds elapsed since the current join attempt began. */
+    float _joinTimer;
+    /** Seconds elapsed since the error popup was shown. */
+    float _errorTimer;
     /** The current status */
     Status _status;
+    /** Whether the Input is pending to be disabled*/
+    bool _pendingInputDisable = false;
+    /** Whether the loading circle is spinning. */
+    bool _isSpinning = false;
     
 public:
 #pragma mark -
@@ -115,6 +139,15 @@ public:
     void setupListeners();
     
     /**
+     * Initializes keypad buttons, activates them, and attaches input listeners.
+     *
+     * This method retrieves button nodes from the asset manager, binds digit
+     * and backspace actions to their respective handlers, and stores buttons
+     * in a collection for batch state control.
+     */
+    void initKeypad();
+    
+    /**
      * Sets whether the scene is currently active
      *
      * This method should be used to toggle all the UI elements.  Buttons
@@ -136,13 +169,11 @@ public:
     Status getStatus() const { return _status; }
     
     /**
-     * The method called to update the scene.
-     *
-     * We need to update this method to constantly talk to the server
-     *
-     * @param timestep  The amount of time (in seconds) since the last frame
+     * Updates the scene each frame. Polls the network while joining and
+     * manages the error-popup countdown.
+     * @param timestep  Seconds since the last frame.
      */
-    void update(float timestep) override;
+    void update(float timestep);
     
 private:
     /**
@@ -158,6 +189,53 @@ private:
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
     
+    /**
+     * Appends a numeric digit to the input buffer and updates the UI.
+     *
+     * @param digit The digit (0–9) to append to the input buffer.
+     */
+    void appendDigit(int digit);
+    
+    /**
+     * Removes the last character from the input buffer and updates the UI.
+     */
+    void removeLastChar();
+    
+    /**
+     * Enables or disables all interactive input controls.
+     * @param enabled  Whether controls should accept input.
+     */
+    void setInputEnabled(bool enabled);
+ 
+    /**
+     * Displays the error popup with the given message and enters ERROR_DISPLAY.
+     * @param message  Human-readable error text.
+     */
+    void showError(const std::string& message);
+ 
+    /** Hides the error popup and resets to IDLE. */
+    void dismissError();
+    
+    /**
+     * Shows the loading spinner and re-enables input controls.
+     *
+     * Called when a join attempt begins so the player has visual feedback
+     * that the connection is in progress. The spinner node (_loading) is
+     * made visible and input is re-enabled so the player can still cancel
+     * via the back button.
+     *
+     * Does nothing if the spinner is already visible.
+     */
+    void showLoadingSpinner();
+    
+    /**
+     * Hides the loading spinner.
+     *
+     * Called when a join attempt concludes — either successfully (transitioning
+     * to the lobby) or on failure (showing the error popup). Should always be
+     * paired with a prior call to showLoadingSpinner().
+     */
+    void hideLoadingSpinner();
 };
 
 #endif /* __CLIENT_SCENE_H__ */

@@ -25,8 +25,19 @@ public:
         /** Player has locked in a house; ready to proceed */
         LOCKED,
         /** Player canceled or left house select; back to lobby */
-        ABORT
+        ABORT,
+        /** Game scene has been started by host*/
+        GAMESCENE_START
     };
+    
+    /**
+     * Primes the scene to perform a full UI reset on its next activation.
+     * Should be called when the session has ended and the player is being
+     * returned to the main menu — not during normal lobby navigation.
+     *
+     * @param reset  true to schedule a reset on the next setActive(true) call.
+     */
+    void setPendingReset(bool reset) { _pendingReset = reset; }
     
 protected:
     /** The asset manager for this scene. */
@@ -39,7 +50,7 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _lockButton;
     
     /** The back button for the houseSelect scene */
-    std::shared_ptr<cugl::scene2::Button> _backOut;
+    std::shared_ptr<cugl::scene2::Button> _backButton;
     
     /** The player icon (for updating) */
     std::shared_ptr<cugl::scene2::SceneNode> _playerIcon;
@@ -61,6 +72,20 @@ protected:
     
     /** Whether the played has locked down a house.*/
     bool _locked = false;
+    
+    /**
+     * Whether the scene should perform a full UI reset on its next activation.
+     *
+     * Set to true via setPendingReset() when the local player is returned to
+     * the main menu due to session termination — either because the host backed
+     * out of the lobby or because the host disconnected while the client was
+     * in this scene. When false, setActive(true) preserves the player's current
+     * carousel position and lock state, allowing seamless navigation back and
+     * forth between the lobby and house select during an active session.
+     *
+     * Automatically reset to false after the reset fires in setActive(true).
+     */
+    bool _pendingReset = false;
     
     /** The house selection node list */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _houseCards;

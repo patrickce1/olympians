@@ -25,6 +25,7 @@ public:
         IDLE,
         WAIT,
         SELECT,
+        BOSSSELECT,
         START,
         ABORT
     };
@@ -40,7 +41,7 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _enterGame;
     
     /** The back button for the menu scene */
-    std::shared_ptr<cugl::scene2::Button> _backOut;
+    std::shared_ptr<cugl::scene2::Button> _backButton;
     
     /** The game id label */
     std::shared_ptr<cugl::scene2::Label> _gameId;
@@ -48,8 +49,11 @@ protected:
     /** Current boss id */
     std::string _currentBoss = "";
     
-    /** Circular boss image (maybe button)*/
+    /** Circular boss image */
     std::shared_ptr<cugl::scene2::PolygonNode> _bossImage;
+    
+    /** Circular boss image button to go to boss select scene */
+    std::shared_ptr<cugl::scene2::Button> _bossLobbyButton;
     
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
@@ -62,6 +66,9 @@ protected:
     
     /** The glowing blinker for the local player's icon(bottom icon) to notify them to pick house  */
     std::shared_ptr<cugl::scene2::SceneNode> _localPlayerIconIndicator;
+    
+    /** Whether the server sent a disconnect status update this frame and it has not been carried out yet*/
+    bool _pendingDisconnect = false;
     
     /** The current status */
     Status _status;
