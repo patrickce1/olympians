@@ -205,8 +205,25 @@ private:
     /** Hides the error popup and resets to IDLE. */
     void dismissError();
     
+    /**
+     * Shows the loading spinner and re-enables input controls.
+     *
+     * Called when a join attempt begins so the player has visual feedback
+     * that the connection is in progress. The spinner node (_loading) is
+     * made visible and input is re-enabled so the player can still cancel
+     * via the back button.
+     *
+     * Does nothing if the spinner is already visible.
+     */
     void showLoadingSpinner();
     
+    /**
+     * Hides the loading spinner.
+     *
+     * Called when a join attempt concludes — either successfully (transitioning
+     * to the lobby) or on failure (showing the error popup). Should always be
+     * paired with a prior call to showLoadingSpinner().
+     */
     void hideLoadingSpinner();
 };
 
