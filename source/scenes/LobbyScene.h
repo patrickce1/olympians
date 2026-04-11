@@ -134,7 +134,7 @@ protected:
     float _swapAnimElapsed = 0.0f;
 
     /** Duration of the visual swap animation (seconds). */
-    float _swapAnimDuration = 0.14f;
+    float _swapAnimDuration = 0.5f;
 
     /** Display indices of the cards currently being animated. */
     int _swapAnimDisplayA = -1;
@@ -147,6 +147,21 @@ protected:
     /** Model indices queued to swap once the animation finishes. */
     int _pendingModelSwapA = -1;
     int _pendingModelSwapB = -1;
+
+    /** True while a dragged card is smoothly returning to its home slot. */
+    bool _isReturnAnimating = false;
+
+    /** Display index of the card currently returning home. */
+    int _returnAnimDisplayIndex = -1;
+
+    /** Elapsed time for the current return animation (seconds). */
+    float _returnAnimElapsed = 0.0f;
+
+    /** Duration of the return animation (seconds). */
+    float _returnAnimDuration = 0.5f;
+
+    /** Start position for the returning card. */
+    cugl::Vec2 _returnAnimStart = cugl::Vec2::ZERO;
 
 public:
 #pragma mark -
@@ -379,6 +394,20 @@ private:
      * @param timestep  Delta time in seconds.
      */
     void updateSwapAnimation(float timestep);
+
+    /**
+     * Starts a smooth return of one card back to its home position.
+     *
+     * @param displayIndex  Display-slot index of the card to return.
+     */
+    void beginReturnAnimation(int displayIndex);
+
+    /**
+     * Advances the one-card return animation if active.
+     *
+     * @param timestep  Delta time in seconds.
+     */
+    void updateReturnAnimation(float timestep);
 };
 
 #endif /* __LOBBY_SCENE_H__ */
