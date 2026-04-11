@@ -1,0 +1,7 @@
+{
+    "textures": {
+        "mallet_animation": {
+            "file": "textures/items/animations/mallet_animation.png"
+        }
+    }
+}

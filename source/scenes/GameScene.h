@@ -31,6 +31,46 @@ struct SnapbackAnimation {
 };
 
 /**
+ * Represents a single item use animation currently playing on the screen.
+ * When a player uses an attack item, an overlay animation sprite plays at a fixed position.
+ * Damage is resolved (broadcasted and audio triggered) at a specific keyframe.
+ */
+struct ItemUseAnimation {
+    /** The sprite sheet managing frame layout. */
+    std::shared_ptr<cugl::graphics::SpriteSheet> spriteSheet;
+    
+    /** The sprite node displaying the sprite sheet frames. */
+    std::shared_ptr<cugl::scene2::SpriteNode> node;
+    
+    /** The original animation position (before any panning). */
+    cugl::Vec2 basePosition;
+    
+    /** The size of a single frame in the sprite sheet. */
+    cugl::Size frameSize;
+    
+    /** Number of columns in the sprite sheet grid. */
+    int frameCols = 1;
+    
+    /** Total number of frames in the animation. */
+    int frameCount = 0;
+    
+    /** Duration (in seconds) for the entire animation. */
+    float animationDuration = 0.0f;
+    
+    /** Frame index at which damage should be resolved and network broadcast triggered. */
+    int damageResolutionFrame = 0;
+    
+    /** Damage amount to broadcast when reaching the resolution frame. */
+    float damageAmount = 0.0f;
+    
+    /** Elapsed time in seconds since animation started. */
+    float elapsedTime = 0.0f;
+    
+    /** False until damage has been resolved at the keyframe. Prevents duplicate broadcasts. */
+    bool damageResolved = false;
+};
+
+/**
  * Controller for the core game scene.
  *
  * GameScene is a pure controller: it owns the scene graph, handles input,
@@ -182,6 +222,9 @@ protected:
 
     /** Map of ItemId to active snapback animations. Multiple items can be snapping back simultaneously. */
     std::unordered_map<ItemInstance::ItemId, SnapbackAnimation> _snapbackAnimations;
+
+    /** Vector of currently active item use animations. Multiple animations can play concurrently. */
+    std::vector<ItemUseAnimation> _activeItemUseAnimations;
 
 #pragma mark - Glow Effect State
 
@@ -642,6 +685,28 @@ public:
      * @return true if position is within visible area, false otherwise
      */
     bool isItemInVisibleArea(const cugl::Vec2& position);
+    
+    /**
+     * Starts an item use animation overlay.
+     * Creates and configures an AnimatedSprite from the sprite sheet, adds it to the special
+     * effects layer, and queues it for frame updates. Damage will be broadcast at the
+     * configured damageResolutionFrame.
+     *
+     * @param animConfig     The animation configuration specifying sprite sheet, frame timing, and damage trigger frame
+     * @param damageAmount   The damage value to broadcast when reaching damageResolutionFrame
+     * @param itemPos        The screen position at which to center the animation (center of viewport if omitted)
+     */
+    void startItemUseAnimation(const ItemUseAnimationConfig& animConfig, float damageAmount, 
+                               const cugl::Vec2& itemPos = cugl::Vec2::ZERO);
+    
+    /**
+     * Updates all active item use animations.
+     * Advances animation frames based on elapsed time, broadcasts damage at resolution frames,
+     * and removes completed animations from the queue.
+     *
+     * @param dt  Delta time in seconds.
+     */
+    void updateItemUseAnimations(float dt);
     
     /**
      * Top-level disconnect handler. Called every frame from update().

@@ -275,6 +275,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     }
     
     _assets->loadDirectory("json/itemTextures.json");
+    _assets->loadDirectory("json/itemAnimations.json");
 
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
@@ -436,19 +437,33 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
                 return false;
             }
 
-            //NETWORKING
-            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
-                _network->broadcastDamage(resolvedMagnitude);
-            }
-            CULog("Player attacked enemy '%s' with item %llu (damage: %.1f)",
-                  enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
+            // Play the attack sound immediately
             _audio->playSoundUnique("attack");
             
-            // Host hears enemy take damage immediately
-            if (_network->isHost() && _audio) {
-                _audio->playSoundUnique("enemy_hurt");
-                CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+            CULog("Player attacked enemy '%s' with item %llu (damage: %.1f)",
+                  enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
+            
+            // Check if this item has an associated use animation
+            CULog("DEBUG: Checking animation - hasItemUseAnimation=%d, def=%p", def->hasItemUseAnimation(), def.get());
+            if (def->hasItemUseAnimation()) {
+                // Start the overlay animation; damage will be broadcast at the resolution frame
+                const auto& animConfig = def->getItemUseAnimation();
+                startItemUseAnimation(animConfig, resolvedMagnitude);
+                CULog("Starting item use animation for item %llu", (unsigned long long)itemId);
+            } else {
+                CULog("DEBUG: No animation for item, broadcasting damage immediately");
+                // No animation; broadcast damage and audio immediately
+                if (!_network->isHost()) {
+                    _network->broadcastDamage(resolvedMagnitude);
+                }
+                
+                // Host hears enemy take damage immediately
+                if (_network->isHost() && _audio) {
+                    _audio->playSoundUnique("enemy_hurt");
+                    CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+                }
             }
+            
             return true;
         }
         return false;
@@ -1525,6 +1540,7 @@ void GameScene::update(float dt, InputController& input) {
     // Update sliding items before physics world update
     updateSlidingItems(dt);
     updateSnapbackAnimations(dt);
+    updateItemUseAnimations(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);
@@ -2040,4 +2056,143 @@ void GameScene::handleDisconnectedPlayers() {
 void GameScene::resetGameState() {
     _gameState.dispose();
     _gameState.init(_itemController);
+}
+
+/**
+ * Starts an item use animation overlay.
+ * Creates a sprite with the animation spritesheet and queues it for frame updates.
+ */
+void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, float damageAmount,
+                                       const cugl::Vec2& itemPos) {
+    CULog("DEBUG: startItemUseAnimation called with spriteSheetId=%s, frames=%d, duration=%.3f, resFrame=%d, damage=%.1f",
+          animConfig.spriteSheetId.c_str(), animConfig.frameCount, animConfig.animationDuration, 
+          animConfig.damageResolutionFrame, damageAmount);
+    
+    // Load the sprite sheet texture
+    auto texture = _assets->get<cugl::graphics::Texture>(animConfig.spriteSheetId);
+    if (!texture) {
+        CULog("ERROR: Failed to load sprite sheet texture: %s", animConfig.spriteSheetId.c_str());
+        return;
+    }
+    CULog("DEBUG: Loaded sprite sheet texture successfully, size: %.0f x %.0f", 
+          texture->getWidth(), texture->getHeight());
+    
+    // Create a SpriteSheet to manage frame layout
+    auto spriteSheet = cugl::graphics::SpriteSheet::alloc(texture, animConfig.rows, animConfig.cols, animConfig.frameCount);
+    if (!spriteSheet) {
+        CULog("ERROR: Failed to allocate sprite sheet for animation");
+        return;
+    }
+    
+    auto frameSize = spriteSheet->getFrameSize();
+    CULog("DEBUG: Created SpriteSheet, frame size: %.0f x %.0f", frameSize.width, frameSize.height);
+    
+    // Create a SpriteNode which is designed for sprite sheet animations
+    auto node = cugl::scene2::SpriteNode::allocWithSheet(texture, animConfig.rows, animConfig.cols, animConfig.frameCount);
+    if (!node) {
+        CULog("ERROR: Failed to allocate SpriteNode for item use animation");
+        return;
+    }
+    
+    // Set initial frame to 0
+    node->setFrame(0);
+    
+    // Position the node
+    cugl::Vec2 position = itemPos;
+    if (itemPos == cugl::Vec2::ZERO) {
+        position = cugl::Vec2(_size.width / 2.0f, _size.height / 2.0f);
+    }
+    
+    CULog("DEBUG: Positioning animation at (%.0f, %.0f)", position.x, position.y);
+    
+    node->setPosition(position);
+    node->setAnchor(cugl::Vec2(0.5f, 0.5f));
+    
+    // Add to special effects layer
+    _specialEffectsLayer->addChild(node);
+    
+    // Create and queue the animation instance
+    ItemUseAnimation anim;
+    anim.spriteSheet = spriteSheet;
+    anim.node = node;
+    anim.basePosition = position;
+    anim.frameSize = frameSize;
+    anim.frameCount = animConfig.frameCount;
+    anim.frameCols = animConfig.cols;
+    anim.animationDuration = animConfig.animationDuration;
+    anim.damageResolutionFrame = animConfig.damageResolutionFrame;
+    anim.damageAmount = damageAmount;
+    anim.elapsedTime = 0.0f;
+    anim.damageResolved = false;
+    
+    _activeItemUseAnimations.push_back(anim);
+    CULog("DEBUG: Animation queued. Total active animations: %lu", _activeItemUseAnimations.size());
+}
+
+/**
+ * Updates all active item use animations.
+ * Advances animation frames based on elapsed time, broadcasts damage at resolution frames,
+ * and removes completed animations from the queue.
+ */
+void GameScene::updateItemUseAnimations(float dt) {
+    if (_activeItemUseAnimations.empty()) {
+        return;
+    }
+    
+    CULog("DEBUG: updateItemUseAnimations - %lu active animations, dt=%.3f", _activeItemUseAnimations.size(), dt);
+    
+    std::vector<size_t> completedIndices;
+    
+    for (size_t i = 0; i < _activeItemUseAnimations.size(); ++i) {
+        auto& anim = _activeItemUseAnimations[i];
+        
+        // Advance elapsed time
+        anim.elapsedTime += dt;
+        
+        // Calculate normalized progress (0.0 to 1.0)
+        float progress = std::min(1.0f, anim.elapsedTime / anim.animationDuration);
+        
+        // Calculate which frame we're on
+        int frameIndex = static_cast<int>(progress * anim.frameCount);
+        frameIndex = std::min(frameIndex, anim.frameCount - 1);  // Clamp to valid range
+        
+        CULog("DEBUG: Animation %lu - elapsed=%.3f, progress=%.3f, frameIndex=%d/%d, resFrame=%d, resolved=%d",
+              i, anim.elapsedTime, progress, frameIndex, anim.frameCount, anim.damageResolutionFrame, anim.damageResolved);
+        
+        // Update the sprite node's current frame
+        anim.node->setFrame(frameIndex);
+        
+        CULog("DEBUG: Set sprite frame to %d", frameIndex);
+        
+        // Check if we've reached or passed the damage resolution frame
+        if (!anim.damageResolved && frameIndex >= anim.damageResolutionFrame) {
+            anim.damageResolved = true;
+            CULog("DEBUG: Damage resolved at frame %d", frameIndex);
+            
+            // Broadcast damage to network (non-host clients only; host is authoritative)
+            if (_network && !_network->isHost()) {
+                _network->broadcastDamage(anim.damageAmount);
+                CULog("Client: Broadcasting damage from animation: %.1f", anim.damageAmount);
+            }
+            
+            // Play enemy_hurt sound at resolution frame
+            // Host plays it immediately; clients will hear it through network sync
+            if (_network && _network->isHost() && _audio) {
+                _audio->playSoundUnique("enemy_hurt");
+                CULog("Host: Playing enemy_hurt sound at animation resolution frame");
+            }
+        }
+        
+        // Check if animation is complete
+        if (anim.elapsedTime >= anim.animationDuration) {
+            anim.node->removeFromParent();
+            completedIndices.push_back(i);
+            CULog("DEBUG: Animation %lu complete", i);
+        }
+    }
+    
+    // Remove completed animations in reverse order to maintain indices
+    for (auto it = completedIndices.rbegin(); it != completedIndices.rend(); ++it) {
+        _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *it);
+    }
 }

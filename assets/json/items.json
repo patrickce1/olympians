@@ -14,7 +14,15 @@
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 2.0,
-            "effects": []
+            "effects": [],
+            "itemUseAnimation": {
+                "spriteSheetId": "mallet_animation",
+                "rows": 1,
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.083,
+                "damageResolutionFrame": 5
+            }
         },
         {
             "id": "apple",
@@ -47,7 +55,15 @@
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseAnimation": {
+                "spriteSheetId": "mallet_animation",
+                "rows": 1,
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.083,
+                "damageResolutionFrame": 5
+            }
         },
         {
             "id": "shield",
@@ -77,7 +93,15 @@
             "rarity": "rare",
             "houseAffinity": "zeus",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseAnimation": {
+                "spriteSheetId": "mallet_animation",
+                "rows": 1,
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.083,
+                "damageResolutionFrame": 5
+            }
         },
         {
             "id": "trident",
@@ -88,7 +112,15 @@
             "rarity": "rare",
             "houseAffinity": "poseidon",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseAnimation": {
+                "spriteSheetId": "mallet_animation",
+                "rows": 1,
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.083,
+                "damageResolutionFrame": 5
+            }
         },
         {
             "id": "helm",
@@ -121,7 +153,15 @@
             "rarity": "rare",
             "houseAffinity": "hephaestus",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseAnimation": {
+                "spriteSheetId": "mallet_animation",
+                "rows": 1,
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.083,
+                "damageResolutionFrame": 5
+            }
         },
         {
             "id": "aegis",
@@ -143,7 +183,15 @@
             "rarity": "rare",
             "houseAffinity": "ares",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseAnimation": {
+                "spriteSheetId": "mallet_animation",
+                "rows": 1,
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.083,
+                "damageResolutionFrame": 5
+            }
         },
         {
             "id": "thunderstorm",
@@ -154,7 +202,15 @@
             "rarity": "divine",
             "houseAffinity": "zeus",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseAnimation": {
+                "spriteSheetId": "mallet_animation",
+                "rows": 1,
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.083,
+                "damageResolutionFrame": 5
+            }
         },
         {
             "id": "tide",
@@ -165,7 +221,15 @@
             "rarity": "divine",
             "houseAffinity": "poseidon",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseAnimation": {
+                "spriteSheetId": "mallet_animation",
+                "rows": 1,
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.083,
+                "damageResolutionFrame": 5
+            }
         }
     ],
     "itemInterval": 10.0,
