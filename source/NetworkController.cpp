@@ -245,7 +245,6 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				newPlayer.username = playerName;
 				_onlinePlayers.push_back(newPlayer);
 				broadcastLobbyState();
-				broadcastSelectedBoss();
 			}
 
 			break;
@@ -300,10 +299,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _disconnectedSlots.push_back(slot);
             break;
         }
-		case MessageType::BOSS_SELECTION: {
-			_enemy = _deserializer.readString();
-		}
-        case SESSION_TERMINATED: {
+        case MessageType::SESSION_TERMINATED: {
             _sessionTerminated = true;
             break;
         }
