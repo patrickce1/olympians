@@ -350,7 +350,16 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
 void LobbyScene::update(float timestep) {
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
-        _gameId->setText(_network->getRoom());
+        std::string roomNum = _network->getRoom();
+        _gameId->setText(roomNum);
+        
+        // Invalid room — server connected but room doesn't exist
+        if (roomNum == "#####" || roomNum == "nullstr") {
+            _network->disconnect();
+            _status = Status::ABORT;
+            return;
+        }
+        
         _network->broadcastJoinedLobby();
         _network->getNetworkUpdates();
         // change boss icon to the currently chosen boss

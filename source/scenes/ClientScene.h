@@ -21,16 +21,21 @@ public:
     enum Status {
         /** Client has not yet entered a room */
         IDLE,
-        /** Client switches to host game screen */
-        HOST,
-        /** Client is connecting to the host */
-        JOIN,
-        /** Client is waiting on host to start game */
-        WAIT,
-        /** Time to start the game */
+
+        /** Connection confirmed — SceneLoader transitions to lobby */
         START,
+
+        /** Client is connecting to the host */
+        JOINING,
+
+        /** Join attempt failed — error popup is displayed before resetting to IDLE */
+        ERROR_DISPLAY,
+
         /** Game was aborted; back to main menu */
-        ABORT
+        ABORT,
+
+        /** Client switches to host game screen */
+        HOST
     };
     
 protected:
@@ -57,9 +62,22 @@ protected:
     std::string _inputBuffer = "";
     /** Collection of all keypad buttons fir gameID (digits + backspace). */
     std::vector<std::shared_ptr<cugl::scene2::Button>> _keypadButtons;
-    
+    /** Optional error-popup node (may be nullptr if absent from JSON scene). */
+    std::shared_ptr<cugl::scene2::SceneNode> _errorPopup;
+    /** Loading overlay node */
+    std::shared_ptr<cugl::scene2::SceneNode> _loading;
+    /** Loading spinning circle node */
+    std::shared_ptr<cugl::scene2::SceneNode> _spinner;
+    /** Seconds elapsed since the current join attempt began. */
+    float _joinTimer;
+    /** Seconds elapsed since the error popup was shown. */
+    float _errorTimer;
     /** The current status */
     Status _status;
+    /** Whether the Input is pending to be disabled*/
+    bool _pendingInputDisable = false;
+    /** Whether the loading circle is spinning. */
+    bool _isSpinning = false;
     
 public:
 #pragma mark -
@@ -150,6 +168,13 @@ public:
      */
     Status getStatus() const { return _status; }
     
+    /**
+     * Updates the scene each frame. Polls the network while joining and
+     * manages the error-popup countdown.
+     * @param timestep  Seconds since the last frame.
+     */
+    void update(float timestep);
+    
 private:
     /**
      * Updates the text in the given button.
@@ -175,6 +200,42 @@ private:
      * Removes the last character from the input buffer and updates the UI.
      */
     void removeLastChar();
+    
+    /**
+     * Enables or disables all interactive input controls.
+     * @param enabled  Whether controls should accept input.
+     */
+    void setInputEnabled(bool enabled);
+ 
+    /**
+     * Displays the error popup with the given message and enters ERROR_DISPLAY.
+     * @param message  Human-readable error text.
+     */
+    void showError(const std::string& message);
+ 
+    /** Hides the error popup and resets to IDLE. */
+    void dismissError();
+    
+    /**
+     * Shows the loading spinner and re-enables input controls.
+     *
+     * Called when a join attempt begins so the player has visual feedback
+     * that the connection is in progress. The spinner node (_loading) is
+     * made visible and input is re-enabled so the player can still cancel
+     * via the back button.
+     *
+     * Does nothing if the spinner is already visible.
+     */
+    void showLoadingSpinner();
+    
+    /**
+     * Hides the loading spinner.
+     *
+     * Called when a join attempt concludes — either successfully (transitioning
+     * to the lobby) or on failure (showing the error popup). Should always be
+     * paired with a prior call to showLoadingSpinner().
+     */
+    void hideLoadingSpinner();
 };
 
 #endif /* __CLIENT_SCENE_H__ */

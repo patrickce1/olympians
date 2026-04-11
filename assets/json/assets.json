@@ -351,7 +351,13 @@
             },
             "backspace": {
                 "file": "textures/keypad/backspace.png"
-            }
+            },
+        "centerPopup": {
+            "file": "textures/elements/errorPopupFrame.png"
+        },
+        "loadingCircle": {
+            "file": "textures/elements/loadingCircle.png"
+        }
 	},
     "fonts": {
         "felt": {
