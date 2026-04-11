@@ -57,7 +57,7 @@
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 1.0,
+            "baseValue": 0.0,
             "effects": [
                 {
                     "type": "shield",

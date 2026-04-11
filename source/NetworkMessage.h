@@ -34,11 +34,32 @@ struct HealMessage {
     int playerID;
 };
 
-/* Message sent by client to indicate passing an item. 
-* The itemID is the ID of a item definition type, which are used in the itemDatabase
-* The playerID is the location of the player in the circle, with 0 being the host
-* If the item is passed to an AI, it is sent to the host to update
-* If the item is passed to a real player, the passing message is sent to that player for them to handle themselves */
+/** Support effect categories sent from clients to the host. */
+enum class SupportEffectType : int32_t {
+    Heal = 0,
+    Shield = 1,
+    Barrier = 2
+};
+
+/** Message sent by the client to indicate a support effect applied to a player.
+ * The playerID is the order of the player in the circle to whom the effect is applied.
+ * The effectType identifies whether this is a heal, shield, or barrier effect.
+ * The magnitude carries the resolved value for the effect (heal amount, shield mitigation,
+ * or barrier multiplier), while duration is used by timed effects and is 0 for instant heals.
+ */
+struct SupportEffectMessage {
+    int playerID;
+    SupportEffectType effectType;
+    float magnitude;
+    float duration;
+};
+
+/** Message sent by client to indicate passing an item.
+ * The itemID is the ID of a item definition type, which are used in the itemDatabase
+ * The playerID is the location of the player in the circle, with 0 being the host
+ * If the item is passed to an AI, it is sent to the host to update
+ * If the item is passed to a real player, the passing message is sent to that player for them to handle themselves
+ */
 struct PassMessage {
     std::string itemID;
     int playerID;      // Receiver's player ID

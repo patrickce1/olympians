@@ -193,18 +193,27 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			attacks.push_back(attackMsg);
 			break;
 		}
-		case MessageType::PLAYER_HEAL: {
-			float heal = _deserializer.readFloat();
-			int healRecieverID = _deserializer.readSint32();
+        case MessageType::PLAYER_HEAL: {
+            float heal = _deserializer.readFloat();
+            int healRecieverID = _deserializer.readSint32();
 			HealMessage healMsg;
 			healMsg.heal = heal;
 			healMsg.playerID = healRecieverID;
-			heals.push_back(healMsg);
-			break;
-		}
-		case MessageType::PLAYER_PASS: {
-			std::string itemID = _deserializer.readString();
-			int passRecieverID = _deserializer.readSint32();
+            heals.push_back(healMsg);
+            break;
+        }
+        case MessageType::PLAYER_SUPPORT_EFFECT: {
+            SupportEffectMessage effectMsg;
+            effectMsg.playerID = _deserializer.readSint32();
+            effectMsg.effectType = static_cast<SupportEffectType>(_deserializer.readSint32());
+            effectMsg.magnitude = _deserializer.readFloat();
+            effectMsg.duration = _deserializer.readFloat();
+            supportEffects.push_back(effectMsg);
+            break;
+        }
+        case MessageType::PLAYER_PASS: {
+            std::string itemID = _deserializer.readString();
+            int passRecieverID = _deserializer.readSint32();
 			int passDirection = _deserializer.readSint32();
 			PassMessage passMsg;
 			passMsg.itemID = itemID;
@@ -312,6 +321,7 @@ void NetworkController::getNetworkUpdates() {
 void NetworkController::clearQueues() {
 	attacks.clear();
 	heals.clear();
+	supportEffects.clear();
 	passes.clear();
 	_gameWon = false;
 	_gameLost = false;
@@ -343,6 +353,24 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
 	_serializer.writeSint32(MessageType::PLAYER_HEAL);
 	_serializer.writeFloat(heal);
 	_serializer.writeSint32(playerID);
+	_network->sendToHost(_serializer.serialize());
+	_serializer.reset();
+}
+
+/**
+ * Sends a support effect application to the host for authoritative processing.
+ *
+ * @param effectType The kind of support effect that was applied.
+ * @param magnitude  The resolved magnitude of the effect.
+ * @param duration   The timed duration of the effect, or 0 for instant effects.
+ * @param playerID   The 0-based index of the player receiving the effect.
+ */
+void NetworkController::broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID) {
+	_serializer.writeSint32(MessageType::PLAYER_SUPPORT_EFFECT);
+	_serializer.writeSint32(playerID);
+	_serializer.writeSint32(static_cast<int>(effectType));
+	_serializer.writeFloat(magnitude);
+	_serializer.writeFloat(duration);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }

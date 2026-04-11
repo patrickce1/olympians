@@ -254,6 +254,28 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
     }
 }
 
+/** Goes through the list of support effect messages and applies them to the specified player. */
+void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects) {
+    for (const SupportEffectMessage& effect : supportEffects) {
+        if (effect.playerID < 0 || effect.playerID >= (int)_players.size()) continue;
+
+        Player* target = _players[effect.playerID].get();
+        if (!target) continue;
+
+        switch (effect.effectType) {
+            case SupportEffectType::Heal:
+                target->updateHealth(effect.magnitude);
+                break;
+            case SupportEffectType::Shield:
+                target->applyShield(effect.magnitude, effect.duration);
+                break;
+            case SupportEffectType::Barrier:
+                target->applyBarrier(effect.magnitude, effect.duration);
+                break;
+        }
+    }
+}
+
 /**
  * Overwrites the local game state with a snapshot received from the host.
  *

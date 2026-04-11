@@ -56,7 +56,13 @@ void Player::updateHealth(float delta) {
         }
 
         if (_hasShield && _shieldDuration > 0.0f) {
+            const float absorbedAmount = std::min(incomingDamage, _shieldMitigation);
             incomingDamage = std::max(0.0f, incomingDamage - _shieldMitigation);
+            CULog("Shield expired: player='%s' house='%s' reason='hit' absorbed=%.3f remainingDamage=%.3f",
+                  _playerName.c_str(),
+                  _houseId.c_str(),
+                  absorbedAmount,
+                  incomingDamage);
             _hasShield = false;
             _shieldMitigation = 0.0f;
             _shieldDuration = 0.0f;
@@ -79,6 +85,11 @@ void Player::applyShield(float mitigation, float duration) {
     _hasShield = true;
     _shieldMitigation = std::max(0.0f, mitigation);
     _shieldDuration = duration;
+    CULog("Shield applied: player='%s' house='%s' mitigation=%.3f duration=%.3f",
+          _playerName.c_str(),
+          _houseId.c_str(),
+          _shieldMitigation,
+          _shieldDuration);
 }
 
 /** Applies a barrier to this player. Replaces any existing barrier. */
@@ -97,6 +108,9 @@ void Player::updateEffects(float dt) {
     if (_shieldDuration > 0.0f) {
         _shieldDuration = std::max(0.0f, _shieldDuration - dt);
         if (_shieldDuration == 0.0f) {
+            CULog("Shield expired: player='%s' house='%s' reason='duration'",
+                  _playerName.c_str(),
+                  _houseId.c_str());
             _hasShield = false;
             _shieldMitigation = 0.0f;
         }
