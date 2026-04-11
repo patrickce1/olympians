@@ -19,12 +19,23 @@ public:
      * This is how the application knows to switch to the next scene.
      */
     enum Status {
-        IDLE,       // waiting for user input
-        START,      // connection confirmed — SceneLoader transitions to lobby
-        JOINING,    // join attempt in flight — polling checkConnection()
-        ERROR_DISPLAY, // showing error popup before resetting to IDLE
-        ABORT,      // user pressed back
-        HOST        // user wants to switch to host flow
+        /** Client has not yet entered a room */
+        IDLE,
+
+        /** Connection confirmed — SceneLoader transitions to lobby */
+        START,
+
+        /** Client is connecting to the host */
+        JOINING,
+
+        /** Join attempt failed — error popup is displayed before resetting to IDLE */
+        ERROR_DISPLAY,
+
+        /** Game was aborted; back to main menu */
+        ABORT,
+
+        /** Client switches to host game screen */
+        HOST
     };
     
 protected:
