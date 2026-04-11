@@ -709,6 +709,12 @@ public:
     void updateItemUseAnimations(float dt);
     
     /**
+     * Clears all active item use animations, removing them from the scene graph.
+     * Called when the game ends or resets.
+     */
+    void clearItemUseAnimations();
+    
+    /**
      * Top-level disconnect handler. Called every frame from update().
      * Delegates to the three helpers below.
      */

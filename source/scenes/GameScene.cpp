@@ -291,6 +291,9 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
  */
 void GameScene::dispose() {
     if (_active || _scene || _itemPhysicsWorld) {
+        // Clear all active animations before clearing the scene
+        clearItemUseAnimations();
+        
         removeAllChildren();
         _scene      = nullptr;
         _gameArea   = nullptr;
@@ -386,6 +389,9 @@ void GameScene::reset() {
     _status = Status::PLAYING;
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
+    
+    // Clear any active animations before resetting
+    clearItemUseAnimations();
 
     std::vector<ItemInstance::ItemId> itemIds;
     itemIds.reserve(_itemWidgets.size());
@@ -2054,6 +2060,7 @@ void GameScene::handleDisconnectedPlayers() {
  * Call this when aborting the lobby to clear all player house selections.
  */
 void GameScene::resetGameState() {
+    clearItemUseAnimations();
     _gameState.dispose();
     _gameState.init(_itemController);
 }
@@ -2195,4 +2202,19 @@ void GameScene::updateItemUseAnimations(float dt) {
     for (auto it = completedIndices.rbegin(); it != completedIndices.rend(); ++it) {
         _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *it);
     }
+}
+
+void GameScene::clearItemUseAnimations() {
+    CULog("DEBUG: Clearing %lu active animations", _activeItemUseAnimations.size());
+    
+    // Remove all animation nodes from the scene graph
+    for (auto& anim : _activeItemUseAnimations) {
+        if (anim.node) {
+            anim.node->removeFromParent();
+        }
+    }
+    
+    // Clear the animation list
+    _activeItemUseAnimations.clear();
+    CULog("DEBUG: All animations cleared");
 }
