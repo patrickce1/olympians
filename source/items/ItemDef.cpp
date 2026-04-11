@@ -28,6 +28,10 @@ static bool tryParseEffectType(const std::string& value, ItemDef::EffectType& ou
         out = ItemDef::EffectType::Barrier;
         return true;
     }
+    if (value == "stun") {
+        out = ItemDef::EffectType::Stun;
+        return true;
+    }
     return false;
 }
 

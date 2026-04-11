@@ -211,6 +211,14 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             supportEffects.push_back(effectMsg);
             break;
         }
+        case MessageType::ENEMY_EFFECT: {
+            EnemyEffectMessage effectMsg;
+            effectMsg.effectType = static_cast<EnemyEffectType>(_deserializer.readSint32());
+            effectMsg.magnitude = _deserializer.readFloat();
+            effectMsg.duration = _deserializer.readFloat();
+            enemyEffects.push_back(effectMsg);
+            break;
+        }
         case MessageType::PLAYER_PASS: {
             std::string itemID = _deserializer.readString();
             int passRecieverID = _deserializer.readSint32();
@@ -265,6 +273,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		case MessageType::GAME_UPDATE : {
 			GameStateMessage stateMsg;
 			stateMsg.bossHealth = _deserializer.readFloat();
+			stateMsg.bossStunDuration = _deserializer.readFloat();
 			stateMsg.player1HP = _deserializer.readFloat();
 			stateMsg.player2HP = _deserializer.readFloat();
 			stateMsg.player3HP = _deserializer.readFloat();
@@ -322,6 +331,7 @@ void NetworkController::clearQueues() {
 	attacks.clear();
 	heals.clear();
 	supportEffects.clear();
+	enemyEffects.clear();
 	passes.clear();
 	_gameWon = false;
 	_gameLost = false;
@@ -368,6 +378,22 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
 void NetworkController::broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID) {
 	_serializer.writeSint32(MessageType::PLAYER_SUPPORT_EFFECT);
 	_serializer.writeSint32(playerID);
+	_serializer.writeSint32(static_cast<int>(effectType));
+	_serializer.writeFloat(magnitude);
+	_serializer.writeFloat(duration);
+	_network->sendToHost(_serializer.serialize());
+	_serializer.reset();
+}
+
+/**
+ * Sends an enemy-affecting item effect to the host so the host can apply it once and replicate the result.
+ *
+ * @param effectType The type of enemy effect being applied.
+ * @param magnitude  The resolved magnitude associated with the attack item.
+ * @param duration   The timed duration of the enemy effect.
+ */
+void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration) {
+	_serializer.writeSint32(MessageType::ENEMY_EFFECT);
 	_serializer.writeSint32(static_cast<int>(effectType));
 	_serializer.writeFloat(magnitude);
 	_serializer.writeFloat(duration);
@@ -460,6 +486,7 @@ void NetworkController::broadcastJoinedLobby() {
 void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.writeSint32(MessageType::GAME_UPDATE);
 	_serializer.writeFloat(state.getEnemy()->getCurrentHealth());
+	_serializer.writeFloat(state.getEnemy()->getStunDuration());
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
 	for (int i = 0; i < 4; i++) {
 		if (i < players.size()) {

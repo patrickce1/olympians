@@ -24,6 +24,11 @@ private:
         return effect.multiplier;
     }
 
+    static float applyStunToEnemy(const ItemDef::Effect& effect, Enemy& target) {
+        target.applyStun(effect.duration);
+        return effect.duration;
+    }
+
 public:
     static float applyToPlayer(const ItemDef::Effect& effect, float resolvedMagnitude, Player& target) {
         (void)resolvedMagnitude;
@@ -33,15 +38,24 @@ public:
                 return applyShieldToPlayer(effect, target);
             case ItemDef::EffectType::Barrier:
                 return applyBarrierToPlayer(effect, target);
+            case ItemDef::EffectType::Stun:
+                break;
         }
 
         return 0.0f;
     }
 
     static float applyToEnemy(const ItemDef::Effect& effect, float resolvedMagnitude, Enemy& target) {
-        (void)effect;
         (void)resolvedMagnitude;
-        (void)target;
+
+        switch (effect.type) {
+            case ItemDef::EffectType::Stun:
+                return applyStunToEnemy(effect, target);
+            case ItemDef::EffectType::Shield:
+            case ItemDef::EffectType::Barrier:
+                break;
+        }
+
         return 0.0f;
     }
 };

@@ -39,6 +39,8 @@ private:
     // Blocks starting non-idle states while > 0
     float _attackLockout = 0.0f;
     float _retargetLikelihood = 0.0f;
+    /** Remaining stun time in seconds. While positive, enemy attacks and retargeting are disabled. */
+    float _stunDuration = 0.0f;
 
     std::vector<FiredEvent> _firedEvents;
 
@@ -60,9 +62,17 @@ public:
     const EnemyLoader::StateDef* getCurrentStateDef() const;
 
     float getAttackLockoutRemaining() const { return _attackLockout; }
-    bool canStartNonIdleState() const { return _attackLockout <= 0.0f; }
+    bool canStartNonIdleState() const { return _attackLockout <= 0.0f && !isStunned(); }
     float getRetargetLikelihood() const { return _retargetLikelihood; }
     void  setRetargetLikelihood(float v);
+    /** Returns whether the enemy is currently stunned. */
+    bool isStunned() const { return _stunDuration > 0.0f; }
+    /** Returns the remaining stun duration in seconds. */
+    float getStunDuration() const { return _stunDuration; }
+    /** Applies or refreshes a stun, forcing the enemy idle and extending the remaining duration. */
+    void applyStun(float duration);
+    /** Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state. */
+    void syncStunDuration(float duration);
     
     // Expose state defs so controller can pick attacks by tag
     const std::unordered_map<std::string, EnemyLoader::StateDef>& getStates() const { return _states; }
@@ -82,6 +92,8 @@ private:
     void fireEvents();
     void applyCooldown();
     std::string getNextStateOrIdle() const;
+    /** Forces the enemy back to idle immediately, clearing the current state's progress. */
+    void forceIdle();
 };
 
 #endif /* !__ENEMY_H__ */

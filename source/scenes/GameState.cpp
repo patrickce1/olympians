@@ -276,6 +276,19 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
     }
 }
 
+/** Applies enemy-targeted effect messages from clients onto the host's authoritative enemy state. */
+void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects) {
+    if (!_enemy) return;
+
+    for (const EnemyEffectMessage& effect : enemyEffects) {
+        switch (effect.effectType) {
+            case EnemyEffectType::Stun:
+                _enemy->applyStun(effect.duration);
+                break;
+        }
+    }
+}
+
 /**
  * Overwrites the local game state with a snapshot received from the host.
  *
@@ -288,6 +301,7 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
 void GameState::networkUpdate(GameStateMessage newState) {
     // update boss health
     _enemy->setCurrentHealth(newState.bossHealth);
+    _enemy->syncStunDuration(newState.bossStunDuration);
 
     // update player health
     std::vector<float> healths = {

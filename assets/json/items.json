@@ -75,7 +75,12 @@
             "rarity": "rare",
             "houseAffinity": "zeus",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "stun",
+                    "duration": 3.0
+                }
+            ]
         },
         {
             "id": "trident",

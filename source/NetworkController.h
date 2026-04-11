@@ -123,6 +123,8 @@ public:
      * @param playerID   The 0-based index of the player receiving the effect.
      */
     void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID);
+    /** Sends an enemy-affecting attack effect to the host for authoritative processing. */
+    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration);
 
     /** The following are USED ONLY BY THE HOST */
     /** Send the GameState state as the new authoritative version of the game to all players */
@@ -160,6 +162,9 @@ public:
 
     /*Returns all support effect messages received after calling getNetworkUpdate().*/
     const std::vector<SupportEffectMessage>& getSupportEffectUpdates() const { return supportEffects; }
+
+    /*Returns all enemy effect messages received after calling getNetworkUpdate().*/
+    const std::vector<EnemyEffectMessage>& getEnemyEffectUpdates() const { return enemyEffects; }
 
     /*Returns the most recent version of the authoritative game state*/
     GameStateMessage getStateUpdate() { return _latestGameState; }
@@ -258,7 +263,8 @@ protected:
         PLAYER_DISCONNECT = 8,
         GAME_LOST = 9,
         GAME_WON = 10,
-        PLAYER_SUPPORT_EFFECT = 11
+        PLAYER_SUPPORT_EFFECT = 11,
+        ENEMY_EFFECT = 12
     };
 
     /*Our network connection*/
@@ -283,6 +289,8 @@ private:
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
     std::vector<SupportEffectMessage> supportEffects;
+    /** Queued enemy-effect requests received this frame and awaiting host-side application. */
+    std::vector<EnemyEffectMessage> enemyEffects;
     GameStateMessage _latestGameState;
     //win/loss booleans
     bool _gameWon;

@@ -36,7 +36,8 @@ public:
     };
     enum class EffectType : uint8_t {
         Shield,
-        Barrier
+        Barrier,
+        Stun
     };
 
     struct Effect {

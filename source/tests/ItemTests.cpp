@@ -117,6 +117,10 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto shieldDef = db.getDef("shield");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
            "items: lightning_bolt affinity parses as Zeus");
+    assertWithLabel(lightningBoltDef && lightningBoltDef->hasEffectType(ItemDef::EffectType::Stun),
+           "items: lightning_bolt parses stun effect");
+    assertWithLabel(lightningBoltDef && !lightningBoltDef->getEffects().empty() && floatsEqualWithinTolerance(lightningBoltDef->getEffects()[0].duration, 3.0f),
+           "items: lightning_bolt stun duration parses");
     assertWithLabel(appleDef && appleDef->getHouseAffinity() == ItemDef::House::None,
            "items: apple affinity parses as none");
     assertWithLabel(shieldDef && shieldDef->hasEffectType(ItemDef::EffectType::Shield),
@@ -444,6 +448,23 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
     layeredTarget.updateHealth(-10.0f);
         assertWithLabel(floatsEqualWithinTolerance(layeredTarget.getCurrentHealth(), layeredHealthBefore - 2.0f), "compute: barrier then shield mitigation apply on the same hit");
         assertWithLabel(!layeredTarget.hasShield() && !layeredTarget.hasBarrier(), "compute: shield and barrier are both consumed on hit");
+
+    Player zeus("Zeus", 11, "Zeus Tester", loader);
+    auto instLightning = ItemInstance::alloc("lightning_bolt", 1009);
+    assertWithLabel(instLightning != nullptr, "compute: create lightning_bolt instance");
+    if (!instLightning) return;
+    zeus.addItem(*instLightning);
+
+    float resolvedStun = zeus.useItemById(instLightning->getId(), enemy, db);
+        assertWithLabel(floatsEqualWithinTolerance(resolvedStun, 3.0f), "compute: stun application returns configured duration");
+        assertWithLabel(enemy.isStunned(), "compute: stun effect marks enemy as stunned");
+        assertWithLabel(floatsEqualWithinTolerance(enemy.getStunDuration(), 3.0f), "compute: stun duration applies to enemy");
+
+    enemy.update(1.0f);
+        assertWithLabel(enemy.isStunned(), "compute: enemy remains stunned before duration expires");
+
+    enemy.update(2.1f);
+        assertWithLabel(!enemy.isStunned(), "compute: enemy stun expires after duration elapses");
 
     // Mismatched target type should return 0 and still consume item
     Player testAttacker("Ares", 5, "Ares Tester 2", loader);

@@ -137,6 +137,8 @@ public:
 
     /** Applies support effect messages received from clients to the authoritative game state. */
     void supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects);
+    /** Applies enemy effect messages received from clients to the authoritative game state. */
+    void enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects);
     
 
 #pragma mark - Player Access
