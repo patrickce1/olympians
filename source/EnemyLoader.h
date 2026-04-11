@@ -8,11 +8,10 @@
 
 class EnemyLoader {
 public:
-    //keeps track of the current state the boss is in
-    //since every boss follows the pattern of Passive, 3 Attacks, and 1 Defensive move, we can just universally apply this
+    /* Enum to represent state. All bosses follow the pattern of Passive, 3 Attacks, and 1 Defensive move*/
     enum State {
         IDLE,
-        PASSIVE_SPECIAL,             // special states that come as a result of our passive. Ex. Cerberus stun. Doesn't apply to all bosses
+        PASSIVE_SPECIAL,  // special states that come as a result of our passive. Ex. Cerberus stun. Bosses can optionally include this move
         ATTACK_1,
         ATTACK_2,
         ATTACK_3,
@@ -52,7 +51,7 @@ public:
     AIConfig ai;
     struct EnemyDef {
         std::string id;
-        Boss name;
+        Boss name; //Not used yet, but will be used for boss animations in a future pr
         float maxHealth = 0.0f;
         std::string spritesheetPath;
         AIConfig ai;
@@ -73,7 +72,7 @@ private:
         return EventType::UNKNOWN;
     }
 
-    //parses a string name of the attack and matches it to one of the enums
+    //Parses a string name of the attack and matches it to one of the state enums
     static State parseStateType(const std::string& s) {
         if (s == "attack_1")        return State::ATTACK_1;
         if (s == "attack_2")        return State::ATTACK_2;
@@ -83,7 +82,7 @@ private:
         return State::IDLE;
     }
 
-    // checks which boss the string matches and returns that boss
+    //Checks which boss the string matches and returns that boss
     static Boss parseBoss(const std::string& s) {
         if (s == "cyclops")  return Boss::CYCLOPS;
         if (s == "cerberus") return Boss::CERBERUS;
@@ -145,6 +144,7 @@ public:
                         EventDef edef;
                         edef.type = parseEventType(ev->getString("type", ""));
 
+                        //A "target" only applies to damage and side modifiers, not boss healing self
                         if (edef.type == EventType::DAMAGE || edef.type == EventType::SIDE_MODIFIER) {
                             edef.target = ev->getInt("target", 0);
                         }
