@@ -21,19 +21,14 @@ public:
     enum Status {
         /** Client has not yet entered a room */
         IDLE,
-
         /** Connection confirmed — SceneLoader transitions to lobby */
         START,
-
         /** Client is connecting to the host */
         JOINING,
-
         /** Join attempt failed — error popup is displayed before resetting to IDLE */
         ERROR_DISPLAY,
-
         /** Game was aborted; back to main menu */
         ABORT,
-
         /** Client switches to host game screen */
         HOST
     };
