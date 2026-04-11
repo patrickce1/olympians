@@ -53,6 +53,10 @@ protected:
     std::vector<std::shared_ptr<cugl::scene2::Button>> _keypadButtons;
     /** Optional error-popup node (may be nullptr if absent from JSON scene). */
     std::shared_ptr<cugl::scene2::SceneNode> _errorPopup;
+    /** Loading overlay node */
+    std::shared_ptr<cugl::scene2::SceneNode> _loading;
+    /** Loading spinning circle node */
+    std::shared_ptr<cugl::scene2::SceneNode> _spinner;
     /** Seconds elapsed since the current join attempt began. */
     float _joinTimer;
     /** Seconds elapsed since the error popup was shown. */
@@ -61,6 +65,8 @@ protected:
     Status _status;
     /** Whether the Input is pending to be disabled*/
     bool _pendingInputDisable = false;
+    /** Whether the loading circle is spinning. */
+    bool _isSpinning = false;
     
 public:
 #pragma mark -
@@ -198,6 +204,10 @@ private:
  
     /** Hides the error popup and resets to IDLE. */
     void dismissError();
+    
+    void showLoadingSpinner();
+    
+    void hideLoadingSpinner();
 };
 
 #endif /* __CLIENT_SCENE_H__ */

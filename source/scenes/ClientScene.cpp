@@ -16,6 +16,9 @@ using namespace std;
 /** How long (seconds) to show the error popup before auto-dismissing */
 #define ERROR_DISPLAY_TIME  2.5f
 
+/** Speed of the loading circle in Radians per second */
+#define LOADING_SPIN_SPEED  2.0f
+
 /**
  * Initializes the scene contents, and starts the game
  *
@@ -95,15 +98,25 @@ void ClientScene::setupUI() {
         playerNamePlaceholder->setVisible(value.empty());
     });
     
-    // Optional: error popup node. Add "clientScene.errorPopup" to your JSON scene
-    // to get a visible popup on join failure. If absent, failure is logged only.
+    // Error popup node
     _errorPopup = _assets->get<scene2::SceneNode>("clientScene.errorPopup");
     if (_errorPopup) {
-        std::shared_ptr<cugl::scene2::PolygonNode> overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(_errorPopup->getChildByName("overlayBG"));
+        auto overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(_errorPopup->getChildByName("overlayBG"));
         overlay->setContentSize(getSize());
         overlay->setAnchor(Vec2::ANCHOR_CENTER);
         overlay->setPosition(getSize()/2);
         _errorPopup->setVisible(false);
+    }
+    
+    _loading = _assets->get<scene2::SceneNode>("clientScene.loadingOverlay");
+    if (_loading) {
+        auto overlay = _loading->getChildByName("overlayBG");
+        overlay->setContentSize(getSize());
+        overlay->setAnchor(Vec2::ANCHOR_CENTER);
+        overlay->setPosition(getSize()/2);
+        
+        _spinner = _loading->getChildByName("spinner");
+        _loading->setVisible(false);
     }
 }
 
@@ -193,6 +206,8 @@ void ClientScene::dispose() {
         _errorPopup = nullptr;
         _active = false;
         _keypadButtons.clear();
+        _loading = nullptr;
+        _spinner = nullptr;
     }
     _network = nullptr;
 }
@@ -262,6 +277,11 @@ void ClientScene::update(float timestep) {
     
     if (_status == Status::JOINING) {
         _joinTimer += timestep;
+        
+        if (_loading && _loading->isVisible()) {
+            float angle = _spinner->getAngle();
+            _spinner->setAngle(angle + LOADING_SPIN_SPEED * timestep);
+        }
 
         NetworkController::Status connStatus = _network->checkConnection();
 
@@ -272,8 +292,11 @@ void ClientScene::update(float timestep) {
         } else if (_joinTimer >= JOIN_TIMEOUT) {
             // Only fail on timeout — not on FAILED state
             CULog("ClientScene: join timed out");
+            hideLoadingSpinner();
             _network->disconnect();
             showError("Could not connect.\nPlease check the code and try again.");
+        } else {
+            showLoadingSpinner();
         }
     }
 
@@ -350,6 +373,17 @@ void ClientScene::dismissError() {
     }
     setInputEnabled(true);
     _status = Status::IDLE;
+}
+
+void ClientScene::showLoadingSpinner() {
+    if (_loading->isVisible()) return;
+    _loading->setVisible(true);
+    setInputEnabled(true);
+    _isSpinning = true;
+}
+
+void ClientScene::hideLoadingSpinner() {
+    _loading->setVisible(false);
 }
 
 /**
