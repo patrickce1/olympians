@@ -455,20 +455,17 @@
                 },
                 "data": {
                     "anchor": [0.5, 0.5],
-                    "size": [300, 130],
-                    "position": [196, 426],
+                    "size": [393,
+                    852],
                     "angle": 0,
                     "visible": false
                 },
                 "children": {
-                    "popupBG": {
+                    "overlayBG": {
                         "type": "Polygon",
                         "data": {
                             "anchor": [0.5, 0.5],
-                            "size": [300, 130],
-                            "position": [0, 0],
-                            "polygon": [300, 130, 0, 130, 0, 0, 300, 0],
-                            "color": "#1a1208ee",
+                            "color": [0,0,0,100],
                             "angle": 0,
                             "visible": true
                         },
@@ -480,18 +477,12 @@
                             "y_offset": 0
                         }
                     },
-                    "popupBorder": {
-                        "type": "Path",
+                    "popupBG": {
+                        "type": "Image",
                         "data": {
-                            "color": "#F6B561ff",
-                            "path": {
-                                "vertices": [299, 129, 1, 129, 1, 1, 299, 1],
-                                "closed": true
-                            },
-                            "stroke": 2,
-                            "joint": "square",
                             "anchor": [0.5, 0.5],
-                            "position": [0, 0],
+                            "texture": "centerPopup",
+                            "size": [433, 326],
                             "angle": 0,
                             "visible": true
                         },
@@ -507,48 +498,24 @@
                         "type": "Label",
                         "data": {
                             "anchor": [0.5, 0.5],
-                            "size": [260, 36],
-                            "position": [0, 18],
+                            "size": [202, 105],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular24",
-                            "text": "Invalid Game ID",
-                            "foreground": "#F6B561ff",
+                            "font": "gideon romanRegular18",
+                            "text": "",
+                            "foreground": "#FFD59Fff",
                             "background": "#00000000",
                             "padding": [0, 0, 0, 0],
                             "valign": "middle",
-                            "halign": "center"
+                            "halign": "center",
+                            "wrap": true
                         },
                         "layout": {
                             "x_anchor": "center",
                             "y_anchor": "middle",
                             "absolute": false,
                             "x_offset": 0,
-                            "y_offset": 0.1
-                        }
-                    },
-                    "errorSubLabel": {
-                        "type": "Label",
-                        "data": {
-                            "anchor": [0.5, 0.5],
-                            "size": [260, 28],
-                            "position": [0, -18],
-                            "angle": 0,
-                            "visible": true,
-                            "font": "gideon romanRegular16",
-                            "text": "Check the code and try again",
-                            "foreground": "#ffffffff",
-                            "background": "#00000000",
-                            "padding": [0, 0, 0, 0],
-                            "valign": "middle",
-                            "halign": "center"
-                        },
-                        "layout": {
-                            "x_anchor": "center",
-                            "y_anchor": "middle",
-                            "absolute": false,
-                            "x_offset": 0,
-                            "y_offset": -0.1
+                            "y_offset": 0
                         }
                     }
                 },

@@ -99,6 +99,10 @@ void ClientScene::setupUI() {
     // to get a visible popup on join failure. If absent, failure is logged only.
     _errorPopup = _assets->get<scene2::SceneNode>("clientScene.errorPopup");
     if (_errorPopup) {
+        std::shared_ptr<cugl::scene2::PolygonNode> overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(_errorPopup->getChildByName("overlayBG"));
+        overlay->setContentSize(getSize());
+        overlay->setAnchor(Vec2::ANCHOR_CENTER);
+        overlay->setPosition(getSize()/2);
         _errorPopup->setVisible(false);
     }
 }
@@ -300,6 +304,7 @@ void ClientScene::setInputEnabled(bool enabled) {
         _hostButton->activate();
         _playerName->activate();
         for (auto& btn : _keypadButtons) btn->activate();
+        _enterGame->setDown(false);
     } else {
         _enterGame->deactivate();
         _hostButton->deactivate();
