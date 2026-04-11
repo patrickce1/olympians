@@ -1,5 +1,7 @@
 // Player.cpp
 #include "Player.h"
+#include <algorithm>
+#include "items/EffectSystem.h"
 
 /**
  *Creates a player instance giiven a house ID
@@ -42,16 +44,180 @@ Player::Player(const std::string& houseId, int playerNumber,
  * @param delta     The amount to change health by
  */
 void Player::updateHealth(float delta) {
+    if (delta < 0.0f) {
+        float incomingDamage = -delta;
+
+        // Barrier applies first as percentage mitigation, then shield removes a fixed amount.
+        if (_hasBarrier && _barrierDuration > 0.0f) {
+            incomingDamage *= _barrierMultiplier;
+            _hasBarrier = false;
+            _barrierMultiplier = 1.0f;
+            _barrierDuration = 0.0f;
+        }
+
+        if (_hasShield && _shieldDuration > 0.0f) {
+            incomingDamage = std::max(0.0f, incomingDamage - _shieldMitigation);
+            _hasShield = false;
+            _shieldMitigation = 0.0f;
+            _shieldDuration = 0.0f;
+        }
+
+        delta = -incomingDamage;
+    }
+
     _currentHealth += delta;
     if (_currentHealth > _maxHealth) _currentHealth = _maxHealth;
-    if (_currentHealth < 0)          _currentHealth = 0;
+    if (_currentHealth < 0.0f)       _currentHealth = 0.0f;
+}
+
+/** Applies a shield to this player. Replaces any existing shield. */
+void Player::applyShield(float mitigation, float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    _hasShield = true;
+    _shieldMitigation = std::max(0.0f, mitigation);
+    _shieldDuration = duration;
+}
+
+/** Applies a barrier to this player. Replaces any existing barrier. */
+void Player::applyBarrier(float multiplier, float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    _hasBarrier = true;
+    _barrierMultiplier = std::max(0.0f, multiplier);
+    _barrierDuration = duration;
+}
+
+/** Advances timed runtime effects. */
+void Player::updateEffects(float dt) {
+    if (_shieldDuration > 0.0f) {
+        _shieldDuration = std::max(0.0f, _shieldDuration - dt);
+        if (_shieldDuration == 0.0f) {
+            _hasShield = false;
+            _shieldMitigation = 0.0f;
+        }
+    }
+
+    if (_barrierDuration > 0.0f) {
+        _barrierDuration = std::max(0.0f, _barrierDuration - dt);
+        if (_barrierDuration == 0.0f) {
+            _hasBarrier = false;
+            _barrierMultiplier = 1.0f;
+        }
+    }
+}
+
+static float computeResolvedItemMagnitude(const Player& player,
+                                          const ItemDef& def,
+                                          const ItemDatabase& db) {
+    float houseRoleMultiplier = 0.0f;
+    float affinityBonus = 1.0f;
+    const auto* houseMultipliers = db.getHouseMultipliers(player.getHouseName());
+    if (houseMultipliers) {
+        switch (def.getType()) {
+            case ItemDef::Type::Attack:
+                houseRoleMultiplier = houseMultipliers->attack;
+                break;
+            case ItemDef::Type::Support:
+                houseRoleMultiplier = houseMultipliers->support;
+                break;
+        }
+
+        const bool affinityEligible =
+            (def.getRarity() == ItemDef::Rarity::Rare || def.getRarity() == ItemDef::Rarity::Divine);
+        const bool affinityMatch =
+            (def.getHouseAffinity() == ItemDef::houseFromString(player.getHouseName(), ItemDef::House::None));
+        if (affinityEligible && affinityMatch) {
+            affinityBonus = houseMultipliers->affinityBonus;
+        }
+    }
+
+    float resolvedMagnitude = def.getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
+    if (resolvedMagnitude <= 0.0f) {
+        resolvedMagnitude = 0.01f;
+    }
+
+    CULog(
+        "ItemUseCalc: item='%s' playerHouse='%s' effectiveVal = baseVal(%.3f) * classSlider(1+%.3f) * affinity(%.3f) | = %.3f",
+        def.getId().c_str(),
+        player.getHouseName().c_str(),
+        def.getBaseValue(),
+        houseRoleMultiplier,
+        affinityBonus,
+        resolvedMagnitude
+    );
+
+    return resolvedMagnitude;
+}
+
+float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const ItemDatabase& db) {
+    for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
+        if (item->getId() != itemId) {
+            continue;
+        }
+
+        std::shared_ptr<ItemDef> def = db.getDef(item->getDefId());
+        if (!def) {
+            return -1.0f;
+        }
+
+        const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
+        float totalAppliedMagnitude = 0.0f;
+        if (def->getEffects().empty()) {
+            if (def->getType() == ItemDef::Type::Support) {
+                target.updateHealth(resolvedMagnitude);
+                totalAppliedMagnitude = resolvedMagnitude;
+            }
+        } else {
+            for (const ItemDef::Effect& effect : def->getEffects()) {
+                totalAppliedMagnitude += EffectSystem::applyToPlayer(effect, resolvedMagnitude, target);
+            }
+        }
+
+        _inventory.erase(item);
+        return totalAppliedMagnitude;
+    }
+
+    return -1.0f;
+}
+
+float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db) {
+    for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
+        if (item->getId() != itemId) {
+            continue;
+        }
+
+        std::shared_ptr<ItemDef> def = db.getDef(item->getDefId());
+        if (!def) {
+            return -1.0f;
+        }
+
+        const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
+        float totalAppliedMagnitude = 0.0f;
+        if (def->getEffects().empty()) {
+            if (def->getType() == ItemDef::Type::Attack) {
+                target.updateHealth(-resolvedMagnitude);
+                totalAppliedMagnitude = resolvedMagnitude;
+            }
+        } else {
+            for (const ItemDef::Effect& effect : def->getEffects()) {
+                totalAppliedMagnitude += EffectSystem::applyToEnemy(effect, resolvedMagnitude, target);
+            }
+        }
+
+        _inventory.erase(item);
+        return totalAppliedMagnitude;
+    }
+
+    return -1.0f;
 }
 
 /**
- * Removes  an item from the player's inventory by item id.
- * @param item    The item to remove
- * @param target    The target to apply the item to (Player or Enemy)
- * @return true if the item was found and removed, false otherwise
+ * Removes an item from the player's inventory by item id.
  */
 void Player::removeItemById(ItemInstance::ItemId itemId) {
     for (auto it = _inventory.begin(); it != _inventory.end(); ++it) {
@@ -64,7 +230,6 @@ void Player::removeItemById(ItemInstance::ItemId itemId) {
 
 /**
  * Adds an item to the player's inventory.
- * @param item      The item to add
  */
 void Player::addItem(const ItemInstance& item) {
     _inventory.push_back(item);
@@ -73,7 +238,6 @@ void Player::addItem(const ItemInstance& item) {
 /**
  *Returns whether the player is alive or not
  */
-bool Player::isAlive() const{
-    return _currentHealth > 0;
+bool Player::isAlive() const {
+    return _currentHealth > 0.0f;
 }
-

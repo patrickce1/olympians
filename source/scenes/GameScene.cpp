@@ -1394,6 +1394,9 @@ void GameScene::update(float dt, InputController& input) {
     handleDisconnectedPlayers();
 
     handleItemSpawn(dt);
+    for (auto& player : _gameState.getPlayers()) {
+        player->updateEffects(dt);
+    }
     updateEnemyAndAI(dt);
 
     // Update sliding items before physics world update

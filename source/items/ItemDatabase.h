@@ -19,14 +19,13 @@ public:
     /**
      * Per-house multipliers applied at item use time.
      *
-     * attack/support/utility are additive sliders in [0,1] and are used as
+     * attack/support are additive sliders in [0,1] and are used as
      * baseValue * (1 + slider). affinityBonus is an extra multiplier that only
      * applies for rare/divine items when houseAffinity matches the player's house.
      */
     struct HouseMultipliers {
         float attack = 0.0f;
         float support = 0.0f;
-        float utility = 0.0f;
         float affinityBonus = 1.5f;
     };
 

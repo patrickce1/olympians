@@ -61,10 +61,8 @@
             "effects": [
                 {
                     "type": "shield",
-                    "target": "",
-                    "multiplier": 0.5,
-                    "duration": 5.0,
-                    "stacking": "refresh"
+                    "mitigation": 3.0,
+                    "duration": 5.0
                 }
             ]
         },
@@ -128,11 +126,17 @@
             "name": "Aegis Shield",
             "description": " ",
             "icon": "item_aegis",
-            "type": "utility",
+            "type": "support",
             "rarity": "rare",
             "houseAffinity": "athena",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "barrier",
+                    "multiplier": 0.5,
+                    "duration": 5.0
+                }
+            ]
         },
         {
             "id": "spear",

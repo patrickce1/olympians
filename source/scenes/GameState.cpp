@@ -170,6 +170,7 @@ bool GameState::init(ItemController& itemController) {
 void GameState::dispose() {
     for (auto& player : _players) {
         player->clearInventory();
+        player->clearRuntimeEffects();
     }
     _players.clear();
     _playerIdMap.clear();
@@ -184,6 +185,7 @@ void GameState::dispose() {
 void GameState::reset() {
     for (auto& player : _players) {
         player->clearInventory();
+        player->clearRuntimeEffects();
         player->setCurrentHealth(player->getMaxHealth());
     }
     _enemy->setCurrentHealth(_enemy->getMaxHealth());

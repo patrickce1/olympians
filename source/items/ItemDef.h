@@ -2,6 +2,7 @@
 #define __ITEM_DEF_H__
 #include <cugl/cugl.h>
 #include <string>
+#include <vector>
 
 /**
  * Immutable, data-driven definition of an item type.
@@ -29,11 +30,22 @@ public:
         Ares,
         Athena,
         Aphrodite,
-        Hephestus,
+        Hephaestus,
         Hermes,
         None
     };
-    
+    enum class EffectType : uint8_t {
+        Shield,
+        Barrier
+    };
+
+    struct Effect {
+        EffectType type = EffectType::Shield;
+        float multiplier = 1.0f;
+        float mitigation = 0.0f;
+        float duration = 0.0f;
+    };
+
 private:
     /* Unique key */
     std::string _id;
@@ -58,7 +70,10 @@ private:
 
     /* House affinity tag used for rare/divine affinity bonus matching */
     House _houseAffinity = House::None;
-    
+
+    /* Collection of utility effects for this item */
+    std::vector<Effect> _effects;
+
 public:
     ItemDef() = default;
     ~ItemDef() = default;
@@ -67,7 +82,7 @@ public:
      * Initializes a definition from JSON.
      *
      * Required keys: id, type, rarity.
-     * Optional keys: name, description, icon/iconKey, houseAffinity, baseValue.
+     * Optional keys: name, description, icon/iconKey, houseAffinity, baseValue, effects.
      */
     bool init(const std::shared_ptr<cugl::JsonValue>& json);
     
@@ -97,14 +112,19 @@ public:
     Type getType() const { return _type; }
     /** Gets item rarity */
     Rarity getRarity() const { return _rarity; }
-    
+    /** Gets utility item effects */
+    const std::vector<Effect>& getEffects() const { return _effects; }
+    /** Returns true if this item contains at least one effect of the given type */
+    bool hasEffectType(EffectType type) const;
+
     /** Extract Type enum from a string */
     static Type typeFromString(std::string value, Type fallback = Type::Attack);
     /** Extract Rarity enum from a string */
     static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
     /** Extract House enum from a string */
     static House houseFromString(std::string value, House fallback = House::None);
-
+    /** Extract EffectType enum from a string */
+    static EffectType effectTypeFromString(std::string value);
 };
 
 #endif // __ITEM_DEF_H__

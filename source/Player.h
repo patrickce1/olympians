@@ -11,7 +11,6 @@
 #include "Enemy.h"
 #include <type_traits>
 
-
 /**
  * Model Class representing the Player
  */
@@ -38,7 +37,15 @@ private:
     Player* _leftPlayer = nullptr;
     /** The player to the right of this player, or nullptr if none */
     Player* _rightPlayer = nullptr;
-    
+    /** Runtime fixed-mitigation shield state */
+    bool _hasShield = false;
+    float _shieldMitigation = 0.0f;
+    float _shieldDuration = 0.0f;
+    /** Runtime percentage-mitigation barrier state */
+    bool _hasBarrier = false;
+    float _barrierMultiplier = 1.0f;
+    float _barrierDuration = 0.0f;
+
 public:
     /**
      *Creates a player instance given a house ID
@@ -89,6 +96,19 @@ public:
      */
     float getCurrentHealth() const { return _currentHealth; }
 
+    /** Returns whether a shield is currently armed on this player. */
+    bool hasShield() const { return _hasShield; }
+    /** Returns the current fixed mitigation value. */
+    float getShieldMitigation() const { return _shieldMitigation; }
+    /** Returns the remaining shield duration. */
+    float getShieldDuration() const { return _shieldDuration; }
+    /** Returns whether a barrier is currently armed on this player. */
+    bool hasBarrier() const { return _hasBarrier; }
+    /** Returns the current barrier multiplier. */
+    float getBarrierMultiplier() const { return _barrierMultiplier; }
+    /** Returns the remaining barrier duration. */
+    float getBarrierDuration() const { return _barrierDuration; }
+
     /*Setter for current health*/
     void setCurrentHealth(float health) { _currentHealth = health; }
     
@@ -126,6 +146,20 @@ public:
      */
     
     void updateHealth(float delta);
+
+    /** Applies a timed fixed-mitigation shield to this player. */
+    void applyShield(float mitigation, float duration);
+
+    /** Applies a timed percentage-mitigation barrier to this player. */
+    void applyBarrier(float multiplier, float duration);
+    void updateEffects(float dt);
+
+    /** Clears runtime-only combat effects. */
+    void clearRuntimeEffects() {
+        _shieldDuration = 0.0f;
+        _hasBarrier = false;
+    }
+
     /**
      * Adds an item to the player's inventory.
      * @param item      The item to add
@@ -138,82 +172,21 @@ public:
     bool isAlive() const;
     
     /**
-     * Uses  an item from the player's inventory by item id.
       * @param itemId  The inventory instance id to consume
      * @return resolved item magnitude, 0 if consumed but no matching target type, -1 on failure
      */
     template <typename T>
     float useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
-        for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
-            if (item->getId() == itemId) {
-                std::shared_ptr<ItemDef> def = db.getDef(item->getDefId());
-                if (!def) {
-                    return -1.0f;
-                }
-
-                float houseRoleMultiplier = 0.0f;
-                float affinityBonus = 1.0f;
-                const auto* houseMultipliers = db.getHouseMultipliers(_houseId);
-                if (houseMultipliers) {
-                    switch (def->getType()) {
-                        case ItemDef::Type::Attack:  houseRoleMultiplier = houseMultipliers->attack;  break;
-                        case ItemDef::Type::Support: houseRoleMultiplier = houseMultipliers->support; break;
-                    }
-                    // Affinity bonus only applies to rare/divine items when item affinity matches player house.
-                    const bool affinityEligible =
-                        (def->getRarity() == ItemDef::Rarity::Rare || def->getRarity() == ItemDef::Rarity::Divine);
-                    const bool affinityMatch =
-                        (def->getHouseAffinity() == ItemDef::houseFromString(_houseId, ItemDef::House::None));
-                    if (affinityEligible && affinityMatch) {
-                        affinityBonus = houseMultipliers->affinityBonus;
-                    }
-                }
-
-                float resolvedMagnitude = def->getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
-                if (resolvedMagnitude <= 0.0f) {
-                    resolvedMagnitude = 0.01f;
-                }
-
-                if constexpr (std::is_same<T, Player>::value) {
-                    if (def->getType() == ItemDef::Type::Support) {
-                        CULog(
-                            "ItemUseCalc: item='%s' type=support playerHouse='%s' effectiveVal = baseVal(%.3f) * classSlider(1+%.3f) * affinity(%.3f) | = %.3f",
-                            def->getId().c_str(),
-                            _houseId.c_str(),
-                            def->getBaseValue(),
-                            houseRoleMultiplier,
-                            affinityBonus,
-                            resolvedMagnitude
-                        );
-                        target.updateHealth(resolvedMagnitude);
-                        _inventory.erase(item);
-                        return resolvedMagnitude;
-                    }
-                }
-                else if constexpr (std::is_same<T, Enemy>::value) {
-                    if (def->getType() == ItemDef::Type::Attack) {
-                        CULog(
-                            "ItemUseCalc: item='%s' type=attack playerHouse='%s' effectiveVal = baseVal(%.3f) * classSlider(1+%.3f) * affinity(%.3f) | = %.3f",
-                            def->getId().c_str(),
-                            _houseId.c_str(),
-                            def->getBaseValue(),
-                            houseRoleMultiplier,
-                            affinityBonus,
-                            resolvedMagnitude
-                        );
-                        target.updateHealth(-resolvedMagnitude);
-                        _inventory.erase(item);
-                        return resolvedMagnitude;
-                    }
-                }
-
-                _inventory.erase(item);
-                return 0.0f;
-            }
-        }
         return -1.0f;
     }
-    
+    float useItemById(ItemInstance::ItemId itemId, Player& target, const ItemDatabase& db);
+
+    /**
+     * Uses an item from the player's inventory on an enemy target.
+     * @param itemId  The inventory instance id to consume
+     * @return total resolved magnitude applied by the item's effects, 0 if consumed but no effect matched, -1 on failure
+     */
+    float useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db);
     /**
      * Removes all items from the player's inventory.
      *
@@ -226,10 +199,8 @@ public:
     }
     
     /**
-     * Removes  an item from the player's inventory by item id.
-     * @param item    The item to remove
-     * @param target    The target to apply the item to (Player or Enemy)
-     * @return true if the item was found and removed, false otherwise
+     * Removes an item from the player's inventory by item id.
+     * @param itemId    The item to remove
      */
     void removeItemById(ItemInstance::ItemId itemId);
     
