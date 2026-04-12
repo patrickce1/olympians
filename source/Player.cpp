@@ -130,6 +130,11 @@ void Player::updateEffects(float dt) {
  * house multiplier for the item's type, then applies any rarity-based house
  * affinity bonus. A small positive minimum is enforced so item uses never
  * resolve to zero or a negative value.
+ *
+ * @param player  The player using the item
+ * @param def        The item definition being resolved
+ * @param db           The item database that provides multiplier metadata
+ * @return       The final resolved item magnitude after applying bonuses
  */
 static float computeResolvedItemMagnitude(const Player& player,
                                           const ItemDef& def,
@@ -181,6 +186,12 @@ static float computeResolvedItemMagnitude(const Player& player,
  * configured item effects are dispatched through the effect system. The item is
  * removed from inventory once used. Returns the applied base magnitude, or
  * -1.0f if the item id or item definition cannot be found.
+ *
+ * @param itemId  The inventory instance id to consume
+ * @param target  The player that receives the item's healing and effects
+ * @param db           The item database used to resolve the item definition
+ * @return       The applied base magnitude, or -1.0f if the item id or item
+ *         definition cannot be found
  */
 float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const ItemDatabase& db) {
     for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
@@ -221,6 +232,11 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
  * configured item effects are dispatched through the effect system. The item is
  * removed from inventory once used. Returns the applied base magnitude, or
  * -1.0f if the item id or item definition cannot be found.
+ *
+ * @param itemId  The inventory instance id to consume
+ * @param target  The enemy that receives the item's damage and effects
+ * @param db           The item database used to resolve the item definition
+ * @return       The applied base magnitude, or -1.0f if the item id or item definition cannot be found
  */
 float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db) {
     for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {

@@ -187,7 +187,9 @@ public:
      * is removed from inventory once used.
      *
      * @param itemId  The inventory instance id to consume
-     * @return The applied base magnitude, or -1.0f if the item id or item
+     * @param target  The player that receives the item's healing and effects
+     * @param db           The item database used to resolve the item definition
+     * @return       The applied base magnitude, or -1.0f if the item id or item
      *         definition cannot be found
      */
     template <typename T>
@@ -204,8 +206,9 @@ public:
      * item is removed from inventory once used.
      *
      * @param itemId  The inventory instance id to consume
-     * @return The applied base magnitude, or -1.0f if the item id or item
-     *         definition cannot be found
+     * @param target  The enemy that receives the item's damage and effects
+     * @param db           The item database used to resolve the item definition
+     * @return       The applied base magnitude, or -1.0f if the item id or item definition cannot be found
      */
     float useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db);
     /**
