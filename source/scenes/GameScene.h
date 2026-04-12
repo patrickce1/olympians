@@ -217,10 +217,6 @@ protected:
      *  Items are added here when passed (human or networked) and removed when picked up. */
     std::unordered_set<ItemInstance::ItemId> _passedItemIds;
 
-    /** Set of ItemIds currently waiting for animation resolution (item used but damage deferred).
-     *  These items should not have widgets respawned. */
-    std::unordered_set<ItemInstance::ItemId> _animationPendingItemIds;
-
     /** Item body position from previous frame, used to calculate release velocity. */
     cugl::Vec2 _dragPreviousFrameItemBodyPos = cugl::Vec2::ZERO;
 
@@ -732,8 +728,22 @@ public:
      *
      * @return true if there are active animations, false otherwise
      */
-    bool hasActiveItemAnimations() const { return !_activeItemUseAnimations.empty(); }
+    bool hasActiveItemAnimations() const { return !_activeItemUseAnimations.empty(); }    
+    /** Checks if an item is currently playing an animation.
+     * Used to prevent respawning items that are mid-animation.
+     *
+     * @param itemId The ID of the item to check
+     * @return true if the item has an active animation, false otherwise
+     */
+    bool isItemAnimating(ItemInstance::ItemId itemId) const;
     
+    /** Checks if an item type matches an action zone type.
+     *
+     * @param action  The zone action type
+     * @param itemType The type of item
+     * @return true if the item can be used in this zone
+     */
+    bool isItemActionMatch(InputController::Action action, ItemDef::Type itemType) const;    
     /**
      * Top-level disconnect handler. Called every frame from update().
      * Delegates to the three helpers below.
@@ -809,14 +819,6 @@ public:
      * @param itemId  The itemId that was just used
      */
     void markItemAsUsed(ItemInstance::ItemId itemId);
-
-    /** Checks if an item type matches an action zone type.
-     *
-     * @param action  The zone action type
-     * @param itemType The type of item
-     * @return true if the item can be used in this zone
-     */
-    bool isItemActionMatch(InputController::Action action, ItemDef::Type itemType) const;
 
     /**
      * Helper function to spawn an item widget from a given position with animation.

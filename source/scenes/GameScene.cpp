@@ -1767,9 +1767,22 @@ void GameScene::markItemAsUsed(ItemInstance::ItemId itemId) {
         _itemPhysicsWorld->removeObstacle(body->second);
         _itemBodies.erase(body);
     }
-    
-    // Mark as pending animation so it won't be respawned
-    _animationPendingItemIds.insert(itemId);
+}
+
+/**
+ * Checks if an item is currently playing an animation.
+ * Iterates through active animations to find if the given itemId is animating.
+ *
+ * @param itemId The ID of the item to check
+ * @return true if the item has an active animation, false otherwise
+ */
+bool GameScene::isItemAnimating(ItemInstance::ItemId itemId) const {
+    for (const auto& anim : _activeItemUseAnimations) {
+        if (anim.itemId == itemId) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /** Helper function to spawn an item widget from a given position with animation.
@@ -1829,8 +1842,8 @@ void GameScene::syncInventoryWidgets() {
 
         auto found = _itemWidgets.find(id);
         if (found == _itemWidgets.end()) {
-            // Skip items pending animation resolution - they should not be respawned
-            if (_animationPendingItemIds.find(id) != _animationPendingItemIds.end()) {
+            // Skip items currently animating - they should not be respawned
+            if (isItemAnimating(id)) {
                 continue;
             }
             
@@ -2247,10 +2260,6 @@ void GameScene::updateItemUseAnimations(float dt) {
         // Check if animation is complete
         if (anim.elapsedTime >= anim.animationDuration) {
             anim.node->removeFromParent();
-            // Remove from pending set since animation is now complete
-            if (anim.itemId != 0) {
-                _animationPendingItemIds.erase(anim.itemId);
-            }
             completedIndices.push_back(i);
         }
     }
@@ -2266,10 +2275,6 @@ void GameScene::clearItemUseAnimations() {
     for (auto& anim : _activeItemUseAnimations) {
         if (anim.node) {
             anim.node->removeFromParent();
-        }
-        // Remove from pending set
-        if (anim.itemId != 0) {
-            _animationPendingItemIds.erase(anim.itemId);
         }
     }
     

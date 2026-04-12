@@ -18,9 +18,9 @@
             "itemUseAnimation": {
                 "spriteSheetId": "sword_animation",
                 "rows": 1,
-                "cols": 7,
-                "frameCount": 7,
-                "animationDuration": 0.581,
+                "cols": 5,
+                "frameCount": 5,
+                "animationDuration": 0.415,
                 "damageResolutionFrame": 4
             }
         },
