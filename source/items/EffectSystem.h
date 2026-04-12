@@ -14,16 +14,19 @@ class Enemy;
  */
 class EffectSystem {
 private:
+    /** Applies a shield effect to a player and returns the shield mitigation amount. */
     static float applyShieldToPlayer(const ItemDef::Effect& effect, Player& target) {
         target.applyShield(effect.mitigation, effect.duration);
         return effect.mitigation;
     }
 
+    /** Applies a barrier effect to a player and returns the barrier multiplier. */
     static float applyBarrierToPlayer(const ItemDef::Effect& effect, Player& target) {
         target.applyBarrier(effect.multiplier, effect.duration);
         return effect.multiplier;
     }
 
+    /** Applies a stun effect to an enemy and returns the stun duration. */
     static float applyStunToEnemy(const ItemDef::Effect& effect, Enemy& target) {
         target.applyStun(effect.duration);
         return effect.duration;
@@ -36,6 +39,12 @@ private:
     }
 
 public:
+    /**
+     * Applies a supported item effect to a player target.
+     *
+     * Returns the effect value that was applied, or 0.0f if the effect type
+     * does not target players.
+     */
     static float applyToPlayer(const ItemDef::Effect& effect, float resolvedMagnitude, Player& target) {
         (void)resolvedMagnitude;
 
@@ -52,6 +61,12 @@ public:
         return 0.0f;
     }
 
+    /**
+     * Applies a supported item effect to an enemy target.
+     *
+     * Returns the effect value that was applied, or 0.0f if the effect type
+     * does not target enemies.
+     */
     static float applyToEnemy(const ItemDef::Effect& effect, float resolvedMagnitude, Enemy& target) {
         (void)resolvedMagnitude;
 
