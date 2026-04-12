@@ -757,6 +757,8 @@ public:
      * Pass zones are always included while dragging. Clears all zones if nothing is held.
      */
     void updateInputZones();
+    
+    void updateDropZoneVisibility();
 
     /**
      * Draws a green debug outline around the reset button's bounding box.
@@ -771,7 +773,7 @@ public:
      *
      * @param batch  The active sprite batch.
      */
-    void renderDropZones(cugl::graphics::SpriteBatch* batch);
+    void renderDropZonesDebug(cugl::graphics::SpriteBatch* batch);
 
     /**
      * Draws a magenta outline around each visible item widget's bounding box.

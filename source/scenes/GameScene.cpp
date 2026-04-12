@@ -1537,6 +1537,8 @@ void GameScene::update(float dt, InputController& input) {
 
     handleItemSpawn(dt);
     updateEnemyAndAI(dt);
+    
+    updateDropZoneVisibility();
 
     // Update sliding items before physics world update
     updateSlidingItems(dt);
@@ -1814,7 +1816,7 @@ void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
 }
 
 /** Draws zone outlines and a fading glow on the last successfully used zone. */
-void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
+void GameScene::renderDropZonesDebug(cugl::graphics::SpriteBatch* batch) {
     batch->setColor(Color4(0, 255, 0, 255));
     
     // Only render zones if holding an item
@@ -1897,8 +1899,31 @@ void GameScene::render() {
         renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
     }
-    renderDropZones(batch.get());
+//    renderDropZonesDebug(batch.get());
     batch->end();
+}
+
+void GameScene::updateDropZoneVisibility(){
+    if (_draggedItemId != 0) {
+        
+        // Render attack/support zones based on item type
+        auto itemDef = getHeldItemDef(_draggedItemId);
+        
+        if (itemDef) {
+            if (itemDef->getType() == ItemDef::Type::Attack) {
+                // Render attack zones when holding attack item
+                _attackArea->setVisible(true);
+            } else {
+                // Render support zones when holding heal/support item
+                _supportLeftArea->setVisible(true);
+                _supportRightArea->setVisible(true);
+            }
+        }
+    } else {
+        _attackArea->setVisible(false);
+        _supportLeftArea->setVisible(false);
+        _supportRightArea->setVisible(false);
+    }
 }
 
 /**
