@@ -180,15 +180,15 @@ public:
     bool isAlive() const;
     
     /**
-     * Uses an item from the player's inventory on a player target.
+     * Uses the inventory item with the given id on a player target.
      *
-     * Matching support items always apply their resolved heal amount first, then
-     * layer any configured support effects on top. Attack items used on a player
-     * remain a mismatch and return 0 after consumption.
+     * Support items heal the target using the resolved item magnitude, while any
+     * configured item effects are dispatched through the effect system. The item
+     * is removed from inventory once used.
      *
-      * @param itemId  The inventory instance id to consume
-     * @return resolved base heal magnitude for matching support items, 0 if consumed
-     *         but no matching target type, -1 on failure
+     * @param itemId  The inventory instance id to consume
+     * @return The applied base magnitude, or -1.0f if the item id or item
+     *         definition cannot be found
      */
     template <typename T>
     float useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
@@ -197,15 +197,15 @@ public:
     float useItemById(ItemInstance::ItemId itemId, Player& target, const ItemDatabase& db);
 
     /**
-     * Uses an item from the player's inventory on an enemy target.
+     * Uses the inventory item with the given id on an enemy target.
      *
-     * Matching attack items always apply their resolved damage first, then layer
-     * any configured enemy-facing effects on top. Support items used on an enemy
-     * remain a mismatch and return 0 after consumption.
+     * Attack items damage the target using the resolved item magnitude, while
+     * any configured item effects are dispatched through the effect system. The
+     * item is removed from inventory once used.
      *
      * @param itemId  The inventory instance id to consume
-     * @return resolved base damage magnitude for matching attack items, 0 if consumed
-     *         but no matching target type, -1 on failure
+     * @return The applied base magnitude, or -1.0f if the item id or item
+     *         definition cannot be found
      */
     float useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db);
     /**

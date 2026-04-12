@@ -123,6 +123,14 @@ void Player::updateEffects(float dt) {
     }
 }
 
+/**
+ * Computes the final magnitude of an item use after house role and affinity bonuses.
+ *
+ * The result starts from the item's base value, applies the current player's
+ * house multiplier for the item's type, then applies any rarity-based house
+ * affinity bonus. A small positive minimum is enforced so item uses never
+ * resolve to zero or a negative value.
+ */
 static float computeResolvedItemMagnitude(const Player& player,
                                           const ItemDef& def,
                                           const ItemDatabase& db) {
@@ -166,6 +174,14 @@ static float computeResolvedItemMagnitude(const Player& player,
     return resolvedMagnitude;
 }
 
+/**
+ * Uses the inventory item with the given id on a player target.
+ *
+ * Support items heal the target using the resolved item magnitude, while any
+ * configured item effects are dispatched through the effect system. The item is
+ * removed from inventory once used. Returns the applied base magnitude, or
+ * -1.0f if the item id or item definition cannot be found.
+ */
 float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const ItemDatabase& db) {
     for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
         if (item->getId() != itemId) {
@@ -198,6 +214,14 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
     return -1.0f;
 }
 
+/**
+ * Uses the inventory item with the given id on an enemy target.
+ *
+ * Attack items damage the target using the resolved item magnitude, while any
+ * configured item effects are dispatched through the effect system. The item is
+ * removed from inventory once used. Returns the applied base magnitude, or
+ * -1.0f if the item id or item definition cannot be found.
+ */
 float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db) {
     for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
         if (item->getId() != itemId) {
