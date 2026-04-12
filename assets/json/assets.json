@@ -333,6 +333,9 @@
         },
         "loadingCircle": {
             "file": "textures/elements/loadingCircle.png"
+        },
+        "backArrow": {
+            "file": "textures/backArrow.png"
         }
 	},
     "fonts": {
