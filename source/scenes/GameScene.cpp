@@ -132,7 +132,6 @@ bool GameScene::initSceneGraph() {
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
         _scene->addChild(_specialEffectsLayer);
-        
         _supportLeftArea = _gameArea->getChildByName("supportLeft");
         _supportRightArea = _gameArea->getChildByName("supportRight");
     }
