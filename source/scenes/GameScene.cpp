@@ -275,6 +275,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     }
     
     _assets->loadDirectory("json/itemTextures.json");
+    _assets->loadDirectory("json/houseInGameIcons.json");
 
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
@@ -761,10 +762,11 @@ void GameScene::updatePlayerAndTeammateIcons() {
                              player->getHouseName()
             ))
         );
+        slot->setScale(0.5f);
     };
 
     applyTexture(_localPlayerSlot, localPlayer);
-    _localPlayerSlot->setScale(0.83f);
+    _localPlayerSlot->setScale(0.415f);
     applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
 }
