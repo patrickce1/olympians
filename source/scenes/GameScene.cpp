@@ -1515,6 +1515,36 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
     return screenBounds.contains(position);
 }
 
+/**
+ * Updates the visibility of all drop zones based on the current interaction.
+ *
+ * This function evaluates which drop zones should be visible at the current moment
+ * (e.g., during drag-and-drop interactions or based on item/type compatibility)
+ * and toggles their visibility accordingly.
+ */
+void GameScene::updateDropZoneVisibility(){
+    if (_draggedItemId != 0) {
+        
+        // Render attack/support zones based on item type
+        auto itemDef = getHeldItemDef(_draggedItemId);
+        
+        if (itemDef) {
+            if (itemDef->getType() == ItemDef::Type::Attack) {
+                // Render attack zones when holding attack item
+                _attackArea->setVisible(true);
+            } else {
+                // Render support zones when holding heal/support item
+                _supportLeftArea->setVisible(true);
+                _supportRightArea->setVisible(true);
+            }
+        }
+    } else {
+        _attackArea->setVisible(false);
+        _supportLeftArea->setVisible(false);
+        _supportRightArea->setVisible(false);
+    }
+}
+
 #pragma mark -
 #pragma mark Update
 
@@ -1901,29 +1931,6 @@ void GameScene::render() {
     }
 //    renderDropZonesDebug(batch.get());
     batch->end();
-}
-
-void GameScene::updateDropZoneVisibility(){
-    if (_draggedItemId != 0) {
-        
-        // Render attack/support zones based on item type
-        auto itemDef = getHeldItemDef(_draggedItemId);
-        
-        if (itemDef) {
-            if (itemDef->getType() == ItemDef::Type::Attack) {
-                // Render attack zones when holding attack item
-                _attackArea->setVisible(true);
-            } else {
-                // Render support zones when holding heal/support item
-                _supportLeftArea->setVisible(true);
-                _supportRightArea->setVisible(true);
-            }
-        }
-    } else {
-        _attackArea->setVisible(false);
-        _supportLeftArea->setVisible(false);
-        _supportRightArea->setVisible(false);
-    }
 }
 
 /**
