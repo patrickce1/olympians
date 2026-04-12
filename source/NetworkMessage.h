@@ -92,6 +92,8 @@ struct GameStateMessage {
     float bossHealth;
     /** Remaining authoritative stun time for the boss, in seconds. */
     float bossStunDuration;
+    /** Remaining authoritative vulnerable time for the boss, in seconds. */
+    float bossVulnerableDuration = 0.0f;
     /** Active authoritative vulnerable multiplier for the boss. */
     float bossVulnerableMultiplier = 1.0f;
 
