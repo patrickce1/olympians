@@ -23,8 +23,9 @@ public:
     };
 
 protected:
+    /* String to identify the boss */
     std::string _enemyId;
-    std::string _name;
+    /* Path to file where the sprite sheet is */
     std::string _spritesheetPath;
 
     /* Stores any custom data that was encoutered when loading the enemy
@@ -32,11 +33,16 @@ protected:
        custom behavior */
     std::shared_ptr<cugl::JsonValue> _customData;
     
+    /* The direction the boss is facing, AKA the player it is targetting*/
     int _targetIndex = -1;
 
+    /* The maximum health of the boss */
     float _maxHealth = 0.0f;
+    /* The current health of the boss */
     float _currentHealth = 0.0f;
 
+    /* This maps the generic states from the enum to a StateDef that stores deeper info
+       * about how the attack/defensive move impacts the field */
     std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef> _states;
     
     //Stores the damage multipliers for each side. The sides are relative, so 0 would be direction boss facing
@@ -56,35 +62,67 @@ protected:
     std::vector<FiredEvent> _firedEvents;
 
 public:
+    /** The number of players in the game */
     static const int NUM_PLAYERS = 4;
 
+    /** Default constructor, use init() to initialize */
     Enemy() = default;
-    
+
+    /** Initializes the enemy with the given id and json path, returns true if successful */
     bool virtual init(const std::string& enemyId, const std::string& jsonPath);
+
+    /** Returns the unique id of this enemy */
     const std::string& getId() const { return _enemyId; }
-    const std::string& getName() const { return _name; }
-    
-    /*Returns the file path to the sprite sheet*/
+
+    /** Returns the file path to the sprite sheet */
     const std::string& getSpritesheetPath() const { return _spritesheetPath; }
 
+    /** Returns the maximum health of this enemy */
     float getMaxHealth() const { return _maxHealth; }
+
+    /** Returns the current health of this enemy */
     float getCurrentHealth() const { return _currentHealth; }
+
+    /** Returns true if the enemy is alive */
     bool isAlive() const { return _currentHealth > 0.0f; }
+
+    /** Sets the current health of this enemy */
     void setCurrentHealth(float health) { _currentHealth = health; }
 
+    /** Returns the index of the player this enemy is currently targeting */
     int getTargetIndex() const { return _targetIndex; }
-    void setTargetIndex(int index) { _targetIndex = index;  }
 
+    /** Sets the index of the player this enemy is currently targeting */
+    void setTargetIndex(int index) { _targetIndex = index; }
+
+    /** Returns the current state of this enemy */
     EnemyLoader::State getCurrentState() const { return _currentState; }
+
+    /** Returns how long the enemy has been in the current state */
     float getStateTime() const { return _stateTime; }
+
+    /** Sets how long the enemy has been in the current state */
     void setStateTime(float stateTime) { _stateTime = stateTime; }
+
+    /** Returns the state definition for the current state */
     const EnemyLoader::StateDef* getCurrentStateDef() const;
 
+    /** Returns how long until the enemy can start a new attack */
     float getAttackLockoutRemaining() const { return _attackLockout; }
+
+    /** Returns true if the enemy is able to start a non-idle state */
     bool canStartNonIdleState() const { return _attackLockout <= 0.0f; }
+
+    /** Returns the likelihood that the enemy will retarget on idle entry */
     float getRetargetLikelihood() const { return _retargetLikelihood; }
+
+    /** Returns the likelihood that the enemy will use a defensive move */
     float getDefenseLikelihood() const { return _defenseLikelihood; }
-    void  setRetargetLikelihood(float v);
+
+    /** Sets the likelihood that the enemy will retarget on idle entry */
+    void setRetargetLikelihood(float v);
+
+    /** Sets the likelihood that the enemy will use a defensive move */
     void setDefenseLikelihood(float d) { _defenseLikelihood = d; }
 
     /* Checks if this enemy should use their defensive move
