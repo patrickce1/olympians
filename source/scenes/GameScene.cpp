@@ -438,8 +438,13 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
-            // Play the attack sound immediately
-            _audio->playSoundUnique("attack");
+            // Play the item use sound if defined, otherwise play the attack sound
+            const std::string& itemUseSound = def->getItemUseSound();
+            if (!itemUseSound.empty()) {
+                _audio->playSoundUnique(itemUseSound);
+            } else {
+                _audio->playSoundUnique("attack");
+            }
             
             // Check if this item has an associated use animation
             if (def->hasItemUseAnimation()) {
@@ -509,8 +514,14 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
-            _audio->playSoundUnique("support");
-            CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
+            // Play the item use sound if defined, otherwise play the support sound
+            const std::string& itemUseSound = def->getItemUseSound();
+            if (!itemUseSound.empty()) {
+                _audio->playSoundUnique(itemUseSound);
+            } else {
+                _audio->playSoundUnique("support");
+            }
+            CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }
         return false;
@@ -544,7 +555,13 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
-            _audio->playSoundUnique("support");
+            // Play the item use sound if defined, otherwise play the support sound
+            const std::string& itemUseSound = def->getItemUseSound();
+            if (!itemUseSound.empty()) {
+                _audio->playSoundUnique(itemUseSound);
+            } else {
+                _audio->playSoundUnique("support");
+            }
             CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }

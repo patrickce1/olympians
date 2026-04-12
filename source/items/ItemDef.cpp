@@ -104,6 +104,11 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
         ? json->get("icon")->asString()
         : ((json->has("iconKey") && json->get("iconKey")->isString()) ? json->get("iconKey")->asString() : "");
     
+    // Parse optional itemUseSound
+    _itemUseSound = (json->has("itemUseSound") && json->get("itemUseSound")->isString())
+        ? json->get("itemUseSound")->asString()
+        : "";
+    
     if (json->has("type") && json->get("type")->isString()) {
         const std::string typeText = normalizeToken(json->get("type")->asString());
         if (typeText != "attack" && typeText != "support" && typeText != "utility") {

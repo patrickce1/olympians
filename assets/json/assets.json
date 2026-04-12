@@ -437,6 +437,24 @@
             "stream":   false,
             "volume":   0.5
         },
+        "attack_slash": {
+            "type":     "sample",
+            "file":     "sounds/attack_slash.wav",
+            "stream":   false,
+            "volume":   0.75
+        },
+        "attack_thud": {
+            "type":     "sample",
+            "file":     "sounds/attack_thud.wav",
+            "stream":   false,
+            "volume":   0.75
+        },
+        "attack_thrust": {
+            "type":     "sample",
+            "file":     "sounds/attack_thrust.wav",
+            "stream":   false,
+            "volume":   0.75
+        },
         "battle": {
             "type":     "sample",
             "file":     "sounds/battle.ogg",
@@ -459,7 +477,7 @@
             "type":     "sample",
             "file":     "sounds/enemy_hurt.wav",
             "stream":   false,
-            "volume":   0.45
+            "volume":   0.4
         },
         "player_heal": {
             "type":     "sample",

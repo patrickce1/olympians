@@ -92,6 +92,9 @@ private:
     /* Flag indicating whether _itemUseAnimationConfig is valid/present */
     bool _hasItemUseAnimation = false;
     
+    /* Optional sound to play when item is used (empty string if not defined) */
+    std::string _itemUseSound;
+    
 public:
     ItemDef() = default;
     ~ItemDef() = default;
@@ -136,6 +139,9 @@ public:
     
     /** Gets the animation configuration for this item (valid only if hasItemUseAnimation() is true) */
     const ItemUseAnimationConfig& getItemUseAnimation() const { return _itemUseAnimationConfig; }
+    
+    /** Gets the sound to play when item is used (empty string if not defined) */
+    const std::string& getItemUseSound() const { return _itemUseSound; }
     
     /** Extract Type enum from a string */
     static Type typeFromString(std::string value, Type fallback = Type::Attack);

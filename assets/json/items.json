@@ -15,6 +15,7 @@
             "houseAffinity": "none",
             "baseValue": 2.0,
             "effects": [],
+            "itemUseSound": "attack_slash",
             "itemUseAnimation": {
                 "spriteSheetId": "sword_animation",
                 "rows": 1,
@@ -56,6 +57,7 @@
             "houseAffinity": "none",
             "baseValue": 1.0,
             "effects": [],
+            "itemUseSound": "attack_thrust",
             "itemUseAnimation": {
                 "spriteSheetId": "arrows_animation",
                 "rows": 1,
@@ -113,6 +115,7 @@
             "houseAffinity": "poseidon",
             "baseValue": 1.0,
             "effects": [],
+            "itemUseSound": "attack_thrust",
             "itemUseAnimation": {
                 "spriteSheetId": "trident_animation",
                 "rows": 1,
@@ -154,6 +157,7 @@
             "houseAffinity": "hephaestus",
             "baseValue": 1.0,
             "effects": [],
+            "itemUseSound": "attack_thud",
             "itemUseAnimation": {
                 "spriteSheetId": "mallet_animation",
                 "rows": 1,
@@ -184,6 +188,7 @@
             "houseAffinity": "ares",
             "baseValue": 1.0,
             "effects": [],
+            "itemUseSound": "attack_thrust",
             "itemUseAnimation": {
                 "spriteSheetId": "spear_animation",
                 "rows": 1,
