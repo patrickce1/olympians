@@ -209,10 +209,10 @@ void GameScene::initInputZones(){
     // Setup up texture node according to zone size
     _attackArea = PolygonNode::allocWithTexture(_assets->get<cugl::graphics::Texture>("attackZone"));
     _gameArea->addChild(_attackArea);
-    Rect r = _attackZones[0].second;
+    Rect attackAreaRect = _attackZones[0].second;
 
     _attackArea->setAnchor(Vec2::ANCHOR_CENTER);
-    _attackArea->setContentSize(r.size);
+    _attackArea->setContentSize(attackAreaRect.size);
     _attackArea->setPosition(_gameArea->getSize()/2);
     _attackArea->setVisible(false);
     
