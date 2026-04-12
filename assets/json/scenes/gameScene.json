@@ -494,6 +494,38 @@
                             "x_offset": -0.06,
                             "y_offset": -0.15
                         }
+                    },
+                    "supportLeft": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "supportZoneL",
+                            "anchor": [0, 0],
+                            "size": [90, 510],
+                            "visible": false
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0.09
+                        }
+                    },
+                    "supportRight": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "supportZoneR",
+                            "anchor": [1, 0],
+                            "size": [90, 510],
+                            "visible": false
+                        },
+                        "layout": {
+                            "x_anchor": "right",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0.09
+                        }
                     }
                 },
                 "layout": {

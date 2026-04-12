@@ -71,10 +71,10 @@
             "affinityBonus": 1.5
         },
         {
-            "id": "hephestus",
+            "id": "hephaestus",
             "maxHealth": 5.0,
             "specialAbilities": ["mallet"],
-            "spritesheetPath": "textures/hephestus.png",
+            "spritesheetPath": "textures/hephaestus.png",
             "attack": 1.0,
             "support": 0.1,
             "utility": 0.4,
