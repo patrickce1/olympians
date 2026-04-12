@@ -290,6 +290,9 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
             case SupportEffectType::Barrier:
                 target->applyBarrier(effect.magnitude, effect.duration);
                 break;
+            case SupportEffectType::Regen:
+                target->applyRegen(effect.magnitude, effect.duration);
+                break;
         }
     }
 }

@@ -24,6 +24,11 @@ private:
         return effect.multiplier;
     }
 
+    static float applyRegenToPlayer(const ItemDef::Effect& effect, Player& target) {
+        target.applyRegen(effect.magnitude, effect.duration);
+        return effect.magnitude;
+    }
+
     static float applyStunToEnemy(const ItemDef::Effect& effect, Enemy& target) {
         target.applyStun(effect.duration);
         return effect.duration;
@@ -44,6 +49,8 @@ public:
                 return applyShieldToPlayer(effect, target);
             case ItemDef::EffectType::Barrier:
                 return applyBarrierToPlayer(effect, target);
+            case ItemDef::EffectType::Regen:
+                return applyRegenToPlayer(effect, target);
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Vulnerable:
                 break;
@@ -62,6 +69,7 @@ public:
                 return applyVulnerableToEnemy(effect, target);
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
+            case ItemDef::EffectType::Regen:
                 break;
         }
 

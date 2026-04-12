@@ -101,7 +101,33 @@ void Player::applyBarrier(float multiplier, float duration) {
     _barrierDuration = duration;
 }
 
-/** Advances timed runtime effects. */
+/**
+ * Applies a regeneration effect to this player.
+ *
+ * Regen restores `magnitude` health per second for `duration` seconds and
+ * replaces any existing regen already active on this player.
+ */
+void Player::applyRegen(float magnitude, float duration) {
+    if (duration <= 0.0f || magnitude <= 0.0f) {
+        return;
+    }
+
+    _hasRegen = true;
+    _regenMagnitude = std::max(0.0f, magnitude);
+    _regenDuration = duration;
+    CULog("Regen applied: player='%s' house='%s' magnitude=%.3f duration=%.3f",
+          _playerName.c_str(),
+          _houseId.c_str(),
+          _regenMagnitude,
+          _regenDuration);
+}
+
+/**
+ * Advances timed runtime effects.
+ *
+ * Regen is consumed on elapsed time rather than on successful healing, so the
+ * remaining duration decreases even if the player is already at max health.
+ */
 void Player::updateEffects(float dt) {
     if (_shieldDuration > 0.0f) {
         _shieldDuration = std::max(0.0f, _shieldDuration - dt);
@@ -119,6 +145,28 @@ void Player::updateEffects(float dt) {
         if (_barrierDuration == 0.0f) {
             _hasBarrier = false;
             _barrierMultiplier = 1.0f;
+        }
+    }
+
+    // Regen is applied as heal-per-second integrated over this frame's delta time.
+    if (_regenDuration > 0.0f && _regenMagnitude > 0.0f) {
+        const float appliedDuration = std::min(dt, _regenDuration);
+        if (appliedDuration > 0.0f) {
+            const float healthBeforeRegen = _currentHealth;
+            const float requestedHeal = _regenMagnitude * appliedDuration;
+            updateHealth(requestedHeal);
+            const float actualHeal = _currentHealth - healthBeforeRegen;
+            CULog("Regen tick: player='%s' house='%s' requested=%.3f applied=%.3f remainingDuration=%.3f",
+                  _playerName.c_str(),
+                  _houseId.c_str(),
+                  requestedHeal,
+                  std::max(0.0f, actualHeal),
+                  std::max(0.0f, _regenDuration - dt));
+        }
+        _regenDuration = std::max(0.0f, _regenDuration - dt);
+        if (_regenDuration == 0.0f) {
+            _hasRegen = false;
+            _regenMagnitude = 0.0f;
         }
     }
 }

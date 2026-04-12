@@ -64,8 +64,9 @@ static HealthState getHealthState(float current, float max) {
  * Support items are normalized into one or more `SupportEffectMessage` payloads
  * so the host can apply the same authoritative result to the target player.
  * Items without explicit effects are treated as direct heals using the provided
- * resolved magnitude. Shield and barrier items instead send their effect-specific
- * tuning values from the item definition together with the configured duration.
+ * resolved magnitude. Shield, barrier, and regen items instead send their
+ * effect-specific tuning values from the item definition together with the
+ * configured duration.
  *
  * @param network                       The network controller used to send host-directed updates.
  * @param def                                The item definition describing the support item's effects.
@@ -87,6 +88,12 @@ static void broadcastSupportEffects(NetworkController& network,
             case ItemDef::EffectType::Barrier:
                 network.broadcastSupportEffect(SupportEffectType::Barrier,
                                                effect.multiplier,
+                                               effect.duration,
+                                               targetPlayerID);
+                break;
+            case ItemDef::EffectType::Regen:
+                network.broadcastSupportEffect(SupportEffectType::Regen,
+                                               effect.magnitude,
                                                effect.duration,
                                                targetPlayerID);
                 break;
@@ -125,6 +132,7 @@ static void broadcastEnemyEffects(NetworkController& network,
                 break;
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
+            case ItemDef::EffectType::Regen:
                 break;
         }
     }

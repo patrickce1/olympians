@@ -91,7 +91,13 @@
             "rarity": "rare",
             "houseAffinity": "poseidon",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "vulnerable",
+                    "multiplier": 2.0,
+                    "duration": 1.0
+                }
+            ]
         },
         {
             "id": "helm",
@@ -102,7 +108,13 @@
             "rarity": "rare",
             "houseAffinity": "hades",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "barrier",
+                    "multiplier": 0.0,
+                    "duration": 1.0
+                }
+            ]
         },
         {
             "id": "cornucopia",
@@ -112,8 +124,14 @@
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "demeter",
-            "baseValue": 1.0,
-            "effects": []
+            "baseValue": 0.0,
+            "effects": [
+                {
+                    "type": "regen",
+                    "magnitude": 0.5,
+                    "duration": 10.0
+                }
+            ]
         },
         {
             "id": "mallet",
@@ -139,7 +157,7 @@
                 {
                     "type": "barrier",
                     "multiplier": 0.5,
-                    "duration": 5.0
+                    "duration": 10.0
                 }
             ]
         },
@@ -155,8 +173,8 @@
             "effects": [
                 {
                     "type": "vulnerable",
-                    "multiplier": 1.2,
-                    "duration": 3.0
+                    "multiplier": 1.1,
+                    "duration": 5.0
                 }
             ]
         },

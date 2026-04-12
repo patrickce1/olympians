@@ -23,7 +23,7 @@ static std::string normalizeToken(std::string token) {
 /**
  * Parses a normalized JSON effect token into an ItemDef::EffectType.
  *
- * Supports shield, barrier, stun, and vulnerable effect strings.
+ * Supports shield, barrier, regen, stun, and vulnerable effect strings.
  *
  * @param value  The normalized effect token from JSON.
  * @param out    Receives the parsed enum value on success.
@@ -36,6 +36,10 @@ static bool tryParseEffectType(const std::string& value, ItemDef::EffectType& ou
     }
     if (value == "barrier") {
         out = ItemDef::EffectType::Barrier;
+        return true;
+    }
+    if (value == "regen") {
+        out = ItemDef::EffectType::Regen;
         return true;
     }
     if (value == "stun") {
@@ -107,6 +111,10 @@ ItemDef::EffectType ItemDef::effectTypeFromString(std::string value) {
 
 /**
  * Parses one effect object from the JSON effects array.
+ *
+ * Supports effect-specific tuning keys such as `multiplier`, `mitigation`,
+ * and `magnitude`. Regen effects read their heal-per-second tuning from
+ * `magnitude`, with `value` accepted as a compatibility alias.
  */
 static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect& out) {
     if (!json || !json->isObject()) return false;
@@ -134,6 +142,13 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
         out.mitigation = std::max(0.0f, json->getFloat("mitigation"));
     } else if (json->has("amount") && json->get("amount")->isNumber()) {
         out.mitigation = std::max(0.0f, json->getFloat("amount"));
+    }
+
+    out.magnitude = 0.0f;
+    if (json->has("magnitude") && json->get("magnitude")->isNumber()) {
+        out.magnitude = std::max(0.0f, json->getFloat("magnitude"));
+    } else if (json->has("value") && json->get("value")->isNumber()) {
+        out.magnitude = std::max(0.0f, json->getFloat("value"));
     }
 
     out.duration = 0.0f;

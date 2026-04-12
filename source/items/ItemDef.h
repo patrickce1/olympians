@@ -38,6 +38,7 @@ public:
     enum class EffectType : uint8_t {
         Shield,
         Barrier,
+        Regen,
         Stun,
         Vulnerable
     };
@@ -46,8 +47,8 @@ public:
      * Serialized tuning values for one item effect.
      *
      * `multiplier` is used by effects such as barrier and vulnerable, while
-     * `mitigation` is used by shield. `duration` is the lifetime in seconds for
-     * timed effects.
+     * `mitigation` is used by shield and `magnitude` is used by regen.
+     * `duration` is the lifetime in seconds for timed effects.
      */
     struct Effect {
         /** The effect category to apply. */
@@ -56,6 +57,8 @@ public:
         float multiplier = 1.0f;
         /** Flat damage reduction used by shield effects. */
         float mitigation = 0.0f;
+        /** Scalar magnitude used by effects such as regen. */
+        float magnitude = 0.0f;
         /** Duration in seconds for timed effects. */
         float duration = 0.0f;
     };

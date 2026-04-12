@@ -45,6 +45,10 @@ private:
     bool _hasBarrier = false;
     float _barrierMultiplier = 1.0f;
     float _barrierDuration = 0.0f;
+    /** Runtime heal-over-time state */
+    bool _hasRegen = false;
+    float _regenMagnitude = 0.0f;
+    float _regenDuration = 0.0f;
 
 public:
     /**
@@ -116,6 +120,12 @@ public:
     float getBarrierMultiplier() const { return _barrierMultiplier; }
     /** Returns the remaining barrier duration. */
     float getBarrierDuration() const { return _barrierDuration; }
+    /** Returns whether a regen effect is currently active on this player. */
+    bool hasRegen() const { return _hasRegen; }
+    /** Returns the current heal-per-second magnitude. */
+    float getRegenMagnitude() const { return _regenMagnitude; }
+    /** Returns the remaining regen duration. */
+    float getRegenDuration() const { return _regenDuration; }
 
     /*Setter for current health*/
     void setCurrentHealth(float health) { _currentHealth = health; }
@@ -160,12 +170,21 @@ public:
 
     /** Applies a timed percentage-mitigation barrier to this player. */
     void applyBarrier(float multiplier, float duration);
+    /** Applies a timed heal-over-time effect to this player. */
+    void applyRegen(float magnitude, float duration);
     void updateEffects(float dt);
 
     /** Clears runtime-only combat effects. */
     void clearRuntimeEffects() {
+        _hasShield = false;
+        _shieldMitigation = 0.0f;
         _shieldDuration = 0.0f;
         _hasBarrier = false;
+        _barrierMultiplier = 1.0f;
+        _barrierDuration = 0.0f;
+        _hasRegen = false;
+        _regenMagnitude = 0.0f;
+        _regenDuration = 0.0f;
     }
 
     /**

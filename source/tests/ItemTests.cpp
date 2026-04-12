@@ -116,6 +116,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto appleDef = db.getDef("apple");
     auto shieldDef = db.getDef("shield");
     auto spearDef = db.getDef("spear");
+    auto cornucopiaDef = db.getDef("cornucopia");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
            "items: lightning_bolt affinity parses as Zeus");
     assertWithLabel(lightningBoltDef && lightningBoltDef->hasEffectType(ItemDef::EffectType::Stun),
@@ -132,6 +133,10 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
            "items: spear parses vulnerable effect");
     assertWithLabel(spearDef && !spearDef->getEffects().empty() && floatsEqualWithinTolerance(spearDef->getEffects()[0].multiplier, 1.2f),
            "items: spear vulnerable multiplier parses");
+    assertWithLabel(cornucopiaDef && cornucopiaDef->hasEffectType(ItemDef::EffectType::Regen),
+           "items: cornucopia parses regen effect");
+    assertWithLabel(cornucopiaDef && !cornucopiaDef->getEffects().empty() && floatsEqualWithinTolerance(cornucopiaDef->getEffects()[0].magnitude, 0.5f),
+           "items: cornucopia regen magnitude parses");
 }
 
 /**
@@ -193,6 +198,7 @@ void testEnumParsers() {
     assertWithLabel(ItemDef::houseFromString("Zeus") == ItemDef::House::Zeus, "parse: house Zeus");
     assertWithLabel(ItemDef::houseFromString("Ares") == ItemDef::House::Ares, "parse: house Ares");
     assertWithLabel(ItemDef::houseFromString("none") == ItemDef::House::None, "parse: house none");
+    assertWithLabel(ItemDef::effectTypeFromString("regen") == ItemDef::EffectType::Regen, "parse: effect regen");
 }
 
 /**
@@ -508,6 +514,33 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
 
     enemy.update(3.1f);
         assertWithLabel(!enemy.isVulnerable(), "compute: vulnerable expires after duration elapses");
+
+    Player demeterRegen("Demeter", 12, "Demeter Regen", loader);
+    Player regenTarget("Athena", 13, "Regen Target", loader);
+    regenTarget.updateHealth(-8.0f);
+    auto instCornucopia = ItemInstance::alloc("cornucopia", 1011);
+    assertWithLabel(instCornucopia != nullptr, "compute: create cornucopia instance");
+    if (!instCornucopia) return;
+    demeterRegen.addItem(*instCornucopia);
+
+    const float regenHealthBeforeUse = regenTarget.getCurrentHealth();
+    const float resolvedRegen = demeterRegen.useItemById(instCornucopia->getId(), regenTarget, db);
+        assertWithLabel(resolvedRegen > 0.0f, "compute: regen item returns a positive base heal");
+        assertWithLabel(floatsEqualWithinTolerance(regenTarget.getCurrentHealth() - regenHealthBeforeUse,
+                                                  std::min(resolvedRegen, regenTarget.getMaxHealth() - regenHealthBeforeUse)),
+                        "compute: regen item still applies its base heal");
+        assertWithLabel(regenTarget.hasRegen(), "compute: regen effect activates on target");
+        assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenMagnitude(), 0.5f), "compute: regen magnitude applies");
+        assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenDuration(), 10.0f), "compute: regen duration applies");
+
+    const float regenHealthBeforeTick = regenTarget.getCurrentHealth();
+    regenTarget.updateEffects(2.0f);
+        assertWithLabel(floatsEqualWithinTolerance(regenTarget.getCurrentHealth() - regenHealthBeforeTick, 1.0f),
+                        "compute: regen heals over time using magnitude per second");
+        assertWithLabel(regenTarget.hasRegen(), "compute: regen remains active before duration expires");
+
+    regenTarget.updateEffects(8.1f);
+        assertWithLabel(!regenTarget.hasRegen(), "compute: regen expires after duration elapses");
 
     // Mismatched target type should return 0 and still consume item
     Player testAttacker("Ares", 5, "Ares Tester 2", loader);

@@ -38,7 +38,9 @@ struct HealMessage {
 enum class SupportEffectType : int32_t {
     Heal = 0,
     Shield = 1,
-    Barrier = 2
+    Barrier = 2,
+    /** Restores health over time for a duration. */
+    Regen = 3
 };
 
 /** Attack effect categories sent from clients to the host. */
