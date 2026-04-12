@@ -180,8 +180,15 @@ public:
     bool isAlive() const;
     
     /**
+     * Uses an item from the player's inventory on a player target.
+     *
+     * Matching support items always apply their resolved heal amount first, then
+     * layer any configured support effects on top. Attack items used on a player
+     * remain a mismatch and return 0 after consumption.
+     *
       * @param itemId  The inventory instance id to consume
-     * @return resolved item magnitude, 0 if consumed but no matching target type, -1 on failure
+     * @return resolved base heal magnitude for matching support items, 0 if consumed
+     *         but no matching target type, -1 on failure
      */
     template <typename T>
     float useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
@@ -191,8 +198,14 @@ public:
 
     /**
      * Uses an item from the player's inventory on an enemy target.
+     *
+     * Matching attack items always apply their resolved damage first, then layer
+     * any configured enemy-facing effects on top. Support items used on an enemy
+     * remain a mismatch and return 0 after consumption.
+     *
      * @param itemId  The inventory instance id to consume
-     * @return total resolved magnitude applied by the item's effects, 0 if consumed but no effect matched, -1 on failure
+     * @return resolved base damage magnitude for matching attack items, 0 if consumed
+     *         but no matching target type, -1 on failure
      */
     float useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db);
     /**
@@ -236,4 +249,3 @@ public:
     
 };
 #endif /* !__PLAYER_H__ */
-

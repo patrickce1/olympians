@@ -402,13 +402,18 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
 
     Player athena("Athena", 7, "Athena Tester", loader);
     Player shieldTarget("Ares", 8, "Shield Target", loader);
+    shieldTarget.updateHealth(-5.0f);
     auto instShield = ItemInstance::alloc("shield", 1005);
     assertWithLabel(instShield != nullptr, "compute: create shield instance");
     if (!instShield) return;
     athena.addItem(*instShield);
 
+    const float shieldHealthBeforeUse = shieldTarget.getCurrentHealth();
     float resolvedShield = athena.useItemById(instShield->getId(), shieldTarget, db);
-        assertWithLabel(floatsEqualWithinTolerance(resolvedShield, 3.0f), "compute: shield application returns fixed mitigation");
+        assertWithLabel(resolvedShield > 0.0f, "compute: shield item returns a positive base heal");
+        assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth() - shieldHealthBeforeUse,
+                                                  std::min(resolvedShield, shieldTarget.getMaxHealth() - shieldHealthBeforeUse)),
+                        "compute: shield item still applies its base heal");
         assertWithLabel(shieldTarget.hasShield(), "compute: shield effect arms fixed mitigation");
         assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldMitigation(), 3.0f), "compute: shield mitigation value applies");
         assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldDuration(), 5.0f), "compute: shield effect duration applies");
@@ -422,13 +427,18 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
         assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth(), shieldedHealthBefore - 5.0f), "compute: later hits apply normally after shield is consumed");
 
     Player barrierTarget("Ares", 9, "Barrier Target", loader);
+    barrierTarget.updateHealth(-5.0f);
     auto instBarrier = ItemInstance::alloc("aegis", 1006);
     assertWithLabel(instBarrier != nullptr, "compute: create barrier instance");
     if (!instBarrier) return;
     athena.addItem(*instBarrier);
 
+    const float barrierHealthBeforeUse = barrierTarget.getCurrentHealth();
     float resolvedBarrier = athena.useItemById(instBarrier->getId(), barrierTarget, db);
-        assertWithLabel(floatsEqualWithinTolerance(resolvedBarrier, 0.5f), "compute: barrier application returns multiplier");
+        assertWithLabel(resolvedBarrier > 0.0f, "compute: barrier item returns a positive base heal");
+        assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getCurrentHealth() - barrierHealthBeforeUse,
+                                                  std::min(resolvedBarrier, barrierTarget.getMaxHealth() - barrierHealthBeforeUse)),
+                        "compute: barrier item still applies its base heal");
         assertWithLabel(barrierTarget.hasBarrier(), "compute: barrier effect arms percentage mitigation");
         assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getBarrierMultiplier(), 0.5f), "compute: barrier multiplier value applies");
         assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getBarrierDuration(), 5.0f), "compute: barrier duration applies");
@@ -460,8 +470,13 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
     if (!instLightning) return;
     zeus.addItem(*instLightning);
 
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    const float enemyHealthBeforeStunUse = enemy.getCurrentHealth();
     float resolvedStun = zeus.useItemById(instLightning->getId(), enemy, db);
-        assertWithLabel(floatsEqualWithinTolerance(resolvedStun, 3.0f), "compute: stun application returns configured duration");
+        assertWithLabel(resolvedStun > 0.0f, "compute: stun item returns a positive base damage");
+        assertWithLabel(floatsEqualWithinTolerance(enemyHealthBeforeStunUse - enemy.getCurrentHealth(), resolvedStun),
+                        "compute: stun item still applies its base damage");
         assertWithLabel(enemy.isStunned(), "compute: stun effect marks enemy as stunned");
         assertWithLabel(floatsEqualWithinTolerance(enemy.getStunDuration(), 3.0f), "compute: stun duration applies to enemy");
 
@@ -478,8 +493,11 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
 
     enemy.setCurrentHealth(enemy.getMaxHealth());
     enemy.clearRuntimeEffects();
+    const float enemyHealthBeforeVulnerableUse = enemy.getCurrentHealth();
     const float resolvedVulnerable = ares.useItemById(instSpear->getId(), enemy, db);
-        assertWithLabel(floatsEqualWithinTolerance(resolvedVulnerable, 1.2f), "compute: vulnerable application returns configured multiplier");
+        assertWithLabel(resolvedVulnerable > 0.0f, "compute: vulnerable item returns a positive base damage");
+        assertWithLabel(floatsEqualWithinTolerance(enemyHealthBeforeVulnerableUse - enemy.getCurrentHealth(), resolvedVulnerable),
+                        "compute: vulnerable item still applies its base damage");
         assertWithLabel(enemy.isVulnerable(), "compute: vulnerable effect marks enemy as vulnerable");
         assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableMultiplier(), 1.2f), "compute: vulnerable multiplier applies to enemy");
         assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableDuration(), 3.0f), "compute: vulnerable duration applies to enemy");

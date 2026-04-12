@@ -178,20 +178,21 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
         }
 
         const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
-        float totalAppliedMagnitude = 0.0f;
-        if (def->getEffects().empty()) {
-            if (def->getType() == ItemDef::Type::Support) {
-                target.updateHealth(resolvedMagnitude);
-                totalAppliedMagnitude = resolvedMagnitude;
-            }
-        } else {
+        float returnedMagnitude = 0.0f;
+        if (def->getType() == ItemDef::Type::Support) {
+            target.updateHealth(resolvedMagnitude);
+            returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                totalAppliedMagnitude += EffectSystem::applyToPlayer(effect, resolvedMagnitude, target);
+                EffectSystem::applyToPlayer(effect, resolvedMagnitude, target);
+            }
+        } else if (!def->getEffects().empty()) {
+            for (const ItemDef::Effect& effect : def->getEffects()) {
+                EffectSystem::applyToPlayer(effect, resolvedMagnitude, target);
             }
         }
 
         _inventory.erase(item);
-        return totalAppliedMagnitude;
+        return returnedMagnitude;
     }
 
     return -1.0f;
@@ -209,20 +210,21 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
         }
 
         const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
-        float totalAppliedMagnitude = 0.0f;
-        if (def->getEffects().empty()) {
-            if (def->getType() == ItemDef::Type::Attack) {
-                target.updateHealth(-resolvedMagnitude);
-                totalAppliedMagnitude = resolvedMagnitude;
-            }
-        } else {
+        float returnedMagnitude = 0.0f;
+        if (def->getType() == ItemDef::Type::Attack) {
+            target.updateHealth(-resolvedMagnitude);
+            returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                totalAppliedMagnitude += EffectSystem::applyToEnemy(effect, resolvedMagnitude, target);
+                EffectSystem::applyToEnemy(effect, resolvedMagnitude, target);
+            }
+        } else if (!def->getEffects().empty()) {
+            for (const ItemDef::Effect& effect : def->getEffects()) {
+                EffectSystem::applyToEnemy(effect, resolvedMagnitude, target);
             }
         }
 
         _inventory.erase(item);
-        return totalAppliedMagnitude;
+        return returnedMagnitude;
     }
 
     return -1.0f;

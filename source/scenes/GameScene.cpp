@@ -589,6 +589,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
             //NETWORK
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
+                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
                 broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
             }
             _audio->playSoundUnique("support");
