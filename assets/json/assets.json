@@ -360,6 +360,18 @@
         },
         "menuBG": {
             "file": "textures/menuBG.png"
+        },
+        "attackZone": {
+            "file": "textures/gameScene/attackZoneBG.png"
+        },
+        "attackZoneIcon": {
+            "file": "textures/gameScene/attackZoneIcon.png"
+        },
+        "supportZone": {
+            "file": "textures/gameScene/supportLZoneBG.png"
+        },
+        "supportZoneIcon": {
+            "file": "textures/gameScene/supportZoneIcon.png"
         }
 	},
     "fonts": {
