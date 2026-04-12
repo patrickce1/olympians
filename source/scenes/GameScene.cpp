@@ -1565,7 +1565,6 @@ void GameScene::update(float dt, InputController& input) {
 
     handleItemSpawn(dt);
     updateEnemyAndAI(dt);
-    
     updateDropZoneVisibility();
 
     // Update sliding items before physics world update
