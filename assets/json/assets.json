@@ -188,6 +188,12 @@
             "wrapS":    "clamp",
             "wrapT":    "clamp"
         },
+        "hadesPoster": {
+            "file": "textures/houseSelect/hadesPoster.png"
+        },
+        "hephaestusPoster": {
+            "file": "textures/houseSelect/hephaestusPoster.png"
+        },
         "leftScroll": {
             "file": "textures/houseSelect/leftScroll.png"
         },
@@ -234,6 +240,12 @@
         },
         "demeterSIcon": {
             "file": "textures/houseSelect/demeterSIcon.png"
+        },
+        "hadesSIcon": {
+            "file": "textures/houseSelect/hadesSIcon.png"
+        },
+        "hephaestusSIcon": {
+            "file": "textures/houseSelect/hephaestusSIcon.png"
         },
         "glowOverlayBoss": {
             "file": "textures/hostScene/glowOverlayBoss.png"

@@ -1781,15 +1781,15 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard2": {
+                            "hades": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
+                                        "heroPoster": "hadesPoster",
+                                        "heroName": "-HADES-",
                                         "heroStats": "emptyStats"
                                     }
                                 },
@@ -1891,15 +1891,15 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard7": {
+                            "hephaestus": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
+                                        "heroPoster": "hephaestusPoster",
+                                        "heroName": "-HEPHAESTUS-",
                                         "heroStats": "emptyStats"
                                     }
                                 },
