@@ -73,10 +73,10 @@ protected:
     std::shared_ptr<cugl::scene2::PolygonNode> _attackArea;
     
     /** TBD: The node representing the attack interaction area (the red zone). */
-    std::shared_ptr<cugl::scene2::PolygonNode> _supportLeftArea;
+    std::shared_ptr<cugl::scene2::SceneNode> _supportLeftArea;
     
     /** TBD: The node representing the attack interaction area (the red zone). */
-    std::shared_ptr<cugl::scene2::PolygonNode> _supportRightArea;
+    std::shared_ptr<cugl::scene2::SceneNode> _supportRightArea;
 
     /** The node representing the boss character in the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossNode;

@@ -367,11 +367,11 @@
         "attackZoneIcon": {
             "file": "textures/gameScene/attackZoneIcon.png"
         },
-        "supportZone": {
+        "supportZoneL": {
             "file": "textures/gameScene/supportLZoneBG.png"
         },
-        "supportZoneIcon": {
-            "file": "textures/gameScene/supportZoneIcon.png"
+        "supportZoneR": {
+            "file": "textures/gameScene/supportRZoneBG.png"
         }
 	},
     "fonts": {

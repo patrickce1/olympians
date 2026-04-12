@@ -132,6 +132,10 @@ bool GameScene::initSceneGraph() {
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
         _scene->addChild(_specialEffectsLayer);
+        
+        _supportLeftArea = _gameArea->getChildByName("supportLeft");
+        
+        _supportRightArea = _gameArea->getChildByName("supportRight");
     }
     
     if (_inventory) {
@@ -203,6 +207,8 @@ void GameScene::initInputZones(){
     float h = dimen.height;
     
     _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.45f, w * 0.9f, h * 0.40f)}};
+    
+    // Setup up texture node according to zone size
     _attackArea = PolygonNode::allocWithTexture(_assets->get<cugl::graphics::Texture>("attackZone"));
     _gameArea->addChild(_attackArea);
     Rect r = _attackZones[0].second;
@@ -210,32 +216,13 @@ void GameScene::initInputZones(){
     _attackArea->setAnchor(Vec2::ANCHOR_CENTER);
     _attackArea->setContentSize(r.size);
     _attackArea->setPosition(_gameArea->getSize()/2);
-    
+    _attackArea->setVisible(false);
     
     _supportZones = {
         {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.45f, w * 0.399f, h * 0.40f)},
         {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.75f,   h * 0.45f, w * 0.399f, h * 0.40f)},
     };
-    
-    _supportLeftArea =
-        PolygonNode::allocWithTexture(_assets->get<cugl::graphics::Texture>("supportZone"));
-
-    _supportRightArea =
-        PolygonNode::allocWithTexture(_assets->get<cugl::graphics::Texture>("supportZone"));
-    
-    _gameArea->addChild(_supportLeftArea);
-    _gameArea->addChild(_supportRightArea);
-    
-    r = _supportZones[0].second;
-
-    _supportLeftArea->setAnchor(Vec2::ANCHOR_CENTER);
-    _supportLeftArea->setContentSize(r.size);
-    _supportLeftArea->setPosition(_gameArea->getSize() * Vec2(0.25f, 0.7f));
-    
-    _supportRightArea->setAnchor(Vec2::ANCHOR_CENTER);
-    _supportRightArea->setContentSize(r.size);
-    _supportRightArea->setPosition(_gameArea->getSize() * Vec2(0.75f, 0.7f));
-    
+      
     _inventoryZones = {
         {InputController::Action::NONE, Rect(w * 0.10f, 0, w * 0.80f, h * 0.35f)}
     };
@@ -326,6 +313,8 @@ void GameScene::dispose() {
         _leftPlayerSlot = nullptr;
         _rightPlayerSlot = nullptr;
         _leftPlayerName = nullptr;
+        _supportLeftArea = nullptr;
+        _supportRightArea = nullptr;
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
         _bossHealthBarText = nullptr;
