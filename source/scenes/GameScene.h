@@ -70,7 +70,13 @@ protected:
     std::shared_ptr<cugl::scene2::SceneNode> _gameArea;
 
     /** The node representing the attack interaction area (the red zone). */
-    std::shared_ptr<cugl::scene2::SceneNode> _attackArea;
+    std::shared_ptr<cugl::scene2::PolygonNode> _attackArea;
+    
+    /** The node representing the left support interaction area (the blue zone on the left). */
+    std::shared_ptr<cugl::scene2::SceneNode> _supportLeftArea;
+    
+    /** The node representing the right support interaction area (the blue zone on the right). */
+    std::shared_ptr<cugl::scene2::SceneNode> _supportRightArea;
 
     /** The node representing the boss character in the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
@@ -751,6 +757,15 @@ public:
      * Pass zones are always included while dragging. Clears all zones if nothing is held.
      */
     void updateInputZones();
+    
+    /**
+     * Updates the visibility of all drop zones based on the current interaction.
+     *
+     * This function evaluates which drop zones should be visible at the current moment
+     * (e.g., during drag-and-drop interactions or based on item/type compatibility)
+     * and toggles their visibility accordingly.
+     */
+    void updateDropZoneVisibility();
 
     /**
      * Draws a green debug outline around the reset button's bounding box.
@@ -765,7 +780,7 @@ public:
      *
      * @param batch  The active sprite batch.
      */
-    void renderDropZones(cugl::graphics::SpriteBatch* batch);
+    void renderDropZonesDebug(cugl::graphics::SpriteBatch* batch);
 
     /**
      * Draws a magenta outline around each visible item widget's bounding box.

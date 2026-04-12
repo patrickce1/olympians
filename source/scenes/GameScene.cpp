@@ -132,6 +132,8 @@ bool GameScene::initSceneGraph() {
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
         _scene->addChild(_specialEffectsLayer);
+        _supportLeftArea = _gameArea->getChildByName("supportLeft");
+        _supportRightArea = _gameArea->getChildByName("supportRight");
     }
     
     if (_inventory) {
@@ -204,11 +206,21 @@ void GameScene::initInputZones(){
     
     _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.45f, w * 0.9f, h * 0.40f)}};
     
+    // Setup up texture node according to zone size
+    _attackArea = PolygonNode::allocWithTexture(_assets->get<cugl::graphics::Texture>("attackZone"));
+    _gameArea->addChild(_attackArea);
+    Rect attackAreaRect = _attackZones[0].second;
+
+    _attackArea->setAnchor(Vec2::ANCHOR_CENTER);
+    _attackArea->setContentSize(attackAreaRect.size);
+    _attackArea->setPosition(_gameArea->getSize()/2);
+    _attackArea->setVisible(false);
+    
     _supportZones = {
         {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.45f, w * 0.399f, h * 0.40f)},
         {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.75f,   h * 0.45f, w * 0.399f, h * 0.40f)},
     };
-    
+      
     _inventoryZones = {
         {InputController::Action::NONE, Rect(w * 0.10f, 0, w * 0.80f, h * 0.35f)}
     };
@@ -260,11 +272,11 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     _network = networkController;
     _audio = audio;
 
-    initInputZones();
-
     if (!initSceneGraph()) {
         return false;
     }
+    
+    initInputZones();
 
     if (!initPhysicsWorld()) {
         return false;
@@ -275,6 +287,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     }
     
     _assets->loadDirectory("json/itemTextures.json");
+    _assets->loadDirectory("json/houseInGameIcons.json");
 
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
@@ -299,6 +312,8 @@ void GameScene::dispose() {
         _leftPlayerSlot = nullptr;
         _rightPlayerSlot = nullptr;
         _leftPlayerName = nullptr;
+        _supportLeftArea = nullptr;
+        _supportRightArea = nullptr;
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
         _bossHealthBarText = nullptr;
@@ -761,10 +776,11 @@ void GameScene::updatePlayerAndTeammateIcons() {
                              player->getHouseName()
             ))
         );
+        slot->setScale(0.5f);
     };
 
     applyTexture(_localPlayerSlot, localPlayer);
-    _localPlayerSlot->setScale(0.83f);
+    _localPlayerSlot->setScale(0.415f);
     applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
 }
@@ -1499,6 +1515,36 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
     return screenBounds.contains(position);
 }
 
+/**
+ * Updates the visibility of all drop zones based on the current interaction.
+ *
+ * This function evaluates which drop zones should be visible at the current moment
+ * (e.g., during drag-and-drop interactions or based on item/type compatibility)
+ * and toggles their visibility accordingly.
+ */
+void GameScene::updateDropZoneVisibility(){
+    if (_draggedItemId != 0) {
+        
+        // Render attack/support zones based on item type
+        auto itemDef = getHeldItemDef(_draggedItemId);
+        
+        if (itemDef) {
+            if (itemDef->getType() == ItemDef::Type::Attack) {
+                // Render attack zones when holding attack item
+                _attackArea->setVisible(true);
+            } else {
+                // Render support zones when holding heal/support item
+                _supportLeftArea->setVisible(true);
+                _supportRightArea->setVisible(true);
+            }
+        }
+    } else {
+        _attackArea->setVisible(false);
+        _supportLeftArea->setVisible(false);
+        _supportRightArea->setVisible(false);
+    }
+}
+
 #pragma mark -
 #pragma mark Update
 
@@ -1521,6 +1567,7 @@ void GameScene::update(float dt, InputController& input) {
 
     handleItemSpawn(dt);
     updateEnemyAndAI(dt);
+    updateDropZoneVisibility();
 
     // Update sliding items before physics world update
     updateSlidingItems(dt);
@@ -1798,7 +1845,7 @@ void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
 }
 
 /** Draws zone outlines and a fading glow on the last successfully used zone. */
-void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
+void GameScene::renderDropZonesDebug(cugl::graphics::SpriteBatch* batch) {
     batch->setColor(Color4(0, 255, 0, 255));
     
     // Only render zones if holding an item
@@ -1881,7 +1928,7 @@ void GameScene::render() {
         renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
     }
-    renderDropZones(batch.get());
+//    renderDropZonesDebug(batch.get());
     batch->end();
 }
 
