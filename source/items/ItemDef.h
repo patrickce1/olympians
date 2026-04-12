@@ -34,16 +34,29 @@ public:
         Hermes,
         None
     };
+    /** Data-driven utility effect categories that items may apply. */
     enum class EffectType : uint8_t {
         Shield,
         Barrier,
-        Stun
+        Stun,
+        Vulnerable
     };
 
+    /**
+     * Serialized tuning values for one item effect.
+     *
+     * `multiplier` is used by effects such as barrier and vulnerable, while
+     * `mitigation` is used by shield. `duration` is the lifetime in seconds for
+     * timed effects.
+     */
     struct Effect {
+        /** The effect category to apply. */
         EffectType type = EffectType::Shield;
+        /** Scalar tuning value used by barrier and vulnerable effects. */
         float multiplier = 1.0f;
+        /** Flat damage reduction used by shield effects. */
         float mitigation = 0.0f;
+        /** Duration in seconds for timed effects. */
         float duration = 0.0f;
     };
 

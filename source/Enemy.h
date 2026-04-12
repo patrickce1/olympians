@@ -41,6 +41,10 @@ private:
     float _retargetLikelihood = 0.0f;
     /** Remaining stun time in seconds. While positive, enemy attacks and retargeting are disabled. */
     float _stunDuration = 0.0f;
+    /** Remaining vulnerable time in seconds. While positive, incoming damage is multiplied. */
+    float _vulnerableDuration = 0.0f;
+    /** Active incoming damage multiplier while the enemy is vulnerable. */
+    float _vulnerableMultiplier = 1.0f;
 
     std::vector<FiredEvent> _firedEvents;
 
@@ -73,6 +77,22 @@ public:
     void applyStun(float duration);
     /** Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state. */
     void syncStunDuration(float duration);
+    /** Returns whether the enemy is currently vulnerable. */
+    bool isVulnerable() const { return _vulnerableDuration > 0.0f; }
+    /** Returns the remaining vulnerable duration in seconds. */
+    float getVulnerableDuration() const { return _vulnerableDuration; }
+    /** Returns the current damage multiplier applied while vulnerable. */
+    float getVulnerableMultiplier() const { return _vulnerableMultiplier; }
+    /**
+     * Applies a local authoritative vulnerability, extending the current timer and preserving the strongest multiplier.
+     * @param multiplier  Damage multiplier for incoming damage
+     * @param duration      Time this state will last
+     */
+    void applyVulnerable(float multiplier, float duration);
+    /** Overwrites local vulnerable state from the host snapshot so remote clients mirror the authoritative state. */
+    void syncVulnerable(float multiplier, float duration);
+    /** Clears runtime-only enemy combat effects such as stun and vulnerability. */
+    void clearRuntimeEffects();
     
     // Expose state defs so controller can pick attacks by tag
     const std::unordered_map<std::string, EnemyLoader::StateDef>& getStates() const { return _states; }

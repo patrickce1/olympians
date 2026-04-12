@@ -115,6 +115,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto lightningBoltDef = db.getDef("lightning_bolt");
     auto appleDef = db.getDef("apple");
     auto shieldDef = db.getDef("shield");
+    auto spearDef = db.getDef("spear");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
            "items: lightning_bolt affinity parses as Zeus");
     assertWithLabel(lightningBoltDef && lightningBoltDef->hasEffectType(ItemDef::EffectType::Stun),
@@ -127,6 +128,10 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
            "items: shield parses shield effect");
     assertWithLabel(shieldDef && !shieldDef->getEffects().empty() && floatsEqualWithinTolerance(shieldDef->getEffects()[0].duration, 5.0f),
            "items: shield effect duration parses");
+    assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
+           "items: spear parses vulnerable effect");
+    assertWithLabel(spearDef && !spearDef->getEffects().empty() && floatsEqualWithinTolerance(spearDef->getEffects()[0].multiplier, 1.2f),
+           "items: spear vulnerable multiplier parses");
 }
 
 /**
@@ -465,6 +470,26 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
 
     enemy.update(2.1f);
         assertWithLabel(!enemy.isStunned(), "compute: enemy stun expires after duration elapses");
+
+    auto instSpear = ItemInstance::alloc("spear", 1010);
+    assertWithLabel(instSpear != nullptr, "compute: create spear instance");
+    if (!instSpear) return;
+    ares.addItem(*instSpear);
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    const float resolvedVulnerable = ares.useItemById(instSpear->getId(), enemy, db);
+        assertWithLabel(floatsEqualWithinTolerance(resolvedVulnerable, 1.2f), "compute: vulnerable application returns configured multiplier");
+        assertWithLabel(enemy.isVulnerable(), "compute: vulnerable effect marks enemy as vulnerable");
+        assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableMultiplier(), 1.2f), "compute: vulnerable multiplier applies to enemy");
+        assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableDuration(), 3.0f), "compute: vulnerable duration applies to enemy");
+
+    const float vulnerableHealthBefore = enemy.getCurrentHealth();
+    enemy.updateHealth(-5.0f);
+        assertWithLabel(floatsEqualWithinTolerance(vulnerableHealthBefore - enemy.getCurrentHealth(), 6.0f), "compute: vulnerable increases incoming damage while active");
+
+    enemy.update(3.1f);
+        assertWithLabel(!enemy.isVulnerable(), "compute: vulnerable expires after duration elapses");
 
     // Mismatched target type should return 0 and still consume item
     Player testAttacker("Ares", 5, "Ares Tester 2", loader);

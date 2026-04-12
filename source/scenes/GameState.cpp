@@ -206,6 +206,7 @@ void GameState::reset() {
         player->setCurrentHealth(player->getMaxHealth());
     }
     _enemy->setCurrentHealth(_enemy->getMaxHealth());
+    _enemy->clearRuntimeEffects();
 }
 
 /**
@@ -302,6 +303,9 @@ void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects)
             case EnemyEffectType::Stun:
                 _enemy->applyStun(effect.duration);
                 break;
+            case EnemyEffectType::Vulnerable:
+                _enemy->applyVulnerable(effect.magnitude, effect.duration);
+                break;
         }
     }
 }
@@ -319,6 +323,7 @@ void GameState::networkUpdate(GameStateMessage newState) {
     // update boss health
     _enemy->setCurrentHealth(newState.bossHealth);
     _enemy->syncStunDuration(newState.bossStunDuration);
+    _enemy->syncVulnerable(newState.bossVulnerableMultiplier, newState.bossVulnerableDuration);
 
     // update player health
     std::vector<float> healths = {

@@ -43,7 +43,10 @@ enum class SupportEffectType : int32_t {
 
 /** Attack effect categories sent from clients to the host. */
 enum class EnemyEffectType : int32_t {
-    Stun = 0
+    /** Prevents the enemy from acting for a duration. */
+    Stun = 0,
+    /** Increases incoming damage to the enemy for a duration. */
+    Vulnerable = 1
 };
 
 /** Message sent by the client to indicate a support effect applied to a player.
@@ -89,6 +92,8 @@ struct GameStateMessage {
     float bossHealth;
     /** Remaining authoritative stun time for the boss, in seconds. */
     float bossStunDuration;
+    /** Active authoritative vulnerable multiplier for the boss. */
+    float bossVulnerableMultiplier = 1.0f;
 
     //player health
     float player1HP;

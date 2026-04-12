@@ -281,6 +281,8 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			GameStateMessage stateMsg;
 			stateMsg.bossHealth = _deserializer.readFloat();
 			stateMsg.bossStunDuration = _deserializer.readFloat();
+			stateMsg.bossVulnerableDuration = _deserializer.readFloat();
+			stateMsg.bossVulnerableMultiplier = _deserializer.readFloat();
 			stateMsg.player1HP = _deserializer.readFloat();
 			stateMsg.player2HP = _deserializer.readFloat();
 			stateMsg.player3HP = _deserializer.readFloat();
@@ -499,6 +501,8 @@ void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.writeSint32(MessageType::GAME_UPDATE);
 	_serializer.writeFloat(state.getEnemy()->getCurrentHealth());
 	_serializer.writeFloat(state.getEnemy()->getStunDuration());
+	_serializer.writeFloat(state.getEnemy()->getVulnerableDuration());
+	_serializer.writeFloat(state.getEnemy()->getVulnerableMultiplier());
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
 	for (int i = 0; i < 4; i++) {
 		if (i < players.size()) {
