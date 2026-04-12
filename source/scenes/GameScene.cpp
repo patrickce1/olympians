@@ -76,11 +76,6 @@ static void broadcastSupportEffects(NetworkController& network,
                                     const ItemDef& def,
                                     float resolvedMagnitude,
                                     int targetPlayerID) {
-    if (def.getEffects().empty()) {
-        network.broadcastSupportEffect(SupportEffectType::Heal, resolvedMagnitude, 0.0f, targetPlayerID);
-        return;
-    }
-
     for (const ItemDef::Effect& effect : def.getEffects()) {
         switch (effect.type) {
             case ItemDef::EffectType::Shield:
@@ -116,11 +111,6 @@ static void broadcastSupportEffects(NetworkController& network,
 static void broadcastEnemyEffects(NetworkController& network,
                                   const ItemDef& def,
                                   float resolvedMagnitude) {
-    if (def.getEffects().empty()) {
-        network.broadcastDamage(resolvedMagnitude);
-        return;
-    }
-
     for (const ItemDef::Effect& effect : def.getEffects()) {
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
@@ -520,6 +510,7 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
 
             //NETWORKING
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
+                _network->broadcastDamage(resolvedMagnitude);
                 broadcastEnemyEffects(*_network, *def, resolvedMagnitude);
             }
             CULog("Player attacked enemy '%s' with item %llu (damage: %.1f)",
@@ -562,6 +553,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
             //NETWORK
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
+                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
                 broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
             }
             _audio->playSoundUnique("support");
