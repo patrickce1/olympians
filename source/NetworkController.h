@@ -296,7 +296,6 @@ private:
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
     std::vector<SupportEffectMessage> supportEffects;
-    /** Queued enemy-effect requests received this frame and awaiting host-side application. */
     std::vector<EnemyEffectMessage> enemyEffects;
     GameStateMessage _latestGameState;
     //win/loss booleans
