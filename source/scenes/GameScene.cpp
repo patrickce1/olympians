@@ -134,7 +134,6 @@ bool GameScene::initSceneGraph() {
         _scene->addChild(_specialEffectsLayer);
         
         _supportLeftArea = _gameArea->getChildByName("supportLeft");
-        
         _supportRightArea = _gameArea->getChildByName("supportRight");
     }
     
