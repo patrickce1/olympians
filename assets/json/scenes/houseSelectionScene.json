@@ -1790,7 +1790,7 @@
                                         "glow" : false,
                                         "heroPoster": "hadesPoster",
                                         "heroName": "-HADES-",
-                                        "heroStats": "emptyStats"
+                                        "heroStats": "statsHades"
                                     }
                                 },
                                 "layout": {
@@ -1900,7 +1900,7 @@
                                         "glow" : false,
                                         "heroPoster": "hephaestusPoster",
                                         "heroName": "-HEPHAESTUS-",
-                                        "heroStats": "emptyStats"
+                                        "heroStats": "statsHephaestus"
                                     }
                                 },
                                 "layout": {

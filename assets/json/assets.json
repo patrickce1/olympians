@@ -191,8 +191,22 @@
         "hadesPoster": {
             "file": "textures/houseSelect/hadesPoster.png"
         },
+        "statsHades": {
+            "file": "textures/houseSelect/statsHades.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
         "hephaestusPoster": {
             "file": "textures/houseSelect/hephaestusPoster.png"
+        },
+        "statsHephaestus": {
+            "file": "textures/houseSelect/statsHephaestus.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
         },
         "leftScroll": {
             "file": "textures/houseSelect/leftScroll.png"
