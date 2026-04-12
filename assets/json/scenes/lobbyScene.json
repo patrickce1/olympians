@@ -1040,7 +1040,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "menuTitle",
+                            "font": "gamePin",
                             "text": "#####",
                             "foreground": "#fdc782ff",
                             "background": "#00000000",

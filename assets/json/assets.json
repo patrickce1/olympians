@@ -349,7 +349,22 @@
             "file": "textures/elements/loadingCircle.png"
         },
         "backArrow": {
-            "file": "textures/backArrow.png"
+          "file": "textures/backArrow.png"
+        },
+        "menuBG": {
+            "file": "textures/menuBG.png"
+        },
+        "attackZone": {
+            "file": "textures/gameScene/attackZoneBG.png"
+        },
+        "attackZoneIcon": {
+            "file": "textures/gameScene/attackZoneIcon.png"
+        },
+        "supportZoneL": {
+            "file": "textures/gameScene/supportLZoneBG.png"
+        },
+        "supportZoneR": {
+            "file": "textures/gameScene/supportRZoneBG.png"
         }
 	},
     "fonts": {
@@ -391,7 +406,7 @@
         },
         "menuTitle": {
             "file":     "fonts/GRECOromanLubedWrestling.ttf",
-            "size":     48
+            "size":     50
         },
         "menuLabel": {
             "file":     "fonts/Roboto-Bold.ttf",
@@ -400,6 +415,10 @@
         "bossDescriptionLabel": {
             "file":     "fonts/GRECOromanLubedWrestling.ttf",
             "size":     12
+        },
+        "gamePin": {
+            "file":     "fonts/GRECOromanLubedWrestling.ttf",
+            "size":     48
         }
     },
     "jsons": {
