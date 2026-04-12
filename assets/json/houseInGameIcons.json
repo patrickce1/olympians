@@ -1,0 +1,58 @@
+{
+    "textures": {
+        "athenaRegular": {
+            "file": "textures/gameScene/houseIcons/athena/athenaRegular.png"
+        },
+        "athenaMidHealth": {
+            "file": "textures/gameScene/houseIcons/athena/athenaMidHealth.png"
+        },
+        "athenaDeath": {
+            "file": "textures/gameScene/houseIcons/athena/athenaDeath.png"
+        },
+        "aresRegular": {
+            "file": "textures/gameScene/houseIcons/ares/aresRegular.png"
+        },
+        "aresMidHealth": {
+            "file": "textures/gameScene/houseIcons/ares/aresMidHealth.png"
+        },
+        "aresDeath": {
+            "file": "textures/gameScene/houseIcons/ares/aresDeath.png"
+        },
+        "poseidonRegular": {
+            "file": "textures/gameScene/houseIcons/poseidon/poseidonRegular.png"
+        },
+        "poseidonMidHealth": {
+            "file": "textures/gameScene/houseIcons/poseidon/poseidonMidHealth.png"
+        },
+        "poseidonDeath": {
+            "file": "textures/gameScene/houseIcons/poseidon/poseidonDeath.png"
+        },
+        "demeterRegular": {
+            "file": "textures/gameScene/houseIcons/demeter/demeterRegular.png"
+        },
+        "demeterMidHealth": {
+            "file": "textures/gameScene/houseIcons/demeter/demeterMidHealth.png"
+        },
+        "demeterDeath": {
+            "file": "textures/gameScene/houseIcons/demeter/demeterDeath.png"
+        },
+        "hadesRegular": {
+            "file": "textures/gameScene/houseIcons/hades/hadesRegular.png"
+        },
+        "hadesMidHealth": {
+            "file": "textures/gameScene/houseIcons/hades/hadesMidHealth.png"
+        },
+        "hadesDeath": {
+            "file": "textures/gameScene/houseIcons/hades/hadesDeath.png"
+        },
+        "hephaestusRegular": {
+            "file": "textures/gameScene/houseIcons/hephaestus/hephaestusRegular.png"
+        },
+        "hephaestusMidHealth": {
+            "file": "textures/gameScene/houseIcons/hephaestus/hephaestusMidHealth.png"
+        },
+        "hephaestusDeath": {
+            "file": "textures/gameScene/houseIcons/hephaestus/hephaestusDeath.png"
+        }
+    }
+}

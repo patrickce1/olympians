@@ -188,6 +188,26 @@
             "wrapS":    "clamp",
             "wrapT":    "clamp"
         },
+        "hadesPoster": {
+            "file": "textures/houseSelect/hadesPoster.png"
+        },
+        "statsHades": {
+            "file": "textures/houseSelect/statsHades.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "hephaestusPoster": {
+            "file": "textures/houseSelect/hephaestusPoster.png"
+        },
+        "statsHephaestus": {
+            "file": "textures/houseSelect/statsHephaestus.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
         "leftScroll": {
             "file": "textures/houseSelect/leftScroll.png"
         },
@@ -235,6 +255,12 @@
         "demeterSIcon": {
             "file": "textures/houseSelect/demeterSIcon.png"
         },
+        "hadesSIcon": {
+            "file": "textures/houseSelect/hadesSIcon.png"
+        },
+        "hephaestusSIcon": {
+            "file": "textures/houseSelect/hephaestusSIcon.png"
+        },
         "glowOverlayBoss": {
             "file": "textures/hostScene/glowOverlayBoss.png"
         },
@@ -280,42 +306,6 @@
         "emptySIcon": {
             "file": "textures/lobbyScene/emptySIcon.png"
         },
-        "athenaRegular": {
-            "file": "textures/gameScene/houseIcons/athena/athenaRegular.png"
-        },
-        "athenaMidHealth": {
-            "file": "textures/gameScene/houseIcons/athena/athenaMidHealth.png"
-        },
-        "athenaDeath": {
-            "file": "textures/gameScene/houseIcons/athena/athenaDeath.png"
-        },
-        "aresRegular": {
-            "file": "textures/gameScene/houseIcons/ares/aresRegular.png"
-        },
-        "aresMidHealth": {
-            "file": "textures/gameScene/houseIcons/ares/aresMidHealth.png"
-        },
-        "aresDeath": {
-            "file": "textures/gameScene/houseIcons/ares/aresDeath.png"
-        },
-        "poseidonRegular": {
-            "file": "textures/gameScene/houseIcons/poseidon/poseidonRegular.png"
-        },
-        "poseidonMidHealth": {
-            "file": "textures/gameScene/houseIcons/poseidon/poseidonMidHealth.png"
-        },
-        "poseidonDeath": {
-            "file": "textures/gameScene/houseIcons/poseidon/poseidonDeath.png"
-        },
-        "demeterRegular": {
-            "file": "textures/gameScene/houseIcons/demeter/demeterRegular.png"
-        },
-        "demeterMidHealth": {
-            "file": "textures/gameScene/houseIcons/demeter/demeterMidHealth.png"
-        },
-        "demeterDeath": {
-            "file": "textures/gameScene/houseIcons/demeter/demeterDeath.png"
-        },
         "cyclopsIdle" : {
             "file": "textures/gameScene/cyclops/idleDirections.png"
         },
@@ -357,6 +347,9 @@
         },
         "loadingCircle": {
             "file": "textures/elements/loadingCircle.png"
+        },
+        "backArrow": {
+          "file": "textures/backArrow.png"
         },
         "menuBG": {
             "file": "textures/menuBG.png"

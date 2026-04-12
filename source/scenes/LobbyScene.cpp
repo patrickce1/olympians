@@ -338,6 +338,7 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
     } else if (_currentBoss == "cerberus") {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusLobbyImage"));
     }
+    _bossImage->setContentSize(228,228);
 }
 
 /**
@@ -405,10 +406,15 @@ void LobbyScene::update(float timestep) {
         if (_blinkTimer >= BLINK_TIMER) {
             _blinkTimer = 0.0f;
             _blinkOn = !_blinkOn;
-            _localPlayerIconIndicator->setVisible(_blinkOn);
+            if(_blinkOn){
+                _localPlayerIconIndicator->setColor(Color4(255,255,255,255));
+            } else {
+                _localPlayerIconIndicator->setColor(Color4(255,255,255,150));
+            }
         }
     } else {
         _localPlayerIconIndicator->setVisible(true);
+        _localPlayerIconIndicator->setColor(Color4(255,255,255,255));
     }
 }
 
