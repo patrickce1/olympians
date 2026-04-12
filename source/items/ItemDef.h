@@ -40,7 +40,8 @@ public:
         Barrier,
         Regen,
         Stun,
-        Vulnerable
+        Vulnerable,
+        Upgrade
     };
 
     /**
@@ -53,7 +54,7 @@ public:
     struct Effect {
         /** The effect category to apply. */
         EffectType type = EffectType::Shield;
-        /** Scalar tuning value used by barrier and vulnerable effects. */
+        /** Scalar tuning value used by barrier, vulnerable, and upgrade effects. */
         float multiplier = 1.0f;
         /** Flat damage reduction used by shield effects. */
         float mitigation = 0.0f;

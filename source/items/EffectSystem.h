@@ -53,6 +53,7 @@ public:
                 return applyRegenToPlayer(effect, target);
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Vulnerable:
+            case ItemDef::EffectType::Upgrade:
                 break;
         }
 
@@ -70,6 +71,7 @@ public:
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
             case ItemDef::EffectType::Regen:
+            case ItemDef::EffectType::Upgrade:
                 break;
         }
 

@@ -4,6 +4,7 @@
 
 #include <cugl/cugl.h>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include "HouseLoader.h"
 #include "items/ItemInstance.h"
@@ -49,6 +50,13 @@ private:
     bool _hasRegen = false;
     float _regenMagnitude = 0.0f;
     float _regenDuration = 0.0f;
+    /**
+     * Tracks consecutive attack-item uses by definition ID for this player only.
+     *
+     * The currently active streak is reset whenever the player uses a different item,
+     * while repeated uses of the same definition ID continue to build the multiplier.
+     */
+    std::unordered_map<std::string, unsigned int> _consecutiveItemUseCounts;
 
 public:
     /**
@@ -185,6 +193,7 @@ public:
         _hasRegen = false;
         _regenMagnitude = 0.0f;
         _regenDuration = 0.0f;
+        _consecutiveItemUseCounts.clear();
     }
 
     /**

@@ -117,6 +117,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto shieldDef = db.getDef("shield");
     auto spearDef = db.getDef("spear");
     auto cornucopiaDef = db.getDef("cornucopia");
+    auto malletDef = db.getDef("mallet");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
            "items: lightning_bolt affinity parses as Zeus");
     assertWithLabel(lightningBoltDef && lightningBoltDef->hasEffectType(ItemDef::EffectType::Stun),
@@ -137,6 +138,10 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
            "items: cornucopia parses regen effect");
     assertWithLabel(cornucopiaDef && !cornucopiaDef->getEffects().empty() && floatsEqualWithinTolerance(cornucopiaDef->getEffects()[0].magnitude, 0.5f),
            "items: cornucopia regen magnitude parses");
+    assertWithLabel(malletDef && malletDef->hasEffectType(ItemDef::EffectType::Upgrade),
+           "items: mallet parses upgrade effect");
+    assertWithLabel(malletDef && !malletDef->getEffects().empty() && floatsEqualWithinTolerance(malletDef->getEffects()[0].multiplier, 1.5f),
+           "items: mallet consecutive multiplier parses");
 }
 
 /**
@@ -199,6 +204,7 @@ void testEnumParsers() {
     assertWithLabel(ItemDef::houseFromString("Ares") == ItemDef::House::Ares, "parse: house Ares");
     assertWithLabel(ItemDef::houseFromString("none") == ItemDef::House::None, "parse: house none");
     assertWithLabel(ItemDef::effectTypeFromString("regen") == ItemDef::EffectType::Regen, "parse: effect regen");
+    assertWithLabel(ItemDef::effectTypeFromString("upgrade") == ItemDef::EffectType::Upgrade, "parse: effect upgrade");
 }
 
 /**
@@ -541,6 +547,40 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
 
     regenTarget.updateEffects(8.1f);
         assertWithLabel(!regenTarget.hasRegen(), "compute: regen expires after duration elapses");
+
+    Player malletUser("Hephaestus", 14, "Mallet User", loader);
+    Player secondMalletUser("Hephaestus", 15, "Second Mallet User", loader);
+    auto firstMallet = ItemInstance::alloc("mallet", 1012);
+    auto secondMallet = ItemInstance::alloc("mallet", 1013);
+    auto thirdMallet = ItemInstance::alloc("mallet", 1014);
+    auto isolatedMallet = ItemInstance::alloc("mallet", 1015);
+    assertWithLabel(firstMallet != nullptr && secondMallet != nullptr && thirdMallet != nullptr && isolatedMallet != nullptr,
+                    "compute: create mallet instances");
+    if (!firstMallet || !secondMallet || !thirdMallet || !isolatedMallet) return;
+    malletUser.addItem(*firstMallet);
+    malletUser.addItem(*secondMallet);
+    malletUser.addItem(*thirdMallet);
+    secondMalletUser.addItem(*isolatedMallet);
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    const float malletFirstResolved = malletUser.useItemById(firstMallet->getId(), enemy, db);
+        assertWithLabel(floatsEqualWithinTolerance(malletFirstResolved, 3.0f), "compute: first mallet hit uses base resolved damage");
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    const float malletSecondResolved = malletUser.useItemById(secondMallet->getId(), enemy, db);
+        assertWithLabel(floatsEqualWithinTolerance(malletSecondResolved, 4.5f), "compute: second consecutive mallet hit multiplies previous damage by JSON multiplier");
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    const float malletThirdResolved = malletUser.useItemById(thirdMallet->getId(), enemy, db);
+        assertWithLabel(floatsEqualWithinTolerance(malletThirdResolved, 6.75f), "compute: third consecutive mallet hit continues exponential scaling");
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    const float isolatedMalletResolved = secondMalletUser.useItemById(isolatedMallet->getId(), enemy, db);
+        assertWithLabel(floatsEqualWithinTolerance(isolatedMalletResolved, 3.0f), "compute: mallet streak is tracked per player");
 
     // Mismatched target type should return 0 and still consume item
     Player testAttacker("Ares", 5, "Ares Tester 2", loader);

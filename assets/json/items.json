@@ -142,7 +142,12 @@
             "rarity": "rare",
             "houseAffinity": "hephaestus",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "upgrade",
+                    "multiplier": 1.5
+                }
+            ]
         },
         {
             "id": "aegis",

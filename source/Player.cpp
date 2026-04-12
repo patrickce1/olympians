@@ -1,6 +1,7 @@
 // Player.cpp
 #include "Player.h"
 #include <algorithm>
+#include <cmath>
 #include "items/EffectSystem.h"
 
 /**
@@ -214,6 +215,33 @@ static float computeResolvedItemMagnitude(const Player& player,
     return resolvedMagnitude;
 }
 
+/**
+ * Applies any JSON-configured upgrade scaling for repeated uses of the same item.
+ *
+ * The first use keeps the resolved base magnitude unchanged. Each additional
+ * consecutive use multiplies the previous result by the effect's configured
+ * `multiplier`, producing an exponential ramp such as 1.0, 1.5, 2.25, etc.
+ *
+ * @param def                The item definition whose effects are being evaluated
+ * @param resolvedMagnitude  The base damage after house and affinity scaling
+ * @param consecutiveUses    The current per-player streak count for this item
+ * @return the scaled damage to apply for this use
+ */
+static float applyConsecutiveUseScaling(const ItemDef& def,
+                                        float resolvedMagnitude,
+                                        unsigned int consecutiveUses) {
+    float scaledMagnitude = resolvedMagnitude;
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        if (effect.type != ItemDef::EffectType::Upgrade) {
+            continue;
+        }
+
+        const unsigned int multiplierExponent = (consecutiveUses > 0) ? (consecutiveUses - 1) : 0;
+        scaledMagnitude *= std::pow(effect.multiplier, static_cast<float>(multiplierExponent));
+    }
+    return scaledMagnitude;
+}
+
 float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const ItemDatabase& db) {
     for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
         if (item->getId() != itemId) {
@@ -224,6 +252,8 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
         if (!def) {
             return -1.0f;
         }
+
+        _consecutiveItemUseCounts.clear();
 
         const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
         float returnedMagnitude = 0.0f;
@@ -257,14 +287,25 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             return -1.0f;
         }
 
+        unsigned int consecutiveUses = 1;
+        if (def->getType() == ItemDef::Type::Attack) {
+            const auto streakEntry = _consecutiveItemUseCounts.find(def->getId());
+            if (streakEntry != _consecutiveItemUseCounts.end()) {
+                consecutiveUses = streakEntry->second + 1;
+            }
+        }
+        _consecutiveItemUseCounts.clear();
+
         const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
+        const float scaledMagnitude = applyConsecutiveUseScaling(*def, resolvedMagnitude, consecutiveUses);
         float returnedMagnitude = 0.0f;
         if (def->getType() == ItemDef::Type::Attack) {
-            target.updateHealth(-resolvedMagnitude);
-            returnedMagnitude = resolvedMagnitude;
+            target.updateHealth(-scaledMagnitude);
+            returnedMagnitude = scaledMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyToEnemy(effect, resolvedMagnitude, target);
+                EffectSystem::applyToEnemy(effect, scaledMagnitude, target);
             }
+            _consecutiveItemUseCounts[def->getId()] = consecutiveUses;
         } else if (!def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
                 EffectSystem::applyToEnemy(effect, resolvedMagnitude, target);

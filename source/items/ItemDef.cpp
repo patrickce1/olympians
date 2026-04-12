@@ -23,7 +23,8 @@ static std::string normalizeToken(std::string token) {
 /**
  * Parses a normalized JSON effect token into an ItemDef::EffectType.
  *
- * Supports shield, barrier, regen, stun, and vulnerable effect strings.
+ * Supports shield, barrier, regen, stun, vulnerable, and upgrade effect strings.
+ * Upgrade effects use the serialized `multiplier` as the per-use growth factor.
  *
  * @param value  The normalized effect token from JSON.
  * @param out    Receives the parsed enum value on success.
@@ -48,6 +49,10 @@ static bool tryParseEffectType(const std::string& value, ItemDef::EffectType& ou
     }
     if (value == "vulnerable") {
         out = ItemDef::EffectType::Vulnerable;
+        return true;
+    }
+    if (value == "upgrade") {
+        out = ItemDef::EffectType::Upgrade;
         return true;
     }
     return false;
