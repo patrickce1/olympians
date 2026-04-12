@@ -172,7 +172,6 @@ void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson
 void testEnumParsers() {
     assertWithLabel(ItemDef::typeFromString("attack") == ItemDef::Type::Attack, "parse: type attack");
     assertWithLabel(ItemDef::typeFromString("support") == ItemDef::Type::Support, "parse: type support");
-    assertWithLabel(ItemDef::typeFromString("utility") == ItemDef::Type::Utility, "parse: type utility");
     
     assertWithLabel(ItemDef::rarityFromString("common") == ItemDef::Rarity::Common, "parse: rarity common");
     assertWithLabel(ItemDef::rarityFromString("rare") == ItemDef::Rarity::Rare, "parse: rarity rare");

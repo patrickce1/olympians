@@ -102,9 +102,9 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
         }
     };
 
-    loadOne("Common",    ItemDef::Rarity::Common);
-    loadOne("Rare",      ItemDef::Rarity::Rare);
-    loadOne("Divine",    ItemDef::Rarity::Divine);
+    loadOne("common",    ItemDef::Rarity::Common);
+    loadOne("rare",      ItemDef::Rarity::Rare);
+    loadOne("divine",    ItemDef::Rarity::Divine);
 }
 
 /** Returns the probability weight of the given rarity */
