@@ -63,11 +63,17 @@ struct ItemUseAnimation {
     /** Damage amount to broadcast when reaching the resolution frame. */
     float damageAmount = 0.0f;
     
+    /** ItemId that triggered this animation (for deferred damage application). */
+    ItemInstance::ItemId itemId = 0;
+    
     /** Elapsed time in seconds since animation started. */
     float elapsedTime = 0.0f;
     
     /** False until damage has been resolved at the keyframe. Prevents duplicate broadcasts. */
     bool damageResolved = false;
+    
+    /** The frame index currently displayed (to avoid redundant setFrame() calls). */
+    int currentFrameIndex = -1;
 };
 
 /**
@@ -210,6 +216,10 @@ protected:
      *  These bypass inventory limits and animate from sides instead of center-bottom.
      *  Items are added here when passed (human or networked) and removed when picked up. */
     std::unordered_set<ItemInstance::ItemId> _passedItemIds;
+
+    /** Set of ItemIds currently waiting for animation resolution (item used but damage deferred).
+     *  These items should not have widgets respawned. */
+    std::unordered_set<ItemInstance::ItemId> _animationPendingItemIds;
 
     /** Item body position from previous frame, used to calculate release velocity. */
     cugl::Vec2 _dragPreviousFrameItemBodyPos = cugl::Vec2::ZERO;
@@ -695,9 +705,11 @@ public:
      * @param animConfig     The animation configuration specifying sprite sheet, frame timing, and damage trigger frame
      * @param damageAmount   The damage value to broadcast when reaching damageResolutionFrame
      * @param itemPos        The screen position at which to center the animation (center of viewport if omitted)
+     * @param itemId         The ItemId that triggered this animation (stored for deferred damage application)
      */
     void startItemUseAnimation(const ItemUseAnimationConfig& animConfig, float damageAmount, 
-                               const cugl::Vec2& itemPos = cugl::Vec2::ZERO);
+                               const cugl::Vec2& itemPos = cugl::Vec2::ZERO, 
+                               ItemInstance::ItemId itemId = 0);
     
     /**
      * Updates all active item use animations.
@@ -713,6 +725,14 @@ public:
      * Called when the game ends or resets.
      */
     void clearItemUseAnimations();
+    
+    /**
+     * Returns whether there are any active item use animations currently playing.
+     * Used to defer game-over checks until animations complete.
+     *
+     * @return true if there are active animations, false otherwise
+     */
+    bool hasActiveItemAnimations() const { return !_activeItemUseAnimations.empty(); }
     
     /**
      * Top-level disconnect handler. Called every frame from update().
@@ -782,6 +802,21 @@ public:
      * @param itemId  The itemId representing the ItemInstance to be removed.
      */
     void removeItemWidget(ItemInstance::ItemId itemId);
+
+    /** Marks an item as used (pending animation resolution, should not be respawned).
+     *  Removes the visual widget and physics body, but keeps item in inventory until damage applies.
+     *
+     * @param itemId  The itemId that was just used
+     */
+    void markItemAsUsed(ItemInstance::ItemId itemId);
+
+    /** Checks if an item type matches an action zone type.
+     *
+     * @param action  The zone action type
+     * @param itemType The type of item
+     * @return true if the item can be used in this zone
+     */
+    bool isItemActionMatch(InputController::Action action, ItemDef::Type itemType) const;
 
     /**
      * Helper function to spawn an item widget from a given position with animation.

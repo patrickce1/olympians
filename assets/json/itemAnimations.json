@@ -2,6 +2,27 @@
     "textures": {
         "mallet_animation": {
             "file": "textures/items/animations/mallet_animation.png"
+        },
+        "lightning_animation": {
+            "file": "textures/items/animations/lightning_animation.png"
+        },
+        "trident_animation": {
+            "file": "textures/items/animations/trident_animation.png"
+        },
+        "spear_animation": {
+            "file": "textures/items/animations/spear_animation.png"
+        },
+        "storm_animation": {
+            "file": "textures/items/animations/storm_animation.png"
+        },
+        "tide_animation": {
+            "file": "textures/items/animations/tide_animation.png"
+        },
+        "arrows_animation": {
+            "file": "textures/items/animations/arrows_animation.png"
+        },
+        "sword_animation": {
+            "file": "textures/items/animations/sword_animation.png"
         }
     }
 }

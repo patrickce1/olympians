@@ -16,12 +16,12 @@
             "baseValue": 2.0,
             "effects": [],
             "itemUseAnimation": {
-                "spriteSheetId": "mallet_animation",
+                "spriteSheetId": "sword_animation",
                 "rows": 1,
-                "cols": 13,
-                "frameCount": 13,
-                "animationDuration": 1.083,
-                "damageResolutionFrame": 5
+                "cols": 7,
+                "frameCount": 7,
+                "animationDuration": 0.581,
+                "damageResolutionFrame": 4
             }
         },
         {
@@ -57,11 +57,11 @@
             "baseValue": 1.0,
             "effects": [],
             "itemUseAnimation": {
-                "spriteSheetId": "mallet_animation",
+                "spriteSheetId": "arrows_animation",
                 "rows": 1,
-                "cols": 13,
-                "frameCount": 13,
-                "animationDuration": 1.083,
+                "cols": 7,
+                "frameCount": 7,
+                "animationDuration": 0.581,
                 "damageResolutionFrame": 5
             }
         },
@@ -95,12 +95,12 @@
             "baseValue": 1.0,
             "effects": [],
             "itemUseAnimation": {
-                "spriteSheetId": "mallet_animation",
+                "spriteSheetId": "lightning_animation",
                 "rows": 1,
-                "cols": 13,
-                "frameCount": 13,
-                "animationDuration": 1.083,
-                "damageResolutionFrame": 5
+                "cols": 4,
+                "frameCount": 4,
+                "animationDuration": 0.332,
+                "damageResolutionFrame": 3
             }
         },
         {
@@ -114,12 +114,12 @@
             "baseValue": 1.0,
             "effects": [],
             "itemUseAnimation": {
-                "spriteSheetId": "mallet_animation",
+                "spriteSheetId": "trident_animation",
                 "rows": 1,
-                "cols": 13,
-                "frameCount": 13,
-                "animationDuration": 1.083,
-                "damageResolutionFrame": 5
+                "cols": 15,
+                "frameCount": 15,
+                "animationDuration": 1.245,
+                "damageResolutionFrame": 7
             }
         },
         {
@@ -185,12 +185,12 @@
             "baseValue": 1.0,
             "effects": [],
             "itemUseAnimation": {
-                "spriteSheetId": "mallet_animation",
+                "spriteSheetId": "spear_animation",
                 "rows": 1,
-                "cols": 13,
-                "frameCount": 13,
-                "animationDuration": 1.083,
-                "damageResolutionFrame": 5
+                "cols": 9,
+                "frameCount": 9,
+                "animationDuration": 0.747,
+                "damageResolutionFrame": 4
             }
         },
         {
@@ -204,12 +204,12 @@
             "baseValue": 1.0,
             "effects": [],
             "itemUseAnimation": {
-                "spriteSheetId": "mallet_animation",
+                "spriteSheetId": "storm_animation",
                 "rows": 1,
-                "cols": 13,
-                "frameCount": 13,
-                "animationDuration": 1.083,
-                "damageResolutionFrame": 5
+                "cols": 8,
+                "frameCount": 8,
+                "animationDuration": 0.664,
+                "damageResolutionFrame": 6
             }
         },
         {
@@ -223,16 +223,16 @@
             "baseValue": 1.0,
             "effects": [],
             "itemUseAnimation": {
-                "spriteSheetId": "mallet_animation",
+                "spriteSheetId": "tide_animation",
                 "rows": 1,
-                "cols": 13,
-                "frameCount": 13,
-                "animationDuration": 1.083,
-                "damageResolutionFrame": 5
+                "cols": 9,
+                "frameCount": 9,
+                "animationDuration": 0.747,
+                "damageResolutionFrame": 7
             }
         }
     ],
-    "itemInterval": 10.0,
+    "itemInterval": 1.0,
     "itemTimerStart": 5.0,
     "maxInventorySpawnItems": 5
 }
