@@ -314,7 +314,8 @@
                                         0,
                                         0
                                     ],
-                                    "visible": false
+                                    "visible": true,
+                                    "color": [255,255,255,150]
                                 },
                                 "layout": {
                                     "x_anchor": "center",
