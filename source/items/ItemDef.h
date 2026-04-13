@@ -192,13 +192,6 @@ public:
      * @param json The item definition JSON object
      */
     void parseItemUseAnimation(const std::shared_ptr<cugl::JsonValue>& json);
-    
-    /** Extract Type enum from a string */
-    static Type typeFromString(std::string value, Type fallback = Type::Attack);
-    /** Extract Rarity enum from a string */
-    static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
-    /** Extract House enum from a string */
-    static House houseFromString(std::string value, House fallback = House::None);
 
     /**
      * Extract Type enum from a string.
