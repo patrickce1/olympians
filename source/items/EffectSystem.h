@@ -14,25 +14,45 @@ class Enemy;
  */
 class EffectSystem {
 private:
-    /** Applies a shield effect to a player and returns the shield mitigation amount. */
+    /**
+     * Applies a shield effect to a player and returns the shield mitigation amount.
+     *
+     * @param effect  The serialized effect definition to apply.
+     * @param target  The player receiving the shield.
+     */
     static float applyShieldToPlayer(const ItemDef::Effect& effect, Player& target) {
         target.applyShield(effect.mitigation, effect.duration);
         return effect.mitigation;
     }
 
-    /** Applies a barrier effect to a player and returns the barrier multiplier. */
+    /**
+     * Applies a barrier effect to a player and returns the barrier multiplier.
+     *
+     * @param effect  The serialized effect definition to apply.
+     * @param target  The player receiving the barrier.
+     */
     static float applyBarrierToPlayer(const ItemDef::Effect& effect, Player& target) {
         target.applyBarrier(effect.multiplier, effect.duration);
         return effect.multiplier;
     }
 
-    /** Applies a stun effect to an enemy and returns the stun duration. */
+    /**
+     * Applies a stun effect to an enemy and returns the stun duration.
+     *
+     * @param effect  The serialized effect definition to apply.
+     * @param target  The enemy receiving the stun.
+     */
     static float applyStunToEnemy(const ItemDef::Effect& effect, Enemy& target) {
         target.applyStun(effect.duration);
         return effect.duration;
     }
 
-    /** Applies a vulnerable effect to an enemy and returns the resolved multiplier. */
+    /**
+     * Applies a vulnerable effect to an enemy and returns the resolved multiplier.
+     *
+     * @param effect  The serialized effect definition to apply.
+     * @param target  The enemy receiving the vulnerability.
+     */
     static float applyVulnerableToEnemy(const ItemDef::Effect& effect, Enemy& target) {
         target.applyVulnerable(effect.multiplier, effect.duration);
         return effect.multiplier;
@@ -44,6 +64,10 @@ public:
      *
      * Returns the effect value that was applied, or 0.0f if the effect type
      * does not target players.
+     *
+     * @param effect             The serialized effect definition to apply.
+     * @param resolvedMagnitude  The resolved item magnitude associated with the source item.
+     * @param target             The player receiving the effect.
      */
     static float applyToPlayer(const ItemDef::Effect& effect, float resolvedMagnitude, Player& target) {
         (void)resolvedMagnitude;
@@ -66,6 +90,10 @@ public:
      *
      * Returns the effect value that was applied, or 0.0f if the effect type
      * does not target enemies.
+     *
+     * @param effect             The serialized effect definition to apply.
+     * @param resolvedMagnitude  The resolved item magnitude associated with the source item.
+     * @param target             The enemy receiving the effect.
      */
     static float applyToEnemy(const ItemDef::Effect& effect, float resolvedMagnitude, Enemy& target) {
         (void)resolvedMagnitude;
