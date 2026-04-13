@@ -42,7 +42,7 @@
                     "y_offset": 0
                 }
             },
-            "joinHeader": {
+            "indicator": {
                 "type": "Node",
                 "format": {
                     "type": "Anchored"
@@ -52,24 +52,174 @@
                         0,
                         1
                     ],
-                    "size": [
-                        393,
-                        24
-                    ],
                     "angle": 0,
-                    "position": [
-                        66,
-                        782
+                    "size": [
+                        110,
+                        1
                     ],
                     "visible": true
                 },
                 "children": {
-                    "join": {
-                        "type": "Button",
-                        "format": {
-                            "type": "Anchored"
+                    "fill": {
+                        "type": "Solid",
+                        "data": {
+                            "polygon": [
+                                110,
+                                1,
+                                0,
+                                1,
+                                0,
+                                0,
+                                110,
+                                0
+                            ],
+                            "color": "#f6b561ff",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
                         },
-                        "data" : {
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle"
+                        }
+                    },
+                    "stroke": {
+                        "type": "Path",
+                        "data": {
+                            "color": "#f6b561ff",
+                            "path": {
+                                "vertices": [],
+                                "closed": true
+                            },
+                            "stroke": 1,
+                            "joint": "square",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle"
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.21,
+                    "y_offset": -0.095
+                }
+            },
+            "host": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data" : {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        103,
+                        24
+                    ],
+                    "position": [
+                        226,
+                        750
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "upnode": "hostGame"
+                },
+                "children": {
+                    "hostGame": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                103,
+                                24
+                            ],
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular20",
+                            "text": "Host Game",
+                            "foreground": "#f6b561ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "left"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.58,
+                    "y_offset": -0.065
+                }
+            },
+            "join": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data" : {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        97,
+                        24
+                    ],
+                    "position": [
+                        86,
+                        750
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "upnode": "joinGame"
+                },
+                "children": {
+                    "joinGame": {
+                        "type": "Label",
+                        "data": {
                             "anchor": [
                                 0,
                                 1
@@ -79,216 +229,31 @@
                                 24
                             ],
                             "position": [
-                                3,
+                                0,
                                 0
                             ],
                             "angle": 0,
                             "visible": true,
-                            "upnode": "joinGame"
-                        },
-                        "children": {
-                            "joinGame": {
-                                "type": "Label",
-                                "data": {
-                                    "anchor": [
-                                        0,
-                                        1
-                                    ],
-                                    "size": [
-                                        97,
-                                        24
-                                    ],
-                                    "position": [
-                                        0,
-                                        0
-                                    ],
-                                    "angle": 0,
-                                    "visible": true,
-                                    "font": "gideon romanRegular20",
-                                    "text": "Join Game",
-                                    "foreground": "#F6B561ff",
-                                    "background": "#00000000",
-                                    "padding": [
-                                        0,
-                                        0,
-                                        0,
-                                        0
-                                    ],
-                                    "valign": "top",
-                                    "halign": "left"
-                                },
-                                "children": {},
-                                "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "top",
-                                    "absolute": false,
-                                    "x_offset": 0,
-                                    "y_offset": 0
-                                }
-                            }
-                        },
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
-                            "absolute": false,
-                            "x_offset": 0.02,
-                            "y_offset": 0
-                        }
-                    },
-                    "host": {
-                        "type": "Button",
-                        "format": {
-                            "type": "Anchored"
-                        },
-                        "data" : {
-                            "anchor": [
+                            "font": "gideon romanRegular20",
+                            "text": "Join Game",
+                            "foreground": "#f6b561ff",
+                            "background": "#00000000",
+                            "padding": [
                                 0,
-                                1
-                            ],
-                            "size": [
-                                100,
-                                24
-                            ],
-                            "position": [
-                                3,
+                                0,
+                                0,
                                 0
                             ],
-                            "angle": 0,
-                            "visible": true,
-                            "upnode": "hostGame"
+                            "valign": "top",
+                            "halign": "left"
                         },
-                        "children": {
-                            "hostGame": {
-                                "type": "Label",
-                                "data": {
-                                    "anchor": [
-                                        0,
-                                        1
-                                    ],
-                                    "size": [
-                                        100,
-                                        24
-                                    ],
-                                    "position": [
-                                        3,
-                                        0
-                                    ],
-                                    "angle": 0,
-                                    "visible": true,
-                                    "font": "gideon romanRegular20",
-                                    "text": "Host Game",
-                                    "foreground": "#F6B561ff",
-                                    "background": "#00000000",
-                                    "padding": [
-                                        0,
-                                        0,
-                                        0,
-                                        0
-                                    ],
-                                    "valign": "top",
-                                    "halign": "left"
-                                },
-                                "children": {},
-                                "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "top",
-                                    "absolute": false,
-                                    "x_offset": 0,
-                                    "y_offset": 0
-                                }
-                            }
-                        },
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
-                            "absolute": false,
-                            "x_offset": 0.387,
-                            "y_offset": 0
-                        }
-                    },
-                    "indicator": {
-                        "type": "Node",
-                        "format": {
-                        "type": "Anchored"
-                        },
-                        "data": {
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "angle": 0,
-                            "size": [
-                                110,
-                                1
-                            ],
-                            "position": [
-                                223,
-                                747
-                            ],
-                            "visible": true
-                        },
-                        "children": {
-                            "fill": {
-                                "type": "Solid",
-                                "data": {
-                                    "polygon": [
-                                        110,
-                                        1,
-                                        0,
-                                        1,
-                                        0,
-                                        0,
-                                        110,
-                                        0
-                                    ],
-                                    "color": "#f6b561ff",
-                                    "anchor": [
-                                        0.5,
-                                        0.5
-                                    ],
-                                    "position": [
-                                        0,
-                                        0
-                                    ],
-                                    "visible": true
-                                },
-                                "layout": {
-                                    "x_anchor": "center",
-                                    "y_anchor": "middle"
-                                }
-                            },
-                            "stroke": {
-                                "type": "Path",
-                                "data": {
-                                    "color": "#f6b561ff",
-                                    "path": {
-                                        "vertices": [],
-                                        "closed": true
-                                    },
-                                    "stroke": 1,
-                                    "joint": "square",
-                                    "anchor": [
-                                        0.5,
-                                        0.5
-                                    ],
-                                    "position": [
-                                        0,
-                                        0
-                                    ],
-                                    "visible": true
-                                },
-                                "layout": {
-                                    "x_anchor": "center",
-                                    "y_anchor": "middle"
-                                }
-                            }
-                        },
+                        "children": {},
                         "layout": {
                             "x_anchor": "left",
                             "y_anchor": "top",
                             "absolute": false,
                             "x_offset": 0,
-                            "y_offset": -1
+                            "y_offset": 0
                         }
                     }
                 },
@@ -296,7 +261,7 @@
                     "x_anchor": "left",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.2,
+                    "x_offset": 0.22,
                     "y_offset": -0.065
                 }
             },
@@ -402,14 +367,14 @@
                     "back": {
                         "type": "Image",
                         "data": {
-                            "texture": "buttonBackBG",
+                            "texture": "backArrow",
                             "anchor": [
                                 0,
                                 1
                             ],
                             "size": [
-                                42,
-                                42
+                                43,
+                                36
                             ],
                             "angle": 0,
                             "position": [
@@ -447,6 +412,137 @@
                     "x_offset": 0,
                     "y_offset": 0.04
                 }
+            },
+            "errorPopup": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [0.5, 0.5],
+                    "size": [393,
+                    852],
+                    "angle": 0,
+                    "visible": false
+                },
+                "children": {
+                    "overlayBG": {
+                        "type": "Polygon",
+                        "data": {
+                            "anchor": [0.5, 0.5],
+                            "color": [0,0,0,100],
+                            "angle": 0,
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "popupBG": {
+                        "type": "Image",
+                        "data": {
+                            "anchor": [0.5, 0.5],
+                            "texture": "centerPopup",
+                            "size": [433, 326],
+                            "angle": 0,
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "errorLabel": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [0.5, 0.5],
+                            "size": [202, 105],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular18",
+                            "text": "",
+                            "foreground": "#FFD59Fff",
+                            "background": "#00000000",
+                            "padding": [0, 0, 0, 0],
+                            "valign": "middle",
+                            "halign": "center",
+                            "wrap": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "loadingOverlay": {
+              "type": "Node",
+              "format": {
+                  "type": "Anchored"
+              },
+              "data": {
+                  "anchor": [0.5, 0.5],
+                  "size": [393, 852],
+                  "angle": 0,
+                  "visible": false
+              },
+              "children": {
+                  "overlayBG": {
+                      "type": "Polygon",
+                      "data": {
+                          "anchor": [0.5, 0.5],
+                          "color": [0,0,0,100],
+                          "angle": 0,
+                          "visible": true
+                      },
+                      "layout": {
+                          "x_anchor": "center",
+                          "y_anchor": "middle",
+                          "absolute": false,
+                          "x_offset": 0,
+                          "y_offset": 0
+                      }
+                  },
+                "spinner": {
+                  "type": "Image",
+                  "data": {
+                    "texture": "loadingCircle",
+                    "anchor": [0.5, 0.5],
+                    "visible": true
+                  },
+                  "layout": {
+                      "x_anchor": "center",
+                      "y_anchor": "middle",
+                      "absolute": false,
+                      "x_offset": 0,
+                      "y_offset": 0
+                  }
+                }
+              },
+              "layout": {
+                  "x_anchor": "center",
+                  "y_anchor": "middle",
+                  "absolute": false,
+                  "x_offset": 0,
+                  "y_offset": 0
+              }
             }
         }
     }

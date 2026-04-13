@@ -1,19 +1,20 @@
 {
     "rarityWeights": {
-        "Common": 0.45,
-        "Rare": 0.40,
-        "Divine": 0.15
+        "common": 0.45,
+        "rare": 0.40,
+        "divine": 0.15
     },
     "items": [
         {
-            "id": "lightning_bolt",
-            "name": "Lightning Bolt",
-            "description": "A crackling bolt of lightning sent from the king of the gods himself.",
-            "icon": "item_lightning_bolt",
+            "id": "sword",
+            "name": "Sword",
+            "description": "Just a plain set of swords.",
+            "icon": "item_sword",
             "type": "attack",
-            "rarity": "divine",
-            "houseAffinity": "Zeus",
-            "baseValue": 1.0
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 2.0,
+            "effects": []
         },
         {
             "id": "apple",
@@ -23,17 +24,148 @@
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 2.0
+            "baseValue": 2.0,
+            "effects": []
         },
         {
-            "id": "noams_ballista",
-            "name": "Noam's Ballista",
-            "description": "A ballista constructed by the great Deadalus.",
-            "icon": "item_noams_ballista",
+            "id": "nectar",
+            "name": "Nectar",
+            "description": "The god's dessert.",
+            "icon": "item_nectar",
+            "type": "support",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 1.0,
+            "effects": []
+        },
+        {
+            "id": "arrow",
+            "name": "Bow and Arrow",
+            "description": "For long range shots.",
+            "icon": "item_arrow",
+            "type": "attack",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 1.0,
+            "effects": []
+        },
+        {
+            "id": "shield",
+            "name": "Shield",
+            "description": "Help a brother out.",
+            "icon": "item_shield",
+            "type": "support",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 1.0,
+            "effects": [
+                {
+                    "type": "shield",
+                    "target": "",
+                    "multiplier": 0.5,
+                    "duration": 5.0,
+                    "stacking": "refresh"
+                }
+            ]
+        },
+        {
+            "id": "lightning_bolt",
+            "name": "Lightning Bolt",
+            "description": "A crackling bolt of lightning sent from the king of the gods himself.",
+            "icon": "item_lightning",
             "type": "attack",
             "rarity": "rare",
-            "houseAffinity": "Ares",
-            "baseValue": 1.5
+            "houseAffinity": "zeus",
+            "baseValue": 1.0,
+            "effects": []
+        },
+        {
+            "id": "trident",
+            "name": "Trident",
+            "description": " ",
+            "icon": "item_trident",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "poseidon",
+            "baseValue": 1.0,
+            "effects": []
+        },
+        {
+            "id": "helm",
+            "name": "Helm",
+            "description": " ",
+            "icon": "item_helm",
+            "type": "support",
+            "rarity": "rare",
+            "houseAffinity": "hades",
+            "baseValue": 1.0,
+            "effects": []
+        },
+        {
+            "id": "cornucopia",
+            "name": "Cornucopia",
+            "description": " ",
+            "icon": "item_cornucopia",
+            "type": "support",
+            "rarity": "rare",
+            "houseAffinity": "demeter",
+            "baseValue": 1.0,
+            "effects": []
+        },
+        {
+            "id": "mallet",
+            "name": "Mallet",
+            "description": " ",
+            "icon": "item_mallet",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "hephaestus",
+            "baseValue": 1.0,
+            "effects": []
+        },
+        {
+            "id": "aegis",
+            "name": "Aegis Shield",
+            "description": " ",
+            "icon": "item_aegis",
+            "type": "utility",
+            "rarity": "rare",
+            "houseAffinity": "athena",
+            "baseValue": 1.0,
+            "effects": []
+        },
+        {
+            "id": "spear",
+            "name": "Spear",
+            "description": " ",
+            "icon": "item_spear",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "ares",
+            "baseValue": 1.0,
+            "effects": []
+        },
+        {
+            "id": "thunderstorm",
+            "name": "Thunderstorm",
+            "description": " ",
+            "icon": "item_zeus_thunderstorm",
+            "type": "attack",
+            "rarity": "divine",
+            "houseAffinity": "zeus",
+            "baseValue": 1.0,
+            "effects": []
+        },
+        {
+            "id": "tide",
+            "name": "Tide",
+            "description": " ",
+            "icon": "item_poseidon_tide",
+            "type": "attack",
+            "rarity": "divine",
+            "houseAffinity": "poseidon",
+            "baseValue": 1.0,
+            "effects": []
         }
     ],
     "itemInterval": 10.0,

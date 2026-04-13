@@ -14,8 +14,7 @@ class ItemDef {
 public:
     enum class Type : uint8_t {
         Attack,
-        Support,
-        Utility
+        Support
     };
     enum class Rarity : uint8_t {
         Common,
@@ -30,7 +29,7 @@ public:
         Ares,
         Athena,
         Aphrodite,
-        Hephestus,
+        Hephaestus,
         Hermes,
         None
     };

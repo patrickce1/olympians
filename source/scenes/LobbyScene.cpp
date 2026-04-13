@@ -338,6 +338,7 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
     } else if (_currentBoss == "cerberus") {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusLobbyImage"));
     }
+    _bossImage->setContentSize(228,228);
 }
 
 /**
@@ -350,7 +351,16 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
 void LobbyScene::update(float timestep) {
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
-        _gameId->setText(_network->getRoom());
+        std::string roomNum = _network->getRoom();
+        _gameId->setText(roomNum);
+        
+        // Invalid room — server connected but room doesn't exist
+        if (roomNum == "#####" || roomNum == "nullstr") {
+            _network->disconnect();
+            _status = Status::ABORT;
+            return;
+        }
+        
         _network->broadcastJoinedLobby();
         _network->getNetworkUpdates();
         // change boss icon to the currently chosen boss
@@ -396,10 +406,15 @@ void LobbyScene::update(float timestep) {
         if (_blinkTimer >= BLINK_TIMER) {
             _blinkTimer = 0.0f;
             _blinkOn = !_blinkOn;
-            _localPlayerIconIndicator->setVisible(_blinkOn);
+            if(_blinkOn){
+                _localPlayerIconIndicator->setColor(Color4(255,255,255,255));
+            } else {
+                _localPlayerIconIndicator->setColor(Color4(255,255,255,150));
+            }
         }
     } else {
         _localPlayerIconIndicator->setVisible(true);
+        _localPlayerIconIndicator->setColor(Color4(255,255,255,255));
     }
 }
 
