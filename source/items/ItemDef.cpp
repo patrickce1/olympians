@@ -158,6 +158,11 @@ bool ItemDef::hasEffectType(EffectType type) const {
 
 /**
  * Initializes an ItemDef from a JSON object.
+ * Parses item fields: id (required), name, description, icon/iconKey, type (required),
+ * rarity (required), houseAffinity, and baseValue (with fallbacks for invalid values).
+ *
+ * @param json  The JSON object to parse
+ * @return true if initialization succeeded (id and required enums were valid), false otherwise
  */
 bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
     if (!json || !json->isObject()) return false;

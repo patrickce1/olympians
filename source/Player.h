@@ -155,11 +155,23 @@ public:
     
     void updateHealth(float delta);
 
-    /** Applies a timed fixed-mitigation shield to this player. */
+    /**
+     * Applies a shield to this player. Replaces any existing shield.
+     *
+     * @param mitigation  The amount of damage the shield blocks
+     * @param duration      How long the shield will stay up for
+     */
     void applyShield(float mitigation, float duration);
 
-    /** Applies a timed percentage-mitigation barrier to this player. */
+    /**
+     * Applies a timed percentage-mitigation barrier to this player.
+     *
+     * @param multiplier  The percentage multiplier for incoming damage.
+     * @param duration      How long the barrier will stay up for
+     */
     void applyBarrier(float multiplier, float duration);
+    
+    /** Advances timed runtime effects. */
     void updateEffects(float dt);
 
     /** Clears runtime-only combat effects. */

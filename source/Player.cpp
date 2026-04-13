@@ -74,7 +74,11 @@ void Player::updateHealth(float delta) {
     if (_currentHealth < 0.0f)       _currentHealth = 0.0f;
 }
 
-/** Applies a shield to this player. Replaces any existing shield. */
+/** Applies a shield to this player. Replaces any existing shield.
+ *
+ * @param mitigation  The amount of damage the shield blocks
+ * @param duration      How long the shield will stay up for
+ */
 void Player::applyShield(float mitigation, float duration) {
     if (duration <= 0.0f) {
         return;
@@ -90,7 +94,12 @@ void Player::applyShield(float mitigation, float duration) {
           _shieldDuration);
 }
 
-/** Applies a barrier to this player. Replaces any existing barrier. */
+/**
+ * Applies a timed percentage-mitigation barrier to this player.
+ *
+ * @param multiplier  The percentage multiplier for incoming damage.
+ * @param duration      How long the barrier will stay up for
+ */
 void Player::applyBarrier(float multiplier, float duration) {
     if (duration <= 0.0f) {
         return;
