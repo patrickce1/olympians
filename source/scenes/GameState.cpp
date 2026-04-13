@@ -227,11 +227,11 @@ void GameState::setLocalPlayer(int assignedIndex) {
 void GameState::setEnemy(std::string enemyID) {
     const std::string enemyJsonPath = "json/enemies.json";
     if (_enemy == nullptr) {
-        if (enemyID.compare("cyclops")) {
+        if (enemyID.compare("cyclops") == 0) {
             CULog("making cyclops");
             _enemy = std::make_shared<Cyclops>();
         }
-        else if (enemyID.compare("cerberus")) {
+        else if (enemyID.compare("cerberus") == 0) {
             //TODO for future pr: replace this with a custom Cerberus class
             CULog("making cerberus");
             _enemy = std::make_shared<Enemy>();

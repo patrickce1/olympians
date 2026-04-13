@@ -2594,7 +2594,7 @@ void GameScene::updateItemUseAnimations(float dt) {
             if (anim.damageAmount > 0.0f) {
                 auto enemy = _gameState.getEnemy();
                 if (enemy) {
-                    enemy->updateHealth(-anim.damageAmount);
+                    enemy->takeDamage(anim.damageAmount, _gameState.getLocalPlayer()->getPlayerNumber());
                     
                     // Only non-hosts broadcast damage messages.
                     // Hosts apply damage locally and broadcast it via broadcastGameState().
