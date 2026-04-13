@@ -41,6 +41,13 @@ enum class SupportEffectType : int32_t {
     Barrier = 2
 };
 
+/** Attack effect categories sent from clients to the host. */
+enum class EnemyEffectType : int32_t {
+    /** Prevents the enemy from acting for a duration. */
+    Stun = 0,
+    /** Increases incoming damage to the enemy for a duration. */
+    Vulnerable = 1
+};
 
 /** Message sent by the client to indicate a support effect applied to a player.
  * The playerID is the order of the player in the circle to whom the effect is applied.
@@ -52,6 +59,16 @@ struct SupportEffectMessage {
     int playerID;
     SupportEffectType effectType;
     float magnitude;
+    float duration;
+};
+
+/** Message sent by the client to indicate an enemy-affecting item effect. */
+struct EnemyEffectMessage {
+    /** The category of enemy effect to apply. */
+    EnemyEffectType effectType;
+    /** The resolved item magnitude associated with the attack. */
+    float magnitude;
+    /** The number of seconds the enemy effect should last. */
     float duration;
 };
 
@@ -73,6 +90,12 @@ struct PassMessage {
 struct GameStateMessage {
     //boss health
     float bossHealth;
+    /** Remaining authoritative stun time for the boss, in seconds. */
+    float bossStunDuration;
+    /** Remaining authoritative vulnerable time for the boss, in seconds. */
+    float bossVulnerableDuration = 0.0f;
+    /** Active authoritative vulnerable multiplier for the boss. */
+    float bossVulnerableMultiplier = 1.0f;
 
     //player health
     float player1HP;

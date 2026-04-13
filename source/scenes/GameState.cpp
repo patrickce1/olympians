@@ -300,6 +300,26 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
 }
 
 /**
+ * Applies enemy-targeted effect messages from clients onto the host's authoritative enemy state.
+ *
+ * @param enemyEffects  The queued enemy-effect updates to apply this frame.
+ */
+void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects) {
+    if (!_enemy) return;
+
+    for (const EnemyEffectMessage& effect : enemyEffects) {
+        switch (effect.effectType) {
+            case EnemyEffectType::Stun:
+                _enemy->applyStun(effect.duration);
+                break;
+            case EnemyEffectType::Vulnerable:
+                _enemy->applyVulnerable(effect.magnitude, effect.duration);
+                break;
+        }
+    }
+}
+
+/**
  * Overwrites the local game state with a snapshot received from the host.
  *
  * Applies the host's authoritative boss and player health values directly,

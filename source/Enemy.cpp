@@ -2,6 +2,7 @@
 #include "Enemy.h"
 #include <algorithm>
 #include <cugl/cugl.h>
+#include <cmath>
 
 using namespace cugl;
 
@@ -47,8 +48,11 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
 
     _attackLockout = 0.0f;
     _retargetLikelihood = def.ai.retargetLikelihood;
-    
-    
+    // Clear any previous stun state when reinitializing the enemy instance.
+    _stunDuration = 0.0f;
+    _vulnerableDuration = 0.0f;
+    _vulnerableMultiplier = 1.0f;
+
     return true;
 }
 
@@ -62,6 +66,7 @@ const EnemyLoader::StateDef* Enemy::getCurrentStateDef() const {
 /** Returns true if successfully enters requested state. False and idle otherwise. */
 bool Enemy::requestState(const std::string& stateName) {
     if (_states.count(stateName) == 0) return false;    // State doesn't exist
+    if (isStunned() && stateName != "idle") return false; // Stunned enemies cannot choose attacks
     if (_attackLockout > 0.0f && stateName != "idle") return false; // Lockout is active, only allow idle
 
     enterState(stateName);
@@ -82,11 +87,42 @@ void Enemy::enterState(const std::string& stateName) {
     _eventsFiredThisState = false;
 }
 
+/** Forces the enemy into idle and clears progress on the interrupted state. */
+void Enemy::forceIdle() {
+    if (_currentState != "idle") {
+        enterState("idle");
+    } else {
+        _stateTime = 0.0f;
+        _eventsFiredThisState = false;
+    }
+}
+
 /** Updates timers.*/
 void Enemy::tick(float dt) {
     if (dt <= 0.0f) return;
-    _stateTime += dt;
+
+    if (!isStunned()) {
+        _stateTime += dt;
+    }
+
     _attackLockout = (_attackLockout - dt < 0.0f) ? 0.0f : _attackLockout - dt;
+
+    if (_stunDuration > 0.0f) {
+        const float previousDuration = _stunDuration;
+        _stunDuration = std::max(0.0f, _stunDuration - dt);
+        if (previousDuration > 0.0f && _stunDuration == 0.0f) {
+            CULog("Enemy stun ended: enemy='%s'", _enemyId.c_str());
+        }
+    }
+
+    if (_vulnerableDuration > 0.0f) {
+        const float previousDuration = _vulnerableDuration;
+        _vulnerableDuration = std::max(0.0f, _vulnerableDuration - dt);
+        if (previousDuration > 0.0f && _vulnerableDuration == 0.0f) {
+            _vulnerableMultiplier = 1.0f;
+            CULog("Enemy vulnerability ended: enemy='%s'", _enemyId.c_str());
+        }
+    }
 }
 
 /** Returns true if buildUp time has passed and events have not yet fired in this state. */
@@ -134,6 +170,11 @@ std::string Enemy::getNextStateOrIdle() const {
 void Enemy::update(float dt) {
     tick(dt);
 
+    if (isStunned()) {
+        forceIdle();
+        return;
+    }
+
     if (readyToFire()) {
         fireEvents();
         applyCooldown();
@@ -150,7 +191,112 @@ std::vector<Enemy::FiredEvent> Enemy::takeFiredEvents() {
 
 /** Updates the enemy's health. Positive delta heals, negative damages. */
 void Enemy::updateHealth(float delta) {
+    if (delta < 0.0f && isVulnerable()) {
+        delta *= _vulnerableMultiplier;
+    }
     _currentHealth += delta;
     if (_currentHealth > _maxHealth) _currentHealth = _maxHealth;
     if (_currentHealth < 0.0f) _currentHealth = 0.0f;
+}
+
+/**
+ * Applies or refreshes a stun, forcing the enemy idle and extending the remaining duration.
+ *
+ * @param duration  The stun time to apply, in seconds.
+ */
+void Enemy::applyStun(float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    const bool wasStunned = isStunned();
+    _stunDuration = std::max(_stunDuration, duration);
+    forceIdle();
+
+    if (!wasStunned) {
+        CULog("Enemy stunned: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
+    } else {
+        CULog("Enemy stun refreshed: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
+    }
+}
+
+/**
+ * Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state.
+ *
+ * @param duration  The authoritative remaining stun time, in seconds.
+ */
+void Enemy::syncStunDuration(float duration) {
+    duration = std::max(0.0f, duration);
+    const bool wasStunned = isStunned();
+    const bool willBeStunned = duration > 0.0f;
+    _stunDuration = duration;
+
+    if (willBeStunned) {
+        forceIdle();
+    }
+
+    if (!wasStunned && willBeStunned) {
+        CULog("Enemy stunned: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
+    } else if (wasStunned && !willBeStunned) {
+        CULog("Enemy stun ended: enemy='%s'", _enemyId.c_str());
+    }
+}
+
+/**
+ * Applies a local authoritative vulnerability, extending the current timer and preserving the strongest multiplier.
+ *
+ * @param multiplier  Damage multiplier for incoming damage
+ * @param duration      Time this state will last
+ */
+void Enemy::applyVulnerable(float multiplier, float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    const bool wasVulnerable = isVulnerable();
+    _vulnerableDuration = std::max(0.0f, duration);
+    _vulnerableMultiplier = std::max(1.0f, multiplier);
+
+    if (!wasVulnerable) {
+        CULog("Enemy vulnerable: enemy='%s' multiplier=%.3f duration=%.3f",
+              _enemyId.c_str(),
+              _vulnerableMultiplier,
+              _vulnerableDuration);
+    } else {
+        CULog("Enemy vulnerability refreshed: enemy='%s' multiplier=%.3f duration=%.3f",
+              _enemyId.c_str(),
+              _vulnerableMultiplier,
+              _vulnerableDuration);
+    }
+}
+
+/**
+ * Overwrites local vulnerable state from the host snapshot so remote clients mirror the authoritative state.
+ *
+ * @param multiplier  The authoritative damage multiplier to apply while vulnerable.
+ * @param duration    The authoritative remaining vulnerable time, in seconds.
+ */
+void Enemy::syncVulnerable(float multiplier, float duration) {
+    duration = std::max(0.0f, duration);
+    multiplier = (duration > 0.0f) ? std::max(1.0f, multiplier) : 1.0f;
+    const bool wasVulnerable = isVulnerable();
+    const bool willBeVulnerable = duration > 0.0f;
+    _vulnerableDuration = duration;
+    _vulnerableMultiplier = willBeVulnerable ? multiplier : 1.0f;
+
+    if (!wasVulnerable && willBeVulnerable) {
+        CULog("Enemy vulnerable: enemy='%s' multiplier=%.3f duration=%.3f",
+              _enemyId.c_str(),
+              _vulnerableMultiplier,
+              _vulnerableDuration);
+    } else if (wasVulnerable && !willBeVulnerable) {
+        CULog("Enemy vulnerability ended: enemy='%s'", _enemyId.c_str());
+    }
+}
+
+/** Clears runtime-only combat effects so a reset round starts from a clean enemy state. */
+void Enemy::clearRuntimeEffects() {
+    _stunDuration = 0.0f;
+    _vulnerableDuration = 0.0f;
+    _vulnerableMultiplier = 1.0f;
 }

@@ -26,6 +26,11 @@ bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
 
 /** Upon entering idle state, this function possibly chooses a new target for the enemy. */
 void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy, std::vector<std::shared_ptr<Player>>& players) {
+    if (enemy->isStunned()) {
+        CULog("[EnemyController] Target: retarget skipped because enemy '%s' is stunned", enemy->getId().c_str());
+        return;
+    }
+
     float chance = enemy->getRetargetLikelihood();
     if (chance <= 0.0f) return;
     if (chance > 1.0f) chance = 1.0f;

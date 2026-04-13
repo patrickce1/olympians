@@ -75,7 +75,12 @@
             "rarity": "rare",
             "houseAffinity": "zeus",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "stun",
+                    "duration": 3.0
+                }
+            ]
         },
         {
             "id": "trident",
@@ -147,7 +152,13 @@
             "rarity": "rare",
             "houseAffinity": "ares",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "vulnerable",
+                    "multiplier": 1.2,
+                    "duration": 3.0
+                }
+            ]
         },
         {
             "id": "thunderstorm",

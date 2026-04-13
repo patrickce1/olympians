@@ -152,6 +152,12 @@ public:
      * @param supportEffects  The queued support-effect updates to apply this frame.
      */
     void supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects);
+    /**
+     * Applies enemy effect messages received from clients to the authoritative game state.
+     *
+     * @param enemyEffects  The queued enemy-effect updates to apply this frame.
+     */
+    void enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects);
     
 
 #pragma mark - Player Access

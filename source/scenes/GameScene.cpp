@@ -98,6 +98,39 @@ static void broadcastSupportEffects(NetworkController& network,
 }
 
 /**
+ * Broadcasts the resolved enemy-facing effects of an attack item to the host.
+ *
+ * Attack items without explicit effects fall back to direct damage. Attack items
+ * with explicit effects serialize those effect payloads instead so the host can
+ * apply the same authoritative result and replicate it through snapshots.
+ *
+ * @param network            The network controller used to send host-directed updates.
+ * @param def                The item definition describing the attack item's effects.
+ * @param resolvedMagnitude  The resolved attack magnitude calculated for this item use.
+ */
+static void broadcastEnemyEffects(NetworkController& network,
+                                  const ItemDef& def,
+                                  float resolvedMagnitude) {
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        switch (effect.type) {
+            case ItemDef::EffectType::Stun:
+                network.broadcastEnemyEffect(EnemyEffectType::Stun,
+                                             resolvedMagnitude,
+                                             effect.duration);
+                break;
+            case ItemDef::EffectType::Vulnerable:
+                network.broadcastEnemyEffect(EnemyEffectType::Vulnerable,
+                                             effect.multiplier,
+                                             effect.duration);
+                break;
+            case ItemDef::EffectType::Shield:
+            case ItemDef::EffectType::Barrier:
+                break;
+        }
+    }
+}
+
+/**
  * Returns the texture name to use for a player icon based on health and house.
  *
  * @param state HealthState of the player.
@@ -539,6 +572,7 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
             //NETWORKING
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastDamage(resolvedMagnitude);
+                broadcastEnemyEffects(*_network, *def, resolvedMagnitude);
             }
             CULog("Player attacked enemy '%s' with item %llu (damage: %.1f)",
                   enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
@@ -1173,6 +1207,7 @@ void GameScene::handleNetworkUpdates() {
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
+        _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
     }
