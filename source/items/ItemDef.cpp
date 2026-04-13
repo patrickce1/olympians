@@ -53,8 +53,8 @@ static bool tryParseEffectType(const std::string& value, ItemDef::EffectType& ou
  * Parses an item type from a string.
  * Accepts "attack" or "support" (case-insensitive, trimmed).
  *
- * @param value     The string token to parse.
- * @param fallback  The type to return if parsing fails.
+ * @param value     The string token to parse
+ * @param fallback  The type to return if parsing fails
  * @return the parsed type, or fallback if unrecognized
  */
 ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
@@ -69,9 +69,9 @@ ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
  * Parses an item rarity from a string.
  * Accepts "common", "rare", or "divine" (case-insensitive, trimmed).
  *
- * @param value     The string token to parse.
- * @param fallback  The rarity to return if parsing fails.
- * @return the parsed type, or fallback if unrecognized
+ * @param value     The string token to parse
+ * @param fallback  The rarity to return if parsing fails
+ * @return the parsed rarity, or fallback if unrecognized
  */
 ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
     value = normalizeToken(value);
@@ -85,9 +85,9 @@ ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
 /**
  * Parses a house identifier from a string.
  *
- * @param value     The string token to parse.
- * @param fallback  The house to return if parsing fails.
- * @return the parsed type, or fallback if unrecognized
+ * @param value     The string token to parse
+ * @param fallback  The house to return if parsing fails
+ * @return the parsed house, or fallback if unrecognized
  */
 ItemDef::House ItemDef::houseFromString(std::string value, House fallback) {
     value = normalizeToken(value);
@@ -108,8 +108,8 @@ ItemDef::House ItemDef::houseFromString(std::string value, House fallback) {
 /**
  * Parses a data-driven effect type from JSON.
  *
- * @param value  The string token describing the effect type.
- * @return the parsed type, or fallback if unrecognized
+ * @param value  The string token describing the effect type
+ * @return the parsed effect, or fallback if unrecognized
  */
 ItemDef::EffectType ItemDef::effectTypeFromString(std::string value) {
     value = normalizeToken(value);
