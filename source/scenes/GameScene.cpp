@@ -2401,6 +2401,11 @@ void GameScene::updateItemUseAnimations(float dt) {
     }
 }
 
+/**
+ * Clears all active item use animations, removing them from the scene graph.
+ * Called when the game ends or resets to clean up any in-flight animations
+ * and prevent orphaned sprite nodes from persisting after scene transitions.
+ */
 void GameScene::clearItemUseAnimations() {
     // Remove all animation nodes from the scene graph
     for (auto& anim : _activeItemUseAnimations) {
