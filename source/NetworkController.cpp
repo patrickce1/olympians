@@ -200,18 +200,27 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			attacks.push_back(attackMsg);
 			break;
 		}
-		case MessageType::PLAYER_HEAL: {
-			float heal = _deserializer.readFloat();
-			int healRecieverID = _deserializer.readSint32();
+        case MessageType::PLAYER_HEAL: {
+            float heal = _deserializer.readFloat();
+            int healRecieverID = _deserializer.readSint32();
 			HealMessage healMsg;
 			healMsg.heal = heal;
 			healMsg.playerID = healRecieverID;
-			heals.push_back(healMsg);
-			break;
-		}
-		case MessageType::PLAYER_PASS: {
-			std::string itemID = _deserializer.readString();
-			int passRecieverID = _deserializer.readSint32();
+            heals.push_back(healMsg);
+            break;
+        }
+        case MessageType::PLAYER_SUPPORT_EFFECT: {
+            SupportEffectMessage effectMsg;
+            effectMsg.playerID = _deserializer.readSint32();
+            effectMsg.effectType = static_cast<SupportEffectType>(_deserializer.readSint32());
+            effectMsg.magnitude = _deserializer.readFloat();
+            effectMsg.duration = _deserializer.readFloat();
+            supportEffects.push_back(effectMsg);
+            break;
+        }
+        case MessageType::PLAYER_PASS: {
+            std::string itemID = _deserializer.readString();
+            int passRecieverID = _deserializer.readSint32();
 			int passDirection = _deserializer.readSint32();
 			PassMessage passMsg;
 			passMsg.itemID = itemID;
@@ -267,6 +276,24 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			stateMsg.player2HP = _deserializer.readFloat();
 			stateMsg.player3HP = _deserializer.readFloat();
 			stateMsg.player4HP = _deserializer.readFloat();
+            
+            stateMsg.player1ShieldMitigation = _deserializer.readFloat();
+            stateMsg.player1ShieldDuration = _deserializer.readFloat();
+            stateMsg.player1BarrierMultiplier = _deserializer.readFloat();
+            stateMsg.player1BarrierDuration = _deserializer.readFloat();
+            stateMsg.player2ShieldMitigation = _deserializer.readFloat();
+            stateMsg.player2ShieldDuration = _deserializer.readFloat();
+            stateMsg.player2BarrierMultiplier = _deserializer.readFloat();
+            stateMsg.player2BarrierDuration = _deserializer.readFloat();
+            stateMsg.player3ShieldMitigation = _deserializer.readFloat();
+            stateMsg.player3ShieldDuration = _deserializer.readFloat();
+            stateMsg.player3BarrierMultiplier = _deserializer.readFloat();
+            stateMsg.player3BarrierDuration = _deserializer.readFloat();
+            stateMsg.player4ShieldMitigation = _deserializer.readFloat();
+            stateMsg.player4ShieldDuration = _deserializer.readFloat();
+            stateMsg.player4BarrierMultiplier = _deserializer.readFloat();
+            stateMsg.player4BarrierDuration = _deserializer.readFloat();
+            
 			_latestGameState = stateMsg;
 			break;
 		}
@@ -323,6 +350,7 @@ void NetworkController::getNetworkUpdates() {
 void NetworkController::clearQueues() {
 	attacks.clear();
 	heals.clear();
+	supportEffects.clear();
 	passes.clear();
 	_gameWon = false;
 	_gameLost = false;
@@ -355,6 +383,24 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
 	_serializer.writeSint32(MessageType::PLAYER_HEAL);
 	_serializer.writeFloat(heal);
 	_serializer.writeSint32(playerID);
+	_network->sendToHost(_serializer.serialize());
+	_serializer.reset();
+}
+
+/**
+ * Sends a support effect application to the host for authoritative processing.
+ *
+ * @param effectType The kind of support effect that was applied.
+ * @param magnitude  The resolved magnitude of the effect.
+ * @param duration   The timed duration of the effect, or 0 for instant effects.
+ * @param playerID   The 0-based index of the player receiving the effect.
+ */
+void NetworkController::broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID) {
+	_serializer.writeSint32(MessageType::PLAYER_SUPPORT_EFFECT);
+	_serializer.writeSint32(playerID);
+	_serializer.writeSint32(static_cast<int>(effectType));
+	_serializer.writeFloat(magnitude);
+	_serializer.writeFloat(duration);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
@@ -447,9 +493,18 @@ void NetworkController::broadcastGameState(const GameState& state) {
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
 	for (int i = 0; i < 4; i++) {
 		if (i < players.size()) {
-			_serializer.writeFloat(players[i]->getCurrentHealth());
+			const auto& player = players[i];
+			_serializer.writeFloat(player->getCurrentHealth());
+			_serializer.writeFloat(player->getShieldMitigation());
+			_serializer.writeFloat(player->getShieldDuration());
+			_serializer.writeFloat(player->getBarrierMultiplier());
+			_serializer.writeFloat(player->getBarrierDuration());
 		}
 		else {
+			_serializer.writeFloat(0.0f);
+			_serializer.writeFloat(0.0f);
+			_serializer.writeFloat(0.0f);
+			_serializer.writeFloat(1.0f);
 			_serializer.writeFloat(0.0f);
 		}
 	}

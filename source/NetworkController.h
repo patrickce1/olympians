@@ -111,17 +111,27 @@ public:
      */
     void broadcastPass(const std::string& itemDefID, int playerID, int passDirection);
 
-    /*Sends a message to the host that the player located at playerID in the cicle got healed for healAmount.*/
+    /** Sends a message to the host that the player located at playerID in the cicle got healed for healAmount. */
     void broadcastHeal(float healAmount, int playerID);
 
-    /*The following are USED ONLY BY THE HOST*/
-    /*Send the GameState state as the new authoritative version of the game to all players*/
+    /**
+     * Sends a support effect application to the host for authoritative processing.
+     *
+     * @param effectType The kind of support effect that was applied.
+     * @param magnitude  The resolved magnitude of the effect.
+     * @param duration   The timed duration of the effect, or 0 for instant effects.
+     * @param playerID   The 0-based index of the player receiving the effect.
+     */
+    void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID);
+
+    /** The following are USED ONLY BY THE HOST */
+    /** Send the GameState state as the new authoritative version of the game to all players */
     void broadcastGameState(const GameState& state);
 
-    /*Send a message to all clients that the game has been lost*/
+    /** Send a message to all clients that the game has been lost */
     void broadcastLostGame();
 
-    /*Send a message to all clients that the game has been won*/
+    /** Send a message to all clients that the game has been won */
     void broadcastWonGame();
 
     /*Client-Side Lobby Messages*/
@@ -153,6 +163,9 @@ public:
 
     /*Returns all the networking messages about healing we recieved after calling getNetworkUpdate()*/
     const std::vector<HealMessage>& getHealUpdates() const { return heals; }
+
+    /*Returns all support effect messages received after calling getNetworkUpdate().*/
+    const std::vector<SupportEffectMessage>& getSupportEffectUpdates() const { return supportEffects; }
 
     /*Returns the most recent version of the authoritative game state*/
     GameStateMessage getStateUpdate() { return _latestGameState; }
@@ -251,7 +264,8 @@ protected:
         PLAYER_DISCONNECT = 8,
         GAME_LOST = 9,
         GAME_WON = 10,
-        SESSION_TERMINATED = 11
+        PLAYER_SUPPORT_EFFECT = 11,
+        SESSION_TERMINATED = 99
     };
 
     /*Our network connection*/
@@ -275,6 +289,7 @@ private:
     std::vector<AttackMessage> attacks;
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
+    std::vector<SupportEffectMessage> supportEffects;
     GameStateMessage _latestGameState;
     //win/loss booleans
     bool _gameWon;
