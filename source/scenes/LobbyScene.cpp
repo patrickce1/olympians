@@ -149,6 +149,13 @@ void LobbyScene::setupListeners() {
         icon->addListener([this, i](const std::string& name, bool down) {
             const int lockedDisplayIndex = static_cast<int>(_playerImages.size()) - 1;
             if (down) {
+                // Always reset drag suppression for a new press.
+                _pointerDown = false;
+                _isDraggingCard = false;
+                _didDragCard = false;
+                _pendingDragInit = false;
+                _draggedCardIndex = -1;
+
                 if (i == lockedDisplayIndex) {
                     return;
                 }
