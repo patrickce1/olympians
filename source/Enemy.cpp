@@ -199,7 +199,11 @@ void Enemy::updateHealth(float delta) {
     if (_currentHealth < 0.0f) _currentHealth = 0.0f;
 }
 
-/** Applies a local authoritative stun, extending any active stun and forcing the enemy idle. */
+/**
+ * Applies or refreshes a stun, forcing the enemy idle and extending the remaining duration.
+ *
+ * @param duration  The stun time to apply, in seconds.
+ */
 void Enemy::applyStun(float duration) {
     if (duration <= 0.0f) {
         return;
@@ -216,7 +220,11 @@ void Enemy::applyStun(float duration) {
     }
 }
 
-/** Synchronizes stun time from the authoritative host snapshot without locally recomputing the effect. */
+/**
+ * Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state.
+ *
+ * @param duration  The authoritative remaining stun time, in seconds.
+ */
 void Enemy::syncStunDuration(float duration) {
     duration = std::max(0.0f, duration);
     const bool wasStunned = isStunned();
@@ -236,6 +244,7 @@ void Enemy::syncStunDuration(float duration) {
 
 /**
  * Applies a local authoritative vulnerability, extending the current timer and preserving the strongest multiplier.
+ *
  * @param multiplier  Damage multiplier for incoming damage
  * @param duration      Time this state will last
  */
@@ -261,7 +270,12 @@ void Enemy::applyVulnerable(float multiplier, float duration) {
     }
 }
 
-/** Synchronizes vulnerability from the authoritative host snapshot without locally recomputing the effect. */
+/**
+ * Overwrites local vulnerable state from the host snapshot so remote clients mirror the authoritative state.
+ *
+ * @param multiplier  The authoritative damage multiplier to apply while vulnerable.
+ * @param duration    The authoritative remaining vulnerable time, in seconds.
+ */
 void Enemy::syncVulnerable(float multiplier, float duration) {
     duration = std::max(0.0f, duration);
     multiplier = (duration > 0.0f) ? std::max(1.0f, multiplier) : 1.0f;
