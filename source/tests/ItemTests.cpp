@@ -152,7 +152,6 @@ void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson
         }
         if (entry->attack < 0.0f || entry->attack > 1.0f ||
             entry->support < 0.0f || entry->support > 1.0f ||
-            entry->utility < 0.0f || entry->utility > 1.0f ||
             entry->affinityBonus <= 0.0f) {
             bounded = false;
             break;
@@ -274,13 +273,11 @@ void testScalingFallbacks() {
     if (clampHouseMultipliers) {
         assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->attack, 1.0f), "fallback: attack clamped to 1.0");
         assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->support, 0.0f), "fallback: support clamped to 0.0");
-        assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->utility, 0.5f), "fallback: utility unchanged when valid");
         assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->affinityBonus, 1.5f), "fallback: non-positive affinityBonus defaults to 1.5");
     }
     if (missingHouseMultipliers) {
         assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->attack, 0.0f), "fallback: missing attack defaults to 0.0");
         assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->support, 0.0f), "fallback: missing support defaults to 0.0");
-        assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->utility, 0.0f), "fallback: missing utility defaults to 0.0");
         assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->affinityBonus, 1.5f), "fallback: missing affinityBonus defaults to 1.5");
     }
 }

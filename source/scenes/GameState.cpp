@@ -207,7 +207,6 @@ void GameState::reset() {
         player->setCurrentHealth(player->getMaxHealth());
     }
     _enemy->setCurrentHealth(_enemy->getMaxHealth());
-    _enemy->clearRuntimeEffects();
 }
 
 /**
@@ -311,8 +310,6 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
 void GameState::networkUpdate(GameStateMessage newState) {
     // update boss health
     _enemy->setCurrentHealth(newState.bossHealth);
-    _enemy->syncStunDuration(newState.bossStunDuration);
-    _enemy->syncVulnerable(newState.bossVulnerableMultiplier, newState.bossVulnerableDuration);
 
     // update player health and authoritative timed support effects
     std::vector<float> healths = {
