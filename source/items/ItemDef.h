@@ -128,7 +128,11 @@ public:
     Rarity getRarity() const { return _rarity; }
     /** Gets utility item effects */
     const std::vector<Effect>& getEffects() const { return _effects; }
-    /** Returns true if this item contains at least one effect of the given type */
+    /**
+     * Returns true if this item contains at least one effect of the given type.
+     *
+     * @param type  The effect category to search for.
+     */
     bool hasEffectType(EffectType type) const;
 
     /** Extract Type enum from a string */
@@ -137,7 +141,11 @@ public:
     static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
     /** Extract House enum from a string */
     static House houseFromString(std::string value, House fallback = House::None);
-    /** Extract EffectType enum from a string */
+    /**
+     * Extract EffectType enum from a string.
+     *
+     * @param value  The serialized effect type name.
+     */
     static EffectType effectTypeFromString(std::string value);
 };
 

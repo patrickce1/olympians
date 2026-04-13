@@ -146,9 +146,17 @@ public:
     /*Updates the gameState object by handling all healing requests in the messages in `heals`*/
     void healUpdates(std::vector<HealMessage> heals);
 
-    /** Applies support effect messages received from clients to the authoritative game state. */
+    /**
+     * Applies support effect messages received from clients to the authoritative game state.
+     *
+     * @param supportEffects  The queued support-effect updates to apply this frame.
+     */
     void supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects);
-    /** Applies enemy effect messages received from clients to the authoritative game state. */
+    /**
+     * Applies enemy effect messages received from clients to the authoritative game state.
+     *
+     * @param enemyEffects  The queued enemy-effect updates to apply this frame.
+     */
     void enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects);
     
 

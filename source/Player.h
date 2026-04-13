@@ -171,7 +171,11 @@ public:
      */
     void applyBarrier(float multiplier, float duration);
     
-    /** Advances timed runtime effects. */
+    /**
+     * Advances timed runtime effects.
+     *
+     * @param dt  The elapsed time since the previous frame, in seconds.
+     */
     void updateEffects(float dt);
 
     /** Clears runtime-only combat effects. */
