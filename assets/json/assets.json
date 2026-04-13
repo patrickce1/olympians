@@ -422,7 +422,8 @@
         }
     },
     "jsons": {
-        "server": "json/server.json"
+        "server": "json/server.json",
+        "gameSceneConfig": "json/gameSceneConfig.json"
     },
     "sounds": {
         "select": {

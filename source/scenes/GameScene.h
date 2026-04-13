@@ -200,6 +200,32 @@ protected:
     /** Maximum duration of a glow effect in seconds. */
     float _glowDuration = 0.3f;
 
+#pragma mark - Teammate Blink State
+
+    /** Seconds remaining on the left teammate damage blink effect. */
+    float _leftPlayerDamageBlinkTimer = 0.0f;
+
+    /** Seconds remaining on the right teammate damage blink effect. */
+    float _rightPlayerDamageBlinkTimer = 0.0f;
+
+    /** Seconds remaining on the left teammate heal blink effect. */
+    float _leftPlayerHealBlinkTimer = 0.0f;
+
+    /** Seconds remaining on the right teammate heal blink effect. */
+    float _rightPlayerHealBlinkTimer = 0.0f;
+
+    /** Last observed health snapshot for the left teammate. */
+    float _lastLeftPlayerHealth = -1.0f;
+
+    /** Last observed health snapshot for the right teammate. */
+    float _lastRightPlayerHealth = -1.0f;
+
+    /** Total duration of the teammate blink effect. */
+    float _blinkDuration = 0.45f;
+
+    /** Blink cadence used for teammate flashes. */
+    float _blinkInterval = 0.12f;
+
 #pragma mark - Debug State
     
     /** Determines whether the debug mode is on. This inlcudes reset button, zone lines, etc.*/
@@ -294,6 +320,9 @@ public:
      * @return true if both systems initialised successfully.
      */
     bool initGameSystems();
+
+    /** Loads data-driven tuning values used by teammate blink UI. */
+    void initBlinkConfig();
     
     /**
      * Initializes the background and boss images for the current game scene.
@@ -432,8 +461,32 @@ public:
     
     /**
      * Updates the player and teammate UI icons to reflect their current health.
+     *
+     * @param dt Delta time in seconds.
      */
-    void updatePlayerAndTeammateIcons();
+    void updatePlayerAndTeammateIcons(float dt);
+
+    /**
+     * Updates one teammate icon's blink state and tint based on health deltas.
+     *
+     * @param slot              The teammate icon node to tint.
+     * @param player            The teammate whose health drives the icon state.
+     * @param lastHealth        The previous observed health snapshot for this teammate.
+     * @param damageBlinkTimer  Countdown used for red damage blinking.
+     * @param healBlinkTimer    Countdown used for the green heal flash.
+     * @param dt                Delta time in seconds.
+     */
+    void updateTeammateBlink(
+        const std::shared_ptr<cugl::scene2::PolygonNode>& slot,
+        Player* player,
+        float& lastHealth,
+        float& damageBlinkTimer,
+        float& healBlinkTimer,
+        float dt
+    );
+
+    /** Resynchronises teammate blink state with the current local player. */
+    void resetTeammateBlinkState();
 
     /**
      * Checks whether the reset button was tapped and calls reset() if so.
