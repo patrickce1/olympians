@@ -118,8 +118,8 @@ std::string NetworkController::getRoom() {
  * Should be called when leaving a lobby or game session.
  */
 void NetworkController::disconnect() {
-    _network->close();
-    _network = nullptr;
+	CULog("Disconnecting");
+	_network = nullptr;
     _onlinePlayers.clear();
     _gameStarted = false;
     _gameWon = false;
@@ -146,13 +146,23 @@ void NetworkController::dispose() {
  */
 bool NetworkController::isHost() {
 	if (!_network) { return false; }
+	if (_network->getState() == NetcodeConnection::State::MIGRATING) {
+		CULog("Migrating. The host is %s", _network->getHost().c_str());
+		CULog("I am %s", _network->getUUID().c_str());
+	}
+	else if (_network->getState() == NetcodeConnection::State::DISCONNECTED) {
+		CULog("this fucking pisses me off");
+		_network->open();
+	}
+	else {
+		CULog("I'm done migrating. The host is %s", _network->getHost().c_str());
+	}
 	return _network->isHost();
 }
 
 /**
  * Returns the current connection status as a simplified Status enum.
  * Maps the netcode layer's connection states to WAITING, CONNECTED, or FAILED.
- * Closes the connection automatically on any failure state.
  *
  * @return  The current connection status.
  */
@@ -161,9 +171,11 @@ NetworkController::Status NetworkController::checkConnection() {
 
 	switch (_network->getState()) {
 		case NetcodeConnection::State::NEGOTIATING:
+		case NetcodeConnection::State::MIGRATING:
 			return Status::WAITING;
 			break;
 		case NetcodeConnection::State::CONNECTED:
+		case NetcodeConnection::State::INSESSION:
 			return Status::CONNECTED;
 			break;
 		case NetcodeConnection::State::DENIED:
@@ -171,10 +183,12 @@ NetworkController::Status NetworkController::checkConnection() {
 		case NetcodeConnection::State::MISMATCHED:
 		case NetcodeConnection::State::FAILED:
 		case NetcodeConnection::State::DISCONNECTED:
-			_network->close();
+		case NetcodeConnection::State::DISPOSED:
+		case NetcodeConnection::State::INACTIVE:
 			return Status::FAILED;
 			break;
 	}
+
 	return FAILED;
 }
 

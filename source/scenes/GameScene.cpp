@@ -1507,7 +1507,9 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
  */
 void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
-
+    if (_network->isHost()) {
+        CULog("I'm host!!!");
+    }
     handleResetButton(input);
     handlePlayerInput(input);
     input.resetAction();
