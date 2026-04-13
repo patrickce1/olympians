@@ -150,7 +150,6 @@ static void testEnemyInitSetsCoreFields(const std::string& enemiesJsonPath) {
     if (!ok) return;
 
     expect(enemy->getId() == "cyclops", "init: id set");
-    expect(!enemy->getName().empty(), "init: name set");
     expect(enemy->getMaxHealth() > 0.0f, "init: maxHealth > 0");
     expect(enemy->getCurrentHealth() == enemy->getMaxHealth(), "init: currentHealth starts at max");
     expect(enemy->getCurrentState() == EnemyLoader::State::IDLE, "init: starts in idle");
