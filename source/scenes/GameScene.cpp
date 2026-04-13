@@ -333,11 +333,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     }
     
     _assets->loadDirectory("json/itemTextures.json");
-<<<<<<< noam-attack-animations
     _assets->loadDirectory("json/itemAnimations.json");
-=======
     _assets->loadDirectory("json/houseInGameIcons.json");
->>>>>>> main
 
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
