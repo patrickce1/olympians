@@ -153,6 +153,7 @@ public:
     static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
     /**
      * Extract House enum from a string.
+     * Accepts "zeus", "poseidon", "hades", "demeter", "ares", "athena", or "none" (case-insensitive, trimmed).
      *
      * @param value     The string token to parse
      * @param fallback  The house to return if parsing fails

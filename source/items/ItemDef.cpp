@@ -84,6 +84,7 @@ ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
 
 /**
  * Parses a house identifier from a string.
+ * Accepts "zeus", "poseidon", "hades", "demeter", "ares", "athena", or "none" (case-insensitive, trimmed).
  *
  * @param value     The string token to parse
  * @param fallback  The house to return if parsing fails
