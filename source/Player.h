@@ -119,6 +119,26 @@ public:
 
     /*Setter for current health*/
     void setCurrentHealth(float health) { _currentHealth = health; }
+
+    /**
+     * Overwrites runtime support-effect state from the authoritative host snapshot.
+     *
+     * @param shieldMitigation  The fixed damage amount blocked by the active shield.
+     * @param shieldDuration    The remaining shield duration in seconds.
+     * @param barrierMultiplier The active barrier damage multiplier.
+     * @param barrierDuration   The remaining barrier duration in seconds.
+     */
+    void syncRuntimeEffects(float shieldMitigation,
+                            float shieldDuration,
+                            float barrierMultiplier,
+                            float barrierDuration) {
+        _hasShield = shieldDuration > 0.0f;
+        _shieldMitigation = _hasShield ? shieldMitigation : 0.0f;
+        _shieldDuration = _hasShield ? shieldDuration : 0.0f;
+        _hasBarrier = barrierDuration > 0.0f;
+        _barrierMultiplier = _hasBarrier ? barrierMultiplier : 1.0f;
+        _barrierDuration = _hasBarrier ? barrierDuration : 0.0f;
+    }
     
     /**
      * Returns the path of the spritesheet for the house
@@ -180,8 +200,12 @@ public:
 
     /** Clears runtime-only combat effects. */
     void clearRuntimeEffects() {
+        _hasShield = false;
+        _shieldMitigation = 0.0f;
         _shieldDuration = 0.0f;
         _hasBarrier = false;
+        _barrierMultiplier = 1.0f;
+        _barrierDuration = 0.0f;
     }
 
     /**
