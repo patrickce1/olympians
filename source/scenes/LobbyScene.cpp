@@ -505,6 +505,18 @@ void LobbyScene::swapPlayersByDisplayIndex(int displayA, int displayB) {
     beginSwapAnimation(displayA, displayB, modelA, modelB);
 }
 
+/**
+ * Begins a swap animation between two player cards, moving each to the
+ * other's home position.
+ * Records both cards' current positions as animation start points and hides their slot labels for the duration of the animation.
+ * The model swap is deferred until the animation completes. Does nothing if
+ * either display index is invalid or either card pointer is null.
+ *
+ * @param displayA  The display index of the first card to swap.
+ * @param displayB  The display index of the second card to swap.
+ * @param modelA    The model index of the first player, committed on completion.
+ * @param modelB    The model index of the second player, committed on completion.
+ */
 void LobbyScene::beginSwapAnimation(int displayA, int displayB, int modelA, int modelB) {
     if (displayA < 0 || displayB < 0 || displayA >= (int)_playerCards.size() || displayB >= (int)_playerCards.size()) {
         return;
@@ -533,17 +545,37 @@ void LobbyScene::beginSwapAnimation(int displayA, int displayB, int modelA, int 
     }
 }
 
+/**
+ * Updates the swap animation for two player cards trading positions.
+ * Linearly interpolates each card from its starting position to the other
+ * card's home position over the configured duration.
+ * On completion, snaps both cards to their final positions, restores slot visibility, and
+ * commits the pending model swap via the network and game state.
+ * Resets all animation state when complete or if either display index is invalid.
+ *
+ * @param timestep  The time elapsed since the last update, in seconds.
+ */
 void LobbyScene::updateSwapAnimation(float timestep) {
     if (!_isSwapAnimating) {
         return;
     }
 
-    if (_swapAnimDisplayA < 0 || _swapAnimDisplayB < 0 ||
-        _swapAnimDisplayA >= (int)_playerCards.size() || _swapAnimDisplayB >= (int)_playerCards.size() ||
-        !_playerCards[_swapAnimDisplayA] || !_playerCards[_swapAnimDisplayB] ||
-        _swapAnimDisplayA >= (int)_playerCardHomePositions.size() || _swapAnimDisplayB >= (int)_playerCardHomePositions.size()) {
+    bool invalid = false;
+    if (_swapAnimDisplayA < 0 || _swapAnimDisplayB < 0){
+        invalid = true;
+    }
+    if (_swapAnimDisplayA >= (int)_playerCards.size() || _swapAnimDisplayB >= (int)_playerCards.size()) {
+        invalid = true;
+    }
+    if (!_playerCards[_swapAnimDisplayA] || !_playerCards[_swapAnimDisplayB]) {
+        invalid = true;
+    }
+    if (_swapAnimDisplayA >= (int)_playerCardHomePositions.size() || _swapAnimDisplayB >= (int)_playerCardHomePositions.size()) {
+        invalid = true;
+    };
+    if (invalid) { //end
         if (_swapAnimDisplayA >= 0 && _swapAnimDisplayA < (int)_playerSlots.size() && _playerSlots[_swapAnimDisplayA]) {
-            _playerSlots[_swapAnimDisplayA]->setVisible(true);
+            _playerSlots[_swapAnimDisplayA]->setVisible(true); //reset anim
         }
         if (_swapAnimDisplayB >= 0 && _swapAnimDisplayB < (int)_playerSlots.size() && _playerSlots[_swapAnimDisplayB]) {
             _playerSlots[_swapAnimDisplayB]->setVisible(true);
@@ -592,6 +624,14 @@ void LobbyScene::updateSwapAnimation(float timestep) {
     }
 }
 
+/**
+ * Begins a return animation for the player card at the given display index,
+ * moving it back to its home position. Records the card's current position
+ * as the animation start point. Does nothing if the index is invalid or
+ * the card pointer is null.
+ *
+ * @param displayIndex  The display index of the card to animate back home.
+ */
 void LobbyScene::beginReturnAnimation(int displayIndex) {
     if (displayIndex < 0 || displayIndex >= (int)_playerCards.size() ||
         displayIndex >= (int)_playerCardHomePositions.size()) {
@@ -609,6 +649,14 @@ void LobbyScene::beginReturnAnimation(int displayIndex) {
     _returnAnimStart = card->getPosition();
 }
 
+/**
+ * Updates the return animation for a player card moving back to its home position.
+ * Linearly interpolates the card's position from its starting point to its home
+ * position over the configured duration. Resets animation state when complete
+ * or if the display index is invalid.
+ *
+ * @param timestep  The time elapsed since the last update, in seconds.
+ */
 void LobbyScene::updateReturnAnimation(float timestep) {
     if (!_isReturnAnimating) {
         return;
@@ -773,6 +821,7 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
     }
     _bossImage->setContentSize(228,228);
 }
+
 
 /**
  * The method called to update the scene.
