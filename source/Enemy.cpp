@@ -160,8 +160,11 @@ void Enemy::updateHealth(float delta) {
     if (_currentHealth < 0.0f) _currentHealth = 0.0f;
 }
 
-/** Handles taking damage and applying the side modifiers
-Use this method instead of updateHealth() for appropriate damage multiplication */
+/* Handles taking damage and applying the side modifiers
+ * Use this method instead of updateHealth() for appropriate damage multiplication
+ * @param damage is the amount of damage being done to the boss
+ * @param playerIndex is the index that was assigned to the player by the host
+*/
 void Enemy::takeDamage(float damage, int playerIndex) {
     //get relative index based on which side of the boss the player is on
     int relativeIndex = (playerIndex - _targetIndex + NUM_PLAYERS) % NUM_PLAYERS;
@@ -175,14 +178,16 @@ void Enemy::takeDamage(float damage, int playerIndex) {
 }
 
 /** Lets you change the multipler value on the side equal to relativeIndex
-   As the name suggests, this index is RELATIVE. So 0 would be the direction where boss is facing */
+ * @param relativeIndex is the side we want to change the multiplier for. 0 is the direction the boss is facing
+ * @param multiplier the damage multiplier we want to apply to relativeIndex
+ */
 void Enemy::setSideMultiplier(int relativeIndex, float multiplier) {
     _sideMultipliers[relativeIndex] = multiplier;
 }
 
 /** Returns the multiplier data for the given absolute side index.
- * Index 0 corresponds to the side facing the host, regardless of the boss' direction.
- * This index is absolute, not relative to the boss' orientation. */
+ * @param absoluteIndex is the side we want to get. Index 0 corresponds to the side facing the host, regardless of the boss' direction.
+ */
 float Enemy::getSideMultiplier(int absoluteIndex) {
     int relativeIndex = (absoluteIndex - _targetIndex + NUM_PLAYERS) % NUM_PLAYERS;
     if (relativeIndex < _sideMultipliers.size()) {

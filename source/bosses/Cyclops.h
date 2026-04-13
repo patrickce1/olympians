@@ -10,10 +10,15 @@ private:
 public:
 	Cyclops() {}
 
-	//override version of Enemy's init method, where custom data like the _eyeMultiplier are initialized
+	/** Override version of Enemy's init method, where custom data can be initialized
+	 * @param enemyID represents the name/id of the boss we are trying to get the data for
+	 * @param jsonPath is the path to the enemies.json file
+	 */
 	bool init(const std::string& enemyId, const std::string& jsonPath) override;
 	
-	//override version of update for custom behavior processing
+	/** Override of the enemy update method for custom logic 
+	 * @param dt is the time that passed from the last time update was called
+	 */
 	void update(float dt) override;
 
 };

@@ -342,11 +342,11 @@ void NetworkController::clearQueues() {
  * Called by non-host clients when the local player attacks the boss.
  *
  * @param damage    The amount of damage dealt to the boss.
- * @param playerIndex Which player is dealing damage to a player
+ * @param playerIndex Which player is dealing damage to the boss
  */
-void NetworkController::broadcastDamage(float damage, int playerIndex) {
+void NetworkController::broadcastDamage(float damageAmount, int playerIndex) {
 	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
-	_serializer.writeFloat(damage);
+	_serializer.writeFloat(damageAmount);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }

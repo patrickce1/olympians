@@ -135,8 +135,10 @@ public:
      */
     float getSideMultiplier(int absoluteIndex);
     
-    /* Lets you change the multipler value on the side equal to relativeIndex
-    As the name suggests, this index is RELATIVE. So 0 would be the direction where boss is facing*/
+    /** Lets you change the multipler value on the side equal to relativeIndex
+     * @param relativeIndex is the side we want to change the multiplier for. 0 is the direction the boss is facing
+     * @param multiplier the damage multiplier we want to apply to relativeIndex
+     */
     void setSideMultiplier(int relativeIndex, float multiplier);
     
     /* Expose state defs so controller can pick attacks by tag */ 
@@ -155,7 +157,10 @@ public:
     void updateHealth(float delta);
 
     /* Handles taking damage and applying the side modifiers
-    Use this method instead of updateHealth() for appropriate damage multiplication */
+     * Use this method instead of updateHealth() for appropriate damage multiplication 
+     * @param damage is the amount of damage being done to the boss
+     * @param playerIndex is the index that was assigned to the player by the host
+    */
     void virtual takeDamage(float damage, int playerIndex);
 
     /** Immediately enters the state and resets timers. */

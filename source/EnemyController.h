@@ -50,8 +50,11 @@ private:
     /** Chooses the next state tagged with "attack" for the enemy to enter. */
     EnemyLoader::State chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
 
-    /* Determines whether the boss should enter a defensive state.
-       Returns true if a random chance roll succeeds, or if the enemy's defensive condition is met.*/ 
+    /**
+     * Determines whether the boss should enter a defensive state.
+     * Returns true if a random chance roll succeeds, or if the enemy's defensive condition is met.
+     * @param enemy the enemy used to evaluate whether the defense condition applies
+     */
     bool shouldDefend(const std::shared_ptr<Enemy>& enemy);
 
     void resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy,
@@ -63,11 +66,17 @@ private:
                           std::vector<std::shared_ptr<Player>>& players,
                             const Enemy::FiredEvent& fe);
     
-    /** Applies side modifiers to the boss based on a side modifier event */
+    /** Applies side modifiers to the boss based on a side modifier event
+     * @param enemy points to the enemy whose side data is being changed
+     * @param event is event that was fired by the enemy AI that is meant to change the side data
+     */    
     void resolveSideMultiplierEvent(const std::shared_ptr<Enemy>& enemy,
         const Enemy::FiredEvent& fe);
     
-    /** Applies a heal to the boss based on a heal event */
+    /** Applies a heal to the boss based on a heal event
+     * @param enemy points to the enemy that is being healed
+     * @param event is event that was fired by the enemy AI that is meant to heal the boss
+     */
     void resolveHealEvent(const std::shared_ptr<Enemy>& enemy,
         const Enemy::FiredEvent& fe);
 };

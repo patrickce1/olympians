@@ -98,7 +98,14 @@ public:
     bool isHost();
 
     /* Atomic style update functions. The following are ONLY SENT TO THE HOST*/
-    /*Tells the host that the boss has been damaged for damageAmount*/
+    
+    /**
+     * Sends an attack message to the host with the given damage value.
+     * Called by non-host clients when the local player attacks the boss.
+     *
+     * @param damage    The amount of damage dealt to the boss.
+     * @param playerIndex Which player is dealing damage to the boss
+    */
     void broadcastDamage(float damageAmount, int playerIndex);
 
     /**
