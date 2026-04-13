@@ -448,16 +448,28 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
             
             // Check if this item has an associated use animation
             if (def->hasItemUseAnimation()) {
-                // For animated attacks: queue animation with itemId
-                // Damage will be applied when animation reaches resolution frame
+                // For animated attacks: calculate damage, remove item, queue animation.
+                // Damage will be applied at animation resolution frame.
+                
+                const float resolvedMagnitude = calculateItemDamage(local, def, _itemController.getDatabase());
+                if (resolvedMagnitude <= 0.0f) {
+                    return false;
+                }
+                
+                // Remove item from inventory
+                if (!removeItemFromInventory(local, item.getId())) {
+                    CULog("ERROR: Failed to remove item %llu from inventory", (unsigned long long)item.getId());
+                    return false;
+                }
+                
                 const auto& animConfig = def->getItemUseAnimation();
                 
-                CULog("Player attacked enemy '%s' with item %llu (animation queued, damage deferred)",
-                      enemy->getId().c_str(), (unsigned long long)itemId);
+                CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
+                      resolvedMagnitude);
                 
-                // Queue animation with itemId for damage application at resolution frame
-                // Pass 0.0f as damageAmount for now; will be calculated at resolution frame
-                startItemUseAnimation(animConfig, 0.0f, cugl::Vec2::ZERO, itemId);
+                // Queue animation with pre-calculated damage (item already removed)
+                // Damage will be applied at resolution frame
+                startItemUseAnimation(animConfig, resolvedMagnitude, cugl::Vec2::ZERO, 0);
                 
             } else {
                 // No animation; apply damage and broadcast immediately
@@ -2153,6 +2165,58 @@ void GameScene::resetGameState() {
 }
 
 /**
+ * Calculates the effective damage value for an attack item.
+ * Factors in house role multipliers and affinity bonuses.
+ */
+float GameScene::calculateItemDamage(const Player* player, const std::shared_ptr<const ItemDef>& itemDef, const ItemDatabase& database) {
+    if (!player || !itemDef) return 0.0f;
+    
+    float houseRoleMultiplier = 0.0f;
+    float affinityBonus = 1.0f;
+    const auto* houseMultipliers = database.getHouseMultipliers(player->getHouseName());
+    if (houseMultipliers) {
+        houseRoleMultiplier = houseMultipliers->attack;
+        // Affinity bonus only applies to rare/divine items when item affinity matches player house
+        const bool affinityEligible = (itemDef->getRarity() == ItemDef::Rarity::Rare || 
+                                       itemDef->getRarity() == ItemDef::Rarity::Divine);
+        const bool affinityMatch = (itemDef->getHouseAffinity() == ItemDef::houseFromString(player->getHouseName(), ItemDef::House::None));
+        if (affinityEligible && affinityMatch) {
+            affinityBonus = houseMultipliers->affinityBonus;
+        }
+    }
+    float resolvedMagnitude = itemDef->getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
+    if (resolvedMagnitude <= 0.0f) {
+        resolvedMagnitude = 0.01f;
+    }
+    
+    CULog("ItemDamageCalc: item='%s' playerHouse='%s' baseVal=%.3f * (1+%.3f) * %.3f = %.3f",
+          itemDef->getId().c_str(),
+          player->getHouseName().c_str(),
+          itemDef->getBaseValue(),
+          houseRoleMultiplier,
+          affinityBonus,
+          resolvedMagnitude);
+    
+    return resolvedMagnitude;
+}
+
+/**
+ * Removes an item from a player's inventory by item ID.
+ */
+bool GameScene::removeItemFromInventory(Player* player, ItemInstance::ItemId itemId) {
+    if (!player) return false;
+    
+    auto& inventory = const_cast<std::vector<ItemInstance>&>(player->getInventory());
+    for (auto itemIter = inventory.begin(); itemIter != inventory.end(); ++itemIter) {
+        if (itemIter->getId() == itemId) {
+            inventory.erase(itemIter);
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Starts an item use animation overlay.
  * Creates a sprite with the animation spritesheet and queues it for frame updates.
  */
@@ -2250,20 +2314,18 @@ void GameScene::updateItemUseAnimations(float dt) {
         if (!anim.damageResolved && frameIndex >= anim.damageResolutionFrame) {
             anim.damageResolved = true;
             
-            // For animated attacks: apply damage now (was deferred from handleAttack)
-            if (anim.itemId != 0) {
+            // Apply pre-calculated damage to enemy at resolution frame
+            // This is where gameplay effect systems can hook in
+            if (anim.damageAmount > 0.0f) {
                 auto enemy = _gameState.getEnemy();
-                Player* local = _gameState.getLocalPlayer();
-                if (enemy && local) {
-                    const float resolvedMagnitude = local->useItemById(anim.itemId, *enemy, _itemController.getDatabase());
-                    anim.damageAmount = resolvedMagnitude;  // Store the actual resolved amount
-                }
-            }
-            
-            // Broadcast damage to network
-            if (_network && anim.damageAmount > 0.0f) {
-                if (!_network->isHost()) {
-                    _network->broadcastDamage(anim.damageAmount);
+                if (enemy) {
+                    enemy->updateHealth(-anim.damageAmount);
+                    
+                    // Only non-hosts broadcast damage messages.
+                    // Hosts apply damage locally and broadcast it via broadcastGameState().
+                    if (_network && !_network->isHost()) {
+                        _network->broadcastDamage(anim.damageAmount);
+                    }
                 }
             }
             
@@ -2282,8 +2344,8 @@ void GameScene::updateItemUseAnimations(float dt) {
     }
     
     // Remove completed animations in reverse order to maintain indices
-    for (auto it = completedIndices.rbegin(); it != completedIndices.rend(); ++it) {
-        _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *it);
+    for (auto completedIndexIter = completedIndices.rbegin(); completedIndexIter != completedIndices.rend(); ++completedIndexIter) {
+        _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *completedIndexIter);
     }
 }
 

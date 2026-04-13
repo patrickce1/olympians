@@ -773,6 +773,26 @@ public:
      */
     void refreshTeammateNameLabels();
     
+    /**
+     * Calculates the effective damage value for an attack item.
+     * Factors in house role multipliers and affinity bonuses.
+     * 
+     * @param player     The attacking player
+     * @param itemDef    The item definition to calculate damage for
+     * @param database   The item database for house multipliers
+     * @return           Calculated damage magnitude
+     */
+    float calculateItemDamage(const Player* player, const std::shared_ptr<const ItemDef>& itemDef, const ItemDatabase& database);
+    
+    /**
+     * Removes an item from a player's inventory by item ID.
+     * 
+     * @param player   The player whose inventory to modify
+     * @param itemId   The ID of the item instance to remove
+     * @return         true if item was found and removed, false otherwise
+     */
+    bool removeItemFromInventory(Player* player, ItemInstance::ItemId itemId);
+    
 #pragma mark - Inventory UI
 
     /**
