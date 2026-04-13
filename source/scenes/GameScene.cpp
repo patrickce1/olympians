@@ -511,9 +511,9 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
             
             // Delegate to the appropriate attack handler based on animation config
             if (def->hasItemUseAnimation()) {
-                return handleAnimatedAttack(itemId, item, def, local, enemy);
+                return handleAnimatedAttack(itemId, item, def, local, enemy.get());
             } else {
-                return handleImmediateAttack(itemId, item, def, local, enemy);
+                return handleImmediateAttack(itemId, item, def, local, enemy.get());
             }
         }
         return false;
