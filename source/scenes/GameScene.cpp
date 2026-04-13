@@ -2166,7 +2166,24 @@ void GameScene::resetGameState() {
 
 /**
  * Calculates the effective damage value for an attack item.
- * Factors in house role multipliers and affinity bonuses.
+ * 
+ * Applies the following formula:
+ *   damage = baseValue * (1 + houseRoleMultiplier) * affinityBonus
+ * 
+ * where:
+ *   - baseValue is from the item definition
+ *   - houseRoleMultiplier is looked up by player house (typically 0.0-0.5)
+ *   - affinityBonus applies to rare/divine items matching player house (typically 1.0-1.5)
+ * 
+ * This function extracts damage calculation into a reusable utility, allowing
+ * animated attacks to calculate damage upfront while deferring application to
+ * the animation resolution frame. Non-animated attacks continue to use useItemById()
+ * which combines calculation and application.
+ * 
+ * @param player     The attacking player (provides house name for multiplier lookup)
+ * @param itemDef    The item definition (provides base value and affinity info)
+ * @param database   The item database (provides house multipliers)
+ * @return           Calculated damage magnitude (minimum 0.01f if calculated value <= 0)
  */
 float GameScene::calculateItemDamage(const Player* player, const std::shared_ptr<const ItemDef>& itemDef, const ItemDatabase& database) {
     if (!player || !itemDef) return 0.0f;
@@ -2201,7 +2218,16 @@ float GameScene::calculateItemDamage(const Player* player, const std::shared_ptr
 }
 
 /**
- * Removes an item from a player's inventory by item ID.
+ * Removes an item from a player's inventory by item instance ID.
+ * 
+ * Searches through the player's inventory for an item matching the given ID
+ * and erases it from the inventory vector if found. Used to decouple item
+ * removal from damage application, allowing animated attacks to consume the
+ * item immediately while deferring damage to the animation keyframe.
+ * 
+ * @param player   The player whose inventory to modify (non-null)
+ * @param itemId   The unique ID of the item instance to remove
+ * @return         true if item was found and removed, false if not found or player is null
  */
 bool GameScene::removeItemFromInventory(Player* player, ItemInstance::ItemId itemId) {
     if (!player) return false;
@@ -2217,8 +2243,14 @@ bool GameScene::removeItemFromInventory(Player* player, ItemInstance::ItemId ite
 }
 
 /**
- * Starts an item use animation overlay.
- * Creates a sprite with the animation spritesheet and queues it for frame updates.
+ * Queues an item use animation for display in the special effects layer.
+ * 
+ * Loads the sprite sheet texture, creates a SpriteNode to render it, and adds the
+ * animation to the active queue for frame-by-frame updating. The animation tracks
+ * elapsed time and advances sprite frames proportionally to animation progress.
+ * 
+ * Damage is applied later in updateItemUseAnimations() when the keyframe is reached.
+ * This deferred application allows multiple systems to hook into the animation lifecycle.
  */
 void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, float damageAmount,
                                        const cugl::Vec2& itemPos, ItemInstance::ItemId itemId) {
@@ -2280,9 +2312,22 @@ void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, 
 }
 
 /**
- * Updates all active item use animations.
- * Advances animation frames based on elapsed time, broadcasts damage at resolution frames,
- * and removes completed animations from the queue.
+/**
+ * Updates all active item use animations for one frame.
+ * 
+ * For each animation in _activeItemUseAnimations:
+ *   1. Increments elapsedTime by dt
+ *   2. Calculates frame index based on animation progress
+ *   3. Updates sprite if frame changed (optimization: avoid redundant setFrame calls)
+ *   4. At damageResolutionFrame: applies damage and broadcasts network message
+ *   5. Cleans up animation when duration elapsed
+ * 
+ * CRITICAL NETWORK BEHAVIOR:
+ *   - Host: Applies damage locally, broadcasts via next broadcastGameState() (tick-synchronized)
+ *   - Client: Broadcasts damage message immediately (so host processes same frame it resolves)
+ *   This ensures all machines apply damage at identical animation frames, preventing state desync.
+ *
+ * @param dt  Delta time in seconds (from game loop)
  */
 void GameScene::updateItemUseAnimations(float dt) {
     if (_activeItemUseAnimations.empty()) {

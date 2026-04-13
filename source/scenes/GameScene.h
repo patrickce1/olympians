@@ -31,48 +31,54 @@ struct SnapbackAnimation {
 };
 
 /**
- * Represents a single item use animation currently playing on the screen.
- * When a player uses an attack item, an overlay animation sprite plays at a fixed position.
- * Damage is resolved (broadcasted and audio triggered) at a specific keyframe.
+ * Represents a single item use animation currently playing on screen.
+ * 
+ * When a player uses an attack item with animation, an overlay sprite plays and damage
+ * is applied at a specific keyframe (damageResolutionFrame). This struct tracks all state
+ * needed to manage the animation lifecycle: rendering, frame advancement, and damage timing.
+ * 
+ * The animation system allows visual feedback to play before damage is applied, enabling
+ * effects and sounds to be coordinated with specific animation frames. Multiple animations
+ * can be active simultaneously (stored in GameScene::_activeItemUseAnimations).
  */
 struct ItemUseAnimation {
-    /** The sprite sheet managing frame layout. */
+    /** The sprite sheet managing frame layout and texture coordinates. */
     std::shared_ptr<cugl::graphics::SpriteSheet> spriteSheet;
     
-    /** The sprite node displaying the sprite sheet frames. */
+    /** The sprite node displaying the sprite sheet frames in the scene graph. */
     std::shared_ptr<cugl::scene2::SpriteNode> node;
     
-    /** The original animation position (before any panning). */
+    /** The original animation position before any camera/viewport transforms. */
     cugl::Vec2 basePosition;
     
-    /** The size of a single frame in the sprite sheet. */
+    /** The size in pixels of a single frame in the sprite sheet. */
     cugl::Size frameSize;
     
-    /** Number of columns in the sprite sheet grid. */
+    /** Number of columns in the sprite sheet grid layout. */
     int frameCols = 1;
     
-    /** Total number of frames in the animation. */
+    /** Total number of frames in the animation sequence. */
     int frameCount = 0;
     
-    /** Duration (in seconds) for the entire animation. */
+    /** Total duration of the entire animation in seconds. */
     float animationDuration = 0.0f;
     
-    /** Frame index at which damage should be resolved and network broadcast triggered. */
+    /** Frame index at which damage should be applied to the target and network-broadcasted. */
     int damageResolutionFrame = 0;
     
-    /** Damage amount to broadcast when reaching the resolution frame. */
+    /** Pre-calculated damage amount to apply when reaching the resolution frame. */
     float damageAmount = 0.0f;
     
-    /** ItemId that triggered this animation (for deferred damage application). */
+    /** Reserved for future use: originally stored itemId for deferred calculation (now pre-calculated). */
     ItemInstance::ItemId itemId = 0;
     
-    /** Elapsed time in seconds since animation started. */
+    /** Elapsed time in seconds since animation started. Used to calculate current frame. */
     float elapsedTime = 0.0f;
     
-    /** False until damage has been resolved at the keyframe. Prevents duplicate broadcasts. */
+    /** Flag indicating whether damage has been applied at the resolution frame (prevents re-application). */
     bool damageResolved = false;
     
-    /** The frame index currently displayed (to avoid redundant setFrame() calls). */
+    /** The frame index currently being displayed (cached to avoid redundant setFrame() calls). */
     int currentFrameIndex = -1;
 };
 
@@ -693,26 +699,45 @@ public:
     bool isItemInVisibleArea(const cugl::Vec2& position);
     
     /**
-     * Starts an item use animation overlay.
-     * Creates and configures an AnimatedSprite from the sprite sheet, adds it to the special
-     * effects layer, and queues it for frame updates. Damage will be broadcast at the
-     * configured damageResolutionFrame.
-     *
-     * @param animConfig     The animation configuration specifying sprite sheet, frame timing, and damage trigger frame
-     * @param damageAmount   The damage value to broadcast when reaching damageResolutionFrame
-     * @param itemPos        The screen position at which to center the animation (center of viewport if omitted)
-     * @param itemId         The ItemId that triggered this animation (stored for deferred damage application)
+     * Queues an item use animation for display in the special effects layer.
+     * 
+     * Creates a SpriteNode from the specified sprite sheet and adds it to the scene graph.
+     * The animation will play in updateItemUseAnimations() each frame, advancing frames
+     * based on elapsed time. When the current frame index reaches damageResolutionFrame,
+     * the pre-calculated damage is applied and broadcast to the network.
+     * 
+     * The number of sheets and frame layout are specified in animConfig (from ItemDef).
+     * Damage is pre-calculated by the caller (not calculated here), allowing hostile
+     * consumers to perform custom calculations or effects between damage calc and application.
+     * 
+     * @param animConfig     Configuration from ItemDef specifying sprite sheet ID, rows/cols, 
+     *                       total frames, animation duration, and damage resolution keyframe
+     * @param damageAmount   Pre-calculated damage to apply at damageResolutionFrame
+     * @param itemPos        Screen position to center animation at (defaults to viewport center)
+     * @param itemId         Reserved for future use (currently unused; kept for extensibility)
      */
     void startItemUseAnimation(const ItemUseAnimationConfig& animConfig, float damageAmount, 
                                const cugl::Vec2& itemPos = cugl::Vec2::ZERO, 
                                ItemInstance::ItemId itemId = 0);
     
     /**
-     * Updates all active item use animations.
-     * Advances animation frames based on elapsed time, broadcasts damage at resolution frames,
-     * and removes completed animations from the queue.
+     * Updates all active item use animations for one frame.
+     * 
+     * For each active animation:
+     *   1. Advances elapsed time by dt
+     *   2. Calculates current frame index based on animation progress
+     *   3. Updates sprite sheet frame if frame index changed
+     *   4. At damageResolutionFrame: applies pre-calculated damage and broadcasts to network
+     *   5. Removes animation from queue when animation duration elapsed
+     * 
+     * Damage broadcast happens here to ensure tight synchronization between all clients:
+     * - Host: applies damage locally, broadcasts via next broadcastGameState()
+     * - Clients: broadcast damage message to host immediately after resolution
+     * 
+     * This architecture ensures damage is consistently applied at the same animation frame
+     * across all networked machines, preventing desync issues.
      *
-     * @param dt  Delta time in seconds.
+     * @param dt  Delta time in seconds (typically from game loop)
      */
     void updateItemUseAnimations(float dt);
     
@@ -775,21 +800,31 @@ public:
     
     /**
      * Calculates the effective damage value for an attack item.
-     * Factors in house role multipliers and affinity bonuses.
      * 
-     * @param player     The attacking player
-     * @param itemDef    The item definition to calculate damage for
-     * @param database   The item database for house multipliers
-     * @return           Calculated damage magnitude
+     * Computes damage multipliers based on the attacking player's house affiliation
+     * and the item's house affinity. Applies base value multiplied by house role
+     * multiplier and affinity bonus (for rare/divine items matching player house).
+     * 
+     * This function mirrors the damage calculation logic in Player::useItemById()
+     * but separates it for cases where damage needs to be deferred (animated attacks).
+     * 
+     * @param player     The attacking player (provides house for multiplier lookup)
+     * @param itemDef    The item definition containing base value and affinity info
+     * @param database   The item database for house multiplier lookup
+     * @return           Calculated damage magnitude, or 0.01f if calculation yields <= 0
      */
     float calculateItemDamage(const Player* player, const std::shared_ptr<const ItemDef>& itemDef, const ItemDatabase& database);
     
     /**
-     * Removes an item from a player's inventory by item ID.
+     * Removes an item from a player's inventory by item instance ID.
+     * 
+     * Searches for the item in the player's inventory and erases it if found.
+     * This is used to decouple item removal from damage calculation, allowing
+     * animations and effects to be applied between consumption and damage.
      * 
      * @param player   The player whose inventory to modify
-     * @param itemId   The ID of the item instance to remove
-     * @return         true if item was found and removed, false otherwise
+     * @param itemId   The unique ID of the item instance to remove
+     * @return         true if item was found and successfully removed, false otherwise
      */
     bool removeItemFromInventory(Player* player, ItemInstance::ItemId itemId);
     

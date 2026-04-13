@@ -140,7 +140,11 @@ public:
     /** Gets the animation configuration for this item (valid only if hasItemUseAnimation() is true) */
     const ItemUseAnimationConfig& getItemUseAnimation() const { return _itemUseAnimationConfig; }
     
-    /** Gets the sound to play when item is used (empty string if not defined) */
+    /**
+     * Gets the sound asset key to play when this item is used.
+     * Returns an empty string if no itemUseSound is defined in the item JSON.
+     * When empty, a default sound ("attack" or "support") is played instead.
+     */
     const std::string& getItemUseSound() const { return _itemUseSound; }
     
     /** Extract Type enum from a string */
