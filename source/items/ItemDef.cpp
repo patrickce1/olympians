@@ -52,6 +52,9 @@ static bool tryParseEffectType(const std::string& value, ItemDef::EffectType& ou
 /**
  * Parses an item type from a string.
  * Accepts "attack" or "support" (case-insensitive, trimmed).
+ *
+ * @param value     The string token to parse.
+ * @param fallback  The type to return if parsing fails.
  */
 ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
     value = normalizeToken(value);
@@ -64,6 +67,9 @@ ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
 /**
  * Parses an item rarity from a string.
  * Accepts "common", "rare", or "divine" (case-insensitive, trimmed).
+ *
+ * @param value     The string token to parse.
+ * @param fallback  The rarity to return if parsing fails.
  */
 ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
     value = normalizeToken(value);
@@ -76,6 +82,9 @@ ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
 
 /**
  * Parses a house identifier from a string.
+ *
+ * @param value     The string token to parse.
+ * @param fallback  The house to return if parsing fails.
  */
 ItemDef::House ItemDef::houseFromString(std::string value, House fallback) {
     value = normalizeToken(value);
@@ -95,6 +104,8 @@ ItemDef::House ItemDef::houseFromString(std::string value, House fallback) {
 
 /**
  * Parses a data-driven effect type from JSON.
+ *
+ * @param value  The string token describing the effect type.
  */
 ItemDef::EffectType ItemDef::effectTypeFromString(std::string value) {
     value = normalizeToken(value);
@@ -107,6 +118,9 @@ ItemDef::EffectType ItemDef::effectTypeFromString(std::string value) {
 
 /**
  * Parses one effect object from the JSON effects array.
+ *
+ * @param json  The JSON effect object to parse.
+ * @param out   Receives the parsed effect data on success.
  */
 static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect& out) {
     if (!json || !json->isObject()) return false;
@@ -146,6 +160,8 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
 
 /**
  * Returns true if this item contains at least one effect of the given type.
+ *
+ * @param type  The effect category to search for.
  */
 bool ItemDef::hasEffectType(EffectType type) const {
     for (const Effect& effect : _effects) {
