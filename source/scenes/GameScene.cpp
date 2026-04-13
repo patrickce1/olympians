@@ -130,7 +130,9 @@ bool GameScene::initSceneGraph() {
         
         // This is the special effects node, this is where all the animated effects will go.
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
+        _specialEffectsLayer->setContentSize(dimen);
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+        _specialEffectsLayer->setPosition(cugl::Vec2(dimen.width / 2.0f, dimen.height / 2.0f));
         _scene->addChild(_specialEffectsLayer);
     }
     
@@ -2282,12 +2284,18 @@ void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, 
     
     // Position the node
     cugl::Vec2 position = itemPos;
+    cugl::Size viewportSize = getSize();
     if (itemPos == cugl::Vec2::ZERO) {
-        position = cugl::Vec2(_size.width / 2.0f, _size.height / 2.0f);
+        position = cugl::Vec2(viewportSize.width / 2.0f, viewportSize.height / 2.0f);
     }
     
     node->setPosition(position);
     node->setAnchor(cugl::Vec2(0.5f, 0.5f));
+    
+    // Scale animation to fit viewport width while maintaining aspect ratio
+    // Use setScale instead of setContentSize to avoid distorting the texture
+    float scale = viewportSize.width / frameSize.width;
+    node->setScale(scale);
     
     // Add to special effects layer
     _specialEffectsLayer->addChild(node);
@@ -2311,7 +2319,6 @@ void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, 
     _activeItemUseAnimations.push_back(anim);
 }
 
-/**
 /**
  * Updates all active item use animations for one frame.
  * 
