@@ -5,6 +5,33 @@
 #include <vector>
 
 /**
+ * Configuration for item use animations.
+ * 
+ * When an item is used, an overlay animation can play on the screen.
+ * This config specifies the sprite sheet texture, layout (rows/cols), and
+ * at which frame the damage should be resolved (broadcasted to network/audio).
+ */
+struct ItemUseAnimationConfig {
+    /** Asset key for the sprite sheet texture (e.g., "mallet_animation"). */
+    std::string spriteSheetId;
+    
+    /** Number of rows in the sprite sheet. */
+    int rows = 0;
+    
+    /** Number of columns in the sprite sheet. */
+    int cols = 0;
+    
+    /** Total number of frames in the sprite sheet animation. */
+    int frameCount = 0;
+    
+    /** Duration (in seconds) for the entire animation. */
+    float animationDuration = 0.0f;
+    
+    /** Frame index at which to trigger damage resolution and network broadcast. */
+    int damageResolutionFrame = 0;
+};
+
+/**
  * Immutable, data-driven definition of an item type.
  *
  * Think: "Lightning Bolt" as a template (name, icon key, description, tuning params).
@@ -87,7 +114,16 @@ private:
 
     /* Collection of utility effects for this item */
     std::vector<Effect> _effects;
-
+    
+    /* Optional animation configuration for when item is used */
+    ItemUseAnimationConfig _itemUseAnimationConfig;
+    
+    /* Flag indicating whether _itemUseAnimationConfig is valid/present */
+    bool _hasItemUseAnimation = false;
+    
+    /* Optional sound to play when item is used (empty string if not defined) */
+    std::string _itemUseSound;
+    
 public:
     ItemDef() = default;
     ~ItemDef() = default;
@@ -126,6 +162,7 @@ public:
     Type getType() const { return _type; }
     /** Gets item rarity */
     Rarity getRarity() const { return _rarity; }
+
     /** Gets utility item effects */
     const std::vector<Effect>& getEffects() const { return _effects; }
     /**
@@ -134,6 +171,34 @@ public:
      * @param type  The effect category to search for.
      */
     bool hasEffectType(EffectType type) const;
+
+    /** Returns true if this item has an associated use animation */
+    bool hasItemUseAnimation() const { return _hasItemUseAnimation; }
+    
+    /** Gets the animation configuration for this item (valid only if hasItemUseAnimation() is true) */
+    const ItemUseAnimationConfig& getItemUseAnimation() const { return _itemUseAnimationConfig; }
+    
+    /**
+     * Gets the sound asset key to play when this item is used.
+     * Returns an empty string if no itemUseSound is defined in the item JSON.
+     * When empty, a default sound ("attack" or "support") is played instead.
+     */
+    const std::string& getItemUseSound() const { return _itemUseSound; }
+    
+    /**
+     * Parses optional itemUseAnimation configuration from JSON if present.
+     * Sets _itemUseAnimationConfig and _hasItemUseAnimation fields.
+     * 
+     * @param json The item definition JSON object
+     */
+    void parseItemUseAnimation(const std::shared_ptr<cugl::JsonValue>& json);
+    
+    /** Extract Type enum from a string */
+    static Type typeFromString(std::string value, Type fallback = Type::Attack);
+    /** Extract Rarity enum from a string */
+    static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
+    /** Extract House enum from a string */
+    static House houseFromString(std::string value, House fallback = House::None);
 
     /**
      * Extract Type enum from a string.
