@@ -33,7 +33,7 @@ constexpr float ITEM_MOVEMENT_MAX_SPEED = 2000.0f;
 constexpr float VELOCITY_DT_ESTIMATE = 0.016f; // ~60fps estimate
 constexpr float ITEM_PICKUP_SCALE = 1.12f;
 constexpr float ITEM_NORMAL_SCALE = 1.0f;
-constexpr float ITEM_SCALE_TWEEN_SPEED = 14.0f;
+constexpr float ITEM_SCALE_SPEED = 14.0f;
 constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
 
@@ -1795,7 +1795,7 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
 void GameScene::updateItemWidgetScales(float dt) {
     if (_itemWidgets.empty()) return;
 
-    const float lerpFactor = std::min(1.0f, dt * ITEM_SCALE_TWEEN_SPEED);
+    const float lerpFactor = std::min(1.0f, dt * ITEM_SCALE_SPEED);
     for (const auto& [itemId, widget] : _itemWidgets) {
         if (!widget) continue;
 
@@ -1834,7 +1834,7 @@ void GameScene::spawnConsumedItemAnimation(const std::shared_ptr<SceneNode>& sou
     cugl::Rect sourceBounds = sourceWidget->getBoundingBox();
     cugl::Vec2 sourceCenter = sourceBounds.origin +
                               cugl::Vec2(sourceBounds.size.width * 0.5f,
-                                         sourceBounds.size.height * 0.5f);
+                                         sourceBounds.size.height * 0.5f); //So that it doesn't shrink to the anchor in bottom left.
 
     ghost->setAnchor(cugl::Vec2::ANCHOR_CENTER);
     ghost->setContentSize(sourceWidget->getContentSize());
