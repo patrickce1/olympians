@@ -78,7 +78,7 @@ void ClientScene::setupUI() {
     _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("clientScene.back"));
     
-    _hostButton = std::dynamic_pointer_cast<scene2::Button>( _assets->get<scene2::SceneNode>("clientScene.joinHeader.host"));
+    _hostButton = std::dynamic_pointer_cast<scene2::Button>( _assets->get<scene2::SceneNode>("clientScene.host"));
 
     _gameId = std::dynamic_pointer_cast<scene2::TextField>(
         _assets->get<scene2::SceneNode>("clientScene.center.gameID.text"));

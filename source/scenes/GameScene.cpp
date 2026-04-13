@@ -147,6 +147,20 @@ static std::string getHealthTexture(HealthState state, std::string houseID) {
     return "basicTeammateIcon";
 }
 
+/**
+ * Returns whether a damage blink should currently render its red tint.
+ *
+ * The timer counts down from the total blink duration to zero. We alternate the
+ * red overlay on fixed cadence bands until the timer expires.
+ */
+static bool shouldShowDamageBlink(float timer, float interval) {
+    if (timer <= 0.0f || interval <= 0.0f) {
+        return false;
+    }
+    const int phase = static_cast<int>(timer / interval);
+    return (phase % 2) == 0;
+}
+
 #pragma mark -
 #pragma mark Constructors
 
@@ -204,6 +218,8 @@ bool GameScene::initSceneGraph() {
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
         _scene->addChild(_specialEffectsLayer);
+        _supportLeftArea = _gameArea->getChildByName("supportLeft");
+        _supportRightArea = _gameArea->getChildByName("supportRight");
     }
     
     if (_inventory) {
@@ -261,6 +277,34 @@ bool GameScene::initGameSystems() {
 }
 
 /**
+ * Loads data-driven tuning values used by teammate blink UI.
+ *
+ * Missing or invalid fields leave the current defaults unchanged.
+ */
+void GameScene::initBlinkConfig() {
+    if (!_assets) {
+        return;
+    }
+
+    auto config = _assets->get<JsonValue>("gameSceneConfig");
+    if (!config || !config->isObject()) {
+        return;
+    }
+
+    auto blinkConfig = config->get("teammateBlink");
+    if (!blinkConfig || !blinkConfig->isObject()) {
+        return;
+    }
+
+    if (blinkConfig->has("duration") && blinkConfig->get("duration")->isNumber()) {
+        _blinkDuration = std::max(0.0f, blinkConfig->getFloat("duration"));
+    }
+    if (blinkConfig->has("interval") && blinkConfig->get("interval")->isNumber()) {
+        _blinkInterval = std::max(0.0f, blinkConfig->getFloat("interval"));
+    }
+}
+
+/**
  * Initializes touch/mouse input zones mapped to game actions.
  *
  * Divides the screen into named rectangular regions scaled to the current
@@ -276,11 +320,21 @@ void GameScene::initInputZones(){
     
     _attackZones = {{InputController::Action::DROP_BOSS, Rect(w * 0.05f, h * 0.45f, w * 0.9f, h * 0.40f)}};
     
+    // Setup up texture node according to zone size
+    _attackArea = PolygonNode::allocWithTexture(_assets->get<cugl::graphics::Texture>("attackZone"));
+    _gameArea->addChild(_attackArea);
+    Rect attackAreaRect = _attackZones[0].second;
+
+    _attackArea->setAnchor(Vec2::ANCHOR_CENTER);
+    _attackArea->setContentSize(attackAreaRect.size);
+    _attackArea->setPosition(_gameArea->getSize()/2);
+    _attackArea->setVisible(false);
+    
     _supportZones = {
         {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.45f, w * 0.399f, h * 0.40f)},
         {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.75f,   h * 0.45f, w * 0.399f, h * 0.40f)},
     };
-    
+      
     _inventoryZones = {
         {InputController::Action::NONE, Rect(w * 0.10f, 0, w * 0.80f, h * 0.35f)}
     };
@@ -331,12 +385,14 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     _assets = assets;
     _network = networkController;
     _audio = audio;
-
-    initInputZones();
+    
+    initBlinkConfig();
 
     if (!initSceneGraph()) {
         return false;
     }
+    
+    initInputZones();
 
     if (!initPhysicsWorld()) {
         return false;
@@ -347,6 +403,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     }
     
     _assets->loadDirectory("json/itemTextures.json");
+    _assets->loadDirectory("json/houseInGameIcons.json");
 
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
@@ -371,6 +428,8 @@ void GameScene::dispose() {
         _leftPlayerSlot = nullptr;
         _rightPlayerSlot = nullptr;
         _leftPlayerName = nullptr;
+        _supportLeftArea = nullptr;
+        _supportRightArea = nullptr;
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
         _bossHealthBarText = nullptr;
@@ -469,6 +528,7 @@ void GameScene::reset() {
 
     // Delegate inventory clearing and health resetting to the model.
     _gameState.reset();
+    resetTeammateBlinkState();
 }
 
 #pragma mark -
@@ -480,6 +540,7 @@ void GameScene::reset() {
  */
 void GameScene::setLocalPlayer(int assignedIndex) {
     _gameState.setLocalPlayer(assignedIndex);
+    resetTeammateBlinkState();
 }
 
 #pragma mark -
@@ -825,23 +886,118 @@ void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
 /**
  * Updates the player and teammate UI icons to reflect their current health.
  */
-void GameScene::updatePlayerAndTeammateIcons() {
+void GameScene::updatePlayerAndTeammateIcons(float dt) {
     auto localPlayer = _gameState.getLocalPlayer();
+    if (!localPlayer) return;
 
     // Given each player and their respective slot, set the texture depending on their health state.
     auto applyTexture = [&](auto slot, auto player) {
+        if (!slot || !player) return;
         slot->setTexture(_assets->get<cugl::graphics::Texture>(
             getHealthTexture(
                 getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
                              player->getHouseName()
             ))
         );
+        slot->setScale(0.5f);
     };
 
     applyTexture(_localPlayerSlot, localPlayer);
-    _localPlayerSlot->setScale(0.83f);
+    _localPlayerSlot->setScale(0.415f);
     applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
+    updateTeammateBlink(_leftPlayerSlot, localPlayer->getLeftPlayer(),
+                        _lastLeftPlayerHealth, _leftPlayerDamageBlinkTimer, _leftPlayerHealBlinkTimer, dt);
+    updateTeammateBlink(_rightPlayerSlot, localPlayer->getRightPlayer(),
+                        _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer, _rightPlayerHealBlinkTimer, dt);
+}
+
+/**
+ * Updates one teammate icon's blink state and tint based on health deltas.
+ *
+ * @param slot              The teammate icon node to tint.
+ * @param player            The teammate whose health drives the icon state.
+ * @param lastHealth        The previous observed health snapshot for this teammate.
+ * @param damageBlinkTimer  Countdown used for red damage blinking.
+ * @param healBlinkTimer    Countdown used for the green heal flash.
+ * @param dt                Delta time in seconds.
+ */
+void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonNode>& slot,
+                                    Player* player,
+                                    float& lastHealth,
+                                    float& damageBlinkTimer,
+                                    float& healBlinkTimer,
+                                    float dt) {
+    if (!slot || !player) return;
+
+    const float currentHealth = player->getCurrentHealth();
+    const bool hasPriorSnapshot = lastHealth >= 0.0f;
+    const bool isAlive = player->isAlive();
+    bool startedNewBlink = false;
+
+    if (hasPriorSnapshot && isAlive) {
+        if (currentHealth < lastHealth) {
+            damageBlinkTimer = _blinkDuration;
+            healBlinkTimer = 0.0f;
+            startedNewBlink = true;
+        } else if (currentHealth > lastHealth) {
+            healBlinkTimer = _blinkDuration / 2;
+            damageBlinkTimer = 0.0f;
+            startedNewBlink = true;
+        }
+    }
+
+    if (!startedNewBlink) {
+        if (damageBlinkTimer > 0.0f) {
+            damageBlinkTimer = std::max(0.0f, damageBlinkTimer - dt);
+        }
+        if (healBlinkTimer > 0.0f) {
+            healBlinkTimer = std::max(0.0f, healBlinkTimer - dt);
+        }
+    }
+
+    if (!isAlive) {
+        damageBlinkTimer = 0.0f;
+        healBlinkTimer = 0.0f;
+        slot->setColor(Color4(255, 255, 255, 255));
+    } else if (healBlinkTimer > 0.0f) {
+        slot->setColor(Color4(176, 224, 176, 255));
+    } else if (damageBlinkTimer > 0.0f && shouldShowDamageBlink(damageBlinkTimer, _blinkInterval)) {
+        slot->setColor(Color4(224, 160, 160, 255));
+    } else {
+        slot->setColor(Color4(255, 255, 255, 255));
+    }
+
+    lastHealth = currentHealth;
+}
+
+/**
+ * Resynchronises teammate blink state with the current local player.
+ */
+void GameScene::resetTeammateBlinkState() {
+    _leftPlayerDamageBlinkTimer = 0.0f;
+    _rightPlayerDamageBlinkTimer = 0.0f;
+    _leftPlayerHealBlinkTimer = 0.0f;
+    _rightPlayerHealBlinkTimer = 0.0f;
+    _lastLeftPlayerHealth = -1.0f;
+    _lastRightPlayerHealth = -1.0f;
+
+    if (_leftPlayerSlot) {
+        _leftPlayerSlot->setColor(Color4(255, 255, 255, 255));
+    }
+    if (_rightPlayerSlot) {
+        _rightPlayerSlot->setColor(Color4(255, 255, 255, 255));
+    }
+
+    Player* localPlayer = _gameState.getLocalPlayer();
+    if (!localPlayer) return;
+
+    if (Player* leftPlayer = localPlayer->getLeftPlayer()) {
+        _lastLeftPlayerHealth = leftPlayer->getCurrentHealth();
+    }
+    if (Player* rightPlayer = localPlayer->getRightPlayer()) {
+        _lastRightPlayerHealth = rightPlayer->getCurrentHealth();
+    }
 }
 
 /**
@@ -1576,6 +1732,36 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
     return screenBounds.contains(position);
 }
 
+/**
+ * Updates the visibility of all drop zones based on the current interaction.
+ *
+ * This function evaluates which drop zones should be visible at the current moment
+ * (e.g., during drag-and-drop interactions or based on item/type compatibility)
+ * and toggles their visibility accordingly.
+ */
+void GameScene::updateDropZoneVisibility(){
+    if (_draggedItemId != 0) {
+        
+        // Render attack/support zones based on item type
+        auto itemDef = getHeldItemDef(_draggedItemId);
+        
+        if (itemDef) {
+            if (itemDef->getType() == ItemDef::Type::Attack) {
+                // Render attack zones when holding attack item
+                _attackArea->setVisible(true);
+            } else {
+                // Render support zones when holding heal/support item
+                _supportLeftArea->setVisible(true);
+                _supportRightArea->setVisible(true);
+            }
+        }
+    } else {
+        _attackArea->setVisible(false);
+        _supportLeftArea->setVisible(false);
+        _supportRightArea->setVisible(false);
+    }
+}
+
 #pragma mark -
 #pragma mark Update
 
@@ -1601,6 +1787,7 @@ void GameScene::update(float dt, InputController& input) {
         player->updateEffects(dt);
     }
     updateEnemyAndAI(dt);
+    updateDropZoneVisibility();
 
     // Update sliding items before physics world update
     updateSlidingItems(dt);
@@ -1622,7 +1809,7 @@ void GameScene::update(float dt, InputController& input) {
 
     _network->clearQueues();
     updatePlayerAndEnemyHealthUI(dt);
-    updatePlayerAndTeammateIcons();
+    updatePlayerAndTeammateIcons(dt);
 }
 
 #pragma mark -
@@ -1878,7 +2065,7 @@ void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
 }
 
 /** Draws zone outlines and a fading glow on the last successfully used zone. */
-void GameScene::renderDropZones(cugl::graphics::SpriteBatch* batch) {
+void GameScene::renderDropZonesDebug(cugl::graphics::SpriteBatch* batch) {
     batch->setColor(Color4(0, 255, 0, 255));
     
     // Only render zones if holding an item
@@ -1961,7 +2148,7 @@ void GameScene::render() {
         renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
     }
-    renderDropZones(batch.get());
+//    renderDropZonesDebug(batch.get());
     batch->end();
 }
 
@@ -2110,6 +2297,7 @@ void GameScene::handleDisconnectedPlayers() {
 
         // Step 2b: Both host and clients refresh the teammate name labels.
         refreshTeammateNameLabels();
+        resetTeammateBlinkState();
     }
 }
 

@@ -1372,8 +1372,8 @@
                         1
                     ],
                     "size": [
-                        42,
-                        42
+                        43,
+                        43
                     ],
                     "angle": 0,
                     "position": [
@@ -1387,14 +1387,14 @@
                     "buttonbackBG": {
                         "type": "Image",
                         "data": {
-                            "texture": "buttonBackBG",
+                            "texture": "backArrow",
                             "anchor": [
                                 0,
                                 1
                             ],
                             "size": [
-                                42,
-                                42
+                                43,
+                                36
                             ],
                             "angle": 0,
                             "position": [
