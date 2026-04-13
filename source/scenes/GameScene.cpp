@@ -1792,6 +1792,15 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
     _passedItemIds.erase(itemId);
 }
 
+/**
+ * Smoothly interpolates each item widget's scale toward its target scale.
+ * Uses a frame-rate independent lerp factor based on the elapsed timestep
+ * and ITEM_SCALE_SPEED. Snaps to the target if within a small epsilon to
+ * avoid floating point drift. Initializes any widget with no tracked scale
+ * to ITEM_NORMAL_SCALE.
+ *
+ * @param dt  The time elapsed since the last update, in seconds.
+ */
 void GameScene::updateItemWidgetScales(float dt) {
     if (_itemWidgets.empty()) return;
 
@@ -1821,6 +1830,16 @@ void GameScene::updateItemWidgetScales(float dt) {
     }
 }
 
+/**
+ * Spawns a ghost animation of a consumed item, fading and scaling it out
+ * from the source widget's position. Creates a temporary polygon node using
+ * the item's icon texture, anchors it to the center of the source widget,
+ * and registers it as an active consumed item animation. Does nothing if
+ * any required reference is null or the item's texture cannot be found.
+ *
+ * @param sourceWidget  The widget representing the consumed item's position and scale.
+ * @param itemDef       The item definition used to look up the icon texture.
+ */
 void GameScene::spawnConsumedItemAnimation(const std::shared_ptr<SceneNode>& sourceWidget,
                                            const std::shared_ptr<const ItemDef>& itemDef) {
     if (!sourceWidget || !itemDef || !_inventory || !_assets) return;
@@ -1851,6 +1870,15 @@ void GameScene::spawnConsumedItemAnimation(const std::shared_ptr<SceneNode>& sou
     _consumedItemAnimations.push_back(anim);
 }
 
+/**
+ * Updates all active consumed item animations, scaling each ghost node
+ * from its start scale to its end scale over its configured duration.
+ * Removes finished animations from the list and detaches their nodes
+ * from the inventory scene graph. Skips any animation with a null node
+ * or invalid duration.
+ *
+ * @param dt  The time elapsed since the last update, in seconds.
+ */
 void GameScene::updateConsumedItemAnimations(float dt) {
     if (_consumedItemAnimations.empty()) return;
 
@@ -1876,6 +1904,10 @@ void GameScene::updateConsumedItemAnimations(float dt) {
         _consumedItemAnimations.end());
 }
 
+/**
+ * Clears all active consumed item animations, detaching each ghost node
+ * from the inventory scene graph and emptying the animation list.
+ */
 void GameScene::clearConsumedItemAnimations() {
     if (_inventory) {
         for (const auto& anim : _consumedItemAnimations) {
