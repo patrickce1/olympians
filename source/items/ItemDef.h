@@ -56,7 +56,7 @@ public:
         Ares,
         Athena,
         Aphrodite,
-        Hephestus,
+        Hephaestus,
         Hermes,
         None
     };
