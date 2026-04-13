@@ -50,7 +50,6 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
         return false;
     }
 
-    
     // Read itemInterval from JSON if present, otherwise return error
     if (itemsJson->has("itemInterval") && itemsJson->get("itemInterval")->isNumber()) {
         _itemInterval = itemsJson->get("itemInterval")->asFloat();
@@ -60,7 +59,7 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
 
     // Read itemTimerStart from JSON if present, otherwise return error
     if (itemsJson->has("itemTimerStart") && itemsJson->get("itemTimerStart")->isNumber()) {
-        _itemTimer = itemsJson->get("itemTimerStart")->asFloat();
+        _itemTimerStart = itemsJson->get("itemTimerStart")->asFloat();
     } else {
         CULogError("No item timer start was specified");
     }
@@ -79,22 +78,51 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
 
     _idGen.startGame(ItemInstance::IdGenerator::randomGameId());
     _itemDb.setStartingPointWithTime();
+    reset();
 
     return true;
 }
 
-// Update the item timer and hand out a card
-void ItemController::update(float dt, Player* player) {
-    _itemTimer += dt;
+/**
+ * Resets round-scoped spawn state.
+ */
+void ItemController::reset() {
+    _itemTimers.clear();
+}
 
-    while (_itemTimer >= _itemInterval) {
-        _itemTimer -= _itemInterval;
+/**
+ * Update timers and hand out an item when item interval is ready
+ *
+ * @param dt  Time elapsed
+ * @param player   The player to give the item to
+ */
+void ItemController::update(float dt, Player* player) {
+    if (!player || _itemInterval <= 0.0f) {
+        return;
+    }
+
+    auto [it, inserted] = _itemTimers.emplace(player->getPlayerNumber(), _itemTimerStart);
+    float& itemTimer = it->second;
+    itemTimer += dt;
+
+    while (itemTimer >= _itemInterval) {
+        itemTimer -= _itemInterval;
         giveRandomItem(player);
     }
 }
 
-// Hand out an item to the player
+/**
+ * Give a random item to the player, only if the player has no more
+ * than 5 items in their inventory.
+ *
+ * @param player   The player to give the item to
+ */
 void ItemController::giveRandomItem(Player* player) {
+    if (!player) {
+        CULog("[ItemController] Player is null");
+        return;
+    }
+
     // Check if player is alive
     if (!player->isAlive()) {
         CULog("[ItemController] Player is not alive");
@@ -140,6 +168,11 @@ void ItemController::giveRandomItem(Player* player) {
  * @return          The ItemId of the newly created item, or 0 if creation failed.
  */
 ItemInstance::ItemId ItemController::giveItemByID(Player* player, const std::string& itemDefId) {
+    if (!player) {
+        CULog("[ItemController] giveItemById: player is null");
+        return 0;
+    }
+
     if (itemDefId.empty()) {
         CULog("[ItemController] giveItemById: itemDefId is empty");
         return 0;
@@ -155,4 +188,3 @@ ItemInstance::ItemId ItemController::giveItemByID(Player* player, const std::str
     player->addItem(*itemInstance);
     return itemId;
 }
-

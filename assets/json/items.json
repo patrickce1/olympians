@@ -237,7 +237,7 @@
             }
         }
     ],
-    "itemInterval": 10.0,
-    "itemTimerStart": 5.0,
+    "itemInterval": 5.0,
+    "itemTimerStart": 2.5,
     "maxInventorySpawnItems": 5
 }
