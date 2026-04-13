@@ -97,8 +97,9 @@ EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<
     if (attacks.empty()) { CULog("[EnemyController] Attack: No attack states available"); return EnemyLoader::State::IDLE; }
 
     int idx = (int)(_rng.getUint32() % (Uint32)attacks.size());
-    CULog("[EnemyController] State: '%d' (Attack)", attacks[idx]);
-    return attacks[idx];
+    EnemyLoader::State selectedAttack = attacks[idx];
+    CULog("[EnemyController] State: '%s' (Attack)", enemy->getStates().at(selectedAttack).name.c_str());
+    return selectedAttack;
 }
 
 void EnemyController::enterIdle(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
@@ -120,7 +121,7 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
     }
     
     EnemyLoader::State cur = enemy->getCurrentState();
-    if (cur != prev) { CULog("[EnemyController] State: '%d' -> '%d'", prev, cur); }
+    if (cur != prev) { CULog("[EnemyController] State: '%s' -> '%s'", enemy->getStates().at(prev).name.c_str(), enemy->getStates().at(cur).name.c_str()); }
 
     handleIdleEntryIfNeeded(prev, cur, enemy, players);
 
@@ -151,7 +152,7 @@ void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, st
                 resolveHealEvent(enemy, event);
                 break;
             default:
-                CULog("[EnemyController] Event: Unhandled event type in state '%d' for enemy '%s'", event.state, enemy->getId().c_str());
+                CULog("[EnemyController] Event: Unhandled event type in state '%s' for enemy '%s'", enemy->getStates().at(event.state).name.c_str(), enemy->getId().c_str());
                 break;
         }
     }
@@ -171,17 +172,17 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
     
     // Victim was killed before event completed
     if (!players[victim]->isAlive()) {
-        CULog("[EnemyController] Event: Enemy '%s', state '%d', Player[%d] was already dead",
+        CULog("[EnemyController] Event: Enemy '%s', state '%s', Player[%d] was already dead",
               enemy->getId().c_str(),
-              fe.state,
+              enemy->getStates().at(fe.state).name.c_str(),
               victim);
     } else {
         float damage = fe.def.amount;
         players[victim]->updateHealth(-damage);
 
-        CULog("[EnemyController] Event: Enemy '%s', state '%d', DAMAGE %.1f, Player[%d] Health -> %.1f",
+        CULog("[EnemyController] Event: Enemy '%s', state '%s', DAMAGE %.1f, Player[%d] Health -> %.1f",
               enemy->getId().c_str(),
-              fe.state,
+              enemy->getStates().at(fe.state).name.c_str(),
               damage,
               victim,
               players[victim]->getCurrentHealth());
