@@ -509,58 +509,93 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
                 _audio->playSoundUnique("attack");
             }
             
-            // Check if this item has an associated use animation
+            // Delegate to the appropriate attack handler based on animation config
             if (def->hasItemUseAnimation()) {
-                // For animated attacks: calculate damage, remove item, queue animation.
-                // Damage will be applied at animation resolution frame.
-                
-                const float resolvedMagnitude = calculateItemDamage(local, def, _itemController.getDatabase());
-                if (resolvedMagnitude <= 0.0f) {
-                    return false;
-                }
-                
-                // Remove item from inventory
-                if (!removeItemFromInventory(local, item.getId())) {
-                    CULog("ERROR: Failed to remove item %llu from inventory", (unsigned long long)item.getId());
-                    return false;
-                }
-                
-                const auto& animConfig = def->getItemUseAnimation();
-                
-                CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
-                      resolvedMagnitude);
-                
-                // Queue animation with pre-calculated damage (item already removed)
-                // Damage will be applied at resolution frame
-                startItemUseAnimation(animConfig, resolvedMagnitude, cugl::Vec2::ZERO, 0);
-                
+                return handleAnimatedAttack(itemId, item, def, local, enemy);
             } else {
-                // No animation; apply damage and broadcast immediately
-                const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
-                if (resolvedMagnitude <= 0.0f) {
-                    return false;
-                }
-                
-                CULog("Player attacked enemy '%s' with item %llu (damage: %.1f, immediate)",
-                      enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
-                
-                // Broadcast damage immediately
-                if (!_network->isHost()) {
-                    _network->broadcastDamage(resolvedMagnitude);
-                }
-                
-                // Host hears enemy take damage immediately
-                if (_network->isHost() && _audio) {
-                    _audio->playSoundUnique("enemy_hurt");
-                    CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
-                }
+                return handleImmediateAttack(itemId, item, def, local, enemy);
             }
-            
-            return true;
         }
         return false;
     }
     return false;
+}
+
+/**
+ * Handles an animated attack: calculates damage, removes item, and queues animation.
+ * Called by handleAttack() when the item has an animation config.
+ * Damage is applied when animation reaches the resolution frame.
+ *
+ * @param itemId   The item instance ID being used
+ * @param item     The ItemInstance being used
+ * @param def      The item definition containing animation config
+ * @param local    The local player performing the attack
+ * @param enemy    The enemy being attacked
+ * @return true if animation was successfully queued, false if damage calculation failed
+ */
+bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
+                                      const std::shared_ptr<const ItemDef>& def,
+                                      Player* local, Enemy* enemy) {
+    // Calculate damage upfront for the animation
+    const float resolvedMagnitude = calculateItemDamage(local, def, _itemController.getDatabase());
+    if (resolvedMagnitude <= 0.0f) {
+        return false;
+    }
+    
+    // Remove item from inventory
+    if (!removeItemFromInventory(local, item.getId())) {
+        CULog("ERROR: Failed to remove item %llu from inventory", (unsigned long long)item.getId());
+        return false;
+    }
+    
+    const auto& animConfig = def->getItemUseAnimation();
+    
+    CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
+          resolvedMagnitude);
+    
+    // Queue animation with pre-calculated damage (item already removed)
+    // Damage will be applied at resolution frame
+    startItemUseAnimation(animConfig, resolvedMagnitude, cugl::Vec2::ZERO, 0);
+    
+    return true;
+}
+
+/**
+ * Handles a non-animated attack: applies damage immediately using useItemById.
+ * Called by handleAttack() when the item has no animation config.
+ * Damage is applied immediately and broadcast to network.
+ *
+ * @param itemId   The item instance ID being used
+ * @param item     The ItemInstance being used
+ * @param def      The item definition (no animation config)
+ * @param local    The local player performing the attack
+ * @param enemy    The enemy being attacked
+ * @return true if damage was successfully applied, false if calculation failed
+ */
+bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
+                                       const std::shared_ptr<const ItemDef>& def,
+                                       Player* local, Enemy* enemy) {
+    // Apply damage immediately using the standard useItemById path
+    const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+    if (resolvedMagnitude <= 0.0f) {
+        return false;
+    }
+    
+    CULog("Player attacked enemy '%s' with item %llu (damage: %.1f, immediate)",
+          enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
+    
+    // Broadcast damage immediately to network if not host
+    if (!_network->isHost()) {
+        _network->broadcastDamage(resolvedMagnitude);
+    }
+    
+    // Host hears enemy take damage immediately
+    if (_network->isHost() && _audio) {
+        _audio->playSoundUnique("enemy_hurt");
+        CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+    }
+    
+    return true;
 }
 
 /**

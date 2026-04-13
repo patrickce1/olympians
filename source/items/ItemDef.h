@@ -147,6 +147,14 @@ public:
      */
     const std::string& getItemUseSound() const { return _itemUseSound; }
     
+    /**
+     * Parses optional itemUseAnimation configuration from JSON if present.
+     * Sets _itemUseAnimationConfig and _hasItemUseAnimation fields.
+     * 
+     * @param json The item definition JSON object
+     */
+    void parseItemUseAnimation(const std::shared_ptr<cugl::JsonValue>& json);
+    
     /** Extract Type enum from a string */
     static Type typeFromString(std::string value, Type fallback = Type::Attack);
     /** Extract Rarity enum from a string */

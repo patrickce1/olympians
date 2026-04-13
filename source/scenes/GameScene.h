@@ -483,6 +483,38 @@ public:
      */
     bool handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId);
 
+    /**
+     * Handles an animated attack: calculates damage, removes item, and queues animation.
+     * Called by handleAttack() when the item has an animation config.
+     * Damage is applied when animation reaches the resolution frame.
+     *
+     * @param itemId   The item instance ID being used
+     * @param item     The ItemInstance being used
+     * @param def      The item definition containing animation config
+     * @param local    The local player performing the attack
+     * @param enemy    The enemy being attacked
+     * @return true if animation was successfully queued, false if damage calculation failed
+     */
+    bool handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
+                              const std::shared_ptr<const ItemDef>& def,
+                              Player* local, Enemy* enemy);
+
+    /**
+     * Handles a non-animated attack: applies damage immediately using useItemById.
+     * Called by handleAttack() when the item has no animation config.
+     * Damage is applied immediately and broadcast to network.
+     *
+     * @param itemId   The item instance ID being used
+     * @param item     The ItemInstance being used
+     * @param def      The item definition (no animation config)
+     * @param local    The local player performing the attack
+     * @param enemy    The enemy being attacked
+     * @return true if damage was successfully applied, false if calculation failed
+     */
+    bool handleImmediateAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
+                               const std::shared_ptr<const ItemDef>& def,
+                               Player* local, Enemy* enemy);
+
 #pragma mark - Update Helpers
 
     /**
