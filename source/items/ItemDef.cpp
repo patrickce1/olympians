@@ -55,6 +55,7 @@ static bool tryParseEffectType(const std::string& value, ItemDef::EffectType& ou
  *
  * @param value     The string token to parse.
  * @param fallback  The type to return if parsing fails.
+ * @return the parsed type, or fallback if unrecognized
  */
 ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
     value = normalizeToken(value);
@@ -70,6 +71,7 @@ ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
  *
  * @param value     The string token to parse.
  * @param fallback  The rarity to return if parsing fails.
+ * @return the parsed type, or fallback if unrecognized
  */
 ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
     value = normalizeToken(value);
@@ -85,6 +87,7 @@ ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
  *
  * @param value     The string token to parse.
  * @param fallback  The house to return if parsing fails.
+ * @return the parsed type, or fallback if unrecognized
  */
 ItemDef::House ItemDef::houseFromString(std::string value, House fallback) {
     value = normalizeToken(value);
@@ -106,6 +109,7 @@ ItemDef::House ItemDef::houseFromString(std::string value, House fallback) {
  * Parses a data-driven effect type from JSON.
  *
  * @param value  The string token describing the effect type.
+ * @return the parsed type, or fallback if unrecognized
  */
 ItemDef::EffectType ItemDef::effectTypeFromString(std::string value) {
     value = normalizeToken(value);
