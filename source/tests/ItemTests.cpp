@@ -339,7 +339,7 @@ void testBaseValueDefaults() {
 }
 
 /**
- * Tests complete item usage computation pipeline with different scenarios.
+ * Tests complete item usage computation pipeline with value-scaling scenarios.
  *
  * Verifies the full damage/healing calculation:
  *   resolvedValue = baseValue * (1 + houseSlider) * affinityBonus
@@ -411,115 +411,6 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
     float expectedSupport = 2.0f * (1.0f + 0.9f);
         assertWithLabel(floatsEqualWithinTolerance(resolvedSupport, expectedSupport), "compute: support scaling resolves correctly");
         assertWithLabel(floatsEqualWithinTolerance(ally.getCurrentHealth() - allyBefore, expectedSupport), "compute: support heal equals resolved value");
-
-    Player athena("Athena", 7, "Athena Tester", loader);
-    Player shieldTarget("Ares", 8, "Shield Target", loader);
-    shieldTarget.updateHealth(-5.0f);
-    auto instShield = ItemInstance::alloc("shield", 1005);
-    assertWithLabel(instShield != nullptr, "compute: create shield instance");
-    if (!instShield) return;
-    athena.addItem(*instShield);
-
-    const float shieldHealthBeforeUse = shieldTarget.getCurrentHealth();
-    float resolvedShield = athena.useItemById(instShield->getId(), shieldTarget, db);
-        assertWithLabel(resolvedShield > 0.0f, "compute: shield item returns a positive base heal");
-        assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth() - shieldHealthBeforeUse,
-                                                  std::min(resolvedShield, shieldTarget.getMaxHealth() - shieldHealthBeforeUse)),
-                        "compute: shield item still applies its base heal");
-        assertWithLabel(shieldTarget.hasShield(), "compute: shield effect arms fixed mitigation");
-        assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldMitigation(), 3.0f), "compute: shield mitigation value applies");
-        assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldDuration(), 5.0f), "compute: shield effect duration applies");
-
-    float shieldedHealthBefore = shieldTarget.getCurrentHealth();
-    shieldTarget.updateHealth(-6.0f);
-        assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth(), shieldedHealthBefore - 3.0f), "compute: shield mitigates fixed damage from the next hit");
-        assertWithLabel(!shieldTarget.hasShield(), "compute: shield is consumed after blocking one hit");
-
-    shieldTarget.updateHealth(-2.0f);
-        assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth(), shieldedHealthBefore - 5.0f), "compute: later hits apply normally after shield is consumed");
-
-    Player barrierTarget("Ares", 9, "Barrier Target", loader);
-    barrierTarget.updateHealth(-5.0f);
-    auto instBarrier = ItemInstance::alloc("aegis", 1006);
-    assertWithLabel(instBarrier != nullptr, "compute: create barrier instance");
-    if (!instBarrier) return;
-    athena.addItem(*instBarrier);
-
-    const float barrierHealthBeforeUse = barrierTarget.getCurrentHealth();
-    float resolvedBarrier = athena.useItemById(instBarrier->getId(), barrierTarget, db);
-        assertWithLabel(resolvedBarrier > 0.0f, "compute: barrier item returns a positive base heal");
-        assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getCurrentHealth() - barrierHealthBeforeUse,
-                                                  std::min(resolvedBarrier, barrierTarget.getMaxHealth() - barrierHealthBeforeUse)),
-                        "compute: barrier item still applies its base heal");
-        assertWithLabel(barrierTarget.hasBarrier(), "compute: barrier effect arms percentage mitigation");
-        assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getBarrierMultiplier(), 0.5f), "compute: barrier multiplier value applies");
-        assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getBarrierDuration(), 5.0f), "compute: barrier duration applies");
-
-    float barrierHealthBefore = barrierTarget.getCurrentHealth();
-    barrierTarget.updateHealth(-6.0f);
-        assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getCurrentHealth(), barrierHealthBefore - 3.0f), "compute: barrier mitigates the next hit by percentage");
-        assertWithLabel(!barrierTarget.hasBarrier(), "compute: barrier is consumed after blocking one hit");
-
-    Player layeredTarget("Ares", 10, "Layered Target", loader);
-    auto layeredShield = ItemInstance::alloc("shield", 1007);
-    auto layeredBarrier = ItemInstance::alloc("aegis", 1008);
-    assertWithLabel(layeredShield != nullptr && layeredBarrier != nullptr, "compute: create coexistence shield and barrier instances");
-    if (!layeredShield || !layeredBarrier) return;
-    athena.addItem(*layeredShield);
-    athena.addItem(*layeredBarrier);
-    athena.useItemById(layeredShield->getId(), layeredTarget, db);
-    athena.useItemById(layeredBarrier->getId(), layeredTarget, db);
-        assertWithLabel(layeredTarget.hasShield() && layeredTarget.hasBarrier(), "compute: shield and barrier coexist on the same target");
-
-    float layeredHealthBefore = layeredTarget.getCurrentHealth();
-    layeredTarget.updateHealth(-10.0f);
-        assertWithLabel(floatsEqualWithinTolerance(layeredTarget.getCurrentHealth(), layeredHealthBefore - 2.0f), "compute: barrier then shield mitigation apply on the same hit");
-        assertWithLabel(!layeredTarget.hasShield() && !layeredTarget.hasBarrier(), "compute: shield and barrier are both consumed on hit");
-
-    Player zeus("Zeus", 11, "Zeus Tester", loader);
-    auto instLightning = ItemInstance::alloc("lightning_bolt", 1009);
-    assertWithLabel(instLightning != nullptr, "compute: create lightning_bolt instance");
-    if (!instLightning) return;
-    zeus.addItem(*instLightning);
-
-    enemy.setCurrentHealth(enemy.getMaxHealth());
-    enemy.clearRuntimeEffects();
-    const float enemyHealthBeforeStunUse = enemy.getCurrentHealth();
-    float resolvedStun = zeus.useItemById(instLightning->getId(), enemy, db);
-        assertWithLabel(resolvedStun > 0.0f, "compute: stun item returns a positive base damage");
-        assertWithLabel(floatsEqualWithinTolerance(enemyHealthBeforeStunUse - enemy.getCurrentHealth(), resolvedStun),
-                        "compute: stun item still applies its base damage");
-        assertWithLabel(enemy.isStunned(), "compute: stun effect marks enemy as stunned");
-        assertWithLabel(floatsEqualWithinTolerance(enemy.getStunDuration(), 3.0f), "compute: stun duration applies to enemy");
-
-    enemy.update(1.0f);
-        assertWithLabel(enemy.isStunned(), "compute: enemy remains stunned before duration expires");
-
-    enemy.update(2.1f);
-        assertWithLabel(!enemy.isStunned(), "compute: enemy stun expires after duration elapses");
-
-    auto instSpear = ItemInstance::alloc("spear", 1010);
-    assertWithLabel(instSpear != nullptr, "compute: create spear instance");
-    if (!instSpear) return;
-    ares.addItem(*instSpear);
-
-    enemy.setCurrentHealth(enemy.getMaxHealth());
-    enemy.clearRuntimeEffects();
-    const float enemyHealthBeforeVulnerableUse = enemy.getCurrentHealth();
-    const float resolvedVulnerable = ares.useItemById(instSpear->getId(), enemy, db);
-        assertWithLabel(resolvedVulnerable > 0.0f, "compute: vulnerable item returns a positive base damage");
-        assertWithLabel(floatsEqualWithinTolerance(enemyHealthBeforeVulnerableUse - enemy.getCurrentHealth(), resolvedVulnerable),
-                        "compute: vulnerable item still applies its base damage");
-        assertWithLabel(enemy.isVulnerable(), "compute: vulnerable effect marks enemy as vulnerable");
-        assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableMultiplier(), 1.2f), "compute: vulnerable multiplier applies to enemy");
-        assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableDuration(), 3.0f), "compute: vulnerable duration applies to enemy");
-
-    const float vulnerableHealthBefore = enemy.getCurrentHealth();
-    enemy.updateHealth(-5.0f);
-        assertWithLabel(floatsEqualWithinTolerance(vulnerableHealthBefore - enemy.getCurrentHealth(), 6.0f), "compute: vulnerable increases incoming damage while active");
-
-    enemy.update(3.1f);
-        assertWithLabel(!enemy.isVulnerable(), "compute: vulnerable expires after duration elapses");
 
     Player demeterRegen("Demeter", 12, "Demeter Regen", loader);
     Player regenTarget("Athena", 13, "Regen Target", loader);
@@ -598,6 +489,273 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
     assertWithLabel(floatsEqualWithinTolerance(missingItemResult, -1.0f), "compute: missing item id returns -1.0");
 }
 
+/**
+ * Tests the shield item effect on a player target.
+ *
+ * Verifies that:
+ * - Shield support items apply their base heal immediately
+ * - Shield effects arm fixed mitigation with the configured magnitude and duration
+ * - The next incoming hit consumes the shield and reduces damage by the mitigation amount
+ * - Later hits apply normally after the shield has been consumed
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJson      Parsed JSON object containing house multipliers
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
+void testShieldEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                      const std::shared_ptr<cugl::JsonValue>& housesJson,
+                      const std::string& housesJsonPath,
+                      const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "shield: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "shield: house multipliers load succeeds");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "shield: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
+    assertWithLabel(enemyOk, "shield: enemy init succeeds");
+
+    Player athena("Athena", 7, "Athena Tester", loader);
+    Player shieldTarget("Ares", 8, "Shield Target", loader);
+    shieldTarget.updateHealth(-5.0f);
+    auto instShield = ItemInstance::alloc("shield", 1005);
+    assertWithLabel(instShield != nullptr, "shield: create shield instance");
+    if (!instShield) return;
+    athena.addItem(*instShield);
+
+    const float shieldHealthBeforeUse = shieldTarget.getCurrentHealth();
+    float resolvedShield = athena.useItemById(instShield->getId(), shieldTarget, db);
+    assertWithLabel(resolvedShield > 0.0f, "shield: shield item returns a positive base heal");
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth() - shieldHealthBeforeUse,
+                                              std::min(resolvedShield, shieldTarget.getMaxHealth() - shieldHealthBeforeUse)),
+                    "shield: shield item still applies its base heal");
+    assertWithLabel(shieldTarget.hasShield(), "shield: shield effect arms fixed mitigation");
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldMitigation(), 3.0f), "shield: shield mitigation value applies");
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldDuration(), 5.0f), "shield: shield effect duration applies");
+
+    float shieldedHealthBefore = shieldTarget.getCurrentHealth();
+    shieldTarget.updateHealth(-6.0f);
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth(), shieldedHealthBefore - 3.0f), "shield: shield mitigates fixed damage from the next hit");
+    assertWithLabel(!shieldTarget.hasShield(), "shield: shield is consumed after blocking one hit");
+
+    shieldTarget.updateHealth(-2.0f);
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth(), shieldedHealthBefore - 5.0f), "shield: later hits apply normally after shield is consumed");
+}
+
+/**
+ * Tests the barrier item effect on a player target.
+ *
+ * Verifies that:
+ * - Barrier support items apply their base heal immediately
+ * - Barrier effects arm percentage mitigation with the configured multiplier and duration
+ * - The next incoming hit is reduced by the active multiplier
+ * - The barrier is consumed after mitigating one hit
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJson      Parsed JSON object containing house multipliers
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
+void testBarrierEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                       const std::shared_ptr<cugl::JsonValue>& housesJson,
+                       const std::string& housesJsonPath,
+                       const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "barrier: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "barrier: house multipliers load succeeds");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "barrier: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
+    assertWithLabel(enemyOk, "barrier: enemy init succeeds");
+
+    Player athena("Athena", 7, "Athena Tester", loader);
+    Player barrierTarget("Ares", 9, "Barrier Target", loader);
+    barrierTarget.updateHealth(-5.0f);
+    auto instBarrier = ItemInstance::alloc("aegis", 1006);
+    assertWithLabel(instBarrier != nullptr, "barrier: create barrier instance");
+    if (!instBarrier) return;
+    athena.addItem(*instBarrier);
+
+    const float barrierHealthBeforeUse = barrierTarget.getCurrentHealth();
+    float resolvedBarrier = athena.useItemById(instBarrier->getId(), barrierTarget, db);
+    assertWithLabel(resolvedBarrier > 0.0f, "barrier: barrier item returns a positive base heal");
+    assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getCurrentHealth() - barrierHealthBeforeUse,
+                                              std::min(resolvedBarrier, barrierTarget.getMaxHealth() - barrierHealthBeforeUse)),
+                    "barrier: barrier item still applies its base heal");
+    assertWithLabel(barrierTarget.hasBarrier(), "barrier: barrier effect arms percentage mitigation");
+    assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getBarrierMultiplier(), 0.5f), "barrier: barrier multiplier value applies");
+    assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getBarrierDuration(), 5.0f), "barrier: barrier duration applies");
+
+    float barrierHealthBefore = barrierTarget.getCurrentHealth();
+    barrierTarget.updateHealth(-6.0f);
+    assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getCurrentHealth(), barrierHealthBefore - 3.0f), "barrier: barrier mitigates the next hit by percentage");
+    assertWithLabel(!barrierTarget.hasBarrier(), "barrier: barrier is consumed after blocking one hit");
+}
+
+/**
+ * Tests that shield and barrier can coexist on the same target.
+ *
+ * Verifies that:
+ * - A target can hold both shield and barrier effects at the same time
+ * - Barrier mitigation is applied before shield mitigation on the same hit
+ * - Both effects are consumed when they mitigate that incoming hit
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJson      Parsed JSON object containing house multipliers
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
+void testShieldBarrierCoexistence(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                                  const std::shared_ptr<cugl::JsonValue>& housesJson,
+                                  const std::string& housesJsonPath,
+                                  const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "layered: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "layered: house multipliers load succeeds");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "layered: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
+    assertWithLabel(enemyOk, "layered: enemy init succeeds");
+
+    Player athena("Athena", 7, "Athena Tester", loader);
+    Player layeredTarget("Ares", 10, "Layered Target", loader);
+    auto layeredShield = ItemInstance::alloc("shield", 1007);
+    auto layeredBarrier = ItemInstance::alloc("aegis", 1008);
+    assertWithLabel(layeredShield != nullptr && layeredBarrier != nullptr, "layered: create coexistence shield and barrier instances");
+    if (!layeredShield || !layeredBarrier) return;
+    athena.addItem(*layeredShield);
+    athena.addItem(*layeredBarrier);
+
+    athena.useItemById(layeredShield->getId(), layeredTarget, db);
+    athena.useItemById(layeredBarrier->getId(), layeredTarget, db);
+    assertWithLabel(layeredTarget.hasShield() && layeredTarget.hasBarrier(), "layered: shield and barrier coexist on the same target");
+
+    float layeredHealthBefore = layeredTarget.getCurrentHealth();
+    layeredTarget.updateHealth(-10.0f);
+    assertWithLabel(floatsEqualWithinTolerance(layeredTarget.getCurrentHealth(), layeredHealthBefore - 2.0f), "layered: barrier then shield mitigation apply on the same hit");
+    assertWithLabel(!layeredTarget.hasShield() && !layeredTarget.hasBarrier(), "layered: shield and barrier are both consumed on hit");
+}
+
+/**
+ * Tests the stun attack effect on the enemy.
+ *
+ * Verifies that:
+ * - Stun attack items still apply their base damage
+ * - The enemy enters the stunned state with the configured duration
+ * - The enemy remains stunned before the timer expires
+ * - The stun state clears after the duration elapses
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJson      Parsed JSON object containing house multipliers
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
+void testStunEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                    const std::shared_ptr<cugl::JsonValue>& housesJson,
+                    const std::string& housesJsonPath,
+                    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "stun: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "stun: house multipliers load succeeds");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "stun: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
+    assertWithLabel(enemyOk, "stun: enemy init succeeds");
+
+    Player zeus("Zeus", 11, "Zeus Tester", loader);
+    auto instLightning = ItemInstance::alloc("lightning_bolt", 1009);
+    assertWithLabel(instLightning != nullptr, "stun: create lightning_bolt instance");
+    if (!instLightning) return;
+    zeus.addItem(*instLightning);
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    const float enemyHealthBeforeStunUse = enemy.getCurrentHealth();
+    float resolvedStun = zeus.useItemById(instLightning->getId(), enemy, db);
+    assertWithLabel(resolvedStun > 0.0f, "stun: stun item returns a positive base damage");
+    assertWithLabel(floatsEqualWithinTolerance(enemyHealthBeforeStunUse - enemy.getCurrentHealth(), resolvedStun),
+                    "stun: stun item still applies its base damage");
+    assertWithLabel(enemy.isStunned(), "stun: stun effect marks enemy as stunned");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getStunDuration(), 3.0f), "stun: stun duration applies to enemy");
+
+    enemy.update(1.0f);
+    assertWithLabel(enemy.isStunned(), "stun: enemy remains stunned before duration expires");
+
+    enemy.update(2.1f);
+    assertWithLabel(!enemy.isStunned(), "stun: enemy stun expires after duration elapses");
+}
+
+/**
+ * Tests the vulnerable attack effect on the enemy.
+ *
+ * Verifies that:
+ * - Vulnerable attack items still apply their base damage
+ * - The enemy enters the vulnerable state with the configured multiplier and duration
+ * - Incoming damage is amplified while vulnerable remains active
+ * - The vulnerable state clears after the duration elapses
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJson      Parsed JSON object containing house multipliers
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
+void testVulnerableEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                          const std::shared_ptr<cugl::JsonValue>& housesJson,
+                          const std::string& housesJsonPath,
+                          const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "vulnerable: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "vulnerable: house multipliers load succeeds");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "vulnerable: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
+    assertWithLabel(enemyOk, "vulnerable: enemy init succeeds");
+
+    Player ares("Ares", 2, "Ares Tester", loader);
+    auto instSpear = ItemInstance::alloc("spear", 1010);
+    assertWithLabel(instSpear != nullptr, "vulnerable: create spear instance");
+    if (!instSpear) return;
+    ares.addItem(*instSpear);
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    const float enemyHealthBeforeVulnerableUse = enemy.getCurrentHealth();
+    const float resolvedVulnerable = ares.useItemById(instSpear->getId(), enemy, db);
+    assertWithLabel(resolvedVulnerable > 0.0f, "vulnerable: vulnerable item returns a positive base damage");
+    assertWithLabel(floatsEqualWithinTolerance(enemyHealthBeforeVulnerableUse - enemy.getCurrentHealth(), resolvedVulnerable),
+                    "vulnerable: vulnerable item still applies its base damage");
+    assertWithLabel(enemy.isVulnerable(), "vulnerable: vulnerable effect marks enemy as vulnerable");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableMultiplier(), 1.2f), "vulnerable: vulnerable multiplier applies to enemy");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableDuration(), 3.0f), "vulnerable: vulnerable duration applies to enemy");
+
+    const float vulnerableHealthBefore = enemy.getCurrentHealth();
+    enemy.updateHealth(-5.0f);
+    assertWithLabel(floatsEqualWithinTolerance(vulnerableHealthBefore - enemy.getCurrentHealth(), 6.0f), "vulnerable: vulnerable increases incoming damage while active");
+
+    enemy.update(3.1f);
+    assertWithLabel(!enemy.isVulnerable(), "vulnerable: vulnerable expires after duration elapses");
+}
+
 } // namespace
 
 void ItemTests::runAll(const std::string& itemsJsonPath,
@@ -626,6 +784,11 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testScalingFallbacks();
     testBaseValueDefaults();
     testEffectiveValueComputation(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testShieldEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testBarrierEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testShieldBarrierCoexistence(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testStunEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testVulnerableEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     
     printSummary();
 }

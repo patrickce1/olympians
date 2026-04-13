@@ -123,7 +123,13 @@ public:
      * @param playerID   The 0-based index of the player receiving the effect.
      */
     void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID);
-    /** Sends an enemy-affecting attack effect to the host for authoritative processing. */
+    /**
+     * Sends an enemy-affecting attack effect to the host for authoritative processing.
+     *
+     * @param effectType The kind of enemy effect that was applied.
+     * @param magnitude  The resolved magnitude of the effect.
+     * @param duration   The timed duration of the effect, or 0 for instant effects.
+     */
     void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration);
 
     /** The following are USED ONLY BY THE HOST */
@@ -296,7 +302,6 @@ private:
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
     std::vector<SupportEffectMessage> supportEffects;
-    /** Queued enemy-effect requests received this frame and awaiting host-side application. */
     std::vector<EnemyEffectMessage> enemyEffects;
     GameStateMessage _latestGameState;
     //win/loss booleans

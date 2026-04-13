@@ -132,16 +132,44 @@ public:
     Rarity getRarity() const { return _rarity; }
     /** Gets utility item effects */
     const std::vector<Effect>& getEffects() const { return _effects; }
-    /** Returns true if this item contains at least one effect of the given type */
+    /**
+     * Returns true if this item contains at least one effect of the given type.
+     *
+     * @param type  The effect category to search for.
+     */
     bool hasEffectType(EffectType type) const;
 
-    /** Extract Type enum from a string */
+    /**
+     * Extract Type enum from a string.
+     *
+     * @param value     The string token to parse.
+     * @param fallback  The type to return if parsing fails
+     * @return the parsed type, or fallback if unrecognized
+     */
     static Type typeFromString(std::string value, Type fallback = Type::Attack);
-    /** Extract Rarity enum from a string */
+    /**
+     * Extract Rarity enum from a string.
+     *
+     * @param value     The string token to parse
+     * @param fallback  The rarity to return if parsing fails
+     * @return the parsed rarity, or fallback if unrecognized
+     */
     static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
-    /** Extract House enum from a string */
+    /**
+     * Extract House enum from a string.
+     * Accepts "zeus", "poseidon", "hades", "demeter", "ares", "athena", or "none" (case-insensitive, trimmed).
+     *
+     * @param value     The string token to parse
+     * @param fallback  The house to return if parsing fails
+     * @return the parsed house, or fallback if unrecognized
+     */
     static House houseFromString(std::string value, House fallback = House::None);
-    /** Extract EffectType enum from a string */
+    /**
+     * Extract EffectType enum from a string.
+     *
+     * @param value  The serialized effect type name
+     * @return the parsed effect, or fallback if unrecognized
+     */
     static EffectType effectTypeFromString(std::string value);
 };
 

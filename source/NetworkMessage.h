@@ -104,6 +104,24 @@ struct GameStateMessage {
     float player2HP;
     float player3HP;
     float player4HP;
+    
+    //player buffs/debuff metadata
+    float player1ShieldMitigation = 0.0f;
+    float player1ShieldDuration = 0.0f;
+    float player1BarrierMultiplier = 1.0f;
+    float player1BarrierDuration = 0.0f;
+    float player2ShieldMitigation = 0.0f;
+    float player2ShieldDuration = 0.0f;
+    float player2BarrierMultiplier = 1.0f;
+    float player2BarrierDuration = 0.0f;
+    float player3ShieldMitigation = 0.0f;
+    float player3ShieldDuration = 0.0f;
+    float player3BarrierMultiplier = 1.0f;
+    float player3BarrierDuration = 0.0f;
+    float player4ShieldMitigation = 0.0f;
+    float player4ShieldDuration = 0.0f;
+    float player4BarrierMultiplier = 1.0f;
+    float player4BarrierDuration = 0.0f;
 
     //future info like boss direction will be added as the game expands
 };

@@ -73,9 +73,17 @@ public:
     bool isStunned() const { return _stunDuration > 0.0f; }
     /** Returns the remaining stun duration in seconds. */
     float getStunDuration() const { return _stunDuration; }
-    /** Applies or refreshes a stun, forcing the enemy idle and extending the remaining duration. */
+    /**
+     * Applies or refreshes a stun, forcing the enemy idle and extending the remaining duration.
+     *
+     * @param duration  The stun time to apply, in seconds.
+     */
     void applyStun(float duration);
-    /** Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state. */
+    /**
+     * Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state.
+     *
+     * @param duration  The authoritative remaining stun time, in seconds.
+     */
     void syncStunDuration(float duration);
     /** Returns whether the enemy is currently vulnerable. */
     bool isVulnerable() const { return _vulnerableDuration > 0.0f; }
@@ -89,7 +97,12 @@ public:
      * @param duration      Time this state will last
      */
     void applyVulnerable(float multiplier, float duration);
-    /** Overwrites local vulnerable state from the host snapshot so remote clients mirror the authoritative state. */
+    /**
+     * Overwrites local vulnerable state from the host snapshot so remote clients mirror the authoritative state.
+     *
+     * @param multiplier  The authoritative damage multiplier to apply while vulnerable.
+     * @param duration    The authoritative remaining vulnerable time, in seconds.
+     */
     void syncVulnerable(float multiplier, float duration);
     /** Clears runtime-only enemy combat effects such as stun and vulnerability. */
     void clearRuntimeEffects();

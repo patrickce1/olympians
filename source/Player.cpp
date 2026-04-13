@@ -75,7 +75,11 @@ void Player::updateHealth(float delta) {
     if (_currentHealth < 0.0f)       _currentHealth = 0.0f;
 }
 
-/** Applies a shield to this player. Replaces any existing shield. */
+/** Applies a shield to this player. Replaces any existing shield.
+ *
+ * @param mitigation  The amount of damage the shield blocks
+ * @param duration      How long the shield will stay up for
+ */
 void Player::applyShield(float mitigation, float duration) {
     if (duration <= 0.0f) {
         return;
@@ -91,7 +95,12 @@ void Player::applyShield(float mitigation, float duration) {
           _shieldDuration);
 }
 
-/** Applies a barrier to this player. Replaces any existing barrier. */
+/**
+ * Applies a timed percentage-mitigation barrier to this player.
+ *
+ * @param multiplier  The percentage multiplier for incoming damage.
+ * @param duration      How long the barrier will stay up for
+ */
 void Player::applyBarrier(float multiplier, float duration) {
     if (duration <= 0.0f) {
         return;
@@ -172,6 +181,19 @@ void Player::updateEffects(float dt) {
     }
 }
 
+/**
+ * Computes the final magnitude of an item use after house role and affinity bonuses.
+ *
+ * The result starts from the item's base value, applies the current player's
+ * house multiplier for the item's type, then applies any rarity-based house
+ * affinity bonus. A small positive minimum is enforced so item uses never
+ * resolve to zero or a negative value.
+ *
+ * @param player  The player using the item
+ * @param def        The item definition being resolved
+ * @param db           The item database that provides multiplier metadata
+ * @return       The final resolved item magnitude after applying bonuses
+ */
 static float computeResolvedItemMagnitude(const Player& player,
                                           const ItemDef& def,
                                           const ItemDatabase& db) {
@@ -242,6 +264,20 @@ static float applyConsecutiveUseScaling(const ItemDef& def,
     return scaledMagnitude;
 }
 
+/**
+ * Uses the inventory item with the given id on a player target.
+ *
+ * Support items heal the target using the resolved item magnitude, while any
+ * configured item effects are dispatched through the effect system. The item is
+ * removed from inventory once used. Returns the applied base magnitude, or
+ * -1.0f if the item id or item definition cannot be found.
+ *
+ * @param itemId  The inventory instance id to consume
+ * @param target  The player that receives the item's healing and effects
+ * @param db           The item database used to resolve the item definition
+ * @return       The applied base magnitude, or -1.0f if the item id or item
+ *         definition cannot be found
+ */
 float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const ItemDatabase& db) {
     for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
         if (item->getId() != itemId) {
@@ -276,6 +312,19 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
     return -1.0f;
 }
 
+/**
+ * Uses the inventory item with the given id on an enemy target.
+ *
+ * Attack items damage the target using the resolved item magnitude, while any
+ * configured item effects are dispatched through the effect system. The item is
+ * removed from inventory once used. Returns the applied base magnitude, or
+ * -1.0f if the item id or item definition cannot be found.
+ *
+ * @param itemId  The inventory instance id to consume
+ * @param target  The enemy that receives the item's damage and effects
+ * @param db           The item database used to resolve the item definition
+ * @return       The applied base magnitude, or -1.0f if the item id or item definition cannot be found
+ */
 float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db) {
     for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
         if (item->getId() != itemId) {

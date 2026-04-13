@@ -137,6 +137,26 @@ public:
 
     /*Setter for current health*/
     void setCurrentHealth(float health) { _currentHealth = health; }
+
+    /**
+     * Overwrites runtime support-effect state from the authoritative host snapshot.
+     *
+     * @param shieldMitigation  The fixed damage amount blocked by the active shield.
+     * @param shieldDuration    The remaining shield duration in seconds.
+     * @param barrierMultiplier The active barrier damage multiplier.
+     * @param barrierDuration   The remaining barrier duration in seconds.
+     */
+    void syncRuntimeEffects(float shieldMitigation,
+                            float shieldDuration,
+                            float barrierMultiplier,
+                            float barrierDuration) {
+        _hasShield = shieldDuration > 0.0f;
+        _shieldMitigation = _hasShield ? shieldMitigation : 0.0f;
+        _shieldDuration = _hasShield ? shieldDuration : 0.0f;
+        _hasBarrier = barrierDuration > 0.0f;
+        _barrierMultiplier = _hasBarrier ? barrierMultiplier : 1.0f;
+        _barrierDuration = _hasBarrier ? barrierDuration : 0.0f;
+    }
     
     /**
      * Returns the path of the spritesheet for the house
@@ -173,13 +193,30 @@ public:
     
     void updateHealth(float delta);
 
-    /** Applies a timed fixed-mitigation shield to this player. */
+    /**
+     * Applies a shield to this player. Replaces any existing shield.
+     *
+     * @param mitigation  The amount of damage the shield blocks
+     * @param duration      How long the shield will stay up for
+     */
     void applyShield(float mitigation, float duration);
 
-    /** Applies a timed percentage-mitigation barrier to this player. */
+    /**
+     * Applies a timed percentage-mitigation barrier to this player.
+     *
+     * @param multiplier  The percentage multiplier for incoming damage.
+     * @param duration      How long the barrier will stay up for
+     */
     void applyBarrier(float multiplier, float duration);
+    
     /** Applies a timed heal-over-time effect to this player. */
     void applyRegen(float magnitude, float duration);
+
+    /**
+     * Advances timed runtime effects.
+     *
+     * @param dt  The elapsed time since the previous frame, in seconds.
+     */
     void updateEffects(float dt);
 
     /** Clears runtime-only combat effects. */
@@ -208,15 +245,17 @@ public:
     bool isAlive() const;
     
     /**
-     * Uses an item from the player's inventory on a player target.
+     * Uses the inventory item with the given id on a player target.
      *
-     * Matching support items always apply their resolved heal amount first, then
-     * layer any configured support effects on top. Attack items used on a player
-     * remain a mismatch and return 0 after consumption.
+     * Support items heal the target using the resolved item magnitude, while any
+     * configured item effects are dispatched through the effect system. The item
+     * is removed from inventory once used.
      *
-      * @param itemId  The inventory instance id to consume
-     * @return resolved base heal magnitude for matching support items, 0 if consumed
-     *         but no matching target type, -1 on failure
+     * @param itemId  The inventory instance id to consume
+     * @param target  The player that receives the item's healing and effects
+     * @param db           The item database used to resolve the item definition
+     * @return       The applied base magnitude, or -1.0f if the item id or item
+     *         definition cannot be found
      */
     template <typename T>
     float useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
@@ -225,15 +264,16 @@ public:
     float useItemById(ItemInstance::ItemId itemId, Player& target, const ItemDatabase& db);
 
     /**
-     * Uses an item from the player's inventory on an enemy target.
+     * Uses the inventory item with the given id on an enemy target.
      *
-     * Matching attack items always apply their resolved damage first, then layer
-     * any configured enemy-facing effects on top. Support items used on an enemy
-     * remain a mismatch and return 0 after consumption.
+     * Attack items damage the target using the resolved item magnitude, while
+     * any configured item effects are dispatched through the effect system. The
+     * item is removed from inventory once used.
      *
      * @param itemId  The inventory instance id to consume
-     * @return resolved base damage magnitude for matching attack items, 0 if consumed
-     *         but no matching target type, -1 on failure
+     * @param target  The enemy that receives the item's damage and effects
+     * @param db           The item database used to resolve the item definition
+     * @return       The applied base magnitude, or -1.0f if the item id or item definition cannot be found
      */
     float useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db);
     /**

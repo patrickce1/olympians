@@ -1791,8 +1791,10 @@ void GameScene::update(float dt, InputController& input) {
     handleDisconnectedPlayers();
 
     handleItemSpawn(dt);
-    for (auto& player : _gameState.getPlayers()) {
-        player->updateEffects(dt);
+    if (_network->isHost()) {
+        for (auto& player : _gameState.getPlayers()) {
+            player->updateEffects(dt);
+        }
     }
     updateEnemyAndAI(dt);
     updateDropZoneVisibility();
