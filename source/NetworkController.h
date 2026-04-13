@@ -192,7 +192,12 @@ public:
      * Should be called once after the network connection is established.
      */
     void registerDisconnectCallback();
-    
+
+    /**
+     * Registers the callback on NetcodeConnection necessary for host migration to occur
+    */
+    void registerHostMigration();
+
     /**
      * Broadcasts a PLAYER_DISCONNECT message to all clients.
      *

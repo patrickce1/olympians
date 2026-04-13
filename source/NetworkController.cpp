@@ -89,6 +89,7 @@ void NetworkController::joinRoom(const std::string room) {
 	_network = NetcodeConnection::alloc(_config, dec2hex(room));
 	_network->open();
     registerDisconnectCallback();
+	registerHostMigration();
 }
 
 /**
@@ -100,6 +101,7 @@ void NetworkController::hostRoom() {
 	_network = NetcodeConnection::alloc(_config);
     _network->open();
     registerDisconnectCallback();
+	registerHostMigration();
 }
 
 /**
@@ -152,7 +154,6 @@ bool NetworkController::isHost() {
 	}
 	else if (_network->getState() == NetcodeConnection::State::DISCONNECTED) {
 		CULog("this fucking pisses me off");
-		_network->open();
 	}
 	else {
 		CULog("I'm done migrating. The host is %s", _network->getHost().c_str());
@@ -612,6 +613,19 @@ void NetworkController::registerDisconnectCallback() {
             }
         }
     });
+}
+
+/**
+ * Registers the callback on NetcodeConnection necessary for host migration to occur
+*/
+void NetworkController::registerHostMigration() {
+	if (!_network) { return; }
+
+	_network->onPromotion([this](bool confirmed) -> bool {
+		CULog("NetworkController: onPromotion called, confirmed=%d", confirmed);
+		// Return true to accept becoming the new host
+		return true;
+	});
 }
 
 /**
