@@ -148,16 +148,6 @@ void NetworkController::dispose() {
  */
 bool NetworkController::isHost() {
 	if (!_network) { return false; }
-	if (_network->getState() == NetcodeConnection::State::MIGRATING) {
-		CULog("Migrating. The host is %s", _network->getHost().c_str());
-		CULog("I am %s", _network->getUUID().c_str());
-	}
-	else if (_network->getState() == NetcodeConnection::State::DISCONNECTED) {
-		CULog("this fucking pisses me off");
-	}
-	else {
-		CULog("I'm done migrating. The host is %s", _network->getHost().c_str());
-	}
 	return _network->isHost();
 }
 

@@ -49,6 +49,7 @@ public:
         PLAYING,
         WON,
         LOST,
+        DISCONNECTED, //disconnected from the game
     };
 protected:
 #pragma mark - Scene Graph Nodes

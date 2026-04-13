@@ -1507,9 +1507,21 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
  */
 void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
-    if (_network->isHost()) {
-        CULog("I'm host!!!");
+
+    //check for any edge cases with the connection first
+    //we don't want to be doing any updates to our game while connection isn't established correctly
+    if (_network->checkConnection() == NetworkController::Status::FAILED) {
+        //send back to lobby if we disconnected
+        //if we want to, a new pr can be made for a timer that waits for a while until giving up on the connection
+        _network->disconnect();
+        _status = Status::DISCONNECTED;
+        return;
+    } else if (_network->checkConnection() == NetworkController::Status::WAITING) {
+        //we are migrating, want some custom behavior here like buffering with a pop-up
+        CULog("Currenty migrating...");
+        return;
     }
+
     handleResetButton(input);
     handlePlayerInput(input);
     input.resetAction();

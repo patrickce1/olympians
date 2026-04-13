@@ -490,6 +490,14 @@ void SceneLoader::update(float dt) {
                     _currentScene = State::LOBBY;
                     _gameScene.reset();
                     break;
+                case GameScene::Status::DISCONNECTED:
+                    _audio.playMusic("lobby");
+                    _menuScene.setActive(true);
+                    _gameScene.setActive(false);
+                    _currentScene = State::MENU;
+                    _gameScene.reset();
+                    //need some custom pop-up for this
+                    break;
                 case GameScene::Status::PLAYING:
                     break;
                 }
