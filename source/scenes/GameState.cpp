@@ -272,7 +272,11 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
     }
 }
 
-/** Goes through the list of support effect messages and applies them to the specified player. */
+/**
+ * Goes through the list of support effect messages and applies them to the specified player.
+ *
+ * @param supportEffects  The queued support-effect updates to apply this frame.
+ */
 void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects) {
     for (const SupportEffectMessage& effect : supportEffects) {
         if (effect.playerID < 0 || effect.playerID >= (int)_players.size()) continue;
@@ -294,7 +298,11 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
     }
 }
 
-/** Applies enemy-targeted effect messages from clients onto the host's authoritative enemy state. */
+/**
+ * Applies enemy-targeted effect messages from clients onto the host's authoritative enemy state.
+ *
+ * @param enemyEffects  The queued enemy-effect updates to apply this frame.
+ */
 void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects) {
     if (!_enemy) return;
 
