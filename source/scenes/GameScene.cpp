@@ -144,7 +144,9 @@ bool GameScene::initSceneGraph() {
         
         // This is the special effects node, this is where all the animated effects will go.
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
+        _specialEffectsLayer->setContentSize(dimen);
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+        _specialEffectsLayer->setPosition(cugl::Vec2(dimen.width / 2.0f, dimen.height / 2.0f));
         _scene->addChild(_specialEffectsLayer);
         _supportLeftArea = _gameArea->getChildByName("supportLeft");
         _supportRightArea = _gameArea->getChildByName("supportRight");
@@ -331,6 +333,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     }
     
     _assets->loadDirectory("json/itemTextures.json");
+    _assets->loadDirectory("json/itemAnimations.json");
     _assets->loadDirectory("json/houseInGameIcons.json");
 
     /*since networking not initialized yet, just assume we are the host
@@ -347,6 +350,9 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
  */
 void GameScene::dispose() {
     if (_active || _scene || _itemPhysicsWorld) {
+        // Clear all active animations before clearing the scene
+        clearItemUseAnimations();
+        
         removeAllChildren();
         _scene      = nullptr;
         _gameArea   = nullptr;
@@ -444,6 +450,9 @@ void GameScene::reset() {
     _status = Status::PLAYING;
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
+    
+    // Clear any active animations before resetting
+    clearItemUseAnimations();
 
     std::vector<ItemInstance::ItemId> itemIds;
     itemIds.reserve(_itemWidgets.size());
@@ -492,29 +501,101 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) {
-            const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
-            if (resolvedMagnitude <= 0.0f) {
-                return false;
+            // Play the item use sound if defined, otherwise play the attack sound
+            const std::string& itemUseSound = def->getItemUseSound();
+            if (!itemUseSound.empty()) {
+                _audio->playSoundUnique(itemUseSound);
+            } else {
+                _audio->playSoundUnique("attack");
             }
-
-            //NETWORKING
-            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
-                _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
-            }
-            CULog("Player attacked enemy '%s' with item %llu (damage: %.1f)",
-                  enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
-            _audio->playSoundUnique("attack");
             
-            // Host hears enemy take damage immediately
-            if (_network->isHost() && _audio) {
-                _audio->playSoundUnique("enemy_hurt");
-                CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+            // Delegate to the appropriate attack handler based on animation config
+            if (def->hasItemUseAnimation()) {
+                return handleAnimatedAttack(itemId, item, def, local, enemy.get());
+            } else {
+                return handleImmediateAttack(itemId, item, def, local, enemy.get());
             }
-            return true;
         }
         return false;
     }
     return false;
+}
+
+/**
+ * Handles an animated attack: calculates damage, removes item, and queues animation.
+ * Called by handleAttack() when the item has an animation config.
+ * Damage is applied when animation reaches the resolution frame.
+ *
+ * @param itemId   The item instance ID being used
+ * @param item     The ItemInstance being used
+ * @param def      The item definition containing animation config
+ * @param local    The local player performing the attack
+ * @param enemy    The enemy being attacked
+ * @return true if animation was successfully queued, false if damage calculation failed
+ */
+bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
+                                      const std::shared_ptr<const ItemDef>& def,
+                                      Player* local, Enemy* enemy) {
+    // Calculate damage upfront for the animation
+    const float resolvedMagnitude = calculateItemDamage(local, def, _itemController.getDatabase());
+    if (resolvedMagnitude <= 0.0f) {
+        return false;
+    }
+    
+    // Remove item from inventory
+    if (!removeItemFromInventory(local, item.getId())) {
+        CULog("ERROR: Failed to remove item %llu from inventory", (unsigned long long)item.getId());
+        return false;
+    }
+    
+    const auto& animConfig = def->getItemUseAnimation();
+    
+    CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
+          resolvedMagnitude);
+    
+    // Queue animation with pre-calculated damage (item already removed)
+    // Damage will be applied at resolution frame
+    startItemUseAnimation(animConfig, resolvedMagnitude, cugl::Vec2::ZERO, 0);
+    
+    return true;
+}
+
+/**
+ * Handles a non-animated attack: applies damage immediately using useItemById.
+ * Called by handleAttack() when the item has no animation config.
+ * Damage is applied immediately and broadcast to network.
+ *
+ * @param itemId   The item instance ID being used
+ * @param item     The ItemInstance being used
+ * @param def      The item definition (no animation config)
+ * @param local    The local player performing the attack
+ * @param enemy    The enemy being attacked
+ * @return true if damage was successfully applied, false if calculation failed
+ */
+bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
+                                       const std::shared_ptr<const ItemDef>& def,
+                                       Player* local, Enemy* enemy) {
+    // Apply damage immediately using the standard useItemById path
+    const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+    if (resolvedMagnitude <= 0.0f) {
+        return false;
+    }
+    
+    CULog("Player attacked enemy '%s' with item %llu (damage: %.1f, immediate)",
+          enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
+    
+    // Broadcast damage immediately to network if not host
+    if (!_network->isHost()) {
+        _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
+    }
+    
+    // Host hears enemy take damage immediately
+    if (_network->isHost() && _audio) {
+        _audio->playSoundUnique("enemy_hurt");
+        CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+    }
+    
+    return true;
 }
 
 /**
@@ -543,8 +624,14 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
-            _audio->playSoundUnique("support");
-            CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
+            // Play the item use sound if defined, otherwise play the support sound
+            const std::string& itemUseSound = def->getItemUseSound();
+            if (!itemUseSound.empty()) {
+                _audio->playSoundUnique(itemUseSound);
+            } else {
+                _audio->playSoundUnique("support");
+            }
+            CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }
         return false;
@@ -578,7 +665,13 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             }
-            _audio->playSoundUnique("support");
+            // Play the item use sound if defined, otherwise play the support sound
+            const std::string& itemUseSound = def->getItemUseSound();
+            if (!itemUseSound.empty()) {
+                _audio->playSoundUnique(itemUseSound);
+            } else {
+                _audio->playSoundUnique("support");
+            }
             CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }
@@ -1565,8 +1658,7 @@ void GameScene::updateSnapbackAnimations(float dt) {
 
 /**
  * Processes zone interactions for zone-interactive sliding items.
- * Verifies strict item-type matching (attack↔attack, support↔support)
- * and triggers the appropriate action if a match is found.
+ * When an item is in a matching zone, triggers the appropriate action and marks the item as used.
  * Called once per frame after sliding velocity updates.
  */
 void GameScene::processZoneInteractionsForSlidingItems() {
@@ -1574,6 +1666,7 @@ void GameScene::processZoneInteractionsForSlidingItems() {
     if (!player) return;
 
     auto& inventory = const_cast<std::vector<ItemInstance>&>(player->getInventory());
+    std::unordered_set<ItemInstance::ItemId> itemsToRemove;
 
     for (auto itemId : _slidingItems) {
         // Find the item in inventory
@@ -1586,7 +1679,6 @@ void GameScene::processZoneInteractionsForSlidingItems() {
         }
         
         // Skip if: no item, can't interact, or is a passed item
-        // Allow interaction for both sliding items and settled items that are zone-interactive (e.g., dropped items in zones)
         if (!item || !item->canInteractWithZones() || item->getSlideOrigin() == ItemInstance::SlideOriginType::SLIDE_FROM_PASS) {
             continue;
         }
@@ -1598,29 +1690,49 @@ void GameScene::processZoneInteractionsForSlidingItems() {
         auto itemDef = _itemController.getDatabase().getDef(item->getDefId());
         if (!itemDef) continue;
 
-        // Check against all zones
+        // Check against all zones for a match
         for (auto& [action, zone] : _inputZones) {
             if (!zone.contains(itemPos)) continue;
-
-            // Check for type matching
-            bool typeMatches = false;
             
-            if (action == InputController::Action::DROP_BOSS && itemDef->getType() == ItemDef::Type::Attack) {
-                typeMatches = true;
-            } else if ((action == InputController::Action::DROP_ALLY_LEFT || action == InputController::Action::DROP_ALLY_RIGHT) 
-                       && itemDef->getType() == ItemDef::Type::Support) {
-                typeMatches = true;
-            } else if (action == InputController::Action::PASS_LEFT || action == InputController::Action::PASS_RIGHT) {
-                // Pass zones work with any item type
-                typeMatches = true;
+            // Verify type matching (attack items → boss zones, support items → ally zones)
+            if (!isItemActionMatch(action, itemDef->getType())) {
+                continue;
             }
             
-            if (typeMatches) {
-                // First time hitting a matching zone - trigger the action immediately
-                handlePlayerActions(action, itemId);
-                break;
+            // Action matched - trigger it and mark item as used
+            if (handlePlayerActions(action, itemId)) {
+                markItemAsUsed(itemId);
+                itemsToRemove.insert(itemId);
             }
+            break;
         }
+    }
+    
+    // Remove items after iteration completes to avoid iterator invalidation
+    for (auto itemId : itemsToRemove) {
+        _slidingItems.erase(itemId);
+    }
+}
+
+/**
+ * Checks if an item type matches an action zone type.
+ *
+ * @param action  The zone action type
+ * @param itemType The type of item
+ * @return true if the item can be used in this zone
+ */
+bool GameScene::isItemActionMatch(InputController::Action action, ItemDef::Type itemType) const {
+    switch (action) {
+        case InputController::Action::DROP_BOSS:
+            return itemType == ItemDef::Type::Attack;
+        case InputController::Action::DROP_ALLY_LEFT:
+        case InputController::Action::DROP_ALLY_RIGHT:
+            return itemType == ItemDef::Type::Support;
+        case InputController::Action::PASS_LEFT:
+        case InputController::Action::PASS_RIGHT:
+            return true;  // Pass zones accept any item type
+        default:
+            return false;
     }
 }
 
@@ -1712,6 +1824,7 @@ void GameScene::update(float dt, InputController& input) {
     // Update sliding items before physics world update
     updateSlidingItems(dt);
     updateSnapbackAnimations(dt);
+    updateItemUseAnimations(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);
@@ -1885,6 +1998,46 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
     _passedItemIds.erase(itemId);
 }
 
+/**
+ * Marks an item as used (consumed by an action).
+ * Removes the visual widget and physics body from the scene.
+ * Item remains in inventory until deferred damage is applied and animation completes.
+ * Prevents the item from being respawned during animation playback.
+ *
+ * @param itemId  The ID of the item that was used
+ */
+void GameScene::markItemAsUsed(ItemInstance::ItemId itemId) {
+    // Remove widget from inventory display
+    auto widget = _itemWidgets.find(itemId);
+    if (widget != _itemWidgets.end() && widget->second && _inventory) {
+        _inventory->removeChild(widget->second);
+        _itemWidgets.erase(widget);
+    }
+    
+    // Remove physics body from world
+    auto body = _itemBodies.find(itemId);
+    if (body != _itemBodies.end() && body->second && _itemPhysicsWorld) {
+        _itemPhysicsWorld->removeObstacle(body->second);
+        _itemBodies.erase(body);
+    }
+}
+
+/**
+ * Checks if an item is currently playing an animation.
+ * Iterates through active animations to find if the given itemId is animating.
+ *
+ * @param itemId The ID of the item to check
+ * @return true if the item has an active animation, false otherwise
+ */
+bool GameScene::isItemAnimating(ItemInstance::ItemId itemId) const {
+    for (const auto& anim : _activeItemUseAnimations) {
+        if (anim.itemId == itemId) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /** Helper function to spawn an item widget from a given position with animation.
  *
  * @param item       The ItemInstance to spawn
@@ -1942,6 +2095,11 @@ void GameScene::syncInventoryWidgets() {
 
         auto found = _itemWidgets.find(id);
         if (found == _itemWidgets.end()) {
+            // Skip items currently animating - they should not be respawned
+            if (isItemAnimating(id)) {
+                continue;
+            }
+            
             // Check if this is a passed item (by tracking set OR passDirection metadata)
             bool isPassedItem = (_passedItemIds.find(id) != _passedItemIds.end()) ||
                                (item.getPassDirection() != 0);
@@ -2226,6 +2384,260 @@ void GameScene::handleDisconnectedPlayers() {
  * Call this when aborting the lobby to clear all player house selections.
  */
 void GameScene::resetGameState() {
+    clearItemUseAnimations();
     _gameState.dispose();
     _gameState.init(_itemController);
+}
+
+/**
+ * Calculates the effective damage value for an attack item.
+ * 
+ * Applies the following formula:
+ *   damage = baseValue * (1 + houseRoleMultiplier) * affinityBonus
+ * 
+ * where:
+ *   - baseValue is from the item definition
+ *   - houseRoleMultiplier is looked up by player house (typically 0.0-0.5)
+ *   - affinityBonus applies to rare/divine items matching player house (typically 1.0-1.5)
+ * 
+ * This function extracts damage calculation into a reusable utility, allowing
+ * animated attacks to calculate damage upfront while deferring application to
+ * the animation resolution frame. Non-animated attacks continue to use useItemById()
+ * which combines calculation and application.
+ * 
+ * @param player     The attacking player (provides house name for multiplier lookup)
+ * @param itemDef    The item definition (provides base value and affinity info)
+ * @param database   The item database (provides house multipliers)
+ * @return           Calculated damage magnitude (minimum 0.01f if calculated value <= 0)
+ */
+float GameScene::calculateItemDamage(const Player* player, const std::shared_ptr<const ItemDef>& itemDef, const ItemDatabase& database) {
+    if (!player || !itemDef) return 0.0f;
+    
+    float houseRoleMultiplier = 0.0f;
+    float affinityBonus = 1.0f;
+    const auto* houseMultipliers = database.getHouseMultipliers(player->getHouseName());
+    if (houseMultipliers) {
+        houseRoleMultiplier = houseMultipliers->attack;
+        // Affinity bonus only applies to rare/divine items when item affinity matches player house
+        const bool affinityEligible = (itemDef->getRarity() == ItemDef::Rarity::Rare || 
+                                       itemDef->getRarity() == ItemDef::Rarity::Divine);
+        const bool affinityMatch = (itemDef->getHouseAffinity() == ItemDef::houseFromString(player->getHouseName(), ItemDef::House::None));
+        if (affinityEligible && affinityMatch) {
+            affinityBonus = houseMultipliers->affinityBonus;
+        }
+    }
+    float resolvedMagnitude = itemDef->getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
+    if (resolvedMagnitude <= 0.0f) {
+        resolvedMagnitude = 0.01f;
+    }
+    
+    CULog("ItemDamageCalc: item='%s' playerHouse='%s' baseVal=%.3f * (1+%.3f) * %.3f = %.3f",
+          itemDef->getId().c_str(),
+          player->getHouseName().c_str(),
+          itemDef->getBaseValue(),
+          houseRoleMultiplier,
+          affinityBonus,
+          resolvedMagnitude);
+    
+    return resolvedMagnitude;
+}
+
+/**
+ * Removes an item from a player's inventory by item instance ID.
+ * 
+ * Searches through the player's inventory for an item matching the given ID
+ * and erases it from the inventory vector if found. Used to decouple item
+ * removal from damage application, allowing animated attacks to consume the
+ * item immediately while deferring damage to the animation keyframe.
+ * 
+ * @param player   The player whose inventory to modify (non-null)
+ * @param itemId   The unique ID of the item instance to remove
+ * @return         true if item was found and removed, false if not found or player is null
+ */
+bool GameScene::removeItemFromInventory(Player* player, ItemInstance::ItemId itemId) {
+    if (!player) return false;
+    
+    auto& inventory = const_cast<std::vector<ItemInstance>&>(player->getInventory());
+    for (auto itemIter = inventory.begin(); itemIter != inventory.end(); ++itemIter) {
+        if (itemIter->getId() == itemId) {
+            inventory.erase(itemIter);
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Queues an item use animation for display in the special effects layer.
+ * 
+ * Loads the sprite sheet texture, creates a SpriteNode to render it, and adds the
+ * animation to the active queue for frame-by-frame updating. The animation tracks
+ * elapsed time and advances sprite frames proportionally to animation progress.
+ * 
+ * Damage is applied later in updateItemUseAnimations() when the keyframe is reached.
+ * This deferred application allows multiple systems to hook into the animation lifecycle.
+ */
+void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, float damageAmount,
+                                       const cugl::Vec2& itemPos, ItemInstance::ItemId itemId) {
+    // Load the sprite sheet texture
+    auto texture = _assets->get<cugl::graphics::Texture>(animConfig.spriteSheetId);
+    if (!texture) {
+        CULog("ERROR: Failed to load sprite sheet texture: %s", animConfig.spriteSheetId.c_str());
+        return;
+    }
+    
+    // Create a SpriteSheet to manage frame layout
+    auto spriteSheet = cugl::graphics::SpriteSheet::alloc(texture, animConfig.rows, animConfig.cols, animConfig.frameCount);
+    if (!spriteSheet) {
+        CULog("ERROR: Failed to allocate sprite sheet for animation");
+        return;
+    }
+    
+    auto frameSize = spriteSheet->getFrameSize();
+    
+    // Create a SpriteNode which is designed for sprite sheet animations
+    auto node = cugl::scene2::SpriteNode::allocWithSheet(texture, animConfig.rows, animConfig.cols, animConfig.frameCount);
+    if (!node) {
+        CULog("ERROR: Failed to allocate SpriteNode for item use animation");
+        return;
+    }
+    
+    // Set initial frame to 0
+    node->setFrame(0);
+    
+    // Position the node
+    cugl::Vec2 position = itemPos;
+    cugl::Size viewportSize = getSize();
+    if (itemPos == cugl::Vec2::ZERO) {
+        position = cugl::Vec2(viewportSize.width / 2.0f, viewportSize.height / 2.0f);
+    }
+    
+    node->setPosition(position);
+    node->setAnchor(cugl::Vec2(0.5f, 0.5f));
+    
+    // Scale animation to fit viewport width while maintaining aspect ratio
+    // Use setScale instead of setContentSize to avoid distorting the texture
+    float scale = viewportSize.width / frameSize.width;
+    node->setScale(scale);
+    
+    // Add to special effects layer
+    _specialEffectsLayer->addChild(node);
+    
+    // Create and queue the animation instance
+    ItemUseAnimation anim;
+    anim.spriteSheet = spriteSheet;
+    anim.node = node;
+    anim.basePosition = position;
+    anim.frameSize = frameSize;
+    anim.frameCount = animConfig.frameCount;
+    anim.frameCols = animConfig.cols;
+    anim.animationDuration = animConfig.animationDuration;
+    anim.damageResolutionFrame = animConfig.damageResolutionFrame;
+    anim.damageAmount = damageAmount;
+    anim.itemId = itemId;
+    anim.elapsedTime = 0.0f;
+    anim.damageResolved = false;
+    anim.currentFrameIndex = 0;  // Initialize to 0 since we set frame 0 above
+    
+    _activeItemUseAnimations.push_back(anim);
+}
+
+/**
+ * Updates all active item use animations for one frame.
+ * 
+ * For each animation in _activeItemUseAnimations:
+ *   1. Increments elapsedTime by dt
+ *   2. Calculates frame index based on animation progress
+ *   3. Updates sprite if frame changed (optimization: avoid redundant setFrame calls)
+ *   4. At damageResolutionFrame: applies damage and broadcasts network message
+ *   5. Cleans up animation when duration elapsed
+ * 
+ * CRITICAL NETWORK BEHAVIOR:
+ *   - Host: Applies damage locally, broadcasts via next broadcastGameState() (tick-synchronized)
+ *   - Client: Broadcasts damage message immediately (so host processes same frame it resolves)
+ *   This ensures all machines apply damage at identical animation frames, preventing state desync.
+ *
+ * @param dt  Delta time in seconds (from game loop)
+ */
+void GameScene::updateItemUseAnimations(float dt) {
+    if (_activeItemUseAnimations.empty()) {
+        return;
+    }
+    
+    std::vector<size_t> completedIndices;
+    
+    for (size_t i = 0; i < _activeItemUseAnimations.size(); ++i) {
+        auto& anim = _activeItemUseAnimations[i];
+        
+        // Advance elapsed time
+        anim.elapsedTime += dt;
+        
+        // Calculate normalized progress (0.0 to 1.0)
+        float progress = std::min(1.0f, anim.elapsedTime / anim.animationDuration);
+        
+        // Calculate which frame we're on
+        int frameIndex = static_cast<int>(progress * anim.frameCount);
+        frameIndex = std::min(frameIndex, anim.frameCount - 1);  // Clamp to valid range
+        
+        // Only call setFrame if the frame index actually changed
+        if (frameIndex != anim.currentFrameIndex) {
+            anim.currentFrameIndex = frameIndex;
+            anim.node->setFrame(frameIndex);
+        }
+        
+        // Check if we've reached or passed the damage resolution frame
+        if (!anim.damageResolved && frameIndex >= anim.damageResolutionFrame) {
+            anim.damageResolved = true;
+            
+            // Apply pre-calculated damage to enemy at resolution frame
+            // This is where gameplay effect systems can hook in
+            if (anim.damageAmount > 0.0f) {
+                auto enemy = _gameState.getEnemy();
+                if (enemy) {
+                    enemy->updateHealth(-anim.damageAmount);
+                    
+                    // Only non-hosts broadcast damage messages.
+                    // Hosts apply damage locally and broadcast it via broadcastGameState().
+                    if (_network && !_network->isHost()) {
+                        Player* local = _gameState.getLocalPlayer();
+                        _network->broadcastDamage(anim.damageAmount, local->getPlayerNumber());
+                    }
+                }
+            }
+            
+            // Play enemy_hurt sound at resolution frame
+            // Host plays it immediately; clients will hear it through network sync
+            if (_network && _network->isHost() && _audio) {
+                _audio->playSoundUnique("enemy_hurt");
+            }
+        }
+        
+        // Check if animation is complete
+        if (anim.elapsedTime >= anim.animationDuration) {
+            anim.node->removeFromParent();
+            completedIndices.push_back(i);
+        }
+    }
+    
+    // Remove completed animations in reverse order to maintain indices
+    for (auto completedIndexIter = completedIndices.rbegin(); completedIndexIter != completedIndices.rend(); ++completedIndexIter) {
+        _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *completedIndexIter);
+    }
+}
+
+/**
+ * Clears all active item use animations, removing them from the scene graph.
+ * Called when the game ends or resets to clean up any in-flight animations
+ * and prevent orphaned sprite nodes from persisting after scene transitions.
+ */
+void GameScene::clearItemUseAnimations() {
+    // Remove all animation nodes from the scene graph
+    for (auto& anim : _activeItemUseAnimations) {
+        if (anim.node) {
+            anim.node->removeFromParent();
+        }
+    }
+    
+    // Clear the animation list
+    _activeItemUseAnimations.clear();
 }
