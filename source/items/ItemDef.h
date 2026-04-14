@@ -166,6 +166,7 @@ public:
 
     /** Gets utility item effects */
     const std::vector<Effect>& getEffects() const { return _effects; }
+    
     /**
      * Returns true if this item contains at least one effect of the given type.
      *
