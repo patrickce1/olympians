@@ -139,8 +139,13 @@ bool GameScene::initSceneGraph() {
         _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
         
-        // This is the boss animation sprite, you can change the texture and set frames as needed.
+        // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
+        
+        // Animation sprite will be created on demand and added as a child of bossAnimationSpace
+        if (_bossSprite) {
+            _enemyAnimationSpriteNode = nullptr;  // Will be created on demand with correct texture
+        }
         
         // This is the special effects node, this is where all the animated effects will go.
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
@@ -334,7 +339,11 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     
     _assets->loadDirectory("json/itemTextures.json");
     _assets->loadDirectory("json/itemAnimations.json");
+    _assets->loadDirectory("json/enemyAnimations.json");
     _assets->loadDirectory("json/houseInGameIcons.json");
+
+    // Load animation registry from enemyAnimations.json
+    loadAnimationRegistry();
 
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
@@ -371,6 +380,7 @@ void GameScene::dispose() {
         _playerHealthBar = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
+        _enemyAnimationSpriteNode = nullptr;
         _itemWidgets.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
@@ -431,7 +441,16 @@ void GameScene::setActive(bool value) {
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
             updateNetworkOrder();
             _gameState.assignMissingHouses(_itemController);
-
+            
+            // Reset enemy animation state for clean start
+            _enemyAnimationElapsedTime = 0.0f;
+            _enemyAnimationCachedFrameIndex = -1;
+            _enemyAnimationCurrentDirection = 0;
+            
+            // Hide animation sprite on scene reset
+            if (_enemyAnimationSpriteNode) {
+                _enemyAnimationSpriteNode->setVisible(false);
+            }
         }
     }
 }
@@ -884,6 +903,190 @@ void GameScene::updateEnemyAndAI(float dt) {
     
     // Play sounds for LOCAL player and enemy health changes after all updates
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
+}
+
+/**
+ * Updates enemy idle animation and directional facing based on target.
+ * 
+ * Each frame:
+ *   1. Gets current enemy idle state's animation metadata
+ *   2. If NO metadata: destroy sprite node, hide animation (fallback to static sprite)
+ *   3. If metadata exists:
+ *      - Recalculate direction from local player index + enemy target index
+ *      - Advance animation elapsed time by dt
+ *      - Calculate current frame: (direction * frameCount) + frameInRow
+ *      - Update sprite frame only if changed (cached optimization)
+ * 
+ * @param dt                Elapsed time in seconds for this frame
+ * @param localPlayerIndex  The local player's index (0-3) for calculating relative direction
+ */
+void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy || !enemy->isAlive()) {
+        // Hide animation if enemy is dead
+        if (_enemyAnimationSpriteNode) {
+            _enemyAnimationSpriteNode->setVisible(false);
+        }
+        if (_bossSprite) {
+            _bossSprite->setVisible(false);
+        }
+        // Show static sprite
+        if (_gameArea) {
+            auto staticSprite = _gameArea->getChildByName("bossIdle");
+            if (staticSprite) {
+                staticSprite->setVisible(true);
+            }
+        }
+        return;
+    }
+
+    // Get current state's animation metadata
+    const auto* stateDef = enemy->getCurrentStateDef();
+    if (!stateDef) {
+        // Hide animation if no state def
+        if (_enemyAnimationSpriteNode) {
+            _enemyAnimationSpriteNode->setVisible(false);
+        }
+        if (_bossSprite) {
+            _bossSprite->setVisible(false);
+        }
+        // Show static sprite
+        if (_gameArea) {
+            auto staticSprite = _gameArea->getChildByName("bossIdle");
+            if (staticSprite) {
+                staticSprite->setVisible(true);
+            }
+        }
+        return;
+    }
+    
+    // Check if animation metadata is defined
+    // Animation is valid if animationKey is not empty AND animation exists in registry
+    bool hasMetadata = !stateDef->animationKey.empty() && 
+                       (_animationRegistry.find(stateDef->animationKey) != _animationRegistry.end());
+    
+    // If NO animation metadata: hide animation sprite
+    if (!hasMetadata) {
+        if (_enemyAnimationSpriteNode) {
+            _enemyAnimationSpriteNode->setVisible(false);
+        }
+        if (_bossSprite) {
+            _bossSprite->setVisible(false);
+        }
+        // Show static sprite again
+        auto staticSprite = _gameArea->getChildByName("bossIdle");
+        if (staticSprite) {
+            staticSprite->setVisible(true);
+        }
+        return;
+    }
+    
+    // Look up animation metadata from registry
+    auto animLookup = _animationRegistry.find(stateDef->animationKey);
+    if (animLookup == _animationRegistry.end()) {
+        // Fallback to static sprite
+        if (_enemyAnimationSpriteNode) {
+            _enemyAnimationSpriteNode->setVisible(false);
+        }
+        if (_bossSprite) {
+            _bossSprite->setVisible(false);
+        }
+        auto staticSprite = _gameArea->getChildByName("bossIdle");
+        if (staticSprite) {
+            staticSprite->setVisible(true);
+        }
+        return;
+    }
+    
+    const AnimationEntry& animEntry = animLookup->second;
+    
+    // Cache the animation entry for use in frame calculations
+    _currentAnimationEntry = animEntry;
+    
+    // Has animation metadata: ensure sprite exists and is visible
+    if (!_enemyAnimationSpriteNode) {
+        // Ensure we have the bossAnimationSpace container
+        if (!_bossSprite) {
+            CULogError("Boss animation space not found");
+            return;
+        }
+        
+        auto texture = cugl::graphics::Texture::allocWithFile(animEntry.texture);
+        if (!texture) {
+            return;
+        }
+        
+        // Create SpriteNode with rows × cols layout
+        _enemyAnimationSpriteNode = cugl::scene2::SpriteNode::allocWithSheet(
+            texture,
+            animEntry.frameRows,            // rows
+            animEntry.frameCount,           // cols (frames per direction)
+            animEntry.frameCount * animEntry.frameRows  // total frames
+        );
+        
+        if (!_enemyAnimationSpriteNode) {
+            CULogError("Failed to allocate SpriteNode for enemy animation");
+            return;
+        }
+        
+        // Set up sprite properties - use native resolution, no scaling
+        // Let allocWithSheet handle the frame division on full-size texture
+        
+        _enemyAnimationSpriteNode->setScale(1.0f);  // Use native resolution
+        
+        // Calculate single frame size from texture and grid (using animation registry metadata)
+        float frameWidth = texture->getWidth() / animEntry.frameCount;   // 7 columns
+        float frameHeight = texture->getHeight() / animEntry.frameRows;  // 4 rows
+        _enemyAnimationSpriteNode->setContentSize(cugl::Size(frameWidth, frameHeight));
+        
+        // Position at center of container
+        _enemyAnimationSpriteNode->setAnchor(cugl::Vec2(0.5f, 0.5f));
+        _enemyAnimationSpriteNode->setPosition(cugl::Vec2(196.5f, 299.0f));  // Center of 393×598
+        _enemyAnimationSpriteNode->setVisible(true);
+        
+        // Add to bossAnimationSpace as a child (this is the layer for boss animations)
+        _bossSprite->addChild(_enemyAnimationSpriteNode);
+        
+        // Make the bossAnimationSpace container visible so animation shows
+        _bossSprite->setVisible(true);
+        
+        _enemyAnimationCachedFrameIndex = -1; // Force frame update
+    }
+    
+    // Show the animation sprite
+    if (_enemyAnimationSpriteNode) {
+        _enemyAnimationSpriteNode->setVisible(true);
+        
+        // Make sure container is visible
+        if (_bossSprite) {
+            _bossSprite->setVisible(true);
+        }
+        
+        // Hide the static sprite so only animation shows
+        auto staticSprite = _gameArea->getChildByName("bossIdle");
+        if (staticSprite) {
+            staticSprite->setVisible(false);
+        }
+    }
+    
+    // Recalculate direction
+    int newDirection = EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex);
+    _enemyAnimationCurrentDirection = newDirection;
+    
+    // Increment elapsed time
+    _enemyAnimationElapsedTime += dt;
+    
+    // Calculate frame index within current direction row using cached animation metadata
+    int frameInRow = (int)(_enemyAnimationElapsedTime / _currentAnimationEntry.frameDuration) % _currentAnimationEntry.frameCount;
+    
+    // Calculate linear frame: (direction * frameCount) + frameInRow
+    int linearFrame = (_enemyAnimationCurrentDirection * _currentAnimationEntry.frameCount) + frameInRow;
+    
+    // Update sprite frame only if changed (optimization to avoid redundant setFrame calls)
+    if (linearFrame != _enemyAnimationCachedFrameIndex && _enemyAnimationSpriteNode) {
+        _enemyAnimationSpriteNode->setFrame(linearFrame);
+        _enemyAnimationCachedFrameIndex = linearFrame;
+    }
 }
 
 /**
@@ -1819,6 +2022,20 @@ void GameScene::update(float dt, InputController& input) {
 
     handleItemSpawn(dt);
     updateEnemyAndAI(dt);
+    
+    // Calculate local player index for animation direction
+    int localPlayerIndex = 0;
+    Player* localPlayer = _gameState.getLocalPlayer();
+    if (localPlayer) {
+        const auto& players = _gameState.getPlayers();
+        for (int i = 0; i < (int)players.size(); i++) {
+            if (players[i].get() == localPlayer) {
+                localPlayerIndex = i;
+                break;
+            }
+        }
+    }
+    updateEnemyAnimation(dt, localPlayerIndex);
     updateDropZoneVisibility();
 
     // Update sliding items before physics world update
@@ -2622,6 +2839,44 @@ void GameScene::updateItemUseAnimations(float dt) {
     // Remove completed animations in reverse order to maintain indices
     for (auto completedIndexIter = completedIndices.rbegin(); completedIndexIter != completedIndices.rend(); ++completedIndexIter) {
         _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *completedIndexIter);
+    }
+}
+
+/**
+ * Loads the animation registry from enemyAnimations.json and populates _animationRegistry.
+ * Parses the JSON array of animation entries and builds a map for O(1) lookup by animation ID.
+ */
+void GameScene::loadAnimationRegistry() {
+    _animationRegistry.clear();
+    
+    // Load the animationRegistry array from enemyAnimations.json
+    // The asset key is registered in assets.json as "enemyAnimations"
+    auto json = _assets->get<cugl::JsonValue>("enemyAnimations");
+    
+    if (!json) {
+        return;
+    }
+    
+    auto registryArray = json->get("animationRegistry");
+    if (!registryArray || !registryArray->isArray()) {
+        return;
+    }
+    
+    // Parse each animation entry
+    for (int i = 0; i < registryArray->size(); i++) {
+        auto entry = registryArray->get(i);
+        if (!entry) continue;
+        
+        AnimationEntry anim;
+        anim.id = entry->getString("id", "");
+        anim.texture = entry->getString("texture", "");
+        anim.frameCount = entry->getInt("frameCount", 0);
+        anim.frameDuration = entry->getFloat("frameDuration", 0.1f);
+        anim.frameRows = entry->getInt("frameRows", 1);
+        
+        if (!anim.id.empty()) {
+            _animationRegistry[anim.id] = anim;
+        }
     }
 }
 

@@ -35,12 +35,14 @@ public:
 
     struct StateDef {
         State state;
-        int animationRow = 0;
         std::string name;
         float buildUpTime = 0.0f;
         float cooldownTime = 0.0f;
         State nextState = IDLE;                
         std::vector<EventDef> events;
+        
+        // Animation key to lookup metadata in the animation registry
+        std::string animationKey;           // Key to lookup animation in enemyAnimations.json
     };
 
     struct AIConfig {
@@ -124,11 +126,13 @@ public:
 
                 StateDef sdef;
                 sdef.state = parseStateType(st->_key); 
-                sdef.animationRow = st->getInt("animationRow", 0);
                 sdef.name = st->getString("name", "");
                 sdef.buildUpTime  = st->getFloat("buildUpTime", 0.0f);
                 sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
                 sdef.nextState    = parseStateType(st->getString("nextState", "idle"));
+                
+                // Read animation key (metadata loads from animation registry, not JSON)
+                sdef.animationKey = st->getString("animationKey", "");
 
                 auto aiObj = entry->get("ai");
                 if (aiObj && aiObj->isObject()) {

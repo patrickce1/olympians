@@ -309,6 +309,9 @@
         "cyclopsIdle" : {
             "file": "textures/gameScene/cyclops/idleDirections.png"
         },
+        "cyclops_idle_animation": {
+            "file": "textures/gameScene/cyclops/cyclops_idle_animation.png"
+        },
             "key1": {
                 "file": "textures/keypad/key1.png"
             },
@@ -423,7 +426,8 @@
     },
     "jsons": {
         "server": "json/server.json",
-        "gameSceneConfig": "json/gameSceneConfig.json"
+        "gameSceneConfig": "json/gameSceneConfig.json",
+        "enemyAnimations": "json/enemyAnimations.json"
     },
     "sounds": {
         "select": {
