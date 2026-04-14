@@ -19,7 +19,6 @@ static std::string normalizeToken(std::string token) {
     return token;
 }
 
-
 /**
  * Parses a normalized JSON effect token into an ItemDef::EffectType.
  *
