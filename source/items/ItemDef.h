@@ -211,6 +211,7 @@ public:
      * @return the parsed rarity, or fallback if unrecognized
      */
     static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
+    
     /**
      * Extract House enum from a string.
      * Accepts "zeus", "poseidon", "hades", "demeter", "ares", "athena", or "none" (case-insensitive, trimmed).
