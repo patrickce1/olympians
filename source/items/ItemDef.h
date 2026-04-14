@@ -162,6 +162,7 @@ public:
     Type getType() const { return _type; }
     /** Gets item rarity */
     Rarity getRarity() const { return _rarity; }
+    
 
     /** Gets utility item effects */
     const std::vector<Effect>& getEffects() const { return _effects; }
