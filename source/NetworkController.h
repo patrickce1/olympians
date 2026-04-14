@@ -285,7 +285,7 @@ protected:
         GAME_LOST = 9,
         GAME_WON = 10,
         PLAYER_SUPPORT_EFFECT = 11,
-        BOSS_SELECT = 13
+        BOSS_SELECT = 13,
         SESSION_TERMINATED = 99
     };
 
