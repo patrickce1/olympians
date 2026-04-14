@@ -22,6 +22,8 @@ sources:                            # The list of the source code files
     - source/playerAI/*.h
     - source/tests/*.cpp
     - source/tests/*.h
+    - source/bosses/*.cpp
+    - source/bosses/*.h
 
 modules:
     - scene2

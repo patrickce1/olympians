@@ -166,7 +166,6 @@ public:
                     switch (def->getType()) {
                         case ItemDef::Type::Attack:  houseRoleMultiplier = houseMultipliers->attack;  break;
                         case ItemDef::Type::Support: houseRoleMultiplier = houseMultipliers->support; break;
-                        case ItemDef::Type::Utility: houseRoleMultiplier = houseMultipliers->utility; break;
                     }
                     // Affinity bonus only applies to rare/divine items when item affinity matches player house.
                     const bool affinityEligible =
@@ -210,7 +209,7 @@ public:
                             affinityBonus,
                             resolvedMagnitude
                         );
-                        target.updateHealth(-resolvedMagnitude);
+                        target.takeDamage(resolvedMagnitude, _playerNumber);
                         _inventory.erase(item);
                         return resolvedMagnitude;
                     }

@@ -132,8 +132,8 @@ void SceneLoader::onStartup() {
 //   );
 //
 //   EnemyTests::runAll(
-//       "json/enemies.json",
-//       "json/houses.json"
+//      "json/enemies.json",
+//      "json/houses.json"
 //   );
 //
 //   ItemTests::runAll(
@@ -386,7 +386,7 @@ void SceneLoader::update(float dt) {
                         _lobbyScene.setActive(false);   // disconnect fires here
                         _currentScene = State::HOSTSETUP;
                     } else {
-                        CULog("Transitioning to CleintScene...");
+                        CULog("Transitioning to ClientScene...");
                         _clientScene.setActive(true);
                         _lobbyScene.setActive(false);   // disconnect fires here
                         _currentScene = State::CLIENT;
