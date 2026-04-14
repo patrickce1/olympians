@@ -132,8 +132,8 @@ void SceneLoader::onStartup() {
 //   );
 //
 //   EnemyTests::runAll(
-//       "json/enemies.json",
-//       "json/houses.json"
+//      "json/enemies.json",
+//      "json/houses.json"
 //   );
 //
 //   ItemTests::runAll(

@@ -209,7 +209,7 @@ public:
                             affinityBonus,
                             resolvedMagnitude
                         );
-                        target.updateHealth(-resolvedMagnitude);
+                        target.takeDamage(resolvedMagnitude, _playerNumber);
                         _inventory.erase(item);
                         return resolvedMagnitude;
                     }

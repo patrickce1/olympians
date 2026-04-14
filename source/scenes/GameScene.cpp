@@ -587,7 +587,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     
     // Broadcast damage immediately to network if not host
     if (!_network->isHost()) {
-        _network->broadcastDamage(resolvedMagnitude);
+        _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
     }
     
     // Host hears enemy take damage immediately
@@ -2595,12 +2595,13 @@ void GameScene::updateItemUseAnimations(float dt) {
             if (anim.damageAmount > 0.0f) {
                 auto enemy = _gameState.getEnemy();
                 if (enemy) {
-                    enemy->updateHealth(-anim.damageAmount);
+                    enemy->takeDamage(anim.damageAmount, _gameState.getLocalPlayer()->getPlayerNumber());
                     
                     // Only non-hosts broadcast damage messages.
                     // Hosts apply damage locally and broadcast it via broadcastGameState().
                     if (_network && !_network->isHost()) {
-                        _network->broadcastDamage(anim.damageAmount);
+                        Player* local = _gameState.getLocalPlayer();
+                        _network->broadcastDamage(anim.damageAmount, local->getPlayerNumber());
                     }
                 }
             }

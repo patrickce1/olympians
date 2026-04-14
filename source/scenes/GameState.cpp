@@ -235,7 +235,15 @@ void GameState::setLocalPlayer(int assignedIndex) {
 void GameState::setEnemy(std::string enemyID) {
     const std::string enemyJsonPath = "json/enemies.json";
     if (_enemy == nullptr) {
-        _enemy = std::make_shared<Enemy>();
+        if (enemyID.compare("cyclops") == 0) {
+            CULog("making cyclops");
+            _enemy = std::make_shared<Cyclops>();
+        }
+        else if (enemyID.compare("cerberus") == 0) {
+            //TODO for future pr: replace this with a custom Cerberus class
+            CULog("making cerberus");
+            _enemy = std::make_shared<Enemy>();
+        }
     }
     _enemy->init(enemyID, enemyJsonPath);
 };
@@ -265,7 +273,7 @@ Player* GameState::getPlayerBySlot(int slot) const {
 /* Goes through the list of attack messages in attacks and applies the damage specified to the boss*/
 void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
     for (AttackMessage attack : attacks) {
-        _enemy->updateHealth(-1 * attack.damage);
+        _enemy->takeDamage(attack.damage, attack.damageDirection);
     }
 }
 
@@ -289,6 +297,13 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
 void GameState::networkUpdate(GameStateMessage newState) {
     // update boss health
     _enemy->setCurrentHealth(newState.bossHealth);
+    
+    //ensure state is synced
+    _enemy->enterState((EnemyLoader::State) newState.bossState);
+    _enemy->setStateTime(newState.stateTime);
+
+    //update boss direction
+    _enemy->setTargetIndex(newState.bossTarget);
 
     // update player health
     std::vector<float> healths = {

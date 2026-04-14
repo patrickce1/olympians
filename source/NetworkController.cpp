@@ -195,8 +195,10 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 	switch (msgCode) {
 		case MessageType::BOSS_DAMAGE: {
 			float damage = _deserializer.readFloat();
+			int playerIndex = _deserializer.readSint32();
 			AttackMessage attackMsg;
 			attackMsg.damage = damage;
+			attackMsg.damageDirection = playerIndex;
 			attacks.push_back(attackMsg);
 			break;
 		}
@@ -244,6 +246,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				_onlinePlayers.push_back(newPlayer);
 				broadcastLobbyState();
 			}
+
 			break;
 		}
 		case MessageType::LOBBY_UPDATE: {
@@ -263,6 +266,9 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		case MessageType::GAME_UPDATE : {
 			GameStateMessage stateMsg;
 			stateMsg.bossHealth = _deserializer.readFloat();
+			stateMsg.bossTarget = _deserializer.readSint32();
+			stateMsg.bossState = _deserializer.readSint32();
+			stateMsg.stateTime = _deserializer.readFloat();
 			stateMsg.player1HP = _deserializer.readFloat();
 			stateMsg.player2HP = _deserializer.readFloat();
 			stateMsg.player3HP = _deserializer.readFloat();
@@ -293,7 +299,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _disconnectedSlots.push_back(slot);
             break;
         }
-        case SESSION_TERMINATED: {
+        case MessageType::SESSION_TERMINATED: {
             _sessionTerminated = true;
             break;
         }
@@ -336,10 +342,11 @@ void NetworkController::clearQueues() {
  * Called by non-host clients when the local player attacks the boss.
  *
  * @param damage    The amount of damage dealt to the boss.
+ * @param playerIndex Which player is dealing damage to the boss
  */
-void NetworkController::broadcastDamage(float damage) {
+void NetworkController::broadcastDamage(float damageAmount, int playerIndex) {
 	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
-	_serializer.writeFloat(damage);
+	_serializer.writeFloat(damageAmount);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
@@ -444,6 +451,9 @@ void NetworkController::broadcastJoinedLobby() {
 void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.writeSint32(MessageType::GAME_UPDATE);
 	_serializer.writeFloat(state.getEnemy()->getCurrentHealth());
+	_serializer.writeSint32(state.getEnemy()->getTargetIndex());
+	_serializer.writeSint32(state.getEnemy()->getCurrentState());
+	_serializer.writeSint32(state.getEnemy()->getStateTime());
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
 	for (int i = 0; i < 4; i++) {
 		if (i < players.size()) {
@@ -594,6 +604,7 @@ void NetworkController::registerDisconnectCallback() {
                     broadcastPlayerDisconnected(i);
                     broadcastLobbyState();
                 }
+
                 break;
             }
         }
