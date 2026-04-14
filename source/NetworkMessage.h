@@ -19,9 +19,10 @@ struct JoinMessage {
 
 /*Below are the message types that are sent when the game is active*/
 
-/*Message sent by the client to the host to indicate how much damage they did to the boss*/
+/*Message sent by the client to the host to indicate how much damage they did to the boss and from what direction*/
 struct AttackMessage {
     float damage;
+    int damageDirection;
 };
 
 /* Message sent by the client to the host to indicate healing.
@@ -73,6 +74,16 @@ struct PassMessage {
 struct GameStateMessage {
     //boss health
     float bossHealth;
+    //who the boss is facing
+    int bossTarget;
+    //which phase the boss is in
+    //check EnemyLoader.h to see what each number corresponds to
+    int bossState;
+    //how long the boss has been in this phase for
+    float stateTime;
+    //We might need to send side multiplier data over network
+    //based on how we decide to indicate it
+    //but that is for UI people to add to ts
 
     //player health
     float player1HP;

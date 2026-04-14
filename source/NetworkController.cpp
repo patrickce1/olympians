@@ -195,8 +195,10 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 	switch (msgCode) {
 		case MessageType::BOSS_DAMAGE: {
 			float damage = _deserializer.readFloat();
+			int playerIndex = _deserializer.readSint32();
 			AttackMessage attackMsg;
 			attackMsg.damage = damage;
+			attackMsg.damageDirection = playerIndex;
 			attacks.push_back(attackMsg);
 			break;
 		}
@@ -253,6 +255,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				_onlinePlayers.push_back(newPlayer);
 				broadcastLobbyState();
 			}
+
 			break;
 		}
 		case MessageType::LOBBY_UPDATE: {
@@ -260,18 +263,22 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			_onlinePlayers.clear();
 			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
 			// re-pair the flattened vector back into pairs
-			for (int i = 0; i < playerData.size(); i += 3) {
+            for (int i = 0; i < (int)playerData.size() - 1; i += 3) {
 				NetworkedPlayer newPlayer;
 				newPlayer.networkID = playerData[i];
 				newPlayer.username = playerData[i + 1];
                 newPlayer.houseID = playerData[i+2];
 				_onlinePlayers.push_back(newPlayer);
 			}
+            _enemy = playerData.back();
 			break;
 		}
 		case MessageType::GAME_UPDATE : {
 			GameStateMessage stateMsg;
 			stateMsg.bossHealth = _deserializer.readFloat();
+			stateMsg.bossTarget = _deserializer.readSint32();
+			stateMsg.bossState = _deserializer.readSint32();
+			stateMsg.stateTime = _deserializer.readFloat();
 			stateMsg.player1HP = _deserializer.readFloat();
 			stateMsg.player2HP = _deserializer.readFloat();
 			stateMsg.player3HP = _deserializer.readFloat();
@@ -320,8 +327,12 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _disconnectedSlots.push_back(slot);
             break;
         }
-        case SESSION_TERMINATED: {
+        case MessageType::SESSION_TERMINATED: {
             _sessionTerminated = true;
+            break;
+        }
+        case MessageType::BOSS_SELECT: {
+            _enemy = _deserializer.readString();
             break;
         }
 	}
@@ -364,10 +375,11 @@ void NetworkController::clearQueues() {
  * Called by non-host clients when the local player attacks the boss.
  *
  * @param damage    The amount of damage dealt to the boss.
+ * @param playerIndex Which player is dealing damage to the boss
  */
-void NetworkController::broadcastDamage(float damage) {
+void NetworkController::broadcastDamage(float damageAmount, int playerIndex) {
 	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
-	_serializer.writeFloat(damage);
+	_serializer.writeFloat(damageAmount);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
@@ -456,6 +468,7 @@ void NetworkController::broadcastGameStart(){
 	_serializer.writeSint32(MessageType::GAME_START);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
+    _gameStarted = true;
 }
 
 /**
@@ -490,6 +503,9 @@ void NetworkController::broadcastJoinedLobby() {
 void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.writeSint32(MessageType::GAME_UPDATE);
 	_serializer.writeFloat(state.getEnemy()->getCurrentHealth());
+	_serializer.writeSint32(state.getEnemy()->getTargetIndex());
+	_serializer.writeSint32(state.getEnemy()->getCurrentState());
+	_serializer.writeSint32(state.getEnemy()->getStateTime());
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
 	for (int i = 0; i < 4; i++) {
 		if (i < players.size()) {
@@ -544,6 +560,7 @@ void NetworkController::broadcastLobbyState() {
 		serializablePlayers.push_back(player.username);
         serializablePlayers.push_back(player.houseID);
 	}
+    serializablePlayers.push_back(_enemy);
 
 	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
 	_serializer.writeStringVector(serializablePlayers);
@@ -649,6 +666,7 @@ void NetworkController::registerDisconnectCallback() {
                     broadcastPlayerDisconnected(i);
                     broadcastLobbyState();
                 }
+
                 break;
             }
         }
@@ -704,4 +722,22 @@ void NetworkController::broadcastSessionTerminated() {
     _serializer.writeSint32(SESSION_TERMINATED);
     auto msg = _serializer.serialize();
     _network->broadcast(msg);
+}
+
+/**
+ * Broadcasts the host's selected boss enemy to all connected clients.
+ * Should be called by the host immediately after the player confirms
+ * their boss selection in the boss select screen.
+ *
+ * Clients will update their local _enemy field upon receiving this
+ * message, which is then read by getEnemy() to update the lobby UI.
+ *
+ * @param enemyID  The unique identifier of the selected enemy (e.g. "cyclops", "cerberus").
+ *                 Must match a valid entry in the enemy JSON definition file.
+ */
+void NetworkController::broadcastBossSelection(const std::string& enemyID) {
+    _serializer.writeSint32(MessageType::BOSS_SELECT);
+    _serializer.writeString(enemyID);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }

@@ -232,10 +232,6 @@ public:
      * @return       The applied base magnitude, or -1.0f if the item id or item
      *         definition cannot be found
      */
-    template <typename T>
-    float useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
-        return -1.0f;
-    }
     float useItemById(ItemInstance::ItemId itemId, Player& target, const ItemDatabase& db);
 
     /**

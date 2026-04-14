@@ -23,39 +23,62 @@ class EnemyController {
 public:
     EnemyController();
 
-    int getTargetIndex() const { return _targetIndex; }
-
     void enterIdle(const std::shared_ptr<Enemy>& enemy,
                    std::vector<std::shared_ptr<Player>>& players);
+
     void update(float dt,
                 const std::shared_ptr<Enemy>& enemy,
                 std::vector<std::shared_ptr<Player>>& players);
 
 private:
-    int _targetIndex = -1;
     cugl::Random _rng;
 
 private:
     int randomIndex(int n);
     int wrapIndex(int i, int n) const;
 
-    void handleIdleEntryIfNeeded(const std::string& prevState,
-                                 const std::string& curState,
+    /** Checks whether the enemy has just entered idle on this frame. */
+    void handleIdleEntryIfNeeded(EnemyLoader::State prevState,
+                                 EnemyLoader::State curState,
                                  const std::shared_ptr<Enemy>& enemy,
                                  std::vector<std::shared_ptr<Player>>& players);
 
+    /** Upon entering idle state, this function possibly chooses a new target for the enemy. */
     void maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy,
                                   std::vector<std::shared_ptr<Player>>& players);
 
-    std::string chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
+    /** Chooses the next state tagged with "attack" for the enemy to enter. */
+    EnemyLoader::State chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
+
+    /**
+     * Determines whether the boss should enter a defensive state.
+     * Returns true if a random chance roll succeeds, or if the enemy's defensive condition is met.
+     * @param enemy the enemy used to evaluate whether the defense condition applies
+     */
+    bool shouldDefend(const std::shared_ptr<Enemy>& enemy);
 
     void resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy,
                             std::vector<std::shared_ptr<Player>>& players,
                             const std::vector<Enemy::FiredEvent>& events);
-
+    
+    /** Deals damage to the targeted players from a damage event. */
     void resolveDamageEvent(const std::shared_ptr<Enemy>& enemy,
-                            std::vector<std::shared_ptr<Player>>& players,
+                          std::vector<std::shared_ptr<Player>>& players,
                             const Enemy::FiredEvent& fe);
+    
+    /** Applies side modifiers to the boss based on a side modifier event
+     * @param enemy points to the enemy whose side data is being changed
+     * @param event is event that was fired by the enemy AI that is meant to change the side data
+     */    
+    void resolveSideMultiplierEvent(const std::shared_ptr<Enemy>& enemy,
+        const Enemy::FiredEvent& fe);
+    
+    /** Applies a heal to the boss based on a heal event
+     * @param enemy points to the enemy that is being healed
+     * @param event is event that was fired by the enemy AI that is meant to heal the boss
+     */
+    void resolveHealEvent(const std::shared_ptr<Enemy>& enemy,
+        const Enemy::FiredEvent& fe);
 };
 
 #endif /* __ENEMY_CONTROLLER_H__ */
