@@ -1,5 +1,6 @@
 //Implementation of SceneLoader
 #include "SceneLoader.h"
+#include "FirebaseBridge.h"
 
 // This keeps us from having to write cugl:: all the time
 using namespace cugl;
@@ -54,6 +55,7 @@ CU_ROOTCLASS(SceneLoader)
  * causing the application to run.
  */
 void SceneLoader::onStartup() {
+    initFirebase();
 
     // Create a sprite batch (and background color) to render the scene
     _batch = SpriteBatch::alloc();
