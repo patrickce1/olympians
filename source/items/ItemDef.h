@@ -222,6 +222,7 @@ public:
      * @return the parsed house, or fallback if unrecognized
      */
     static House houseFromString(std::string value, House fallback = House::None);
+    
     /**
      * Extract EffectType enum from a string.
      *
