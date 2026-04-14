@@ -1029,19 +1029,21 @@ void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
             return;
         }
         
-        // Set up sprite properties - use native resolution, no scaling
-        // Let allocWithSheet handle the frame division on full-size texture
-        
-        _enemyAnimationSpriteNode->setScale(1.0f);  // Use native resolution
+        // Set up sprite properties - scale based on screen size
+        // Smaller screens (phones) get lower scale, larger screens (iPad) get higher scale
+        cugl::Size viewportSize = getSize();
+        float scale = 0.90f + (viewportSize.height - 800.0f) * 0.00005f;
+        scale = std::clamp(scale, 0.80f, 0.95f); // Cap between 0.80 and 0.95
+        _enemyAnimationSpriteNode->setScale(scale);
         
         // Calculate single frame size from texture and grid (using animation registry metadata)
         float frameWidth = texture->getWidth() / animEntry.frameCount;   // 7 columns
         float frameHeight = texture->getHeight() / animEntry.frameRows;  // 4 rows
         _enemyAnimationSpriteNode->setContentSize(cugl::Size(frameWidth, frameHeight));
         
-        // Position at center of container
+        // Position lower on screen
         _enemyAnimationSpriteNode->setAnchor(cugl::Vec2(0.5f, 0.5f));
-        _enemyAnimationSpriteNode->setPosition(cugl::Vec2(196.5f, 299.0f));  // Center of 393×598
+        _enemyAnimationSpriteNode->setPosition(cugl::Vec2(196.5f, 200.0f));  // Lower on screen
         _enemyAnimationSpriteNode->setVisible(true);
         
         // Add to bossAnimationSpace as a child (this is the layer for boss animations)
@@ -2726,7 +2728,7 @@ void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, 
     cugl::Vec2 position = itemPos;
     cugl::Size viewportSize = getSize();
     if (itemPos == cugl::Vec2::ZERO) {
-        position = cugl::Vec2(viewportSize.width / 2.0f, viewportSize.height / 2.0f);
+        position = cugl::Vec2(viewportSize.width / 2.0f, viewportSize.height * 0.55f);
     }
     
     node->setPosition(position);
