@@ -106,14 +106,19 @@ public:
 
     /** Returns whether a shield is currently armed on this player. */
     bool hasShield() const { return _hasShield; }
+    
     /** Returns the current fixed mitigation value. */
     float getShieldMitigation() const { return _shieldMitigation; }
+    
     /** Returns the remaining shield duration. */
     float getShieldDuration() const { return _shieldDuration; }
+    
     /** Returns whether a barrier is currently armed on this player. */
     bool hasBarrier() const { return _hasBarrier; }
+    
     /** Returns the current barrier multiplier. */
     float getBarrierMultiplier() const { return _barrierMultiplier; }
+    
     /** Returns the remaining barrier duration. */
     float getBarrierDuration() const { return _barrierDuration; }
 
