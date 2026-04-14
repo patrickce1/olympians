@@ -154,6 +154,7 @@ public:
      */
     void supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects);
     
+    
 #pragma mark - Player Access
 
     /**
