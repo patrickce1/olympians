@@ -203,6 +203,7 @@ public:
      * @return the parsed type, or fallback if unrecognized
      */
     static Type typeFromString(std::string value, Type fallback = Type::Attack);
+    
     /**
      * Extract Rarity enum from a string.
      *
