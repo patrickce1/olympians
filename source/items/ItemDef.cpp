@@ -246,7 +246,6 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
         for (int effectsIndex = 0; effectsIndex < effects->size(); effectsIndex++) {
             Effect effect;
             if (!parseEffect(effects->get(effectsIndex), effect)) {
-                CULog("ItemDef: skipping invalid effect at index %d for item '%s'", effectsIndex, _id.c_str());
                 continue;
             }
             _effects.push_back(effect);

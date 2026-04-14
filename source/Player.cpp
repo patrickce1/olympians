@@ -56,11 +56,6 @@ void Player::updateHealth(float delta) {
         if (_hasShield && _shieldDuration > 0.0f) {
             const float absorbedAmount = std::min(incomingDamage, _shieldMitigation);
             incomingDamage = std::max(0.0f, incomingDamage - _shieldMitigation);
-            CULog("Shield expired: player='%s' house='%s' reason='hit' absorbed=%.3f remainingDamage=%.3f",
-                  _playerName.c_str(),
-                  _houseId.c_str(),
-                  absorbedAmount,
-                  incomingDamage);
             _hasShield = false;
             _shieldMitigation = 0.0f;
             _shieldDuration = 0.0f;
@@ -87,11 +82,6 @@ void Player::applyShield(float mitigation, float duration) {
     _hasShield = true;
     _shieldMitigation = std::max(0.0f, mitigation);
     _shieldDuration = duration;
-    CULog("Shield applied: player='%s' house='%s' mitigation=%.3f duration=%.3f",
-          _playerName.c_str(),
-          _houseId.c_str(),
-          _shieldMitigation,
-          _shieldDuration);
 }
 
 /**
@@ -115,9 +105,6 @@ void Player::updateEffects(float dt) {
     if (_shieldDuration > 0.0f) {
         _shieldDuration = std::max(0.0f, _shieldDuration - dt);
         if (_shieldDuration == 0.0f) {
-            CULog("Shield expired: player='%s' house='%s' reason='duration'",
-                  _playerName.c_str(),
-                  _houseId.c_str());
             _hasShield = false;
             _shieldMitigation = 0.0f;
         }
@@ -174,16 +161,6 @@ static float computeResolvedItemMagnitude(const Player& player,
     if (resolvedMagnitude <= 0.0f) {
         resolvedMagnitude = 0.01f;
     }
-
-    CULog(
-        "ItemUseCalc: item='%s' playerHouse='%s' effectiveVal = baseVal(%.3f) * classSlider(1+%.3f) * affinity(%.3f) | = %.3f",
-        def.getId().c_str(),
-        player.getHouseName().c_str(),
-        def.getBaseValue(),
-        houseRoleMultiplier,
-        affinityBonus,
-        resolvedMagnitude
-    );
 
     return resolvedMagnitude;
 }
