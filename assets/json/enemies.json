@@ -3,7 +3,7 @@
     {
       "id": "cyclops",
       "name": "cyclops",
-      "maxHealth": 100,
+      "maxHealth": 100.0,
       "spritesheetPath": "textures/cyclops.png",
       "ai": {
         "retargetLikelihood": 0.35,
@@ -21,20 +21,20 @@
             {
               "type": "SIDE_MODIFIER",
               "target": 0,
-              "amount": 2
+              "amount": 2.0
             }
           ]
         },
         "attack_1": {
           "name": "club",
           "animationKey": "cyclops_idle_animation",
-          "buildUpTime": 4,
-          "cooldownTime": 0,
+          "buildUpTime": 4.0,
+          "cooldownTime": 0.0,
           "events": [
             {
               "type": "DAMAGE",
               "target": 0,
-              "amount": 1
+              "amount": 1.0
             }
           ],
           "nextState": "attack_2"
@@ -42,28 +42,28 @@
         "attack_2": {
           "name": "stomp",
           "animationKey": "cyclops_idle_animation",
-          "buildUpTime": 4,
-          "cooldownTime": 5,
+          "buildUpTime": 4.0,
+          "cooldownTime": 5.0,
           "events": [
             {
               "type": "DAMAGE",
               "target": 0,
-              "amount": 1
+              "amount": 1.0
             },
             {
               "type": "DAMAGE",
               "target": 1,
-              "amount": 1
+              "amount": 1.0
             },
             {
               "type": "DAMAGE",
               "target": 2,
-              "amount": 1
+              "amount": 1.0
             },
             {
               "type": "DAMAGE",
               "target": 3,
-              "amount": 1
+              "amount": 1.0
             }
           ],
           "nextState": "idle"
@@ -71,13 +71,13 @@
         "attack_3": {
           "name": "boulder toss",
           "animationKey": "cyclops_idle_animation",
-          "buildUpTime": 10,
-          "cooldownTime": 3,
+          "buildUpTime": 10.0,
+          "cooldownTime": 3.0,
           "events": [
             {
               "type": "DAMAGE",
               "target": 0,
-              "amount": 3
+              "amount": 3.0
             }
           ],
           "nextState": "idle"
@@ -85,13 +85,13 @@
         "defensive_move": {
           "name": "eye cover",
           "animationKey": "cyclops_idle_animation",
-          "buildUpTime": 4,
-          "cooldownTime": 5,
+          "buildUpTime": 4.0,
+          "cooldownTime": 5.0,
           "events": [
             {
               "type": "SIDE_MODIFIER",
               "target": 0,
-              "amount": 0
+              "amount": 0.0
             },
             {
               "type": "SIDE_MODIFIER",
@@ -101,7 +101,7 @@
             {
               "type": "SIDE_MODIFIER",
               "target": 2,
-              "amount": 1
+              "amount": 1.0
             },
             {
               "type": "SIDE_MODIFIER",
@@ -120,10 +120,10 @@
       "spritesheetPath": "textures/cerberus.png",
       "ai": {
         "retargetLikelihood": 0.5,
-        "defenseLikelihood": 1
+        "defenseLikelihood": 1.0
       },
       "customData": {
-        "eyeMultiplier": 2
+        "eyeMultiplier": 2.0
       },
       "states": {
         "idle": {
@@ -131,33 +131,33 @@
         },
         "attack_1": {
           "name": "",
-          "buildUpTime": 4,
-          "cooldownTime": 0,
+          "buildUpTime": 4.0,
+          "cooldownTime": 0.0,
           "events": [],
           "nextState": "idle"
         },
         "attack_2": {
           "name": "",
-          "buildUpTime": 3,
-          "cooldownTime": 1,
+          "buildUpTime": 3.0,
+          "cooldownTime": 1.0,
           "events": [],
           "nextState": "idle"
         },
         "attack_3": {
           "name": "",
-          "buildUpTime": 3,
-          "cooldownTime": 1,
+          "buildUpTime": 3.0,
+          "cooldownTime": 1.0,
           "events": [],
           "nextState": "idle"
         },
         "defensive_move": {
           "name": "test heal move",
-          "buildUpTime": 4,
-          "cooldownTime": 5,
+          "buildUpTime": 4.0,
+          "cooldownTime": 5.0,
           "events": [
             {
               "type": "HEAL",
-              "amount": 10
+              "amount": 10.0   
             }
           ],
           "nextState": "idle"
