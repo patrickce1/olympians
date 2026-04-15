@@ -909,6 +909,31 @@ void GameScene::updateEnemyAndAI(float dt) {
 }
 
 /**
+ * Retrieves the current local player's index (0-3) within the game state's player array.
+ * 
+ * Searches through the GameState's player array to find the local player and returns
+ * their position. This index is used for computing relative enemy directions from the
+ * local player's perspective.
+ *
+ * @return Player index (0-3) if found, or 0 if local player doesn't exist
+ */
+int GameScene::getLocalPlayerIndex() const {
+    Player* localPlayer = _gameState.getLocalPlayer();
+    if (!localPlayer) {
+        return 0; // Default to index 0 if no local player
+    }
+    
+    const auto& players = _gameState.getPlayers();
+    for (int i = 0; i < (int)players.size(); i++) {
+        if (players[i].get() == localPlayer) {
+            return i;
+        }
+    }
+    
+    return 0; // Fallback if player not found (shouldn't happen)
+}
+
+/**
  * Hides the enemy animation sprite and shows the static fallback sprite.
  * 
  * Sets visibility on both the animation sprite node and the container,
@@ -961,7 +986,7 @@ bool GameScene::initializeEnemyAnimationSpriteNode(const AnimationEntry& animati
     _enemyAnimationSpriteNode = cugl::scene2::SpriteNode::allocWithSheet(
         texture,
         animationEntry.frameRows,                                    // rows (4 directions)
-        animationEntry.frameCount,                                   // columns (7 frames per direction)
+        animationEntry.frameCount,                                   // columns (frames per direction)
         animationEntry.frameCount * animationEntry.frameRows         // total frames
     );
     
@@ -1055,10 +1080,10 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
 }
 
 /**
- * Updates enemy idle animation and directional facing based on target.
+ * Updates enemy animation and directional facing based on target.
  * 
  * Each frame:
- *   1. Validates enemy exists and is alive
+ *   1. Validates enemy exists
  *   2. Retrieves current state definition and animation metadata
  *   3. If metadata missing: hides animation sprite, shows static fallback
  *   4. If metadata exists:
@@ -2055,19 +2080,7 @@ void GameScene::update(float dt, InputController& input) {
     handleItemSpawn(dt);
     updateEnemyAndAI(dt);
     
-    // Calculate local player index for animation direction
-    int localPlayerIndex = 0;
-    Player* localPlayer = _gameState.getLocalPlayer();
-    if (localPlayer) {
-        const auto& players = _gameState.getPlayers();
-        for (int i = 0; i < (int)players.size(); i++) {
-            if (players[i].get() == localPlayer) {
-                localPlayerIndex = i;
-                break;
-            }
-        }
-    }
-    updateEnemyAnimation(dt, localPlayerIndex);
+    updateEnemyAnimation(dt, getLocalPlayerIndex());
     updateDropZoneVisibility();
 
     // Update sliding items before physics world update
