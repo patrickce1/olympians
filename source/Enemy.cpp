@@ -174,11 +174,11 @@ void Enemy::takeDamage(float damage, int playerIndex) {
         multiplier = _sideMultipliers[relativeIndex];
     }
 
-
     // Debug logging for damage calculation
     CULog(
-        "[Enemy]: Damage Calculation. PlayerIndex: %d | TargetIndex: %d | RelativeIndex: %d | "
+        "[Enemy]: Damage Calculation. State %s | PlayerIndex: %d | TargetIndex: %d | RelativeIndex: %d | "
         "BaseDamage: %f | Multiplier: %f | FinalDamage: %f",
+        _states.at(_currentState).name.c_str(),
         playerIndex,
         _targetIndex,
         relativeIndex,
@@ -186,7 +186,6 @@ void Enemy::takeDamage(float damage, int playerIndex) {
         multiplier,
         damage * multiplier
     );
-
 
     updateHealth(-(damage * multiplier));
 }

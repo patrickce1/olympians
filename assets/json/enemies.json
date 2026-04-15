@@ -6,16 +6,25 @@
             "maxHealth": 100.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
-                "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.25
+                "retargetLikelihood": 0.25,
+                "defenseLikelihood": 0.1
             },
 	    "customData": {
-    	        "eyeMultiplier": 2.0
+		"defenseThreshold1": 0.75,
+    	        "defenseThreshold2": 0.25
 	    },
             "states": {
                 "idle": {
                     "name": "idle",
-                    "animationRow": 0
+                    "animationRow": 0,
+		    "events": [
+			{
+			    "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 2.0
+
+			}
+		    ]
                 },
                 "attack_1": {
                     "name": "club",
@@ -64,18 +73,13 @@
                 "attack_3": {
                     "name": "boulder toss",
                     "animationRow": 3,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
+                    "buildUpTime": 10.0,
+                    "cooldownTime": 3.0,
                     "events": [
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 1.0
-                        },
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
+                            "amount": 3.0
                         }
                     ],
                     "nextState": "idle"
@@ -89,22 +93,17 @@
                         {
                             "type": "SIDE_MODIFIER",
                             "target": 0,
-                            "amount": 2.0
+                            "amount": 0.0
                         },
 			{
                             "type": "SIDE_MODIFIER",
                             "target": 1,
-                            "amount": 1.0
-                        },
-			{
-                            "type": "SIDE_MODIFIER",
-                            "target": 2,
-                            "amount": 1.0
+                            "amount": 0.5
                         },
 			{
                             "type": "SIDE_MODIFIER",
                             "target": 3,
-                            "amount": 0.0
+                            "amount": 0.5
                         }
 		    ],
 		    "nextState": "idle"

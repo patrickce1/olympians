@@ -4,8 +4,15 @@
 /* This class represents the Cyclops and allows the implementation of any custom behavior associated with this boss */
 class Cyclops : public Enemy {
 private:
-	//keeps track of what the default multiplier is for damage to the eye
-	float _eyeMultiplier;
+	/** True once the first health threshold been triggered, preventing it from firing again */
+	bool _defense1Triggered = false;
+	/** True once the second health threshold been triggered, preventing it from firing again */
+	bool _defense2Triggered = false;
+
+	/** The health value (absolute, not percentage) at which the first enrage triggers */
+	float _defenseThreshold1;
+	/** The health value (absolute, percentage) at which the second enrage triggers */
+	float _defenseThreshold2;
 
 public:
 	Cyclops() {}
@@ -20,5 +27,18 @@ public:
 	 * @param dt is the time that passed from the last time update was called
 	 */
 	void update(float dt) override;
+
+	/** Defines the cyclops' custom behavior for when he chooses to defend */
+	bool shouldDefend() override;
+
+	/* Handles taking damage and applying the side modifiers
+     * Use this method instead of updateHealth() for appropriate damage multiplication 
+     * @param damage is the amount of damage being done to the boss
+     * @param playerIndex is the index that was assigned to the player by the host
+	 * 
+	 * This override primarily handles the special condition of the boulder toss attack,
+	 *		where the boss immidiately does damage based on the side it got hit from
+    */
+	void takeDamage(float damage, int playerIndex) override;
 
 };
