@@ -120,6 +120,7 @@ void BossSelectScene::setupListeners() {
         if (down) {
             EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
             _network->setEnemy(selectedBoss.id);
+            _network->broadcastBossSelection(selectedBoss.id);
             
             _status = Status::ABORT;
         }

@@ -306,42 +306,39 @@
         "emptySIcon": {
             "file": "textures/lobbyScene/emptySIcon.png"
         },
-        "cyclopsIdle" : {
-            "file": "textures/gameScene/cyclops/idleDirections.png"
+        "key1": {
+            "file": "textures/keypad/key1.png"
         },
-            "key1": {
-                "file": "textures/keypad/key1.png"
-            },
-            "key2": {
-                "file": "textures/keypad/key2.png"
-            },
-            "key3": {
-                "file": "textures/keypad/key3.png"
-            },
-            "key4": {
-                "file": "textures/keypad/key4.png"
-            },
-            "key5": {
-                "file": "textures/keypad/key5.png"
-            },
-            "key6": {
-                "file": "textures/keypad/key6.png"
-            },
-            "key7": {
-                "file": "textures/keypad/key7.png"
-            },
-            "key8": {
-                "file": "textures/keypad/key8.png"
-            },
-            "key9": {
-                "file": "textures/keypad/key9.png"
-            },
-            "key0": {
-                "file": "textures/keypad/key0.png"
-            },
-            "backspace": {
-                "file": "textures/keypad/backspace.png"
-            },
+        "key2": {
+            "file": "textures/keypad/key2.png"
+        },
+        "key3": {
+            "file": "textures/keypad/key3.png"
+        },
+        "key4": {
+            "file": "textures/keypad/key4.png"
+        },
+        "key5": {
+            "file": "textures/keypad/key5.png"
+        },
+        "key6": {
+            "file": "textures/keypad/key6.png"
+        },
+        "key7": {
+            "file": "textures/keypad/key7.png"
+        },
+        "key8": {
+            "file": "textures/keypad/key8.png"
+        },
+        "key9": {
+            "file": "textures/keypad/key9.png"
+        },
+        "key0": {
+            "file": "textures/keypad/key0.png"
+        },
+        "backspace": {
+            "file": "textures/keypad/backspace.png"
+        },
         "centerPopup": {
             "file": "textures/elements/errorPopupFrame.png"
         },
@@ -422,7 +419,9 @@
         }
     },
     "jsons": {
-        "server": "json/server.json"
+        "server": "json/server.json",
+        "gameSceneConfig": "json/gameSceneConfig.json",
+        "enemyAnimations": "json/enemyAnimations.json"
     },
     "sounds": {
         "select": {
@@ -449,6 +448,24 @@
             "stream":   false,
             "volume":   0.5
         },
+        "attack_slash": {
+            "type":     "sample",
+            "file":     "sounds/attack_slash.wav",
+            "stream":   false,
+            "volume":   0.75
+        },
+        "attack_thud": {
+            "type":     "sample",
+            "file":     "sounds/attack_thud.wav",
+            "stream":   false,
+            "volume":   0.75
+        },
+        "attack_thrust": {
+            "type":     "sample",
+            "file":     "sounds/attack_thrust.wav",
+            "stream":   false,
+            "volume":   0.75
+        },
         "battle": {
             "type":     "sample",
             "file":     "sounds/battle.ogg",
@@ -471,7 +488,7 @@
             "type":     "sample",
             "file":     "sounds/enemy_hurt.wav",
             "stream":   false,
-            "volume":   0.45
+            "volume":   0.4
         },
         "player_heal": {
             "type":     "sample",

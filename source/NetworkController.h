@@ -99,8 +99,15 @@ public:
     bool isHost();
 
     /* Atomic style update functions. The following are ONLY SENT TO THE HOST*/
-    /*Tells the host that the boss has been damaged for damageAmount*/
-    void broadcastDamage(float damageAmount);
+    
+    /**
+     * Sends an attack message to the host with the given damage value.
+     * Called by non-host clients when the local player attacks the boss.
+     *
+     * @param damage    The amount of damage dealt to the boss.
+     * @param playerIndex Which player is dealing damage to the boss
+    */
+    void broadcastDamage(float damageAmount, int playerIndex);
 
     /**
      * Sends a message to the corresponding player that an item with the given definition has been passed to them.
@@ -237,6 +244,18 @@ public:
     
     /**Swap players in slotA and slotB in positional space.**/
     bool swapLobbyPlayers(int slotA, int slotB);
+    /**
+     * Broadcasts the host's selected boss enemy to all connected clients.
+     * Should be called by the host immediately after the player confirms
+     * their boss selection in the boss select screen.
+     *
+     * Clients will update their local _enemy field upon receiving this
+     * message, which is then read by getEnemy() to update the lobby UI.
+     *
+     * @param enemyID  The unique identifier of the selected enemy (e.g. "cyclops", "cerberus").
+     *                 Must match a valid entry in the enemy JSON definition file.
+     */
+    void broadcastBossSelection(const std::string& enemyID);
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -255,7 +274,8 @@ protected:
         PLAYER_DISCONNECT = 8,
         GAME_LOST = 9,
         GAME_WON = 10,
-        SESSION_TERMINATED = 11
+        SESSION_TERMINATED = 11,
+        BOSS_SELECT = 12
     };
 
     /*Our network connection*/
