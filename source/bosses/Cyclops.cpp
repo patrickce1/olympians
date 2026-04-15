@@ -22,7 +22,9 @@ void Cyclops::update(float dt) {
 	bool threshold1Met = Enemy::getCurrentHealth() < _defenseThreshold1 && !_defense1Triggered;
 	bool threshold2Met = Enemy::getCurrentHealth() < _defenseThreshold2 && !_defense2Triggered;
 	if (threshold1Met || threshold2Met) {
-		CULog("[Cyclops]: Entering defense as soon as possible, currently in %s", Enemy::getStates().at(Enemy::getCurrentState()).name);
+		if (_debug) {
+			CULog("[Cyclops]: Entering defense as soon as possible, currently in %s", Enemy::getStates().at(Enemy::getCurrentState()).name);
+		}
 		Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
 		//necessary to skip the idle
 		Enemy::skipCooldown();
@@ -34,13 +36,17 @@ void Cyclops::update(float dt) {
   */
 bool Cyclops::shouldDefend() {
 	if (Enemy::getCurrentHealth() < _defenseThreshold1 && !_defense1Triggered) {
-		CULog("[Cyclops]: defense threshold 1 at health %f", Enemy::getCurrentHealth());
+		if (_debug) {
+			CULog("[Cyclops]: defense threshold 1 at health %f", Enemy::getCurrentHealth());
+		}
 		_defense1Triggered = true;
 		Enemy::setStateTime(Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime);
 		return true;
 	}
 	if (Enemy::getCurrentHealth() < _defenseThreshold2 && !_defense2Triggered) {
-		CULog("[Cyclops]: defense threshold 2 at health %f", Enemy::getCurrentHealth());
+		if (_debug) {
+			CULog("[Cyclops]: defense threshold 2 at health %f", Enemy::getCurrentHealth());
+		}
 		_defense2Triggered = true;
 		Enemy::setStateTime(Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime);
 		return true;
@@ -57,13 +63,16 @@ bool Cyclops::shouldDefend() {
  *		where the boss immidiately does damage based on the side it got hit from
 */
 void Cyclops::takeDamage(float damage, int playerIndex) {
+	//ATTACK_3 should correspond to the boulder toss for cyclops
 	if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
 		//Make Cyclops face whoever hit him
 		Enemy::setTargetIndex(playerIndex);
 		//Set the timer to the end of the attack, so that it triggers
 		Enemy::setStateTime(Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime);
 		//Debug statement
-		CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
+		if (_debug) {
+			CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
+		}
 	}
 
 	Enemy::takeDamage(damage, playerIndex);

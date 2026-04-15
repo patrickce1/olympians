@@ -167,6 +167,9 @@ public:
     void enterState(EnemyLoader::State state);
 
 protected:
+    /** Boolean that decides if we are sending debug messages or not*/
+    bool _debug = false;
+
     /** Updates timers.*/
     void tick(float dt);
 
