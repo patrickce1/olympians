@@ -175,17 +175,19 @@ void Enemy::takeDamage(float damage, int playerIndex) {
     }
 
     // Debug logging for damage calculation
-    CULog(
-        "[Enemy]: Damage Calculation. State %s | PlayerIndex: %d | TargetIndex: %d | RelativeIndex: %d | "
-        "BaseDamage: %f | Multiplier: %f | FinalDamage: %f",
-        _states.at(_currentState).name.c_str(),
-        playerIndex,
-        _targetIndex,
-        relativeIndex,
-        damage,
-        multiplier,
-        damage * multiplier
-    );
+    if (_debug) {
+        CULog(
+            "[Enemy]: Damage Calculation. State %s | PlayerIndex: %d | TargetIndex: %d | RelativeIndex: %d | "
+            "BaseDamage: %f | Multiplier: %f | FinalDamage: %f",
+            _states.at(_currentState).name.c_str(),
+            playerIndex,
+            _targetIndex,
+            relativeIndex,
+            damage,
+            multiplier,
+            damage * multiplier
+        );
+    }
 
     updateHealth(-(damage * multiplier));
 }
