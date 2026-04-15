@@ -505,19 +505,25 @@ void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.writeFloat(state.getEnemy()->getCurrentHealth());
 	_serializer.writeSint32(state.getEnemy()->getTargetIndex());
 	_serializer.writeSint32(state.getEnemy()->getCurrentState());
-	_serializer.writeSint32(state.getEnemy()->getStateTime());
+	_serializer.writeFloat(state.getEnemy()->getStateTime());
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
 	for (int i = 0; i < 4; i++) {
 		if (i < players.size()) {
+			_serializer.writeFloat(players[i]->getCurrentHealth());
+		}
+		else {
+			_serializer.writeFloat(0.0f);
+		}
+	}
+	for (int i = 0; i < 4; i++) {
+		if (i < players.size()) {
 			const auto& player = players[i];
-			_serializer.writeFloat(player->getCurrentHealth());
 			_serializer.writeFloat(player->getShieldMitigation());
 			_serializer.writeFloat(player->getShieldDuration());
 			_serializer.writeFloat(player->getBarrierMultiplier());
 			_serializer.writeFloat(player->getBarrierDuration());
 		}
 		else {
-			_serializer.writeFloat(0.0f);
 			_serializer.writeFloat(0.0f);
 			_serializer.writeFloat(0.0f);
 			_serializer.writeFloat(1.0f);
