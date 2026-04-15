@@ -577,6 +577,40 @@ public:
     void updateEnemyAnimation(float dt, int localPlayerIndex);
 
     /**
+     * Initializes the enemy animation sprite node with the given animation metadata.
+     * 
+     * Allocates texture from disk, creates a SpriteNode with the correct layout,
+     * configures scale/anchor/position based on viewport size, and adds it to the
+     * scene hierarchy. Called once when animation metadata first becomes available.
+     *
+     * @param animationEntry  The animation metadata containing texture path and frame info
+     * @return true if sprite node was successfully initialized, false on error
+     */
+    bool initializeEnemyAnimationSpriteNode(const AnimationEntry& animationEntry);
+
+    /**
+     * Updates the current animation frame for direction and elapsed time.
+     * 
+     * Recalculates the direction the enemy should face (0-3) based on relative
+     * positions of local player and target, then advances the animation frame
+     * based on accumulated elapsed time and frame duration from animation metadata.
+     * Only calls setFrame() if the frame index has changed (cached optimization).
+     *
+     * @param dt                The elapsed time in seconds since last frame
+     * @param localPlayerIndex  The local player's index (0-3) for direction calculation
+     */
+    void updateEnemyAnimationFrame(float dt, int localPlayerIndex);
+
+    /**
+     * Hides the enemy animation sprite and shows the static fallback sprite.
+     * 
+     * Sets visibility on both the animation sprite node and the container,
+     * then reveals the static sprite as a fallback. Called when animation
+     * metadata is unavailable or the enemy is dead.
+     */
+    void hideEnemyAnimationAndShowStatic();
+
+    /**
      * Loads the animation registry from enemyAnimations.json and populates _animationRegistry.
      * This builds a lookup map from animation IDs to their metadata (frameCount, frameDuration, frameRows).
      */
