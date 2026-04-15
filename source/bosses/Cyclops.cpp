@@ -23,7 +23,7 @@ void Cyclops::update(float dt) {
 	bool threshold2Met = Enemy::getCurrentHealth() < _defenseThreshold2 && !_defense2Triggered;
 	if (threshold1Met || threshold2Met) {
 		if (_debug) {
-			CULog("[Cyclops]: Entering defense as soon as possible, currently in %s", Enemy::getStates().at(Enemy::getCurrentState()).name);
+			CULog("[Cyclops]: Entering defense as soon as possible, currently in %s", Enemy::getStates().at(Enemy::getCurrentState()).name.c_str());
 		}
 		Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
 		//necessary to skip the idle
