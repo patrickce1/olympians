@@ -5,9 +5,9 @@
 class Cyclops : public Enemy {
 private:
 	/** True once the first health threshold been triggered, preventing it from firing again */
-	bool _defense1Triggered = false;
+	bool _defenseTriggered1 = false;
 	/** True once the second health threshold been triggered, preventing it from firing again */
-	bool _defense2Triggered = false;
+	bool _defenseTriggered2 = false;
 	/** The health value (absolute, not percentage) at which the first enrage triggers */
 	float _defenseThreshold1;
 	/** The health value (absolute, percentage) at which the second enrage triggers */
