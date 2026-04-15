@@ -137,15 +137,21 @@ protected:
     float _swapAnimDuration = 0.5f;
 
     /** Display indices of the cards currently being animated. */
+    /** The index of the first card UI element currently being animated. This refers to the physical 'Card' object in the _playerCards array, ensuring the animation moves the correct visual node. */
     int _swapAnimDisplayA = -1;
+    /** The index of the second card UI element currently being animated. This refers to the physical 'Card' object in the _playerCards array, ensuring the animation moves the correct visual node. */
     int _swapAnimDisplayB = -1;
 
     /** Starting positions of both cards for the current swap animation. */
+    /** The location of the first player's card involved in a swap. */
     cugl::Vec2 _swapAnimStartA = cugl::Vec2::ZERO;
+    /** The location of the first player's card involved in a swap. */
     cugl::Vec2 _swapAnimStartB = cugl::Vec2::ZERO;
 
     /** Model indices queued to swap once the animation finishes. */
+    /** The index of the first player involved in a swap, relative to the data model. This is the 'target' slot where the dragged card was dropped. */
     int _pendingModelSwapA = -1;
+    /** The index of the second player involved in a swap, relative to the data model. This is the 'target' slot where the dragged card was dropped. */
     int _pendingModelSwapB = -1;
 
     /** True while a dragged card is smoothly returning to its home slot. */
@@ -236,6 +242,28 @@ public:
      * @param value whether the scene is currently active
      */
     virtual void setActive(bool value) override;
+    
+    /**
+     * Resets all internal logic flags and animation timers.
+     * This ensures the scene starts from a "blank slate," clearing any
+     * leftover drag indices, pending network swaps, or elapsed time counters.
+     */
+    void resetLogicState();
+
+    /**
+     * Toggles the interactivity of lobby UI elements.
+     * Activates or deactivates buttons (Start, Back, Boss, and Player Icons)
+     * to prevent accidental input during transitions or animations.
+     * @param active Whether the UI should be interactable.
+     */
+    void setUIInteraction(bool active);
+
+    /**
+     * Resets all player card UI nodes to their designated home positions.
+     * Used primarily when exiting the scene or canceling a drag to ensure
+     * card nodes are not left at arbitrary coordinates.
+     */
+    void resetCardPositions();
 
     /**
      * Returns the scene status.
@@ -385,7 +413,7 @@ private:
      * @param modelA    First backing model index.
      * @param modelB    Second backing model index.
      */
-    void beginSwapAnimation(int displayA, int displayB, int modelA, int modelB);
+    void beginCardSwapAnimation(int displayA, int displayB, int modelA, int modelB);
 
     /**
      * Advances any in-progress swap animation and commits model/network swap
@@ -393,21 +421,28 @@ private:
      *
      * @param timestep  Delta time in seconds.
      */
-    void updateSwapAnimation(float timestep);
+    void updateCardSwapAnimation(float timestep);
+
+    /**
+     * Finalizes the swap animation once progress reaches 100%.
+     * * This logic ensures the visuals are pixel-perfect before handshaking with
+     * the network and game state to make the swap "official."
+     */
+    void finalizeCardSwapAnimation();
 
     /**
      * Starts a smooth return of one card back to its home position.
      *
      * @param displayIndex  Display-slot index of the card to return.
      */
-    void beginReturnAnimation(int displayIndex);
+    void beginCardReturnAnimation(int displayIndex);
 
     /**
      * Advances the one-card return animation if active.
      *
      * @param timestep  Delta time in seconds.
      */
-    void updateReturnAnimation(float timestep);
+    void updateCardReturnAnimation(float timestep);
 };
 
 #endif /* __LOBBY_SCENE_H__ */

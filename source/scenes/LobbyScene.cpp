@@ -226,6 +226,7 @@ void LobbyScene::disposeDragInput() {
         _touch->removeBeginListener(_touchListenerKey);
         _touch->removeMotionListener(_touchListenerKey);
         _touch->removeEndListener(_touchListenerKey);
+        _touchListenerKey = 0; //Reset key
         _touch = nullptr;
     }
 
@@ -233,6 +234,7 @@ void LobbyScene::disposeDragInput() {
         _mouse->removePressListener(_mouseListenerKey);
         _mouse->removeDragListener(_mouseListenerKey);
         _mouse->removeReleaseListener(_mouseListenerKey);
+        _mouseListenerKey = 0;
         _mouse = nullptr;
     }
 }
@@ -269,104 +271,123 @@ void LobbyScene::dispose() {
  * @param value whether the scene is currently active
  */
 void LobbyScene::setActive(bool value) {
-    if (isActive() != value) {
-        Scene2::setActive(value);
-        if (value) {
-            //Setup everyhing for interaction
-            _status = IDLE;
-            _pointerDown = false;
-            _isDraggingCard = false;
-            _draggedCardIndex = -1;
-            _didDragCard = false;
-            _pendingDragInit = false;
-            _isSwapAnimating = false;
-            _swapAnimElapsed = 0.0f;
-            _swapAnimDisplayA = -1;
-            _swapAnimDisplayB = -1;
-            _pendingModelSwapA = -1;
-            _pendingModelSwapB = -1;
-            _isReturnAnimating = false;
-            _returnAnimDisplayIndex = -1;
-            _returnAnimElapsed = 0.0f;
-            _sentJoinMessage = false;
-            _currentBoss = "";
-            _enterGame->deactivate();
-            _backButton->activate();
-            _bossLobbyButton->activate();
-            for (std::shared_ptr<cugl::scene2::Label> label : _playerSlots) {
-                if (label) {
-                    label->setVisible(true);
-                }
+    if (isActive() == value) {
+        return;
+    }
+    Scene2::setActive(value);
+    if (value) {
+        resetLogicState();
+        setUIInteraction(true);
+        for (std::shared_ptr<cugl::scene2::Label> label : _playerSlots) {
+            if (label) {
+                label->setVisible(true);
             }
-            for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
-                icon->activate();
-            }
-        } else {
-            if (_pendingDisconnect) {
-                _network->disconnect();
-                _pendingDisconnect = false;
-            }
-            _backButton->deactivate();
-            _enterGame->deactivate();
-            _bossLobbyButton->deactivate();
-            _pointerDown = false;
-            _isDraggingCard = false;
-            _draggedCardIndex = -1;
-            _pendingDragInit = false;
-            _isSwapAnimating = false;
-            _swapAnimElapsed = 0.0f;
-            _swapAnimDisplayA = -1;
-            _swapAnimDisplayB = -1;
-            _pendingModelSwapA = -1;
-            _pendingModelSwapB = -1;
-            _isReturnAnimating = false;
-            _returnAnimDisplayIndex = -1;
-            _returnAnimElapsed = 0.0f;
-            for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
-                icon->deactivate();
-                icon->setDown(false);
-            }
-            for (std::shared_ptr<cugl::scene2::Label> label : _playerSlots) {
-                if (label) {
-                    label->setVisible(true);
-                }
-            }
-            
-            // If any were pressed, reset them
-            _enterGame->setDown(false);
-            _backButton->setDown(false);
-            _bossLobbyButton->setDown(false);
+        }
+    } else {
+        if (_pendingDisconnect) {
+            _network->disconnect();
+            _pendingDisconnect = false;
+        }
+        setUIInteraction(false);
+        resetCardPositions();
+        resetLogicState();
+    }
+}
 
-            for (int i = 0; i < (int)_playerCards.size() && i < (int)_playerCardHomePositions.size(); i++) {
-                if (_playerCards[i]) {
-                    _playerCards[i]->setPosition(_playerCardHomePositions[i]);
-                }
-            }
+/**
+ * Resets the scene state. This is to prevent state
+ * corruption between different lobby sessions.
+ */
+void LobbyScene::resetLogicState() {
+    
+    //Nothing should be moved
+    _status = IDLE;
+    _pointerDown = false;
+    _isDraggingCard = false;
+    _draggedCardIndex = -1;
+    _didDragCard = false;
+    _pendingDragInit = false;
+    
+    //Reset all swap-animation variables.
+    _isSwapAnimating = false;
+    _swapAnimElapsed = 0.0f;
+    _swapAnimDisplayA = -1;
+    _swapAnimDisplayB = -1;
+    _pendingModelSwapA = -1;
+    _pendingModelSwapB = -1;
+    
+    //Reset all return-animation variables
+    _isReturnAnimating = false;
+    _returnAnimDisplayIndex = -1;
+    _returnAnimElapsed = 0.0f;
+    _sentJoinMessage = false;
+    _currentBoss = "";
+}
+
+/**
+ * Manages button lifecycles such that they are ready to use at the approrpiate times.
+ */
+void LobbyScene::setUIInteraction(bool active) {
+    _enterGame->deactivate();
+    if (active) {
+        _backButton->activate();
+        _bossLobbyButton->activate();
+    } else {
+        _backButton->deactivate();
+        _bossLobbyButton->deactivate();
+        
+        // Reset the visual 'pressed' state'
+        _enterGame->setDown(false);
+        _backButton->setDown(false);
+        _bossLobbyButton->setDown(false);
+    }
+    for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+        if (active) {
+            icon->activate();
+        }
+        icon->deactivate();
+        icon->setDown(false);
+    }
+}
+
+/**
+ * Iterates through all player card nodes and snaps them back to their
+ * layout-defined home coordinates.
+ */
+void LobbyScene::resetCardPositions() {
+    for (int i = 0; i < (int)_playerCards.size() && i < (int)_playerCardHomePositions.size(); i++) {
+        if (_playerCards[i]) {
+            _playerCards[i]->setPosition(_playerCardHomePositions[i]);
         }
     }
 }
 
 /**
- * Starts a potential drag if the pointer pressed on a player card.
+ * Processes the initial press/click event to prepare for a possible drag interaction.
+ * This function calculates the "grab offset" to ensure smooth movement.
  *
- * @param scenePos  Pointer location in scene coordinates.
+ * @param scenePos  The coordinates where the user first pressed down with their finger or mouse.
  */
 void LobbyScene::handlePointerDown(const cugl::Vec2& scenePos) {
+    
+    //Don't do anything if things are still moving
     if (_isSwapAnimating || _isReturnAnimating) {
         _pointerDown = false;
         _pendingDragInit = false;
         return;
     }
-
+    
+    //Ensure the index is valid
     if (_draggedCardIndex < 0 || _draggedCardIndex >= (int)_playerCards.size()) {
         _pointerDown = false;
         _pendingDragInit = false;
         return;
     }
-
+    
+    //Store where you started, so you can determine how far we drag.
     _pointerStartPos = scenePos;
     _pendingDragInit = false;
-
+    //Stay udnerneath the user's finger.
     if (_draggedCardIndex >= 0 && _draggedCardIndex < (int)_playerCards.size() && _playerCards[_draggedCardIndex]) {
         Vec2 localPos = _playerInfoContainer->worldToNodeCoords(scenePos);
         _dragOffset = _playerCards[_draggedCardIndex]->getPosition() - localPos;
@@ -405,38 +426,48 @@ void LobbyScene::handlePointerDrag(const cugl::Vec2& scenePos) {
 }
 
 /**
- * Ends drag handling and performs a slot swap if dropped over another card.
+ * Finalizes the drag-and-drop interaction when the user releases the pointer (Finger/Mouse).
+ * This function evaluates the drop location to decide if a swap between player cards
+ * should occur or if the dragged card should simply return to its original position.
  *
- * @param scenePos  Pointer location in scene coordinates.
+ * @param scenePos  The final (x, y) coordinates of the pointer in the scene.
  */
 void LobbyScene::handlePointerUp(const cugl::Vec2& scenePos) {
+    //Input validation/No multiple swapping happening
     if (_isSwapAnimating || _isReturnAnimating) {
         _pointerDown = false;
         return;
     }
-
+    //Should have had the pointer down
     if (!_pointerDown) {
         return;
     }
-
+    //Reset state on success.
     _pointerDown = false;
     bool startedSwapAnim = false;
-
+    
+    //Ensure valid index
     if (_draggedCardIndex >= 0 && _draggedCardIndex < (int)_playerCards.size()) {
         if (_isDraggingCard) {
+            
+            //Check if location of release matches one of the player cards
             int targetIndex = findCardAt(scenePos, _draggedCardIndex);
             const int lockedDisplayIndex = static_cast<int>(_playerCards.size()) - 1;
+            
+            //Perform the swap as long as it's not the exact same card and isn't the host.
             if (targetIndex >= 0 && targetIndex != _draggedCardIndex && targetIndex != lockedDisplayIndex) {
                 swapPlayersByDisplayIndex(_draggedCardIndex, targetIndex);
                 startedSwapAnim = _isSwapAnimating;
             }
         }
-
+        
+        //Nothing happened, return to original.
         if (!startedSwapAnim && _draggedCardIndex < (int)_playerCardHomePositions.size() && _playerCards[_draggedCardIndex]) {
-            beginReturnAnimation(_draggedCardIndex);
+            beginCardReturnAnimation(_draggedCardIndex);
         }
     }
-
+    
+    //Cleanup flags
     _isDraggingCard = false;
     _draggedCardIndex = -1;
 }
@@ -503,7 +534,7 @@ void LobbyScene::swapPlayersByDisplayIndex(int displayA, int displayB) {
         return;
     }
 
-    beginSwapAnimation(displayA, displayB, modelA, modelB);
+    beginCardSwapAnimation(displayA, displayB, modelA, modelB);
 }
 
 /**
@@ -518,7 +549,7 @@ void LobbyScene::swapPlayersByDisplayIndex(int displayA, int displayB) {
  * @param modelA    The model index of the first player, committed on completion.
  * @param modelB    The model index of the second player, committed on completion.
  */
-void LobbyScene::beginSwapAnimation(int displayA, int displayB, int modelA, int modelB) {
+void LobbyScene::beginCardSwapAnimation(int displayA, int displayB, int modelA, int modelB) {
     if (displayA < 0 || displayB < 0 || displayA >= (int)_playerCards.size() || displayB >= (int)_playerCards.size()) {
         return;
     }
@@ -556,7 +587,7 @@ void LobbyScene::beginSwapAnimation(int displayA, int displayB, int modelA, int 
  *
  * @param timestep  The time elapsed since the last update, in seconds.
  */
-void LobbyScene::updateSwapAnimation(float timestep) {
+void LobbyScene::updateCardSwapAnimation(float timestep) {
     if (!_isSwapAnimating) {
         return;
     }
@@ -589,41 +620,66 @@ void LobbyScene::updateSwapAnimation(float timestep) {
 
     _swapAnimElapsed += timestep;
     const float duration = (_swapAnimDuration <= 0.0f ? 0.001f : _swapAnimDuration);
-    float t = _swapAnimElapsed / duration;
-    if (t > 1.0f) {
-        t = 1.0f;
+    float animProgress = _swapAnimElapsed / duration;
+    if (animProgress> 1.0f) {
+        animProgress = 1.0f;
     }
+    
+    //The old location of card B, and where A wants to go.
+    const Vec2 targetforCardA = _playerCardHomePositions[_swapAnimDisplayB];
+    
+    //The old location of card A, and where B wants to go.
+    const Vec2 targetforCardB = _playerCardHomePositions[_swapAnimDisplayA];
+    
+    //Gently move card A to it's target (B's old slot) over time using linear interpolation
+    _playerCards[_swapAnimDisplayA]->setPosition(_swapAnimStartA.lerp(targetforCardA, animProgress));
+    //Gently move card B to it's target (A's old slot) over time using linear interpolation
+    _playerCards[_swapAnimDisplayB]->setPosition(_swapAnimStartB.lerp(targetforCardB, animProgress));
 
-    const Vec2 endA = _playerCardHomePositions[_swapAnimDisplayB];
-    const Vec2 endB = _playerCardHomePositions[_swapAnimDisplayA];
-    _playerCards[_swapAnimDisplayA]->setPosition(_swapAnimStartA.lerp(endA, t));
-    _playerCards[_swapAnimDisplayB]->setPosition(_swapAnimStartB.lerp(endB, t));
-
-    if (t >= 1.0f) {
+    //Animation has finished
+    if (animProgress >= 1.0f) {
+        //Snap the card to their destinations (final adjustment after movement)
+        //Sets the final position within the UI Grid
         _playerCards[_swapAnimDisplayA]->setPosition(_playerCardHomePositions[_swapAnimDisplayA]);
         _playerCards[_swapAnimDisplayB]->setPosition(_playerCardHomePositions[_swapAnimDisplayB]);
-
+        
+        //Restore static slots existing in the scene.
         if (_swapAnimDisplayA >= 0 && _swapAnimDisplayA < (int)_playerSlots.size() && _playerSlots[_swapAnimDisplayA]) {
             _playerSlots[_swapAnimDisplayA]->setVisible(true);
         }
         if (_swapAnimDisplayB >= 0 && _swapAnimDisplayB < (int)_playerSlots.size() && _playerSlots[_swapAnimDisplayB]) {
             _playerSlots[_swapAnimDisplayB]->setVisible(true);
         }
-
-        if (_pendingModelSwapA >= 0 && _pendingModelSwapB >= 0 && _pendingModelSwapA != _pendingModelSwapB) {
-            if (_network->swapLobbyPlayers(_pendingModelSwapA, _pendingModelSwapB)) {
-                _gameState->swapPlayerSlots(_pendingModelSwapA, _pendingModelSwapB);
-            }
-        }
+        
+        //Visual is finished, but the game engine doesn't know about the swap yet.
+        finalizeCardSwapAnimation();
 
         _isSwapAnimating = false;
         _swapAnimElapsed = 0.0f;
         _swapAnimDisplayA = -1;
         _swapAnimDisplayB = -1;
-        _pendingModelSwapA = -1;
-        _pendingModelSwapB = -1;
+        
     }
 }
+/**
+ * Finalizes the swap animation for two player cards trading positions.
+ * Snaps the cards to their place of belonging and resets indicies so that newer swaps can occur.
+*/
+void LobbyScene::finalizeCardSwapAnimation(){
+    //Ensure valid indices
+    if (_pendingModelSwapA < 0 || _pendingModelSwapB < 0 || _pendingModelSwapA == _pendingModelSwapB) {
+            return;
+        }
+    //Send swap to the network
+    if (_network->swapLobbyPlayers(_pendingModelSwapA, _pendingModelSwapB)) {
+        //Update the local truth if the network allowed it.
+        _gameState->swapPlayerSlots(_pendingModelSwapA, _pendingModelSwapB);
+    }
+    //Reset the indices, and clear pending.
+    _pendingModelSwapA = -1;
+    _pendingModelSwapB = -1;
+}
+
 
 /**
  * Begins a return animation for the player card at the given display index,
@@ -633,7 +689,7 @@ void LobbyScene::updateSwapAnimation(float timestep) {
  *
  * @param displayIndex  The display index of the card to animate back home.
  */
-void LobbyScene::beginReturnAnimation(int displayIndex) {
+void LobbyScene::beginCardReturnAnimation(int displayIndex) {
     if (displayIndex < 0 || displayIndex >= (int)_playerCards.size() ||
         displayIndex >= (int)_playerCardHomePositions.size()) {
         return;
@@ -658,7 +714,7 @@ void LobbyScene::beginReturnAnimation(int displayIndex) {
  *
  * @param timestep  The time elapsed since the last update, in seconds.
  */
-void LobbyScene::updateReturnAnimation(float timestep) {
+void LobbyScene::updateCardReturnAnimation(float timestep) {
     if (!_isReturnAnimating) {
         return;
     }
@@ -832,8 +888,8 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void LobbyScene::update(float timestep) {
-    updateSwapAnimation(timestep);
-    updateReturnAnimation(timestep);
+    updateCardSwapAnimation(<#float timestep#>)(timestep);
+    updateCardReturnAnimation(<#float timestep#>)(timestep);
 
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
