@@ -888,8 +888,8 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void LobbyScene::update(float timestep) {
-    updateCardSwapAnimation(<#float timestep#>)(timestep);
-    updateCardReturnAnimation(<#float timestep#>)(timestep);
+    updateCardSwapAnimation(timestep);
+    updateCardReturnAnimation(timestep);
 
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
