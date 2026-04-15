@@ -339,10 +339,9 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     
     _assets->loadDirectory("json/itemTextures.json");
     _assets->loadDirectory("json/itemAnimations.json");
-    _assets->loadDirectory("json/enemyAnimations.json");
     _assets->loadDirectory("json/houseInGameIcons.json");
 
-    // Load animation registry from enemyAnimations.json
+    // Load animation registry from the already-registered enemyAnimations JSON asset
     loadAnimationRegistry();
 
     /*since networking not initialized yet, just assume we are the host
@@ -350,6 +349,10 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     setLocalPlayer(0);
     _status = Status::PLAYING;
     setDebugMode(false);
+    
+    // Set player icon textures immediately (normally done in update, but we need them visible on first render)
+    updatePlayerAndTeammateIcons(0.0f);
+    
     setActive(false);
     return true;
 }
