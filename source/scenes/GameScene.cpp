@@ -141,7 +141,7 @@ bool GameScene::initSceneGraph() {
         
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
-        
+
         // Animation sprite will be created on demand and added as a child of bossAnimationSpace
         if (_bossSprite) {
             _enemyAnimationSpriteNode = nullptr;  // Will be created on demand with correct texture
@@ -906,31 +906,6 @@ void GameScene::updateEnemyAndAI(float dt) {
     
     // Play sounds for LOCAL player and enemy health changes after all updates
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
-}
-
-/**
- * Retrieves the current local player's index (0-3) within the game state's player array.
- * 
- * Searches through the GameState's player array to find the local player and returns
- * their position. This index is used for computing relative enemy directions from the
- * local player's perspective.
- *
- * @return Player index (0-3) if found, or 0 if local player doesn't exist
- */
-int GameScene::getLocalPlayerIndex() const {
-    Player* localPlayer = _gameState.getLocalPlayer();
-    if (!localPlayer) {
-        return 0; // Default to index 0 if no local player
-    }
-    
-    const auto& players = _gameState.getPlayers();
-    for (int i = 0; i < (int)players.size(); i++) {
-        if (players[i].get() == localPlayer) {
-            return i;
-        }
-    }
-    
-    return 0; // Fallback if player not found (shouldn't happen)
 }
 
 /**
