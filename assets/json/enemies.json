@@ -1,177 +1,168 @@
 {
-    "enemies": [
-        {
-            "id": "cyclops",
-            "name": "cyclops",
-            "maxHealth": 100.0,
-            "spritesheetPath": "textures/cyclops.png",
-            "ai": {
-                "retargetLikelihood": 0.35,
-                "defenseLikelihood": 0.15
-            },
-	    "customData": {
-		"defenseThreshold1": 0.75,
-		"defenseThreshold2": 0.25
-	    },
-            "states": {
-                "idle": {
-                    "name": "idle",
-                    "animationRow": 0,
-		    "events": [
-			{
-			    "type": "SIDE_MODIFIER",
-                            "target": 0,
-                            "amount": 2.0
-			}
-		    ]
-                },
-                "attack_1": {
-                    "name": "club",
-                    "animationRow": 1,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 0.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        }
-                    ],
-                    "nextState": "attack_2"
-                },
-                "attack_2": {
-                    "name": "stomp",
-                    "animationRow": 2,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        },
-			{
-                            "type": "DAMAGE",
-                            "target": 1,
-                            "amount": 1.0
-                        },
-			{
-                            "type": "DAMAGE",
-                            "target": 2,
-                            "amount": 1.0
-                        },
-			{
-                            "type": "DAMAGE",
-                            "target": 3,
-                            "amount": 1.0
-                        }
-
-                    ],
-                    "nextState": "idle"
-                },
-                "attack_3": {
-                    "name": "boulder toss",
-                    "animationRow": 3,
-                    "buildUpTime": 10.0,
-                    "cooldownTime": 3.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 3.0
-                        }
-                    ],
-                    "nextState": "idle"
-                },
-		"defensive_move" : {
-		    "name": "eye cover",
-                    "animationRow": 4,
-                    "buildUpTime": 0.0,
-                    "cooldownTime": 5.0,
-                    "events": [
-                        {
-                            "type": "SIDE_MODIFIER",
-                            "target": 0,
-                            "amount": 0.0
-                        },
-			{
-                            "type": "SIDE_MODIFIER",
-                            "target": 1,
-                            "amount": 0.5
-                        },
-			{
-                            "type": "SIDE_MODIFIER",
-                            "target": 2,
-                            "amount": 1
-                        },
-			{
-                            "type": "SIDE_MODIFIER",
-                            "target": 3,
-                            "amount": 0.5
-                        }
-		    ],
-		    "nextState": "idle"
-		}
+  "enemies": [
+    {
+      "id": "cyclops",
+      "name": "cyclops",
+      "maxHealth": 100,
+      "spritesheetPath": "textures/cyclops.png",
+      "ai": {
+        "retargetLikelihood": 0.35,
+        "defenseLikelihood": 0.15
+      },
+      "customData": {
+        "defenseThreshold1": 0.75,
+        "defenseThreshold2": 0.25
+      },
+      "states": {
+        "idle": {
+          "name": "idle",
+          "animationKey": "cyclops_idle_animation",
+          "events": [
+            {
+              "type": "SIDE_MODIFIER",
+              "target": 0,
+              "amount": 2
             }
+          ]
         },
-	{
-            "id": "cerberus",
-            "name": "cerberus",
-            "maxHealth": 100.0,
-            "spritesheetPath": "textures/cerberus.png",
-            "ai": {
-                "retargetLikelihood": 0.5,
-                "defenseLikelihood": 1.0
-            },
-	    "customData": {
-    	        "eyeMultiplier": 2.0
-	    },
-            "states": {
-                "idle": {
-                    "name": "idle",
-                    "animationRow": 0
-                },
-                "attack_1": {
-                    "name": "",
-                    "animationRow": 1,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 0.0,
-                    "events": [
-                    ],
-                    "nextState": "idle"
-                },
-                "attack_2": {
-                    "name": "",
-                    "animationRow": 2,
-                    "buildUpTime": 3.0,
-                    "cooldownTime": 1.0,
-                    "events": [
-                    ],
-                    "nextState": "idle"
-                },
-                "attack_3": {
-                    "name": "",
-                    "animationRow": 3,
-                    "buildUpTime": 3.0,
-                    "cooldownTime": 1.0,
-                    "events": [
-                    ],
-                    "nextState": "idle"
-                },
-		"defensive_move" : {
-		    "name": "test heal move",
-                    "animationRow": 4,
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
-                    "events": [
-			{
-                            "type": "HEAL",
-                            "amount": 10.0
-                        }
-		    ],
-		    "nextState": "idle"
-		}
+        "attack_1": {
+          "name": "club",
+          "animationKey": "cyclops_idle_animation",
+          "buildUpTime": 4,
+          "cooldownTime": 0,
+          "events": [
+            {
+              "type": "DAMAGE",
+              "target": 0,
+              "amount": 1
             }
+          ],
+          "nextState": "attack_2"
+        },
+        "attack_2": {
+          "name": "stomp",
+          "animationKey": "cyclops_idle_animation",
+          "buildUpTime": 4,
+          "cooldownTime": 5,
+          "events": [
+            {
+              "type": "DAMAGE",
+              "target": 0,
+              "amount": 1
+            },
+            {
+              "type": "DAMAGE",
+              "target": 1,
+              "amount": 1
+            },
+            {
+              "type": "DAMAGE",
+              "target": 2,
+              "amount": 1
+            },
+            {
+              "type": "DAMAGE",
+              "target": 3,
+              "amount": 1
+            }
+          ],
+          "nextState": "idle"
+        },
+        "attack_3": {
+          "name": "boulder toss",
+          "animationKey": "cyclops_idle_animation",
+          "buildUpTime": 10,
+          "cooldownTime": 3,
+          "events": [
+            {
+              "type": "DAMAGE",
+              "target": 0,
+              "amount": 3
+            }
+          ],
+          "nextState": "idle"
+        },
+        "defensive_move": {
+          "name": "eye cover",
+          "animationKey": "cyclops_idle_animation",
+          "buildUpTime": 4,
+          "cooldownTime": 5,
+          "events": [
+            {
+              "type": "SIDE_MODIFIER",
+              "target": 0,
+              "amount": 0
+            },
+            {
+              "type": "SIDE_MODIFIER",
+              "target": 1,
+              "amount": 0.5
+            },
+            {
+              "type": "SIDE_MODIFIER",
+              "target": 2,
+              "amount": 1
+            },
+            {
+              "type": "SIDE_MODIFIER",
+              "target": 3,
+              "amount": 0.5
+            }
+          ],
+          "nextState": "idle"
         }
-    ]
+      }
+    },
+    {
+      "id": "cerberus",
+      "name": "cerberus",
+      "maxHealth": 100,
+      "spritesheetPath": "textures/cerberus.png",
+      "ai": {
+        "retargetLikelihood": 0.5,
+        "defenseLikelihood": 1
+      },
+      "customData": {
+        "eyeMultiplier": 2
+      },
+      "states": {
+        "idle": {
+          "name": "idle"
+        },
+        "attack_1": {
+          "name": "",
+          "buildUpTime": 4,
+          "cooldownTime": 0,
+          "events": [],
+          "nextState": "idle"
+        },
+        "attack_2": {
+          "name": "",
+          "buildUpTime": 3,
+          "cooldownTime": 1,
+          "events": [],
+          "nextState": "idle"
+        },
+        "attack_3": {
+          "name": "",
+          "buildUpTime": 3,
+          "cooldownTime": 1,
+          "events": [],
+          "nextState": "idle"
+        },
+        "defensive_move": {
+          "name": "test heal move",
+          "buildUpTime": 4,
+          "cooldownTime": 5,
+          "events": [
+            {
+              "type": "HEAL",
+              "amount": 10
+            }
+          ],
+          "nextState": "idle"
+        }
+      }
+    }
+  ]
 }
