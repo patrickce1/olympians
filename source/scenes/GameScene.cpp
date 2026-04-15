@@ -2079,8 +2079,7 @@ void GameScene::update(float dt, InputController& input) {
 
     handleItemSpawn(dt);
     updateEnemyAndAI(dt);
-    
-    updateEnemyAnimation(dt, getLocalPlayerIndex());
+    updateEnemyAnimation(dt, _network->getLocalPlayerNumber());
     updateDropZoneVisibility();
 
     // Update sliding items before physics world update

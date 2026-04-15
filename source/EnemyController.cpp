@@ -9,7 +9,10 @@ EnemyController::EnemyController() {
     _rng.init(); // auto-seeded
 }
 
-/** Calculates which direction (0-3) an enemy should face relative to a local player. */
+/** Calculates which direction (0-3) an enemy should face relative to a local player. 
+ *  @param targetIndex The index of the player the enemy is targeting (0-3)
+ *  @param localPlayerIndex The local player's index (0-3)
+*/
 int EnemyController::calculateDirection(int targetIndex, int localPlayerIndex) {
     // Wrap indices to valid range [0-3]
     int target = (targetIndex + 4) % 4;

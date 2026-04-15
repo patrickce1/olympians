@@ -40,8 +40,6 @@ public:
         float cooldownTime = 0.0f;
         State nextState = IDLE;                
         std::vector<EventDef> events;
-        
-        // Animation key to lookup metadata in the animation registry
         std::string animationKey;           // Key to lookup animation in enemyAnimations.json
     };
 
@@ -130,9 +128,7 @@ public:
                 sdef.buildUpTime  = st->getFloat("buildUpTime", 0.0f);
                 sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
                 sdef.nextState    = parseStateType(st->getString("nextState", "idle"));
-                
-                // Read animation key (metadata loads from animation registry, not JSON)
-                sdef.animationKey = st->getString("animationKey", "");
+                sdef.animationKey = st->getString("animationKey", "");                 // Read animation key (metadata loads from animation registry, not JSON)
 
                 auto aiObj = entry->get("ai");
                 if (aiObj && aiObj->isObject()) {

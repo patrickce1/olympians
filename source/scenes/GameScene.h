@@ -611,17 +611,6 @@ public:
     void hideEnemyAnimationAndShowStatic();
 
     /**
-     * Retrieves the current local player's index (0-3) within the game state's player array.
-     * 
-     * Searches through the GameState's player array to find the local player and returns
-     * their position. This index is used for computing relative enemy directions from the
-     * local player's perspective.
-     *
-     * @return Player index (0-3) if found, or 0 if local player doesn't exist
-     */
-    int getLocalPlayerIndex() const;
-
-    /**
      * Loads the animation registry from enemyAnimations.json and populates _animationRegistry.
      * This builds a lookup map from animation IDs to their metadata (frameCount, frameDuration, frameRows).
      */
