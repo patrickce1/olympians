@@ -39,5 +39,4 @@ public:
 	 *		where the boss immidiately does damage based on the side it got hit from
     */
 	void takeDamage(float damage, int playerIndex) override;
-
 };
