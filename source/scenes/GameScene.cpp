@@ -139,8 +139,13 @@ bool GameScene::initSceneGraph() {
         _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
         
-        // This is the boss animation sprite, you can change the texture and set frames as needed.
+        // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
+
+        // Animation sprite will be created on demand and added as a child of bossAnimationSpace
+        if (_bossSprite) {
+            _enemyAnimationSpriteNode = nullptr;  // Will be created on demand with correct texture
+        }
         
         // This is the special effects node, this is where all the animated effects will go.
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
@@ -336,11 +341,18 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     _assets->loadDirectory("json/itemAnimations.json");
     _assets->loadDirectory("json/houseInGameIcons.json");
 
+    // Load animation registry from the already-registered enemyAnimations JSON asset
+    loadAnimationRegistry();
+
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
     setLocalPlayer(0);
     _status = Status::PLAYING;
     setDebugMode(false);
+    
+    // Set player icon textures immediately (normally done in update, but we need them visible on first render)
+    updatePlayerAndTeammateIcons(0.0f);
+    
     setActive(false);
     return true;
 }
@@ -371,6 +383,7 @@ void GameScene::dispose() {
         _playerHealthBar = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
+        _enemyAnimationSpriteNode = nullptr;
         _itemWidgets.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
@@ -431,7 +444,16 @@ void GameScene::setActive(bool value) {
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
             updateNetworkOrder();
             _gameState.assignMissingHouses(_itemController);
-
+            
+            // Reset enemy animation state for clean start
+            _enemyAnimationElapsedTime = 0.0f;
+            _enemyAnimationCachedFrameIndex = -1;
+            _enemyAnimationCurrentDirection = 0;
+            
+            // Hide animation sprite on scene reset
+            if (_enemyAnimationSpriteNode) {
+                _enemyAnimationSpriteNode->setVisible(false);
+            }
         }
     }
 }
@@ -885,6 +907,219 @@ void GameScene::updateEnemyAndAI(float dt) {
     
     // Play sounds for LOCAL player and enemy health changes after all updates
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
+}
+
+/**
+ * Hides the enemy animation sprite and shows the static fallback sprite.
+ * 
+ * Sets visibility on both the animation sprite node and the container,
+ * then reveals the static sprite as a fallback. Called when animation
+ * metadata is unavailable or the enemy is dead.
+ */
+void GameScene::hideEnemyAnimationAndShowStatic() {
+    if (_enemyAnimationSpriteNode) {
+        _enemyAnimationSpriteNode->setVisible(false);
+    }
+    if (_bossSprite) {
+        _bossSprite->setVisible(false);
+    }
+    
+    // Show static sprite as fallback
+    if (_gameArea) {
+        auto staticSprite = _gameArea->getChildByName("bossIdle");
+        if (staticSprite) {
+            staticSprite->setVisible(true);
+        }
+    }
+}
+
+/**
+ * Initializes the enemy animation sprite node with the given animation metadata.
+ * 
+ * Allocates texture from disk, creates a SpriteNode with the correct layout,
+ * configures scale/anchor/position based on viewport size, and adds it to the
+ * scene hierarchy. Called once when animation metadata first becomes available.
+ *
+ * @param animationEntry  The animation metadata containing texture path and frame info
+ * @return true if sprite node was successfully initialized, false on error
+ */
+bool GameScene::initializeEnemyAnimationSpriteNode(const AnimationEntry& animationEntry) {
+    // Ensure we have the animation container
+    if (!_bossSprite) {
+        CULogError("Boss animation space not found");
+        return false;
+    }
+    
+    // Allocate texture from file
+    auto texture = cugl::graphics::Texture::allocWithFile(animationEntry.texture);
+    if (!texture) {
+        CULogError("Failed to allocate texture: %s", animationEntry.texture.c_str());
+        return false;
+    }
+    
+    // Create SpriteNode with layout: frameRows rows × frameCount columns
+    // The total frame count is frameCount * frameRows (all directions × frames per direction)
+    _enemyAnimationSpriteNode = cugl::scene2::SpriteNode::allocWithSheet(
+        texture,
+        animationEntry.frameRows,                                    // rows (4 directions)
+        animationEntry.frameCount,                                   // columns (frames per direction)
+        animationEntry.frameCount * animationEntry.frameRows         // total frames
+    );
+    
+    if (!_enemyAnimationSpriteNode) {
+        CULogError("Failed to allocate SpriteNode for enemy animation");
+        return false;
+    }
+    
+    // Configure scale based on viewport size
+    // Smaller screens (phones) get lower scale ~0.90, larger screens (iPad) get higher scale ~0.93
+    cugl::Size viewportSize = getSize();
+    float scale = 0.90f + (viewportSize.height - 800.0f) * 0.00005f;
+    scale = std::clamp(scale, 0.80f, 0.95f);
+    _enemyAnimationSpriteNode->setScale(scale);
+    
+    // Calculate single frame dimensions from texture and grid layout
+    float frameWidth = texture->getWidth() / animationEntry.frameCount;
+    float frameHeight = texture->getHeight() / animationEntry.frameRows;
+    _enemyAnimationSpriteNode->setContentSize(cugl::Size(frameWidth, frameHeight));
+    
+    // Configure anchor and position (lower center of screen)
+    _enemyAnimationSpriteNode->setAnchor(cugl::Vec2(0.5f, 0.5f));
+    _enemyAnimationSpriteNode->setPosition(cugl::Vec2(196.5f, 200.0f));
+    _enemyAnimationSpriteNode->setVisible(true);
+    
+    // Add to scene hierarchy and make container visible
+    _bossSprite->addChild(_enemyAnimationSpriteNode);
+    _bossSprite->setVisible(true);
+    
+    // Reset cached frame index to force update on next frame
+    _enemyAnimationCachedFrameIndex = -1;
+    
+    return true;
+}
+
+/**
+ * Updates the current animation frame for direction and elapsed time.
+ * 
+ * Recalculates the direction the enemy should face (0-3) based on relative
+ * positions of local player and target, then advances the animation frame
+ * based on accumulated elapsed time and frame duration from animation metadata.
+ * Only calls setFrame() if the frame index has changed (cached optimization).
+ *
+ * @param dt                The elapsed time in seconds since last frame
+ * @param localPlayerIndex  The local player's index (0-3) for direction calculation
+ */
+void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) {
+        return;
+    }
+    
+    // Show animation sprite and container
+    if (_enemyAnimationSpriteNode) {
+        _enemyAnimationSpriteNode->setVisible(true);
+    }
+    if (_bossSprite) {
+        _bossSprite->setVisible(true);
+    }
+    
+    // Hide static sprite when animation is playing
+    if (_gameArea) {
+        auto staticSprite = _gameArea->getChildByName("bossIdle");
+        if (staticSprite) {
+            staticSprite->setVisible(false);
+        }
+    }
+    
+    // Recalculate direction based on local player perspective
+    int newDirection = EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex);
+    _enemyAnimationCurrentDirection = newDirection;
+    
+    // Advance animation elapsed time
+    _enemyAnimationElapsedTime += dt;
+    
+    // Calculate frame within the current direction's row
+    // frameInRow cycles from 0 to (frameCount-1) based on elapsed time
+    int frameInRow = (int)(_enemyAnimationElapsedTime / _currentAnimationEntry.frameDuration) 
+                     % _currentAnimationEntry.frameCount;
+    
+    // Calculate linear frame index into the sprite sheet
+    // Sheet is organized as rows (one per direction), each row has frameCount columns
+    // linearFrame = (direction_row * frameCount) + frameInRow
+    int linearFrame = (_enemyAnimationCurrentDirection * _currentAnimationEntry.frameCount) + frameInRow;
+    
+    // Update sprite frame only if changed (optimization to avoid redundant setFrame calls)
+    if (linearFrame != _enemyAnimationCachedFrameIndex && _enemyAnimationSpriteNode) {
+        _enemyAnimationSpriteNode->setFrame(linearFrame);
+        _enemyAnimationCachedFrameIndex = linearFrame;
+    }
+}
+
+/**
+ * Updates enemy animation and directional facing based on target.
+ * 
+ * Each frame:
+ *   1. Validates enemy exists
+ *   2. Retrieves current state definition and animation metadata
+ *   3. If metadata missing: hides animation sprite, shows static fallback
+ *   4. If metadata exists:
+ *      - Initializes sprite node on first frame (texture load, SpriteNode creation)
+ *      - Updates sprite frame based on direction and elapsed time
+ * 
+ * Direction is computed locally per player from the enemy's target index,
+ * so each player sees the correct enemy direction from their perspective.
+ *
+ * @param dt                Elapsed time in seconds for this frame
+ * @param localPlayerIndex  The local player's index (0-3) for calculating relative direction
+ */
+void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
+    auto enemy = _gameState.getEnemy();
+    
+    // If enemy doesn't exist, hide animation and show static sprite
+    if (!enemy) {
+        hideEnemyAnimationAndShowStatic();
+        return;
+    }
+    
+    // Get the current state definition that defines animation metadata
+    const auto* stateDef = enemy->getCurrentStateDef();
+    if (!stateDef) {
+        hideEnemyAnimationAndShowStatic();
+        return;
+    }
+    
+    // Check if animation metadata is available in the registry
+    // Animation is valid if animationKey is not empty AND exists in registry map
+    bool hasMetadata = !stateDef->animationKey.empty() && 
+                       (_animationRegistry.find(stateDef->animationKey) != _animationRegistry.end());
+    
+    if (!hasMetadata) {
+        hideEnemyAnimationAndShowStatic();
+        return;
+    }
+    
+    // Retrieve animation metadata from registry
+    auto animationMetadataLookup = _animationRegistry.find(stateDef->animationKey);
+    if (animationMetadataLookup == _animationRegistry.end()) {
+        hideEnemyAnimationAndShowStatic();
+        return;
+    }
+    
+    const AnimationEntry& animationEntry = animationMetadataLookup->second;
+    
+    // Cache animation entry for frame calculations
+    _currentAnimationEntry = animationEntry;
+    
+    // Initialize sprite node on first frame (lazy initialization)
+    if (!_enemyAnimationSpriteNode) {
+        if (!initializeEnemyAnimationSpriteNode(animationEntry)) {
+            hideEnemyAnimationAndShowStatic();
+            return;
+        }
+    }
+    
+    // Update sprite frame based on current direction and elapsed time
+    updateEnemyAnimationFrame(dt, localPlayerIndex);
 }
 
 /**
@@ -1820,6 +2055,7 @@ void GameScene::update(float dt, InputController& input) {
 
     handleItemSpawn(dt);
     updateEnemyAndAI(dt);
+    updateEnemyAnimation(dt, _network->getLocalPlayerNumber());
     updateDropZoneVisibility();
 
     // Update sliding items before physics world update
@@ -2510,7 +2746,7 @@ void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, 
     cugl::Vec2 position = itemPos;
     cugl::Size viewportSize = getSize();
     if (itemPos == cugl::Vec2::ZERO) {
-        position = cugl::Vec2(viewportSize.width / 2.0f, viewportSize.height / 2.0f);
+        position = cugl::Vec2(viewportSize.width / 2.0f, viewportSize.height * 0.55f);
     }
     
     node->setPosition(position);
@@ -2623,6 +2859,44 @@ void GameScene::updateItemUseAnimations(float dt) {
     // Remove completed animations in reverse order to maintain indices
     for (auto completedIndexIter = completedIndices.rbegin(); completedIndexIter != completedIndices.rend(); ++completedIndexIter) {
         _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *completedIndexIter);
+    }
+}
+
+/**
+ * Loads the animation registry from enemyAnimations.json and populates _animationRegistry.
+ * Parses the JSON array of animation entries and builds a map for O(1) lookup by animation ID.
+ */
+void GameScene::loadAnimationRegistry() {
+    _animationRegistry.clear();
+    
+    // Load the animationRegistry array from enemyAnimations.json
+    // The asset key is registered in assets.json as "enemyAnimations"
+    auto json = _assets->get<cugl::JsonValue>("enemyAnimations");
+    
+    if (!json) {
+        return;
+    }
+    
+    auto registryArray = json->get("animationRegistry");
+    if (!registryArray || !registryArray->isArray()) {
+        return;
+    }
+    
+    // Parse each animation entry
+    for (int i = 0; i < registryArray->size(); i++) {
+        auto entry = registryArray->get(i);
+        if (!entry) continue;
+        
+        AnimationEntry anim;
+        anim.id = entry->getString("id", "");
+        anim.texture = entry->getString("texture", "");
+        anim.frameCount = entry->getInt("frameCount", 0);
+        anim.frameDuration = entry->getFloat("frameDuration", 0.1f);
+        anim.frameRows = entry->getInt("frameRows", 1);
+        
+        if (!anim.id.empty()) {
+            _animationRegistry[anim.id] = anim;
+        }
     }
 }
 

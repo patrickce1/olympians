@@ -30,6 +30,22 @@ public:
                 const std::shared_ptr<Enemy>& enemy,
                 std::vector<std::shared_ptr<Player>>& players);
 
+    /**
+     * Calculates which direction (0-3) an enemy should face relative to a local player.
+     * Maps relative position between target and local player to cardinal directions.
+     *
+     * Formula: (targetIndex - localPlayerIndex + 4) % 4
+     *   Direction 0: Forward (facing directly from local player's perspective)
+     *   Direction 1: Right
+     *   Direction 2: Back
+     *   Direction 3: Left
+     *
+     * @param targetIndex       The index of the player the enemy is targeting (0-3)
+     * @param localPlayerIndex  The local player's index (0-3)
+     * @return                  Direction 0-3 representing sprite sheet row to display
+     */
+    static int calculateDirection(int targetIndex, int localPlayerIndex);
+
 private:
     cugl::Random _rng;
 

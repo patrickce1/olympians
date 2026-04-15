@@ -83,6 +83,18 @@ struct ItemUseAnimation {
 };
 
 /**
+ * Represents a single animation entry from the enemy animations registry (enemyAnimations.json).
+ * Contains metadata needed to render and advance animation frames.
+ */
+struct AnimationEntry {
+    std::string id;           /**< Animation identifier (e.g., "cyclops_idle_animation") */
+    std::string texture;      /**< Texture asset key (e.g., "gameScene/cyclops/cyclops_idle_animation") */
+    int frameCount;           /**< Number of frames per animation row */
+    float frameDuration;      /**< Duration in seconds per frame */
+    int frameRows;            /**< Number of rows in the sprite sheet */
+};
+
+/**
  * Controller for the core game scene.
  *
  * GameScene is a pure controller: it owns the scene graph, handles input,
@@ -291,6 +303,29 @@ protected:
 
     /** True while a touch is active and the debug pointer should be drawn. */
     bool _hasDebugPointer = false;
+
+#pragma mark - Enemy Animation State
+
+    /** Animation registry loaded from enemyAnimations.json. Maps animation ID to metadata. */
+    std::unordered_map<std::string, AnimationEntry> _animationRegistry;
+
+    /** SpriteNode for enemy idle animation. Replaces static sprite when animation is active. */
+    std::shared_ptr<cugl::scene2::SpriteNode> _enemyAnimationSpriteNode;
+
+    /** Cached animation entry for currently playing animation. Used for frame calculations. */
+    AnimationEntry _currentAnimationEntry;
+
+    /** Current direction (0-3) the enemy faces, computed locally per player from local player index + target index. */
+    int _enemyAnimationCurrentDirection = 0;
+
+    /** Accumulated elapsed time for animation frame advancement (resets on idle entry). */
+    float _enemyAnimationElapsedTime = 0.0f;
+
+    /** Cached frame index to avoid redundant setFrame() calls (optimization). */
+    int _enemyAnimationCachedFrameIndex = -1;
+
+    /** Caches whether current idle state has animation metadata (optimization). */
+    bool _enemyAnimationHasMetadata = false;
 
 #pragma mark - Controllers
 
@@ -525,6 +560,61 @@ public:
      * @param dt  Delta time in seconds.
      */
     void updateEnemyAndAI(float dt);
+    
+    /**
+     * Updates enemy idle animation and directional facing based on target.
+     * Each frame: recalculates direction from local player index + enemy target index,
+     * advances sprite frame based on elapsed time, and updates the sprite node display.
+     *
+     * If animation metadata is undefined, sprite node is destroyed/hidden and the
+     * fallback static sprite is displayed. Direction is computed locally per player
+     * from the enemy's target index, so each player sees the correct enemy direction
+     * from their perspective.
+     *
+     * @param dt                Elapsed time in seconds for this frame
+     * @param localPlayerIndex  The local player's index (0-3) for calculating relative direction
+     */
+    void updateEnemyAnimation(float dt, int localPlayerIndex);
+
+    /**
+     * Initializes the enemy animation sprite node with the given animation metadata.
+     * 
+     * Allocates texture from disk, creates a SpriteNode with the correct layout,
+     * configures scale/anchor/position based on viewport size, and adds it to the
+     * scene hierarchy. Called once when animation metadata first becomes available.
+     *
+     * @param animationEntry  The animation metadata containing texture path and frame info
+     * @return true if sprite node was successfully initialized, false on error
+     */
+    bool initializeEnemyAnimationSpriteNode(const AnimationEntry& animationEntry);
+
+    /**
+     * Updates the current animation frame for direction and elapsed time.
+     * 
+     * Recalculates the direction the enemy should face (0-3) based on relative
+     * positions of local player and target, then advances the animation frame
+     * based on accumulated elapsed time and frame duration from animation metadata.
+     * Only calls setFrame() if the frame index has changed (cached optimization).
+     *
+     * @param dt                The elapsed time in seconds since last frame
+     * @param localPlayerIndex  The local player's index (0-3) for direction calculation
+     */
+    void updateEnemyAnimationFrame(float dt, int localPlayerIndex);
+
+    /**
+     * Hides the enemy animation sprite and shows the static fallback sprite.
+     * 
+     * Sets visibility on both the animation sprite node and the container,
+     * then reveals the static sprite as a fallback. Called when animation
+     * metadata is unavailable or the enemy is dead.
+     */
+    void hideEnemyAnimationAndShowStatic();
+
+    /**
+     * Loads the animation registry from enemyAnimations.json and populates _animationRegistry.
+     * This builds a lookup map from animation IDs to their metadata (frameCount, frameDuration, frameRows).
+     */
+    void loadAnimationRegistry();
     
     /**
      * Plays health and damage indicator sounds based on health changes.
