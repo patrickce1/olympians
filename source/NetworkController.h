@@ -143,7 +143,7 @@ public:
     void broadcastLobbyState();
     
     /*Sends an update notifying players about changes to the house selections*/
-    void broadcastSelectedHouse(std::string& house);
+    void broadcastSelectedHouse(const std::string& house);
     
     /*HOST ONLY. Notifies all clients that the host has exited the lobby and the session is over.*/
     void broadcastSessionTerminated();
@@ -194,6 +194,23 @@ public:
     const std::vector<NetworkedPlayer> getNetworkedPlayers();
     
     /**
+     * Returns true if the given houseID is already claimed by any player
+     * other than the local player.
+     *
+     * @param houseID  The house ID to check.
+     * @return         true if another player has claimed it, false otherwise.
+     */
+    bool isHouseTaken(const std::string& houseID) const;
+
+    /**
+     * Returns the set of houseIDs currently claimed by players other than
+     * the local player. Used by HouseSelectScene to grey out unavailable cards.
+     *
+     * @return  A vector of taken house ID strings.
+     */
+    std::vector<std::string> getTakenHouses() const;
+    
+    /**
      * Registers a disconnect callback on the NetcodeConnection so that when
      * any peer closes, their slot is immediately pushed into _disconnectedSlots.
      * Should be called once after the network connection is established.
@@ -230,6 +247,9 @@ public:
     /** Returns the enemy ID of the chosen boss for the game. */
     std::string getEnemy() { return _enemy; };
     
+    /** Returns the house ID assigned to the given AI slot, or "" if unset */
+    std::string getAIHouse(int slotIndex) const;
+    
     /**
      * Sets the enemy of the game using their unique Enemy ID. Should be called once after
      * the host chooses a boss.
@@ -253,6 +273,16 @@ public:
      *                 Must match a valid entry in the enemy JSON definition file.
      */
     void broadcastBossSelection(const std::string& enemyID);
+    
+    /**
+     * Broadcasts the host's house selection for an AI slot to all clients.
+     * Clients will update that slot's houseID in their local _onlinePlayers
+     * list upon receiving this message.
+     *
+     * @param slotIndex  The 0-based AI slot index being configured.
+     * @param houseID    The selected house ID, or "" to clear the selection.
+     */
+    void broadcastAIHouseSelection(int slotIndex, const std::string& houseID);
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -272,7 +302,8 @@ protected:
         GAME_LOST = 9,
         GAME_WON = 10,
         SESSION_TERMINATED = 11,
-        BOSS_SELECT = 12
+        BOSS_SELECT = 12,
+        AI_HOUSE_SELECT = 13
     };
 
     /*Our network connection*/
@@ -321,6 +352,10 @@ private:
     
     //Used internally to handle the different types of networking messages that come in 
     void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);
+    
+    /** Houses chosen by the host for AI slots, keyed by game slot index */
+    std::unordered_map<int, std::string> _aIHouses;
+    
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */

@@ -367,6 +367,7 @@ void SceneLoader::update(float dt) {
                     break;
                 case LobbyScene::Status::SELECT:
                     CULog("Transitioning to HouseSelectScene...");
+                    _houseSelectScene.setTargetSlot(_lobbyScene.getPendingSlotToBeOpened());
                     _houseSelectScene.setActive(true);
                     _lobbyScene.setActive(false);
                     _currentScene = State::HOUSESELECT;

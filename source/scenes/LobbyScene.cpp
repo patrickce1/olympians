@@ -124,25 +124,54 @@ void LobbyScene::setupListeners() {
                 _network->broadcastSessionTerminated();
                 _pendingDisconnect = true;
             } else {
-                // Client leaving — disconnect so host is notified via disconnect callback
                 _pendingDisconnect = true;
             }
             _status = Status::ABORT;
         }
     });
-    
+
     _bossLobbyButton->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::BOSSSELECT;
         }
     });
-    
-    // Add listeners to all player icon buttons to open the house select screen
-    for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages) {
-        icon->addListener([this](const std::string& name, bool down) {
-            if (down) {
-                CULog("down");
+
+    // Each display slot i corresponds to a game slot resolved via remapPlayersForDisplay().
+    // Display slot 3 (last) is always the local player.
+    for (int i = 0; i < (int)_playerImages.size(); i++) {
+        _playerImages[i]->addListener([this, i](const std::string& name, bool down) {
+            if (!down) return;
+
+            // Resolve which game slot this display slot maps to
+            int localIndex = _network->getLocalPlayerNumber();
+            const auto& players = _gameState->getPlayers();
+            int totalSlots = (int)players.size();
+
+            // remapPlayersForDisplay walks (localIndex+1) % total ... (localIndex+totalSlots) % total
+            // display slot i => game slot (localIndex + 1 + i) % totalSlots
+            int gameSlot = (localIndex + 1 + i) % totalSlots;
+
+            // Display slot 3 is the local player's own slot (i == _playerImages.size()-1)
+            bool isLocalSlot = (i == (int)_playerImages.size() - 1);
+
+            if (isLocalSlot) {
+                // Always allow the local player to open their own house select
+                _pendingSlotToBeOpened = -1;
                 _status = Status::SELECT;
+                return;
+            }
+
+            bool isReal = _network->checkRealPlayer(gameSlot);
+            if (!isReal) {
+                // AI slot — only the host may open it
+                if (_network->isHost()) {
+                    _pendingSlotToBeOpened = gameSlot;
+                    _status = Status::SELECT;
+                }
+                // non-host: no-op, no feedback
+            } else {
+                // Another real player's slot — blocked for everyone
+                // no-op, no feedback
             }
         });
     }
@@ -282,10 +311,10 @@ void LobbyScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
     const auto& networkedPlayers = _network->getNetworkedPlayers();
-    const int realCount = (int)networkedPlayers.size();
+    const int realPlayerCount = (int)networkedPlayers.size();
     const int totalSlots = (int)_gameState->getPlayers().size();
 
-    for (int i = 0; i < realCount; i++) {
+    for (int i = 0; i < realPlayerCount; i++) {
         _gameState->setRealPlayer(
             i,
             networkedPlayers[i].username,
@@ -293,12 +322,17 @@ void LobbyScene::updateNetworkOrder() {
         );
     }
 
-    // Host only: demote any slots beyond the current real player count back to AI
-    if (_network->isHost()) {
-        for (int i = realCount; i < totalSlots; i++) {
-            if (!_gameState->getPlayerBySlot(i)->isAI()) {
-                _gameState->demoteToAI(i);
-            }
+    // Sync AI slot house selections from the host's authoritative map
+    for (int i = realPlayerCount; i < totalSlots; i++) {
+        std::string aIHouse = _network->getAIHouse(i);
+        if (!aIHouse.empty()) {
+            _gameState->setRealPlayer(
+                i,
+                _gameState->getPlayerBySlot(i)->getPlayerName(),
+                aIHouse
+            );
+        } else if (_network->isHost() && !_gameState->getPlayerBySlot(i)->isAI()) {
+            _gameState->demoteToAI(i);
         }
     }
 }

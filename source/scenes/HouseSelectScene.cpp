@@ -134,34 +134,26 @@ void HouseSelectScene::setupListeners() {
     
     _lockButton->addListener([this](const std::string& name, bool down) {
         if (!down) return;
+
+        HouseLoader::HouseDef selectedHouse = _houseLoader.getAllOrdered()[_currentIndex];
+
+        if (!_locked && _network->isHouseTaken(selectedHouse.id)) {
+            return; // taken — no-op
+        }
+
         _locked = !_locked;
 
         if (_locked) {
-            // Get the selected house using carousel index
-            HouseLoader::HouseDef selectedHouse = _houseLoader.getAllOrdered()[_currentIndex];
-            
-            // Update UI
-            updateSelectedIcon(_currentIndex, true);
+            updateSelectedIcon(_currentIndex, false);
             updateText(_lockButton, "UNLOCK");
             _playerIconGlow->setVisible(true);
-            
-            // Update local status
             _status = Status::LOCKED;
-            
-            // Broadcast selection over network
-            _network->broadcastSelectedHouse(selectedHouse.id);
-            
-            // Host sets their own houseID directly since sendToHost doesn't loop back
-            if (_network->isHost()) {
-                _network->setLocalHouse(selectedHouse.id);
-            }
+            commitHouseLock(selectedHouse);
         } else {
-            // Update UI
             updateText(_lockButton, "LOCK");
             _playerIconGlow->setVisible(false);
-            
-            // Update local status
             _status = Status::WAITING;
+            commitHouseUnlock();
         }
     });
 
@@ -215,24 +207,41 @@ void HouseSelectScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = WAITING;
+
             if (_pendingReset) {
-                _locked = false;
-                _playerIconGlow->setVisible(false);
-                updateText(_lockButton, "LOCK");
-                slideTo(4);
+                // Full wipe — clear all persisted slot states
+                _slotStates.clear();
                 _pendingReset = false;
             }
+
+            // Restore state for the slot we're opening, or use defaults
+            SlotState& state = _slotStates[_targetSlot];
+            _locked = state.locked;
+
+            // Restore lock button label and glow
+            updateText(_lockButton, _locked ? "UNLOCK" : "LOCK");
+            _playerIconGlow->setVisible(_locked);
+
+            // Jump carousel to the saved index (no animation on restore)
+            _isAnimating = false;
+            refreshLocalPlayerIcon();
+            slideTo(state.carouselIndex);
+
             _lockButton->activate();
             _leftButton->activate();
             _rightButton->activate();
             _backButton->activate();
         } else {
+            // Save current state before deactivating
+            SlotState& state = _slotStates[_targetSlot];
+            state.carouselIndex = _currentIndex;
+            state.locked        = _locked;
+
+            _targetSlot = -1;
             _lockButton->deactivate();
             _leftButton->deactivate();
             _rightButton->deactivate();
             _backButton->deactivate();
-            
-            // If any were pressed, reset them
             _lockButton->setDown(false);
             _backButton->setDown(false);
             _leftButton->setDown(false);
@@ -284,6 +293,8 @@ void HouseSelectScene::update(float timestep) {
     
     updateNetworkOrder();   // this will call getNetworkUpdates + clearQueues internally
     updateTeammateIcons();
+    updateTakenHouseCards();
+    
     // The carousel move logic
     if (_isAnimating) {
         Vec2 current = _houseSelectionCardContainer->getPosition();
@@ -375,6 +386,42 @@ void HouseSelectScene::updateCarouselDots(int currentIndex) {
 }
 
 /**
+ * Updates the teammate icon diamond that corresponds to _targetSlot with
+ * the house at the given carousel index. Used during AI slot mode so the
+ * host can preview the selection without touching their own icon diamond.
+ *
+ * @param currentIndex  The carousel index whose house to preview.
+ */
+void HouseSelectScene::updateAIPreviewIcon(int currentIndex) {
+    if (!_gameState || !_network) return;
+
+    int localIndex = _network->getLocalPlayerNumber();
+    int totalSlots = (int)_gameState->getPlayers().size();
+
+    // Teammate icons: right=(localIndex+1)%total, up=(localIndex+2)%total, left=(localIndex+3)%total
+    std::vector<std::shared_ptr<cugl::scene2::PolygonNode>> iconSlots = {
+        _rightPlayerIcon, _upPlayerIcon, _leftPlayerIcon
+    };
+
+    for (int i = 1; i <= 3; i++) {
+        int slot = (localIndex + i) % totalSlots;
+        if (slot != _targetSlot) continue;
+
+        auto activeIcon = iconSlots[i - 1];
+        if (!activeIcon) return;
+
+        const HouseLoader::HouseDef& house = _houseLoader.getAllOrdered()[currentIndex];
+        std::string key = house.id + "SIcon";
+        auto texture = _assets->get<cugl::graphics::Texture>(key);
+        activeIcon->setTexture(texture != nullptr
+            ? texture
+            : _assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
+        activeIcon->setScale(0.92);
+        return;
+    }
+}
+
+/**
  * Updates the local player's icon in the diamond based on the house card
  * they are currently on. If commitToGameState is true, also updates the
  * local player's house in GameState — should only be true when the player
@@ -387,23 +434,29 @@ void HouseSelectScene::updateSelectedIcon(int currentIndex, bool commitToGameSta
     if (!_playerIconImage) return;
 
     const HouseLoader::HouseDef& selectedHouse = _houseLoader.getAllOrdered()[currentIndex];
-    
     std::string key = selectedHouse.id + "SIcon";
-    if (_assets->get<cugl::graphics::Texture>(key) != nullptr) {
-        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>(key));
-    } else {
-        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
-    }
+    auto texture = _assets->get<cugl::graphics::Texture>(key);
 
-    if (commitToGameState && _gameState) {
-        int localIndex = _network->getLocalPlayerNumber();
-        if (localIndex >= 0) {
-            _gameState->setRealPlayer(
-                localIndex,
-                _gameState->getPlayerBySlot(localIndex)->getPlayerName(),
-                selectedHouse.id
-            );
+    if (_targetSlot == -1) {
+        // Normal mode — update the local player's own icon diamond
+        _playerIconImage->setTexture(texture != nullptr
+            ? texture
+            : _assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
+
+        if (commitToGameState && _gameState) {
+            int localIndex = _network->getLocalPlayerNumber();
+            if (localIndex >= 0) {
+                _gameState->setRealPlayer(
+                    localIndex,
+                    _gameState->getPlayerBySlot(localIndex)->getPlayerName(),
+                    selectedHouse.id
+                );
+            }
         }
+    } else {
+        // AI slot mode — update the teammate icon that corresponds to _targetSlot
+        // and leave the host's own icon diamond untouched
+        updateAIPreviewIcon(currentIndex);
     }
 }
 
@@ -458,6 +511,21 @@ void HouseSelectScene::updateNetworkOrder() {
             networkedPlayers[i].houseID
         );
     }
+
+    // Sync AI slot house selections from the host's authoritative map
+    int realPlayerCount = (int)networkedPlayers.size();
+    int totalSlots = (int)_gameState->getPlayers().size();
+    for (int i = realPlayerCount; i < totalSlots; i++) {
+        std::string aIHouse = _network->getAIHouse(i);
+        if (!aIHouse.empty()) {
+            _gameState->setRealPlayer(
+                i,
+                _gameState->getPlayerBySlot(i)->getPlayerName(),
+                aIHouse
+            );
+        }
+    }
+
     _network->clearQueues();
 }
 
@@ -485,11 +553,14 @@ void HouseSelectScene::updateTeammateIcons() {
 
     for (int i = 1; i <= 3; i++) {
         int slot = (localIndex + i) % totalSlots;
+        
+        // Skip the slot being actively previewed — updateAIPreviewIcon owns it
+        if (_targetSlot != -1 && slot == _targetSlot) continue;
+        
         auto activeIcon = iconSlots[i - 1];
         if (!activeIcon) continue;
 
         std::string house = players[slot]->getHouseName();
-        
         std::string key = house + "SIcon";
         if (_assets->get<cugl::graphics::Texture>(key) != nullptr) {
             activeIcon->setTexture(_assets->get<cugl::graphics::Texture>(key));
@@ -497,5 +568,122 @@ void HouseSelectScene::updateTeammateIcons() {
             activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
         }
         activeIcon->setScale(0.92);
+    }
+}
+
+/**
+ * Greys out any house cards that have already been claimed by another
+ * player. Called every frame in update() so the visual stays in sync
+ * as other players lock in their selections.
+ *
+ * If a card has a child node named "takenOverlay", that node is shown
+ * or hidden. Otherwise the card's color alpha is reduced to indicate
+ * it is unavailable.
+ */
+void HouseSelectScene::updateTakenHouseCards() {
+    std::vector<std::string> takenHouses = _network->getTakenHouses();
+    const auto& allHouses = _houseLoader.getAllOrdered();
+
+    for (int i = 0; i < (int)_houseCards.size(); i++) {
+        auto card = _houseCards[i];
+        if (!card) continue;
+
+        bool taken = false;
+        if (i < (int)allHouses.size()) {
+            const std::string& hid = allHouses[i].id;
+            for (const auto& t : takenHouses) {
+                if (t == hid) { taken = true; break; }
+            }
+        }
+
+        auto overlay = card->getChildByName("takenOverlay");
+        if (overlay) {
+            overlay->setVisible(taken);
+        } else {
+            card->setColor(taken ? Color4(255, 255, 255, 100) : Color4(255, 255, 255, 255));
+        }
+    }
+}
+
+/**
+ * Commits a house lock for the current carousel selection. Writes the
+ * chosen house to the correct slot in GameState and broadcasts it over
+ * the network. If _targetSlot is -1, writes to the local player's slot;
+ * otherwise writes to the AI slot the host is configuring.
+ *
+ * @param selectedHouse  The house definition the player locked in.
+ */
+void HouseSelectScene::commitHouseLock(const HouseLoader::HouseDef& selectedHouse) {
+    if (_targetSlot == -1) {
+        // Normal mode: selecting for the local player
+        if (_gameState) {
+            int localIndex = _network->getLocalPlayerNumber();
+            _gameState->setRealPlayer(
+                localIndex,
+                _gameState->getPlayerBySlot(localIndex)->getPlayerName(),
+                selectedHouse.id
+            );
+        }
+        _network->broadcastSelectedHouse(selectedHouse.id);
+        if (_network->isHost()) {
+            _network->setLocalHouse(selectedHouse.id);
+        }
+    } else {
+        // AI slot mode: host is selecting on behalf of an AI slot
+        if (_gameState) {
+            _gameState->setRealPlayer(
+                _targetSlot,
+                _gameState->getPlayerBySlot(_targetSlot)->getPlayerName(),
+                selectedHouse.id
+            );
+        }
+        _network->broadcastAIHouseSelection(_targetSlot, selectedHouse.id);
+    }
+}
+
+/**
+ * Clears the house selection for the current target slot and broadcasts
+ * the change. Only has an effect in AI slot mode (_targetSlot != -1).
+ */
+void HouseSelectScene::commitHouseUnlock() {
+    if (_targetSlot == -1) {
+        // Normal mode: clear local player's house
+        _network->broadcastSelectedHouse(std::string(""));
+        if (_network->isHost()) {
+            _network->setLocalHouse("");
+        }
+    } else {
+        // AI slot mode: clear the AI slot
+        if (_gameState) {
+            _gameState->setRealPlayer(
+                _targetSlot,
+                _gameState->getPlayerBySlot(_targetSlot)->getPlayerName(),
+                ""
+            );
+        }
+        _network->broadcastAIHouseSelection(_targetSlot, "");
+    }
+}
+
+/**
+ * Refreshes the local player's icon diamond to reflect their actual
+ * committed house selection when the scene activates. Prevents a stale
+ * carousel preview texture from persisting across activations.
+ */
+void HouseSelectScene::refreshLocalPlayerIcon() {
+    int localIndex = _network->getLocalPlayerNumber();
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    std::string localHouse = (localIndex >= 0 && localIndex < (int)networkedPlayers.size())
+        ? networkedPlayers[localIndex].houseID
+        : "";
+
+    if (localHouse.empty()) {
+        _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
+    } else {
+        std::string key = localHouse + "SIcon";
+        auto texture = _assets->get<cugl::graphics::Texture>(key);
+        _playerIconImage->setTexture(texture != nullptr
+            ? texture
+            : _assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
     }
 }

@@ -127,6 +127,7 @@ void NetworkController::disconnect() {
     _sessionTerminated = false;
     _disconnectedSlots.clear();
     _enemy = "";
+    _aIHouses.clear();
 }
 
 /**
@@ -306,6 +307,12 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
         }
         case MessageType::BOSS_SELECT: {
             _enemy = _deserializer.readString();
+            break;
+        }
+        case MessageType::AI_HOUSE_SELECT: {
+            int slot = _deserializer.readSint32();
+            std::string houseID = _deserializer.readString();
+            _aIHouses[slot] = houseID;
             break;
         }
 	}
@@ -520,7 +527,7 @@ void NetworkController::broadcastLobbyState() {
  *
  *@param house - the selected house 
  */
-void NetworkController::broadcastSelectedHouse(std::string& house) {
+void NetworkController::broadcastSelectedHouse(const std::string& house) {
     _serializer.writeSint32(MessageType::SELECT_HOUSE);
     _serializer.writeString(house);
     _network->sendToHost(_serializer.serialize());
@@ -685,4 +692,83 @@ void NetworkController::broadcastBossSelection(const std::string& enemyID) {
     _serializer.writeString(enemyID);
     _network->broadcast(_serializer.serialize());
     _serializer.reset();
+}
+
+/**
+ * Returns true if the given houseID is already claimed by any player
+ * other than the local player.
+ *
+ * @param houseID  The house ID to check.
+ * @return         true if another player has claimed it, false otherwise.
+ */
+bool NetworkController::isHouseTaken(const std::string& houseID) const {
+    if (houseID.empty()) return false;
+    std::string localID = _network ? _network->getUUID() : "";
+
+    // Check real players (excluding self)
+    for (const NetworkedPlayer& player : _onlinePlayers) {
+        if (player.networkID == localID) continue;
+        if (player.houseID == houseID) return true;
+    }
+
+    // Check AI slot assignments
+    for (const auto& pair : _aIHouses) {
+        if (pair.second == houseID) return true;
+    }
+
+    return false;
+}
+
+/**
+ * Returns the set of houseIDs currently claimed by players other than
+ * the local player. Used by HouseSelectScene to grey out unavailable cards.
+ *
+ * @return  A vector of taken house ID strings.
+ */
+std::vector<std::string> NetworkController::getTakenHouses() const {
+    std::string localID = _network ? _network->getUUID() : "";
+    std::vector<std::string> taken;
+
+    // Real players (excluding self)
+    for (const NetworkedPlayer& player : _onlinePlayers) {
+        if (player.networkID == localID) continue;
+        if (!player.houseID.empty()) {
+            taken.push_back(player.houseID);
+        }
+    }
+
+    // AI slots
+    for (const auto& pair : _aIHouses) {
+        if (!pair.second.empty()) {
+            taken.push_back(pair.second);
+        }
+    }
+
+    return taken;
+}
+
+
+/**
+ * Broadcasts the host's house selection for an AI slot to all clients.
+ * Clients will update that slot's houseID in their local _onlinePlayers
+ * list upon receiving this message.
+ *
+ * @param slotIndex  The 0-based AI slot index being configured.
+ * @param houseID    The selected house ID, or "" to clear the selection.
+ */
+void NetworkController::broadcastAIHouseSelection(int slotIndex, const std::string& houseID) {
+    _serializer.writeSint32(MessageType::AI_HOUSE_SELECT);
+    _serializer.writeSint32(slotIndex);
+    _serializer.writeString(houseID);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
+
+    // Store locally — host doesn't receive its own broadcast
+    _aIHouses[slotIndex] = houseID;
+}
+
+/** Returns the house ID assigned to the given AI slot, or "" if unset */
+std::string NetworkController::getAIHouse(int slotIndex) const {
+    auto houseAtAIIndex = _aIHouses.find(slotIndex);
+    return houseAtAIIndex != _aIHouses.end() ? houseAtAIIndex->second : "";
 }
