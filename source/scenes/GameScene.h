@@ -49,7 +49,7 @@ struct ConsumedItemAnimation {
 
     /** Ending scale at animation completion. */
     float endScale = 0.0f;
-}
+};
 /*
  * Represents a single item use animation currently playing on screen.
  * 
