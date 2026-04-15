@@ -11,7 +11,7 @@
             },
 	    "customData": {
 		"defenseThreshold1": 0.75,
-    	        "defenseThreshold2": 0.25
+		"defenseThreshold2": 0.25
 	    },
             "states": {
                 "idle": {
