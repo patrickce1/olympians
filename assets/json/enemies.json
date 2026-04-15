@@ -10,8 +10,8 @@
         "defenseLikelihood": 0.15
       },
       "customData": {
-        "defenseThreshold1": 0.75,
-        "defenseThreshold2": 0.25
+        "defense1Threshold": 0.75,
+        "defense2Threshold": 0.25
       },
       "states": {
         "idle": {

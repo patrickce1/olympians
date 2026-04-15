@@ -8,8 +8,8 @@
 bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
 	bool success = Enemy::init("cyclops", jsonPath);
 	//Extract and assign the defense thresholds
-	_defenseThreshold1 = Enemy::getMaxHealth() * _customData->getFloat("defenseThreshold1", 1.0f);
-	_defenseThreshold2 = Enemy::getMaxHealth() * _customData->getFloat("defenseThreshold2", 1.0f);
+	_defense1Threshold = Enemy::getMaxHealth() * _customData->getFloat("defense1Threshold", 1.0f);
+	_defense2Threshold = Enemy::getMaxHealth() * _customData->getFloat("defense2Threshold", 1.0f);
 	return success;
 }
 
@@ -19,8 +19,8 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
 void Cyclops::update(float dt) {
 	Enemy::update(dt);
 	//end the current state ASAP to be able to enter defense if the condition was met
-	bool threshold1Met = Enemy::getCurrentHealth() < _defenseThreshold1 && !_defenseTriggered1;
-	bool threshold2Met = Enemy::getCurrentHealth() < _defenseThreshold2 && !_defenseTriggered2;
+	bool threshold1Met = Enemy::getCurrentHealth() < _defense1Threshold && !_defense1Triggered;
+	bool threshold2Met = Enemy::getCurrentHealth() < _defense1Threshold && !_defense2Triggered;
 	if (threshold1Met || threshold2Met) {
 		if (_debug) {
 			CULog("[Cyclops]: Entering defense as soon as possible, currently in %s", Enemy::getStates().at(Enemy::getCurrentState()).name.c_str());
@@ -35,7 +35,7 @@ void Cyclops::update(float dt) {
   * Triggers if either of damage thresholds are reached
   */
 bool Cyclops::shouldDefend() {
-	if (Enemy::getCurrentHealth() < _defenseThreshold1 && !_defenseTriggered1) {
+	if (Enemy::getCurrentHealth() < _defense1Threshold && !_defense1Triggered) {
 		if (_debug) {
 			CULog("[Cyclops]: defense threshold 1 at health %f", Enemy::getCurrentHealth());
 		}
@@ -43,7 +43,7 @@ bool Cyclops::shouldDefend() {
 		Enemy::setStateTime(Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime);
 		return true;
 	}
-	if (Enemy::getCurrentHealth() < _defenseThreshold2 && !_defenseTriggered2) {
+	if (Enemy::getCurrentHealth() < _defense2Threshold && !_defense2Triggered) {
 		if (_debug) {
 			CULog("[Cyclops]: defense threshold 2 at health %f", Enemy::getCurrentHealth());
 		}
