@@ -87,7 +87,7 @@
 		"defensive_move" : {
 		    "name": "eye cover",
                     "animationRow": 4,
-                    "buildUpTime": 4.0,
+                    "buildUpTime": 0.0,
                     "cooldownTime": 5.0,
                     "events": [
                         {
@@ -99,6 +99,11 @@
                             "type": "SIDE_MODIFIER",
                             "target": 1,
                             "amount": 0.5
+                        },
+			{
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1
                         },
 			{
                             "type": "SIDE_MODIFIER",

@@ -18,19 +18,31 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
  */
 void Cyclops::update(float dt) {
 	Enemy::update(dt);
+	//end the current state ASAP to be able to enter defense if the condition was met
+	bool threshold1Met = Enemy::getCurrentHealth() < _defenseThreshold1 && !_defense1Triggered;
+	bool threshold2Met = Enemy::getCurrentHealth() < _defenseThreshold2 && !_defense2Triggered;
+	if (threshold1Met || threshold2Met) {
+		CULog("[Cyclops]: Entering defense as soon as possible, currently in %s", Enemy::getStates().at(Enemy::getCurrentState()).name);
+		Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
+		//necessary to skip the idle
+		Enemy::skipCooldown();
+	}
 }
 
 /** Defines the cyclops' custom behavior for when he chooses to defend 
   * Triggers if either of damage thresholds are reached
   */
 bool Cyclops::shouldDefend() {
-	CULog("Cyclops' should defend");
-	if (Enemy::getCurrentHealth() < _defenseThreshold1 && _defense1Triggered) {
-		_defense1Triggered = false;
+	if (Enemy::getCurrentHealth() < _defenseThreshold1 && !_defense1Triggered) {
+		CULog("[Cyclops]: defense threshold 1 at health %f", Enemy::getCurrentHealth());
+		_defense1Triggered = true;
+		Enemy::setStateTime(Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime);
 		return true;
 	}
-	if (Enemy::getCurrentHealth() < _defenseThreshold2 && _defense2Triggered) {
-		_defense2Triggered = false;
+	if (Enemy::getCurrentHealth() < _defenseThreshold2 && !_defense2Triggered) {
+		CULog("[Cyclops]: defense threshold 2 at health %f", Enemy::getCurrentHealth());
+		_defense2Triggered = true;
+		Enemy::setStateTime(Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime);
 		return true;
 	}
 	return false;

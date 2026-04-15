@@ -181,6 +181,9 @@ protected:
 
     /** Returns the next state if defined by current state or "idle" by default. */
     EnemyLoader::State getNextStateOrIdle() const;
+
+    /** If the boss is currently in cooldown, it skips the cooldown */
+    void skipCooldown();
 };
 
 #endif /* !__ENEMY_H__ */

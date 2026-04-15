@@ -214,3 +214,8 @@ This can and should be overwritten for each boss to have custom logic on when th
 bool Enemy::shouldDefend() {
     return false;
 }
+
+/** If the boss is currently in cooldown, it skips the cooldown */
+void Enemy::skipCooldown() {
+    _attackLockout = 0.0;
+}
