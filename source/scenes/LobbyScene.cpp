@@ -275,14 +275,15 @@ void LobbyScene::setActive(bool value) {
         return;
     }
     Scene2::setActive(value);
+    
+    for (std::shared_ptr<cugl::scene2::Label> label : _playerSlots) {
+        if (label) {
+            label->setVisible(true);
+        }
+    }
     if (value) {
         resetLogicState();
         setUIInteraction(true);
-        for (std::shared_ptr<cugl::scene2::Label> label : _playerSlots) {
-            if (label) {
-                label->setVisible(true);
-            }
-        }
     } else {
         if (_pendingDisconnect) {
             _network->disconnect();
@@ -344,9 +345,10 @@ void LobbyScene::setUIInteraction(bool active) {
     for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
         if (active) {
             icon->activate();
+        } else{
+            icon->deactivate();
+            icon->setDown(false);
         }
-        icon->deactivate();
-        icon->setDown(false);
     }
 }
 
