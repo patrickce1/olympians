@@ -8,7 +8,6 @@ private:
 	bool _defense1Triggered = false;
 	/** True once the second health threshold been triggered, preventing it from firing again */
 	bool _defense2Triggered = false;
-
 	/** The health value (absolute, not percentage) at which the first enrage triggers */
 	float _defenseThreshold1;
 	/** The health value (absolute, percentage) at which the second enrage triggers */
@@ -40,5 +39,4 @@ public:
 	 *		where the boss immidiately does damage based on the side it got hit from
     */
 	void takeDamage(float damage, int playerIndex) override;
-
 };
