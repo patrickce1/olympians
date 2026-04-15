@@ -31,10 +31,15 @@ constexpr float ITEM_SLIDE_SNAPBACK_ANIMATION_TIME = 0.3f;
 constexpr float ITEM_MOVEMENT_MAX_SPEED = 2000.0f;
 // Use a nominal dt for velocity estimation to avoid frame-rate dependency
 constexpr float VELOCITY_DT_ESTIMATE = 0.016f; // ~60fps estimate
+//How much larger the item should be when picked up. So it should be .xx percent larger
 constexpr float ITEM_PICKUP_SCALE = 1.12f;
+//Base scaling of items (when not being held)
 constexpr float ITEM_NORMAL_SCALE = 1.0f;
+//Defines how fast should the item increase in size from ITEM_NORMAL_SCALE to ITEM_PICKUP_SCALE
 constexpr float ITEM_SCALE_SPEED = 14.0f;
+//Defines how long it should take for an item that has been used (through the means of passing, attacking, or supporting)
 constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
+//Defines how large the item is once it has been used. So it shrinks to this size.
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
 
 #pragma mark HealthState
@@ -2347,6 +2352,9 @@ void GameScene::markItemAsUsed(ItemInstance::ItemId itemId) {
  * and registers it as an active consumed item animation. Does nothing if
  * any required reference is null or the item's texture cannot be found.
  *
+ * Spent/Consumed is the usage of an item through the means of passing, supporting, or attacking.
+ * We are creating a clone of it that represents the visual, but not physical version of it.
+ *
  * @param sourceWidget  The widget representing the consumed item's position and scale.
  * @param itemDef       The item definition used to look up the icon texture.
  */
@@ -2360,10 +2368,9 @@ void GameScene::spawnConsumedItemAnimation(const std::shared_ptr<SceneNode>& sou
     auto ghost = PolygonNode::allocWithTexture(texture);
     if (!ghost) return;
 
+    //So that it doesn't shrink to the anchor in bottom left, set the center on the item.
     cugl::Rect sourceBounds = sourceWidget->getBoundingBox();
-    cugl::Vec2 sourceCenter = sourceBounds.origin +
-                              cugl::Vec2(sourceBounds.size.width * 0.5f,
-                                         sourceBounds.size.height * 0.5f); //So that it doesn't shrink to the anchor in bottom left.
+    cugl::Vec2 sourceCenter = sourceBounds.origin + cugl::Vec2(sourceBounds.size.width * 0.5f,sourceBounds.size.height * 0.5f);
 
     ghost->setAnchor(cugl::Vec2::ANCHOR_CENTER);
     ghost->setContentSize(sourceWidget->getContentSize());
@@ -2381,11 +2388,14 @@ void GameScene::spawnConsumedItemAnimation(const std::shared_ptr<SceneNode>& sou
 }
 
 /**
- * Updates all active consumed item animations, scaling each ghost node
- * from its start scale to its end scale over its configured duration.
- * Removes finished animations from the list and detaches their nodes
- * from the inventory scene graph. Skips any animation with a null node
- * or invalid duration.
+ * Updates the visual "ghost" animations for items that have been used or activated.
+ * As an item is spent (consumed) from the inventory, a temporary ghost node is
+ * animated by scaling it from its initial size to its final 'disappearance' scale.
+ * Spent/Consumed is the usage of an item through the means of passing, supporting, or attacking.
+ *
+ * Calculates the scale interpolation over the item's use duration.
+ * Cleans up the scene graph by detaching nodes once the effect is finished.
+ * Validates durations and node pointers to prevent memory errors.
  *
  * @param dt  The time elapsed since the last update, in seconds.
  */
