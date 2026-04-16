@@ -1781,16 +1781,16 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard2": {
+                            "hades": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "hadesPoster",
+                                        "heroName": "-HADES-",
+                                        "heroStats": "statsHades"
                                     }
                                 },
                                 "layout": {
@@ -1891,16 +1891,16 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard7": {
+                            "hephaestus": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "hephaestusPoster",
+                                        "heroName": "-HEPHAESTUS-",
+                                        "heroStats": "statsHephaestus"
                                     }
                                 },
                                 "layout": {
@@ -2120,8 +2120,8 @@
                         1
                     ],
                     "size": [
-                        42,
-                        42
+                        43,
+                        43
                     ],
                     "angle": 0,
                     "position": [
@@ -2135,14 +2135,14 @@
                     "buttonBackBG": {
                         "type": "Image",
                         "data": {
-                            "texture": "buttonBackBG",
+                            "texture": "backArrow",
                             "anchor": [
                                 0,
                                 1
                             ],
                             "size": [
-                                42,
-                                42
+                                43,
+                                36
                             ],
                             "angle": 0,
                             "position": [

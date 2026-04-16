@@ -104,6 +104,11 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
         ? json->get("icon")->asString()
         : ((json->has("iconKey") && json->get("iconKey")->isString()) ? json->get("iconKey")->asString() : "");
     
+    // Parse optional itemUseSound
+    _itemUseSound = (json->has("itemUseSound") && json->get("itemUseSound")->isString())
+        ? json->get("itemUseSound")->asString()
+        : "";
+    
     if (json->has("type") && json->get("type")->isString()) {
         const std::string typeText = normalizeToken(json->get("type")->asString());
         if (typeText != "attack" && typeText != "support" && typeText != "utility") {
@@ -139,5 +144,58 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
         _baseValue = 1.0f;
     }
 
+    // Parse optional itemUseAnimation configuration
+    parseItemUseAnimation(json);
+
     return true;
+}
+
+/**
+ * Parses optional itemUseAnimation configuration from JSON if present.
+ * Sets _itemUseAnimationConfig and _hasItemUseAnimation fields.
+ * Logs debug messages for parsing progress and validation results.
+ *
+ * @param json The item definition JSON object
+ */
+void ItemDef::parseItemUseAnimation(const std::shared_ptr<JsonValue>& json) {
+    _hasItemUseAnimation = false;
+    if (!json || !json->has("itemUseAnimation") || !json->get("itemUseAnimation")->isObject()) {
+        return;
+    }
+    
+    auto animData = json->get("itemUseAnimation");
+    CULog("DEBUG: Found itemUseAnimation config for item %s", _name.c_str());
+    
+    if (animData->has("spriteSheetId") && animData->get("spriteSheetId")->isString() &&
+        animData->has("rows") && animData->get("rows")->isNumber() &&
+        animData->has("cols") && animData->get("cols")->isNumber() &&
+        animData->has("frameCount") && animData->get("frameCount")->isNumber() &&
+        animData->has("animationDuration") && animData->get("animationDuration")->isNumber() &&
+        animData->has("damageResolutionFrame") && animData->get("damageResolutionFrame")->isNumber()) {
+        
+        ItemUseAnimationConfig animConfig;
+        animConfig.spriteSheetId = animData->getString("spriteSheetId");
+        animConfig.rows = animData->getInt("rows");
+        animConfig.cols = animData->getInt("cols");
+        animConfig.frameCount = animData->getInt("frameCount");
+        animConfig.animationDuration = animData->getFloat("animationDuration");
+        animConfig.damageResolutionFrame = animData->getInt("damageResolutionFrame");
+        
+        CULog("DEBUG: Parsed animation config: rows=%d, cols=%d, frames=%d, duration=%.3f, resFrame=%d",
+              animConfig.rows, animConfig.cols, animConfig.frameCount, animConfig.animationDuration, animConfig.damageResolutionFrame);
+        
+        // Validate animation config
+        if (!animConfig.spriteSheetId.empty() && animConfig.rows > 0 && animConfig.cols > 0 &&
+            animConfig.frameCount > 0 && animConfig.animationDuration > 0.0f &&
+            animConfig.damageResolutionFrame >= 0 &&
+            animConfig.damageResolutionFrame < animConfig.frameCount) {
+            _itemUseAnimationConfig = animConfig;
+            _hasItemUseAnimation = true;
+            CULog("DEBUG: Animation config VALID for item %s", _name.c_str());
+        } else {
+            CULog("WARNING: Animation config INVALID for item %s (validation failed)", _name.c_str());
+        }
+    } else {
+        CULog("WARNING: itemUseAnimation for %s missing required fields", _name.c_str());
+    }
 }

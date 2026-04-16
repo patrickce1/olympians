@@ -188,6 +188,26 @@
             "wrapS":    "clamp",
             "wrapT":    "clamp"
         },
+        "hadesPoster": {
+            "file": "textures/houseSelect/hadesPoster.png"
+        },
+        "statsHades": {
+            "file": "textures/houseSelect/statsHades.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "hephaestusPoster": {
+            "file": "textures/houseSelect/hephaestusPoster.png"
+        },
+        "statsHephaestus": {
+            "file": "textures/houseSelect/statsHephaestus.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
         "leftScroll": {
             "file": "textures/houseSelect/leftScroll.png"
         },
@@ -235,6 +255,12 @@
         "demeterSIcon": {
             "file": "textures/houseSelect/demeterSIcon.png"
         },
+        "hadesSIcon": {
+            "file": "textures/houseSelect/hadesSIcon.png"
+        },
+        "hephaestusSIcon": {
+            "file": "textures/houseSelect/hephaestusSIcon.png"
+        },
         "glowOverlayBoss": {
             "file": "textures/hostScene/glowOverlayBoss.png"
         },
@@ -280,83 +306,62 @@
         "emptySIcon": {
             "file": "textures/lobbyScene/emptySIcon.png"
         },
-        "athenaRegular": {
-            "file": "textures/gameScene/houseIcons/athena/athenaRegular.png"
+        "key1": {
+            "file": "textures/keypad/key1.png"
         },
-        "athenaMidHealth": {
-            "file": "textures/gameScene/houseIcons/athena/athenaMidHealth.png"
+        "key2": {
+            "file": "textures/keypad/key2.png"
         },
-        "athenaDeath": {
-            "file": "textures/gameScene/houseIcons/athena/athenaDeath.png"
+        "key3": {
+            "file": "textures/keypad/key3.png"
         },
-        "aresRegular": {
-            "file": "textures/gameScene/houseIcons/ares/aresRegular.png"
+        "key4": {
+            "file": "textures/keypad/key4.png"
         },
-        "aresMidHealth": {
-            "file": "textures/gameScene/houseIcons/ares/aresMidHealth.png"
+        "key5": {
+            "file": "textures/keypad/key5.png"
         },
-        "aresDeath": {
-            "file": "textures/gameScene/houseIcons/ares/aresDeath.png"
+        "key6": {
+            "file": "textures/keypad/key6.png"
         },
-        "poseidonRegular": {
-            "file": "textures/gameScene/houseIcons/poseidon/poseidonRegular.png"
+        "key7": {
+            "file": "textures/keypad/key7.png"
         },
-        "poseidonMidHealth": {
-            "file": "textures/gameScene/houseIcons/poseidon/poseidonMidHealth.png"
+        "key8": {
+            "file": "textures/keypad/key8.png"
         },
-        "poseidonDeath": {
-            "file": "textures/gameScene/houseIcons/poseidon/poseidonDeath.png"
+        "key9": {
+            "file": "textures/keypad/key9.png"
         },
-        "demeterRegular": {
-            "file": "textures/gameScene/houseIcons/demeter/demeterRegular.png"
+        "key0": {
+            "file": "textures/keypad/key0.png"
         },
-        "demeterMidHealth": {
-            "file": "textures/gameScene/houseIcons/demeter/demeterMidHealth.png"
+        "backspace": {
+            "file": "textures/keypad/backspace.png"
         },
-        "demeterDeath": {
-            "file": "textures/gameScene/houseIcons/demeter/demeterDeath.png"
-        },
-        "cyclopsIdle" : {
-            "file": "textures/gameScene/cyclops/idleDirections.png"
-        },
-            "key1": {
-                "file": "textures/keypad/key1.png"
-            },
-            "key2": {
-                "file": "textures/keypad/key2.png"
-            },
-            "key3": {
-                "file": "textures/keypad/key3.png"
-            },
-            "key4": {
-                "file": "textures/keypad/key4.png"
-            },
-            "key5": {
-                "file": "textures/keypad/key5.png"
-            },
-            "key6": {
-                "file": "textures/keypad/key6.png"
-            },
-            "key7": {
-                "file": "textures/keypad/key7.png"
-            },
-            "key8": {
-                "file": "textures/keypad/key8.png"
-            },
-            "key9": {
-                "file": "textures/keypad/key9.png"
-            },
-            "key0": {
-                "file": "textures/keypad/key0.png"
-            },
-            "backspace": {
-                "file": "textures/keypad/backspace.png"
-            },
         "centerPopup": {
             "file": "textures/elements/errorPopupFrame.png"
         },
         "loadingCircle": {
             "file": "textures/elements/loadingCircle.png"
+        },
+        "backArrow": {
+          "file": "textures/backArrow.png"
+        },
+        "menuBG": {
+            "file": "textures/menuBG.png"
+        },
+        "attackZone": {
+            "file": "textures/gameScene/attackZoneBG.png"
+        },
+        "attackZoneIcon": {
+            "file": "textures/gameScene/attackZoneIcon.png"
+        },
+        "supportZoneL": {
+            "file": "textures/gameScene/supportLZoneBG.png"
+        },
+        "supportZoneR": {
+            "file": "textures/gameScene/supportRZoneBG.png"
         }
 	},
     "fonts": {
@@ -398,7 +403,7 @@
         },
         "menuTitle": {
             "file":     "fonts/GRECOromanLubedWrestling.ttf",
-            "size":     48
+            "size":     50
         },
         "menuLabel": {
             "file":     "fonts/Roboto-Bold.ttf",
@@ -407,10 +412,16 @@
         "bossDescriptionLabel": {
             "file":     "fonts/GRECOromanLubedWrestling.ttf",
             "size":     12
+        },
+        "gamePin": {
+            "file":     "fonts/GRECOromanLubedWrestling.ttf",
+            "size":     48
         }
     },
     "jsons": {
-        "server": "json/server.json"
+        "server": "json/server.json",
+        "gameSceneConfig": "json/gameSceneConfig.json",
+        "enemyAnimations": "json/enemyAnimations.json"
     },
     "sounds": {
         "select": {
@@ -437,6 +448,24 @@
             "stream":   false,
             "volume":   0.5
         },
+        "attack_slash": {
+            "type":     "sample",
+            "file":     "sounds/attack_slash.wav",
+            "stream":   false,
+            "volume":   0.75
+        },
+        "attack_thud": {
+            "type":     "sample",
+            "file":     "sounds/attack_thud.wav",
+            "stream":   false,
+            "volume":   0.75
+        },
+        "attack_thrust": {
+            "type":     "sample",
+            "file":     "sounds/attack_thrust.wav",
+            "stream":   false,
+            "volume":   0.75
+        },
         "battle": {
             "type":     "sample",
             "file":     "sounds/battle.ogg",
@@ -459,7 +488,7 @@
             "type":     "sample",
             "file":     "sounds/enemy_hurt.wav",
             "stream":   false,
-            "volume":   0.45
+            "volume":   0.4
         },
         "player_heal": {
             "type":     "sample",
