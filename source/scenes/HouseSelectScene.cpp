@@ -613,7 +613,15 @@ void HouseSelectScene::updateTakenHouseCards() {
         if (overlay) {
             overlay->setVisible(taken);
         } else {
-            card->setColor(taken ? Color4(255, 255, 255, 100) : Color4(255, 255, 255, 255));
+            auto children = card->getChildren();
+
+            for (auto child : children) {
+                if (child->getName() == "title") {
+                    child->setColor(Color4(255, 255, 255, 255));
+                } else {
+                    child->setColor(taken ? Color4(255, 255, 255, 100) : Color4(255, 255, 255, 255));
+                }
+            }
         }
     }
 }
