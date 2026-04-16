@@ -31,6 +31,26 @@ struct SnapbackAnimation {
 };
 
 /**
+ * Represents a short-lived visual animation for an item that was just consumed.
+ * The real gameplay item is removed immediately; this ghost only handles UX.
+ */
+struct ConsumedItemAnimation {
+    /** Transient visual node shown while the consume animation plays. */
+    std::shared_ptr<cugl::scene2::SceneNode> node;
+
+    /** Elapsed animation time in seconds. */
+    float elapsed = 0.0f;
+
+    /** Total animation time in seconds. */
+    float duration = 0.0f;
+
+    /** Starting scale at animation begin. */
+    float startScale = 1.0f;
+
+    /** Ending scale at animation completion. */
+    float endScale = 0.0f;
+};
+/*
  * Represents a single item use animation currently playing on screen.
  * 
  * When a player uses an attack item with animation, an overlay sprite plays and damage
@@ -157,6 +177,12 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
+    /** Current visual scale for each inventory item widget (for smooth pickup/release animation). */
+    std::unordered_map<ItemInstance::ItemId, float> _itemWidgetScales;
+
+    /** Target visual scale for each inventory item widget. */
+    std::unordered_map<ItemInstance::ItemId, float> _itemWidgetScaleTargets;
+
     /** Inventory-only physics world used to attach Box2D bodies to item widgets. */
     std::shared_ptr<cugl::physics2::ObstacleWorld> _itemPhysicsWorld;
 
@@ -253,6 +279,8 @@ protected:
     /** Map of ItemId to active snapback animations. Multiple items can be snapping back simultaneously. */
     std::unordered_map<ItemInstance::ItemId, SnapbackAnimation> _snapbackAnimations;
 
+    /** Active short-lived consumed-item ghost animations. */
+    std::vector<ConsumedItemAnimation> _consumedItemAnimations;
     /** Vector of currently active item use animations. Multiple animations can play concurrently. */
     std::vector<ItemUseAnimation> _activeItemUseAnimations;
 
@@ -1049,6 +1077,18 @@ public:
      */
     void removeItemWidget(ItemInstance::ItemId itemId);
 
+    /** Smoothly animates each item widget's scale towards its current target. */
+    void updateItemWidgetScales(float dt);
+
+    /** Spawns a short-lived shrinking ghost visual for a consumed item. */
+    void spawnConsumedItemAnimation(const std::shared_ptr<cugl::scene2::SceneNode>& sourceWidget,
+                                    const std::shared_ptr<const ItemDef>& itemDef);
+
+    /** Advances and cleans up active consumed-item ghost animations. */
+    void updateConsumedItemAnimations(float dt);
+
+    /** Removes and clears all consumed-item ghost animations. */
+    void clearConsumedItemAnimations();
     /** Marks an item as used (pending animation resolution, should not be respawned).
      *  Removes the visual widget and physics body, but keeps item in inventory until damage applies.
      *

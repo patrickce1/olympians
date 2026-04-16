@@ -31,6 +31,16 @@ constexpr float ITEM_SLIDE_SNAPBACK_ANIMATION_TIME = 0.3f;
 constexpr float ITEM_MOVEMENT_MAX_SPEED = 2000.0f;
 // Use a nominal dt for velocity estimation to avoid frame-rate dependency
 constexpr float VELOCITY_DT_ESTIMATE = 0.016f; // ~60fps estimate
+//How much larger the item should be when picked up. So it should be .xx percent larger
+constexpr float ITEM_PICKUP_SCALE = 1.12f;
+//Base scaling of items (when not being held)
+constexpr float ITEM_NORMAL_SCALE = 1.0f;
+//Defines how fast should the item increase in size from ITEM_NORMAL_SCALE to ITEM_PICKUP_SCALE
+constexpr float ITEM_SCALE_SPEED = 14.0f;
+//Defines how long it should take for an item that has been used (through the means of passing, attacking, or supporting)
+constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
+//Defines how large the item is once it has been used. So it shrinks to this size.
+constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
 
 #pragma mark HealthState
 
@@ -385,6 +395,9 @@ void GameScene::dispose() {
         _draggedIcon = nullptr;
         _enemyAnimationSpriteNode = nullptr;
         _itemWidgets.clear();
+        _itemWidgetScales.clear();
+        _itemWidgetScaleTargets.clear();
+        _consumedItemAnimations.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
             _itemPhysicsWorld->dispose();
@@ -465,6 +478,9 @@ void GameScene::setActive(bool value) {
  */
 void GameScene::reset() {
     _draggedIcon = nullptr;
+    if (_draggedItemId != 0) {
+        _itemWidgetScaleTargets[_draggedItemId] = ITEM_NORMAL_SCALE;
+    }
     _draggedItemId = 0;
     _draggedItemDef = nullptr;
     _dragStartBodyPosition = Vec2::ZERO;
@@ -472,6 +488,9 @@ void GameScene::reset() {
     _status = Status::PLAYING;
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
+    _itemWidgetScales.clear();
+    _itemWidgetScaleTargets.clear();
+    clearConsumedItemAnimations();
     
     // Clear any active animations before resetting
     clearItemUseAnimations();
@@ -1325,6 +1344,14 @@ void GameScene::handlePlayerInput(InputController& input) {
             _glowAction = finalAction;
             _glowTimer  = _glowDuration;
             if (_draggedIcon) {
+                const bool isUseAction =
+                    (finalAction == InputController::Action::DROP_BOSS ||
+                     finalAction == InputController::Action::DROP_ALLY_LEFT ||
+                     finalAction == InputController::Action::DROP_ALLY_RIGHT);
+                if (isUseAction) {
+                    auto consumedDef = _draggedItemDef ? _draggedItemDef : getHeldItemDef(_draggedItemId);
+                    spawnConsumedItemAnimation(_draggedIcon, consumedDef);
+                }
                 _draggedIcon->setVisible(false);
             }
         } else {
@@ -1346,6 +1373,9 @@ void GameScene::handlePlayerInput(InputController& input) {
     }
 
     _draggedIcon = nullptr;
+    if (_draggedItemId != 0) {
+        _itemWidgetScaleTargets[_draggedItemId] = ITEM_NORMAL_SCALE;
+    }
     _draggedItemId = 0;
     _dragStartBodyPosition = Vec2::ZERO;
     _draggedItemDef = nullptr;
@@ -1402,6 +1432,7 @@ void GameScene::handleDragInitiation(InputController& input) {
 
             _draggedIcon = widget;
             _draggedItemId = id;
+            _itemWidgetScaleTargets[id] = ITEM_PICKUP_SCALE;
             _dragOffset = widget->getPosition() - touchPosScreen;
 
             // Bring item to front of render order when picked up
@@ -1935,15 +1966,25 @@ void GameScene::processZoneInteractionsForSlidingItems() {
                 continue;
             }
             
-            // Action matched - trigger it and mark item as used
+            // First time hitting a matching zone - trigger the action immediately
             if (handlePlayerActions(action, itemId)) {
+                const bool isUseAction =
+                    (action == InputController::Action::DROP_BOSS ||
+                        action == InputController::Action::DROP_ALLY_LEFT ||
+                        action == InputController::Action::DROP_ALLY_RIGHT);
+                if (isUseAction) {
+                    auto widgetIt = _itemWidgets.find(itemId);
+                    if (widgetIt != _itemWidgets.end() && widgetIt->second) {
+                        spawnConsumedItemAnimation(widgetIt->second, itemDef);
+                        widgetIt->second->setVisible(false);
+                    }
+                }
                 markItemAsUsed(itemId);
                 itemsToRemove.insert(itemId);
             }
             break;
         }
     }
-    
     // Remove items after iteration completes to avoid iterator invalidation
     for (auto itemId : itemsToRemove) {
         _slidingItems.erase(itemId);
@@ -2075,6 +2116,8 @@ void GameScene::update(float dt, InputController& input) {
     processZoneInteractionsForSlidingItems();
     
     syncInventoryWidgets();
+    updateItemWidgetScales(dt);
+    updateConsumedItemAnimations(dt);
     syncItemWidgetsToBodies();
 
     _network->clearQueues();
@@ -2098,6 +2141,7 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     auto widget = PolygonNode::allocWithTexture(texture);
     widget->setContentSize(Size(100, 100));
     widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
+    widget->setScale(ITEM_NORMAL_SCALE);
     widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
     _inventory->addChild(widget);
     return widget;
@@ -2210,6 +2254,9 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
     if (widget != _itemWidgets.end()) {
         if (_draggedIcon == widget->second) {
             _draggedIcon = nullptr;
+            if (_draggedItemId != 0) {
+                _itemWidgetScaleTargets[_draggedItemId] = ITEM_NORMAL_SCALE;
+            }
             _draggedItemId = 0;
             _dragStartBodyPosition = Vec2::ZERO;
         }
@@ -2230,12 +2277,52 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
         }
         _itemBodies.erase(body);
     }
+
+    _itemWidgetScales.erase(itemId);
+    _itemWidgetScaleTargets.erase(itemId);
     
     // Clean up pass tracking to prevent memory leak
     _passedItemIds.erase(itemId);
 }
 
 /**
+ * Smoothly interpolates each item widget's scale toward its target scale.
+ * Uses a frame-rate independent lerp factor based on the elapsed timestep
+ * and ITEM_SCALE_SPEED. Snaps to the target if within a small epsilon to
+ * avoid floating point drift. Initializes any widget with no tracked scale
+ * to ITEM_NORMAL_SCALE.
+ *
+ * @param dt  The time elapsed since the last update, in seconds.
+ */
+void GameScene::updateItemWidgetScales(float dt) {
+    if (_itemWidgets.empty()) return;
+
+    const float lerpFactor = std::min(1.0f, dt * ITEM_SCALE_SPEED);
+    for (const auto& [itemId, widget] : _itemWidgets) {
+        if (!widget) continue;
+
+        auto current = _itemWidgetScales.find(itemId);
+        if (current == _itemWidgetScales.end()) {
+            _itemWidgetScales[itemId] = ITEM_NORMAL_SCALE;
+            current = _itemWidgetScales.find(itemId);
+        }
+
+        float targetScale = ITEM_NORMAL_SCALE;
+        auto target = _itemWidgetScaleTargets.find(itemId);
+        if (target != _itemWidgetScaleTargets.end()) {
+            targetScale = target->second;
+        }
+
+        float newScale = current->second + (targetScale - current->second) * lerpFactor;
+        if (std::abs(targetScale - newScale) < 0.001f) {
+            newScale = targetScale;
+        }
+
+        current->second = newScale;
+        widget->setScale(newScale);
+    }
+}
+/*
  * Marks an item as used (consumed by an action).
  * Removes the visual widget and physics body from the scene.
  * Item remains in inventory until deferred damage is applied and animation completes.
@@ -2260,6 +2347,99 @@ void GameScene::markItemAsUsed(ItemInstance::ItemId itemId) {
 }
 
 /**
+ * Spawns a ghost animation of a consumed item, fading and scaling it out
+ * from the source widget's position. Creates a temporary polygon node using
+ * the item's icon texture, anchors it to the center of the source widget,
+ * and registers it as an active consumed item animation. Does nothing if
+ * any required reference is null or the item's texture cannot be found.
+ *
+ * Spent/Consumed is the usage of an item through the means of passing, supporting, or attacking.
+ * We are creating a clone of it that represents the visual, but not physical version of it.
+ *
+ * @param sourceWidget  The widget representing the consumed item's position and scale.
+ * @param itemDef       The item definition used to look up the icon texture.
+ */
+void GameScene::spawnConsumedItemAnimation(const std::shared_ptr<SceneNode>& sourceWidget,
+                                           const std::shared_ptr<const ItemDef>& itemDef) {
+    if (!sourceWidget || !itemDef || !_inventory || !_assets) return;
+
+    auto texture = _assets->get<cugl::graphics::Texture>(itemDef->getIconKey());
+    if (!texture) return;
+
+    auto ghost = PolygonNode::allocWithTexture(texture);
+    if (!ghost) return;
+
+    //So that it doesn't shrink to the anchor in bottom left, set the center on the item.
+    cugl::Rect sourceBounds = sourceWidget->getBoundingBox();
+    cugl::Vec2 sourceCenter = sourceBounds.origin + cugl::Vec2(sourceBounds.size.width * 0.5f,sourceBounds.size.height * 0.5f);
+
+    ghost->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+    ghost->setContentSize(sourceWidget->getContentSize());
+    ghost->setPosition(sourceCenter);
+    ghost->setScale(sourceWidget->getScaleX());
+    _inventory->addChild(ghost);
+
+    ConsumedItemAnimation anim;
+    anim.node = ghost;
+    anim.elapsed = 0.0f;
+    anim.duration = ITEM_CONSUME_ANIMATION_DURATION;
+    anim.startScale = sourceWidget->getScaleX();
+    anim.endScale = ITEM_CONSUME_END_SCALE;
+    _consumedItemAnimations.push_back(anim);
+}
+
+/**
+ * Updates the visual "ghost" animations for items that have been used or activated.
+ * As an item is spent (consumed) from the inventory, a temporary ghost node is
+ * animated by scaling it from its initial size to its final 'disappearance' scale.
+ * Spent/Consumed is the usage of an item through the means of passing, supporting, or attacking.
+ *
+ * Calculates the scale interpolation over the item's use duration.
+ * Cleans up the scene graph by detaching nodes once the effect is finished.
+ * Validates durations and node pointers to prevent memory errors.
+ *
+ * @param dt  The time elapsed since the last update, in seconds.
+ */
+void GameScene::updateConsumedItemAnimations(float dt) {
+    if (_consumedItemAnimations.empty()) return;
+
+    for (auto& anim : _consumedItemAnimations) {
+        if (!anim.node || anim.duration <= 0.0f) continue;
+
+        anim.elapsed += dt;
+        float t = std::min(1.0f, anim.elapsed / anim.duration);
+        float scale = anim.startScale + (anim.endScale - anim.startScale) * t;
+        anim.node->setScale(scale);
+    }
+
+    _consumedItemAnimations.erase(
+        std::remove_if(_consumedItemAnimations.begin(), _consumedItemAnimations.end(),
+                       [&](const ConsumedItemAnimation& anim) {
+                           if (!anim.node) return true;
+                           bool finished = anim.elapsed >= anim.duration;
+                           if (finished && _inventory) {
+                               _inventory->removeChild(anim.node);
+                           }
+                           return finished;
+                       }),
+        _consumedItemAnimations.end());
+}
+
+/**
+ * Clears all active consumed item animations, detaching each ghost node
+ * from the inventory scene graph and emptying the animation list.
+ */
+void GameScene::clearConsumedItemAnimations() {
+    if (_inventory) {
+        for (const auto& anim : _consumedItemAnimations) {
+            if (anim.node) {
+                _inventory->removeChild(anim.node);
+            }
+        }
+    }
+    _consumedItemAnimations.clear();
+}
+/*
  * Checks if an item is currently playing an animation.
  * Iterates through active animations to find if the given itemId is animating.
  *
@@ -2293,6 +2473,8 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     
     widget->setPosition(spawnPos);
     _itemWidgets.emplace(id, widget);
+    _itemWidgetScales[id] = ITEM_NORMAL_SCALE;
+    _itemWidgetScaleTargets[id] = ITEM_NORMAL_SCALE;
     createItemBody(id, widget);
     
     auto itemBody = _itemBodies[id];
