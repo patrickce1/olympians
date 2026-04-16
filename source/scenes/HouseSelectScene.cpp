@@ -294,6 +294,7 @@ void HouseSelectScene::update(float timestep) {
     updateNetworkOrder();   // this will call getNetworkUpdates + clearQueues internally
     updateTeammateIcons();
     updateTakenHouseCards();
+    _playerIconGlow->setVisible(hasLocalPlayerSelectedHouse());
     
     // The carousel move logic
     if (_isAnimating) {
@@ -698,4 +699,14 @@ void HouseSelectScene::refreshLocalPlayerIcon() {
             ? texture
             : _assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
     }
+}
+
+/**
+ * Returns true if the local player has a house selected in the network.
+ */
+bool HouseSelectScene::hasLocalPlayerSelectedHouse() const {
+    int localIndex = _network->getLocalPlayerNumber();
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    if (localIndex < 0 || localIndex >= (int)networkedPlayers.size()) return false;
+    return !networkedPlayers[localIndex].houseID.empty();
 }

@@ -369,6 +369,11 @@ private:
      */
     void refreshLocalPlayerIcon();
     
+    /**
+     * Returns true if the local player has a house selected in the network.
+     */
+    bool hasLocalPlayerSelectedHouse() const;
+    
 };
 
 #endif /* __HOUSE_SELECT_SCENE_H__ */
