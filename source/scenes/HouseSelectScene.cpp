@@ -137,8 +137,19 @@ void HouseSelectScene::setupListeners() {
 
         HouseLoader::HouseDef selectedHouse = _houseLoader.getAllOrdered()[_currentIndex];
 
-        if (!_locked && _network->isHouseTaken(selectedHouse.id)) {
-            return; // taken — no-op
+        if (!_locked) {
+            bool taken = _network->isHouseTaken(selectedHouse.id);
+
+            // In AI slot mode, also block the host's own locked house
+            if (!taken && _targetSlot != -1) {
+                int localIndex = _network->getLocalPlayerNumber();
+                const auto& networkedPlayers = _network->getNetworkedPlayers();
+                if (localIndex >= 0 && localIndex < (int)networkedPlayers.size()) {
+                    taken = (networkedPlayers[localIndex].houseID == selectedHouse.id);
+                }
+            }
+
+            if (taken) return;
         }
 
         _locked = !_locked;
