@@ -603,9 +603,9 @@ void HouseSelectScene::updateTakenHouseCards() {
 
         bool taken = false;
         if (i < (int)allHouses.size()) {
-            const std::string& hid = allHouses[i].id;
-            for (const auto& t : takenHouses) {
-                if (t == hid) { taken = true; break; }
+            const std::string& houseID = allHouses[i].id;
+            for (const auto& takenHouse : takenHouses) {
+                if (takenHouse == houseID) { taken = true; break; }
             }
         }
 

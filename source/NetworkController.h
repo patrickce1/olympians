@@ -142,7 +142,16 @@ public:
     /*Sends an update notifying players about changes to the lobby (new players joining/leaving)*/
     void broadcastLobbyState();
     
-    /*Sends an update notifying players about changes to the house selections*/
+    /**
+     * Sends the local player's house selection to the host.
+     *
+     * Note: because sendToHost() does not loop back to the sender,
+     * the host must call setLocalHouse() separately after this to
+     * update their own slot.
+     *
+     * @param house  The ID of the selected house (e.g. "athena").
+     *               Passing an empty string clears the selection.
+     */
     void broadcastSelectedHouse(const std::string& house);
     
     /*HOST ONLY. Notifies all clients that the host has exited the lobby and the session is over.*/
@@ -247,7 +256,19 @@ public:
     /** Returns the enemy ID of the chosen boss for the game. */
     std::string getEnemy() { return _enemy; };
     
-    /** Returns the house ID assigned to the given AI slot, or "" if unset */
+    /**
+     * Returns the house ID assigned to the given AI slot from the host's
+     * authoritative AI house map. Used by LobbyScene and HouseSelectScene
+     * to sync AI slot house selections into GameState each frame, and by
+     * updateTakenHouseCards() to grey out houses claimed by AI slots.
+     *
+     * Only meaningful on the host, where _aIHouses is written directly.
+     * On clients, _aIHouses is populated via AI_HOUSE_SELECT messages and
+     * the _aIHouses block embedded in each LOBBY_UPDATE broadcast.
+     *
+     * @param slotIndex  The 0-based game slot index of the AI player.
+     * @return           The house ID assigned to that slot, or "" if unset.
+     */
     std::string getAIHouse(int slotIndex) const;
     
     /**
@@ -365,7 +386,6 @@ private:
     
     /** Houses chosen by the host for AI slots, keyed by game slot index */
     std::unordered_map<int, std::string> _aIHouses;
-    
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */

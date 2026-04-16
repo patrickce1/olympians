@@ -770,7 +770,6 @@ std::vector<std::string> NetworkController::getTakenHouses() const {
     return taken;
 }
 
-
 /**
  * Broadcasts the host's house selection for an AI slot to all clients.
  * Clients will update that slot's houseID in their local _onlinePlayers

@@ -351,7 +351,7 @@ void GameState::assignMissingHouses(ItemController& itemController) {
         if (!_players[i]->getHouseName().empty()) continue;
 
         // Build pool of houses not already assigned to any slot
-        std::vector<std::string> available;
+        std::vector<std::string> availableHouses;
         for (const auto& house : allHouses) {
             bool taken = false;
             for (const auto& player : _players) {
@@ -360,12 +360,12 @@ void GameState::assignMissingHouses(ItemController& itemController) {
                     break;
                 }
             }
-            if (!taken) available.push_back(house.id);
+            if (!taken) availableHouses.push_back(house.id);
         }
 
-        if (available.empty()) continue;
+        if (availableHouses.empty()) continue;
 
-        std::string randomHouse = available[rand() % available.size()];
+        std::string randomHouse = availableHouses[rand() % availableHouses.size()];
 
         Player* previousPlayer = _players[i].get();
         auto aiPlayer = std::make_shared<EasyPlayerAI>(
