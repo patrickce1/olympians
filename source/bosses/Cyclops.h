@@ -13,6 +13,14 @@ private:
 	/** The health value (absolute, percentage) at which the second enrage triggers */
 	float _defense2Threshold;
 
+	/** This variable is used in boulder toss to check how long it has been since our last turn
+	  * It is used to clamp the turning rate to prevent the cyclops looking like he is glitching in and out
+	 */
+
+	/**
+	 * This variable defines the clamp of the rate at which the cyclops turns
+	*/
+
 public:
 	Cyclops() {}
 

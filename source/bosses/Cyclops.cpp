@@ -40,7 +40,7 @@ bool Cyclops::shouldDefend() {
 			CULog("[Cyclops]: defense threshold 1 at health %f", Enemy::getCurrentHealth());
 		}
 		_defense1Triggered = true;
-		Enemy::setStateTime(Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime);
+		Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
 		return true;
 	}
 	if (Enemy::getCurrentHealth() < _defense2Threshold && !_defense2Triggered) {
@@ -48,7 +48,7 @@ bool Cyclops::shouldDefend() {
 			CULog("[Cyclops]: defense threshold 2 at health %f", Enemy::getCurrentHealth());
 		}
 		_defense2Triggered = true;
-		Enemy::setStateTime(Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime);
+		Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
 		return true;
 	}
 	return false;
@@ -68,7 +68,10 @@ void Cyclops::takeDamage(float damage, int playerIndex) {
 		//Make Cyclops face whoever hit him
 		Enemy::setTargetIndex(playerIndex);
 		//Set the timer to the end of the attack, so that it triggers
-		Enemy::setStateTime(Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime);
+		float shortenedTime = Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime - 1;
+		if (Enemy::getStateTime() > shortenedTime) {
+			Enemy::setStateTime(shortenedTime);
+		}
 		//Debug statement
 		if (_debug) {
 			CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
