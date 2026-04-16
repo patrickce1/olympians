@@ -283,6 +283,16 @@ public:
      * @param houseID    The selected house ID, or "" to clear the selection.
      */
     void broadcastAIHouseSelection(int slotIndex, const std::string& houseID);
+    
+    /**
+     * Clears the host's AI house assignment for the given slot.
+     * Called when a real player joins a slot that was previously
+     * configured as AI, so the assignment does not bleed back
+     * after the player leaves.
+     *
+     * @param slotIndex  The 0-based slot index to clear.
+     */
+    void clearAIHouse(int slotIndex);
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network

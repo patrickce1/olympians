@@ -795,3 +795,18 @@ std::string NetworkController::getAIHouse(int slotIndex) const {
     auto houseAtAIIndex = _aIHouses.find(slotIndex);
     return houseAtAIIndex != _aIHouses.end() ? houseAtAIIndex->second : "";
 }
+
+/**
+ * Clears the host's AI house assignment for the given slot.
+ * Called when a real player joins a slot that was previously
+ * configured as AI, so the assignment does not bleed back
+ * after the player leaves.
+ *
+ * @param slotIndex  The 0-based slot index to clear.
+ */
+void NetworkController::clearAIHouse(int slotIndex) {
+    if (_aIHouses.erase(slotIndex) > 0) {
+        // Broadcast so all clients remove this slot from their taken set
+        broadcastLobbyState();
+    }
+}

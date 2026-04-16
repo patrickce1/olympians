@@ -81,28 +81,24 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
     const bool replacedLocalPlayer = (_localPlayer == _players[playerNumber].get());
 
     if (houseName.empty()) {
-        // No house yet — reconstruct as a real Player with no house
-        // so isAI() correctly returns false for this slot
-        if (_players[playerNumber]->isAI()) {
-            _players[playerNumber] = std::make_shared<Player>(
-                "",
-                playerNumber,
-                playerName,
-                _houseLoader
-            );
-            _playerIdMap[playerNumber] = _players[playerNumber].get();
+        // Always reconstruct with no house to guarantee house is cleared,
+        // regardless of whether the slot was previously AI or real
+        _players[playerNumber] = std::make_shared<Player>(
+            "",
+            playerNumber,
+            playerName,
+            _houseLoader
+        );
+        _playerIdMap[playerNumber] = _players[playerNumber].get();
 
-            const int n = (int)_players.size();
-            for (int i = 0; i < n; i++) {
-                _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
-                _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
-            }
-            if (replacedLocalPlayer) {
-                _localPlayer = _players[playerNumber].get();
-            }
-        } else {
-            // Already a real player — just update the name
-            _players[playerNumber]->setPlayerName(playerName);
+        const int n = (int)_players.size();
+        for (int i = 0; i < n; i++) {
+            _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
+            _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+        }
+        
+        if (replacedLocalPlayer) {
+            _localPlayer = _players[playerNumber].get();
         }
         return;
     }

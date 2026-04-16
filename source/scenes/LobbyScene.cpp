@@ -315,6 +315,16 @@ void LobbyScene::updateNetworkOrder() {
     const int totalSlots = (int)_gameState->getPlayers().size();
 
     for (int i = 0; i < realPlayerCount; i++) {
+        // If this slot previously had an AI house, clear it first
+        if (_network->isHost() && !_network->getAIHouse(i).empty()) {
+            _gameState->setRealPlayer(
+                i,
+                networkedPlayers[i].username,
+                ""
+            );
+            _network->clearAIHouse(i);
+        }
+
         _gameState->setRealPlayer(
             i,
             networkedPlayers[i].username,
