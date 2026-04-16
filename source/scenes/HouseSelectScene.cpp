@@ -582,8 +582,20 @@ void HouseSelectScene::updateTeammateIcons() {
  */
 void HouseSelectScene::updateTakenHouseCards() {
     std::vector<std::string> takenHouses = _network->getTakenHouses();
-    const auto& allHouses = _houseLoader.getAllOrdered();
+    
+    // In AI slot mode, the host's own house is also unavailable
+    if (_targetSlot != -1) {
+        int localIndex = _network->getLocalPlayerNumber();
+        const auto& networkedPlayers = _network->getNetworkedPlayers();
+        if (localIndex >= 0 && localIndex < (int)networkedPlayers.size()) {
+            const std::string& hostHouse = networkedPlayers[localIndex].houseID;
+            if (!hostHouse.empty()) {
+                takenHouses.push_back(hostHouse);
+            }
+        }
+    }
 
+    const auto& allHouses = _houseLoader.getAllOrdered();
     for (int i = 0; i < (int)_houseCards.size(); i++) {
         auto card = _houseCards[i];
         if (!card) continue;

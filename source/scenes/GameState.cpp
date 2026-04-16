@@ -350,12 +350,27 @@ void GameState::assignMissingHouses(ItemController& itemController) {
 
     Player* localBeforeAssignment = _localPlayer;
     const int n = (int)_players.size();
+
     for (int i = 0; i < n; i++) {
         if (!_players[i]->getHouseName().empty()) continue;
 
-        std::string randomHouse = allHouses[rand() % allHouses.size()].id;
+        // Build pool of houses not already assigned to any slot
+        std::vector<std::string> available;
+        for (const auto& house : allHouses) {
+            bool taken = false;
+            for (const auto& player : _players) {
+                if (player->getHouseName() == house.id) {
+                    taken = true;
+                    break;
+                }
+            }
+            if (!taken) available.push_back(house.id);
+        }
 
-        // Preserve name and slot, reconstruct as EasyPlayerAI with a real house
+        if (available.empty()) continue;
+
+        std::string randomHouse = available[rand() % available.size()];
+
         Player* previousPlayer = _players[i].get();
         auto aiPlayer = std::make_shared<EasyPlayerAI>(
             randomHouse,
@@ -379,19 +394,20 @@ void GameState::assignMissingHouses(ItemController& itemController) {
 }
 
 /**
- * Replaces the player at the given slot with a default AI placeholder,
- * re-wires the neighbour ring, and updates the player ID map.
- * Called when a real player disconnects from the lobby before the game starts.
+ * Replaces the player at the given slot with an EasyPlayerAI, optionally
+ * preserving their house. Re-wires the neighbour ring and updates the
+ * player ID map. Note: caller must call ai->init() after this to set _db.
  *
- * @param slot  The 0-based slot index of the player to demote.
+ * @param slot   The 0-based slot index of the player to demote.
+ * @param house  The house ID to assign to the new AI, or "" for none.
  */
-void GameState::demoteToAI(int slot) {
+void GameState::demoteToAI(int slot, const std::string& house) {
     if (slot < 0 || slot >= (int)_players.size()) return;
 
     const bool replacedLocalPlayer = (_localPlayer == _players[slot].get());
 
     _players[slot] = std::make_shared<EasyPlayerAI>(
-        "",
+        house,   // preserve house instead of always passing ""
         slot,
         "AI Player " + std::to_string(slot),
         _houseLoader

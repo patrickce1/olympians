@@ -250,21 +250,36 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 
 			break;
 		}
-		case MessageType::LOBBY_UPDATE: {
-			std::vector<std::string> playerData = _deserializer.readStringVector();
-			_onlinePlayers.clear();
-			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
-			// re-pair the flattened vector back into pairs
-            for (int i = 0; i < (int)playerData.size() - 1; i += 3) {
-				NetworkedPlayer newPlayer;
-				newPlayer.networkID = playerData[i];
-				newPlayer.username = playerData[i + 1];
-                newPlayer.houseID = playerData[i+2];
-				_onlinePlayers.push_back(newPlayer);
-			}
+        case MessageType::LOBBY_UPDATE: {
+            std::vector<std::string> playerData = _deserializer.readStringVector();
+            _onlinePlayers.clear();
+            _aIHouses.clear();
+            CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
+
+            int i = 0;
+
+            // AI houses at the front
+            int aiCount = std::stoi(playerData[i++]);
+            for (int j = 0; j < aiCount; j++) {
+                int slot = std::stoi(playerData[i]);
+                _aIHouses[slot] = playerData[i + 1];
+                i += 2;
+            }
+
+            // Real players — everything up to the last entry
+            while (i < (int)playerData.size() - 1) {
+                NetworkedPlayer newPlayer;
+                newPlayer.networkID = playerData[i];
+                newPlayer.username  = playerData[i + 1];
+                newPlayer.houseID   = playerData[i + 2];
+                _onlinePlayers.push_back(newPlayer);
+                i += 3;
+            }
+
+            // Enemy is always last
             _enemy = playerData.back();
-			break;
-		}
+            break;
+        }
 		case MessageType::GAME_UPDATE : {
 			GameStateMessage stateMsg;
 			stateMsg.bossHealth = _deserializer.readFloat();
@@ -499,25 +514,33 @@ void NetworkController::broadcastLostGame() {
 }
 
 /**
- * Broadcasts the current lobby player list to all connected clients.
+ * Broadcasts the current lobby player & AI list to all connected clients.
  * Called by the host whenever a new player joins so all clients stay in sync.
  * Serializes the online players list as a flat string vector in the format:
  * [networkID_0, username_0, house_0, networkID_1, username_1, house_1, ...]
  */
 void NetworkController::broadcastLobbyState() {
-	std::vector<std::string> serializablePlayers;
+    std::vector<std::string> serializablePlayers;
 
-	for (NetworkedPlayer player : _onlinePlayers) {
-		serializablePlayers.push_back(player.networkID);
-		serializablePlayers.push_back(player.username);
+    // AI count first — unambiguous anchor for the receiver
+    serializablePlayers.push_back(std::to_string(_aIHouses.size()));
+    for (const auto& pair : _aIHouses) {
+        serializablePlayers.push_back(std::to_string(pair.first));
+        serializablePlayers.push_back(pair.second);
+    }
+
+    for (NetworkedPlayer player : _onlinePlayers) {
+        serializablePlayers.push_back(player.networkID);
+        serializablePlayers.push_back(player.username);
         serializablePlayers.push_back(player.houseID);
-	}
+    }
+
     serializablePlayers.push_back(_enemy);
 
-	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
-	_serializer.writeStringVector(serializablePlayers);
-	_network->broadcast(_serializer.serialize());
-	_serializer.reset();
+    _serializer.writeSint32(MessageType::LOBBY_UPDATE);
+    _serializer.writeStringVector(serializablePlayers);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }
 
 /**

@@ -2543,15 +2543,18 @@ void GameScene::demoteSlotToAI(int slot) {
 
     CULog("GameScene: host demoting slot %d to EasyPlayerAI", slot);
 
-    // Snapshot state before overwriting
     float savedHealth    = player->getCurrentHealth();
     auto  savedInventory = player->getInventory();
+    std::string savedHouse = player->getHouseName();
 
-    // Delegate the actual demotion to GameState
-    _gameState.demoteToAI(slot);
+    _gameState.demoteToAI(slot, savedHouse);
 
-    // Restore health and inventory onto the new AI
     Player* newAI = _gameState.getPlayerBySlot(slot);
+    auto* ai = dynamic_cast<EasyPlayerAI*>(newAI);
+    if (ai) {
+        ai->init(_itemController.getDatabase(), "json/playerAI.json");
+    }
+
     newAI->setCurrentHealth(savedHealth);
     for (const ItemInstance& item : savedInventory) {
         newAI->addItem(item);
