@@ -81,9 +81,9 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
     const bool replacedLocalPlayer = (_localPlayer == _players[playerNumber].get());
 
     if (houseName.empty()) {
-        // No house yet — reconstruct as a real Player with no house
-        // so isAI() correctly returns false for this slot
-        if (_players[playerNumber]->isAI()) {
+        // No house yet. If this slot currently has a non-empty house,
+        // reconstruct to clear stale house data after lobby reordering.
+        if (_players[playerNumber]->isAI() || !_players[playerNumber]->getHouseName().empty()) {
             _players[playerNumber] = std::make_shared<Player>(
                 "",
                 playerNumber,
@@ -101,7 +101,7 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
                 _localPlayer = _players[playerNumber].get();
             }
         } else {
-            // Already a real player — just update the name
+            // Already a real player with no house — just update the name.
             _players[playerNumber]->setPlayerName(playerName);
         }
         return;
