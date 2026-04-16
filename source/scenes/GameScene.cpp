@@ -494,6 +494,7 @@ void GameScene::reset() {
     
     // Clear any active animations before resetting
     clearItemUseAnimations();
+    _itemController.reset();
 
     std::vector<ItemInstance::ItemId> itemIds;
     itemIds.reserve(_itemWidgets.size());
