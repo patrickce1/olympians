@@ -357,6 +357,7 @@ void NetworkController::clearQueues() {
 void NetworkController::broadcastDamage(float damageAmount, int playerIndex) {
 	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
 	_serializer.writeFloat(damageAmount);
+	_serializer.writeSint32(playerIndex);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
