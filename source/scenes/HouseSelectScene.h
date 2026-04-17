@@ -128,6 +128,26 @@ protected:
     
     /**The state of the game**/
     GameState* _gameState = nullptr;
+    
+    /**
+     * The game slot this house select instance is currently configuring.
+     * -1 means the local player's own slot (normal mode).
+     * Any other value means the host is selecting on behalf of an AI slot.
+     */
+    int _targetSlot = -1;
+    
+    /**
+     * Persisted UI state for a single house-select slot. Stored between
+     * activations so the carousel position and lock state are restored
+     * when the host or player reopens house select for that slot.
+     */
+    struct SlotState {
+        int  carouselIndex = 4;   // which card was showing
+        bool locked        = false;
+    };
+
+    /** Per-slot persisted state, keyed by game slot index. -1 = local player. */
+    std::unordered_map<int, SlotState> _slotStates;
 
 public:
 #pragma mark -
@@ -221,6 +241,40 @@ public:
      */
     void update(float timestep) override;
     
+    /**
+     * Sets the game slot this scene should configure on its next activation.
+     * Pass -1 to configure the local player's own slot (default behaviour).
+     * Pass an AI slot index to let the host select on behalf of that AI player.
+     * Must be called before setActive(true).
+     *
+     * @param slot  The 0-based game slot index, or -1 for the local player.
+     */
+    void setTargetSlot(int slot) { _targetSlot = slot; }
+    
+    /**
+     * Commits a house lock for the current carousel selection. Writes the
+     * chosen house to the correct slot in GameState and broadcasts it over
+     * the network. If _targetSlot is -1, writes to the local player's slot;
+     * otherwise writes to the AI slot the host is configuring.
+     *
+     * @param selectedHouse  The house definition the player locked in.
+     */
+    void commitHouseLock(const HouseLoader::HouseDef& selectedHouse);
+
+    /**
+     * Clears the house selection for the current target slot and broadcasts
+     * the change. Only has an effect in AI slot mode (_targetSlot != -1).
+     */
+    void commitHouseUnlock();
+    
+    /**
+     * Updates the teammate icon diamond for _targetSlot with the house at
+     * the given carousel index. Called during AI slot mode so the host can
+     * preview the selection without modifying their own icon.
+     *
+     * @param currentIndex  The carousel index whose house to preview.
+     */
+    void updateAIPreviewIcon(int currentIndex);
 
 private:
     /**
@@ -296,6 +350,29 @@ private:
      * relative to the local player. Called every frame in update().
      */
     void updateTeammateIcons();
+    
+    /**
+     * Greys out any house cards that have already been claimed by another
+     * player. Called every frame in update() so the visual stays in sync
+     * as other players lock in their selections.
+     */
+    void updateTakenHouseCards();
+    
+    /**
+     * Refreshes the local player's icon diamond to reflect their actual
+     * committed house selection when the scene activates. Prevents a stale
+     * carousel preview texture from persisting across activations.
+     *
+     * Called unconditionally in setActive(true) before slideTo(), so the
+     * icon always shows the last locked house rather than whatever carousel
+     * position was showing when the scene was last deactivated.
+     */
+    void refreshLocalPlayerIcon();
+    
+    /**
+     * Returns true if the local player has a house selected in the network.
+     */
+    bool hasLocalPlayerSelectedHouse() const;
     
 };
 
