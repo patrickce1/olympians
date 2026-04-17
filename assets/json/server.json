@@ -1,6 +1,6 @@
 {
     "lobby" : {
-        "address" : "46.101.187.102",
+        "address" : "162.243.170.67",
         "port": 8080
     },
     "ice servers" : [
