@@ -337,11 +337,17 @@ protected:
     /** Animation registry loaded from enemyAnimations.json. Maps animation ID to metadata. */
     std::unordered_map<std::string, AnimationEntry> _animationRegistry;
 
-    /** SpriteNode for enemy idle animation. Replaces static sprite when animation is active. */
-    std::shared_ptr<cugl::scene2::SpriteNode> _enemyAnimationSpriteNode;
+    /** Pre-created sprite nodes for all animations, mapped by animation ID. Built once during init(). */
+    std::unordered_map<std::string, std::shared_ptr<cugl::scene2::SpriteNode>> _enemyAnimationSpriteNodes;
+
+    /** Currently visible animation sprite node (pointer to one of the sprites in _enemyAnimationSpriteNodes). */
+    std::shared_ptr<cugl::scene2::SpriteNode> _currentVisibleAnimationSprite;
 
     /** Cached animation entry for currently playing animation. Used for frame calculations. */
     AnimationEntry _currentAnimationEntry;
+
+    /** Animation ID of the currently visible animation (for detecting animation changes). */
+    std::string _currentAnimationId;
 
     /** Current direction (0-3) the enemy faces, computed locally per player from local player index + target index. */
     int _enemyAnimationCurrentDirection = 0;
@@ -605,16 +611,25 @@ public:
     void updateEnemyAnimation(float dt, int localPlayerIndex);
 
     /**
-     * Initializes the enemy animation sprite node with the given animation metadata.
+     * Pre-creates all enemy animation sprite nodes with their textures and layouts.
      * 
-     * Allocates texture from disk, creates a SpriteNode with the correct layout,
-     * configures scale/anchor/position based on viewport size, and adds it to the
-     * scene hierarchy. Called once when animation metadata first becomes available.
+     * Called during init() to load all animations upfront. This eliminates stuttering
+     * when switching between animations since all sprites are pre-allocated and we only
+     * swap visibility instead of creating/destroying sprites at runtime.
      *
-     * @param animationEntry  The animation metadata containing texture path and frame info
-     * @return true if sprite node was successfully initialized, false on error
+     * @return true if all animations were successfully initialized, false on error
      */
-    bool initializeEnemyAnimationSpriteNode(const AnimationEntry& animationEntry);
+    bool initializeAllEnemyAnimations();
+    
+    /**
+     * Switches the visible animation sprite by hiding the current one and showing the new one.
+     * 
+     * Fast O(1) operation that just changes visibility and resets animation timing.
+     * All sprites are pre-created, so this avoids runtime texture loading.
+     *
+     * @param animationId  The animation ID to make visible
+     */
+    void switchVisibleAnimation(const std::string& animationId);
 
     /**
      * Updates the current animation frame for direction and elapsed time.

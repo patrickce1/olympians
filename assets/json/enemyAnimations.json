@@ -6,6 +6,13 @@
             "frameCount": 7,
             "frameDuration": 0.12,
             "frameRows": 4
+        },
+        {
+            "id": "cyclops_boulder_animation",
+            "texture": "textures/gameScene/cyclops/cyclops_boulder_animation.png",
+            "frameCount": 4,
+            "frameDuration": 0.12,
+            "frameRows": 4
         }
     ]
 }
