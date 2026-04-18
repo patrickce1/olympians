@@ -6,15 +6,15 @@
     "ice servers" : [
         {
             "turn" : false,
-            "address" : "46.101.187.102",
+            "address" : "162.243.170.67",
             "port" : 3478
         },
         {
             "turn" : true,
-            "address" : "46.101.187.102",
+            "address" : "162.243.170.67",
             "port" : 3478,
-            "username": "4152",
-            "password": "2026SP"
+            "username": "TEST",
+            "password": "PASS"
         }
     ],
     "max players" : 4,
