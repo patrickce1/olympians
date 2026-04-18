@@ -9,6 +9,9 @@
 #include "Enemy.h"
 #include "Player.h"
 
+// Forward declarations
+struct AnimationEntry;
+
 /**
  * EnemyController
  * - Maintains a current target index into players
@@ -45,9 +48,22 @@ public:
      * @return                  Direction 0-3 representing sprite sheet row to display
      */
     static int calculateDirection(int targetIndex, int localPlayerIndex);
+    
+    /**
+     * Sets the animation registry reference for attack phase checking.
+     * Called by GameScene during initialization to enable guards against state changes during attacks.
+     * 
+     * @param registry  Pointer to animation registry map (must outlive this controller)
+     */
+    void setAnimationRegistry(const std::unordered_map<std::string, class AnimationEntry>* registry) { 
+        _animationRegistry = registry; 
+    }
 
 private:
     cugl::Random _rng;
+    
+    /** Reference to animation registry for attack phase detection during retarget guards. */
+    const std::unordered_map<std::string, class AnimationEntry>* _animationRegistry = nullptr;
 
 private:
     int randomIndex(int n);

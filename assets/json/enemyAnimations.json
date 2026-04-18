@@ -5,14 +5,27 @@
             "texture": "textures/gameScene/cyclops/cyclops_idle_animation.png",
             "frameCount": 7,
             "frameDuration": 0.12,
-            "frameRows": 4
+            "frameRows": 4,
+            "damageFrame": -1,
+            "positionX": 196.5,
+            "positionY": 120.0,
+            "scale": 0.92,
+            "offsetX": 0,
+            "offsetY": 0
         },
         {
             "id": "cyclops_boulder_animation",
             "texture": "textures/gameScene/cyclops/cyclops_boulder_animation.png",
-            "frameCount": 4,
+            "frameCount": 9,
             "frameDuration": 0.12,
-            "frameRows": 4
+            "frameRows": 4,
+            "buildupFrameCount": 4,
+            "damageFrame": 6,
+            "positionX": 196.5,
+            "positionY": 120.0,
+            "scale": 0.8,
+            "offsetX": 0,
+            "offsetY": 0
         }
     ]
 }

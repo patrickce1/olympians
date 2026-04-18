@@ -144,6 +144,29 @@ bool GameState::initEnemy() {
     return true;
 }
 
+bool GameState::initEnemyWithAssets(const std::shared_ptr<cugl::AssetManager>& assets) {
+    const std::string enemyJsonPath = "json/enemies.json";
+    _enemy = std::make_shared<Enemy>();
+    _assets = assets;
+    
+    CULog("[GameState] Initializing enemy with animation assets...");
+    if (!_enemy->init("cyclops", enemyJsonPath, assets)) {
+        CULog("GameState: Failed to initialize enemy with assets");
+        return false;
+    }
+    
+    // Log state definitions to verify animation metadata is populated
+    const auto& states = _enemy->getStates();
+    for (const auto& [state, stateDef] : states) {
+        CULog("[GameState] State: %s frameCount=%d buildupFrameCount=%d frameDuration=%.3f animation='%s'",
+              stateDef.name.c_str(), stateDef.frameCount, stateDef.buildupFrameCount, 
+              stateDef.frameDuration, stateDef.animationKey.c_str());
+    }
+    
+    CULog("GameState: Enemy initialized id='%s' with animation metadata", _enemy->getId().c_str());
+    return true;
+}
+
 /**
  * Finishes initialising all AI-controlled players using the item database.
  * Must be called after initPlayers() and after the ItemController is ready,
@@ -181,11 +204,11 @@ bool GameState::initAI(ItemController& itemController) {
  *                        AI player initialisation.
  * @return true if all resources loaded and initialised successfully.
  */
-bool GameState::init(ItemController& itemController) {
-    if (!initHouses())        return false;
+bool GameState::init(ItemController& itemController, const std::shared_ptr<cugl::AssetManager>& assets) {
+    if (!initHouses())                      return false;
     initPlayers();
-    if (!initEnemy())             return false;
-    if (!initAI(itemController))  return false;
+    if (!initEnemyWithAssets(assets))       return false;
+    if (!initAI(itemController))            return false;
     return true;
 }
 
@@ -246,6 +269,28 @@ void GameState::setEnemy(std::string enemyID) {
         }
     }
     _enemy->init(enemyID, enemyJsonPath);
+}
+
+/**
+ * Assigns the enemy for the game session with animation assets.
+ *
+ * @param enemyID  the unique ID of the chosen enemy.
+ * @param assets   the AssetManager containing animation metadata.
+ */
+void GameState::setEnemy(std::string enemyID, const std::shared_ptr<cugl::AssetManager>& assets) {
+    const std::string enemyJsonPath = "json/enemies.json";
+    if (_enemy == nullptr) {
+        if (enemyID.compare("cyclops") == 0) {
+            CULog("making cyclops");
+            _enemy = std::make_shared<Cyclops>();
+        }
+        else if (enemyID.compare("cerberus") == 0) {
+            //TODO for future pr: replace this with a custom Cerberus class
+            CULog("making cerberus");
+            _enemy = std::make_shared<Enemy>();
+        }
+    }
+    _enemy->init(enemyID, enemyJsonPath, assets);
 };
 
 /**

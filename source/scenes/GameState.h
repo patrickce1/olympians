@@ -102,6 +102,9 @@ public:
      * @return true if the enemy loaded and initialised successfully.
      */
     bool initEnemy();
+    
+    /** Initializes the enemy with animation metadata from AssetManager. */
+    bool initEnemyWithAssets(const std::shared_ptr<cugl::AssetManager>& assets);
 
     /**
      * Finishes initialising all AI-controlled players using the item database.
@@ -122,7 +125,7 @@ public:
      *                        AI player initialisation.
      * @return true if all resources loaded and initialised successfully.
      */
-    bool init(ItemController& itemController);
+    bool init(ItemController& itemController, const std::shared_ptr<cugl::AssetManager>& assets);
 
     /**
      * Releases all owned resources and resets every pointer to nullptr.
@@ -213,6 +216,15 @@ public:
      * @param enemyId  the unique ID of the chosen enemy.
      */
     void setEnemy(std::string enemyID);
+    
+    /**
+     * Assigns the enemy for the game session with animation assets loaded.
+     * Ensures animation metadata is properly loaded.
+     * 
+     * @param enemyID  the unique ID of the chosen enemy.
+     * @param assets   the AssetManager containing animation data.
+     */
+    void setEnemy(std::string enemyID, const std::shared_ptr<cugl::AssetManager>& assets);
 
 #pragma mark - Game State Checking
     /* Returns whether or not the players won based on the current game state*/
@@ -257,6 +269,9 @@ private:
 
     /** The enemy for this game session. */
     std::shared_ptr<Enemy> _enemy;
+    
+    /** Asset manager for loading animation metadata. */
+    std::shared_ptr<cugl::AssetManager> _assets;
 
     /** Loads house definitions from JSON for player construction. */
     HouseLoader _houseLoader;

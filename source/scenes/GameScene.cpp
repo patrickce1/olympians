@@ -1,5 +1,6 @@
 #include <cugl/cugl.h>
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <random>
 #include <sstream>
@@ -210,7 +211,7 @@ bool GameScene::initGameSystems() {
     if (!_itemController.init(_assets)) {
         return false;
     }
-    if (!_gameState.init(_itemController)) {
+    if (!_gameState.init(_itemController, _assets)) {
         return false;
     }
     return true;
@@ -354,6 +355,9 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
         CULogError("Failed to initialize enemy animations");
         return false;
     }
+    
+    // Pass animation registry to EnemyController for attack phase detection
+    _enemyController.setAnimationRegistry(&_animationRegistry);
 
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
@@ -441,7 +445,7 @@ void GameScene::updateNetworkOrder() {
         _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
         _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
         
-        _gameState.setEnemy(_network->getEnemy());
+        _gameState.setEnemy(_network->getEnemy(), _assets);
         
         initBackgroundAndBossImage();
     }
@@ -461,8 +465,6 @@ void GameScene::setActive(bool value) {
             _gameState.assignMissingHouses(_itemController);
             
             // Reset enemy animation state for clean start
-            _enemyAnimationElapsedTime = 0.0f;
-            _enemyAnimationCachedFrameIndex = -1;
             _enemyAnimationCurrentDirection = 0;
             
             // Hide animation sprite on scene reset
@@ -1029,6 +1031,7 @@ bool GameScene::initializeAllEnemyAnimations() {
  * 
  * Fast O(1) operation that just changes visibility and resets animation timing.
  * All sprites are pre-created, so this avoids runtime texture loading.
+ * Applies animation-specific position and scale settings.
  *
  * @param animationId  The animation ID to make visible
  */
@@ -1041,28 +1044,42 @@ void GameScene::switchVisibleAnimation(const std::string& animationId) {
     }
     
     auto newSprite = it->second;
+    if (!newSprite) {
+        CULogError("Animation sprite is null: %s", animationId.c_str());
+        return;
+    }
     
-    // Hide current sprite if one is visible
-    if (_currentVisibleAnimationSprite) {
+    // Hide the previous animation sprite if there is one
+    if (_currentVisibleAnimationSprite && _currentVisibleAnimationSprite != newSprite) {
         _currentVisibleAnimationSprite->setVisible(false);
     }
     
-    // Show new sprite and update reference
+    // Show the new animation sprite
     newSprite->setVisible(true);
     _currentVisibleAnimationSprite = newSprite;
     
-    // Reset animation timing
-    _enemyAnimationElapsedTime = 0.0f;
-    _enemyAnimationCachedFrameIndex = -1;
+    // Apply animation-specific position and scale
+    newSprite->setPosition(cugl::Vec2(_currentAnimationEntry.positionX + _currentAnimationEntry.offsetX,
+                                      _currentAnimationEntry.positionY + _currentAnimationEntry.offsetY));
+    newSprite->setScale(_currentAnimationEntry.scale);
+    
+    // Set initial frame (direction 0, frame 0)
+    newSprite->setFrame(0);
+    
+    CULog("Switched to animation: %s", animationId.c_str());
 }
 
 /**
  * Updates the current animation frame for direction and elapsed time.
  * 
- * Recalculates the direction the enemy should face (0-3) based on relative
- * positions of local player and target, then advances the animation frame
- * based on accumulated elapsed time and frame duration from animation metadata.
- * Only calls setFrame() if the frame index has changed (cached optimization).
+ * Animation behavior:
+ * - Looping animations: frameInRow cycles continuously through all frames
+ * - Buildup/Attack animations:
+ *   * Buildup phase (stateTime < buildup_duration): loops frames 0 to (buildupFrameCount-1)
+ *   * Attack phase (stateTime >= buildup_duration): plays frames buildupFrameCount to end once (clamped)
+ *   * Damage triggers when frameInRow >= damageFrame (only once per state)
+ * 
+ * Direction is recalculated each frame from local player perspective.
  *
  * @param dt                The elapsed time in seconds since last frame
  * @param localPlayerIndex  The local player's index (0-3) for direction calculation
@@ -1073,10 +1090,19 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
         return;
     }
     
-    // Show animation sprite and container
-    if (_currentVisibleAnimationSprite) {
-        _currentVisibleAnimationSprite->setVisible(true);
+    // Ensure sprite is visible
+    if (!_currentVisibleAnimationSprite) {
+        return;
     }
+    
+    // Safety check: ensure animation entry has valid data
+    if (_currentAnimationEntry.frameCount <= 0 || _currentAnimationEntry.frameDuration <= 0) {
+        CULog("WARN: Invalid animation entry: frameCount=%d, frameDuration=%.3f", 
+              _currentAnimationEntry.frameCount, _currentAnimationEntry.frameDuration);
+        return;
+    }
+    
+    _currentVisibleAnimationSprite->setVisible(true);
     if (_bossSprite) {
         _bossSprite->setVisible(true);
     }
@@ -1089,28 +1115,143 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
         }
     }
     
-    // Recalculate direction based on local player perspective
+    // Calculate direction the enemy should face
     int newDirection = EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex);
+    if (newDirection < 0 || newDirection > 3) {
+        newDirection = 0;  // Safety clamp
+    }
     _enemyAnimationCurrentDirection = newDirection;
     
-    // Advance animation elapsed time
-    _enemyAnimationElapsedTime += dt;
+    // Get the enemy's state time - this is how long they've been in the current state
+    float stateTime = enemy->getStateTime();
     
-    // Calculate frame within the current direction's row
-    // frameInRow cycles from 0 to (frameCount-1) based on elapsed time
-    int frameInRow = (int)(_enemyAnimationElapsedTime / _currentAnimationEntry.frameDuration) 
-                     % _currentAnimationEntry.frameCount;
+    // Calculate which animation frame should be displayed
+    int frameInRow = 0;
     
-    // Calculate linear frame index into the sprite sheet
-    // Sheet is organized as rows (one per direction), each row has frameCount columns
-    // linearFrame = (direction_row * frameCount) + frameInRow
+    // Ensure buildupFrameCount is valid
+    int buildupFrames = _currentAnimationEntry.buildupFrameCount;
+    if (buildupFrames < 0) buildupFrames = _currentAnimationEntry.frameCount;
+    if (buildupFrames > _currentAnimationEntry.frameCount) buildupFrames = _currentAnimationEntry.frameCount;
+    
+    // Check if this animation has distinct buildup and attack phases
+    if (buildupFrames < _currentAnimationEntry.frameCount) {
+        // Buildup/Attack animation
+        auto enemy = _gameState.getEnemy();
+        const auto* stateDef = enemy ? enemy->getCurrentStateDef() : nullptr;
+        float buildupDuration = stateDef ? stateDef->buildUpTime : (buildupFrames * _currentAnimationEntry.frameDuration);
+        
+        // Debug: detailed logging every frame for first few seconds
+        static float lastDetailedLog = -1.0f;
+        if (stateTime - lastDetailedLog > 0.05f) {  // Every 0.05s
+            CULog("[ANIM PHASE] stateTime=%.3f buildupDuration=%.3f frameInRow=%d buildupFrames=%d totalFrames=%d stateDef=%p",
+                  stateTime, buildupDuration, frameInRow, buildupFrames, _currentAnimationEntry.frameCount, stateDef);
+            if (stateDef) {
+                CULog("[  STATEDEF] frameCount=%d buildupFrameCount=%d frameDuration=%.3f", 
+                      stateDef->frameCount, stateDef->buildupFrameCount, stateDef->frameDuration);
+            }
+            lastDetailedLog = stateTime;
+        }
+        
+        if (stateTime < buildupDuration) {
+            // Buildup phase: loop the first buildupFrames for the entire buildupDuration
+            float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
+            frameInRow = (int)(frameFloat) % buildupFrames;
+            CULog("[BUILDUP PHASE] frameFloat=%.2f frameInRow=%d", frameFloat, frameInRow);
+        } else {
+            // Attack phase: play through attack frames (no loop, clamp to final)
+            float timeSinceAttackStart = stateTime - buildupDuration;
+            float frameFloat = timeSinceAttackStart / _currentAnimationEntry.frameDuration;
+            int framesIntoAttack = (int)(frameFloat);
+            int totalAttackFrames = _currentAnimationEntry.frameCount - buildupFrames;
+            
+            CULog("[ATTACK PHASE] timeSinceStart=%.3f frameFloat=%.2f framesIntoAttack=%d totalAttackFrames=%d", 
+                  timeSinceAttackStart, frameFloat, framesIntoAttack, totalAttackFrames);
+            
+            // Clamp to last attack frame (no looping)
+            if (framesIntoAttack >= totalAttackFrames) {
+                framesIntoAttack = totalAttackFrames - 1;
+            }
+            frameInRow = buildupFrames + framesIntoAttack;
+        }
+    } else {
+        // Simple looping animation - no attack phase, just loop all frames
+        float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
+        frameInRow = (int)(frameFloat) % _currentAnimationEntry.frameCount;
+    }
+    
+    // Safety clamp frame in row
+    if (frameInRow < 0) {
+        frameInRow = 0;
+    }
+    if (frameInRow >= _currentAnimationEntry.frameCount) {
+        frameInRow = _currentAnimationEntry.frameCount - 1;
+    }
+    
+    // Check if damage should trigger at this frame
+    if (_currentAnimationEntry.damageFrame >= 0 && 
+        frameInRow >= _currentAnimationEntry.damageFrame && 
+        !_enemyAttackDamageDealtThisState) {
+        _enemyAttackDamageDealtThisState = true;
+        CULog("[ANIMATION] Damage frame %d triggered at stateTime=%.3f in state", frameInRow, stateTime);
+    }
+    
+    // Calculate the linear frame index: row is direction, column is frameInRow
+    // Sheet layout: [direction_row][frameCount]
     int linearFrame = (_enemyAnimationCurrentDirection * _currentAnimationEntry.frameCount) + frameInRow;
     
-    // Update sprite frame only if changed (optimization to avoid redundant setFrame calls)
-    if (linearFrame != _enemyAnimationCachedFrameIndex && _currentVisibleAnimationSprite) {
-        _currentVisibleAnimationSprite->setFrame(linearFrame);
-        _enemyAnimationCachedFrameIndex = linearFrame;
+    // Safety check for linear frame
+    int maxFrame = _currentAnimationEntry.frameCount * _currentAnimationEntry.frameRows - 1;
+    if (linearFrame > maxFrame) {
+        linearFrame = maxFrame;
     }
+    if (linearFrame < 0) {
+        linearFrame = 0;
+    }
+    
+    // Tell the enemy what frame is currently being displayed so it can make decisions based on actual animation
+    if (enemy) {
+        enemy->setCurrentAnimationFrame(frameInRow);
+        
+        // Debug logging
+        static float lastLogTime = -1.0f;
+        if (stateTime - lastLogTime > 0.1f) {  // Log every 0.1 seconds
+            const auto* stateDef = enemy->getCurrentStateDef();
+            CULog("[ANIM DEBUG] stateTime=%.2f frameInRow=%d frameCount=%d buildupFrames=%d buildupDuration=%.2f", 
+                  stateTime, frameInRow, _currentAnimationEntry.frameCount, buildupFrames,
+                  stateDef ? stateDef->buildUpTime : -1.0f);
+            lastLogTime = stateTime;
+        }
+    }
+    
+    // Set the frame
+    _currentVisibleAnimationSprite->setFrame(linearFrame);
+}
+
+/**
+ * Checks if the current enemy attack animation has completed.
+ * Returns true when an attack animation (with buildup phase) has finished playing
+ * all attack frames (after buildup). Returns false for looping animations or
+ * while buildup/attack is still in progress.
+ * 
+ * @return true if attack animation is complete, false otherwise
+ */
+bool GameScene::isEnemyAttackAnimationComplete() const {
+    // Must have buildup < frameCount to be an attack animation
+    if (_currentAnimationEntry.buildupFrameCount >= _currentAnimationEntry.frameCount) {
+        return false;  // Not an attack animation (it's a looping animation)
+    }
+    
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return false;
+    
+    // Calculate total attack animation duration
+    float buildupDuration = _currentAnimationEntry.buildupFrameCount * _currentAnimationEntry.frameDuration;
+    int attackFrameCount = _currentAnimationEntry.frameCount - _currentAnimationEntry.buildupFrameCount;
+    float attackDuration = attackFrameCount * _currentAnimationEntry.frameDuration;
+    float totalDuration = buildupDuration + attackDuration;
+    
+    // Attack is complete if the enemy's state time has exceeded total animation duration
+    return enemy->getStateTime() >= totalDuration;
 }
 
 /**
@@ -1133,54 +1274,47 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
 void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
     auto enemy = _gameState.getEnemy();
     
-    // If enemy doesn't exist, hide animation and show static sprite
+    // If no enemy, hide animation
     if (!enemy) {
         hideEnemyAnimationAndShowStatic();
         return;
     }
     
-    // Get the current state definition that defines animation metadata
+    // Get current state definition
     const auto* stateDef = enemy->getCurrentStateDef();
-    if (!stateDef) {
+    if (!stateDef || stateDef->animationKey.empty()) {
         hideEnemyAnimationAndShowStatic();
         return;
     }
     
-    // Check if animation metadata is available in the registry
-    // Animation is valid if animationKey is not empty AND exists in registry map
-    bool hasMetadata = !stateDef->animationKey.empty() && 
-                       (_animationRegistry.find(stateDef->animationKey) != _animationRegistry.end());
-    
-    if (!hasMetadata) {
+    // Look up animation metadata
+    auto animLookup = _animationRegistry.find(stateDef->animationKey);
+    if (animLookup == _animationRegistry.end()) {
+        CULog("WARN: No animation metadata found for state: %s", stateDef->animationKey.c_str());
         hideEnemyAnimationAndShowStatic();
         return;
     }
     
-    // Retrieve animation metadata from registry
-    auto animationMetadataLookup = _animationRegistry.find(stateDef->animationKey);
-    if (animationMetadataLookup == _animationRegistry.end()) {
-        hideEnemyAnimationAndShowStatic();
-        return;
-    }
+    // Update current animation entry before switching
+    _currentAnimationEntry = animLookup->second;
     
-    const AnimationEntry& animationEntry = animationMetadataLookup->second;
-    
-    // Check if animation has changed - if so, switch to new animation
+    // Check if animation state has changed
     if (_currentAnimationId != stateDef->animationKey) {
         _currentAnimationId = stateDef->animationKey;
+        _enemyAttackDamageDealtThisState = false;
+        
+        CULog("State animation changed to: %s", stateDef->animationKey.c_str());
         switchVisibleAnimation(stateDef->animationKey);
     }
     
-    // Cache animation entry for frame calculations
-    _currentAnimationEntry = animationEntry;
-    
-    // Ensure we have a visible animation sprite (should always be there after preloading)
+    // Ensure sprite exists
     if (!_currentVisibleAnimationSprite) {
+        CULogError("Animation sprite not initialized");
         hideEnemyAnimationAndShowStatic();
         return;
     }
     
-    // Update sprite frame based on current direction and elapsed time
+    // Update animation frame for this frame
     updateEnemyAnimationFrame(dt, localPlayerIndex);
 }
 
@@ -2138,8 +2272,8 @@ void GameScene::update(float dt, InputController& input) {
     handleDisconnectedPlayers();
 
     handleItemSpawn(dt);
-    updateEnemyAndAI(dt);
     updateEnemyAnimation(dt, _network->getLocalPlayerNumber());
+    updateEnemyAndAI(dt);
     updateDropZoneVisibility();
 
     // Update sliding items before physics world update
@@ -2848,7 +2982,7 @@ void GameScene::handleDisconnectedPlayers() {
 void GameScene::resetGameState() {
     clearItemUseAnimations();
     _gameState.dispose();
-    _gameState.init(_itemController);
+    _gameState.init(_itemController, _assets);
 }
 
 /**
@@ -3090,6 +3224,7 @@ void GameScene::updateItemUseAnimations(float dt) {
 /**
  * Loads the animation registry from enemyAnimations.json and populates _animationRegistry.
  * Parses the JSON array of animation entries and builds a map for O(1) lookup by animation ID.
+ * Supports optional fields for attack phase configuration and position/scale customization.
  */
 void GameScene::loadAnimationRegistry() {
     _animationRegistry.clear();
@@ -3118,6 +3253,18 @@ void GameScene::loadAnimationRegistry() {
         anim.frameCount = entry->getInt("frameCount", 0);
         anim.frameDuration = entry->getFloat("frameDuration", 0.1f);
         anim.frameRows = entry->getInt("frameRows", 1);
+        
+        // Parse attack phase configuration (optional)
+        // Default buildupFrameCount to frameCount (no attack phase) if not specified
+        anim.buildupFrameCount = entry->getInt("buildupFrameCount", anim.frameCount);
+        anim.damageFrame = entry->getInt("damageFrame", -1);
+        
+        // Parse position and scale customization (optional, with defaults)
+        anim.positionX = entry->getFloat("positionX", 196.5f);
+        anim.positionY = entry->getFloat("positionY", 120.0f);
+        anim.scale = entry->getFloat("scale", 0.92f);
+        anim.offsetX = entry->getFloat("offsetX", 0.0f);
+        anim.offsetY = entry->getFloat("offsetY", 0.0f);
         
         if (!anim.id.empty()) {
             _animationRegistry[anim.id] = anim;

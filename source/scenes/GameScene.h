@@ -107,11 +107,22 @@ struct ItemUseAnimation {
  * Contains metadata needed to render and advance animation frames.
  */
 struct AnimationEntry {
-    std::string id;           /**< Animation identifier (e.g., "cyclops_idle_animation") */
-    std::string texture;      /**< Texture asset key (e.g., "gameScene/cyclops/cyclops_idle_animation") */
-    int frameCount;           /**< Number of frames per animation row */
-    float frameDuration;      /**< Duration in seconds per frame */
-    int frameRows;            /**< Number of rows in the sprite sheet */
+    std::string id;                  /**< Animation identifier (e.g., "cyclops_idle_animation") */
+    std::string texture;             /**< Texture asset key (e.g., "gameScene/cyclops/cyclops_idle_animation") */
+    int frameCount;                  /**< Number of frames per animation row */
+    float frameDuration;             /**< Duration in seconds per frame */
+    int frameRows;                   /**< Number of rows in the sprite sheet */
+    
+    // Attack phase configuration
+    int buildupFrameCount = 0;       /**< Number of frames in buildup phase that loop. 0 = no buildup */
+    int damageFrame = -1;            /**< Absolute frame index when damage is dealt (-1 = no auto-damage) */
+    
+    // Position and scale customization
+    float positionX = 196.5f;        /**< Screen X position for this animation */
+    float positionY = 120.0f;        /**< Screen Y position for this animation */
+    float scale = 0.92f;             /**< Scale multiplier for this animation */
+    float offsetX = 0.0f;            /**< X offset from base position */
+    float offsetY = 0.0f;            /**< Y offset from base position */
 };
 
 /**
@@ -352,14 +363,14 @@ protected:
     /** Current direction (0-3) the enemy faces, computed locally per player from local player index + target index. */
     int _enemyAnimationCurrentDirection = 0;
 
-    /** Accumulated elapsed time for animation frame advancement (resets on idle entry). */
-    float _enemyAnimationElapsedTime = 0.0f;
-
     /** Cached frame index to avoid redundant setFrame() calls (optimization). */
     int _enemyAnimationCachedFrameIndex = -1;
 
     /** Caches whether current idle state has animation metadata (optimization). */
     bool _enemyAnimationHasMetadata = false;
+    
+    /** Flag tracking if damage has been dealt during the current enemy state. Resets when state changes. */
+    bool _enemyAttackDamageDealtThisState = false;
 
 #pragma mark - Controllers
 
@@ -671,6 +682,13 @@ public:
      * @param enemyHealthBefore   The enemy's health before state updates
      */
     void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore);
+    
+    /**
+     * Checks if the current enemy attack animation has finished playing (both buildup and attack phases).
+     *
+     * @return true if attack animation is complete, false otherwise
+     */
+    bool isEnemyAttackAnimationComplete() const;
     
     /**
      * Updates the progress bar with the current ratios of player and enemy health.

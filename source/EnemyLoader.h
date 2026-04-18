@@ -41,6 +41,9 @@ public:
         State nextState = IDLE;                
         std::vector<EventDef> events;
         std::string animationKey;           // Key to lookup animation in enemyAnimations.json
+        int buildupFrameCount = 0;          // Number of buildup frames in animation
+        int frameCount = 0;                 // Total frames in animation
+        float frameDuration = 0.0f;         // Duration per frame in seconds
     };
 
     struct AIConfig {
@@ -63,6 +66,14 @@ private:
     std::unordered_map<std::string, EnemyDef> _enemies;
     /** A ordered vector of all enemies/bosses for selection */
     std::vector<EnemyDef> _enemiesVector;
+    
+    // Animation metadata for calculating state durations
+    struct AnimationMetadata {
+        int buildupFrameCount = 0;
+        int frameCount = 0;
+        float frameDuration = 0.0f;
+    };
+    std::unordered_map<std::string, AnimationMetadata> _animationRegistry;
 
 private:
     /** Parses an event type string from JSON into an EventType enum. */
@@ -92,6 +103,48 @@ private:
     }
 
 public:
+    /** Loads the animation registry from enemyAnimations.json to populate animation metadata for states.
+     * Should be called before or as part of loadFromFile. Returns true on success. */
+    bool loadAnimationRegistry(const std::shared_ptr<cugl::AssetManager>& assets) {
+        _animationRegistry.clear();
+        CULog("[REGISTRY] Starting loadAnimationRegistry...");
+        
+        auto json = assets->get<cugl::JsonValue>("enemyAnimations");
+        if (!json) {
+            CULog("[REGISTRY] ERROR: Could not find 'enemyAnimations' asset");
+            return false;
+        }
+        CULog("[REGISTRY] Found 'enemyAnimations' asset");
+        
+        auto registryArray = json->get("animationRegistry");
+        if (!registryArray || !registryArray->isArray()) {
+            CULog("[REGISTRY] ERROR: enemyAnimations.json missing 'animationRegistry' array");
+            return false;
+        }
+        
+        CULog("[REGISTRY] Found animationRegistry array with %d entries", registryArray->size());
+        
+        for (int i = 0; i < registryArray->size(); i++) {
+            auto entry = registryArray->get(i);
+            if (!entry) continue;
+            
+            AnimationMetadata meta;
+            meta.frameCount = entry->getInt("frameCount", 0);
+            meta.frameDuration = entry->getFloat("frameDuration", 0.1f);
+            meta.buildupFrameCount = entry->getInt("buildupFrameCount", meta.frameCount);
+            
+            std::string id = entry->getString("id", "");
+            if (!id.empty()) {
+                _animationRegistry[id] = meta;
+                CULog("[REGISTRY] Loaded '%s': frames=%d, buildup=%d, duration=%.3f",
+                      id.c_str(), meta.frameCount, meta.buildupFrameCount, meta.frameDuration);
+            }
+        }
+        
+        CULog("[REGISTRY] Successfully loaded %zu animation entries", _animationRegistry.size());
+        return true;
+    }
+    
     /** Loads and parses all enemy definitions from a JSON file at the given path. Returns true on success. */
     bool loadFromFile(const std::string& path) {
         auto reader = cugl::JsonReader::alloc(path);
@@ -128,7 +181,24 @@ public:
                 sdef.buildUpTime  = st->getFloat("buildUpTime", 0.0f);
                 sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
                 sdef.nextState    = parseStateType(st->getString("nextState", "idle"));
-                sdef.animationKey = st->getString("animationKey", "");                 // Read animation key (metadata loads from animation registry, not JSON)
+                sdef.animationKey = st->getString("animationKey", "");
+                
+                // Look up animation metadata to populate frame data for state duration calculation
+                if (!sdef.animationKey.empty()) {
+                    if (_animationRegistry.count(sdef.animationKey) > 0) {
+                        const auto& animMeta = _animationRegistry.at(sdef.animationKey);
+                        sdef.buildupFrameCount = animMeta.buildupFrameCount;
+                        sdef.frameCount = animMeta.frameCount;
+                        sdef.frameDuration = animMeta.frameDuration;
+                        CULog("[LOADER] State '%s' -> animation '%s': frames=%d buildup=%d", 
+                              sdef.name.c_str(), sdef.animationKey.c_str(), sdef.frameCount, sdef.buildupFrameCount);
+                    } else {
+                        CULog("[LOADER] WARNING: State '%s' references animation '%s' but not found in registry (registry size=%zu)",
+                              sdef.name.c_str(), sdef.animationKey.c_str(), _animationRegistry.size());
+                    }
+                } else {
+                    CULog("[LOADER] State '%s' has no animationKey", sdef.name.c_str());
+                }
 
                 auto aiObj = entry->get("ai");
                 if (aiObj && aiObj->isObject()) {
@@ -178,6 +248,9 @@ public:
     bool has(const std::string& id) const { return _enemies.count(id) > 0; }
     const EnemyDef& get(const std::string& id) const { return _enemies.at(id); }
     const std::unordered_map<std::string, EnemyDef>& getAll() const { return _enemies; }
+    
+    /** Checks if animation registry has been loaded. Used for smart initialization. */
+    bool isAnimationRegistryLoaded() const { return !_animationRegistry.empty(); }
     /** Returns all the mapping of enemy id -> EnemyDef */
     const std::vector<EnemyDef>& getAllOrdered() const { return _enemiesVector; }
 };

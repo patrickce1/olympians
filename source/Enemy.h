@@ -5,7 +5,12 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cugl/cugl.h>
 #include "EnemyLoader.h"
+
+// Forward declaration for type trait checking
+// Full definition needed for unordered_map; include where needed
+struct AnimationEntry;
 
 /**
  * Enemy runtime instance.
@@ -53,6 +58,9 @@ protected:
     //How long we have been in this state
     float _stateTime = 0.0f;
     bool _eventsFiredThisState = false;
+    
+    // Current frame of the animation being displayed (set by GameScene's animation system)
+    int _currentAnimationFrame = 0;
 
     // Blocks starting non-idle states while > 0
     float _attackLockout = 0.0f;
@@ -70,6 +78,11 @@ public:
 
     /** Initializes the enemy with the given id and json path, returns true if successful */
     bool virtual init(const std::string& enemyId, const std::string& jsonPath);
+    
+    /** Initializes the enemy with animation metadata loaded from AssetManager.
+     * This version loads both the animation registry and enemy definitions correctly.  */
+    bool virtual init(const std::string& enemyId, const std::string& jsonPath, 
+                     const std::shared_ptr<cugl::AssetManager>& assets);
 
     /** Returns the unique id of this enemy */
     const std::string& getId() const { return _enemyId; }
@@ -103,6 +116,12 @@ public:
 
     /** Sets how long the enemy has been in the current state */
     void setStateTime(float stateTime) { _stateTime = stateTime; }
+    
+    /** Returns the current animation frame being displayed (0-indexed within row) */
+    int getCurrentAnimationFrame() const { return _currentAnimationFrame; }
+    
+    /** Sets the current animation frame being displayed. Called by GameScene each frame. */
+    void setCurrentAnimationFrame(int frame) { _currentAnimationFrame = frame; }
 
     /** Returns the state definition for the current state */
     const EnemyLoader::StateDef* getCurrentStateDef() const;
@@ -144,6 +163,15 @@ public:
     /* Expose state defs so controller can pick attacks by tag */ 
     const std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef>& getStates() const { return _states; }
 
+    /**
+     * Checks if the enemy is currently in an attack phase (post-buildup) for its current animation.
+     * Used to prevent state changes (like retargeting) during the attack wind-up and execution.
+     * 
+     * @param animationRegistry  Map of animation IDs to animation metadata entries
+     * @return true if in attack phase, false if in buildup phase or no animation data
+     */
+    bool isInAttackPhase(const std::unordered_map<std::string, class AnimationEntry>& animationRegistry) const;
+
     /** Returns true if successfully enters requested state. False and idle otherwise. */
     bool requestState(EnemyLoader::State state);
 
@@ -165,12 +193,17 @@ public:
 
     /** Immediately enters the state and resets timers. */
     void enterState(EnemyLoader::State state);
+    
+    /** Returns the next state if defined by current state or "idle" by default. */
+    EnemyLoader::State getNextStateOrIdle() const;
 
 protected:
     /** Updates timers.*/
     void tick(float dt);
 
-    /** Returns true if buildUp time has passed and events have not yet fired in this state.*/
+    /** Returns true if the animation has completed and events have not yet fired in this state.
+     * For animated states, waits until buildUpTime + attack frame duration.
+     * For non-animated states, fires at buildUpTime immediately. */
     bool readyToFire() const;
 
     /** Fires events from this state, adding them to the events buffer.*/
@@ -179,8 +212,6 @@ protected:
     /** Sets the cooldown timer based on the current state of the enemy. */
     void applyCooldown();
 
-    /** Returns the next state if defined by current state or "idle" by default. */
-    EnemyLoader::State getNextStateOrIdle() const;
 };
 
 #endif /* !__ENEMY_H__ */
