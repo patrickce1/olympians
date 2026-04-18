@@ -13,12 +13,9 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     static bool sLoaded = false;
     static std::string sLoadedPath;
 
-    CULog("[ENEMY INIT] Called WITHOUT assets for enemyId='%s'", enemyId.c_str());
-    
     if (!sLoaded) {
-        CULog("[ENEMY INIT] Loading enemy definitions from '%s'", jsonPath.c_str());
         if (!sLoader.loadFromFile(jsonPath)) {
-            CULog("Failed to load enemy JSON: %s", jsonPath.c_str());
+            CULog("ERROR: Failed to load enemy JSON from %s", jsonPath.c_str());
             return false;
         }
         sLoaded = true;
@@ -26,12 +23,12 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     }
 
     if (sLoadedPath != jsonPath) {
-        CULog("Enemy JSON already loaded from different path");
+        CULog("ERROR: Enemy JSON already loaded from different path: %s vs %s", sLoadedPath.c_str(), jsonPath.c_str());
         return false;
     }
 
     if (!sLoader.has(enemyId)) {
-        CULog("Enemy ID not found: %s", enemyId.c_str());
+        CULog("ERROR: Enemy ID not found: %s", enemyId.c_str());
         return false;
     }
 
@@ -49,7 +46,7 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     }
 
     if (_states.count(EnemyLoader::State::IDLE) == 0) {
-        CULog("Enemy '%s' missing idle state", enemyId.c_str());
+        CULog("ERROR: Enemy '%s' missing required idle state", enemyId.c_str());
         return false;
     }
     enterState(EnemyLoader::State::IDLE);
@@ -62,29 +59,30 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
 }
 
 /** Initializes the enemy with animation metadata loaded from AssetManager.
- * Uses smart caching: definitions load once, registry loads only when needed (not empty). */
+ * Loads animation registry from assets if not already loaded, then initializes enemy state.
+ * Uses smart caching: definitions load once, registry loads only when provided and not yet loaded.
+ * 
+ * @param enemyId  The unique ID of the enemy to load
+ * @param jsonPath Path to the enemies.json configuration file
+ * @param assets   The AssetManager containing animation metadata in enemyAnimations.json
+ * @return true if initialization succeeds, false on error
+ */
 bool Enemy::init(const std::string& enemyId, const std::string& jsonPath, 
                 const std::shared_ptr<cugl::AssetManager>& assets) {
     static EnemyLoader sLoader;
     static bool sLoaded = false;
     static std::string sLoadedPath;
 
-    CULog("[ENEMY INIT] Called WITH assets for enemyId='%s'", enemyId.c_str());
-    
-    // Smart registry loading: only load if provided AND not already loaded
+    // Smart registry loading: only load if assets provided AND not already loaded
     if (assets && !sLoader.isAnimationRegistryLoaded()) {
-        CULog("[ENEMY INIT] Loading animation registry from assets...");
         if (!sLoader.loadAnimationRegistry(assets)) {
-            CULog("[ENEMY INIT] WARNING: Failed to load animation registry, continuing anyway");
-            // Non-fatal - continue
+            CULog("WARNING: Failed to load animation registry, continuing without animation metadata");
         }
     }
 
-    // Load enemy definitions once (static pattern same as non-assets version)
     if (!sLoaded) {
-        CULog("[ENEMY INIT] Loading enemy definitions from '%s'", jsonPath.c_str());
         if (!sLoader.loadFromFile(jsonPath)) {
-            CULog("Failed to load enemy JSON: %s", jsonPath.c_str());
+            CULog("ERROR: Failed to load enemy JSON from %s", jsonPath.c_str());
             return false;
         }
         sLoaded = true;
@@ -92,12 +90,12 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath,
     }
 
     if (sLoadedPath != jsonPath) {
-        CULog("Enemy JSON already loaded from different path");
+        CULog("ERROR: Enemy JSON already loaded from different path: %s vs %s", sLoadedPath.c_str(), jsonPath.c_str());
         return false;
     }
 
     if (!sLoader.has(enemyId)) {
-        CULog("Enemy ID not found: %s", enemyId.c_str());
+        CULog("ERROR: Enemy ID not found: %s", enemyId.c_str());
         return false;
     }
 
@@ -110,22 +108,12 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath,
     _states = def.states;
     _customData = def.customData;
     
-    // Log animation metadata for debugging
-    for (const auto& [state, stateDef] : def.states) {
-        if (stateDef.frameCount > 0) {
-            CULog("[ENEMY INIT] State '%s' has %d frames (buildup: %d), duration: %.2f sec per frame",
-                  stateDef.name.c_str(), stateDef.frameCount, stateDef.buildupFrameCount, stateDef.frameDuration);
-        } else {
-            CULog("[ENEMY INIT] State '%s' has NO frame data (frameCount=0)", stateDef.name.c_str());
-        }
-    }
-    
     for (int i = 0; i < NUM_PLAYERS; i++) {
         _sideMultipliers[i] = 1.0f;
     }
 
     if (_states.count(EnemyLoader::State::IDLE) == 0) {
-        CULog("Enemy '%s' missing idle state", enemyId.c_str());
+        CULog("ERROR: Enemy '%s' missing required idle state", enemyId.c_str());
         return false;
     }
     enterState(EnemyLoader::State::IDLE);
@@ -208,33 +196,31 @@ void Enemy::tick(float dt) {
 }
 
 /** Returns true when the animation has fully completed and events have not yet fired.
- * Checks if the current animation frame has reached the final frame.
- * For non-animated states, fires at buildUpTime immediately. */
+ * 
+ * For animated states: Returns true when currentAnimationFrame reaches frameCount-1 (the last frame).
+ * For non-animated states: Returns true when buildUpTime elapses.
+ * 
+ * Once true, determines when state should transition and events should fire.
+ * 
+ * @return true if animation/duration complete and events not yet fired
+ */
 bool Enemy::readyToFire() const {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return false;
     if (_eventsFiredThisState) return false;
     
-    // For states without animation metadata or with no attack phase, use buildUpTime
     if (st->frameCount <= 0) {
+        // Non-animated states use buildUpTime
         return _stateTime >= st->buildUpTime;
     }
     
-    // For animated states, check if we've reached the final frame
-    // Frames are 0-indexed, so last frame is at frameCount - 1
-    // Fire when we reach or pass the final frame index
-    bool shouldFire = _currentAnimationFrame >= (st->frameCount - 1);
-    
-    static int logCounter = 0;
-    if (logCounter++ % 5 == 0) {  // Log every 5 calls
-        CULog("[FIRE DEBUG] currentFrame=%d frameCount=%d lastFrameIdx=%d shouldFire=%d", 
-              _currentAnimationFrame, st->frameCount, (st->frameCount - 1), shouldFire ? 1 : 0);
-    }
-    
-    return shouldFire;
+    // Animated states: fire when reaching final frame (frameCount - 1, since 0-indexed)
+    return _currentAnimationFrame >= (st->frameCount - 1);
 }
 
-/** Fires events from this state, adding them to the events buffer. */
+/** Fires all events defined for the current state, adding them to the events buffer.
+ * Called once per state when animation completes.
+ */
 void Enemy::fireEvents() {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return;
@@ -249,14 +235,19 @@ void Enemy::fireEvents() {
     _eventsFiredThisState = true;
 }
 
-/** Sets the cooldown timer based on the current state of the enemy. */
+/** Sets the cooldown timer based on the current state's cooldownTime.
+ * Prevents rapid consecutive state transitions.
+ */
 void Enemy::applyCooldown() {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return;
     _attackLockout = std::max(_attackLockout, st->cooldownTime);
 }
 
-/** Returns the next state if defined by current state or "idle" by default. */
+/** Returns the next state defined in the current state, or defaults to IDLE.
+ * Used for state machine transitions after animation completes.
+ * @return The next state to transition to
+ */
 EnemyLoader::State Enemy::getNextStateOrIdle() const {
     const EnemyLoader::StateDef* st = getCurrentStateDef();
     if (!st) return EnemyLoader::State::IDLE;
@@ -268,7 +259,11 @@ EnemyLoader::State Enemy::getNextStateOrIdle() const {
     return EnemyLoader::State::IDLE;
 }
 
-/** Main update loop for enemy. Handles firing events, applying cooldown, transition to next state. */
+/** Main update loop for enemy state machine.
+ * Updates internal timers, detects animation completion, fires events, applies cooldown, and transitions states.
+ * 
+ * @param dt Delta time in seconds since last update
+ */
 void Enemy::update(float dt) {
     tick(dt);
 

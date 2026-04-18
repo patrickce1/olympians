@@ -149,21 +149,12 @@ bool GameState::initEnemyWithAssets(const std::shared_ptr<cugl::AssetManager>& a
     _enemy = std::make_shared<Enemy>();
     _assets = assets;
     
-    CULog("[GameState] Initializing enemy with animation assets...");
     if (!_enemy->init("cyclops", enemyJsonPath, assets)) {
-        CULog("GameState: Failed to initialize enemy with assets");
+        CULog("ERROR: Failed to initialize enemy");
         return false;
     }
     
-    // Log state definitions to verify animation metadata is populated
-    const auto& states = _enemy->getStates();
-    for (const auto& [state, stateDef] : states) {
-        CULog("[GameState] State: %s frameCount=%d buildupFrameCount=%d frameDuration=%.3f animation='%s'",
-              stateDef.name.c_str(), stateDef.frameCount, stateDef.buildupFrameCount, 
-              stateDef.frameDuration, stateDef.animationKey.c_str());
-    }
-    
-    CULog("GameState: Enemy initialized id='%s' with animation metadata", _enemy->getId().c_str());
+    CULog("GameState: Enemy initialized id='%s'", _enemy->getId().c_str());
     return true;
 }
 

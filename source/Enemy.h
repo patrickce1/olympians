@@ -76,11 +76,22 @@ public:
     /** Default constructor, use init() to initialize */
     Enemy() = default;
 
-    /** Initializes the enemy with the given id and json path, returns true if successful */
+    /** Initializes the enemy from JSON configuration without animation metadata.
+     * @param enemyId The unique ID of the enemy to load (e.g., "cyclops")
+     * @param jsonPath Path to enemies.json configuration file
+     * @return true if initialization succeeds, false on error
+     */
     bool virtual init(const std::string& enemyId, const std::string& jsonPath);
     
-    /** Initializes the enemy with animation metadata loaded from AssetManager.
-     * This version loads both the animation registry and enemy definitions correctly.  */
+    /** Initializes the enemy with animation metadata from AssetManager.
+     * This version uses smart caching to load animation registry only when needed.
+     * Prefers this method when assets are available to ensure proper animation setup.
+     * 
+     * @param enemyId The unique ID of the enemy to load (e.g., "cyclops")
+     * @param jsonPath Path to enemies.json configuration file
+     * @param assets AssetManager containing enemyAnimations.json and other asset definitions
+     * @return true if initialization succeeds, false on error
+     */
     bool virtual init(const std::string& enemyId, const std::string& jsonPath, 
                      const std::shared_ptr<cugl::AssetManager>& assets);
 

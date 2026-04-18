@@ -103,26 +103,29 @@ private:
     }
 
 public:
-    /** Loads the animation registry from enemyAnimations.json to populate animation metadata for states.
-     * Should be called before or as part of loadFromFile. Returns true on success. */
+    /** Loads animation metadata from enemyAnimations.json into registry.
+     * Animation metadata (frameCount, buildupFrameCount, frameDuration) is used to calculate
+     * state durations and animation frame sequences.
+     * 
+     * Should be called before or during loadFromFile so state definitions can access the registry.
+     * 
+     * @param assets AssetManager containing the enemyAnimations.json asset
+     * @return true if loaded successfully, false on error
+     */
     bool loadAnimationRegistry(const std::shared_ptr<cugl::AssetManager>& assets) {
         _animationRegistry.clear();
-        CULog("[REGISTRY] Starting loadAnimationRegistry...");
         
         auto json = assets->get<cugl::JsonValue>("enemyAnimations");
         if (!json) {
-            CULog("[REGISTRY] ERROR: Could not find 'enemyAnimations' asset");
+            CULog("WARNING: Could not find 'enemyAnimations' asset");
             return false;
         }
-        CULog("[REGISTRY] Found 'enemyAnimations' asset");
         
         auto registryArray = json->get("animationRegistry");
         if (!registryArray || !registryArray->isArray()) {
-            CULog("[REGISTRY] ERROR: enemyAnimations.json missing 'animationRegistry' array");
+            CULog("WARNING: enemyAnimations.json missing 'animationRegistry' array");
             return false;
         }
-        
-        CULog("[REGISTRY] Found animationRegistry array with %d entries", registryArray->size());
         
         for (int i = 0; i < registryArray->size(); i++) {
             auto entry = registryArray->get(i);
@@ -136,16 +139,19 @@ public:
             std::string id = entry->getString("id", "");
             if (!id.empty()) {
                 _animationRegistry[id] = meta;
-                CULog("[REGISTRY] Loaded '%s': frames=%d, buildup=%d, duration=%.3f",
-                      id.c_str(), meta.frameCount, meta.buildupFrameCount, meta.frameDuration);
             }
         }
         
-        CULog("[REGISTRY] Successfully loaded %zu animation entries", _animationRegistry.size());
         return true;
     }
     
-    /** Loads and parses all enemy definitions from a JSON file at the given path. Returns true on success. */
+    /** Loads and parses all enemy definitions from a JSON file.
+     * Populates enemy definitions including states, animations, AI parameters, and events.
+     * If animation registry is already loaded, state definitions will include animation metadata.
+     * 
+     * @param path Path to enemies.json file
+     * @return true if loaded successfully, false on error
+     */
     bool loadFromFile(const std::string& path) {
         auto reader = cugl::JsonReader::alloc(path);
         if (!reader) return false;
@@ -183,21 +189,12 @@ public:
                 sdef.nextState    = parseStateType(st->getString("nextState", "idle"));
                 sdef.animationKey = st->getString("animationKey", "");
                 
-                // Look up animation metadata to populate frame data for state duration calculation
-                if (!sdef.animationKey.empty()) {
-                    if (_animationRegistry.count(sdef.animationKey) > 0) {
-                        const auto& animMeta = _animationRegistry.at(sdef.animationKey);
-                        sdef.buildupFrameCount = animMeta.buildupFrameCount;
-                        sdef.frameCount = animMeta.frameCount;
-                        sdef.frameDuration = animMeta.frameDuration;
-                        CULog("[LOADER] State '%s' -> animation '%s': frames=%d buildup=%d", 
-                              sdef.name.c_str(), sdef.animationKey.c_str(), sdef.frameCount, sdef.buildupFrameCount);
-                    } else {
-                        CULog("[LOADER] WARNING: State '%s' references animation '%s' but not found in registry (registry size=%zu)",
-                              sdef.name.c_str(), sdef.animationKey.c_str(), _animationRegistry.size());
-                    }
-                } else {
-                    CULog("[LOADER] State '%s' has no animationKey", sdef.name.c_str());
+                // Populate animation metadata from registry if available
+                if (!sdef.animationKey.empty() && _animationRegistry.count(sdef.animationKey) > 0) {
+                    const auto& animMeta = _animationRegistry.at(sdef.animationKey);
+                    sdef.buildupFrameCount = animMeta.buildupFrameCount;
+                    sdef.frameCount = animMeta.frameCount;
+                    sdef.frameDuration = animMeta.frameDuration;
                 }
 
                 auto aiObj = entry->get("ai");

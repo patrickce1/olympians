@@ -1135,37 +1135,21 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
     
     // Check if this animation has distinct buildup and attack phases
     if (buildupFrames < _currentAnimationEntry.frameCount) {
-        // Buildup/Attack animation
+        // Buildup/Attack animation: buildup loops for buildUpTime, then attack plays through
         auto enemy = _gameState.getEnemy();
         const auto* stateDef = enemy ? enemy->getCurrentStateDef() : nullptr;
         float buildupDuration = stateDef ? stateDef->buildUpTime : (buildupFrames * _currentAnimationEntry.frameDuration);
-        
-        // Debug: detailed logging every frame for first few seconds
-        static float lastDetailedLog = -1.0f;
-        if (stateTime - lastDetailedLog > 0.05f) {  // Every 0.05s
-            CULog("[ANIM PHASE] stateTime=%.3f buildupDuration=%.3f frameInRow=%d buildupFrames=%d totalFrames=%d stateDef=%p",
-                  stateTime, buildupDuration, frameInRow, buildupFrames, _currentAnimationEntry.frameCount, stateDef);
-            if (stateDef) {
-                CULog("[  STATEDEF] frameCount=%d buildupFrameCount=%d frameDuration=%.3f", 
-                      stateDef->frameCount, stateDef->buildupFrameCount, stateDef->frameDuration);
-            }
-            lastDetailedLog = stateTime;
-        }
         
         if (stateTime < buildupDuration) {
             // Buildup phase: loop the first buildupFrames for the entire buildupDuration
             float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
             frameInRow = (int)(frameFloat) % buildupFrames;
-            CULog("[BUILDUP PHASE] frameFloat=%.2f frameInRow=%d", frameFloat, frameInRow);
         } else {
-            // Attack phase: play through attack frames (no loop, clamp to final)
+            // Attack phase: play through attack frames without looping, clamped to final frame
             float timeSinceAttackStart = stateTime - buildupDuration;
             float frameFloat = timeSinceAttackStart / _currentAnimationEntry.frameDuration;
             int framesIntoAttack = (int)(frameFloat);
             int totalAttackFrames = _currentAnimationEntry.frameCount - buildupFrames;
-            
-            CULog("[ATTACK PHASE] timeSinceStart=%.3f frameFloat=%.2f framesIntoAttack=%d totalAttackFrames=%d", 
-                  timeSinceAttackStart, frameFloat, framesIntoAttack, totalAttackFrames);
             
             // Clamp to last attack frame (no looping)
             if (framesIntoAttack >= totalAttackFrames) {
@@ -1192,7 +1176,6 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
         frameInRow >= _currentAnimationEntry.damageFrame && 
         !_enemyAttackDamageDealtThisState) {
         _enemyAttackDamageDealtThisState = true;
-        CULog("[ANIMATION] Damage frame %d triggered at stateTime=%.3f in state", frameInRow, stateTime);
     }
     
     // Calculate the linear frame index: row is direction, column is frameInRow
@@ -1211,16 +1194,6 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
     // Tell the enemy what frame is currently being displayed so it can make decisions based on actual animation
     if (enemy) {
         enemy->setCurrentAnimationFrame(frameInRow);
-        
-        // Debug logging
-        static float lastLogTime = -1.0f;
-        if (stateTime - lastLogTime > 0.1f) {  // Log every 0.1 seconds
-            const auto* stateDef = enemy->getCurrentStateDef();
-            CULog("[ANIM DEBUG] stateTime=%.2f frameInRow=%d frameCount=%d buildupFrames=%d buildupDuration=%.2f", 
-                  stateTime, frameInRow, _currentAnimationEntry.frameCount, buildupFrames,
-                  stateDef ? stateDef->buildUpTime : -1.0f);
-            lastLogTime = stateTime;
-        }
     }
     
     // Set the frame
