@@ -9,17 +9,17 @@
                 "retargetLikelihood": 0.5,
                 "defenseLikelihood": 0.25
             },
-	    "customData": {
-    	        "eyeMultiplier": 2.0
-	    },
+            "customData": {
+                "eyeMultiplier": 2.0
+            },
             "states": {
                 "idle": {
                     "name": "idle",
-                    "animationRow": 0
+                    "animationKey": "cyclops_idle_animation"
                 },
                 "attack_1": {
                     "name": "club",
-                    "animationRow": 1,
+                    "animationKey": "cyclops_idle_animation",
                     "buildUpTime": 4.0,
                     "cooldownTime": 0.0,
                     "events": [
@@ -33,7 +33,7 @@
                 },
                 "attack_2": {
                     "name": "stomp",
-                    "animationRow": 2,
+                    "animationKey": "cyclops_idle_animation",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
@@ -42,28 +42,27 @@
                             "target": 0,
                             "amount": 1.0
                         },
-			{
+			            {
                             "type": "DAMAGE",
                             "target": 1,
                             "amount": 1.0
                         },
-			{
+			            {
                             "type": "DAMAGE",
                             "target": 2,
                             "amount": 1.0
                         },
-			{
+			            {
                             "type": "DAMAGE",
                             "target": 3,
                             "amount": 1.0
                         }
-
                     ],
                     "nextState": "idle"
                 },
                 "attack_3": {
                     "name": "boulder toss",
-                    "animationRow": 3,
+                    "animationKey": "cyclops_idle_animation",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
@@ -80,9 +79,9 @@
                     ],
                     "nextState": "idle"
                 },
-		"defensive_move" : {
-		    "name": "eye cover",
-                    "animationRow": 4,
+		        "defensive_move" : {
+                    "name": "eye cover",
+                    "animationKey": "cyclops_idle_animation",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
@@ -91,27 +90,27 @@
                             "target": 0,
                             "amount": 2.0
                         },
-			{
+			            {
                             "type": "SIDE_MODIFIER",
                             "target": 1,
                             "amount": 1.0
                         },
-			{
+			            {
                             "type": "SIDE_MODIFIER",
                             "target": 2,
                             "amount": 1.0
                         },
-			{
+			            {
                             "type": "SIDE_MODIFIER",
                             "target": 3,
                             "amount": 0.0
                         }
-		    ],
-		    "nextState": "idle"
-		}
+		            ],
+                    "nextState": "idle"
+                }
             }
         },
-	{
+	    {
             "id": "cerberus",
             "name": "cerberus",
             "maxHealth": 100.0,
@@ -120,17 +119,15 @@
                 "retargetLikelihood": 0.5,
                 "defenseLikelihood": 1.0
             },
-	    "customData": {
-    	        "eyeMultiplier": 2.0
-	    },
+            "customData": {
+                "eyeMultiplier": 2.0
+            },
             "states": {
                 "idle": {
-                    "name": "idle",
-                    "animationRow": 0
+                    "name": "idle"
                 },
                 "attack_1": {
                     "name": "",
-                    "animationRow": 1,
                     "buildUpTime": 4.0,
                     "cooldownTime": 0.0,
                     "events": [
@@ -139,7 +136,6 @@
                 },
                 "attack_2": {
                     "name": "",
-                    "animationRow": 2,
                     "buildUpTime": 3.0,
                     "cooldownTime": 1.0,
                     "events": [
@@ -148,26 +144,24 @@
                 },
                 "attack_3": {
                     "name": "",
-                    "animationRow": 3,
                     "buildUpTime": 3.0,
                     "cooldownTime": 1.0,
                     "events": [
                     ],
                     "nextState": "idle"
                 },
-		"defensive_move" : {
-		    "name": "test heal move",
-                    "animationRow": 4,
+                "defensive_move" : {
+                    "name": "test heal move",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
-			{
+                        {
                             "type": "HEAL",
                             "amount": 10.0
                         }
-		    ],
-		    "nextState": "idle"
-		}
+                    ],
+                    "nextState": "idle"
+                }
             }
         }
     ]

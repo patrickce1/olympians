@@ -84,6 +84,9 @@ protected:
 
     /** The state of the game */
     GameState* _gameState = nullptr;
+    
+    /** The game slot the player intends to open in house select (for AI host control) */
+    int _pendingSlotToBeOpened = -1;
 
 public:
 #pragma mark -
@@ -168,6 +171,19 @@ public:
      *
      */
     Status getStatus() const { return _status; }
+    
+    /**
+     * Returns the game slot index that the host intends to configure in
+     * house select. This is set when the host taps an AI player icon in
+     * the lobby and is consumed by SceneLoader to pass context to
+     * HouseSelectScene for host-managed AI slot selection.
+     *
+     * Returns -1 if no slot is pending (i.e. the local player opened their
+     * own house select rather than an AI slot).
+     *
+     * @return  The 0-based game slot index, or -1 if not applicable.
+     */
+    int getPendingSlotToBeOpened() const { return _pendingSlotToBeOpened; }
     
     /**
      * The method called to update the scene.
