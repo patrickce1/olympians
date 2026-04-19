@@ -373,9 +373,9 @@ void GameState::assignMissingHousesForAI(ItemController& itemController) {
 
         if (availableHouses.empty()) continue;
 
-        std::string chosen = availableHouses[rand() % availableHouses.size()];
+        std::string chosenHouse = availableHouses[rand() % availableHouses.size()];
 
-        auto ai = std::make_shared<EasyPlayerAI>(chosen, i, _players[i]->getPlayerName(), _houseLoader);
+        auto ai = std::make_shared<EasyPlayerAI>(chosenHouse, i, _players[i]->getPlayerName(), _houseLoader);
         ai->init(itemController.getDatabase(), "json/playerAI.json");
         _players[i] = ai;
         _playerIdMap[i] = ai.get();
