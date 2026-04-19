@@ -231,10 +231,10 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
     if (json->has("baseValue") && json->get("baseValue")->isNumber()) {
         _baseValue = json->getFloat("baseValue");
         if (_baseValue <= 0.0f) {
-            _baseValue = 1.0f;
+            _baseValue = 0.0f;
         }
     } else {
-        _baseValue = 1.0f;
+        _baseValue = 0.0f;
     }
 
     _effects.clear();
