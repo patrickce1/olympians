@@ -173,7 +173,7 @@
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "athena",
-            "baseValue": 1.0,
+            "baseValue": 0.0,
             "effects": [
                 {
                     "type": "barrier",

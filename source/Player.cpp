@@ -183,7 +183,7 @@ static float computeResolvedItemMagnitude(const Player& player,
 
     float resolvedMagnitude = def.getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
     if (resolvedMagnitude <= 0.0f) {
-        resolvedMagnitude = 0.01f;
+        resolvedMagnitude = 0.0f;
     }
 
     return resolvedMagnitude;
