@@ -427,30 +427,32 @@ void GameScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
     const auto& networkedPlayers = _network->getNetworkedPlayers();
-    const int realPlayerCount = (int)networkedPlayers.size();
     const int totalSlots = (int)_gameState.getPlayers().size();
 
-    // Apply real player names and houses from the network
-    for (int i = 0; i < realPlayerCount; i++) {
-        _gameState.setRealPlayer(
-            i,
-            networkedPlayers[i].username,
-            networkedPlayers[i].houseID
-        );
-    }
-
-    // Apply AI slot houses from the host's authoritative map.
-    // _aIHouses is synced to all clients via LOBBY_UPDATE, so this
-    // produces the same result on every device with no rand() involved.
-    for (int i = realPlayerCount; i < totalSlots; i++) {
-        std::string aiHouse = _network->getAIHouse(i);
-        if (!aiHouse.empty()) {
+    for (int i = 0; i < totalSlots; i++) {
+        if (_network->checkRealPlayer(i)) {
+            // Real player slot — reconstruct with name and house from network
             _gameState.setRealPlayer(
                 i,
-                _gameState.getPlayerBySlot(i)->getPlayerName(),
-                aiHouse
+                networkedPlayers[i].username,
+                networkedPlayers[i].houseID
             );
+        } else {
+            // AI slot — use demoteToAI() to preserve isAI() == true.
+            // setRealPlayer() produces a plain Player which breaks AI behavior
+            // since updateEnemyAndAI() casts to PlayerAI* to tick the AI.
+            _gameState.demoteToAI(i, _network->getAIHouse(i));
         }
+    }
+
+    // Log every slot so we can verify AI slots are actually PlayerAI at game start
+    for (int i = 0; i < totalSlots; i++) {
+        Player* p = _gameState.getPlayerBySlot(i);
+        CULog("GameScene::updateNetworkOrder — slot %d: name='%s' house='%s' isAI=%s",
+              i,
+              p->getPlayerName().c_str(),
+              p->getHouseName().c_str(),
+              p->isAI() ? "true" : "false");
     }
 
     setLocalPlayer(_network->getLocalPlayerNumber());
@@ -474,6 +476,12 @@ void GameScene::setActive(bool value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
             updateNetworkOrder();
+            
+            // Re-initialize AI players after updateNetworkOrder() rebuilds
+            // AI slots via demoteToAI(). demoteToAI() creates EasyPlayerAI
+            // objects but cannot call init() since it has no ItemController.
+            // Without this, _db is null and the AI crashes on first update.
+            _gameState.initAI(_itemController);
             
             // Reset enemy animation state for clean start
             _enemyAnimationElapsedTime = 0.0f;
