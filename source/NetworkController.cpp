@@ -657,6 +657,10 @@ void NetworkController::registerDisconnectCallback() {
                     broadcastLobbyState();
                 }
 
+				for (const NetworkedPlayer& player : _onlinePlayers) {
+					CULog("Connected player  %s (%s)", player.username.c_str(), player.networkID.c_str());
+				}
+
                 break;
             }
         }
