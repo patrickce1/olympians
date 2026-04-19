@@ -129,47 +129,68 @@ void LobbyScene::setupListeners() {
                 _network->broadcastSessionTerminated();
                 _pendingDisconnect = true;
             } else {
-                // Client leaving — disconnect so host is notified via disconnect callback
                 _pendingDisconnect = true;
             }
             _status = Status::ABORT;
         }
     });
-    
+
     _bossLobbyButton->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::BOSSSELECT;
         }
     });
-    
+
     // Add listeners to all player icon buttons. Down arms drag on the exact
     // clickable icon region; release keeps the normal house-select behavior.
+    // Display slot (size-1) is always the local player's own slot.
     for (int i = 0; i < (int)_playerImages.size(); i++) {
         auto icon = _playerImages[i];
         icon->addListener([this, i](const std::string& name, bool down) {
             const int lockedDisplayIndex = static_cast<int>(_playerImages.size()) - 1;
+
             if (down) {
-                // Always reset drag suppression for a new press.
+                // Always reset drag state for a new press.
                 _pointerDown = false;
                 _isDraggingCard = false;
                 _didDragCard = false;
                 _pendingDragInit = false;
                 _draggedCardIndex = -1;
 
-                if (i == lockedDisplayIndex) {
-                    return;
-                }
+                // Don't arm drag for local player's own slot.
+                if (i == lockedDisplayIndex) return;
+
                 _draggedCardIndex = i;
                 _pointerDown = true;
-                _isDraggingCard = false;
-                _didDragCard = false;
                 _pendingDragInit = true;
                 return;
             }
 
-            if (!down && !_didDragCard) {
+            // On release: only open house select if no drag occurred.
+            if (_didDragCard) return;
+
+            bool isLocalSlot = (i == lockedDisplayIndex);
+            if (isLocalSlot) {
+                _pendingSlotToBeOpened = -1;
                 _status = Status::SELECT;
+                return;
             }
+
+            // Resolve display slot i to game slot via remapPlayersForDisplay logic.
+            // display slot i => game slot (localIndex + 1 + i) % totalSlots
+            int localIndex = _network->getLocalPlayerNumber();
+            int totalSlots = (int)_gameState->getPlayers().size();
+            int gameSlot = (localIndex + 1 + i) % totalSlots;
+
+            if (!_network->checkRealPlayer(gameSlot)) {
+                // AI slot — only the host may open it.
+                if (_network->isHost()) {
+                    _pendingSlotToBeOpened = gameSlot;
+                    _status = Status::SELECT;
+                }
+                // Non-host: no-op.
+            }
+            // Another real player's slot: no-op for everyone.
         });
     }
 }
@@ -821,10 +842,20 @@ void LobbyScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
     const auto& networkedPlayers = _network->getNetworkedPlayers();
-    const int realCount = (int)networkedPlayers.size();
+    const int realPlayerCount = (int)networkedPlayers.size();
     const int totalSlots = (int)_gameState->getPlayers().size();
 
-    for (int i = 0; i < realCount; i++) {
+    for (int i = 0; i < realPlayerCount; i++) {
+        // If this slot previously had an AI house, clear it first
+        if (_network->isHost() && !_network->getAIHouse(i).empty()) {
+            _gameState->setRealPlayer(
+                i,
+                networkedPlayers[i].username,
+                ""
+            );
+            _network->clearAIHouse(i);
+        }
+
         _gameState->setRealPlayer(
             i,
             networkedPlayers[i].username,
@@ -832,12 +863,17 @@ void LobbyScene::updateNetworkOrder() {
         );
     }
 
-    // Host only: demote any slots beyond the current real player count back to AI
-    if (_network->isHost()) {
-        for (int i = realCount; i < totalSlots; i++) {
-            if (!_gameState->getPlayerBySlot(i)->isAI()) {
-                _gameState->demoteToAI(i);
-            }
+    // Sync AI slot house selections from the host's authoritative map
+    for (int i = realPlayerCount; i < totalSlots; i++) {
+        std::string aIHouse = _network->getAIHouse(i);
+        if (!aIHouse.empty()) {
+            _gameState->setRealPlayer(
+                i,
+                _gameState->getPlayerBySlot(i)->getPlayerName(),
+                aIHouse
+            );
+        } else if (_network->isHost() && !_gameState->getPlayerBySlot(i)->isAI()) {
+            _gameState->demoteToAI(i);
         }
     }
 }

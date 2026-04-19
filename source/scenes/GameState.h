@@ -233,13 +233,14 @@ public:
     bool didLose();
     
     /**
-     * Replaces the player at the given slot with a default AI placeholder,
-     * re-wires the neighbour ring, and updates the player ID map.
-     * Called when a real player disconnects from the lobby before the game starts.
+     * Replaces the player at the given slot with an EasyPlayerAI, optionally
+     * preserving their house. Re-wires the neighbour ring and updates the
+     * player ID map. Note: caller must call ai->init() after this to set _db.
      *
-     * @param slot  The 0-based slot index of the player to demote.
+     * @param slot   The 0-based slot index of the player to demote.
+     * @param house  The house ID to assign to the new AI, or "" for none.
      */
-    void demoteToAI(int slot);
+    void demoteToAI(int slot, const std::string& house = "");
 
 private:
 
