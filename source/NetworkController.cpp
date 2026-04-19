@@ -8,6 +8,68 @@ using namespace cugl::scene2;
 using namespace cugl::netcode;
 using namespace std;
 
+namespace {
+constexpr int kMaxPlayers = GameStateMessage::kMaxPlayers;
+
+/**
+ * Reads player health and runtime support-effect values from a game-state payload.
+ *
+ * The payload is expected to contain `kMaxPlayers` health values first,
+ * followed by `kMaxPlayers` groups of shield mitigation, shield duration,
+ * barrier multiplier, and barrier duration values.
+ *
+ * @param deserializer  The deserializer positioned at the first player-health
+ *                      field within a `GAME_UPDATE` payload.
+ * @param stateMsg      The game-state message receiving the decoded player
+ *                      runtime state.
+ */
+void readPlayerRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& stateMsg) {
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        stateMsg.playerHP[ii] = deserializer.readFloat();
+    }
+
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        PlayerRuntimeEffectState& effectState = stateMsg.playerRuntimeEffects[ii];
+        effectState.shieldMitigation = deserializer.readFloat();
+        effectState.shieldDuration = deserializer.readFloat();
+        effectState.barrierMultiplier = deserializer.readFloat();
+        effectState.barrierDuration = deserializer.readFloat();
+    }
+}
+
+/**
+ * Writes player health and runtime support-effect values into a game-state payload.
+ *
+ * The serializer always emits exactly `kMaxPlayers` player slots in slot order.
+ * Missing slots are written with default values so the snapshot stays fixed-width.
+ *
+ * @param serializer  The serializer to append player runtime state to.
+ * @param players     The authoritative players whose health, shield, and barrier
+ *                    values should be written into the outgoing snapshot.
+ */
+void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_ptr<Player>>& players) {
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        const float health = ii < players.size() ? players[ii]->getCurrentHealth() : 0.0f;
+        serializer.writeFloat(health);
+    }
+
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        if (ii < players.size()) {
+            const auto& player = players[ii];
+            serializer.writeFloat(player->getShieldHealth());
+            serializer.writeFloat(player->getShieldDuration());
+            serializer.writeFloat(player->getBarrierMultiplier());
+            serializer.writeFloat(player->getBarrierDuration());
+        } else {
+            serializer.writeFloat(0.0f);
+            serializer.writeFloat(0.0f);
+            serializer.writeFloat(1.0f);
+            serializer.writeFloat(0.0f);
+        }
+    }
+}
+} // namespace
+
 /*HELPERS*/
 
 /**
@@ -289,37 +351,17 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _enemy = playerData.back();
             break;
         }
-		case MessageType::GAME_UPDATE : {
-			GameStateMessage stateMsg;
-			stateMsg.bossHealth = _deserializer.readFloat();
-			stateMsg.bossTarget = _deserializer.readSint32();
-			stateMsg.bossState = _deserializer.readSint32();
-			stateMsg.stateTime = _deserializer.readFloat();
-			stateMsg.player1HP = _deserializer.readFloat();
-			stateMsg.player2HP = _deserializer.readFloat();
-			stateMsg.player3HP = _deserializer.readFloat();
-			stateMsg.player4HP = _deserializer.readFloat();
+			case MessageType::GAME_UPDATE : {
+				GameStateMessage stateMsg;
+				stateMsg.bossHealth = _deserializer.readFloat();
+				stateMsg.bossTarget = _deserializer.readSint32();
+				stateMsg.bossState = _deserializer.readSint32();
+				stateMsg.stateTime = _deserializer.readFloat();
+                readPlayerRuntimeState(_deserializer, stateMsg);
             
-            stateMsg.player1ShieldMitigation = _deserializer.readFloat();
-            stateMsg.player1ShieldDuration = _deserializer.readFloat();
-            stateMsg.player1BarrierMultiplier = _deserializer.readFloat();
-            stateMsg.player1BarrierDuration = _deserializer.readFloat();
-            stateMsg.player2ShieldMitigation = _deserializer.readFloat();
-            stateMsg.player2ShieldDuration = _deserializer.readFloat();
-            stateMsg.player2BarrierMultiplier = _deserializer.readFloat();
-            stateMsg.player2BarrierDuration = _deserializer.readFloat();
-            stateMsg.player3ShieldMitigation = _deserializer.readFloat();
-            stateMsg.player3ShieldDuration = _deserializer.readFloat();
-            stateMsg.player3BarrierMultiplier = _deserializer.readFloat();
-            stateMsg.player3BarrierDuration = _deserializer.readFloat();
-            stateMsg.player4ShieldMitigation = _deserializer.readFloat();
-            stateMsg.player4ShieldDuration = _deserializer.readFloat();
-            stateMsg.player4BarrierMultiplier = _deserializer.readFloat();
-            stateMsg.player4BarrierDuration = _deserializer.readFloat();
-            
-			_latestGameState = stateMsg;
-			break;
-		}
+				_latestGameState = stateMsg;
+				break;
+			}
 		case MessageType::GAME_WON: {
 			_gameWon = true;
 			break;
@@ -529,29 +571,7 @@ void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.writeSint32(state.getEnemy()->getCurrentState());
 	_serializer.writeFloat(state.getEnemy()->getStateTime());
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
-	for (int i = 0; i < 4; i++) {
-		if (i < players.size()) {
-			_serializer.writeFloat(players[i]->getCurrentHealth());
-		}
-		else {
-			_serializer.writeFloat(0.0f);
-		}
-	}
-	for (int i = 0; i < 4; i++) {
-		if (i < players.size()) {
-			const auto& player = players[i];
-			_serializer.writeFloat(player->getShieldHealth());
-			_serializer.writeFloat(player->getShieldDuration());
-			_serializer.writeFloat(player->getBarrierMultiplier());
-			_serializer.writeFloat(player->getBarrierDuration());
-		}
-		else {
-			_serializer.writeFloat(0.0f);
-			_serializer.writeFloat(0.0f);
-			_serializer.writeFloat(1.0f);
-			_serializer.writeFloat(0.0f);
-		}
-	}
+    writePlayerRuntimeState(_serializer, players);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
 }

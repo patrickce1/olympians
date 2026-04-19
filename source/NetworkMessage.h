@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cugl/cugl.h>
 
 #ifndef __NETWORK_MESSAGES_H__
@@ -68,10 +69,19 @@ struct PassMessage {
     int passDirection; // Direction: 1=left, 2=right
 };
 
+struct PlayerRuntimeEffectState {
+    float shieldMitigation;
+    float shieldDuration;
+    float barrierMultiplier;
+    float barrierDuration;
+};
+
 /* Message sent by the host to other players about the current state of the game
 * GameState has a function to update itself according to the information in this message type
 */
 struct GameStateMessage {
+    static constexpr int kMaxPlayers = 4;
+
     //boss health
     float bossHealth;
     //who the boss is facing
@@ -86,28 +96,49 @@ struct GameStateMessage {
     //but that is for UI people to add to ts
 
     //player health
-    float player1HP;
-    float player2HP;
-    float player3HP;
-    float player4HP;
-    
+    union {
+        struct {
+            float player1HP;
+            float player2HP;
+            float player3HP;
+            float player4HP;
+        };
+        float playerHP[kMaxPlayers];
+    };
+
     //player buffs/debuff metadata
-    float player1ShieldMitigation = 0.0f;
-    float player1ShieldDuration = 0.0f;
-    float player1BarrierMultiplier = 1.0f;
-    float player1BarrierDuration = 0.0f;
-    float player2ShieldMitigation = 0.0f;
-    float player2ShieldDuration = 0.0f;
-    float player2BarrierMultiplier = 1.0f;
-    float player2BarrierDuration = 0.0f;
-    float player3ShieldMitigation = 0.0f;
-    float player3ShieldDuration = 0.0f;
-    float player3BarrierMultiplier = 1.0f;
-    float player3BarrierDuration = 0.0f;
-    float player4ShieldMitigation = 0.0f;
-    float player4ShieldDuration = 0.0f;
-    float player4BarrierMultiplier = 1.0f;
-    float player4BarrierDuration = 0.0f;
+    union {
+        struct {
+            float player1ShieldMitigation;
+            float player1ShieldDuration;
+            float player1BarrierMultiplier;
+            float player1BarrierDuration;
+            float player2ShieldMitigation;
+            float player2ShieldDuration;
+            float player2BarrierMultiplier;
+            float player2BarrierDuration;
+            float player3ShieldMitigation;
+            float player3ShieldDuration;
+            float player3BarrierMultiplier;
+            float player3BarrierDuration;
+            float player4ShieldMitigation;
+            float player4ShieldDuration;
+            float player4BarrierMultiplier;
+            float player4BarrierDuration;
+        };
+        PlayerRuntimeEffectState playerRuntimeEffects[kMaxPlayers];
+    };
+
+    GameStateMessage()
+        : bossHealth(0.0f),
+          bossTarget(0),
+          bossState(0),
+          stateTime(0.0f) {
+        std::fill_n(playerHP, kMaxPlayers, 0.0f);
+        for (int ii = 0; ii < kMaxPlayers; ++ii) {
+            playerRuntimeEffects[ii] = { 0.0f, 0.0f, 1.0f, 0.0f };
+        }
+    }
 
     //future info like boss direction will be added as the game expands
 };
