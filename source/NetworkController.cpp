@@ -120,7 +120,6 @@ std::string NetworkController::getRoom() {
  * Should be called when leaving a lobby or game session.
  */
 void NetworkController::disconnect() {
-	CULog("Disconnecting");
 	_network = nullptr;
     _onlinePlayers.clear();
     _gameStarted = false;
