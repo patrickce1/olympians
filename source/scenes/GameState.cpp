@@ -214,6 +214,8 @@ bool GameState::initAI(ItemController& itemController) {
  *
  * @param itemController  The ItemController whose database is needed for
  *                        AI player initialisation.
+ * @param assets          The AssetManager containing animation metadata and
+ *                        asset definitions needed for enemy initialisation.
  * @return true if all resources loaded and initialised successfully.
  */
 bool GameState::init(ItemController& itemController, const std::shared_ptr<cugl::AssetManager>& assets) {

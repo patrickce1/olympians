@@ -1037,13 +1037,13 @@ bool GameScene::initializeAllEnemyAnimations() {
  */
 void GameScene::switchVisibleAnimation(const std::string& animationId) {
     // Find the sprite for this animation
-    auto it = _enemyAnimationSpriteNodes.find(animationId);
-    if (it == _enemyAnimationSpriteNodes.end()) {
+    auto spriteNodeIter = _enemyAnimationSpriteNodes.find(animationId);
+    if (spriteNodeIter == _enemyAnimationSpriteNodes.end()) {
         CULogError("Animation not found: %s", animationId.c_str());
         return;
     }
     
-    auto newSprite = it->second;
+    auto newSprite = spriteNodeIter->second;
     if (!newSprite) {
         CULogError("Animation sprite is null: %s", animationId.c_str());
         return;

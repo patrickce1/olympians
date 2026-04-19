@@ -8,9 +8,9 @@
 using namespace cugl;
 
 // Static file-scope loader and initialization flags shared by all Enemy instances
-static EnemyLoader sEnemyLoader;
-static bool sEnemyLoaderInitialized = false;
-static std::string sEnemyLoaderPath;
+static EnemyLoader sEnemyLoader; // Singleton loader instance
+static bool sEnemyLoaderInitialized = false; // Flag to ensure loader is initialized only once
+static std::string sEnemyLoaderPath; // Path where the loader was initialized
 
 /**
  * Ensures the animation registry is loaded from AssetManager (if provided).
@@ -108,7 +108,11 @@ bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
     return true;
 }
 
-/** Returns true if the enemy initializes successfully. */
+/** Returns true if the enemy initializes successfully. 
+ *  @param enemyId The unique ID of the enemy to load (e.g., "cyclops")
+ *  @param jsonPath Path to the enemies.json configuration file
+ *  @return true if initialization succeeds, false on error
+*/
 bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     if (!ensureEnemyLoaderInitialized(jsonPath)) {
         return false;
