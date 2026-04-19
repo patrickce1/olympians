@@ -63,6 +63,9 @@ ItemDef::House ItemDef::houseFromString(std::string value, House fallback) {
     if (value == "demeter")   return House::Demeter;
     if (value == "ares")      return House::Ares;
     if (value == "athena")    return House::Athena;
+    if (value == "aphrodite") return House::Aphrodite;
+    if (value == "hephestus") return House::Hephestus;
+    if (value == "hermes")    return House::Hermes;
     if (value == "none")      return House::None;
     return fallback;
 }
