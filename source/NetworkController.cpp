@@ -489,12 +489,12 @@ void NetworkController::broadcastSupportEffect(SupportEffectType effectType, flo
  * @return          true if the player is a real networked player, false if AI.
  */
 bool NetworkController::checkRealPlayer(int playerID) {
-	if (playerID >= _onlinePlayers.size() ) {
-		return false;
-	}
-	else {
-		return true;
-	}
+    if (playerID >= _onlinePlayers.size() ) {
+        return false;
+    }
+    else {
+        return true;
+    }
 }
 
 /**
@@ -763,12 +763,29 @@ void NetworkController::setLocalHouse(const std::string& houseID) {
     }
 }
 
-/** Returns true if every player in the lobby has selected a house. */
+/**
+ * Returns true if every real player has selected a house AND every AI slot
+ * has a house assigned by the host. The start button only activates when
+ * this returns true, enforcing that no slot enters the game without a house.
+ */
 bool NetworkController::allPlayersSelectedHouse() const {
     if (_onlinePlayers.empty()) return false;
+
+    // All real players must have a house
     for (const NetworkedPlayer& player : _onlinePlayers) {
         if (player.houseID.empty()) return false;
     }
+
+    // All AI slots must have a house — any slot index not in _onlinePlayers is AI
+    int totalSlots = 4;
+    int realCount = (int)_onlinePlayers.size();
+    for (int i = 0; i < totalSlots; i++) {
+        if (i >= realCount) {
+            auto aIHouse = _aIHouses.find(i);
+            if (aIHouse == _aIHouses.end() || aIHouse->second.empty()) return false;
+        }
+    }
+
     return true;
 }
 

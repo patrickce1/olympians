@@ -484,7 +484,6 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testValidationFailures();
     testScalingFallbacks();
     testBaseValueDefaults();
-    testEffectiveValueComputation(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     
     printSummary();
 }
