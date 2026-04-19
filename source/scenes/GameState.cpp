@@ -79,26 +79,27 @@ void GameState::initPlayers() {
 void GameState::setRealPlayer(int playerNumber, const std::string& playerName, const std::string& houseName) {
     if (playerNumber < 0 || playerNumber >= (int)_players.size()) return;
 
-    if (houseName.empty()) {
-        // No house yet — reconstruct as a real Player with no house
-        // so isAI() correctly returns false for this slot
-        if (_players[playerNumber]->isAI()) {
-            _players[playerNumber] = std::make_shared<Player>(
-                "",
-                playerNumber,
-                playerName,
-                _houseLoader
-            );
-            _playerIdMap[playerNumber] = _players[playerNumber].get();
+    const bool replacedLocalPlayer = (_localPlayer == _players[playerNumber].get());
 
-            const int n = (int)_players.size();
-            for (int i = 0; i < n; i++) {
-                _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
-                _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
-            }
-        } else {
-            // Already a real player — just update the name
-            _players[playerNumber]->setPlayerName(playerName);
+    if (houseName.empty()) {
+        // Always reconstruct with no house to guarantee house is cleared,
+        // regardless of whether the slot was previously AI or real
+        _players[playerNumber] = std::make_shared<Player>(
+            "",
+            playerNumber,
+            playerName,
+            _houseLoader
+        );
+        _playerIdMap[playerNumber] = _players[playerNumber].get();
+
+        const int n = (int)_players.size();
+        for (int i = 0; i < n; i++) {
+            _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
+            _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+        }
+        
+        if (replacedLocalPlayer) {
+            _localPlayer = _players[playerNumber].get();
         }
         return;
     }
@@ -116,6 +117,9 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
     for (int i = 0; i < n; i++) {
         _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
         _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+    }
+    if (replacedLocalPlayer) {
+        _localPlayer = _players[playerNumber].get();
     }
 }
 
@@ -381,13 +385,30 @@ void GameState::assignMissingHouses(ItemController& itemController) {
     const auto& allHouses = _houseLoader.getAllOrdered();
     if (allHouses.empty()) return;
 
+    Player* localBeforeAssignment = _localPlayer;
     const int n = (int)_players.size();
+
     for (int i = 0; i < n; i++) {
         if (!_players[i]->getHouseName().empty()) continue;
 
-        std::string randomHouse = allHouses[rand() % allHouses.size()].id;
+        // Build pool of houses not already assigned to any slot
+        std::vector<std::string> availableHouses;
+        for (const auto& house : allHouses) {
+            bool taken = false;
+            for (const auto& player : _players) {
+                if (player->getHouseName() == house.id) {
+                    taken = true;
+                    break;
+                }
+            }
+            if (!taken) availableHouses.push_back(house.id);
+        }
 
-        // Preserve name and slot, reconstruct as EasyPlayerAI with a real house
+        if (availableHouses.empty()) continue;
+
+        std::string randomHouse = availableHouses[rand() % availableHouses.size()];
+
+        Player* previousPlayer = _players[i].get();
         auto aiPlayer = std::make_shared<EasyPlayerAI>(
             randomHouse,
             i,
@@ -397,6 +418,9 @@ void GameState::assignMissingHouses(ItemController& itemController) {
         aiPlayer->init(itemController.getDatabase(), "json/playerAI.json");
         _players[i] = aiPlayer;
         _playerIdMap[i] = aiPlayer.get();
+        if (localBeforeAssignment == previousPlayer) {
+            _localPlayer = aiPlayer.get();
+        }
     }
 
     // Re-wire neighbour ring
@@ -407,17 +431,20 @@ void GameState::assignMissingHouses(ItemController& itemController) {
 }
 
 /**
- * Replaces the player at the given slot with a default AI placeholder,
- * re-wires the neighbour ring, and updates the player ID map.
- * Called when a real player disconnects from the lobby before the game starts.
+ * Replaces the player at the given slot with an EasyPlayerAI, optionally
+ * preserving their house. Re-wires the neighbour ring and updates the
+ * player ID map. Note: caller must call ai->init() after this to set _db.
  *
- * @param slot  The 0-based slot index of the player to demote.
+ * @param slot   The 0-based slot index of the player to demote.
+ * @param house  The house ID to assign to the new AI, or "" for none.
  */
-void GameState::demoteToAI(int slot) {
+void GameState::demoteToAI(int slot, const std::string& house) {
     if (slot < 0 || slot >= (int)_players.size()) return;
 
+    const bool replacedLocalPlayer = (_localPlayer == _players[slot].get());
+
     _players[slot] = std::make_shared<EasyPlayerAI>(
-        "",
+        house,   // preserve house instead of always passing ""
         slot,
         "AI Player " + std::to_string(slot),
         _houseLoader
@@ -428,5 +455,8 @@ void GameState::demoteToAI(int slot) {
     for (int i = 0; i < n; i++) {
         _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
         _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+    }
+    if (replacedLocalPlayer) {
+        _localPlayer = _players[slot].get();
     }
 }
