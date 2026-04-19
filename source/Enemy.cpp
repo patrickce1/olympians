@@ -7,33 +7,81 @@
 
 using namespace cugl;
 
-/** Returns true if the enemy initializes successfully. */
-bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
-    static EnemyLoader sLoader;
-    static bool sLoaded = false;
-    static std::string sLoadedPath;
+// Static file-scope loader and initialization flags shared by all Enemy instances
+static EnemyLoader sEnemyLoader;
+static bool sEnemyLoaderInitialized = false;
+static std::string sEnemyLoaderPath;
 
-    if (!sLoaded) {
-        if (!sLoader.loadFromFile(jsonPath)) {
+/**
+ * Ensures the animation registry is loaded from AssetManager (if provided).
+ * Should be called before ensuring JSON definitions are loaded.
+ * 
+ * @param assets The AssetManager containing animation metadata, or nullptr if not available
+ * @return true if successful (or no assets provided), false on error
+ */
+static bool ensureAnimationRegistryLoaded(const std::shared_ptr<cugl::AssetManager>& assets) {
+    if (!assets) {
+        return true;  // No assets provided, continue without animations
+    }
+    
+    // Only load if not already loaded
+    if (sEnemyLoader.isAnimationRegistryLoaded()) {
+        return true;  // Already loaded
+    }
+    
+    if (!sEnemyLoader.loadAnimationRegistry(assets)) {
+        CULog("WARNING: Failed to load animation registry, continuing without animation metadata");
+        return false;  // Non-fatal error
+    }
+    
+    return true;
+}
+
+/**
+ * Initializes the static enemy loader with definitions from a JSON file.
+ * Uses static initialization pattern to load enemy definitions once per application run.
+ * Must call ensureAnimationRegistryLoaded() first if animation metadata is needed.
+ * 
+ * @param jsonPath Path to enemies.json file
+ * @return true if loader is ready, false on error
+ */
+static bool ensureEnemyLoaderInitialized(const std::string& jsonPath) {
+    if (!sEnemyLoaderInitialized) {
+        if (!sEnemyLoader.loadFromFile(jsonPath)) {
             CULog("ERROR: Failed to load enemy JSON from %s", jsonPath.c_str());
             return false;
         }
-        sLoaded = true;
-        sLoadedPath = jsonPath;
+        sEnemyLoaderInitialized = true;
+        sEnemyLoaderPath = jsonPath;
     }
 
-    if (sLoadedPath != jsonPath) {
-        CULog("ERROR: Enemy JSON already loaded from different path: %s vs %s", sLoadedPath.c_str(), jsonPath.c_str());
+    if (sEnemyLoaderPath != jsonPath) {
+        CULog("ERROR: Enemy JSON already loaded from different path: %s vs %s", 
+              sEnemyLoaderPath.c_str(), jsonPath.c_str());
         return false;
     }
 
-    if (!sLoader.has(enemyId)) {
-        CULog("ERROR: Enemy ID not found: %s", enemyId.c_str());
-        return false;
-    }
+    return true;
+}
 
-    const EnemyLoader::EnemyDef& def = sLoader.get(enemyId);
-    
+/**
+ * Gets the static enemy loader singleton.
+ * Must call ensureEnemyLoaderInitialized() first.
+ * 
+ * @return Reference to the static enemy loader
+ */
+static EnemyLoader& getEnemyLoader() {
+    return sEnemyLoader;
+}
+
+/**
+ * Initializes this enemy instance from the given enemy definition.
+ * Sets up state machine, health, side multipliers, and AI parameters.
+ * 
+ * @param def The enemy definition to initialize from
+ * @return true if initialization succeeds, false if required state missing
+ */
+bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
     _enemyId = def.id;
     _spritesheetPath = def.spritesheetPath;
     _maxHealth = def.maxHealth;
@@ -41,16 +89,18 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     _states = def.states;
     _customData = def.customData;
     
+    // Initialize all side damage multipliers to default (1.0 = no modification)
     for (int i = 0; i < NUM_PLAYERS; i++) {
         _sideMultipliers[i] = 1.0f;
     }
 
+    // Verify required idle state exists
     if (_states.count(EnemyLoader::State::IDLE) == 0) {
-        CULog("ERROR: Enemy '%s' missing required idle state", enemyId.c_str());
+        CULog("ERROR: Enemy '%s' missing required idle state", def.id.c_str());
         return false;
     }
+    
     enterState(EnemyLoader::State::IDLE);
-
     _attackLockout = 0.0f;
     _retargetLikelihood = def.ai.retargetLikelihood;
     _defenseLikelihood = def.ai.defenseLikelihood;
@@ -58,8 +108,26 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
     return true;
 }
 
-/** Initializes the enemy with animation metadata loaded from AssetManager.
- * Loads animation registry from assets if not already loaded, then initializes enemy state.
+/** Returns true if the enemy initializes successfully. */
+bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
+    if (!ensureEnemyLoaderInitialized(jsonPath)) {
+        return false;
+    }
+
+    EnemyLoader& loader = getEnemyLoader();
+    
+    if (!loader.has(enemyId)) {
+        CULog("ERROR: Enemy ID not found: %s", enemyId.c_str());
+        return false;
+    }
+
+    const EnemyLoader::EnemyDef& def = loader.get(enemyId);
+    return initializeFromDef(def);
+}
+
+/**
+ * Initializes the enemy with animation metadata loaded from AssetManager.
+ * Loads animation registry FIRST, then initializes enemy state.
  * Uses smart caching: definitions load once, registry loads only when provided and not yet loaded.
  * 
  * @param enemyId  The unique ID of the enemy to load
@@ -69,60 +137,25 @@ bool Enemy::init(const std::string& enemyId, const std::string& jsonPath) {
  */
 bool Enemy::init(const std::string& enemyId, const std::string& jsonPath, 
                 const std::shared_ptr<cugl::AssetManager>& assets) {
-    static EnemyLoader sLoader;
-    static bool sLoaded = false;
-    static std::string sLoadedPath;
-
-    // Smart registry loading: only load if assets provided AND not already loaded
-    if (assets && !sLoader.isAnimationRegistryLoaded()) {
-        if (!sLoader.loadAnimationRegistry(assets)) {
-            CULog("WARNING: Failed to load animation registry, continuing without animation metadata");
-        }
+    // Load animation registry FIRST so state definitions can be populated with animation metadata
+    if (!ensureAnimationRegistryLoaded(assets)) {
+        // Non-fatal error - continue without animations
     }
-
-    if (!sLoaded) {
-        if (!sLoader.loadFromFile(jsonPath)) {
-            CULog("ERROR: Failed to load enemy JSON from %s", jsonPath.c_str());
-            return false;
-        }
-        sLoaded = true;
-        sLoadedPath = jsonPath;
-    }
-
-    if (sLoadedPath != jsonPath) {
-        CULog("ERROR: Enemy JSON already loaded from different path: %s vs %s", sLoadedPath.c_str(), jsonPath.c_str());
+    
+    // Now load enemy definitions (populated from registry if animation metadata is available)
+    if (!ensureEnemyLoaderInitialized(jsonPath)) {
         return false;
     }
 
-    if (!sLoader.has(enemyId)) {
+    EnemyLoader& loader = getEnemyLoader();
+    
+    if (!loader.has(enemyId)) {
         CULog("ERROR: Enemy ID not found: %s", enemyId.c_str());
         return false;
     }
 
-    const EnemyLoader::EnemyDef& def = sLoader.get(enemyId);
-    
-    _enemyId = def.id;
-    _spritesheetPath = def.spritesheetPath;
-    _maxHealth = def.maxHealth;
-    _currentHealth = def.maxHealth;
-    _states = def.states;
-    _customData = def.customData;
-    
-    for (int i = 0; i < NUM_PLAYERS; i++) {
-        _sideMultipliers[i] = 1.0f;
-    }
-
-    if (_states.count(EnemyLoader::State::IDLE) == 0) {
-        CULog("ERROR: Enemy '%s' missing required idle state", enemyId.c_str());
-        return false;
-    }
-    enterState(EnemyLoader::State::IDLE);
-
-    _attackLockout = 0.0f;
-    _retargetLikelihood = def.ai.retargetLikelihood;
-    _defenseLikelihood = def.ai.defenseLikelihood;
-    
-    return true;
+    const EnemyLoader::EnemyDef& def = loader.get(enemyId);
+    return initializeFromDef(def);
 }
 
 /** Returns the current state that the enemy is in. */
@@ -301,20 +334,6 @@ void Enemy::takeDamage(float damage, int playerIndex) {
     if (relativeIndex < _sideMultipliers.size()) {
         multiplier = _sideMultipliers[relativeIndex];
     }
-
-
-    // Debug logging for damage calculation
-    CULog(
-        "[Enemy]: Damage Calculation. PlayerIndex: %d | TargetIndex: %d | RelativeIndex: %d | "
-        "BaseDamage: %f | Multiplier: %f | FinalDamage: %f",
-        playerIndex,
-        _targetIndex,
-        relativeIndex,
-        damage,
-        multiplier,
-        damage * multiplier
-    );
-
 
     updateHealth(-(damage * multiplier));
 }

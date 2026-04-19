@@ -1084,52 +1084,71 @@ void GameScene::switchVisibleAnimation(const std::string& animationId) {
  * @param dt                The elapsed time in seconds since last frame
  * @param localPlayerIndex  The local player's index (0-3) for direction calculation
  */
-void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
-    auto enemy = _gameState.getEnemy();
-    if (!enemy) {
-        return;
+/**
+ * Ensures the frame index is within valid bounds.
+ * Clamps negative frames to 0 and frames beyond frameCount to frameCount-1.
+ *
+ * @param frameInRow The frame index to validate
+ * @return The clamped frame index
+ */
+int GameScene::validateFrameIndex(int frameInRow) const {
+    if (frameInRow < 0) {
+        return 0;
+    }
+    if (frameInRow >= _currentAnimationEntry.frameCount) {
+        return _currentAnimationEntry.frameCount - 1;
+    }
+    return frameInRow;
+}
+
+/**
+ * Calculates the frame index during the buildup phase of an animation.
+ * Buildup frames loop until the buildup duration elapses.
+ *
+ * @param stateTime The time elapsed in the current state (seconds)
+ * @param buildupDuration The total duration of the buildup phase (seconds)
+ * @param buildupFrames Number of frames in the buildup phase
+ * @return The looping frame index within the buildup frames
+ */
+int GameScene::calculateBuildupFrame(float stateTime, float buildupDuration, int buildupFrames) const {
+    float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
+    return (int)(frameFloat) % buildupFrames;
+}
+
+/**
+ * Calculates the frame index during the attack phase of an animation.
+ * Attack frames play sequentially without looping, clamped to the final frame.
+ *
+ * @param stateTime The time elapsed in the current state (seconds)
+ * @param buildupDuration The total duration of the buildup phase (seconds)
+ * @param buildupFrames Number of frames in the buildup phase
+ * @return The attack phase frame index (clamped to last attack frame)
+ */
+int GameScene::calculateAttackFrame(float stateTime, float buildupDuration, int buildupFrames) const {
+    float timeSinceAttackStart = stateTime - buildupDuration;
+    float frameFloat = timeSinceAttackStart / _currentAnimationEntry.frameDuration;
+    int framesIntoAttack = (int)(frameFloat);
+    int totalAttackFrames = _currentAnimationEntry.frameCount - buildupFrames;
+    
+    // Clamp to last attack frame (no looping)
+    if (framesIntoAttack >= totalAttackFrames) {
+        framesIntoAttack = totalAttackFrames - 1;
     }
     
-    // Ensure sprite is visible
-    if (!_currentVisibleAnimationSprite) {
-        return;
-    }
-    
-    // Safety check: ensure animation entry has valid data
-    if (_currentAnimationEntry.frameCount <= 0 || _currentAnimationEntry.frameDuration <= 0) {
-        CULog("WARN: Invalid animation entry: frameCount=%d, frameDuration=%.3f", 
-              _currentAnimationEntry.frameCount, _currentAnimationEntry.frameDuration);
-        return;
-    }
-    
-    _currentVisibleAnimationSprite->setVisible(true);
-    if (_bossSprite) {
-        _bossSprite->setVisible(true);
-    }
-    
-    // Hide static sprite when animation is playing
-    if (_gameArea) {
-        auto staticSprite = _gameArea->getChildByName("bossIdle");
-        if (staticSprite) {
-            staticSprite->setVisible(false);
-        }
-    }
-    
-    // Calculate direction the enemy should face
-    int newDirection = EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex);
-    if (newDirection < 0 || newDirection > 3) {
-        newDirection = 0;  // Safety clamp
-    }
-    _enemyAnimationCurrentDirection = newDirection;
-    
-    // Get the enemy's state time - this is how long they've been in the current state
-    float stateTime = enemy->getStateTime();
-    
-    // Calculate which animation frame should be displayed
-    int frameInRow = 0;
+    return buildupFrames + framesIntoAttack;
+}
+
+/**
+ * Calculates which animation frame should be displayed based on state time and animation phase.
+ * Handles both buildup/attack animations and simple looping animations.
+ *
+ * @param stateTime The time elapsed in the current state (seconds)
+ * @return The frame index within the animation row (0-indexed)
+ */
+int GameScene::calculateAnimationFrame(float stateTime) const {
+    int buildupFrames = _currentAnimationEntry.buildupFrameCount;
     
     // Ensure buildupFrameCount is valid
-    int buildupFrames = _currentAnimationEntry.buildupFrameCount;
     if (buildupFrames < 0) buildupFrames = _currentAnimationEntry.frameCount;
     if (buildupFrames > _currentAnimationEntry.frameCount) buildupFrames = _currentAnimationEntry.frameCount;
     
@@ -1141,35 +1160,51 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
         float buildupDuration = stateDef ? stateDef->buildUpTime : (buildupFrames * _currentAnimationEntry.frameDuration);
         
         if (stateTime < buildupDuration) {
-            // Buildup phase: loop the first buildupFrames for the entire buildupDuration
-            float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
-            frameInRow = (int)(frameFloat) % buildupFrames;
+            return calculateBuildupFrame(stateTime, buildupDuration, buildupFrames);
         } else {
-            // Attack phase: play through attack frames without looping, clamped to final frame
-            float timeSinceAttackStart = stateTime - buildupDuration;
-            float frameFloat = timeSinceAttackStart / _currentAnimationEntry.frameDuration;
-            int framesIntoAttack = (int)(frameFloat);
-            int totalAttackFrames = _currentAnimationEntry.frameCount - buildupFrames;
-            
-            // Clamp to last attack frame (no looping)
-            if (framesIntoAttack >= totalAttackFrames) {
-                framesIntoAttack = totalAttackFrames - 1;
-            }
-            frameInRow = buildupFrames + framesIntoAttack;
+            return calculateAttackFrame(stateTime, buildupDuration, buildupFrames);
         }
     } else {
         // Simple looping animation - no attack phase, just loop all frames
         float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
-        frameInRow = (int)(frameFloat) % _currentAnimationEntry.frameCount;
+        return (int)(frameFloat) % _currentAnimationEntry.frameCount;
+    }
+}
+
+void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy || !_currentVisibleAnimationSprite) {
+        return;
     }
     
-    // Safety clamp frame in row
-    if (frameInRow < 0) {
-        frameInRow = 0;
+    // Safety check: ensure animation entry has valid data
+    if (_currentAnimationEntry.frameCount <= 0 || _currentAnimationEntry.frameDuration <= 0) {
+        CULog("WARN: Invalid animation entry: frameCount=%d, frameDuration=%.3f", 
+              _currentAnimationEntry.frameCount, _currentAnimationEntry.frameDuration);
+        return;
     }
-    if (frameInRow >= _currentAnimationEntry.frameCount) {
-        frameInRow = _currentAnimationEntry.frameCount - 1;
+    
+    // Show sprites and hide static fallback
+    _currentVisibleAnimationSprite->setVisible(true);
+    if (_bossSprite) {
+        _bossSprite->setVisible(true);
     }
+    if (_gameArea) {
+        auto staticSprite = _gameArea->getChildByName("bossIdle");
+        if (staticSprite) {
+            staticSprite->setVisible(false);
+        }
+    }
+    
+    // Calculate direction the enemy should face
+    int newDirection = EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex);
+    newDirection = (newDirection < 0 || newDirection > 3) ? 0 : newDirection;  // Safety clamp
+    _enemyAnimationCurrentDirection = newDirection;
+    
+    // Calculate which animation frame should be displayed based on state time
+    float stateTime = enemy->getStateTime();
+    int frameInRow = calculateAnimationFrame(stateTime);
+    frameInRow = validateFrameIndex(frameInRow);
     
     // Check if damage should trigger at this frame
     if (_currentAnimationEntry.damageFrame >= 0 && 
@@ -1178,25 +1213,19 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
         _enemyAttackDamageDealtThisState = true;
     }
     
-    // Calculate the linear frame index: row is direction, column is frameInRow
+    // Calculate the linear frame index for the sprite sheet
     // Sheet layout: [direction_row][frameCount]
     int linearFrame = (_enemyAnimationCurrentDirection * _currentAnimationEntry.frameCount) + frameInRow;
     
-    // Safety check for linear frame
+    // Safety clamp linear frame to valid range
     int maxFrame = _currentAnimationEntry.frameCount * _currentAnimationEntry.frameRows - 1;
-    if (linearFrame > maxFrame) {
-        linearFrame = maxFrame;
-    }
-    if (linearFrame < 0) {
-        linearFrame = 0;
-    }
+    linearFrame = (linearFrame > maxFrame) ? maxFrame : linearFrame;
+    linearFrame = (linearFrame < 0) ? 0 : linearFrame;
     
-    // Tell the enemy what frame is currently being displayed so it can make decisions based on actual animation
-    if (enemy) {
-        enemy->setCurrentAnimationFrame(frameInRow);
-    }
+    // Tell the enemy what frame is currently being displayed
+    enemy->setCurrentAnimationFrame(frameInRow);
     
-    // Set the frame
+    // Set the frame on the sprite
     _currentVisibleAnimationSprite->setFrame(linearFrame);
 }
 

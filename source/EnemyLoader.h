@@ -243,13 +243,38 @@ public:
     }
 
     bool has(const std::string& id) const { return _enemies.count(id) > 0; }
+    
+    /**
+     * Retrieves an enemy definition by ID.
+     * 
+     * @param id The unique identifier of the enemy to retrieve
+     * @return Reference to the enemy definition
+     * @throws std::out_of_range if the enemy ID is not found
+     */
     const EnemyDef& get(const std::string& id) const { return _enemies.at(id); }
+    
+    /**
+     * Returns all loaded enemy definitions in a lookup map.
+     * 
+     * @return Reference to the map of enemy ID -> EnemyDef
+     */
     const std::unordered_map<std::string, EnemyDef>& getAll() const { return _enemies; }
     
-    /** Checks if animation registry has been loaded. Used for smart initialization. */
-    bool isAnimationRegistryLoaded() const { return !_animationRegistry.empty(); }
-    /** Returns all the mapping of enemy id -> EnemyDef */
+    /**
+     * Returns all loaded enemy definitions in a stable order.
+     * Use this for UI iteration where order matters (e.g., boss selection screens).
+     * 
+     * @return Reference to the ordered vector of EnemyDef
+     */
     const std::vector<EnemyDef>& getAllOrdered() const { return _enemiesVector; }
+    
+    /**
+     * Checks if the animation registry has been successfully loaded.
+     * Used for smart initialization to verify animation metadata is available.
+     * 
+     * @return true if animation registry is populated, false otherwise
+     */
+    bool isAnimationRegistryLoaded() const { return !_animationRegistry.empty(); }
 };
 
 #endif /* !__ENEMY_LOADER_H__ */

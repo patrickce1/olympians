@@ -656,6 +656,46 @@ public:
     void updateEnemyAnimationFrame(float dt, int localPlayerIndex);
 
     /**
+     * Calculates which animation frame should be displayed based on state time and animation phase.
+     * Handles both buildup/attack animations and simple looping animations.
+     *
+     * @param stateTime The time elapsed in the current state (seconds)
+     * @return The frame index within the animation row (0-indexed)
+     */
+    int calculateAnimationFrame(float stateTime) const;
+
+    /**
+     * Calculates the frame index during the buildup phase of an animation.
+     * Buildup frames loop until the buildup duration elapses.
+     *
+     * @param stateTime The time elapsed in the current state (seconds)
+     * @param buildupDuration The total duration of the buildup phase (seconds)
+     * @param buildupFrames Number of frames in the buildup phase
+     * @return The looping frame index within the buildup frames
+     */
+    int calculateBuildupFrame(float stateTime, float buildupDuration, int buildupFrames) const;
+
+    /**
+     * Calculates the frame index during the attack phase of an animation.
+     * Attack frames play sequentially without looping, clamped to the final frame.
+     *
+     * @param stateTime The time elapsed in the current state (seconds)
+     * @param buildupDuration The total duration of the buildup phase (seconds)
+     * @param buildupFrames Number of frames in the buildup phase
+     * @return The attack phase frame index (clamped to last attack frame)
+     */
+    int calculateAttackFrame(float stateTime, float buildupDuration, int buildupFrames) const;
+
+    /**
+     * Ensures the frame index is within valid bounds.
+     * Clamps negative frames to 0 and frames beyond frameCount to frameCount-1.
+     *
+     * @param frameInRow The frame index to validate
+     * @return The clamped frame index
+     */
+    int validateFrameIndex(int frameInRow) const;
+
+    /**
      * Hides the enemy animation sprite and shows the static fallback sprite.
      * 
      * Sets visibility on both the animation sprite node and the container,
