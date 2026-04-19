@@ -87,9 +87,6 @@ protected:
     
     /** The game slot the player intends to open in house select (for AI host control) */
     int _pendingSlotToBeOpened = -1;
-    
-    /** Needed to init AI players when assigning missing houses at game start. */
-    ItemController* _itemController = nullptr;
 
 public:
 #pragma mark -
@@ -125,18 +122,15 @@ public:
      *
      * That is why we have the method {@link #setActive}.
      *
-     * @param assets             The (loaded) assets for this game mode
-     * @param networkController  The network controller shared across all scenes
-     * @param gameState          The state of the game
-     * @param itemController     The item controller needed to init AI players
-     *                           when assignMissingHousesForAI() runs at game start
+     * @param assets                             The (loaded) assets for this game mode
+     * @param networkController     The network controller shared across all scenes
+     * @param gameState                       The state of the game
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets,
               const std::shared_ptr<NetworkController>& networkController,
-              GameState* gameState,
-              ItemController* itemController);
+              GameState* gameState);
     
     /**
      * Retrieves and stores references to the lobby UI elements.

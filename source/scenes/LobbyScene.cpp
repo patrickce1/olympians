@@ -22,18 +22,15 @@ using namespace std;
  *
  * That is why we have the method {@link #setActive}.
  *
- * @param assets             The (loaded) assets for this game mode
- * @param networkController  The network controller shared across all scenes
- * @param gameState          The state of the game
- * @param itemController     The item controller needed to init AI players
- *                           when assignMissingHousesForAI() runs at game start
+ * @param assets                             The (loaded) assets for this game mode
+ * @param networkController     The network controller shared across all scenes
+ * @param gameState                       The state of the game
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
 bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
-          const std::shared_ptr<NetworkController>& networkController,
-          GameState* gameState,
-          ItemController* itemController){
+                     const std::shared_ptr<NetworkController>& networkController,
+                     GameState* gameState){
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -59,10 +56,6 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
     setupListeners();
     
     _status = Status::IDLE;
-    
-    // Store item controller so assignMissingHousesForAI() can init AI
-    // behavior when the host presses Begin Quest.
-    _itemController = itemController;
     
     addChild(scene);
     setActive(false);
@@ -120,21 +113,21 @@ void LobbyScene::setupUI() {
 void LobbyScene::setupListeners() {
     _enterGame->addListener([this](const std::string& name, bool down) {
         if (!down || !_network->isHost()) return;
-        
-        // Assign unique houses to any AI slots that don't have one.
-        // ItemController is needed to reinitialize AI behavior after
-        // reconstructing slots as EasyPlayerAI with their new house.
-        _gameState->assignMissingHousesForAI(*_itemController);
 
-        // Broadcast each AI house to clients.
+        // Assign houses to any AI slots that don't have one yet.
+        // Must happen before allPlayersSelectedHouse() check so newly
+        // assigned houses are in place when it evaluates AI slots.
+        int realPlayerCount = (int)_network->getNetworkedPlayers().size();
+        _gameState->assignMissingHousesForAI();
+
+        // Broadcast each AI house to clients so their _aIHouses maps match
+        // the host's before GameScene activates.
         const auto& players = _gameState->getPlayers();
         int totalSlots = (int)players.size();
-        for (int i = 0; i < totalSlots; i++) {
-            if (!_network->checkRealPlayer(i)) {
-                const std::string& house = players[i]->getHouseName();
-                if (!house.empty()) {
-                    _network->broadcastAIHouseSelection(i, house);
-                }
+        for (int i = realPlayerCount; i < totalSlots; i++) {
+            const std::string& house = players[i]->getHouseName();
+            if (!house.empty()) {
+                _network->broadcastAIHouseSelection(i, house);
             }
         }
 
@@ -333,33 +326,31 @@ std::vector<Player*> LobbyScene::remapPlayersForDisplay() {
  * networked player list. Called every frame during the lobby so that
  * _gameState reflects the latest connected player info before the
  * game scene activates.
- *
- * Uses checkRealPlayer() per slot rather than assuming real players
- * occupy the first N slots, since players can swap positions.
- * AI slots always use demoteToAI() to preserve isAI() == true —
- * setRealPlayer() reconstructs as a plain Player which would break
- * assignMissingHousesForAI() and AI behavior in GameScene.
  */
 void LobbyScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
     const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const int realPlayerCount = (int)networkedPlayers.size();
     const int totalSlots = (int)_gameState->getPlayers().size();
 
-    for (int i = 0; i < totalSlots; i++) {
-        if (_network->checkRealPlayer(i)) {
-            // Real player slot — if it previously had an AI house, clear it first
-            if (_network->isHost() && !_network->getAIHouse(i).empty()) {
-                _gameState->setRealPlayer(i, networkedPlayers[i].username, "");
-                _network->clearAIHouse(i);
-            }
-            _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
-        } else {
-            // AI slot — always use demoteToAI() to preserve isAI() == true.
-            // House is synced from the host's authoritative _aIHouses map,
-            // which is kept in sync across all clients via LOBBY_UPDATE.
-            _gameState->demoteToAI(i, _network->getAIHouse(i));
+    for (int i = 0; i < realPlayerCount; i++) {
+        // If this slot previously had an AI house, clear it first
+        if (_network->isHost() && !_network->getAIHouse(i).empty()) {
+            _gameState->setRealPlayer(i, networkedPlayers[i].username, "");
+            _network->clearAIHouse(i);
         }
+        _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
+    }
+
+    // Always sync AI slot houses regardless of whether they are empty so
+    // that unlocking a house on the host clears the portrait on all clients.
+    for (int i = realPlayerCount; i < totalSlots; i++) {
+        _gameState->setRealPlayer(
+            i,
+            _gameState->getPlayerBySlot(i)->getPlayerName(),
+            _network->getAIHouse(i)
+        );
     }
 }
 

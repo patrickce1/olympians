@@ -1239,12 +1239,5 @@ public:
      * @return  A reference to the GameState owned by this scene.
      */
     GameState& getGameState() { return _gameState; }
-    
-    /**
-     * Returns a reference to the item controller owned by this scene.
-     * Exposed so LobbyScene can pass it to assignMissingHousesForAI()
-     * when the host presses Begin Quest.
-     */
-    ItemController& getItemController() { return _itemController; }
 };
 #endif /* __GAME_SCENE_H__ */

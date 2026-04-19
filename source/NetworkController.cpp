@@ -693,14 +693,12 @@ bool NetworkController::allPlayersSelectedHouse() const {
         if (player.houseID.empty()) return false;
     }
 
-    // All AI slots must have a house — any slot index not in _onlinePlayers is AI
-    int totalSlots = 4;
+    // All AI slots (indices >= real player count) must have a house
     int realCount = (int)_onlinePlayers.size();
-    for (int i = 0; i < totalSlots; i++) {
-        if (i >= realCount) {
-            auto aIHouse = _aIHouses.find(i);
-            if (aIHouse == _aIHouses.end() || aIHouse->second.empty()) return false;
-        }
+    int totalSlots = 4; // matches GameState player array size
+    for (int i = realCount; i < totalSlots; i++) {
+        auto aIHouse = _aIHouses.find(i);
+        if (aIHouse == _aIHouses.end() || aIHouse->second.empty()) return false;
     }
 
     return true;

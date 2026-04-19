@@ -516,11 +516,6 @@ bool HouseSelectScene::loadHouses() {
  * networked player list. Called every frame during house selection so that
  * _gameState reflects the latest connected player info, including house
  * selections made by other players while this scene is active.
- *
- * Uses checkRealPlayer() per slot rather than assuming real players occupy
- * the first N slots, since players can swap positions. AI slots always use
- * demoteToAI() to preserve isAI() == true — setRealPlayer() would
- * reconstruct them as plain Player objects and break AI behavior.
  */
 void HouseSelectScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
@@ -530,21 +525,20 @@ void HouseSelectScene::updateNetworkOrder() {
 
     if (networkedPlayers.empty()) return;
 
-    int totalSlots = (int)_gameState->getPlayers().size();
+    for (int i = 0; i < (int)networkedPlayers.size(); i++) {
+        _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
+    }
 
-    for (int i = 0; i < totalSlots; i++) {
-        if (_network->checkRealPlayer(i)) {
-            _gameState->setRealPlayer(
-                i,
-                networkedPlayers[i].username,
-                networkedPlayers[i].houseID
-            );
-        } else {
-            // AI slot — use demoteToAI() to preserve isAI() == true.
-            // House is synced from the host's authoritative _aIHouses map,
-            // kept in sync across all clients via LOBBY_UPDATE.
-            _gameState->demoteToAI(i, _network->getAIHouse(i));
-        }
+    // Always sync AI slot houses regardless of whether they are empty so
+    // that unlocking a house on the host clears the portrait on all clients.
+    int realPlayerCount = (int)networkedPlayers.size();
+    int totalSlots = (int)_gameState->getPlayers().size();
+    for (int i = realPlayerCount; i < totalSlots; i++) {
+        _gameState->setRealPlayer(
+            i,
+            _gameState->getPlayerBySlot(i)->getPlayerName(),
+            _network->getAIHouse(i)
+        );
     }
 
     _network->clearQueues();
