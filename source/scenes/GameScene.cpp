@@ -2789,8 +2789,6 @@ void GameScene::refreshTeammateNameLabels() {
 void GameScene::handleDisconnectedPlayers() {
     if (!_network) return;
 
-    CULog("Sup dude im debugging disconnect");
-
     // No polling needed — _disconnectedSlots is populated automatically
     // by the NetworkController's disconnect callback when any peer closes.
 
@@ -2808,7 +2806,6 @@ void GameScene::handleDisconnectedPlayers() {
         // Clients skip this — their state is kept in sync each frame
         // via broadcastGameState / networkUpdate.
         if (_network->isHost()) {
-            CULog("We got a guy to get rid of");
             demoteSlotToAI(slot);
         }
 
