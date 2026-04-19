@@ -79,7 +79,7 @@
             "effects": [
                 {
                     "type": "shield",
-                    "mitigation": 3.0,
+                    "mitigation": 20.0,
                     "duration": 5.0
                 }
             ]
@@ -178,7 +178,7 @@
                 {
                     "type": "barrier",
                     "multiplier": 0.5,
-                    "duration": 5.0
+                    "duration": 10.0
                 }
             ]
         },

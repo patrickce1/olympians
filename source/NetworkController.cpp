@@ -540,7 +540,7 @@ void NetworkController::broadcastGameState(const GameState& state) {
 	for (int i = 0; i < 4; i++) {
 		if (i < players.size()) {
 			const auto& player = players[i];
-			_serializer.writeFloat(player->getShieldMitigation());
+			_serializer.writeFloat(player->getShieldHealth());
 			_serializer.writeFloat(player->getShieldDuration());
 			_serializer.writeFloat(player->getBarrierMultiplier());
 			_serializer.writeFloat(player->getBarrierDuration());

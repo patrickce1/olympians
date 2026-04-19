@@ -39,11 +39,15 @@ private:
     Player* _rightPlayer = nullptr;
     /** Runtime fixed-mitigation shield state */
     bool _hasShield = false;
-    float _shieldMitigation = 0.0f;
+    /** The amount of health the shield has left */
+    float _shieldHealth = 0.0f;
+    /** The time left before the shield expires */
     float _shieldDuration = 0.0f;
     /** Runtime percentage-mitigation barrier state */
     bool _hasBarrier = false;
+    /** The percentage damage that will be mitigated */
     float _barrierMultiplier = 1.0f;
+    /** The time left before the barrier expires */
     float _barrierDuration = 0.0f;
 
 public:
@@ -108,7 +112,7 @@ public:
     bool hasShield() const { return _hasShield; }
     
     /** Returns the current fixed mitigation value. */
-    float getShieldMitigation() const { return _shieldMitigation; }
+    float getShieldHealth() const { return _shieldHealth; }
     
     /** Returns the remaining shield duration. */
     float getShieldDuration() const { return _shieldDuration; }
@@ -128,17 +132,17 @@ public:
     /**
      * Overwrites runtime support-effect state from the authoritative host snapshot.
      *
-     * @param shieldMitigation  The fixed damage amount blocked by the active shield.
+     * @param shieldHealth  The fixed damage amount blocked by the active shield.
      * @param shieldDuration    The remaining shield duration in seconds.
      * @param barrierMultiplier The active barrier damage multiplier.
      * @param barrierDuration   The remaining barrier duration in seconds.
      */
-    void syncRuntimeEffects(float shieldMitigation,
+    void syncRuntimeEffects(float shieldHealth,
                             float shieldDuration,
                             float barrierMultiplier,
                             float barrierDuration) {
         _hasShield = shieldDuration > 0.0f;
-        _shieldMitigation = _hasShield ? shieldMitigation : 0.0f;
+        _shieldHealth = _hasShield ? shieldHealth : 0.0f;
         _shieldDuration = _hasShield ? shieldDuration : 0.0f;
         _hasBarrier = barrierDuration > 0.0f;
         _barrierMultiplier = _hasBarrier ? barrierMultiplier : 1.0f;
@@ -206,7 +210,7 @@ public:
     /** Clears runtime-only combat effects. */
     void clearRuntimeEffects() {
         _hasShield = false;
-        _shieldMitigation = 0.0f;
+        _shieldHealth = 0.0f;
         _shieldDuration = 0.0f;
         _hasBarrier = false;
         _barrierMultiplier = 1.0f;

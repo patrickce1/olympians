@@ -446,7 +446,7 @@ void testShieldEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
                                               std::min(resolvedShield, shieldTarget.getMaxHealth() - shieldHealthBeforeUse)),
                     "shield: shield item still applies its base heal");
     assertWithLabel(shieldTarget.hasShield(), "shield: shield effect arms fixed mitigation");
-    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldMitigation(), 3.0f), "shield: shield mitigation value applies");
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldHealth(), 3.0f), "shield: shield mitigation value applies");
     assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldDuration(), 5.0f), "shield: shield effect duration applies");
 
     float shieldedHealthBefore = shieldTarget.getCurrentHealth();
