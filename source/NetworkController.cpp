@@ -129,6 +129,7 @@ void NetworkController::disconnect() {
     _sessionTerminated = false;
     _disconnectedSlots.clear();
     _enemy = "";
+    _aIHouses.clear();
 }
 
 /**
@@ -254,21 +255,36 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 
 			break;
 		}
-		case MessageType::LOBBY_UPDATE: {
-			std::vector<std::string> playerData = _deserializer.readStringVector();
-			_onlinePlayers.clear();
-			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
-			// re-pair the flattened vector back into pairs
-            for (int i = 0; i < (int)playerData.size() - 1; i += 3) {
-				NetworkedPlayer newPlayer;
-				newPlayer.networkID = playerData[i];
-				newPlayer.username = playerData[i + 1];
-                newPlayer.houseID = playerData[i+2];
-				_onlinePlayers.push_back(newPlayer);
-			}
+        case MessageType::LOBBY_UPDATE: {
+            std::vector<std::string> playerData = _deserializer.readStringVector();
+            _onlinePlayers.clear();
+            _aIHouses.clear();
+            CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
+
+            int i = 0;
+
+            // AI houses at the front
+            int aiCount = std::stoi(playerData[i++]);
+            for (int j = 0; j < aiCount; j++) {
+                int slot = std::stoi(playerData[i]);
+                _aIHouses[slot] = playerData[i + 1];
+                i += 2;
+            }
+
+            // Real players — everything up to the last entry
+            while (i < (int)playerData.size() - 1) {
+                NetworkedPlayer newPlayer;
+                newPlayer.networkID = playerData[i];
+                newPlayer.username  = playerData[i + 1];
+                newPlayer.houseID   = playerData[i + 2];
+                _onlinePlayers.push_back(newPlayer);
+                i += 3;
+            }
+
+            // Enemy is always last
             _enemy = playerData.back();
-			break;
-		}
+            break;
+        }
 		case MessageType::GAME_UPDATE : {
 			GameStateMessage stateMsg;
 			stateMsg.bossHealth = _deserializer.readFloat();
@@ -311,6 +327,12 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
         }
         case MessageType::BOSS_SELECT: {
             _enemy = _deserializer.readString();
+            break;
+        }
+        case MessageType::AI_HOUSE_SELECT: {
+            int slot = _deserializer.readSint32();
+            std::string houseID = _deserializer.readString();
+            _aIHouses[slot] = houseID;
             break;
         }
 	}
@@ -498,25 +520,33 @@ void NetworkController::broadcastLostGame() {
 }
 
 /**
- * Broadcasts the current lobby player list to all connected clients.
+ * Broadcasts the current lobby player & AI list to all connected clients.
  * Called by the host whenever a new player joins so all clients stay in sync.
  * Serializes the online players list as a flat string vector in the format:
  * [networkID_0, username_0, house_0, networkID_1, username_1, house_1, ...]
  */
 void NetworkController::broadcastLobbyState() {
-	std::vector<std::string> serializablePlayers;
+    std::vector<std::string> serializablePlayers;
 
-	for (NetworkedPlayer player : _onlinePlayers) {
-		serializablePlayers.push_back(player.networkID);
-		serializablePlayers.push_back(player.username);
+    // AI count first — unambiguous anchor for the receiver
+    serializablePlayers.push_back(std::to_string(_aIHouses.size()));
+    for (const auto& pair : _aIHouses) {
+        serializablePlayers.push_back(std::to_string(pair.first));
+        serializablePlayers.push_back(pair.second);
+    }
+
+    for (NetworkedPlayer player : _onlinePlayers) {
+        serializablePlayers.push_back(player.networkID);
+        serializablePlayers.push_back(player.username);
         serializablePlayers.push_back(player.houseID);
-	}
+    }
+
     serializablePlayers.push_back(_enemy);
 
-	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
-	_serializer.writeStringVector(serializablePlayers);
-	_network->broadcast(_serializer.serialize());
-	_serializer.reset();
+    _serializer.writeSint32(MessageType::LOBBY_UPDATE);
+    _serializer.writeStringVector(serializablePlayers);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }
 
 /**
@@ -526,7 +556,7 @@ void NetworkController::broadcastLobbyState() {
  *
  *@param house - the selected house 
  */
-void NetworkController::broadcastSelectedHouse(std::string& house) {
+void NetworkController::broadcastSelectedHouse(const std::string& house) {
     _serializer.writeSint32(MessageType::SELECT_HOUSE);
     _serializer.writeString(house);
     _network->sendToHost(_serializer.serialize());
@@ -704,4 +734,97 @@ void NetworkController::broadcastBossSelection(const std::string& enemyID) {
     _serializer.writeString(enemyID);
     _network->broadcast(_serializer.serialize());
     _serializer.reset();
+}
+
+/**
+ * Returns true if the given houseID is already claimed by any player
+ * other than the local player.
+ *
+ * @param houseID  The house ID to check.
+ * @return         true if another player has claimed it, false otherwise.
+ */
+bool NetworkController::isHouseTaken(const std::string& houseID) const {
+    if (houseID.empty()) return false;
+    std::string localID = _network ? _network->getUUID() : "";
+
+    // Check real players (excluding self)
+    for (const NetworkedPlayer& player : _onlinePlayers) {
+        if (player.networkID == localID) continue;
+        if (player.houseID == houseID) return true;
+    }
+
+    // Check AI slot assignments
+    for (const auto& pair : _aIHouses) {
+        if (pair.second == houseID) return true;
+    }
+
+    return false;
+}
+
+/**
+ * Returns the set of houseIDs currently claimed by players other than
+ * the local player. Used by HouseSelectScene to grey out unavailable cards.
+ *
+ * @return  A vector of taken house ID strings.
+ */
+std::vector<std::string> NetworkController::getTakenHouses() const {
+    std::string localID = _network ? _network->getUUID() : "";
+    std::vector<std::string> taken;
+
+    // Real players (excluding self)
+    for (const NetworkedPlayer& player : _onlinePlayers) {
+        if (player.networkID == localID) continue;
+        if (!player.houseID.empty()) {
+            taken.push_back(player.houseID);
+        }
+    }
+
+    // AI slots
+    for (const auto& pair : _aIHouses) {
+        if (!pair.second.empty()) {
+            taken.push_back(pair.second);
+        }
+    }
+
+    return taken;
+}
+
+/**
+ * Broadcasts the host's house selection for an AI slot to all clients.
+ * Clients will update that slot's houseID in their local _onlinePlayers
+ * list upon receiving this message.
+ *
+ * @param slotIndex  The 0-based AI slot index being configured.
+ * @param houseID    The selected house ID, or "" to clear the selection.
+ */
+void NetworkController::broadcastAIHouseSelection(int slotIndex, const std::string& houseID) {
+    _serializer.writeSint32(MessageType::AI_HOUSE_SELECT);
+    _serializer.writeSint32(slotIndex);
+    _serializer.writeString(houseID);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
+
+    // Store locally — host doesn't receive its own broadcast
+    _aIHouses[slotIndex] = houseID;
+}
+
+/** Returns the house ID assigned to the given AI slot, or "" if unset */
+std::string NetworkController::getAIHouse(int slotIndex) const {
+    auto houseAtAIIndex = _aIHouses.find(slotIndex);
+    return houseAtAIIndex != _aIHouses.end() ? houseAtAIIndex->second : "";
+}
+
+/**
+ * Clears the host's AI house assignment for the given slot.
+ * Called when a real player joins a slot that was previously
+ * configured as AI, so the assignment does not bleed back
+ * after the player leaves.
+ *
+ * @param slotIndex  The 0-based slot index to clear.
+ */
+void NetworkController::clearAIHouse(int slotIndex) {
+    if (_aIHouses.erase(slotIndex) > 0) {
+        // Broadcast so all clients remove this slot from their taken set
+        broadcastLobbyState();
+    }
 }
