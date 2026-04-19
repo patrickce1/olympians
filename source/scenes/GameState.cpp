@@ -61,9 +61,7 @@ void GameState::initPlayers() {
  * using the house they selected in the character select screen.
  *
  * Called during game setup after the lobby has finalized the player order
- * and all players have broadcast their house selections. Since real players
- * always occupy the first N consecutive slots, playerNumber corresponds
- * directly to their index in the online players list.
+ * and all players have broadcast their house selections.
  *
  * After replacing the player object, all neighbour pointers in the circular
  * ring are re-wired so that every player's left/right references remain valid.
@@ -152,7 +150,7 @@ bool GameState::initAI(ItemController& itemController) {
     const std::string aiConfigPath = "json/playerAI.json";
     const int playerCount = (int)_players.size();
 
-    for (int i = 1; i < playerCount; i++) {
+    for (int i = 0; i < playerCount; i++) {
         auto* ai = dynamic_cast<PlayerAI*>(_players[i].get());
         if (!ai) {
             CULog("GameState: Player %d is not a PlayerAI — skipping AI init", i);
