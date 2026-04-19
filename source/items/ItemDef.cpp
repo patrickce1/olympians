@@ -57,16 +57,16 @@ ItemDef::House ItemDef::houseFromString(std::string value, House fallback) {
     value.erase(std::find_if(value.rbegin(), value.rend(), notspace).base(), value.end());
     std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c){ return (char)std::tolower(c); });
 
-    if (value == "zeus")      return House::Zeus;
-    if (value == "poseidon")  return House::Poseidon;
-    if (value == "hades")     return House::Hades;
-    if (value == "demeter")   return House::Demeter;
-    if (value == "ares")      return House::Ares;
-    if (value == "athena")    return House::Athena;
-    if (value == "aphrodite") return House::Aphrodite;
-    if (value == "hephestus") return House::Hephestus;
-    if (value == "hermes")    return House::Hermes;
-    if (value == "none")      return House::None;
+    if (value == "zeus")        return House::Zeus;
+    if (value == "poseidon")    return House::Poseidon;
+    if (value == "hades")       return House::Hades;
+    if (value == "demeter")     return House::Demeter;
+    if (value == "ares")        return House::Ares;
+    if (value == "athena")      return House::Athena;
+    if (value == "aphrodite")   return House::Aphrodite;
+    if (value == "hephaestus")  return House::Hephaestus;
+    if (value == "hermes")      return House::Hermes;
+    if (value == "none")        return House::None;
     return fallback;
 }
 
