@@ -179,12 +179,12 @@ bool Enemy::isInAttackPhase(const std::unordered_map<std::string, class Animatio
     }
     
     // Look up animation in registry
-    auto it = animationRegistry.find(stateDef->animationKey);
-    if (it == animationRegistry.end()) {
+    auto registryEntry = animationRegistry.find(stateDef->animationKey);
+    if (registryEntry == animationRegistry.end()) {
         return false;  // Animation not found in registry
     }
     
-    const auto& animEntry = it->second;
+    const auto& animEntry = registryEntry->second;
     
     // Calculate buildup duration in seconds
     float buildupDuration = animEntry.buildupFrameCount * animEntry.frameDuration;
@@ -238,31 +238,31 @@ void Enemy::tick(float dt) {
  * @return true if animation/duration complete and events not yet fired
  */
 bool Enemy::readyToFire() const {
-    const EnemyLoader::StateDef* st = getCurrentStateDef();
-    if (!st) return false;
+    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+    if (!stateDef) return false;
     if (_eventsFiredThisState) return false;
     
-    if (st->frameCount <= 0) {
+    if (stateDef->frameCount <= 0) {
         // Non-animated states use buildUpTime
-        return _stateTime >= st->buildUpTime;
+        return _stateTime >= stateDef->buildUpTime;
     }
     
     // Animated states: fire when reaching final frame (frameCount - 1, since 0-indexed)
-    return _currentAnimationFrame >= (st->frameCount - 1);
+    return _currentAnimationFrame >= (stateDef->frameCount - 1);
 }
 
 /** Fires all events defined for the current state, adding them to the events buffer.
  * Called once per state when animation completes.
  */
 void Enemy::fireEvents() {
-    const EnemyLoader::StateDef* st = getCurrentStateDef();
-    if (!st) return;
+    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+    if (!stateDef) return;
 
-    for (const auto& ev : st->events) {
-        FiredEvent fe;
-        fe.def = ev;
-        fe.state = st->state;
-        _firedEvents.push_back(fe);
+    for (const auto& eventDef : stateDef->events) {
+        FiredEvent firedEvent;
+        firedEvent.def = eventDef;
+        firedEvent.state = stateDef->state;
+        _firedEvents.push_back(firedEvent);
     }
 
     _eventsFiredThisState = true;
@@ -272,9 +272,9 @@ void Enemy::fireEvents() {
  * Prevents rapid consecutive state transitions.
  */
 void Enemy::applyCooldown() {
-    const EnemyLoader::StateDef* st = getCurrentStateDef();
-    if (!st) return;
-    _attackLockout = std::max(_attackLockout, st->cooldownTime);
+    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+    if (!stateDef) return;
+    _attackLockout = std::max(_attackLockout, stateDef->cooldownTime);
 }
 
 /** Returns the next state defined in the current state, or defaults to IDLE.
@@ -282,11 +282,11 @@ void Enemy::applyCooldown() {
  * @return The next state to transition to
  */
 EnemyLoader::State Enemy::getNextStateOrIdle() const {
-    const EnemyLoader::StateDef* st = getCurrentStateDef();
-    if (!st) return EnemyLoader::State::IDLE;
+    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+    if (!stateDef) return EnemyLoader::State::IDLE;
 
-    if (_states.count(st->nextState) > 0) {
-        return st->nextState;
+    if (_states.count(stateDef->nextState) > 0) {
+        return stateDef->nextState;
     }
 
     return EnemyLoader::State::IDLE;

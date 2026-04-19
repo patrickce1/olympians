@@ -302,8 +302,8 @@ void GameState::setEnemy(std::string enemyID, const std::shared_ptr<cugl::AssetM
  * @return          The matching Player pointer, or nullptr if not found.
  */
 Player* GameState::getPlayerById(int playerId) const {
-    auto it = _playerIdMap.find(playerId);
-    return (it != _playerIdMap.end()) ? it->second : nullptr;
+    auto playerEntry = _playerIdMap.find(playerId);
+    return (playerEntry != _playerIdMap.end()) ? playerEntry->second : nullptr;
 }
 
 /**

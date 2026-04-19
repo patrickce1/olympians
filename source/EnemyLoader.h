@@ -178,23 +178,23 @@ public:
                         "Enemy '%s' missing object 'states'", def.id.c_str());
 
             for (int k = 0; k < statesObj->size(); k++) {
-                auto st = statesObj->get(k);
-                if (!st) continue;
+                auto stateJson = statesObj->get(k);
+                if (!stateJson) continue;
 
-                StateDef sdef;
-                sdef.state = parseStateType(st->_key); 
-                sdef.name = st->getString("name", "");
-                sdef.buildUpTime  = st->getFloat("buildUpTime", 0.0f);
-                sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
-                sdef.nextState    = parseStateType(st->getString("nextState", "idle"));
-                sdef.animationKey = st->getString("animationKey", "");
+                StateDef stateDef;
+                stateDef.state = parseStateType(stateJson->_key); 
+                stateDef.name = stateJson->getString("name", "");
+                stateDef.buildUpTime  = stateJson->getFloat("buildUpTime", 0.0f);
+                stateDef.cooldownTime = stateJson->getFloat("cooldownTime", 0.0f);
+                stateDef.nextState    = parseStateType(stateJson->getString("nextState", "idle"));
+                stateDef.animationKey = stateJson->getString("animationKey", "");
                 
                 // Populate animation metadata from registry if available
-                if (!sdef.animationKey.empty() && _animationRegistry.count(sdef.animationKey) > 0) {
-                    const auto& animMeta = _animationRegistry.at(sdef.animationKey);
-                    sdef.buildupFrameCount = animMeta.buildupFrameCount;
-                    sdef.frameCount = animMeta.frameCount;
-                    sdef.frameDuration = animMeta.frameDuration;
+                if (!stateDef.animationKey.empty() && _animationRegistry.count(stateDef.animationKey) > 0) {
+                    const auto& animMeta = _animationRegistry.at(stateDef.animationKey);
+                    stateDef.buildupFrameCount = animMeta.buildupFrameCount;
+                    stateDef.frameCount = animMeta.frameCount;
+                    stateDef.frameDuration = animMeta.frameDuration;
                 }
 
                 auto aiObj = entry->get("ai");
@@ -204,26 +204,26 @@ public:
                     def.ai.defenseLikelihood = aiObj->getFloat("defenseLikelihood", 0.05f);
                 }
                 
-                auto evArr = st->get("events");
-                if (evArr && evArr->isArray()) {
-                    for (int j = 0; j < evArr->size(); j++) {
-                        auto ev = evArr->get(j);
-                        if (!ev) continue;
+                auto eventsArray = stateJson->get("events");
+                if (eventsArray && eventsArray->isArray()) {
+                    for (int j = 0; j < eventsArray->size(); j++) {
+                        auto eventJson = eventsArray->get(j);
+                        if (!eventJson) continue;
 
-                        EventDef edef;
-                        edef.type = parseEventType(ev->getString("type", ""));
+                        EventDef eventDef;
+                        eventDef.type = parseEventType(eventJson->getString("type", ""));
 
                         //A "target" only applies to damage and side modifiers, not boss healing self
-                        if (edef.type == EventType::DAMAGE || edef.type == EventType::SIDE_MODIFIER) {
-                            edef.target = ev->getInt("target", 0);
+                        if (eventDef.type == EventType::DAMAGE || eventDef.type == EventType::SIDE_MODIFIER) {
+                            eventDef.target = eventJson->getInt("target", 0);
                         }
-                        edef.amount = ev->getFloat("amount", 0.0f);
-                        edef.duration = ev->getFloat("duration", 0.0f);
-                        sdef.events.push_back(edef);
+                        eventDef.amount = eventJson->getFloat("amount", 0.0f);
+                        eventDef.duration = eventJson->getFloat("duration", 0.0f);
+                        stateDef.events.push_back(eventDef);
                     }
                 }
 
-                def.states[sdef.state] = sdef;
+                def.states[stateDef.state] = stateDef;
             }
 
             CUAssertLog(def.states.count(State::IDLE) > 0,
