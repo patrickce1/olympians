@@ -332,26 +332,28 @@ bool GameState::didLose() {
 }
 
 /**
- * Randomly assigns a house to every player slot that does not yet have one,
- * reconstructing AI slots as EasyPlayerAI with a real house and re-running
- * their init so AI behavior is preserved. Real player slots are untouched.
- * Should be called once when the game scene activates, after updateNetworkOrder()
- * has synced real players from the network.
+ * Assigns a unique house to every slot that does not yet have one.
+ * Iterates all slots and skips any that already have a house assigned.
+ * For each empty slot, builds a pool of houses not yet claimed by any
+ * other slot, picks one at random, and calls setRealPlayer() to apply it.
  *
- * @param itemController  The ItemController whose database AI players need.
+ * Host only — rand() is called locally so clients must receive the
+ * results via broadcastAIHouseSelection() rather than running this
+ * themselves.
  */
-void GameState::assignMissingHouses(ItemController& itemController) {
+void GameState::assignMissingHousesForAI() {
     const auto& allHouses = _houseLoader.getAllOrdered();
     if (allHouses.empty()) return;
 
-    Player* localBeforeAssignment = _localPlayer;
     const int n = (int)_players.size();
 
     for (int i = 0; i < n; i++) {
         if (!_players[i]->getHouseName().empty()) continue;
 
-        // Build pool of houses not already assigned to any slot
-        std::vector<std::string> availableHouses;
+        // Pool is rebuilt each iteration so previously assigned houses
+        // (including those just assigned to earlier AI slots this loop)
+        // are already reflected in _players and correctly excluded.
+        std::vector<std::string> available;
         for (const auto& house : allHouses) {
             bool taken = false;
             for (const auto& player : _players) {
@@ -360,32 +362,13 @@ void GameState::assignMissingHouses(ItemController& itemController) {
                     break;
                 }
             }
-            if (!taken) availableHouses.push_back(house.id);
+            if (!taken) available.push_back(house.id);
         }
 
-        if (availableHouses.empty()) continue;
+        if (available.empty()) continue;
 
-        std::string randomHouse = availableHouses[rand() % availableHouses.size()];
-
-        Player* previousPlayer = _players[i].get();
-        auto aiPlayer = std::make_shared<EasyPlayerAI>(
-            randomHouse,
-            i,
-            _players[i]->getPlayerName(),
-            _houseLoader
-        );
-        aiPlayer->init(itemController.getDatabase(), "json/playerAI.json");
-        _players[i] = aiPlayer;
-        _playerIdMap[i] = aiPlayer.get();
-        if (localBeforeAssignment == previousPlayer) {
-            _localPlayer = aiPlayer.get();
-        }
-    }
-
-    // Re-wire neighbour ring
-    for (int i = 0; i < n; i++) {
-        _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
-        _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+        std::string chosen = available[rand() % available.size()];
+        setRealPlayer(i, _players[i]->getPlayerName(), chosen);
     }
 }
 

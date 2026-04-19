@@ -424,25 +424,43 @@ void GameScene::dispose() {
  * Does nothing if the network is not connected.
  */
 void GameScene::updateNetworkOrder() {
-    if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
-        const auto& networkedPlayers = _network->getNetworkedPlayers();
-        for (int i = 0; i < (int)networkedPlayers.size(); i++) {
+    if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
+
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const int realPlayerCount = (int)networkedPlayers.size();
+    const int totalSlots = (int)_gameState.getPlayers().size();
+
+    // Apply real player names and houses from the network
+    for (int i = 0; i < realPlayerCount; i++) {
+        _gameState.setRealPlayer(
+            i,
+            networkedPlayers[i].username,
+            networkedPlayers[i].houseID
+        );
+    }
+
+    // Apply AI slot houses from the host's authoritative map.
+    // _aIHouses is synced to all clients via LOBBY_UPDATE, so this
+    // produces the same result on every device with no rand() involved.
+    for (int i = realPlayerCount; i < totalSlots; i++) {
+        std::string aiHouse = _network->getAIHouse(i);
+        if (!aiHouse.empty()) {
             _gameState.setRealPlayer(
                 i,
-                networkedPlayers[i].username,
-                networkedPlayers[i].houseID   // ← new third argument
+                _gameState.getPlayerBySlot(i)->getPlayerName(),
+                aiHouse
             );
         }
-
-        setLocalPlayer(_network->getLocalPlayerNumber());
-
-        _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
-        _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
-        
-        _gameState.setEnemy(_network->getEnemy());
-        
-        initBackgroundAndBossImage();
     }
+
+    setLocalPlayer(_network->getLocalPlayerNumber());
+
+    _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
+    _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
+
+    _gameState.setEnemy(_network->getEnemy());
+
+    initBackgroundAndBossImage();
 }
 
 /**
@@ -456,7 +474,6 @@ void GameScene::setActive(bool value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
             updateNetworkOrder();
-            _gameState.assignMissingHouses(_itemController);
             
             // Reset enemy animation state for clean start
             _enemyAnimationElapsedTime = 0.0f;

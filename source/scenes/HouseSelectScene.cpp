@@ -201,6 +201,8 @@ void HouseSelectScene::dispose() {
         _houseCarouselDotIndicators.clear();
         _active = false;
     }
+    // Full wipe — clear all persisted slot states
+    _slotStates.clear();
     _network = nullptr;
 }
 
@@ -220,14 +222,20 @@ void HouseSelectScene::setActive(bool value) {
             _status = WAITING;
 
             if (_pendingReset) {
-                // Full wipe — clear all persisted slot states
-                _slotStates.clear();
                 _pendingReset = false;
             }
 
             // Restore state for the slot we're opening, or use defaults
             SlotState& state = _slotStates[_targetSlot];
-            _locked = state.locked;
+            
+            // Lock state reflects whether the slot has a house, not whether the
+            // host explicitly clicked lock. After a reset, AI slots may have a
+            // house assigned by assignMissingHousesForAI without ever being
+            // manually locked, so we derive it from the player's actual house.
+            int slot = (_targetSlot == -1) ? _network->getLocalPlayerNumber() : _targetSlot;
+            Player* player = _gameState->getPlayerBySlot(slot);
+            _locked = (player && !player->getHouseName().empty());
+            state.locked = _locked;
 
             // Restore lock button label and glow
             updateText(_lockButton, _locked ? "UNLOCK" : "LOCK");
@@ -236,7 +244,8 @@ void HouseSelectScene::setActive(bool value) {
             // Jump carousel to the saved index (no animation on restore)
             _isAnimating = false;
             refreshLocalPlayerIcon();
-            slideTo(state.carouselIndex);
+            slideTo(getInitialCarouselIndex(_targetSlot));
+            updateTeammateIcons();
 
             _lockButton->activate();
             _leftButton->activate();
@@ -517,25 +526,19 @@ void HouseSelectScene::updateNetworkOrder() {
     if (networkedPlayers.empty()) return;
 
     for (int i = 0; i < (int)networkedPlayers.size(); i++) {
-        _gameState->setRealPlayer(
-            i,
-            networkedPlayers[i].username,
-            networkedPlayers[i].houseID
-        );
+        _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
     }
 
-    // Sync AI slot house selections from the host's authoritative map
+    // Always sync AI slot houses regardless of whether they are empty so
+    // that unlocking a house on the host clears the portrait on all clients.
     int realPlayerCount = (int)networkedPlayers.size();
     int totalSlots = (int)_gameState->getPlayers().size();
     for (int i = realPlayerCount; i < totalSlots; i++) {
-        std::string aIHouse = _network->getAIHouse(i);
-        if (!aIHouse.empty()) {
-            _gameState->setRealPlayer(
-                i,
-                _gameState->getPlayerBySlot(i)->getPlayerName(),
-                aIHouse
-            );
-        }
+        _gameState->setRealPlayer(
+            i,
+            _gameState->getPlayerBySlot(i)->getPlayerName(),
+            _network->getAIHouse(i)
+        );
     }
 
     _network->clearQueues();
@@ -723,4 +726,28 @@ bool HouseSelectScene::hasLocalPlayerSelectedHouse() const {
     const auto& networkedPlayers = _network->getNetworkedPlayers();
     if (localIndex < 0 || localIndex >= (int)networkedPlayers.size()) return false;
     return !networkedPlayers[localIndex].houseID.empty();
+}
+
+/**
+ * Returns the carousel index for the given slot when the scene opens.
+ * If the player in that slot has a house selected, returns the index of
+ * that house so the carousel always opens facing their current selection.
+ * Falls back to the saved carousel state if they have no house yet.
+ *
+ * @param targetSlot  The slot to open (-1 for the local player, or a
+ *                    0-based AI slot index).
+ * @return            The carousel index to slide to on activation.
+ */
+int HouseSelectScene::getInitialCarouselIndex(int targetSlot) {
+    int slot = (targetSlot == -1) ? _network->getLocalPlayerNumber() : targetSlot;
+    Player* player = _gameState->getPlayerBySlot(slot);
+    if (player && !player->getHouseName().empty()) {
+        const auto& allHouses = _houseLoader.getAllOrdered();
+        for (int i = 0; i < (int)allHouses.size(); i++) {
+            if (allHouses[i].id == player->getHouseName()) {
+                return i;
+            }
+        }
+    }
+    return _slotStates[targetSlot].carouselIndex;
 }

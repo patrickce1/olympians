@@ -112,10 +112,30 @@ void LobbyScene::setupUI() {
  */
 void LobbyScene::setupListeners() {
     _enterGame->addListener([this](const std::string& name, bool down) {
-        if (down && _network->isHost() && _network->allPlayersSelectedHouse()) {
-            _network->broadcastGameStart();
-            _status = Status::START;
+        if (!down || !_network->isHost()) return;
+
+        // Assign houses to any AI slots that don't have one yet.
+        // Must happen before allPlayersSelectedHouse() check so newly
+        // assigned houses are in place when it evaluates AI slots.
+        int realPlayerCount = (int)_network->getNetworkedPlayers().size();
+        _gameState->assignMissingHousesForAI();
+
+        // Broadcast each AI house to clients so their _aIHouses maps match
+        // the host's before GameScene activates.
+        const auto& players = _gameState->getPlayers();
+        int totalSlots = (int)players.size();
+        for (int i = realPlayerCount; i < totalSlots; i++) {
+            const std::string& house = players[i]->getHouseName();
+            if (!house.empty()) {
+                _network->broadcastAIHouseSelection(i, house);
+            }
         }
+
+        //Confirm all players have house according to network.
+        if (!_network->allPlayersSelectedHouse()) return;
+
+        _network->broadcastGameStart();
+        _status = Status::START;
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
@@ -317,33 +337,20 @@ void LobbyScene::updateNetworkOrder() {
     for (int i = 0; i < realPlayerCount; i++) {
         // If this slot previously had an AI house, clear it first
         if (_network->isHost() && !_network->getAIHouse(i).empty()) {
-            _gameState->setRealPlayer(
-                i,
-                networkedPlayers[i].username,
-                ""
-            );
+            _gameState->setRealPlayer(i, networkedPlayers[i].username, "");
             _network->clearAIHouse(i);
         }
-
-        _gameState->setRealPlayer(
-            i,
-            networkedPlayers[i].username,
-            networkedPlayers[i].houseID
-        );
+        _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
     }
 
-    // Sync AI slot house selections from the host's authoritative map
+    // Always sync AI slot houses regardless of whether they are empty so
+    // that unlocking a house on the host clears the portrait on all clients.
     for (int i = realPlayerCount; i < totalSlots; i++) {
-        std::string aIHouse = _network->getAIHouse(i);
-        if (!aIHouse.empty()) {
-            _gameState->setRealPlayer(
-                i,
-                _gameState->getPlayerBySlot(i)->getPlayerName(),
-                aIHouse
-            );
-        } else if (_network->isHost() && !_gameState->getPlayerBySlot(i)->isAI()) {
-            _gameState->demoteToAI(i);
-        }
+        _gameState->setRealPlayer(
+            i,
+            _gameState->getPlayerBySlot(i)->getPlayerName(),
+            _network->getAIHouse(i)
+        );
     }
 }
 
@@ -429,7 +436,7 @@ void LobbyScene::update(float timestep) {
     updateLobbyBossImage(_network->getEnemy());
     
     // Only the host can start; only enable the button when all players have locked in a house.
-    if (_network->isHost() && _network->allPlayersSelectedHouse()) {
+    if (_network->isHost()) {
             _enterGame->activate();
     } else {
         _enterGame->deactivate();

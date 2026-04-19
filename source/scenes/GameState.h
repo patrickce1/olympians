@@ -70,15 +70,18 @@ public:
     void initPlayers();
     
     /**
-     * Randomly assigns a house to every player slot that does not yet have one,
-     * reconstructing AI slots as EasyPlayerAI with a real house and re-running
-     * their init so AI behavior is preserved. Real player slots are untouched.
-     * Should be called once when the game scene activates, after updateNetworkOrder()
-     * has synced real players from the network.
+     * Assigns a unique house to every slot that does not yet have one.
+     * Skips any slot that already has a house, so real players who have
+     * locked in a selection are never touched.
      *
-     * @param itemController  The ItemController whose database AI players need.
+     * Should only be called by the host, inside the start button listener,
+     * before broadcastGameStart(). The host then broadcasts each newly
+     * assigned house via broadcastAIHouseSelection() so all clients have
+     * matching _aIHouses data before GameScene activates.
+     *
+     * Guarantees no two slots share a house.
      */
-    void assignMissingHouses(ItemController& itemController);
+    void assignMissingHousesForAI();
 
     /**
      * Replaces the AI placeholder at the given slot with a real human player.

@@ -275,6 +275,18 @@ public:
      * @param currentIndex  The carousel index whose house to preview.
      */
     void updateAIPreviewIcon(int currentIndex);
+    
+    /**
+     * Returns the carousel index for the given slot when the scene opens.
+     * If the player in that slot has a house selected, returns the index of
+     * that house so the carousel always opens facing their current selection.
+     * Falls back to the saved carousel state if they have no house yet.
+     *
+     * @param targetSlot  The slot to open (-1 for the local player, or a
+     *                    0-based AI slot index).
+     * @return            The carousel index to slide to on activation.
+     */
+    int getInitialCarouselIndex(int targetSlot);
 
 private:
     /**
