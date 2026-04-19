@@ -400,11 +400,13 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
  * @param playerID  The 0-based player index to check.
  * @return          true if the player is a real networked player, false if AI.
  */
-bool NetworkController::checkRealPlayer(int playerID) const {
-    for (const auto& player : _onlinePlayers) {
-        if (getPlayerNumberByID(player.networkID) == playerID) return true;
+bool NetworkController::checkRealPlayer(int playerID) {
+    if (playerID >= _onlinePlayers.size() ) {
+        return false;
     }
-    return false;
+    else {
+        return true;
+    }
 }
 
 /**
