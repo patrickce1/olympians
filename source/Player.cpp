@@ -185,6 +185,8 @@ static float computeResolvedItemMagnitude(const Player& player,
     if (resolvedMagnitude <= 0.0f) {
         resolvedMagnitude = 0.0f;
     }
+    
+    CULog("[Item Value Calculation]\nItem: '%s'\nEffective value: '%.3f'",
           def.getName().c_str(),
           resolvedMagnitude);
 
