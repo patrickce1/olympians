@@ -71,17 +71,19 @@ public:
     
     /**
      * Assigns a unique house to every slot that does not yet have one.
-     * Skips any slot that already has a house, so real players who have
-     * locked in a selection are never touched.
+     * Skips any slot that already has a house. For empty slots, builds a pool
+     * of houses not yet claimed by any other slot, picks one at random, and
+     * reconstructs the slot as an EasyPlayerAI with that house so AI behavior
+     * is preserved. The pool is rebuilt each iteration so previously assigned
+     * houses are excluded.
      *
-     * Should only be called by the host, inside the start button listener,
-     * before broadcastGameStart(). The host then broadcasts each newly
-     * assigned house via broadcastAIHouseSelection() so all clients have
-     * matching _aIHouses data before GameScene activates.
+     * Host only — rand() is called locally so clients must receive the results
+     * via broadcastAIHouseSelection() rather than running this themselves.
      *
-     * Guarantees no two slots share a house.
+     * @param itemController  The ItemController whose database AI players need
+     *                        to initialise their behavior after reconstruction.
      */
-    void assignMissingHousesForAI();
+    void assignMissingHousesForAI(ItemController& itemController);
 
     /**
      * Replaces the AI placeholder at the given slot with a real human player.
