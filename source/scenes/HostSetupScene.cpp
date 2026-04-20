@@ -125,7 +125,7 @@ void HostSetupScene::setupUI() {
 void HostSetupScene::setupListeners() {
     
     _startGame->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             if(_hostName->getText() != ""){
                 _network->hostRoom();
                 _network->setPlayerName(_hostName->getText());
@@ -141,13 +141,13 @@ void HostSetupScene::setupListeners() {
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             _status = Status::ABORT;
         }
     });
     
     _joinButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             _status = Status::CLIENT;
             _joinButton->setDown(false);
         }

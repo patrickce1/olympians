@@ -119,7 +119,7 @@ void LobbyScene::setupUI() {
  */
 void LobbyScene::setupListeners() {
     _enterGame->addListener([this](const std::string& name, bool down) {
-        if (!down || !_network->isHost()) return;
+        if (down || !_network->isHost()) return;
         
         // Assign unique houses to any AI slots that don't have one.
         // ItemController is needed to reinitialize AI behavior after
@@ -146,7 +146,7 @@ void LobbyScene::setupListeners() {
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             if (_network->isHost()) {
                 _network->broadcastSessionTerminated();
                 _pendingDisconnect = true;
@@ -158,7 +158,7 @@ void LobbyScene::setupListeners() {
     });
 
     _bossLobbyButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             _status = Status::BOSSSELECT;
         }
     });
@@ -167,7 +167,7 @@ void LobbyScene::setupListeners() {
     // Display slot 3 (last) is always the local player.
     for (int i = 0; i < (int)_playerImages.size(); i++) {
         _playerImages[i]->addListener([this, i](const std::string& name, bool down) {
-            if (!down) return;
+            if (down) return;
 
             // Resolve which game slot this display slot maps to
             int localIndex = _network->getLocalPlayerNumber();

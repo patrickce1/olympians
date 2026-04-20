@@ -132,7 +132,7 @@ void ClientScene::initKeypad() {
         auto button = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.keypad.key" + std::to_string(i)));
         
         button->addListener([this, i](const std::string& name, bool down) {
-            if (down) appendDigit(i);
+            if (!down) appendDigit(i);
         });
         
         _keypadButtons.push_back(button);
@@ -140,7 +140,7 @@ void ClientScene::initKeypad() {
 
     auto backspace = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.keypad.backspace"));
     backspace->addListener([this](const std::string& name, bool down) {
-        if (down) removeLastChar();
+        if (!down) removeLastChar();
     });
     
     _keypadButtons.push_back(backspace);
@@ -158,7 +158,7 @@ void ClientScene::initKeypad() {
 void ClientScene::setupListeners() {
 
     _enterGame->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             if (_status == Status::JOINING) return;  // already attempting, ignore
             
             if (_gameId->getText() != "" && _playerName->getText() != "") {
@@ -175,7 +175,7 @@ void ClientScene::setupListeners() {
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             // If we were in the middle of a join attempt, cancel it cleanly.
             if (_status == Status::JOINING) {
                 _network->disconnect();
@@ -185,7 +185,7 @@ void ClientScene::setupListeners() {
     });
     
     _hostButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             _status = Status::HOST;
             _hostButton->setDown(false);
         }

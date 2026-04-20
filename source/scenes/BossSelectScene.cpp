@@ -111,13 +111,13 @@ void BossSelectScene::setupUI() {
 void BossSelectScene::setupListeners() {
     
     _backButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             _status = Status::ABORT;
         }
     });
     
     _lockButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
             _network->setEnemy(selectedBoss.id);
             _network->broadcastBossSelection(selectedBoss.id);

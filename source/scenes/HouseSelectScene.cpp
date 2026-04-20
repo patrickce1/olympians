@@ -133,7 +133,7 @@ void HouseSelectScene::setupUI() {
 void HouseSelectScene::setupListeners() {
     
     _lockButton->addListener([this](const std::string& name, bool down) {
-        if (!down) return;
+        if (down) return;
 
         HouseLoader::HouseDef selectedHouse = _houseLoader.getAllOrdered()[_currentIndex];
 
@@ -169,7 +169,7 @@ void HouseSelectScene::setupListeners() {
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
+        if (!down) {
             _status = Status::ABORT;
         }
     });
