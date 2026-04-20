@@ -735,18 +735,34 @@ void NetworkController::setLocalHouse(const std::string& houseID) {
     }
 }
 
-/** Returns true if every player in the lobby has selected a house. */
+/**
+ * Returns true if every real player has selected a house AND every AI slot
+ * has a house assigned by the host. The start button only activates when
+ * this returns true, enforcing that no slot enters the game without a house.
+ */
 bool NetworkController::allPlayersSelectedHouse() const {
-	if (_onlinePlayers.empty()) return false;
-	bool hasRealPlayers = false;
+    if (_onlinePlayers.empty()) return false;
+
+    // All real players must have a house selected.
+    bool hasRealPlayers = false;
     for (const NetworkedPlayer& player : _onlinePlayers) {
-		if (player.networkID.empty()) {
-			continue;
-		}
-		hasRealPlayers = true;
+        if (player.networkID.empty()) continue;
+        hasRealPlayers = true;
         if (player.houseID.empty()) return false;
     }
-	return hasRealPlayers;
+    if (!hasRealPlayers) return false;
+
+    // All AI slots must also have a house assigned.
+    int totalSlots = 4;
+    int realCount = (int)_onlinePlayers.size();
+    for (int i = 0; i < totalSlots; i++) {
+        if (i >= realCount) {
+            auto it = _aIHouses.find(i);
+            if (it == _aIHouses.end() || it->second.empty()) return false;
+        }
+    }
+
+    return true;
 }
 
 /*HOST ONLY. Notifies all clients that the host has exited the lobby and the session is over.*/

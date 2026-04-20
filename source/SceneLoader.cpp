@@ -269,7 +269,7 @@ void SceneLoader::update(float dt) {
                     CULog("Failed to initialize GameScene");
                 }
                 
-                if (_lobbyScene.init(_assets, _network, &_gameScene.getGameState())) {
+                if (_lobbyScene.init(_assets, _network, &_gameScene.getGameState(), &_gameScene.getItemController())) {
                     _lobbyScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize LobbyScene");
