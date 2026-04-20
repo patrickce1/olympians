@@ -223,6 +223,24 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			passMsg.itemID = itemID;
 			passMsg.playerID = passRecieverID;
 			passMsg.passDirection = passDirection;
+
+			// Host relays pass messages to remote real-player targets.
+			// If the receiver is the host or an AI slot, apply locally.
+			if (isHost() && checkRealPlayer(passRecieverID)) {
+				std::string receiverNetworkID = _onlinePlayers[passRecieverID].networkID;
+				std::string localNetworkID = _network ? _network->getUUID() : "";
+
+				if (!receiverNetworkID.empty() && receiverNetworkID != localNetworkID) {
+					_serializer.writeSint32(MessageType::PLAYER_PASS);
+					_serializer.writeString(itemID);
+					_serializer.writeSint32(passRecieverID);
+					_serializer.writeSint32(passDirection);
+					_network->sendTo(receiverNetworkID, _serializer.serialize());
+					_serializer.reset();
+					break;
+				}
+			}
+
 			passes.push_back(passMsg);
 			break;
 		}
@@ -433,8 +451,9 @@ bool NetworkController::checkRealPlayer(int playerID) {
 
 /**
  * Sends an item pass message to the target player.
- * If the target is a real player, sends directly to their network UUID.
- * If the target is an AI slot, sends to the host to handle locally.
+ * Clients always send to host so pass routing stays authoritative and
+ * symmetric across ring rollover boundaries. Host-originated passes may
+ * still send directly to real-player targets.
  *
  * @param itemDefID The definition ID of the item being passed.
  * @param playerID  The 0-based index of the player to pass the item to.
@@ -445,14 +464,15 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
 	_serializer.writeSint32(playerID);
 	_serializer.writeSint32(passDirection);
 	
-	CULog("Sending broadcasting message to player %d", playerID);
-	if (checkRealPlayer(playerID)) {
-		CULog("This was a real player");
+	CULog("Sending pass message to player %d", playerID);
+	if (!isHost()) {
+		// Clients route all passes through host for consistent delivery.
+		_network->sendToHost(_serializer.serialize());
+	} else if (checkRealPlayer(playerID)) {
 		std::string playerNetworkID = _onlinePlayers[playerID].networkID;
 		_network->sendTo(playerNetworkID, _serializer.serialize());
-	}
-	else {
-		CULog("This was not a real player");
+	} else {
+		// Host passing to AI stays local via host queue.
 		_network->sendToHost(_serializer.serialize());
 	}
 	_serializer.reset();
