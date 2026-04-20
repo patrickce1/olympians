@@ -96,7 +96,22 @@ void PreGameEntryScene::setupUI() {
         extractFromSection(bottomSection->getChildByName("localPlayerTile"));
     }
     
-};
+}
+
+/**
+ * Disposes of all (non-static) resources allocated to this mode.
+ */
+void PreGameEntryScene::dispose() {
+    if (_active) {
+        removeAllChildren();
+        _playerNames.clear();
+        _playerTiles.clear();
+        _houseNames.clear();
+        _loadingBar = nullptr;
+        _active = false;
+    }
+    _network = nullptr;
+}
 
 /**
  * Sets whether the scene is currently active

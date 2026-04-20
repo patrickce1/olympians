@@ -164,6 +164,7 @@ void SceneLoader::onShutdown() {
     _lobbyScene.dispose();
     _houseSelectScene.dispose();
     _bossSelectScene.dispose();
+    _preGameEntryScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
     netcode::NetworkLayer::stop();
@@ -283,6 +284,12 @@ void SceneLoader::update(float dt) {
                     _bossSelectScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize BossSelectScene");
+                }
+                
+                if (_preGameEntryScene.init(_assets, _network, &_gameScene.getGameState(), &_gameScene.getItemController())) {
+                    _preGameEntryScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize PreGameEntryScene");
                 }
             }
             break;
@@ -451,6 +458,20 @@ void SceneLoader::update(float dt) {
                     break;
             }
             break;
+        case State::PREGAMEENTRY:
+            _preGameEntryScene.update(dt);
+            switch (_preGameEntryScene.getStatus()) {
+                case PreGameEntryScene::Status::START:
+                    CULog("Transitioning to GameScene from PreGameEntryScene...");
+                    _audio.playMusic("battle");
+                    _gameScene.setActive(true);
+                    _preGameEntryScene.setActive(false);
+                    _currentScene = State::GAME;
+                    break;
+                default:
+                    break;
+            }
+            break;
         case State::GAME:
             InputController::Action action = _input.getAction();
                 switch (action) {
@@ -535,6 +556,9 @@ void SceneLoader::draw() {
             break;
         case State::BOSSSELECT:
             _bossSelectScene.render();
+            break;
+        case State::PREGAMEENTRY:
+            _preGameEntryScene.render();
             break;
     }
 }
