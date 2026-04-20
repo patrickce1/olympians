@@ -338,7 +338,7 @@
                     "y_offset": -0.1
                 }
             },
-            "loading bar": {
+            "loadingBar": {
                 "type": "Node",
                 "format": {
                     "type": "Anchored"
@@ -388,7 +388,7 @@
                         }
                     },
                     "preGameBarFill": {
-                        "type": "Image",
+                        "type": "Progress",
                         "data": {
                             "texture": "preGameBarFill",
                             "anchor": [
@@ -404,6 +404,7 @@
                                 41,
                                 6
                             ],
+                            "interior": [6,261],
                             "visible": true
                         },
                         "layout": {

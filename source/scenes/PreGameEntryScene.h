@@ -4,6 +4,8 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
+#include "../NetworkController.h"
+#include "../NetworkMessage.h"
 
 /**
  * [TBD]
@@ -38,10 +40,7 @@ protected:
     std::vector<std::shared_ptr<cugl::scene2::Label>> _houseNames;
     
     /** Player tiles that show the houses that they'll be playing under*/
-    std::vector<std::shared_ptr<cugl::scene2::Button>> _playerTiles;
-    
-    /** The local player indicator to know which is local */
-    std::shared_ptr<cugl::scene2::SceneNode> _localPlayerIndicator;
+    std::vector<std::shared_ptr<cugl::scene2::PolygonNode>> _playerTiles;
     
     /** The current status */
     Status _status;
