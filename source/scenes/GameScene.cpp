@@ -70,6 +70,45 @@ static HealthState getHealthState(float current, float max) {
 }
 
 /**
+ * Broadcasts the resolved support effects of a used support item to the host.
+ *
+ * Support items are normalized into one or more `SupportEffectMessage` payloads
+ * so the host can apply the same authoritative result to the target player.
+ * Items without explicit effects are treated as direct heals using the provided
+ * resolved magnitude. Shield and barrier items instead send their effect-specific
+ * tuning values from the item definition together with the configured duration.
+ *
+ * @param network   The network controller used to send host-directed updates.
+ * @param def   The item definition describing the support item's effects.
+ * @param resolvedMagnitude   The resolved support magnitude calculated for this item use.
+ * @param targetPlayerID     The 0-based slot index of the player receiving the effect.
+ */
+static void broadcastSupportEffects(NetworkController& network,
+                                    const ItemDef& def,
+                                    float resolvedMagnitude,
+                                    int targetPlayerID) {
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        switch (effect.type) {
+            case ItemDef::EffectType::Shield:
+                network.broadcastSupportEffect(SupportEffectType::Shield,
+                    effect.mitigation,
+                    effect.duration,
+                    targetPlayerID);
+                break;
+            case ItemDef::EffectType::Barrier:
+                network.broadcastSupportEffect(SupportEffectType::Barrier,
+                    effect.multiplier,
+                    effect.duration,
+                    targetPlayerID);
+                break;
+            case ItemDef::EffectType::Stun:
+            case ItemDef::EffectType::Vulnerable:
+                break;
+        }
+    }
+}
+
+/**
  * Returns the texture name to use for a player icon based on health and house.
  *
  * @param state HealthState of the player.
@@ -694,6 +733,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
             //NETWORK
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
             }
             // Play the item use sound if defined, otherwise play the support sound
             const std::string& itemUseSound = def->getItemUseSound();
@@ -735,6 +775,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
             //NETWORK
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
             }
             // Play the item use sound if defined, otherwise play the support sound
             const std::string& itemUseSound = def->getItemUseSound();
@@ -1686,9 +1727,9 @@ void GameScene::handleDragTracking(InputController& input) {
 }
 
 /* Checks if any updates about the state of the game were sent over the network.
-* If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
-* If we are the host, we process any attack, heal, and pass messages.
-* After doing so, we send out a new authoritative version of the game state as the host*/
+ * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
+ * If we are the host, we process any attack, heal, support-effect, and pass messages.
+ * After doing so, we send out a new authoritative version of the game state as the host*/
 void GameScene::handleNetworkUpdates() {
     /*Networking pull cycle*/
     _network->getNetworkUpdates();
@@ -1702,6 +1743,7 @@ void GameScene::handleNetworkUpdates() {
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
+        _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
     }

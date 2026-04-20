@@ -75,14 +75,12 @@
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 1.0,
+            "baseValue": 0.0,
             "effects": [
                 {
                     "type": "shield",
-                    "target": "",
-                    "multiplier": 0.5,
-                    "duration": 5.0,
-                    "stacking": "refresh"
+                    "mitigation": 20.0,
+                    "duration": 5.0
                 }
             ]
         },
@@ -172,11 +170,17 @@
             "name": "Aegis Shield",
             "description": " ",
             "icon": "item_aegis",
-            "type": "utility",
+            "type": "support",
             "rarity": "rare",
             "houseAffinity": "athena",
-            "baseValue": 1.0,
-            "effects": []
+            "baseValue": 0.0,
+            "effects": [
+                {
+                    "type": "barrier",
+                    "multiplier": 0.5,
+                    "duration": 10.0
+                }
+            ]
         },
         {
             "id": "spear",
