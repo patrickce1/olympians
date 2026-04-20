@@ -12,9 +12,9 @@ using namespace cugl;
  * @return the normalized token (trimmed and lowercased)
  */
 static std::string normalizeToken(std::string token) {
-    auto notspace = [](unsigned char c){ return !std::isspace(c); };
-    token.erase(token.begin(), std::find_if(token.begin(), token.end(), notspace));
-    token.erase(std::find_if(token.rbegin(), token.rend(), notspace).base(), token.end());
+    auto notSpace = [](unsigned char c){ return !std::isspace(c); };
+    token.erase(token.begin(), std::find_if(token.begin(), token.end(), notSpace));
+    token.erase(std::find_if(token.rbegin(), token.rend(), notSpace).base(), token.end());
     std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c){ return (char)std::tolower(c); });
     return token;
 }

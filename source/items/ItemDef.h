@@ -78,7 +78,7 @@ public:
      */
     struct Effect {
         /** The effect category to apply. */
-        EffectType type = EffectType::Shield;
+        EffectType type;
         /** Scalar tuning value used by barrier and vulnerable effects. */
         float multiplier = 1.0f;
         /** Flat damage reduction used by shield effects. */
@@ -162,7 +162,6 @@ public:
     Type getType() const { return _type; }
     /** Gets item rarity */
     Rarity getRarity() const { return _rarity; }
-    
 
     /** Gets utility item effects */
     const std::vector<Effect>& getEffects() const { return _effects; }
