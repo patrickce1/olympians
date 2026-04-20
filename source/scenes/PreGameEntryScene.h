@@ -45,8 +45,11 @@ protected:
     /** The current status */
     Status _status;
 
-    /** The timer for the loading bar icon border */
+    /** The timer for the loading bar */
     float _loadTimer = 0.0f;
+    
+    /** Progress fo the loading bar */
+    float _loadingProgress = 0.0f;
 
     /** The state of the game */
     GameState* _gameState = nullptr;

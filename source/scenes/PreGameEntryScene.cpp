@@ -10,7 +10,7 @@ using namespace std;
 /** Regardless of logo, lock the height to this */
 #define SCENE_HEIGHT  852
 /** Loading Bar Timer */
-#define LOADING_TIMER  0.5f
+#define LOADING_TIMER  5.0f
 
 /**
  * Initializes the scene contents, and starts the scene
@@ -125,6 +125,11 @@ void PreGameEntryScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = IDLE;
+            _loadingProgress = 0.0f;
+
+            if (_loadingBar) {
+                _loadingBar->setProgress(0.0f);
+            }
         }
     }
 }
@@ -135,6 +140,72 @@ void PreGameEntryScene::setActive(bool value) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void PreGameEntryScene::update(float timestep) {
+    if (!_active || !_loadingBar) return;
+
+    // Increase progress based on time
+    _loadingProgress += timestep / LOADING_TIMER;
+
+    if (_loadingProgress > 1.0f) {
+        _loadingProgress = 1.0f;
+    }
+
+    _loadingBar->setProgress(_loadingProgress);
+
+    // When done loading
+    if (_loadingProgress >= 1.0f) {
+        _status = Status::START;
+    }
     
+    std::vector<Player*> displayOrder = remapPlayersForDisplay();
+    updateEntryScreenTiles(displayOrder);
 }
+
+/**
+ * Remaps the full player list from GameState so the local player always
+ * appears last (bottom slot of the UI). Walks the circular player array
+ * starting one step to the right of the local player, so that left/right
+ * neighbour relationships are preserved visually. Includes both real and
+ * AI players since both are stored in GameState.
+ *
+ * This is purely a display remapping — no game or network state is changed.
+ *
+ * @return  A reordered list of raw Player pointers with the local player last.
+ */
+std::vector<Player*> PreGameEntryScene::remapPlayersForDisplay() {
+    int localIndex = _network->getLocalPlayerNumber();
+    const auto& players = _gameState->getPlayers();
+    int totalSlots = (int)players.size();
+
+    std::vector<Player*> remappedPlayerSlots;
+    remappedPlayerSlots.reserve(totalSlots);
+
+    for (int i = 1; i < totalSlots + 1; i++) {
+        int slot = (localIndex + i) % totalSlots;
+        remappedPlayerSlots.push_back(players[slot].get());
+    }
+
+    return remappedPlayerSlots;
+};
+
+/**
+ * Updates the player tile images in the pre game entry UI based on each player's
+ * selected house. The list is expected to already be in display order
+ * (local player last) as produced by remapPlayersForDisplay().
+ *
+ * @param players  The display-ordered list of players to read house names from.
+ */
+void PreGameEntryScene::updateEntryScreenTiles(std::vector<Player*> players) {
+    for (int i = 0; i < _playerTiles.size(); i++) {
+        auto tile = _playerTiles[i];
+        if (tile) {
+            std::string key = players[i]->getHouseName() + "Box";
+            
+            if (_assets->get<cugl::graphics::Texture>(key) != nullptr) {
+                tile->setTexture(_assets->get<cugl::graphics::Texture>(key));
+            } else {
+                tile->setTexture(_assets->get<cugl::graphics::Texture>("emptyBox"));
+            }
+        }
+    }
+};
 
