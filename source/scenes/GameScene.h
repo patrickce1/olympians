@@ -31,6 +31,101 @@ struct SnapbackAnimation {
 };
 
 /**
+ * Represents a short-lived visual animation for an item that was just consumed.
+ * The real gameplay item is removed immediately; this ghost only handles UX.
+ */
+struct ConsumedItemAnimation {
+    /** Transient visual node shown while the consume animation plays. */
+    std::shared_ptr<cugl::scene2::SceneNode> node;
+
+    /** Elapsed animation time in seconds. */
+    float elapsed = 0.0f;
+
+    /** Total animation time in seconds. */
+    float duration = 0.0f;
+
+    /** Starting scale at animation begin. */
+    float startScale = 1.0f;
+
+    /** Ending scale at animation completion. */
+    float endScale = 0.0f;
+};
+/*
+ * Represents a single item use animation currently playing on screen.
+ * 
+ * When a player uses an attack item with animation, an overlay sprite plays and damage
+ * is applied at a specific keyframe (damageResolutionFrame). This struct tracks all state
+ * needed to manage the animation lifecycle: rendering, frame advancement, and damage timing.
+ * 
+ * The animation system allows visual feedback to play before damage is applied, enabling
+ * effects and sounds to be coordinated with specific animation frames. Multiple animations
+ * can be active simultaneously (stored in GameScene::_activeItemUseAnimations).
+ */
+struct ItemUseAnimation {
+    /** The sprite sheet managing frame layout and texture coordinates. */
+    std::shared_ptr<cugl::graphics::SpriteSheet> spriteSheet;
+    
+    /** The sprite node displaying the sprite sheet frames in the scene graph. */
+    std::shared_ptr<cugl::scene2::SpriteNode> node;
+    
+    /** The original animation position before any camera/viewport transforms. */
+    cugl::Vec2 basePosition;
+    
+    /** The size in pixels of a single frame in the sprite sheet. */
+    cugl::Size frameSize;
+    
+    /** Number of columns in the sprite sheet grid layout. */
+    int frameCols = 1;
+    
+    /** Total number of frames in the animation sequence. */
+    int frameCount = 0;
+    
+    /** Total duration of the entire animation in seconds. */
+    float animationDuration = 0.0f;
+    
+    /** Frame index at which damage should be applied to the target and network-broadcasted. */
+    int damageResolutionFrame = 0;
+    
+    /** Pre-calculated damage amount to apply when reaching the resolution frame. */
+    float damageAmount = 0.0f;
+    
+    /** Reserved for future use: originally stored itemId for deferred calculation (now pre-calculated). */
+    ItemInstance::ItemId itemId = 0;
+    
+    /** Elapsed time in seconds since animation started. Used to calculate current frame. */
+    float elapsedTime = 0.0f;
+    
+    /** Flag indicating whether damage has been applied at the resolution frame (prevents re-application). */
+    bool damageResolved = false;
+    
+    /** The frame index currently being displayed (cached to avoid redundant setFrame() calls). */
+    int currentFrameIndex = -1;
+};
+
+/**
+ * Represents a single animation entry from the enemy animations registry (enemyAnimations.json).
+ * Contains metadata needed to render and advance animation frames.
+ */
+struct AnimationEntry {
+    std::string id;                  /**< Animation identifier (e.g., "cyclops_idle_animation") */
+    std::string texture;             /**< Texture asset key (e.g., "gameScene/cyclops/cyclops_idle_animation") */
+    int frameCount;                  /**< Number of frames per animation row */
+    float frameDuration;             /**< Duration in seconds per frame */
+    int frameRows;                   /**< Number of rows in the sprite sheet */
+    
+    // Attack phase configuration
+    int buildupFrameCount = 0;       /**< Number of frames in buildup phase that loop. 0 = no buildup */
+    int damageFrame = -1;            /**< Absolute frame index when damage is dealt (-1 = no auto-damage) */
+    
+    // Position and scale customization
+    float positionX = 196.5f;        /**< Screen X position for this animation */
+    float positionY = 120.0f;        /**< Screen Y position for this animation */
+    float scale = 0.92f;             /**< Scale multiplier for this animation */
+    float offsetX = 0.0f;            /**< X offset from base position */
+    float offsetY = 0.0f;            /**< Y offset from base position */
+};
+
+/**
  * Controller for the core game scene.
  *
  * GameScene is a pure controller: it owns the scene graph, handles input,
@@ -92,6 +187,12 @@ protected:
 
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
+
+    /** Current visual scale for each inventory item widget (for smooth pickup/release animation). */
+    std::unordered_map<ItemInstance::ItemId, float> _itemWidgetScales;
+
+    /** Target visual scale for each inventory item widget. */
+    std::unordered_map<ItemInstance::ItemId, float> _itemWidgetScaleTargets;
 
     /** Inventory-only physics world used to attach Box2D bodies to item widgets. */
     std::shared_ptr<cugl::physics2::ObstacleWorld> _itemPhysicsWorld;
@@ -189,6 +290,11 @@ protected:
     /** Map of ItemId to active snapback animations. Multiple items can be snapping back simultaneously. */
     std::unordered_map<ItemInstance::ItemId, SnapbackAnimation> _snapbackAnimations;
 
+    /** Active short-lived consumed-item ghost animations. */
+    std::vector<ConsumedItemAnimation> _consumedItemAnimations;
+    /** Vector of currently active item use animations. Multiple animations can play concurrently. */
+    std::vector<ItemUseAnimation> _activeItemUseAnimations;
+
 #pragma mark - Glow Effect State
 
     /** The drop zone action whose region should currently glow. */
@@ -236,6 +342,35 @@ protected:
 
     /** True while a touch is active and the debug pointer should be drawn. */
     bool _hasDebugPointer = false;
+
+#pragma mark - Enemy Animation State
+
+    /** Animation registry loaded from enemyAnimations.json. Maps animation ID to metadata. */
+    std::unordered_map<std::string, AnimationEntry> _animationRegistry;
+
+    /** Pre-created sprite nodes for all animations, mapped by animation ID. Built once during init(). */
+    std::unordered_map<std::string, std::shared_ptr<cugl::scene2::SpriteNode>> _enemyAnimationSpriteNodes;
+
+    /** Currently visible animation sprite node (pointer to one of the sprites in _enemyAnimationSpriteNodes). */
+    std::shared_ptr<cugl::scene2::SpriteNode> _currentVisibleAnimationSprite;
+
+    /** Cached animation entry for currently playing animation. Used for frame calculations. */
+    AnimationEntry _currentAnimationEntry;
+
+    /** Animation ID of the currently visible animation (for detecting animation changes). */
+    std::string _currentAnimationId;
+
+    /** Current direction (0-3) the enemy faces, computed locally per player from local player index + target index. */
+    int _enemyAnimationCurrentDirection = 0;
+
+    /** Cached frame index to avoid redundant setFrame() calls (optimization). */
+    int _enemyAnimationCachedFrameIndex = -1;
+
+    /** Caches whether current idle state has animation metadata (optimization). */
+    bool _enemyAnimationHasMetadata = false;
+    
+    /** Flag tracking if damage has been dealt during the current enemy state. Resets when state changes. */
+    bool _enemyAttackDamageDealtThisState = false;
 
 #pragma mark - Controllers
 
@@ -428,6 +563,38 @@ public:
      */
     bool handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId);
 
+    /**
+     * Handles an animated attack: calculates damage, removes item, and queues animation.
+     * Called by handleAttack() when the item has an animation config.
+     * Damage is applied when animation reaches the resolution frame.
+     *
+     * @param itemId   The item instance ID being used
+     * @param item     The ItemInstance being used
+     * @param def      The item definition containing animation config
+     * @param local    The local player performing the attack
+     * @param enemy    The enemy being attacked
+     * @return true if animation was successfully queued, false if damage calculation failed
+     */
+    bool handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
+                              const std::shared_ptr<const ItemDef>& def,
+                              Player* local, Enemy* enemy);
+
+    /**
+     * Handles a non-animated attack: applies damage immediately using useItemById.
+     * Called by handleAttack() when the item has no animation config.
+     * Damage is applied immediately and broadcast to network.
+     *
+     * @param itemId   The item instance ID being used
+     * @param item     The ItemInstance being used
+     * @param def      The item definition (no animation config)
+     * @param local    The local player performing the attack
+     * @param enemy    The enemy being attacked
+     * @return true if damage was successfully applied, false if calculation failed
+     */
+    bool handleImmediateAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
+                               const std::shared_ptr<const ItemDef>& def,
+                               Player* local, Enemy* enemy);
+
 #pragma mark - Update Helpers
 
     /**
@@ -438,6 +605,110 @@ public:
      * @param dt  Delta time in seconds.
      */
     void updateEnemyAndAI(float dt);
+    
+    /**
+     * Updates enemy idle animation and directional facing based on target.
+     * Each frame: recalculates direction from local player index + enemy target index,
+     * advances sprite frame based on elapsed time, and updates the sprite node display.
+     *
+     * If animation metadata is undefined, sprite node is destroyed/hidden and the
+     * fallback static sprite is displayed. Direction is computed locally per player
+     * from the enemy's target index, so each player sees the correct enemy direction
+     * from their perspective.
+     *
+     * @param dt                Elapsed time in seconds for this frame
+     * @param localPlayerIndex  The local player's index (0-3) for calculating relative direction
+     */
+    void updateEnemyAnimation(float dt, int localPlayerIndex);
+
+    /**
+     * Pre-creates all enemy animation sprite nodes with their textures and layouts.
+     * 
+     * Called during init() to load all animations upfront. This eliminates stuttering
+     * when switching between animations since all sprites are pre-allocated and we only
+     * swap visibility instead of creating/destroying sprites at runtime.
+     *
+     * @return true if all animations were successfully initialized, false on error
+     */
+    bool initializeAllEnemyAnimations();
+    
+    /**
+     * Switches the visible animation sprite by hiding the current one and showing the new one.
+     * 
+     * Fast O(1) operation that just changes visibility and resets animation timing.
+     * All sprites are pre-created, so this avoids runtime texture loading.
+     *
+     * @param animationId  The animation ID to make visible
+     */
+    void switchVisibleAnimation(const std::string& animationId);
+
+    /**
+     * Updates the current animation frame for direction and elapsed time.
+     * 
+     * Recalculates the direction the enemy should face (0-3) based on relative
+     * positions of local player and target, then advances the animation frame
+     * based on accumulated elapsed time and frame duration from animation metadata.
+     * Only calls setFrame() if the frame index has changed (cached optimization).
+     *
+     * @param dt                The elapsed time in seconds since last frame
+     * @param localPlayerIndex  The local player's index (0-3) for direction calculation
+     */
+    void updateEnemyAnimationFrame(float dt, int localPlayerIndex);
+
+    /**
+     * Calculates which animation frame should be displayed based on state time and animation phase.
+     * Handles both buildup/attack animations and simple looping animations.
+     *
+     * @param stateTime The time elapsed in the current state (seconds)
+     * @return The frame index within the animation row (0-indexed)
+     */
+    int calculateAnimationFrame(float stateTime) const;
+
+    /**
+     * Calculates the frame index during the buildup phase of an animation.
+     * Buildup frames loop until the buildup duration elapses.
+     *
+     * @param stateTime The time elapsed in the current state (seconds)
+     * @param buildupDuration The total duration of the buildup phase (seconds)
+     * @param buildupFrames Number of frames in the buildup phase
+     * @return The looping frame index within the buildup frames
+     */
+    int calculateBuildupFrame(float stateTime, float buildupDuration, int buildupFrames) const;
+
+    /**
+     * Calculates the frame index during the attack phase of an animation.
+     * Attack frames play sequentially without looping, clamped to the final frame.
+     *
+     * @param stateTime The time elapsed in the current state (seconds)
+     * @param buildupDuration The total duration of the buildup phase (seconds)
+     * @param buildupFrames Number of frames in the buildup phase
+     * @return The attack phase frame index (clamped to last attack frame)
+     */
+    int calculateAttackFrame(float stateTime, float buildupDuration, int buildupFrames) const;
+
+    /**
+     * Ensures the frame index is within valid bounds.
+     * Clamps negative frames to 0 and frames beyond frameCount to frameCount-1.
+     *
+     * @param frameInRow The frame index to validate
+     * @return The clamped frame index
+     */
+    int validateFrameIndex(int frameInRow) const;
+
+    /**
+     * Hides the enemy animation sprite and shows the static fallback sprite.
+     * 
+     * Sets visibility on both the animation sprite node and the container,
+     * then reveals the static sprite as a fallback. Called when animation
+     * metadata is unavailable or the enemy is dead.
+     */
+    void hideEnemyAnimationAndShowStatic();
+
+    /**
+     * Loads the animation registry from enemyAnimations.json and populates _animationRegistry.
+     * This builds a lookup map from animation IDs to their metadata (frameCount, frameDuration, frameRows).
+     */
+    void loadAnimationRegistry();
     
     /**
      * Plays health and damage indicator sounds based on health changes.
@@ -451,6 +722,13 @@ public:
      * @param enemyHealthBefore   The enemy's health before state updates
      */
     void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore);
+    
+    /**
+     * Checks if the current enemy attack animation has finished playing (both buildup and attack phases).
+     *
+     * @return true if attack animation is complete, false otherwise
+     */
+    bool isEnemyAttackAnimationComplete() const;
     
     /**
      * Updates the progress bar with the current ratios of player and enemy health.
@@ -703,6 +981,77 @@ public:
     bool isItemInVisibleArea(const cugl::Vec2& position);
     
     /**
+     * Queues an item use animation for display in the special effects layer.
+     * 
+     * Creates a SpriteNode from the specified sprite sheet and adds it to the scene graph.
+     * The animation will play in updateItemUseAnimations() each frame, advancing frames
+     * based on elapsed time. When the current frame index reaches damageResolutionFrame,
+     * the pre-calculated damage is applied and broadcast to the network.
+     * 
+     * The number of sheets and frame layout are specified in animConfig (from ItemDef).
+     * Damage is pre-calculated by the caller (not calculated here), allowing hostile
+     * consumers to perform custom calculations or effects between damage calc and application.
+     * 
+     * @param animConfig     Configuration from ItemDef specifying sprite sheet ID, rows/cols, 
+     *                       total frames, animation duration, and damage resolution keyframe
+     * @param damageAmount   Pre-calculated damage to apply at damageResolutionFrame
+     * @param itemPos        Screen position to center animation at (defaults to viewport center)
+     * @param itemId         Reserved for future use (currently unused; kept for extensibility)
+     */
+    void startItemUseAnimation(const ItemUseAnimationConfig& animConfig, float damageAmount, 
+                               const cugl::Vec2& itemPos = cugl::Vec2::ZERO, 
+                               ItemInstance::ItemId itemId = 0);
+    
+    /**
+     * Updates all active item use animations for one frame.
+     * 
+     * For each active animation:
+     *   1. Advances elapsed time by dt
+     *   2. Calculates current frame index based on animation progress
+     *   3. Updates sprite sheet frame if frame index changed
+     *   4. At damageResolutionFrame: applies pre-calculated damage and broadcasts to network
+     *   5. Removes animation from queue when animation duration elapsed
+     * 
+     * Damage broadcast happens here to ensure tight synchronization between all clients:
+     * - Host: applies damage locally, broadcasts via next broadcastGameState()
+     * - Clients: broadcast damage message to host immediately after resolution
+     * 
+     * This architecture ensures damage is consistently applied at the same animation frame
+     * across all networked machines, preventing desync issues.
+     *
+     * @param dt  Delta time in seconds (typically from game loop)
+     */
+    void updateItemUseAnimations(float dt);
+    
+    /**
+     * Clears all active item use animations, removing them from the scene graph.
+     * Called when the game ends or resets.
+     */
+    void clearItemUseAnimations();
+    
+    /**
+     * Returns whether there are any active item use animations currently playing.
+     * Used to defer game-over checks until animations complete.
+     *
+     * @return true if there are active animations, false otherwise
+     */
+    bool hasActiveItemAnimations() const { return !_activeItemUseAnimations.empty(); }    
+    /** Checks if an item is currently playing an animation.
+     * Used to prevent respawning items that are mid-animation.
+     *
+     * @param itemId The ID of the item to check
+     * @return true if the item has an active animation, false otherwise
+     */
+    bool isItemAnimating(ItemInstance::ItemId itemId) const;
+    
+    /** Checks if an item type matches an action zone type.
+     *
+     * @param action  The zone action type
+     * @param itemType The type of item
+     * @return true if the item can be used in this zone
+     */
+    bool isItemActionMatch(InputController::Action action, ItemDef::Type itemType) const;    
+    /**
      * Top-level disconnect handler. Called every frame from update().
      * Delegates to the three helpers below.
      */
@@ -730,6 +1079,36 @@ public:
      * reflect the current AI/human state of each neighbour.
      */
     void refreshTeammateNameLabels();
+    
+    /**
+     * Calculates the effective damage value for an attack item.
+     * 
+     * Computes damage multipliers based on the attacking player's house affiliation
+     * and the item's house affinity. Applies base value multiplied by house role
+     * multiplier and affinity bonus (for rare/divine items matching player house).
+     * 
+     * This function mirrors the damage calculation logic in Player::useItemById()
+     * but separates it for cases where damage needs to be deferred (animated attacks).
+     * 
+     * @param player     The attacking player (provides house for multiplier lookup)
+     * @param itemDef    The item definition containing base value and affinity info
+     * @param database   The item database for house multiplier lookup
+     * @return           Calculated damage magnitude, or 0.01f if calculation yields <= 0
+     */
+    float calculateItemDamage(const Player* player, const std::shared_ptr<const ItemDef>& itemDef, const ItemDatabase& database);
+    
+    /**
+     * Removes an item from a player's inventory by item instance ID.
+     * 
+     * Searches for the item in the player's inventory and erases it if found.
+     * This is used to decouple item removal from damage calculation, allowing
+     * animations and effects to be applied between consumption and damage.
+     * 
+     * @param player   The player whose inventory to modify
+     * @param itemId   The unique ID of the item instance to remove
+     * @return         true if item was found and successfully removed, false otherwise
+     */
+    bool removeItemFromInventory(Player* player, ItemInstance::ItemId itemId);
     
 #pragma mark - Inventory UI
 
@@ -770,6 +1149,25 @@ public:
      * @param itemId  The itemId representing the ItemInstance to be removed.
      */
     void removeItemWidget(ItemInstance::ItemId itemId);
+
+    /** Smoothly animates each item widget's scale towards its current target. */
+    void updateItemWidgetScales(float dt);
+
+    /** Spawns a short-lived shrinking ghost visual for a consumed item. */
+    void spawnConsumedItemAnimation(const std::shared_ptr<cugl::scene2::SceneNode>& sourceWidget,
+                                    const std::shared_ptr<const ItemDef>& itemDef);
+
+    /** Advances and cleans up active consumed-item ghost animations. */
+    void updateConsumedItemAnimations(float dt);
+
+    /** Removes and clears all consumed-item ghost animations. */
+    void clearConsumedItemAnimations();
+    /** Marks an item as used (pending animation resolution, should not be respawned).
+     *  Removes the visual widget and physics body, but keeps item in inventory until damage applies.
+     *
+     * @param itemId  The itemId that was just used
+     */
+    void markItemAsUsed(ItemInstance::ItemId itemId);
 
     /**
      * Helper function to spawn an item widget from a given position with animation.
@@ -914,5 +1312,12 @@ public:
      * @return  A reference to the GameState owned by this scene.
      */
     GameState& getGameState() { return _gameState; }
+    
+    /**
+     * Returns a reference to the item controller owned by this scene.
+     * Exposed so LobbyScene can pass it to assignMissingHousesForAI()
+     * when the host presses Begin Quest.
+     */
+    ItemController& getItemController() { return _itemController; }
 };
 #endif /* __GAME_SCENE_H__ */

@@ -39,11 +39,15 @@ private:
     Player* _rightPlayer = nullptr;
     /** Runtime fixed-mitigation shield state */
     bool _hasShield = false;
-    float _shieldMitigation = 0.0f;
+    /** The amount of health the shield has left */
+    float _shieldHealth = 0.0f;
+    /** The time left before the shield expires */
     float _shieldDuration = 0.0f;
     /** Runtime percentage-mitigation barrier state */
     bool _hasBarrier = false;
+    /** The percentage damage that will be mitigated */
     float _barrierMultiplier = 1.0f;
+    /** The time left before the barrier expires */
     float _barrierDuration = 0.0f;
 
 public:
@@ -106,14 +110,19 @@ public:
 
     /** Returns whether a shield is currently armed on this player. */
     bool hasShield() const { return _hasShield; }
+    
     /** Returns the current fixed mitigation value. */
-    float getShieldMitigation() const { return _shieldMitigation; }
+    float getShieldHealth() const { return _shieldHealth; }
+    
     /** Returns the remaining shield duration. */
     float getShieldDuration() const { return _shieldDuration; }
+    
     /** Returns whether a barrier is currently armed on this player. */
     bool hasBarrier() const { return _hasBarrier; }
+    
     /** Returns the current barrier multiplier. */
     float getBarrierMultiplier() const { return _barrierMultiplier; }
+    
     /** Returns the remaining barrier duration. */
     float getBarrierDuration() const { return _barrierDuration; }
 
@@ -123,17 +132,15 @@ public:
     /**
      * Overwrites runtime support-effect state from the authoritative host snapshot.
      *
-     * @param shieldMitigation  The fixed damage amount blocked by the active shield.
+     * @param shieldHealth  The fixed damage amount blocked by the active shield.
      * @param shieldDuration    The remaining shield duration in seconds.
      * @param barrierMultiplier The active barrier damage multiplier.
      * @param barrierDuration   The remaining barrier duration in seconds.
      */
-    void syncRuntimeEffects(float shieldMitigation,
-                            float shieldDuration,
-                            float barrierMultiplier,
-                            float barrierDuration) {
+    void syncRuntimeEffects(float shieldHealth, float shieldDuration, float barrierMultiplier,
+        float barrierDuration) {
         _hasShield = shieldDuration > 0.0f;
-        _shieldMitigation = _hasShield ? shieldMitigation : 0.0f;
+        _shieldHealth = _hasShield ? shieldHealth : 0.0f;
         _shieldDuration = _hasShield ? shieldDuration : 0.0f;
         _hasBarrier = barrierDuration > 0.0f;
         _barrierMultiplier = _hasBarrier ? barrierMultiplier : 1.0f;
@@ -192,21 +199,20 @@ public:
     void applyBarrier(float multiplier, float duration);
     
     /**
-     * Advances timed runtime effects.
+     * Advances this player's active runtime support effects by the elapsed frame time.
+     *
+     * Both shield and barrier durations are reduced by `dt` and clamped to `0.0f` so
+     * they never become negative. When a shield timer reaches zero, the shield is marked
+     * inactive, any remaining flat damage absorption is cleared, and an expiration log is
+     * emitted. When a barrier timer reaches zero, the barrier is marked inactive and its
+     * damage multiplier is restored to the neutral `1.0f` value.
      *
      * @param dt  The elapsed time since the previous frame, in seconds.
      */
     void updateEffects(float dt);
 
     /** Clears runtime-only combat effects. */
-    void clearRuntimeEffects() {
-        _hasShield = false;
-        _shieldMitigation = 0.0f;
-        _shieldDuration = 0.0f;
-        _hasBarrier = false;
-        _barrierMultiplier = 1.0f;
-        _barrierDuration = 0.0f;
-    }
+    void clearRuntimeEffects();
 
     /**
      * Adds an item to the player's inventory.
@@ -232,10 +238,6 @@ public:
      * @return       The applied base magnitude, or -1.0f if the item id or item
      *         definition cannot be found
      */
-    template <typename T>
-    float useItemById(ItemInstance::ItemId itemId, T& target, const ItemDatabase& db) {
-        return -1.0f;
-    }
     float useItemById(ItemInstance::ItemId itemId, Player& target, const ItemDatabase& db);
 
     /**

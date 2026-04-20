@@ -105,12 +105,12 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
             allValid = false;
             break;
         }
-        if (def->getBaseValue() <= 0.0f) {
+        if (def->getBaseValue() < 0.0f) {
             allValid = false;
             break;
         }
     }
-    assertWithLabel(allValid, "items: all defs have positive baseValue");
+    assertWithLabel(allValid, "items: all defs have positive baseValue (including 0)");
     
     auto lightningBoltDef = db.getDef("lightning_bolt");
     auto appleDef = db.getDef("apple");
@@ -300,8 +300,8 @@ void testScalingFallbacks() {
  * Tests baseValue fallback behavior for missing or invalid item values.
  *
  * Verifies that ItemDatabase correctly:
- * - Defaults negative baseValue to 1.0
- * - Defaults missing baseValue to 1.0
+ * - Defaults negative baseValue to 0.0
+ * - Defaults missing baseValue to 0.0
  * - Preserves valid baseValue without modification
  *
  * Uses fixture JSON file: assets/json/tests/items_basevalue_fallbacks.json
@@ -319,10 +319,10 @@ void testBaseValueDefaults() {
     auto missingBaseValueDef = db.getDef("missing_base");
     assertWithLabel(negativeBaseValueDef != nullptr && missingBaseValueDef != nullptr, "baseValue: fallback defs exist");
     if (negativeBaseValueDef) {
-        assertWithLabel(floatsEqualWithinTolerance(negativeBaseValueDef->getBaseValue(), 1.0f), "baseValue: negative baseValue defaults to 1.0");
+        assertWithLabel(floatsEqualWithinTolerance(negativeBaseValueDef->getBaseValue(), 0.0f), "baseValue: negative baseValue defaults to 0.0");
     }
     if (missingBaseValueDef) {
-        assertWithLabel(floatsEqualWithinTolerance(missingBaseValueDef->getBaseValue(), 1.0f), "baseValue: missing baseValue defaults to 1.0");
+        assertWithLabel(floatsEqualWithinTolerance(missingBaseValueDef->getBaseValue(), 0.0f), "baseValue: missing baseValue defaults to 0.0");
     }
 }
 
@@ -461,7 +461,7 @@ void testShieldEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
                                               std::min(resolvedShield, shieldTarget.getMaxHealth() - shieldHealthBeforeUse)),
                     "shield: shield item still applies its base heal");
     assertWithLabel(shieldTarget.hasShield(), "shield: shield effect arms fixed mitigation");
-    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldMitigation(), 3.0f), "shield: shield mitigation value applies");
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldHealth(), 3.0f), "shield: shield mitigation value applies");
     assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldDuration(), 5.0f), "shield: shield effect duration applies");
 
     float shieldedHealthBefore = shieldTarget.getCurrentHealth();

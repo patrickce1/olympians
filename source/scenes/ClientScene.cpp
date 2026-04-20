@@ -229,6 +229,10 @@ void ClientScene::setActive(bool value) {
             _joinTimer = 0.0f;
             _errorTimer = 0.0f;
             if (_errorPopup) _errorPopup->setVisible(false);
+            if (_loading) {
+                _loading->setVisible(false);
+                _isSpinning = false;
+            }
             _enterGame->activate();
             _backButton->activate();
             _hostButton->activate();

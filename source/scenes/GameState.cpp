@@ -62,9 +62,7 @@ void GameState::initPlayers() {
  * using the house they selected in the character select screen.
  *
  * Called during game setup after the lobby has finalized the player order
- * and all players have broadcast their house selections. Since real players
- * always occupy the first N consecutive slots, playerNumber corresponds
- * directly to their index in the online players list.
+ * and all players have broadcast their house selections.
  *
  * After replacing the player object, all neighbour pointers in the circular
  * ring are re-wired so that every player's left/right references remain valid.
@@ -79,26 +77,27 @@ void GameState::initPlayers() {
 void GameState::setRealPlayer(int playerNumber, const std::string& playerName, const std::string& houseName) {
     if (playerNumber < 0 || playerNumber >= (int)_players.size()) return;
 
-    if (houseName.empty()) {
-        // No house yet — reconstruct as a real Player with no house
-        // so isAI() correctly returns false for this slot
-        if (_players[playerNumber]->isAI()) {
-            _players[playerNumber] = std::make_shared<Player>(
-                "",
-                playerNumber,
-                playerName,
-                _houseLoader
-            );
-            _playerIdMap[playerNumber] = _players[playerNumber].get();
+    const bool replacedLocalPlayer = (_localPlayer == _players[playerNumber].get());
 
-            const int n = (int)_players.size();
-            for (int i = 0; i < n; i++) {
-                _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
-                _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
-            }
-        } else {
-            // Already a real player — just update the name
-            _players[playerNumber]->setPlayerName(playerName);
+    if (houseName.empty()) {
+        // Always reconstruct with no house to guarantee house is cleared,
+        // regardless of whether the slot was previously AI or real
+        _players[playerNumber] = std::make_shared<Player>(
+            "",
+            playerNumber,
+            playerName,
+            _houseLoader
+        );
+        _playerIdMap[playerNumber] = _players[playerNumber].get();
+
+        const int n = (int)_players.size();
+        for (int i = 0; i < n; i++) {
+            _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
+            _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+        }
+        
+        if (replacedLocalPlayer) {
+            _localPlayer = _players[playerNumber].get();
         }
         return;
     }
@@ -116,6 +115,9 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
     for (int i = 0; i < n; i++) {
         _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
         _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+    }
+    if (replacedLocalPlayer) {
+        _localPlayer = _players[playerNumber].get();
     }
 }
 
@@ -138,6 +140,45 @@ bool GameState::initEnemy() {
 }
 
 /**
+ * Creates an enemy instance of the appropriate type based on enemy ID.
+ * Currently supports Cyclops (custom class) and Cerberus (generic Enemy).
+ * 
+ * @param enemyID The unique identifier for the enemy to create
+ * @return A shared pointer to the newly created enemy instance
+ */
+static std::shared_ptr<Enemy> createEnemyByID(const std::string& enemyID) {
+    if (enemyID == "cyclops") {
+        return std::make_shared<Cyclops>();
+    } else if (enemyID == "cerberus") {
+        // TODO: Create a custom Cerberus class in a future PR
+        return std::make_shared<Enemy>();
+    }
+    // Fallback for unknown enemy types
+    return std::make_shared<Enemy>();
+}
+
+/**
+ * Initialises the enemy for the game session with animation metadata from AssetManager.
+ * Stores the asset manager reference and loads enemy definitions with animation registry.
+ *
+ * @param assets   The AssetManager containing animation metadata and asset definitions.
+ * @return true if enemy initialized successfully, false on error.
+ */
+bool GameState::initEnemyWithAssets(const std::shared_ptr<cugl::AssetManager>& assets) {
+    const std::string enemyJsonPath = "json/enemies.json";
+    _enemy = createEnemyByID("cyclops");
+    _assets = assets;
+    
+    if (!_enemy->init("cyclops", enemyJsonPath, assets)) {
+        CULog("ERROR: Failed to initialize enemy");
+        return false;
+    }
+    
+    CULog("GameState: Enemy initialized id='%s'", _enemy->getId().c_str());
+    return true;
+}
+
+/**
  * Finishes initialising all AI-controlled players using the item database.
  * Must be called after initPlayers() and after the ItemController is ready,
  * since AI init requires the item definition database.
@@ -149,7 +190,7 @@ bool GameState::initAI(ItemController& itemController) {
     const std::string aiConfigPath = "json/playerAI.json";
     const int playerCount = (int)_players.size();
 
-    for (int i = 1; i < playerCount; i++) {
+    for (int i = 0; i < playerCount; i++) {
         auto* ai = dynamic_cast<PlayerAI*>(_players[i].get());
         if (!ai) {
             CULog("GameState: Player %d is not a PlayerAI — skipping AI init", i);
@@ -172,13 +213,15 @@ bool GameState::initAI(ItemController& itemController) {
  *
  * @param itemController  The ItemController whose database is needed for
  *                        AI player initialisation.
+ * @param assets          The AssetManager containing animation metadata and
+ *                        asset definitions needed for enemy initialisation.
  * @return true if all resources loaded and initialised successfully.
  */
-bool GameState::init(ItemController& itemController) {
-    if (!initHouses())        return false;
+bool GameState::init(ItemController& itemController, const std::shared_ptr<cugl::AssetManager>& assets) {
+    if (!initHouses())                      return false;
     initPlayers();
-    if (!initEnemy())             return false;
-    if (!initAI(itemController))  return false;
+    if (!initEnemyWithAssets(assets))       return false;
+    if (!initAI(itemController))            return false;
     return true;
 }
 
@@ -207,7 +250,6 @@ void GameState::reset() {
         player->setCurrentHealth(player->getMaxHealth());
     }
     _enemy->setCurrentHealth(_enemy->getMaxHealth());
-    _enemy->clearRuntimeEffects();
 }
 
 /**
@@ -224,17 +266,33 @@ void GameState::setLocalPlayer(int assignedIndex) {
 }
 
 /**
- * Assigns the enemy for the game session.
+ * Assigns the enemy for the game session without animation metadata.
+ * Creates an appropriate enemy instance and initializes it from JSON.
  *
- * @param enemyID  the unique ID of the chosen enemy.
+ * @param enemyID  The unique ID of the chosen enemy (e.g., "cyclops", "cerberus").
  */
 void GameState::setEnemy(std::string enemyID) {
     const std::string enemyJsonPath = "json/enemies.json";
     if (_enemy == nullptr) {
-        _enemy = std::make_shared<Enemy>();
+        _enemy = createEnemyByID(enemyID);
     }
     _enemy->init(enemyID, enemyJsonPath);
-};
+}
+
+/**
+ * Assigns the enemy for the game session with animation metadata from AssetManager.
+ * Creates an appropriate enemy instance and initializes it with animation registry.
+ *
+ * @param enemyID  The unique ID of the chosen enemy (e.g., "cyclops", "cerberus").
+ * @param assets   The AssetManager containing animation metadata in enemyAnimations.json.
+ */
+void GameState::setEnemy(std::string enemyID, const std::shared_ptr<cugl::AssetManager>& assets) {
+    const std::string enemyJsonPath = "json/enemies.json";
+    if (_enemy == nullptr) {
+        _enemy = createEnemyByID(enemyID);
+    }
+    _enemy->init(enemyID, enemyJsonPath, assets);
+}
 
 /**
  * Returns the player associated with a given network player ID.
@@ -243,8 +301,8 @@ void GameState::setEnemy(std::string enemyID) {
  * @return          The matching Player pointer, or nullptr if not found.
  */
 Player* GameState::getPlayerById(int playerId) const {
-    auto it = _playerIdMap.find(playerId);
-    return (it != _playerIdMap.end()) ? it->second : nullptr;
+    auto playerEntry = _playerIdMap.find(playerId);
+    return (playerEntry != _playerIdMap.end()) ? playerEntry->second : nullptr;
 }
 
 /**
@@ -261,7 +319,7 @@ Player* GameState::getPlayerBySlot(int slot) const {
 /* Goes through the list of attack messages in attacks and applies the damage specified to the boss*/
 void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
     for (AttackMessage attack : attacks) {
-        _enemy->updateHealth(-1 * attack.damage);
+        _enemy->takeDamage(attack.damage, attack.damageDirection);
     }
 }
 
@@ -331,8 +389,13 @@ void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects)
 void GameState::networkUpdate(GameStateMessage newState) {
     // update boss health
     _enemy->setCurrentHealth(newState.bossHealth);
-    _enemy->syncStunDuration(newState.bossStunDuration);
-    _enemy->syncVulnerable(newState.bossVulnerableMultiplier, newState.bossVulnerableDuration);
+    
+    //ensure state is synced
+    _enemy->enterState((EnemyLoader::State) newState.bossState);
+    _enemy->setStateTime(newState.stateTime);
+
+    //update boss direction
+    _enemy->setTargetIndex(newState.bossTarget);
 
     // update player health and authoritative timed support effects
     std::vector<float> healths = {
@@ -377,55 +440,77 @@ bool GameState::didLose() {
 }
 
 /**
- * Randomly assigns a house to every player slot that does not yet have one,
- * reconstructing AI slots as EasyPlayerAI with a real house and re-running
- * their init so AI behavior is preserved. Real player slots are untouched.
- * Should be called once when the game scene activates, after updateNetworkOrder()
- * has synced real players from the network.
+ * Assigns a unique house to every slot that does not yet have one.
+ * Skips any slot that already has a house. For empty slots, builds a pool
+ * of houses not yet claimed by any other slot, picks one at random, and
+ * reconstructs the slot as an EasyPlayerAI with that house so AI behavior
+ * is preserved. The pool is rebuilt each iteration so previously assigned
+ * houses are excluded.
  *
- * @param itemController  The ItemController whose database AI players need.
+ * Host only — rand() is called locally so clients must receive the results
+ * via broadcastAIHouseSelection() rather than running this themselves.
+ *
+ * @param itemController  The ItemController whose database AI players need
+ *                        to initialise their behavior after reconstruction.
  */
-void GameState::assignMissingHouses(ItemController& itemController) {
+void GameState::assignMissingHousesForAI(ItemController& itemController) {
     const auto& allHouses = _houseLoader.getAllOrdered();
     if (allHouses.empty()) return;
 
     const int n = (int)_players.size();
+
     for (int i = 0; i < n; i++) {
+        // Only fill slots that are AI and have no house.
+        // Real players must select their own house — we must not assign one for them.
+        if (!_players[i]->isAI()) continue;
         if (!_players[i]->getHouseName().empty()) continue;
 
-        std::string randomHouse = allHouses[rand() % allHouses.size()].id;
+        // Pool is rebuilt each iteration so previously assigned houses
+        // are already reflected in _players and correctly excluded.
+        std::vector<std::string> availableHouses;
+        for (const auto& house : allHouses) {
+            bool taken = false;
+            for (const auto& player : _players) {
+                if (player->getHouseName() == house.id) {
+                    taken = true;
+                    break;
+                }
+            }
+            if (!taken) availableHouses.push_back(house.id);
+        }
 
-        // Preserve name and slot, reconstruct as EasyPlayerAI with a real house
-        auto aiPlayer = std::make_shared<EasyPlayerAI>(
-            randomHouse,
-            i,
-            _players[i]->getPlayerName(),
-            _houseLoader
-        );
-        aiPlayer->init(itemController.getDatabase(), "json/playerAI.json");
-        _players[i] = aiPlayer;
-        _playerIdMap[i] = aiPlayer.get();
+        if (availableHouses.empty()) continue;
+
+        std::string chosenHouse = availableHouses[rand() % availableHouses.size()];
+
+        auto ai = std::make_shared<EasyPlayerAI>(chosenHouse, i, _players[i]->getPlayerName(), _houseLoader);
+        ai->init(itemController.getDatabase(), "json/playerAI.json");
+        _players[i] = ai;
+        _playerIdMap[i] = ai.get();
     }
 
-    // Re-wire neighbour ring
+    // Re-wire neighbour ring after all replacements
     for (int i = 0; i < n; i++) {
-        _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
-        _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+        _players[i]->setLeftPlayer(_players[(i - 1 + n) % n].get());
+        _players[i]->setRightPlayer(_players[(i + 1) % n].get());
     }
 }
 
 /**
- * Replaces the player at the given slot with a default AI placeholder,
- * re-wires the neighbour ring, and updates the player ID map.
- * Called when a real player disconnects from the lobby before the game starts.
+ * Replaces the player at the given slot with an EasyPlayerAI, optionally
+ * preserving their house. Re-wires the neighbour ring and updates the
+ * player ID map. Note: caller must call ai->init() after this to set _db.
  *
- * @param slot  The 0-based slot index of the player to demote.
+ * @param slot   The 0-based slot index of the player to demote.
+ * @param house  The house ID to assign to the new AI, or "" for none.
  */
-void GameState::demoteToAI(int slot) {
+void GameState::demoteToAI(int slot, const std::string& house) {
     if (slot < 0 || slot >= (int)_players.size()) return;
 
+    const bool replacedLocalPlayer = (_localPlayer == _players[slot].get());
+
     _players[slot] = std::make_shared<EasyPlayerAI>(
-        "",
+        house,   // preserve house instead of always passing ""
         slot,
         "AI Player " + std::to_string(slot),
         _houseLoader
@@ -436,5 +521,8 @@ void GameState::demoteToAI(int slot) {
     for (int i = 0; i < n; i++) {
         _players[i]->setLeftPlayer (_players[(i - 1 + n) % n].get());
         _players[i]->setRightPlayer(_players[(i + 1)     % n].get());
+    }
+    if (replacedLocalPlayer) {
+        _localPlayer = _players[slot].get();
     }
 }

@@ -133,6 +133,7 @@ void HostSetupScene::setupListeners() {
                 // Get the selected boss using carousel index
                 EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
                 _network->setEnemy(selectedBoss.id);
+                _network->broadcastBossSelection(selectedBoss.id);
                 
                 _status = Status::START;
             }
@@ -329,6 +330,12 @@ void HostSetupScene::updateCarouselDots(int currentIndex) {
 
 /** Loads boss definitions from the enemies JSON to use in selection. */
 bool HostSetupScene::loadBosses() {
+    // Load animation registry first so state durations can be calculated
+    if (!_enemyLoader.loadAnimationRegistry(_assets)) {
+        CULog("HostSetupScene: Failed to load animation registry from enemyAnimations.json");
+        // Non-fatal - continue anyway
+    }
+    
     const std::string enemiesJsonPath = "json/enemies.json";
     if (!_enemyLoader.loadFromFile(enemiesJsonPath)) {
         CULog("HostSetupScene: Failed to load enemies.json");

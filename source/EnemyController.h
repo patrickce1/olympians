@@ -9,6 +9,9 @@
 #include "Enemy.h"
 #include "Player.h"
 
+// Forward declarations
+struct AnimationEntry;
+
 /**
  * EnemyController
  * - Maintains a current target index into players
@@ -23,39 +26,91 @@ class EnemyController {
 public:
     EnemyController();
 
-    int getTargetIndex() const { return _targetIndex; }
-
     void enterIdle(const std::shared_ptr<Enemy>& enemy,
                    std::vector<std::shared_ptr<Player>>& players);
+
     void update(float dt,
                 const std::shared_ptr<Enemy>& enemy,
                 std::vector<std::shared_ptr<Player>>& players);
 
+    /**
+     * Calculates which direction (0-3) an enemy should face relative to a local player.
+     * Maps relative position between target and local player to cardinal directions.
+     *
+     * Formula: (targetIndex - localPlayerIndex + 4) % 4
+     *   Direction 0: Forward (facing directly from local player's perspective)
+     *   Direction 1: Right
+     *   Direction 2: Back
+     *   Direction 3: Left
+     *
+     * @param targetIndex       The index of the player the enemy is targeting (0-3)
+     * @param localPlayerIndex  The local player's index (0-3)
+     * @return                  Direction 0-3 representing sprite sheet row to display
+     */
+    static int calculateDirection(int targetIndex, int localPlayerIndex);
+    
+    /**
+     * Sets the animation registry reference for attack phase checking.
+     * Called by GameScene during initialization to enable guards against state changes during attacks.
+     * 
+     * @param registry  Pointer to animation registry map (must outlive this controller)
+     */
+    void setAnimationRegistry(const std::unordered_map<std::string, class AnimationEntry>* registry) { 
+        _animationRegistry = registry; 
+    }
+
 private:
-    int _targetIndex = -1;
     cugl::Random _rng;
+    
+    /** Reference to animation registry for attack phase detection during retarget guards. */
+    const std::unordered_map<std::string, class AnimationEntry>* _animationRegistry = nullptr;
 
 private:
     int randomIndex(int n);
     int wrapIndex(int i, int n) const;
 
-    void handleIdleEntryIfNeeded(const std::string& prevState,
-                                 const std::string& curState,
+    /** Checks whether the enemy has just entered idle on this frame. */
+    void handleIdleEntryIfNeeded(EnemyLoader::State prevState,
+                                 EnemyLoader::State curState,
                                  const std::shared_ptr<Enemy>& enemy,
                                  std::vector<std::shared_ptr<Player>>& players);
 
+    /** Upon entering idle state, this function possibly chooses a new target for the enemy. */
     void maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy,
                                   std::vector<std::shared_ptr<Player>>& players);
 
-    std::string chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
+    /** Chooses the next state tagged with "attack" for the enemy to enter. */
+    EnemyLoader::State chooseNextAttackState(const std::shared_ptr<Enemy>& enemy);
+
+    /**
+     * Determines whether the boss should enter a defensive state.
+     * Returns true if a random chance roll succeeds, or if the enemy's defensive condition is met.
+     * @param enemy the enemy used to evaluate whether the defense condition applies
+     */
+    bool shouldDefend(const std::shared_ptr<Enemy>& enemy);
 
     void resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy,
                             std::vector<std::shared_ptr<Player>>& players,
                             const std::vector<Enemy::FiredEvent>& events);
-
+    
+    /** Deals damage to the targeted players from a damage event. */
     void resolveDamageEvent(const std::shared_ptr<Enemy>& enemy,
-                            std::vector<std::shared_ptr<Player>>& players,
+                          std::vector<std::shared_ptr<Player>>& players,
                             const Enemy::FiredEvent& fe);
+    
+    /** Applies side modifiers to the boss based on a side modifier event
+     * @param enemy points to the enemy whose side data is being changed
+     * @param event is event that was fired by the enemy AI that is meant to change the side data
+     */    
+    void resolveSideMultiplierEvent(const std::shared_ptr<Enemy>& enemy,
+        const Enemy::FiredEvent& fe);
+    
+    /** Applies a heal to the boss based on a heal event
+     * @param enemy points to the enemy that is being healed
+     * @param event is event that was fired by the enemy AI that is meant to heal the boss
+     */
+    void resolveHealEvent(const std::shared_ptr<Enemy>& enemy,
+        const Enemy::FiredEvent& fe);
 };
 
 #endif /* __ENEMY_CONTROLLER_H__ */

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cugl/cugl.h>
 
 #ifndef __NETWORK_MESSAGES_H__
@@ -19,9 +20,10 @@ struct JoinMessage {
 
 /*Below are the message types that are sent when the game is active*/
 
-/*Message sent by the client to the host to indicate how much damage they did to the boss*/
+/*Message sent by the client to the host to indicate how much damage they did to the boss and from what direction*/
 struct AttackMessage {
     float damage;
+    int damageDirection;
 };
 
 /* Message sent by the client to the host to indicate healing.
@@ -84,12 +86,39 @@ struct PassMessage {
     int passDirection; // Direction: 1=left, 2=right
 };
 
-/* Message sent by the host to other players about the current state of the game
-* GameState has a function to update itself according to the information in this message type
-*/
+/** Runtime support-effect snapshot for a single player in a `GameStateMessage`.
+ * The values are serialized in slot order as shield mitigation, shield duration,
+ * barrier multiplier, and barrier duration.
+ * Shield mitigation stores the remaining flat damage absorption for an active shield.
+ * Barrier multiplier stores the active damage multiplier for a barrier effect, where
+ * `1.0f` is the neutral value when no barrier is active.
+ */
+struct PlayerRuntimeEffectState {
+    float shieldMitigation;
+    float shieldDuration;
+    float barrierMultiplier;
+    float barrierDuration;
+};
+
+/** Message sent by the host to other players about the current state of the game
+ * GameState has a function to update itself according to the information in this message type
+ */
 struct GameStateMessage {
-    //boss health
+    /** The max number of active players in a game. */
+    static constexpr int kMaxPlayers = 4;
+
+    // boss health
     float bossHealth;
+    // who the boss is facing
+    int bossTarget;
+    // which phase the boss is in
+    // check EnemyLoader.h to see what each number corresponds to
+    int bossState;
+    // how long the boss has been in this phase for
+    float stateTime;
+    // We might need to send side multiplier data over network
+    // based on how we decide to indicate it
+    // but that is for UI people to add to ts
     /** Remaining authoritative stun time for the boss, in seconds. */
     float bossStunDuration;
     /** Remaining authoritative vulnerable time for the boss, in seconds. */
@@ -97,29 +126,47 @@ struct GameStateMessage {
     /** Active authoritative vulnerable multiplier for the boss. */
     float bossVulnerableMultiplier = 1.0f;
 
-    //player health
-    float player1HP;
-    float player2HP;
-    float player3HP;
-    float player4HP;
-    
-    //player buffs/debuff metadata
-    float player1ShieldMitigation = 0.0f;
-    float player1ShieldDuration = 0.0f;
-    float player1BarrierMultiplier = 1.0f;
-    float player1BarrierDuration = 0.0f;
-    float player2ShieldMitigation = 0.0f;
-    float player2ShieldDuration = 0.0f;
-    float player2BarrierMultiplier = 1.0f;
-    float player2BarrierDuration = 0.0f;
-    float player3ShieldMitigation = 0.0f;
-    float player3ShieldDuration = 0.0f;
-    float player3BarrierMultiplier = 1.0f;
-    float player3BarrierDuration = 0.0f;
-    float player4ShieldMitigation = 0.0f;
-    float player4ShieldDuration = 0.0f;
-    float player4BarrierMultiplier = 1.0f;
-    float player4BarrierDuration = 0.0f;
+    // player health
+    union {
+        struct {
+            float player1HP;
+            float player2HP;
+            float player3HP;
+            float player4HP;
+        };
+        float playerHP[kMaxPlayers];
+    };
+
+    // player buffs/debuff metadata
+    union {
+        struct {
+            float player1ShieldMitigation;
+            float player1ShieldDuration;
+            float player1BarrierMultiplier;
+            float player1BarrierDuration;
+            float player2ShieldMitigation;
+            float player2ShieldDuration;
+            float player2BarrierMultiplier;
+            float player2BarrierDuration;
+            float player3ShieldMitigation;
+            float player3ShieldDuration;
+            float player3BarrierMultiplier;
+            float player3BarrierDuration;
+            float player4ShieldMitigation;
+            float player4ShieldDuration;
+            float player4BarrierMultiplier;
+            float player4BarrierDuration;
+        };
+        PlayerRuntimeEffectState playerRuntimeEffects[kMaxPlayers];
+    };
+
+    /** Message struct for GameState */
+    GameStateMessage() : bossHealth(0.0f), bossTarget(0), bossState(0), stateTime(0.0f) {
+        std::fill_n(playerHP, kMaxPlayers, 0.0f);
+        for (int ii = 0; ii < kMaxPlayers; ++ii) {
+            playerRuntimeEffects[ii] = { 0.0f, 0.0f, 1.0f, 0.0f };
+        }
+    }
 
     //future info like boss direction will be added as the game expands
 };

@@ -12,13 +12,12 @@ using namespace cugl;
  * @return the normalized token (trimmed and lowercased)
  */
 static std::string normalizeToken(std::string token) {
-    auto notspace = [](unsigned char c){ return !std::isspace(c); };
-    token.erase(token.begin(), std::find_if(token.begin(), token.end(), notspace));
-    token.erase(std::find_if(token.rbegin(), token.rend(), notspace).base(), token.end());
+    auto notSpace = [](unsigned char c){ return !std::isspace(c); };
+    token.erase(token.begin(), std::find_if(token.begin(), token.end(), notSpace));
+    token.erase(std::find_if(token.rbegin(), token.rend(), notSpace).base(), token.end());
     std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c){ return (char)std::tolower(c); });
     return token;
 }
-
 
 /**
  * Parses a normalized JSON effect token into an ItemDef::EffectType.
@@ -29,7 +28,7 @@ static std::string normalizeToken(std::string token) {
  * @param out    Receives the parsed enum value on success.
  * @return       true if the token matched a known effect type.
  */
-static bool tryParseEffectType(const std::string& value, ItemDef::EffectType& out) {
+static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) {
     if (value == "shield") {
         out = ItemDef::EffectType::Shield;
         return true;
@@ -116,7 +115,7 @@ ItemDef::EffectType ItemDef::effectTypeFromString(std::string value) {
     value = normalizeToken(value);
 
     EffectType parsedType = EffectType::Shield;
-    const bool parsedSuccessfully = tryParseEffectType(value, parsedType);
+    const bool parsedSuccessfully = parseEffectType(value, parsedType);
     CUAssertLog(parsedSuccessfully, "Unsupported effect type '%s'", value.c_str());
     return parsedType;
 }
@@ -139,7 +138,7 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
     if (!typeNode || !typeNode->isString()) return false;
 
     const std::string effectType = normalizeToken(typeNode->asString());
-    if (!tryParseEffectType(effectType, out.type)) return false;
+    if (!parseEffectType(effectType, out.type)) return false;
 
     out.multiplier = 1.0f;
     if (json->has("multiplier") && json->get("multiplier")->isNumber()) {
@@ -198,6 +197,11 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
         ? json->get("icon")->asString()
         : ((json->has("iconKey") && json->get("iconKey")->isString()) ? json->get("iconKey")->asString() : "");
     
+    // Parse optional itemUseSound
+    _itemUseSound = (json->has("itemUseSound") && json->get("itemUseSound")->isString())
+        ? json->get("itemUseSound")->asString()
+        : "";
+    
     if (json->has("type") && json->get("type")->isString()) {
         const std::string typeText = normalizeToken(json->get("type")->asString());
         if (typeText != "attack" && typeText != "support") {
@@ -227,10 +231,10 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
     if (json->has("baseValue") && json->get("baseValue")->isNumber()) {
         _baseValue = json->getFloat("baseValue");
         if (_baseValue <= 0.0f) {
-            _baseValue = 1.0f;
+            _baseValue = 0.0f;
         }
     } else {
-        _baseValue = 1.0f;
+        _baseValue = 0.0f;
     }
 
     _effects.clear();
@@ -242,12 +246,64 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
         for (int effectsIndex = 0; effectsIndex < effects->size(); effectsIndex++) {
             Effect effect;
             if (!parseEffect(effects->get(effectsIndex), effect)) {
-                CULog("ItemDef: skipping invalid effect at index %d for item '%s'", effectsIndex, _id.c_str());
                 continue;
             }
             _effects.push_back(effect);
         }
     }
+    
+    // Parse optional itemUseAnimation configuration
+    parseItemUseAnimation(json);
 
     return true;
+}
+
+/**
+ * Parses optional itemUseAnimation configuration from JSON if present.
+ * Sets _itemUseAnimationConfig and _hasItemUseAnimation fields.
+ * Logs debug messages for parsing progress and validation results.
+ *
+ * @param json The item definition JSON object
+ */
+void ItemDef::parseItemUseAnimation(const std::shared_ptr<JsonValue>& json) {
+    _hasItemUseAnimation = false;
+    if (!json || !json->has("itemUseAnimation") || !json->get("itemUseAnimation")->isObject()) {
+        return;
+    }
+    
+    auto animData = json->get("itemUseAnimation");
+    CULog("DEBUG: Found itemUseAnimation config for item %s", _name.c_str());
+    
+    if (animData->has("spriteSheetId") && animData->get("spriteSheetId")->isString() &&
+        animData->has("rows") && animData->get("rows")->isNumber() &&
+        animData->has("cols") && animData->get("cols")->isNumber() &&
+        animData->has("frameCount") && animData->get("frameCount")->isNumber() &&
+        animData->has("animationDuration") && animData->get("animationDuration")->isNumber() &&
+        animData->has("damageResolutionFrame") && animData->get("damageResolutionFrame")->isNumber()) {
+        
+        ItemUseAnimationConfig animConfig;
+        animConfig.spriteSheetId = animData->getString("spriteSheetId");
+        animConfig.rows = animData->getInt("rows");
+        animConfig.cols = animData->getInt("cols");
+        animConfig.frameCount = animData->getInt("frameCount");
+        animConfig.animationDuration = animData->getFloat("animationDuration");
+        animConfig.damageResolutionFrame = animData->getInt("damageResolutionFrame");
+        
+        CULog("DEBUG: Parsed animation config: rows=%d, cols=%d, frames=%d, duration=%.3f, resFrame=%d",
+              animConfig.rows, animConfig.cols, animConfig.frameCount, animConfig.animationDuration, animConfig.damageResolutionFrame);
+        
+        // Validate animation config
+        if (!animConfig.spriteSheetId.empty() && animConfig.rows > 0 && animConfig.cols > 0 &&
+            animConfig.frameCount > 0 && animConfig.animationDuration > 0.0f &&
+            animConfig.damageResolutionFrame >= 0 &&
+            animConfig.damageResolutionFrame < animConfig.frameCount) {
+            _itemUseAnimationConfig = animConfig;
+            _hasItemUseAnimation = true;
+            CULog("DEBUG: Animation config VALID for item %s", _name.c_str());
+        } else {
+            CULog("WARNING: Animation config INVALID for item %s (validation failed)", _name.c_str());
+        }
+    } else {
+        CULog("WARNING: itemUseAnimation for %s missing required fields", _name.c_str());
+    }
 }

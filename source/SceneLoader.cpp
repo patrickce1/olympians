@@ -132,8 +132,8 @@ void SceneLoader::onStartup() {
 //   );
 //
 //   EnemyTests::runAll(
-//       "json/enemies.json",
-//       "json/houses.json"
+//      "json/enemies.json",
+//      "json/houses.json"
 //   );
 //
 //   ItemTests::runAll(
@@ -267,7 +267,7 @@ void SceneLoader::update(float dt) {
                     CULog("Failed to initialize GameScene");
                 }
                 
-                if (_lobbyScene.init(_assets, _network, &_gameScene.getGameState())) {
+                if (_lobbyScene.init(_assets, _network, &_gameScene.getGameState(), &_gameScene.getItemController())) {
                     _lobbyScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize LobbyScene");
@@ -367,6 +367,7 @@ void SceneLoader::update(float dt) {
                     break;
                 case LobbyScene::Status::SELECT:
                     CULog("Transitioning to HouseSelectScene...");
+                    _houseSelectScene.setTargetSlot(_lobbyScene.getPendingSlotToBeOpened());
                     _houseSelectScene.setActive(true);
                     _lobbyScene.setActive(false);
                     _currentScene = State::HOUSESELECT;

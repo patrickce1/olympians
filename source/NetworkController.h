@@ -98,8 +98,15 @@ public:
     bool isHost();
 
     /* Atomic style update functions. The following are ONLY SENT TO THE HOST*/
-    /*Tells the host that the boss has been damaged for damageAmount*/
-    void broadcastDamage(float damageAmount);
+    
+    /**
+     * Sends an attack message to the host with the given damage value.
+     * Called by non-host clients when the local player attacks the boss.
+     *
+     * @param damage    The amount of damage dealt to the boss.
+     * @param playerIndex Which player is dealing damage to the boss
+    */
+    void broadcastDamage(float damageAmount, int playerIndex);
 
     /**
      * Sends a message to the corresponding player that an item with the given definition has been passed to them.
@@ -153,8 +160,17 @@ public:
     /*Sends an update notifying players about changes to the lobby (new players joining/leaving)*/
     void broadcastLobbyState();
     
-    /*Sends an update notifying players about changes to the house selections*/
-    void broadcastSelectedHouse(std::string& house);
+    /**
+     * Sends the local player's house selection to the host.
+     *
+     * Note: because sendToHost() does not loop back to the sender,
+     * the host must call setLocalHouse() separately after this to
+     * update their own slot.
+     *
+     * @param house  The ID of the selected house (e.g. "athena").
+     *               Passing an empty string clears the selection.
+     */
+    void broadcastSelectedHouse(const std::string& house);
     
     /*HOST ONLY. Notifies all clients that the host has exited the lobby and the session is over.*/
     void broadcastSessionTerminated();
@@ -211,6 +227,23 @@ public:
     const std::vector<NetworkedPlayer> getNetworkedPlayers();
     
     /**
+     * Returns true if the given houseID is already claimed by any player
+     * other than the local player.
+     *
+     * @param houseID  The house ID to check.
+     * @return         true if another player has claimed it, false otherwise.
+     */
+    bool isHouseTaken(const std::string& houseID) const;
+
+    /**
+     * Returns the set of houseIDs currently claimed by players other than
+     * the local player. Used by HouseSelectScene to grey out unavailable cards.
+     *
+     * @return  A vector of taken house ID strings.
+     */
+    std::vector<std::string> getTakenHouses() const;
+    
+    /**
      * Registers a disconnect callback on the NetcodeConnection so that when
      * any peer closes, their slot is immediately pushed into _disconnectedSlots.
      * Should be called once after the network connection is established.
@@ -248,6 +281,21 @@ public:
     std::string getEnemy() { return _enemy; };
     
     /**
+     * Returns the house ID assigned to the given AI slot from the host's
+     * authoritative AI house map. Used by LobbyScene and HouseSelectScene
+     * to sync AI slot house selections into GameState each frame, and by
+     * updateTakenHouseCards() to grey out houses claimed by AI slots.
+     *
+     * Only meaningful on the host, where _aIHouses is written directly.
+     * On clients, _aIHouses is populated via AI_HOUSE_SELECT messages and
+     * the _aIHouses block embedded in each LOBBY_UPDATE broadcast.
+     *
+     * @param slotIndex  The 0-based game slot index of the AI player.
+     * @return           The house ID assigned to that slot, or "" if unset.
+     */
+    std::string getAIHouse(int slotIndex) const;
+    
+    /**
      * Sets the enemy of the game using their unique Enemy ID. Should be called once after
      * the host chooses a boss.
      *
@@ -257,6 +305,39 @@ public:
     
     /** Returns true if every player in the lobby has selected a house. */
     bool allPlayersSelectedHouse() const;
+    
+    /**
+     * Broadcasts the host's selected boss enemy to all connected clients.
+     * Should be called by the host immediately after the player confirms
+     * their boss selection in the boss select screen.
+     *
+     * Clients will update their local _enemy field upon receiving this
+     * message, which is then read by getEnemy() to update the lobby UI.
+     *
+     * @param enemyID  The unique identifier of the selected enemy (e.g. "cyclops", "cerberus").
+     *                 Must match a valid entry in the enemy JSON definition file.
+     */
+    void broadcastBossSelection(const std::string& enemyID);
+    
+    /**
+     * Broadcasts the host's house selection for an AI slot to all clients.
+     * Clients will update that slot's houseID in their local _onlinePlayers
+     * list upon receiving this message.
+     *
+     * @param slotIndex  The 0-based AI slot index being configured.
+     * @param houseID    The selected house ID, or "" to clear the selection.
+     */
+    void broadcastAIHouseSelection(int slotIndex, const std::string& houseID);
+    
+    /**
+     * Clears the host's AI house assignment for the given slot.
+     * Called when a real player joins a slot that was previously
+     * configured as AI, so the assignment does not bleed back
+     * after the player leaves.
+     *
+     * @param slotIndex  The 0-based slot index to clear.
+     */
+    void clearAIHouse(int slotIndex);
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -275,13 +356,15 @@ protected:
         PLAYER_DISCONNECT = 8,
         GAME_LOST = 9,
         GAME_WON = 10,
-        PLAYER_SUPPORT_EFFECT = 11,
-        ENEMY_EFFECT = 12,
-        SESSION_TERMINATED = 99
+        SESSION_TERMINATED = 11,
+        BOSS_SELECT = 12,
+        AI_HOUSE_SELECT = 13,
+        PLAYER_SUPPORT_EFFECT = 14,
+        ENEMY_EFFECT = 15
     };
 
     /*Our network connection*/
-	std::shared_ptr<cugl::netcode::NetcodeConnection> _network;
+    std::shared_ptr<cugl::netcode::NetcodeConnection> _network;
 
     /*Serializer and desializer that lets us make bytes more readable and easy to decode across the network*/
     cugl::netcode::NetcodeSerializer _serializer;
@@ -328,6 +411,9 @@ private:
     
     //Used internally to handle the different types of networking messages that come in 
     void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);
+    
+    /** Houses chosen by the host for AI slots, keyed by game slot index */
+    std::unordered_map<int, std::string> _aIHouses;
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */

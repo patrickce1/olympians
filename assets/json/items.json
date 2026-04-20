@@ -14,7 +14,16 @@
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 2.0,
-            "effects": []
+            "effects": [],
+            "itemUseSound": "attack_slash",
+            "itemUseAnimation": {
+                "spriteSheetId": "sword_animation",
+                "rows": 1,
+                "cols": 5,
+                "frameCount": 5,
+                "animationDuration": 0.415,
+                "damageResolutionFrame": 4
+            }
         },
         {
             "id": "apple",
@@ -47,7 +56,16 @@
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseSound": "attack_thrust",
+            "itemUseAnimation": {
+                "spriteSheetId": "arrows_animation",
+                "rows": 1,
+                "cols": 7,
+                "frameCount": 7,
+                "animationDuration": 0.581,
+                "damageResolutionFrame": 5
+            }
         },
         {
             "id": "shield",
@@ -61,7 +79,7 @@
             "effects": [
                 {
                     "type": "shield",
-                    "mitigation": 3.0,
+                    "mitigation": 20.0,
                     "duration": 5.0
                 }
             ]
@@ -80,7 +98,15 @@
                     "type": "stun",
                     "duration": 3.0
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "lightning_animation",
+                "rows": 1,
+                "cols": 4,
+                "frameCount": 4,
+                "animationDuration": 0.332,
+                "damageResolutionFrame": 3
+            }
         },
         {
             "id": "trident",
@@ -91,7 +117,16 @@
             "rarity": "rare",
             "houseAffinity": "poseidon",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseSound": "attack_thrust",
+            "itemUseAnimation": {
+                "spriteSheetId": "trident_animation",
+                "rows": 1,
+                "cols": 15,
+                "frameCount": 15,
+                "animationDuration": 1.245,
+                "damageResolutionFrame": 7
+            }
         },
         {
             "id": "helm",
@@ -124,7 +159,16 @@
             "rarity": "rare",
             "houseAffinity": "hephaestus",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseSound": "attack_thud",
+            "itemUseAnimation": {
+                "spriteSheetId": "mallet_animation",
+                "rows": 1,
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.083,
+                "damageResolutionFrame": 5
+            }
         },
         {
             "id": "aegis",
@@ -134,12 +178,12 @@
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "athena",
-            "baseValue": 1.0,
+            "baseValue": 0.0,
             "effects": [
                 {
                     "type": "barrier",
                     "multiplier": 0.5,
-                    "duration": 5.0
+                    "duration": 10.0
                 }
             ]
         },
@@ -158,7 +202,16 @@
                     "multiplier": 1.2,
                     "duration": 3.0
                 }
-            ]
+            ],
+            "itemUseSound": "attack_thrust",
+            "itemUseAnimation": {
+                "spriteSheetId": "spear_animation",
+                "rows": 1,
+                "cols": 9,
+                "frameCount": 9,
+                "animationDuration": 0.747,
+                "damageResolutionFrame": 4
+            }
         },
         {
             "id": "thunderstorm",
@@ -169,7 +222,15 @@
             "rarity": "divine",
             "houseAffinity": "zeus",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseAnimation": {
+                "spriteSheetId": "storm_animation",
+                "rows": 1,
+                "cols": 8,
+                "frameCount": 8,
+                "animationDuration": 0.664,
+                "damageResolutionFrame": 6
+            }
         },
         {
             "id": "tide",
@@ -180,10 +241,18 @@
             "rarity": "divine",
             "houseAffinity": "poseidon",
             "baseValue": 1.0,
-            "effects": []
+            "effects": [],
+            "itemUseAnimation": {
+                "spriteSheetId": "tide_animation",
+                "rows": 1,
+                "cols": 9,
+                "frameCount": 9,
+                "animationDuration": 0.747,
+                "damageResolutionFrame": 7
+            }
         }
     ],
-    "itemInterval": 10.0,
-    "itemTimerStart": 5.0,
+    "itemInterval": 7.0,
+    "itemTimerStart": 3.5,
     "maxInventorySpawnItems": 5
 }

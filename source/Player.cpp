@@ -54,16 +54,27 @@ void Player::updateHealth(float delta) {
         }
 
         if (_hasShield && _shieldDuration > 0.0f) {
-            const float absorbedAmount = std::min(incomingDamage, _shieldMitigation);
-            incomingDamage = std::max(0.0f, incomingDamage - _shieldMitigation);
-            CULog("Shield expired: player='%s' house='%s' reason='hit' absorbed=%.3f remainingDamage=%.3f",
+            const float absorbedAmount = std::min(incomingDamage, _shieldHealth);
+            float tempDamage = incomingDamage;
+            incomingDamage = std::max(0.0f, incomingDamage - _shieldHealth);
+            
+            _shieldHealth = std::max(0.0f, _shieldHealth - tempDamage);
+            
+            CULog("Shield update: player='%s' house='%s' reason='hit' absorbed=%.3f remainingDamage=%.3f",
                   _playerName.c_str(),
                   _houseId.c_str(),
                   absorbedAmount,
                   incomingDamage);
-            _hasShield = false;
-            _shieldMitigation = 0.0f;
-            _shieldDuration = 0.0f;
+            
+            if (_shieldHealth <= 0.0f) {
+                CULog("Shield expired: player='%s' house='%s' reason='used'",
+                      _playerName.c_str(),
+                      _houseId.c_str());
+                
+                _hasShield = false;
+                _shieldHealth = 0.0f;
+                _shieldDuration = 0.0f;
+            }
         }
 
         delta = -incomingDamage;
@@ -85,13 +96,13 @@ void Player::applyShield(float mitigation, float duration) {
     }
 
     _hasShield = true;
-    _shieldMitigation = std::max(0.0f, mitigation);
+    _shieldHealth = std::max(0.0f, mitigation);
     _shieldDuration = duration;
     CULog("Shield applied: player='%s' house='%s' mitigation=%.3f duration=%.3f",
-          _playerName.c_str(),
-          _houseId.c_str(),
-          _shieldMitigation,
-          _shieldDuration);
+        _playerName.c_str(),
+        _houseId.c_str(),
+        _shieldHealth,
+        _shieldDuration);
 }
 
 /**
@@ -110,16 +121,26 @@ void Player::applyBarrier(float multiplier, float duration) {
     _barrierDuration = duration;
 }
 
-/** Advances timed runtime effects. */
+/**
+ * Advances this player's active runtime support effects by the elapsed frame time.
+ *
+ * Both shield and barrier durations are reduced by `dt` and clamped to `0.0f` so
+ * they never become negative. When a shield timer reaches zero, the shield is marked
+ * inactive, any remaining flat damage absorption is cleared, and an expiration log is
+ * emitted. When a barrier timer reaches zero, the barrier is marked inactive and its
+ * damage multiplier is restored to the neutral `1.0f` value.
+ *
+ * @param dt  The elapsed time since the previous frame, in seconds.
+ */
 void Player::updateEffects(float dt) {
     if (_shieldDuration > 0.0f) {
         _shieldDuration = std::max(0.0f, _shieldDuration - dt);
         if (_shieldDuration == 0.0f) {
-            CULog("Shield expired: player='%s' house='%s' reason='duration'",
-                  _playerName.c_str(),
-                  _houseId.c_str());
             _hasShield = false;
-            _shieldMitigation = 0.0f;
+            _shieldHealth = 0.0f;
+            CULog("Shield expired: player='%s' house='%s' reason='duration'",
+                _playerName.c_str(),
+                _houseId.c_str());
         }
     }
 
@@ -130,6 +151,16 @@ void Player::updateEffects(float dt) {
             _barrierMultiplier = 1.0f;
         }
     }
+}
+
+/** Clears runtime-only combat effects. */
+void Player::clearRuntimeEffects() {
+    _hasShield = false;
+    _shieldHealth = 0.0f;
+    _shieldDuration = 0.0f;
+    _hasBarrier = false;
+    _barrierMultiplier = 1.0f;
+    _barrierDuration = 0.0f;
 }
 
 /**
@@ -172,18 +203,12 @@ static float computeResolvedItemMagnitude(const Player& player,
 
     float resolvedMagnitude = def.getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
     if (resolvedMagnitude <= 0.0f) {
-        resolvedMagnitude = 0.01f;
+        resolvedMagnitude = 0.0f;
     }
-
-    CULog(
-        "ItemUseCalc: item='%s' playerHouse='%s' effectiveVal = baseVal(%.3f) * classSlider(1+%.3f) * affinity(%.3f) | = %.3f",
-        def.getId().c_str(),
-        player.getHouseName().c_str(),
-        def.getBaseValue(),
-        houseRoleMultiplier,
-        affinityBonus,
-        resolvedMagnitude
-    );
+    
+    CULog("[Item Value Calculation]\nItem: '%s'\nEffective value: '%.3f'",
+        def.getName().c_str(),
+        resolvedMagnitude);
 
     return resolvedMagnitude;
 }
@@ -219,11 +244,11 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
             target.updateHealth(resolvedMagnitude);
             returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyToPlayer(effect, resolvedMagnitude, target);
+                EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, target);
             }
         } else if (!def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyToPlayer(effect, resolvedMagnitude, target);
+                EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, target);
             }
         }
 
@@ -244,8 +269,8 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
  *
  * @param itemId  The inventory instance id to consume
  * @param target  The enemy that receives the item's damage and effects
- * @param db           The item database used to resolve the item definition
- * @return       The applied base magnitude, or -1.0f if the item id or item definition cannot be found
+ * @param db  The item database used to resolve the item definition
+ * @return The applied base magnitude, or -1.0f if the item id or item definition cannot be found
  */
 float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db) {
     for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
@@ -264,11 +289,11 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             target.updateHealth(-resolvedMagnitude);
             returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyToEnemy(effect, resolvedMagnitude, target);
+//                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
             }
         } else if (!def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyToEnemy(effect, resolvedMagnitude, target);
+//                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
             }
         }
 

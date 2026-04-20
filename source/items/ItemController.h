@@ -1,6 +1,7 @@
 #ifndef __ITEM_CONTROLLER_H__
 #define __ITEM_CONTROLLER_H__
 #include <cstddef>
+#include <unordered_map>
 #include <cugl/cugl.h>
 #include <vector>
 #include "ItemDatabase.h"
@@ -14,11 +15,13 @@ private:
     // Instance of the item ID generator
     ItemInstance::IdGenerator _idGen;
     // The item interval that determines how long you have to wait till receiving another item
-    float _itemInterval;
-    // The item timer which tells us how long it has been since players last received an item
-    float _itemTimer;
+    float _itemInterval = 0.0f;
+    // The timer value each player starts a round with
+    float _itemTimerStart = 0.0f;
+    // Per-player item timers keyed by stable player slot number
+    std::unordered_map<int, float> _itemTimers;
     // Maximum number of items allowed for timer-based spawning
-    std::size_t _maxInventorySpawnItems;
+    std::size_t _maxInventorySpawnItems = 5;
 
 public:
     ItemController() = default;
@@ -26,14 +29,23 @@ public:
     bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::string& jsonKey = "items");
 
     /**
-     * // Update the item timer and hand out a card
-     * @param dt  time elapsed
+     * Update timers and hand out an item when item interval is ready
+     *
+     * @param dt  Time elapsed
+     * @param player   The player to give the item to
      */
     void update(float dt, Player* player);
 
     /**
-     * // Gives random item to player
-     * @param & player The player of the game
+     * Resets round-scoped spawn state.
+     */
+    void reset();
+
+    /**
+     * Give a random item to the player, only if the player has no more
+     * than 5 items in their inventory.
+     *
+     * @param player   The player to give the item to
      */
     void giveRandomItem(Player* player);
 

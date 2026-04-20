@@ -1,0 +1,31 @@
+{
+    "animationRegistry": [
+        {
+            "id": "cyclops_idle_animation",
+            "texture": "textures/gameScene/cyclops/cyclops_idle_animation.png",
+            "frameCount": 7,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "damageFrame": -1,
+            "positionX": 196.5,
+            "positionY": 86.0,
+            "scale": 0.88,
+            "offsetX": 0,
+            "offsetY": 0
+        },
+        {
+            "id": "cyclops_boulder_animation",
+            "texture": "textures/gameScene/cyclops/cyclops_boulder_animation.png",
+            "frameCount": 9,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "buildupFrameCount": 4,
+            "damageFrame": 6,
+            "positionX": 196.5,
+            "positionY": 151.0,
+            "scale": 0.98,
+            "offsetX": 0,
+            "offsetY": 0
+        }
+    ]
+}

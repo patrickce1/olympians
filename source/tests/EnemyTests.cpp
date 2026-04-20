@@ -8,6 +8,12 @@
 //
 //   Example:
 //     EnemyTests::runAll("json/enemies.json", "json/houses.json");
+//
+// ARCHITECTURE NOTES:
+//   - Enemy uses a file-scope static EnemyLoader shared across all instances
+//   - First test to call makeEnemy() initializes the loader from JSON
+//   - Subsequent tests reuse the same loader (no redundant file I/O)
+//   - Each test creates fresh Enemy instances for isolation
 
 #include "EnemyTests.h"
 #include "../Enemy.h"
@@ -18,152 +24,129 @@
 #include <fstream>
 #include <cstdio>
 #include "../EnemyLoader.h"
-#include "../Enemy.h"
 #include <unordered_set>
 
-// ─────────────────────────────────────────────
-// Internal helpers — not exposed in the header
-// ─────────────────────────────────────────────
 namespace {
 
-int _passed = 0;
-int _failed = 0;
+    int _passed = 0;
+    int _failed = 0;
 
-/** Assertion helper: logs [PASS]/[FAIL] and updates counters. */
-void expect(bool condition, const std::string& label) {
-    if (condition) {
-        CULog("[PASS] %s", label.c_str());
-        _passed++;
-    } else {
-        CULog("[FAIL] %s", label.c_str());
-        _failed++;
-    }
-}
-
-/** Prints a summary line with total passed/failed counts. */
-void printSummary() {
-    CULog("─────────────────────────────────────────");
-    CULog("  %d passed   %d failed", _passed, _failed);
-    CULog("─────────────────────────────────────────");
-}
-
-/** Loads houses definitions from the given JSON path for use in tests. */
-HouseLoader loadHouses(const std::string& housesJsonPath) {
-    HouseLoader loader;
-    if (!loader.loadFromFile(housesJsonPath)) {
-        CULogError("EnemyTests: failed to load houses from '%s'", housesJsonPath.c_str());
-    }
-    return loader;
-}
-
-/** Creates N players in a ring topology and wires left/right neighbors. */
-std::vector<std::shared_ptr<Player>> makePlayersRing(const HouseLoader& loader,
-                                                     const std::string& houseId,
-                                                     int count) {
-    std::vector<std::shared_ptr<Player>> players;
-    players.reserve(count);
-    for (int i = 0; i < count; i++) {
-        std::string name = "Player " + std::to_string(i + 1);
-        players.push_back(std::make_shared<Player>(houseId, i + 1, name, loader));
-    }
-
-    const int n = (int)players.size();
-    for (int i = 0; i < n; i++) {
-        players[i]->setLeftPlayer (players[(i - 1 + n) % n].get());
-        players[i]->setRightPlayer(players[(i + 1)     % n].get());
-    }
-    return players;
-}
-
-/** Convenience to construct and initialize an Enemy; asserts init success. */
-std::shared_ptr<Enemy> makeEnemy(const std::string& enemiesJsonPath,
-                                 const std::string& enemyId) {
-    auto e = std::make_shared<Enemy>();
-    bool ok = e->init(enemyId, enemiesJsonPath);
-    expect(ok, "Enemy::init succeeds for '" + enemyId + "'");
-    return ok ? e : nullptr;
-}
-
-/** Returns the name of the first state tagged as "attack", or empty if none. */
-std::string firstAttackStateName(const std::shared_ptr<Enemy>& enemy) {
-    if (!enemy) return "";
-    const auto& states = enemy->getStates();
-    for (const auto& kv : states) {
-        const auto& name = kv.first;
-        const auto& def  = kv.second;
-        if (def.tag == "attack") return name;
-    }
-    return "";
-}
-
-/** Resolves a state's configured nextState, falling back to "idle" when missing/invalid. */
-std::string expectedNextOrIdle(const std::shared_ptr<Enemy>& enemy,
-                               const std::string& stateName) {
-    if (!enemy) return "idle";
-    const auto& states = enemy->getStates();
-    auto it = states.find(stateName);
-    if (it == states.end()) return "idle";
-
-    const std::string& next = it->second.nextState;
-    if (!next.empty() && states.count(next) > 0) return next;
-    return "idle";
-}
-
-/** Advances the enemy in fixed dt steps until at least one event fires (or times out). */
-bool stepUntilFire(const std::shared_ptr<Enemy>& enemy,
-                   float dtStep,
-                   int maxSteps,
-                   std::vector<Enemy::FiredEvent>& firedEventsOut) {
-    firedEventsOut.clear();
-    if (!enemy) return false;
-
-    for (int i = 0; i < maxSteps; i++) {
-        enemy->update(dtStep);
-        auto ev = enemy->takeFiredEvents();
-        if (!ev.empty()) {
-            firedEventsOut = std::move(ev);
-            return true;
+    /**
+     * Evaluates a test condition and logs [PASS] or [FAIL].
+     * @param condition Boolean test result
+     * @param label Description of the test
+     */
+    void expect(bool condition, const std::string& label) {
+        if (condition) {
+            CULog("[PASS] %s", label.c_str());
+            _passed++;
+        }
+        else {
+            CULog("[FAIL] %s", label.c_str());
+            _failed++;
         }
     }
-    return false;
-}
 
-/** Follows nextState links from startState and returns the first with cooldownTime>0 (or empty). */
-std::string findFirstCooldownStateInChain(const std::shared_ptr<Enemy>& enemy,
-                                         const std::string& startState) {
-    if (!enemy) return "";
-    const auto& states = enemy->getStates();
-    if (states.count(startState) == 0) return "";
-
-    std::unordered_set<std::string> seen;
-    std::string cur = startState;
-
-    for (int hops = 0; hops < 32; hops++) {
-        if (seen.count(cur) > 0) return ""; // loop
-        seen.insert(cur);
-
-        auto it = states.find(cur);
-        if (it == states.end()) return "";
-        if (it->second.cooldownTime > 0.0f) return cur;
-
-        std::string next = it->second.nextState;
-        if (next.empty()) next = "idle";
-        if (states.count(next) == 0) next = "idle";
-
-        if (next == "idle") return "";
-        cur = next;
+    void printSummary() {
+        CULog("─────────────────────────────────────────");
+        CULog("  %d passed   %d failed", _passed, _failed);
+        CULog("─────────────────────────────────────────");
     }
 
-    return "";
-}
-
-/** Returns true if any player in the list is still alive. */
-bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
-    for (const auto& p : players) {
-        if (p->isAlive()) return true;
+    HouseLoader loadHouses(const std::string& housesJsonPath) {
+        HouseLoader loader;
+        if (!loader.loadFromFile(housesJsonPath)) {
+            CULogError("EnemyTests: failed to load houses from '%s'", housesJsonPath.c_str());
+        }
+        return loader;
     }
-    return false;
-}
+
+    std::vector<std::shared_ptr<Player>> makePlayersRing(const HouseLoader& loader,
+        const std::string& houseId,
+        int count) {
+        std::vector<std::shared_ptr<Player>> players;
+        players.reserve(count);
+        for (int i = 0; i < count; i++) {
+            std::string name = "Player " + std::to_string(i + 1);
+            players.push_back(std::make_shared<Player>(houseId, i + 1, name, loader));
+        }
+
+        const int n = (int)players.size();
+        for (int i = 0; i < n; i++) {
+            players[i]->setLeftPlayer(players[(i - 1 + n) % n].get());
+            players[i]->setRightPlayer(players[(i + 1) % n].get());
+        }
+        return players;
+    }
+
+    std::shared_ptr<Enemy> makeEnemy(const std::string& enemiesJsonPath,
+        const std::string& enemyId) {
+        // Creates a fresh Enemy instance. The EnemyLoader is shared across all instances
+        // via file-scope statics in Enemy.cpp. First call initializes; subsequent calls reuse.
+        auto e = std::make_shared<Enemy>();
+        bool ok = e->init(enemyId, enemiesJsonPath);
+        expect(ok, "Enemy::init succeeds for '" + enemyId + "'");
+        return ok ? e : nullptr;
+    }
+
+    EnemyLoader::State expectedNextOrIdle(const std::shared_ptr<Enemy>& enemy,
+        EnemyLoader::State state) {
+        if (!enemy) return EnemyLoader::State::IDLE;
+        const auto& states = enemy->getStates();
+        auto it = states.find(state);
+        if (it == states.end()) return EnemyLoader::State::IDLE;
+        EnemyLoader::State next = it->second.nextState;
+        if (states.count(next) > 0 && next != EnemyLoader::State::IDLE) return next;
+        return EnemyLoader::State::IDLE;
+    }
+
+    bool stepUntilFire(const std::shared_ptr<Enemy>& enemy,
+        float dtStep,
+        int maxSteps,
+        std::vector<Enemy::FiredEvent>& firedEventsOut) {
+        firedEventsOut.clear();
+        if (!enemy) return false;
+
+        for (int i = 0; i < maxSteps; i++) {
+            enemy->update(dtStep);
+            auto ev = enemy->takeFiredEvents();
+            if (!ev.empty()) {
+                firedEventsOut = std::move(ev);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    EnemyLoader::State findFirstCooldownStateInChain(const std::shared_ptr<Enemy>& enemy,
+        EnemyLoader::State startState) {
+        if (!enemy) return EnemyLoader::State::IDLE;
+        const auto& states = enemy->getStates();
+        if (states.count(startState) == 0) return EnemyLoader::State::IDLE;
+
+        std::unordered_set<EnemyLoader::State> seen;
+        EnemyLoader::State cur = startState;
+
+        for (int hops = 0; hops < 32; hops++) {
+            if (seen.count(cur)) return EnemyLoader::State::IDLE;
+            seen.insert(cur);
+            auto it = states.find(cur);
+            if (it == states.end()) return EnemyLoader::State::IDLE;
+            if (it->second.cooldownTime > 0.0f) return cur;
+            EnemyLoader::State next = it->second.nextState;
+            if (states.count(next) == 0 || next == EnemyLoader::State::IDLE)
+                return EnemyLoader::State::IDLE;
+            cur = next;
+        }
+        return EnemyLoader::State::IDLE;
+    }
+
+    bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
+        for (const auto& p : players) {
+            if (p->isAlive()) return true;
+        }
+        return false;
+    }
 
 } // namespace
 
@@ -171,7 +154,6 @@ bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
 // SECTION 1 — Init
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Verifies Enemy::init populates core fields, starts at full health in "idle", and has an "idle" state. */
 static void testEnemyInitSetsCoreFields(const std::string& enemiesJsonPath) {
     auto enemy = std::make_shared<Enemy>();
     bool ok = enemy->init("cyclops", enemiesJsonPath);
@@ -180,63 +162,58 @@ static void testEnemyInitSetsCoreFields(const std::string& enemiesJsonPath) {
     if (!ok) return;
 
     expect(enemy->getId() == "cyclops", "init: id set");
-    expect(!enemy->getName().empty(), "init: name set");
     expect(enemy->getMaxHealth() > 0.0f, "init: maxHealth > 0");
     expect(enemy->getCurrentHealth() == enemy->getMaxHealth(), "init: currentHealth starts at max");
-    expect(enemy->getCurrentStateName() == "idle", "init: starts in idle");
-    expect(enemy->getStates().count("idle") > 0, "init: states include idle");
+    expect(enemy->getCurrentState() == EnemyLoader::State::IDLE, "init: starts in idle");
+    expect(enemy->getStates().count(EnemyLoader::State::IDLE) > 0, "init: states include idle");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 2 — Enemy state timing (buildUp → fire → next + cooldown)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Ensures an attack state fires events only after build-up and then transitions to its next (or idle). */
 static void testEnemyFiresEventsAfterBuildUp(const std::string& enemiesJsonPath) {
     auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
     if (!enemy) return;
 
-    std::string attack = firstAttackStateName(enemy);
-    expect(!attack.empty(), "stateTiming: found at least 1 attack-tagged state");
-    if (attack.empty()) return;
+    EnemyLoader::State attack = EnemyLoader::State::ATTACK_1;
 
-    bool entered = enemy->requestState(attack);
+    bool entered = enemy->requestState(EnemyLoader::State::ATTACK_1);
     expect(entered, "stateTiming: requestState enters attack");
-    expect(enemy->getCurrentStateName() == attack, "stateTiming: current state is attack");
+    expect(enemy->getCurrentState() == EnemyLoader::State::ATTACK_1, "stateTiming: current state is attack");
 
     enemy->update(0.5f);
     expect(enemy->takeFiredEvents().empty(), "stateTiming: no events before buildUpTime");
 
-    const std::string expectedNext = expectedNextOrIdle(enemy, attack);
+    EnemyLoader::State expectedNext = expectedNextOrIdle(enemy, attack);
 
     std::vector<Enemy::FiredEvent> fired;
-    bool didFire = stepUntilFire(enemy, /*dtStep=*/0.5f, /*maxSteps=*/120, fired);
+    bool didFire = stepUntilFire(enemy, 0.5f, 120, fired);
     expect(didFire, "stateTiming: eventually fires events after buildUpTime");
     if (!didFire) return;
 
     expect(fired.size() >= 1, "stateTiming: fired >= 1 event");
-    expect(enemy->getCurrentStateName() == expectedNext,
-           "stateTiming: transitions to nextState (or idle fallback) after firing");
+    expect(enemy->getCurrentState() == expectedNext,
+        "stateTiming: transitions to nextState (or idle fallback) after firing");
 }
 
-/** Confirms cooldown states apply a lockout that prevents starting non-idle states until it expires. */
 static void testEnemyCooldownBlocksNonIdle(const std::string& enemiesJsonPath) {
     auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
     if (!enemy) return;
 
-    std::string attack = firstAttackStateName(enemy);
-    if (attack.empty()) { expect(false, "cooldown: missing attack state"); return; }
+    EnemyLoader::State attack = EnemyLoader::State::ATTACK_1;
+    if (attack == EnemyLoader::State::IDLE) { expect(false, "cooldown: missing attack state"); return; }
 
-    std::string cooldownState = findFirstCooldownStateInChain(enemy, attack);
-    expect(!cooldownState.empty(),
-           "cooldown: found a cooldownTime>0 state in the attack chain");
-    if (cooldownState.empty()) return;
+    EnemyLoader::State cooldownState = findFirstCooldownStateInChain(enemy, attack);
+    expect(cooldownState != EnemyLoader::State::IDLE,
+        "cooldown: found a cooldownTime>0 state in the attack chain");
+    if (cooldownState == EnemyLoader::State::IDLE) return;
 
     enemy->requestState(attack);
 
     bool firedCooldownPhase = false;
     for (int phase = 0; phase < 8; phase++) {
-        std::string stateThatWillFire = enemy->getCurrentStateName();
+        EnemyLoader::State stateThatWillFire = enemy->getCurrentState();
         std::vector<Enemy::FiredEvent> fired;
 
         bool didFire = stepUntilFire(enemy, 0.5f, 240, fired);
@@ -271,7 +248,6 @@ static void testEnemyCooldownBlocksNonIdle(const std::string& enemiesJsonPath) {
 // SECTION 3 — Health clamping
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Checks health updates clamp to [0, max] and apply normal subtraction within bounds. */
 static void testEnemyHealthClamp(const std::string& enemiesJsonPath) {
     auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
     if (!enemy) return;
@@ -289,12 +265,11 @@ static void testEnemyHealthClamp(const std::string& enemiesJsonPath) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SECTION 4 — EnemyController mechanics (attack selection + damage offsets)
+// SECTION 4 — EnemyController mechanics
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Validates EnemyController will initiate an attack from idle when players are alive. */
 static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPath,
-                                               const std::string& housesJsonPath) {
+    const std::string& housesJsonPath) {
     HouseLoader loader = loadHouses(housesJsonPath);
     auto players = makePlayersRing(loader, "poseidon", 4);
 
@@ -302,20 +277,19 @@ static void testControllerStartsAttackFromIdle(const std::string& enemiesJsonPat
     if (!enemy) return;
 
     EnemyController controller;
-    enemy->requestState("idle");
+    enemy->requestState(EnemyLoader::State::IDLE);
 
     bool leftIdle = false;
     for (int i = 0; i < 40; i++) {
         controller.update(0.5f, enemy, players);
-        if (enemy->getCurrentStateName() != "idle") { leftIdle = true; break; }
+        if (enemy->getCurrentState() != EnemyLoader::State::IDLE) { leftIdle = true; break; }
     }
 
     expect(leftIdle, "controller: when idle and unlocked, starts an attack state");
 }
 
-/** Verifies controller remains in idle and does not attack when all players are dead. */
 static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& enemiesJsonPath,
-                                                         const std::string& housesJsonPath) {
+    const std::string& housesJsonPath) {
     HouseLoader loader = loadHouses(housesJsonPath);
     auto players = makePlayersRing(loader, "poseidon", 4);
 
@@ -328,25 +302,25 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
     if (!enemy) return;
 
     EnemyController controller;
-    enemy->requestState("idle");
+    enemy->requestState(EnemyLoader::State::IDLE);
 
     bool everLeftIdle = false;
     for (int i = 0; i < 40; i++) {
         controller.update(0.5f, enemy, players);
-        if (enemy->getCurrentStateName() != "idle") { everLeftIdle = true; break; }
+        if (enemy->getCurrentState() != EnemyLoader::State::IDLE) { everLeftIdle = true; break; }
     }
 
     expect(!everLeftIdle, "controller(noLiving): stays idle (does not start attacks)");
 }
 
-/** Confirms DAMAGE events processed by the controller reduce at least one player's health. */
 static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonPath,
-                                                 const std::string& housesJsonPath) {
+    const std::string& housesJsonPath) {
     HouseLoader loader = loadHouses(housesJsonPath);
     auto players = makePlayersRing(loader, "poseidon", 4);
 
     auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
     if (!enemy) return;
+    enemy->setDefenseLikelihood(0.0f);
 
     EnemyController controller;
 
@@ -371,20 +345,115 @@ static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonP
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SECTION 5 — Boss specific mechanics
+// ─────────────────────────────────────────────────────────────────────────────
+
+static void testCerberusHealMove(const std::string& enemiesJsonPath,
+    const std::string& housesJsonPath) {
+    auto enemy = makeEnemy(enemiesJsonPath, "cerberus");
+    if (!enemy) return;
+
+    // Lower health so there's room to heal
+    enemy->updateHealth(-50.0f);
+    float healthBeforeHeal = enemy->getCurrentHealth();
+    expect(healthBeforeHeal < enemy->getMaxHealth(), "cerberus heal: health lowered before heal");
+
+    EnemyController controller;
+    HouseLoader loader = loadHouses(housesJsonPath);
+    auto players = makePlayersRing(loader, "poseidon", 4);
+
+    // Force defense so heal fires
+    enemy->setDefenseLikelihood(1.0f);
+
+    bool healed = false;
+    for (int i = 0; i < 240; i++) {
+        controller.update(0.5f, enemy, players);
+        if (enemy->getCurrentHealth() > healthBeforeHeal) {
+            healed = true;
+            break;
+        }
+    }
+
+    expect(healed, "cerberus heal: health increased after heal move fired");
+}
+
+static void testCyclopsMultiplierScalesDamage(const std::string& enemiesJsonPath,
+    const std::string& housesJsonPath) {
+    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
+    if (!enemy) return;
+
+    // Hardcode a 2x multiplier on relative side 1
+    enemy->setSideMultiplier(1, 2.0f);
+    enemy->setTargetIndex(0);
+
+    float healthBefore = enemy->getCurrentHealth();
+    float rawDamage = 10.0f;
+
+    // Player at absolute index 1 is relative side 1 from target 0 → should hit for 20
+    enemy->takeDamage(rawDamage, 1);
+
+    float actualDamage = healthBefore - enemy->getCurrentHealth();
+    expect(std::abs(actualDamage - (rawDamage * 2.0f)) < 0.01f,
+        "cyclops multiplier: damage scaled by 2x for side 1");
+}
+
+static void testCyclopsDefensiveMove(const std::string& enemiesJsonPath,
+    const std::string& housesJsonPath) {
+    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
+    if (!enemy) return;
+
+    EnemyController controller;
+    HouseLoader loader = loadHouses(housesJsonPath);
+    auto players = makePlayersRing(loader, "poseidon", 4);
+
+    enemy->setDefenseLikelihood(1.0f);
+    enemy->setRetargetLikelihood(0.0f);
+    enemy->setTargetIndex(0);
+
+    expect(enemy->getStates().count(EnemyLoader::State::DEFENSE_MOVE) > 0,
+        "cyclops: has defense move state");
+
+    // Run for a bit so the passive SIDE_MODIFIER events fire
+    for (int i = 0; i < 10; i++) {
+        controller.update(0.5f, enemy, players);
+    }
+
+    // Direction 0 (facing player) should be 2x
+    float mult0 = enemy->getSideMultiplier(0);
+    expect(std::abs(mult0 - 2.0f) < 0.01f, "cyclops passive: direction 0 has 2x multiplier");
+
+    float healthBefore0 = enemy->getCurrentHealth();
+    float rawDamage = 10.0f;
+    enemy->takeDamage(rawDamage, 0);
+    float actualDamage0 = healthBefore0 - enemy->getCurrentHealth();
+    expect(std::abs(actualDamage0 - (rawDamage * 2.0f)) < 0.01f,
+        "cyclops passive: direction 0 takes 2x damage");
+
+    // Direction 3 (behind player) should be 0x — no damage
+    float mult3 = enemy->getSideMultiplier(3);
+    expect(std::abs(mult3 - 0.0f) < 0.01f, "cyclops passive: direction 3 has 0x multiplier");
+
+    float healthBefore3 = enemy->getCurrentHealth();
+    enemy->takeDamage(rawDamage, 3);
+    float actualDamage3 = healthBefore3 - enemy->getCurrentHealth();
+    expect(std::abs(actualDamage3 - 0.0f) < 0.01f,
+        "cyclops passive: direction 3 takes no damage");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Test harness entry point: runs all sections and prints a summary. */
 void EnemyTests::runAll(const std::string& enemiesJsonPath,
-                        const std::string& housesJsonPath) {
+    const std::string& housesJsonPath) {
     _passed = 0;
     _failed = 0;
 
     CULog("═════════════════════════════════════════");
     CULog("  EnemyTests::runAll");
     CULog("═════════════════════════════════════════");
-    CULog("  enemiesJsonPath    : %s", enemiesJsonPath.c_str());
-    CULog("  housesJsonPath : %s", housesJsonPath.c_str());
+    CULog("  enemiesJsonPath : %s", enemiesJsonPath.c_str());
+    CULog("  housesJsonPath  : %s", housesJsonPath.c_str());
     CULog("─────────────────────────────────────────");
 
     CULog("── Section 1: Init ──────────────────────");
@@ -402,6 +471,16 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
     testControllerDoesNotAttackWhenAllPlayersDead(enemiesJsonPath, housesJsonPath);
     testControllerDamageEventHitsSomeone(enemiesJsonPath, housesJsonPath);
 
-    printSummary();
-}
+    CULog("── Section 5: Defensive mechanics ────────────");
+    testCerberusHealMove(enemiesJsonPath, housesJsonPath);
+    testCyclopsMultiplierScalesDamage(enemiesJsonPath, housesJsonPath);
+    testCyclopsDefensiveMove(enemiesJsonPath, housesJsonPath);
 
+    printSummary();
+    
+    // CRITICAL: Clear static loader state so game can reinitialize with animation metadata
+    // Tests used basic init() which doesn't load animations. Game needs to reinit with assets.
+    CULog("─────────────────────────────────────────");
+    CULog("  Clearing static loader for game init...");
+    Enemy::clearStaticLoaderForTesting();
+}

@@ -8,6 +8,68 @@ using namespace cugl::scene2;
 using namespace cugl::netcode;
 using namespace std;
 
+namespace {
+constexpr int kMaxPlayers = GameStateMessage::kMaxPlayers;
+
+/**
+ * Reads player health and runtime support-effect values from a game-state payload.
+ *
+ * The payload is expected to contain `kMaxPlayers` health values first,
+ * followed by `kMaxPlayers` groups of shield mitigation, shield duration,
+ * barrier multiplier, and barrier duration values.
+ *
+ * @param deserializer  The deserializer positioned at the first player-health
+ *                      field within a `GAME_UPDATE` payload.
+ * @param stateMsg      The game-state message receiving the decoded player
+ *                      runtime state.
+ */
+void readPlayerRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& stateMsg) {
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        stateMsg.playerHP[ii] = deserializer.readFloat();
+    }
+
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        PlayerRuntimeEffectState& effectState = stateMsg.playerRuntimeEffects[ii];
+        effectState.shieldMitigation = deserializer.readFloat();
+        effectState.shieldDuration = deserializer.readFloat();
+        effectState.barrierMultiplier = deserializer.readFloat();
+        effectState.barrierDuration = deserializer.readFloat();
+    }
+}
+
+/**
+ * Writes player health and runtime support-effect values into a game-state payload.
+ *
+ * The serializer always emits exactly `kMaxPlayers` player slots in slot order.
+ * Missing slots are written with default values so the snapshot stays fixed-width.
+ *
+ * @param serializer  The serializer to append player runtime state to.
+ * @param players     The authoritative players whose health, shield, and barrier
+ *                    values should be written into the outgoing snapshot.
+ */
+void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_ptr<Player>>& players) {
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        const float health = ii < players.size() ? players[ii]->getCurrentHealth() : 0.0f;
+        serializer.writeFloat(health);
+    }
+
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        if (ii < players.size()) {
+            const auto& player = players[ii];
+            serializer.writeFloat(player->getShieldHealth());
+            serializer.writeFloat(player->getShieldDuration());
+            serializer.writeFloat(player->getBarrierMultiplier());
+            serializer.writeFloat(player->getBarrierDuration());
+        } else {
+            serializer.writeFloat(0.0f);
+            serializer.writeFloat(0.0f);
+            serializer.writeFloat(1.0f);
+            serializer.writeFloat(0.0f);
+        }
+    }
+}
+} // namespace
+
 /*HELPERS*/
 
 /**
@@ -127,6 +189,7 @@ void NetworkController::disconnect() {
     _sessionTerminated = false;
     _disconnectedSlots.clear();
     _enemy = "";
+    _aIHouses.clear();
 }
 
 /**
@@ -195,8 +258,10 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 	switch (msgCode) {
 		case MessageType::BOSS_DAMAGE: {
 			float damage = _deserializer.readFloat();
+			int playerIndex = _deserializer.readSint32();
 			AttackMessage attackMsg;
 			attackMsg.damage = damage;
+			attackMsg.damageDirection = playerIndex;
 			attacks.push_back(attackMsg);
 			break;
 		}
@@ -261,49 +326,59 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				_onlinePlayers.push_back(newPlayer);
 				broadcastLobbyState();
 			}
+
 			break;
 		}
-		case MessageType::LOBBY_UPDATE: {
-			std::vector<std::string> playerData = _deserializer.readStringVector();
-			_onlinePlayers.clear();
-			CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
-			// re-pair the flattened vector back into pairs
-			for (int i = 0; i < playerData.size(); i += 3) {
-				NetworkedPlayer newPlayer;
-				newPlayer.networkID = playerData[i];
-				newPlayer.username = playerData[i + 1];
-                newPlayer.houseID = playerData[i+2];
-				_onlinePlayers.push_back(newPlayer);
+        case MessageType::LOBBY_UPDATE: {
+            std::vector<std::string> playerData = _deserializer.readStringVector();
+            _onlinePlayers.clear();
+            _aIHouses.clear();
+            CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
+
+            int i = 0;
+
+            // AI houses at the front
+            int aiCount = std::stoi(playerData[i++]);
+            for (int j = 0; j < aiCount; j++) {
+                int slot = std::stoi(playerData[i]);
+                _aIHouses[slot] = playerData[i + 1];
+                i += 2;
+            }
+
+            // Real players — everything up to the last entry
+            while (i < (int)playerData.size() - 1) {
+                NetworkedPlayer newPlayer;
+                newPlayer.networkID = playerData[i];
+                newPlayer.username  = playerData[i + 1];
+                newPlayer.houseID   = playerData[i + 2];
+                _onlinePlayers.push_back(newPlayer);
+                i += 3;
+            }
+
+            // Enemy is always last
+            _enemy = playerData.back();
+            break;
+        }
+			case MessageType::GAME_UPDATE : {
+				GameStateMessage stateMsg;
+				stateMsg.bossHealth = _deserializer.readFloat();
+				stateMsg.bossTarget = _deserializer.readSint32();
+				stateMsg.bossState = _deserializer.readSint32();
+				stateMsg.stateTime = _deserializer.readFloat();
+                readPlayerRuntimeState(_deserializer, stateMsg);
+            
+				_latestGameState = stateMsg;
+				break;
 			}
 			break;
 		}
 		case MessageType::GAME_UPDATE : {
 			GameStateMessage stateMsg;
-			stateMsg.bossHealth = _deserializer.readFloat();
-			stateMsg.bossStunDuration = _deserializer.readFloat();
-			stateMsg.bossVulnerableDuration = _deserializer.readFloat();
-			stateMsg.bossVulnerableMultiplier = _deserializer.readFloat();
-			stateMsg.player1HP = _deserializer.readFloat();
-			stateMsg.player2HP = _deserializer.readFloat();
-			stateMsg.player3HP = _deserializer.readFloat();
-			stateMsg.player4HP = _deserializer.readFloat();
-            
-            stateMsg.player1ShieldMitigation = _deserializer.readFloat();
-            stateMsg.player1ShieldDuration = _deserializer.readFloat();
-            stateMsg.player1BarrierMultiplier = _deserializer.readFloat();
-            stateMsg.player1BarrierDuration = _deserializer.readFloat();
-            stateMsg.player2ShieldMitigation = _deserializer.readFloat();
-            stateMsg.player2ShieldDuration = _deserializer.readFloat();
-            stateMsg.player2BarrierMultiplier = _deserializer.readFloat();
-            stateMsg.player2BarrierDuration = _deserializer.readFloat();
-            stateMsg.player3ShieldMitigation = _deserializer.readFloat();
-            stateMsg.player3ShieldDuration = _deserializer.readFloat();
-            stateMsg.player3BarrierMultiplier = _deserializer.readFloat();
-            stateMsg.player3BarrierDuration = _deserializer.readFloat();
-            stateMsg.player4ShieldMitigation = _deserializer.readFloat();
-            stateMsg.player4ShieldDuration = _deserializer.readFloat();
-            stateMsg.player4BarrierMultiplier = _deserializer.readFloat();
-            stateMsg.player4BarrierDuration = _deserializer.readFloat();
+            stateMsg.bossHealth = _deserializer.readFloat();
+            stateMsg.bossTarget = _deserializer.readSint32();
+            stateMsg.bossState = _deserializer.readSint32();
+            stateMsg.stateTime = _deserializer.readFloat();
+            readPlayerRuntimeState(_deserializer, stateMsg);
             
 			_latestGameState = stateMsg;
 			break;
@@ -331,8 +406,18 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _disconnectedSlots.push_back(slot);
             break;
         }
-        case SESSION_TERMINATED: {
+        case MessageType::SESSION_TERMINATED: {
             _sessionTerminated = true;
+            break;
+        }
+        case MessageType::BOSS_SELECT: {
+            _enemy = _deserializer.readString();
+            break;
+        }
+        case MessageType::AI_HOUSE_SELECT: {
+            int slot = _deserializer.readSint32();
+            std::string houseID = _deserializer.readString();
+            _aIHouses[slot] = houseID;
             break;
         }
 	}
@@ -376,10 +461,11 @@ void NetworkController::clearQueues() {
  * Called by non-host clients when the local player attacks the boss.
  *
  * @param damage    The amount of damage dealt to the boss.
+ * @param playerIndex Which player is dealing damage to the boss
  */
-void NetworkController::broadcastDamage(float damage) {
+void NetworkController::broadcastDamage(float damageAmount, int playerIndex) {
 	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
-	_serializer.writeFloat(damage);
+	_serializer.writeFloat(damageAmount);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
@@ -441,12 +527,12 @@ void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float m
  * @return          true if the player is a real networked player, false if AI.
  */
 bool NetworkController::checkRealPlayer(int playerID) {
-	if (playerID >= _onlinePlayers.size() ) {
-		return false;
-	}
-	else {
-		return true;
-	}
+    if (playerID >= _onlinePlayers.size() ) {
+        return false;
+    }
+    else {
+        return true;
+    }
 }
 
 /**
@@ -484,6 +570,7 @@ void NetworkController::broadcastGameStart(){
 	_serializer.writeSint32(MessageType::GAME_START);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
+    _gameStarted = true;
 }
 
 /**
@@ -521,24 +608,11 @@ void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.writeFloat(state.getEnemy()->getStunDuration());
 	_serializer.writeFloat(state.getEnemy()->getVulnerableDuration());
 	_serializer.writeFloat(state.getEnemy()->getVulnerableMultiplier());
+	_serializer.writeSint32(state.getEnemy()->getTargetIndex());
+	_serializer.writeSint32(state.getEnemy()->getCurrentState());
+	_serializer.writeFloat(state.getEnemy()->getStateTime());
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
-	for (int i = 0; i < 4; i++) {
-		if (i < players.size()) {
-			const auto& player = players[i];
-			_serializer.writeFloat(player->getCurrentHealth());
-			_serializer.writeFloat(player->getShieldMitigation());
-			_serializer.writeFloat(player->getShieldDuration());
-			_serializer.writeFloat(player->getBarrierMultiplier());
-			_serializer.writeFloat(player->getBarrierDuration());
-		}
-		else {
-			_serializer.writeFloat(0.0f);
-			_serializer.writeFloat(0.0f);
-			_serializer.writeFloat(0.0f);
-			_serializer.writeFloat(1.0f);
-			_serializer.writeFloat(0.0f);
-		}
-	}
+    writePlayerRuntimeState(_serializer, players);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
 }
@@ -562,24 +636,33 @@ void NetworkController::broadcastLostGame() {
 }
 
 /**
- * Broadcasts the current lobby player list to all connected clients.
+ * Broadcasts the current lobby player & AI list to all connected clients.
  * Called by the host whenever a new player joins so all clients stay in sync.
  * Serializes the online players list as a flat string vector in the format:
  * [networkID_0, username_0, house_0, networkID_1, username_1, house_1, ...]
  */
 void NetworkController::broadcastLobbyState() {
-	std::vector<std::string> serializablePlayers;
+    std::vector<std::string> serializablePlayers;
 
-	for (NetworkedPlayer player : _onlinePlayers) {
-		serializablePlayers.push_back(player.networkID);
-		serializablePlayers.push_back(player.username);
+    // AI count first — unambiguous anchor for the receiver
+    serializablePlayers.push_back(std::to_string(_aIHouses.size()));
+    for (const auto& pair : _aIHouses) {
+        serializablePlayers.push_back(std::to_string(pair.first));
+        serializablePlayers.push_back(pair.second);
+    }
+
+    for (NetworkedPlayer player : _onlinePlayers) {
+        serializablePlayers.push_back(player.networkID);
+        serializablePlayers.push_back(player.username);
         serializablePlayers.push_back(player.houseID);
-	}
+    }
 
-	_serializer.writeSint32(MessageType::LOBBY_UPDATE);
-	_serializer.writeStringVector(serializablePlayers);
-	_network->broadcast(_serializer.serialize());
-	_serializer.reset();
+    serializablePlayers.push_back(_enemy);
+
+    _serializer.writeSint32(MessageType::LOBBY_UPDATE);
+    _serializer.writeStringVector(serializablePlayers);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }
 
 /**
@@ -589,7 +672,7 @@ void NetworkController::broadcastLobbyState() {
  *
  *@param house - the selected house 
  */
-void NetworkController::broadcastSelectedHouse(std::string& house) {
+void NetworkController::broadcastSelectedHouse(const std::string& house) {
     _serializer.writeSint32(MessageType::SELECT_HOUSE);
     _serializer.writeString(house);
     _network->sendToHost(_serializer.serialize());
@@ -680,6 +763,7 @@ void NetworkController::registerDisconnectCallback() {
                     broadcastPlayerDisconnected(i);
                     broadcastLobbyState();
                 }
+
                 break;
             }
         }
@@ -720,12 +804,29 @@ void NetworkController::setLocalHouse(const std::string& houseID) {
     }
 }
 
-/** Returns true if every player in the lobby has selected a house. */
+/**
+ * Returns true if every real player has selected a house AND every AI slot
+ * has a house assigned by the host. The start button only activates when
+ * this returns true, enforcing that no slot enters the game without a house.
+ */
 bool NetworkController::allPlayersSelectedHouse() const {
     if (_onlinePlayers.empty()) return false;
+
+    // All real players must have a house
     for (const NetworkedPlayer& player : _onlinePlayers) {
         if (player.houseID.empty()) return false;
     }
+
+    // All AI slots must have a house — any slot index not in _onlinePlayers is AI
+    int totalSlots = 4;
+    int realCount = (int)_onlinePlayers.size();
+    for (int i = 0; i < totalSlots; i++) {
+        if (i >= realCount) {
+            auto aIHouse = _aIHouses.find(i);
+            if (aIHouse == _aIHouses.end() || aIHouse->second.empty()) return false;
+        }
+    }
+
     return true;
 }
 
@@ -735,4 +836,115 @@ void NetworkController::broadcastSessionTerminated() {
     _serializer.writeSint32(SESSION_TERMINATED);
     auto msg = _serializer.serialize();
     _network->broadcast(msg);
+}
+
+/**
+ * Broadcasts the host's selected boss enemy to all connected clients.
+ * Should be called by the host immediately after the player confirms
+ * their boss selection in the boss select screen.
+ *
+ * Clients will update their local _enemy field upon receiving this
+ * message, which is then read by getEnemy() to update the lobby UI.
+ *
+ * @param enemyID  The unique identifier of the selected enemy (e.g. "cyclops", "cerberus").
+ *                 Must match a valid entry in the enemy JSON definition file.
+ */
+void NetworkController::broadcastBossSelection(const std::string& enemyID) {
+    _serializer.writeSint32(MessageType::BOSS_SELECT);
+    _serializer.writeString(enemyID);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
+}
+
+/**
+ * Returns true if the given houseID is already claimed by any player
+ * other than the local player.
+ *
+ * @param houseID  The house ID to check.
+ * @return         true if another player has claimed it, false otherwise.
+ */
+bool NetworkController::isHouseTaken(const std::string& houseID) const {
+    if (houseID.empty()) return false;
+    std::string localID = _network ? _network->getUUID() : "";
+
+    // Check real players (excluding self)
+    for (const NetworkedPlayer& player : _onlinePlayers) {
+        if (player.networkID == localID) continue;
+        if (player.houseID == houseID) return true;
+    }
+
+    // Check AI slot assignments
+    for (const auto& pair : _aIHouses) {
+        if (pair.second == houseID) return true;
+    }
+
+    return false;
+}
+
+/**
+ * Returns the set of houseIDs currently claimed by players other than
+ * the local player. Used by HouseSelectScene to grey out unavailable cards.
+ *
+ * @return  A vector of taken house ID strings.
+ */
+std::vector<std::string> NetworkController::getTakenHouses() const {
+    std::string localID = _network ? _network->getUUID() : "";
+    std::vector<std::string> taken;
+
+    // Real players (excluding self)
+    for (const NetworkedPlayer& player : _onlinePlayers) {
+        if (player.networkID == localID) continue;
+        if (!player.houseID.empty()) {
+            taken.push_back(player.houseID);
+        }
+    }
+
+    // AI slots
+    for (const auto& pair : _aIHouses) {
+        if (!pair.second.empty()) {
+            taken.push_back(pair.second);
+        }
+    }
+
+    return taken;
+}
+
+/**
+ * Broadcasts the host's house selection for an AI slot to all clients.
+ * Clients will update that slot's houseID in their local _onlinePlayers
+ * list upon receiving this message.
+ *
+ * @param slotIndex  The 0-based AI slot index being configured.
+ * @param houseID    The selected house ID, or "" to clear the selection.
+ */
+void NetworkController::broadcastAIHouseSelection(int slotIndex, const std::string& houseID) {
+    _serializer.writeSint32(MessageType::AI_HOUSE_SELECT);
+    _serializer.writeSint32(slotIndex);
+    _serializer.writeString(houseID);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
+
+    // Store locally — host doesn't receive its own broadcast
+    _aIHouses[slotIndex] = houseID;
+}
+
+/** Returns the house ID assigned to the given AI slot, or "" if unset */
+std::string NetworkController::getAIHouse(int slotIndex) const {
+    auto houseAtAIIndex = _aIHouses.find(slotIndex);
+    return houseAtAIIndex != _aIHouses.end() ? houseAtAIIndex->second : "";
+}
+
+/**
+ * Clears the host's AI house assignment for the given slot.
+ * Called when a real player joins a slot that was previously
+ * configured as AI, so the assignment does not bleed back
+ * after the player leaves.
+ *
+ * @param slotIndex  The 0-based slot index to clear.
+ */
+void NetworkController::clearAIHouse(int slotIndex) {
+    if (_aIHouses.erase(slotIndex) > 0) {
+        // Broadcast so all clients remove this slot from their taken set
+        broadcastLobbyState();
+    }
 }
