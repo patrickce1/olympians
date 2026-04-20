@@ -383,6 +383,21 @@
         },
         "preGameBarOutline": {
             "file": "textures/preGameEntryScene/preGameBarOutline.png"
+        },
+        "athenaBox": {
+            "file": "textures/preGameEntryScene/athenaBox.png"
+        },
+        "aresBox": {
+            "file": "textures/preGameEntryScene/aresBox.png"
+        },
+        "hadesBox": {
+            "file": "textures/preGameEntryScene/hadesBox.png"
+        },
+        "hephaestusBox": {
+            "file": "textures/preGameEntryScene/hephaestusBox.png"
+        },
+        "poseidonBox": {
+            "file": "textures/preGameEntryScene/poseidonBox.png"
         }
 	},
     "fonts": {

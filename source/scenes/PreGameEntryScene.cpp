@@ -174,17 +174,17 @@ void PreGameEntryScene::update(float timestep) {
 std::vector<Player*> PreGameEntryScene::remapPlayersForDisplay() {
     int localIndex = _network->getLocalPlayerNumber();
     const auto& players = _gameState->getPlayers();
-    int totalSlots = (int)players.size();
+    int totalTiles = (int)players.size();
 
-    std::vector<Player*> remappedPlayerSlots;
-    remappedPlayerSlots.reserve(totalSlots);
+    std::vector<Player*> remappedPlayerTiles;
+    remappedPlayerTiles.reserve(totalTiles);
 
-    for (int i = 1; i < totalSlots + 1; i++) {
-        int slot = (localIndex + i) % totalSlots;
-        remappedPlayerSlots.push_back(players[slot].get());
+    for (int i = 1; i < totalTiles + 1; i++) {
+        int slot = (localIndex + i) % totalTiles;
+        remappedPlayerTiles.push_back(players[slot].get());
     }
 
-    return remappedPlayerSlots;
+    return remappedPlayerTiles;
 };
 
 /**
