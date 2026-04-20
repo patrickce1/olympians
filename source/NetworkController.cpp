@@ -231,15 +231,12 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 				std::string localNetworkID = _network ? _network->getUUID() : "";
 
 				if (!receiverNetworkID.empty() && receiverNetworkID != localNetworkID) {
-					// Re-emit the same payload to the intended client so pass
-					// delivery remains host-authoritative even after slot reordering.
 					_serializer.writeSint32(MessageType::PLAYER_PASS);
 					_serializer.writeString(itemID);
 					_serializer.writeSint32(passRecieverID);
 					_serializer.writeSint32(passDirection);
 					_network->sendTo(receiverNetworkID, _serializer.serialize());
 					_serializer.reset();
-					// Do not enqueue locally when host is only relaying.
 					break;
 				}
 			}
@@ -470,10 +467,8 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
 	CULog("Sending pass message to player %d", playerID);
 	if (!isHost()) {
 		// Clients route all passes through host for consistent delivery.
-		// This avoids client-side slot/index mismatches for shifted lobbies.
 		_network->sendToHost(_serializer.serialize());
 	} else if (checkRealPlayer(playerID)) {
-		// Host can target the remote receiver directly.
 		std::string playerNetworkID = _onlinePlayers[playerID].networkID;
 		_network->sendTo(playerNetworkID, _serializer.serialize());
 	} else {
