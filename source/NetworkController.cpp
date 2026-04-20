@@ -497,15 +497,7 @@ void NetworkController::broadcastGameState(const GameState& state) {
 		}
 	}
 
-	try {
-		_network->broadcast(_serializer.serialize());
-	}
-	catch (const exception& e) {
-		/*do nothing
-		this try catch is NECESSARY as the first couple frames after host is migrated
-		the app seems to still be fully reestablishing all necessary connections. 
-		This try catch prevents the app from prematurely deciding to quit*/
-	}
+	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
 }
 
