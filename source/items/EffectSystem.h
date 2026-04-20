@@ -69,7 +69,7 @@ public:
      * @param resolvedMagnitude  The resolved item magnitude associated with the source item.
      * @param target             The player receiving the effect.
      */
-    static float applyToPlayer(const ItemDef::Effect& effect, float resolvedMagnitude, Player& target) {
+    static float applyEffectToPlayer(const ItemDef::Effect& effect, float resolvedMagnitude, Player& target) {
         (void)resolvedMagnitude;
 
         switch (effect.type) {
@@ -95,7 +95,7 @@ public:
 //     * @param resolvedMagnitude  The resolved item magnitude associated with the source item.
 //     * @param target             The enemy receiving the effect.
 //     */
-//    static float applyToEnemy(const ItemDef::Effect& effect, float resolvedMagnitude, Enemy& target) {
+//    static float applyEffectToEnemy(const ItemDef::Effect& effect, float resolvedMagnitude, Enemy& target) {
 //        (void)resolvedMagnitude;
 //
 //        switch (effect.type) {
