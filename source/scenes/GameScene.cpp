@@ -77,10 +77,10 @@ static HealthState getHealthState(float current, float max) {
  * resolved magnitude. Shield and barrier items instead send their effect-specific
  * tuning values from the item definition together with the configured duration.
  *
- * @param network                       The network controller used to send host-directed updates.
- * @param def                                The item definition describing the support item's effects.
- * @param resolvedMagnitude The resolved support magnitude calculated for this item use.
- * @param targetPlayerID        The 0-based slot index of the player receiving the effect.
+ * @param network   The network controller used to send host-directed updates.
+ * @param def   The item definition describing the support item's effects.
+ * @param resolvedMagnitude   The resolved support magnitude calculated for this item use.
+ * @param targetPlayerID     The 0-based slot index of the player receiving the effect.
  */
 static void broadcastSupportEffects(NetworkController& network,
                                     const ItemDef& def,
@@ -90,15 +90,15 @@ static void broadcastSupportEffects(NetworkController& network,
         switch (effect.type) {
             case ItemDef::EffectType::Shield:
                 network.broadcastSupportEffect(SupportEffectType::Shield,
-                                               effect.mitigation,
-                                               effect.duration,
-                                               targetPlayerID);
+                    effect.mitigation,
+                    effect.duration,
+                    targetPlayerID);
                 break;
             case ItemDef::EffectType::Barrier:
                 network.broadcastSupportEffect(SupportEffectType::Barrier,
-                                               effect.multiplier,
-                                               effect.duration,
-                                               targetPlayerID);
+                    effect.multiplier,
+                    effect.duration,
+                    targetPlayerID);
                 break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Vulnerable:

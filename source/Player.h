@@ -137,10 +137,8 @@ public:
      * @param barrierMultiplier The active barrier damage multiplier.
      * @param barrierDuration   The remaining barrier duration in seconds.
      */
-    void syncRuntimeEffects(float shieldHealth,
-                            float shieldDuration,
-                            float barrierMultiplier,
-                            float barrierDuration) {
+    void syncRuntimeEffects(float shieldHealth, float shieldDuration, float barrierMultiplier,
+        float barrierDuration) {
         _hasShield = shieldDuration > 0.0f;
         _shieldHealth = _hasShield ? shieldHealth : 0.0f;
         _shieldDuration = _hasShield ? shieldDuration : 0.0f;
@@ -201,21 +199,20 @@ public:
     void applyBarrier(float multiplier, float duration);
     
     /**
-     * Advances timed runtime effects.
+     * Advances this player's active runtime support effects by the elapsed frame time.
+     *
+     * Both shield and barrier durations are reduced by `dt` and clamped to `0.0f` so
+     * they never become negative. When a shield timer reaches zero, the shield is marked
+     * inactive, any remaining flat damage absorption is cleared, and an expiration log is
+     * emitted. When a barrier timer reaches zero, the barrier is marked inactive and its
+     * damage multiplier is restored to the neutral `1.0f` value.
      *
      * @param dt  The elapsed time since the previous frame, in seconds.
      */
     void updateEffects(float dt);
 
     /** Clears runtime-only combat effects. */
-    void clearRuntimeEffects() {
-        _hasShield = false;
-        _shieldHealth = 0.0f;
-        _shieldDuration = 0.0f;
-        _hasBarrier = false;
-        _barrierMultiplier = 1.0f;
-        _barrierDuration = 0.0f;
-    }
+    void clearRuntimeEffects();
 
     /**
      * Adds an item to the player's inventory.

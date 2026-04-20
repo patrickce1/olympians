@@ -43,7 +43,6 @@ enum class SupportEffectType : int32_t {
     Barrier = 2
 };
 
-
 /** Message sent by the client to indicate a support effect applied to a player.
  * The playerID is the order of the player in the circle to whom the effect is applied.
  * The effectType identifies whether this is a heal, shield, or barrier effect.
@@ -69,6 +68,13 @@ struct PassMessage {
     int passDirection; // Direction: 1=left, 2=right
 };
 
+/** Runtime support-effect snapshot for a single player in a `GameStateMessage`.
+ * The values are serialized in slot order as shield mitigation, shield duration,
+ * barrier multiplier, and barrier duration.
+ * Shield mitigation stores the remaining flat damage absorption for an active shield.
+ * Barrier multiplier stores the active damage multiplier for a barrier effect, where
+ * `1.0f` is the neutral value when no barrier is active.
+ */
 struct PlayerRuntimeEffectState {
     float shieldMitigation;
     float shieldDuration;
@@ -76,26 +82,27 @@ struct PlayerRuntimeEffectState {
     float barrierDuration;
 };
 
-/* Message sent by the host to other players about the current state of the game
-* GameState has a function to update itself according to the information in this message type
-*/
+/** Message sent by the host to other players about the current state of the game
+ * GameState has a function to update itself according to the information in this message type
+ */
 struct GameStateMessage {
+    /** The max number of active players in a game. */
     static constexpr int kMaxPlayers = 4;
 
-    //boss health
+    // boss health
     float bossHealth;
-    //who the boss is facing
+    // who the boss is facing
     int bossTarget;
-    //which phase the boss is in
-    //check EnemyLoader.h to see what each number corresponds to
+    // which phase the boss is in
+    // check EnemyLoader.h to see what each number corresponds to
     int bossState;
-    //how long the boss has been in this phase for
+    // how long the boss has been in this phase for
     float stateTime;
-    //We might need to send side multiplier data over network
-    //based on how we decide to indicate it
-    //but that is for UI people to add to ts
+    // We might need to send side multiplier data over network
+    // based on how we decide to indicate it
+    // but that is for UI people to add to ts
 
-    //player health
+    // player health
     union {
         struct {
             float player1HP;
@@ -106,7 +113,7 @@ struct GameStateMessage {
         float playerHP[kMaxPlayers];
     };
 
-    //player buffs/debuff metadata
+    // player buffs/debuff metadata
     union {
         struct {
             float player1ShieldMitigation;
@@ -129,11 +136,8 @@ struct GameStateMessage {
         PlayerRuntimeEffectState playerRuntimeEffects[kMaxPlayers];
     };
 
-    GameStateMessage()
-        : bossHealth(0.0f),
-          bossTarget(0),
-          bossState(0),
-          stateTime(0.0f) {
+    /** Message struct for GameState */
+    GameStateMessage() : bossHealth(0.0f), bossTarget(0), bossState(0), stateTime(0.0f) {
         std::fill_n(playerHP, kMaxPlayers, 0.0f);
         for (int ii = 0; ii < kMaxPlayers; ++ii) {
             playerRuntimeEffects[ii] = { 0.0f, 0.0f, 1.0f, 0.0f };

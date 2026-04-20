@@ -61,10 +61,10 @@ void Player::updateHealth(float delta) {
             _shieldHealth = std::max(0.0f, _shieldHealth - tempDamage);
             
             CULog("Shield update: player='%s' house='%s' reason='hit' absorbed=%.3f remainingDamage=%.3f",
-                              _playerName.c_str(),
-                              _houseId.c_str(),
-                              absorbedAmount,
-                              incomingDamage);
+                  _playerName.c_str(),
+                  _houseId.c_str(),
+                  absorbedAmount,
+                  incomingDamage);
             
             if (_shieldHealth <= 0.0f) {
                 CULog("Shield expired: player='%s' house='%s' reason='used'",
@@ -99,10 +99,10 @@ void Player::applyShield(float mitigation, float duration) {
     _shieldHealth = std::max(0.0f, mitigation);
     _shieldDuration = duration;
     CULog("Shield applied: player='%s' house='%s' mitigation=%.3f duration=%.3f",
-              _playerName.c_str(),
-              _houseId.c_str(),
-              _shieldHealth,
-              _shieldDuration);
+        _playerName.c_str(),
+        _houseId.c_str(),
+        _shieldHealth,
+        _shieldDuration);
 }
 
 /**
@@ -121,7 +121,17 @@ void Player::applyBarrier(float multiplier, float duration) {
     _barrierDuration = duration;
 }
 
-/** Advances timed runtime effects. */
+/**
+ * Advances this player's active runtime support effects by the elapsed frame time.
+ *
+ * Both shield and barrier durations are reduced by `dt` and clamped to `0.0f` so
+ * they never become negative. When a shield timer reaches zero, the shield is marked
+ * inactive, any remaining flat damage absorption is cleared, and an expiration log is
+ * emitted. When a barrier timer reaches zero, the barrier is marked inactive and its
+ * damage multiplier is restored to the neutral `1.0f` value.
+ *
+ * @param dt  The elapsed time since the previous frame, in seconds.
+ */
 void Player::updateEffects(float dt) {
     if (_shieldDuration > 0.0f) {
         _shieldDuration = std::max(0.0f, _shieldDuration - dt);
@@ -129,8 +139,8 @@ void Player::updateEffects(float dt) {
             _hasShield = false;
             _shieldHealth = 0.0f;
             CULog("Shield expired: player='%s' house='%s' reason='duration'",
-                              _playerName.c_str(),
-                              _houseId.c_str());
+                _playerName.c_str(),
+                _houseId.c_str());
         }
     }
 
@@ -141,6 +151,16 @@ void Player::updateEffects(float dt) {
             _barrierMultiplier = 1.0f;
         }
     }
+}
+
+/** Clears runtime-only combat effects. */
+void Player::clearRuntimeEffects() {
+    _hasShield = false;
+    _shieldHealth = 0.0f;
+    _shieldDuration = 0.0f;
+    _hasBarrier = false;
+    _barrierMultiplier = 1.0f;
+    _barrierDuration = 0.0f;
 }
 
 /**
@@ -187,8 +207,8 @@ static float computeResolvedItemMagnitude(const Player& player,
     }
     
     CULog("[Item Value Calculation]\nItem: '%s'\nEffective value: '%.3f'",
-          def.getName().c_str(),
-          resolvedMagnitude);
+        def.getName().c_str(),
+        resolvedMagnitude);
 
     return resolvedMagnitude;
 }
@@ -249,8 +269,8 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
  *
  * @param itemId  The inventory instance id to consume
  * @param target  The enemy that receives the item's damage and effects
- * @param db           The item database used to resolve the item definition
- * @return       The applied base magnitude, or -1.0f if the item id or item definition cannot be found
+ * @param db  The item database used to resolve the item definition
+ * @return The applied base magnitude, or -1.0f if the item id or item definition cannot be found
  */
 float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const ItemDatabase& db) {
     for (auto item = _inventory.begin(); item != _inventory.end(); ++item) {
