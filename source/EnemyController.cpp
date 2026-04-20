@@ -1,5 +1,6 @@
 // EnemyController.cpp
 #include "EnemyController.h"
+#include "GameScene.h"
 #include <algorithm>
 
 using namespace cugl;
@@ -43,6 +44,12 @@ bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
 
 /** Upon entering idle state, this function possibly chooses a new target for the enemy. */
 void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy, std::vector<std::shared_ptr<Player>>& players) {
+    // Don't retarget if currently in attack phase (prevent interruptions during active attacks)
+    if (_animationRegistry && enemy->isInAttackPhase(*_animationRegistry)) {
+        CULog("[EnemyController] Target: Player[%d] (Retained: in attack phase)", enemy->getTargetIndex());
+        return;
+    }
+    
     float chance = enemy->getRetargetLikelihood();
     if (chance <= 0.0f) return;
     if (chance > 1.0f) chance = 1.0f;

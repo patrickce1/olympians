@@ -19,7 +19,7 @@
                 },
                 "attack_1": {
                     "name": "club",
-                    "animationKey": "cyclops_idle_animation",
+                    "animationKey": "cyclops_boulder_animation",
                     "buildUpTime": 4.0,
                     "cooldownTime": 0.0,
                     "events": [
@@ -33,7 +33,7 @@
                 },
                 "attack_2": {
                     "name": "stomp",
-                    "animationKey": "cyclops_idle_animation",
+                    "animationKey": "cyclops_boulder_animation",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
@@ -62,7 +62,7 @@
                 },
                 "attack_3": {
                     "name": "boulder toss",
-                    "animationKey": "cyclops_idle_animation",
+                    "animationKey": "cyclops_boulder_animation",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
