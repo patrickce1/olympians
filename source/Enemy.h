@@ -8,8 +8,10 @@
 #include <cugl/cugl.h>
 #include "EnemyLoader.h"
 
-// Forward declaration for type trait checking
-// Full definition needed for unordered_map; include where needed
+/**
+* Forward declaration for type trait checking
+* Full definition needed for unordered_map; include where needed 
+*/
 struct AnimationEntry;
 
 /**
@@ -101,6 +103,17 @@ public:
      */
     bool virtual init(const std::string& enemyId, const std::string& jsonPath, 
                      const std::shared_ptr<cugl::AssetManager>& assets);
+
+    /**
+     * TESTING ONLY: Clears the static loader initialization state.
+     * Call this after all tests complete to allow the game to reinitialize the loader with animation metadata.
+     * 
+     * Usage:
+     *   EnemyTests::runAll(...);
+     *   Enemy::clearStaticLoaderForTesting();
+     *   // Now game can initialize properly with animations
+     */
+    static void clearStaticLoaderForTesting();
 
     /** Returns the unique id of this enemy */
     const std::string& getId() const { return _enemyId; }

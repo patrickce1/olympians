@@ -8,6 +8,12 @@
 //
 //   Example:
 //     EnemyTests::runAll("json/enemies.json", "json/houses.json");
+//
+// ARCHITECTURE NOTES:
+//   - Enemy uses a file-scope static EnemyLoader shared across all instances
+//   - First test to call makeEnemy() initializes the loader from JSON
+//   - Subsequent tests reuse the same loader (no redundant file I/O)
+//   - Each test creates fresh Enemy instances for isolation
 
 #include "EnemyTests.h"
 #include "../Enemy.h"
@@ -18,7 +24,6 @@
 #include <fstream>
 #include <cstdio>
 #include "../EnemyLoader.h"
-#include "../Enemy.h"
 #include <unordered_set>
 
 namespace {
@@ -26,6 +31,11 @@ namespace {
     int _passed = 0;
     int _failed = 0;
 
+    /**
+     * Evaluates a test condition and logs [PASS] or [FAIL].
+     * @param condition Boolean test result
+     * @param label Description of the test
+     */
     void expect(bool condition, const std::string& label) {
         if (condition) {
             CULog("[PASS] %s", label.c_str());
@@ -71,6 +81,8 @@ namespace {
 
     std::shared_ptr<Enemy> makeEnemy(const std::string& enemiesJsonPath,
         const std::string& enemyId) {
+        // Creates a fresh Enemy instance. The EnemyLoader is shared across all instances
+        // via file-scope statics in Enemy.cpp. First call initializes; subsequent calls reuse.
         auto e = std::make_shared<Enemy>();
         bool ok = e->init(enemyId, enemiesJsonPath);
         expect(ok, "Enemy::init succeeds for '" + enemyId + "'");
@@ -465,4 +477,10 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
     testCyclopsDefensiveMove(enemiesJsonPath, housesJsonPath);
 
     printSummary();
+    
+    // CRITICAL: Clear static loader state so game can reinitialize with animation metadata
+    // Tests used basic init() which doesn't load animations. Game needs to reinit with assets.
+    CULog("─────────────────────────────────────────");
+    CULog("  Clearing static loader for game init...");
+    Enemy::clearStaticLoaderForTesting();
 }

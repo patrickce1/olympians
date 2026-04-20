@@ -7,10 +7,12 @@
 
 using namespace cugl;
 
-// Static file-scope loader and initialization flags shared by all Enemy instances
-static EnemyLoader sEnemyLoader; // Singleton loader instance
-static bool sEnemyLoaderInitialized = false; // Flag to ensure loader is initialized only once
-static std::string sEnemyLoaderPath; // Path where the loader was initialized
+/** Singleton loader instance */
+static EnemyLoader staticEnemyLoader;
+/** Flag to ensure loader is initialized only once */
+static bool staticEnemyLoaderInitialized = false; 
+/** Path where the loader was initialized (for error checking if multiple paths are used) */
+static std::string staticEnemyLoaderPath; 
 
 /**
  * Ensures the animation registry is loaded from AssetManager (if provided).
@@ -25,11 +27,11 @@ static bool ensureAnimationRegistryLoaded(const std::shared_ptr<cugl::AssetManag
     }
     
     // Only load if not already loaded
-    if (sEnemyLoader.isAnimationRegistryLoaded()) {
+    if (staticEnemyLoader.isAnimationRegistryLoaded()) {
         return true;  // Already loaded
     }
     
-    if (!sEnemyLoader.loadAnimationRegistry(assets)) {
+    if (!staticEnemyLoader.loadAnimationRegistry(assets)) {
         CULog("WARNING: Failed to load animation registry, continuing without animation metadata");
         return false;  // Non-fatal error
     }
@@ -46,18 +48,18 @@ static bool ensureAnimationRegistryLoaded(const std::shared_ptr<cugl::AssetManag
  * @return true if loader is ready, false on error
  */
 static bool ensureEnemyLoaderInitialized(const std::string& jsonPath) {
-    if (!sEnemyLoaderInitialized) {
-        if (!sEnemyLoader.loadFromFile(jsonPath)) {
+    if (!staticEnemyLoaderInitialized) {
+        if (!staticEnemyLoader.loadFromFile(jsonPath)) {
             CULog("ERROR: Failed to load enemy JSON from %s", jsonPath.c_str());
             return false;
         }
-        sEnemyLoaderInitialized = true;
-        sEnemyLoaderPath = jsonPath;
+        staticEnemyLoaderInitialized = true;
+        staticEnemyLoaderPath = jsonPath;
     }
 
-    if (sEnemyLoaderPath != jsonPath) {
+    if (staticEnemyLoaderPath != jsonPath) {
         CULog("ERROR: Enemy JSON already loaded from different path: %s vs %s", 
-              sEnemyLoaderPath.c_str(), jsonPath.c_str());
+              staticEnemyLoaderPath.c_str(), jsonPath.c_str());
         return false;
     }
 
@@ -71,7 +73,7 @@ static bool ensureEnemyLoaderInitialized(const std::string& jsonPath) {
  * @return Reference to the static enemy loader
  */
 static EnemyLoader& getEnemyLoader() {
-    return sEnemyLoader;
+    return staticEnemyLoader;
 }
 
 /**
@@ -365,4 +367,20 @@ float Enemy::getSideMultiplier(int absoluteIndex) {
 This can and should be overwritten for each boss to have custom logic on when they decide to use their defensive move */
 bool Enemy::shouldDefend() {
     return false;
+}
+
+/**
+ * TESTING ONLY: Resets the static enemy loader state to allow reinitializing with different parameters.
+ * Used to clear cached loader state between test runs and actual game initialization.
+ * Must be called after all tests complete and BEFORE the game initializes enemies with animation metadata.
+ * 
+ * Example usage in tests:
+ *   EnemyTests::runAll("json/enemies.json", "json/houses.json");
+ *   Enemy::clearStaticLoaderForTesting();  // Clear cached state
+ *   // Then game can initialize properly with animation metadata
+ */
+void Enemy::clearStaticLoaderForTesting() {
+    staticEnemyLoaderInitialized = false;
+    staticEnemyLoaderPath.clear();
+    // Note: We don't clear the loader contents themselves - they're reused if same path is loaded
 }

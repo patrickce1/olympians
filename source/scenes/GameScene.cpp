@@ -1196,6 +1196,13 @@ int GameScene::calculateAnimationFrame(float stateTime) const {
     }
 }
 
+/**
+ * Updates the enemy animation frame based on the current state time and direction.
+ * Calculates the correct frame to display for both looping and buildup/attack animations,
+ * @param dt                The elapsed time in seconds since last frame
+ * @param localPlayerIndex  The local player's index (0-3) for direction calculation
+ * 
+ */
 void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !_currentVisibleAnimationSprite) {

@@ -67,7 +67,7 @@ private:
     /** A ordered vector of all enemies/bosses for selection */
     std::vector<EnemyDef> _enemiesVector;
     
-    // Animation metadata for calculating state durations
+    /** Animation metadata for calculating state durations */
     struct AnimationMetadata {
         int buildupFrameCount = 0;
         int frameCount = 0;
