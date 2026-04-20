@@ -362,6 +362,27 @@
         },
         "supportZoneR": {
             "file": "textures/gameScene/supportRZoneBG.png"
+        },
+        "dropShadow": {
+            "file": "textures/preGameEntryScene/dropShadow.png"
+        },
+        "emptyBox": {
+            "file": "textures/preGameEntryScene/emptyBox.png"
+        },
+        "localBorder": {
+            "file": "textures/preGameEntryScene/localBorder.png"
+        },
+        "preEntryBottomCloud": {
+            "file": "textures/preGameEntryScene/preEntryBottomCloud.png"
+        },
+        "preEntryCloud": {
+            "file": "textures/preGameEntryScene/preEntryCloud.png"
+        },
+        "preGameBarFill": {
+            "file": "textures/preGameEntryScene/preGameBarFill.png"
+        },
+        "preGameBarOutline": {
+            "file": "textures/preGameEntryScene/preGameBarOutline.png"
         }
 	},
     "fonts": {
@@ -523,6 +544,7 @@
         "lobbyScene": "json/scenes/lobbyScene.json",
         "houseSelectScene": "json/scenes/houseSelectionScene.json",
         "bossSelectScene": "json/scenes/bossSelectionScene.json",
+        "preGameEntryScene": "json/scenes/preGameEntryScene.json",
         "heroCard" : "widgets/houseSelect/heroCard.json",
         "teamHouseIcon" : "widgets/houseSelect/teamHouseIcon.json",
         "playerHouseIcon" : "widgets/houseSelect/playerHouseIcon.json",
@@ -597,6 +619,15 @@
             "format": { "type": "Anchored"},
             "data": {
                 "key": "bossSelectScene",
+                "variables": {}
+            }
+        },
+        "preGameEntryScene": {
+            "type": "Widget",
+            "comment": "Root node of the pre-game entry scene",
+            "format": { "type": "Anchored"},
+            "data": {
+                "key": "preGameEntryScene",
                 "variables": {}
             }
         }
