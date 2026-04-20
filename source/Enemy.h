@@ -168,7 +168,7 @@ public:
 
 protected:
     /** Boolean that decides if we are sending debug messages or not*/
-    bool _debug = true;
+    bool _debug = false;
 
     /** Updates timers.*/
     void tick(float dt);
