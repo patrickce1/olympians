@@ -22,15 +22,18 @@ using namespace std;
  *
  * That is why we have the method {@link #setActive}.
  *
- * @param assets                             The (loaded) assets for this game mode
- * @param networkController     The network controller shared across all scenes
- * @param gameState                       The state of the game
+ * @param assets             The (loaded) assets for this game mode
+ * @param networkController  The network controller shared across all scenes
+ * @param gameState          The state of the game
+ * @param itemController     The item controller needed to init AI players
+ *                           when assignMissingHousesForAI() runs at game start
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
 bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
-                     const std::shared_ptr<NetworkController>& networkController,
-                     GameState* gameState){
+          const std::shared_ptr<NetworkController>& networkController,
+          GameState* gameState,
+          ItemController* itemController){
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -56,6 +59,10 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
     setupListeners();
     
     _status = Status::IDLE;
+    
+    // Store item controller so assignMissingHousesForAI() can init AI
+    // behavior when the host presses Begin Quest.
+    _itemController = itemController;
     
     addChild(scene);
     setActive(false);
@@ -112,10 +119,30 @@ void LobbyScene::setupUI() {
  */
 void LobbyScene::setupListeners() {
     _enterGame->addListener([this](const std::string& name, bool down) {
-        if (down && _network->isHost() && _network->allPlayersSelectedHouse()) {
-            _network->broadcastGameStart();
-            _status = Status::START;
+        if (!down || !_network->isHost()) return;
+        
+        // Assign unique houses to any AI slots that don't have one.
+        // ItemController is needed to reinitialize AI behavior after
+        // reconstructing slots as EasyPlayerAI with their new house.
+        _gameState->assignMissingHousesForAI(*_itemController);
+
+        // Broadcast each AI house to clients.
+        const auto& players = _gameState->getPlayers();
+        int totalSlots = (int)players.size();
+        for (int i = 0; i < totalSlots; i++) {
+            if (!_network->checkRealPlayer(i)) {
+                const std::string& house = players[i]->getHouseName();
+                if (!house.empty()) {
+                    _network->broadcastAIHouseSelection(i, house);
+                }
+            }
         }
+
+        //Confirm all players have house according to network.
+        if (!_network->allPlayersSelectedHouse()) return;
+
+        _network->broadcastGameStart();
+        _status = Status::START;
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
@@ -124,25 +151,54 @@ void LobbyScene::setupListeners() {
                 _network->broadcastSessionTerminated();
                 _pendingDisconnect = true;
             } else {
-                // Client leaving — disconnect so host is notified via disconnect callback
                 _pendingDisconnect = true;
             }
             _status = Status::ABORT;
         }
     });
-    
+
     _bossLobbyButton->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::BOSSSELECT;
         }
     });
-    
-    // Add listeners to all player icon buttons to open the house select screen
-    for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages) {
-        icon->addListener([this](const std::string& name, bool down) {
-            if (down) {
-                CULog("down");
+
+    // Each display slot i corresponds to a game slot resolved via remapPlayersForDisplay().
+    // Display slot 3 (last) is always the local player.
+    for (int i = 0; i < (int)_playerImages.size(); i++) {
+        _playerImages[i]->addListener([this, i](const std::string& name, bool down) {
+            if (!down) return;
+
+            // Resolve which game slot this display slot maps to
+            int localIndex = _network->getLocalPlayerNumber();
+            const auto& players = _gameState->getPlayers();
+            int totalSlots = (int)players.size();
+
+            // remapPlayersForDisplay walks (localIndex+1) % total ... (localIndex+totalSlots) % total
+            // display slot i => game slot (localIndex + 1 + i) % totalSlots
+            int gameSlot = (localIndex + 1 + i) % totalSlots;
+
+            // Display slot 3 is the local player's own slot (i == _playerImages.size()-1)
+            bool isLocalSlot = (i == (int)_playerImages.size() - 1);
+
+            if (isLocalSlot) {
+                // Always allow the local player to open their own house select
+                _pendingSlotToBeOpened = -1;
                 _status = Status::SELECT;
+                return;
+            }
+
+            bool isReal = _network->checkRealPlayer(gameSlot);
+            if (!isReal) {
+                // AI slot — only the host may open it
+                if (_network->isHost()) {
+                    _pendingSlotToBeOpened = gameSlot;
+                    _status = Status::SELECT;
+                }
+                // non-host: no-op, no feedback
+            } else {
+                // Another real player's slot — blocked for everyone
+                // no-op, no feedback
             }
         });
     }
@@ -277,28 +333,32 @@ std::vector<Player*> LobbyScene::remapPlayersForDisplay() {
  * networked player list. Called every frame during the lobby so that
  * _gameState reflects the latest connected player info before the
  * game scene activates.
+ *
+ * Uses checkRealPlayer() per slot rather than assuming real players
+ * occupy the first N slots, since players can swap positions.
+ * AI slots always use demoteToAI() to preserve isAI() == true —
+ * setRealPlayer() reconstructs as a plain Player which would break
+ * assignMissingHousesForAI() and AI behavior in GameScene.
  */
 void LobbyScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
     const auto& networkedPlayers = _network->getNetworkedPlayers();
-    const int realCount = (int)networkedPlayers.size();
     const int totalSlots = (int)_gameState->getPlayers().size();
 
-    for (int i = 0; i < realCount; i++) {
-        _gameState->setRealPlayer(
-            i,
-            networkedPlayers[i].username,
-            networkedPlayers[i].houseID
-        );
-    }
-
-    // Host only: demote any slots beyond the current real player count back to AI
-    if (_network->isHost()) {
-        for (int i = realCount; i < totalSlots; i++) {
-            if (!_gameState->getPlayerBySlot(i)->isAI()) {
-                _gameState->demoteToAI(i);
+    for (int i = 0; i < totalSlots; i++) {
+        if (_network->checkRealPlayer(i)) {
+            // Real player slot — if it previously had an AI house, clear it first
+            if (_network->isHost() && !_network->getAIHouse(i).empty()) {
+                _gameState->setRealPlayer(i, networkedPlayers[i].username, "");
+                _network->clearAIHouse(i);
             }
+            _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
+        } else {
+            // AI slot — always use demoteToAI() to preserve isAI() == true.
+            // House is synced from the host's authoritative _aIHouses map,
+            // which is kept in sync across all clients via LOBBY_UPDATE.
+            _gameState->demoteToAI(i, _network->getAIHouse(i));
         }
     }
 }
@@ -385,7 +445,7 @@ void LobbyScene::update(float timestep) {
     updateLobbyBossImage(_network->getEnemy());
     
     // Only the host can start; only enable the button when all players have locked in a house.
-    if (_network->isHost() && _network->allPlayersSelectedHouse()) {
+    if (_network->isHost()) {
             _enterGame->activate();
     } else {
         _enterGame->deactivate();

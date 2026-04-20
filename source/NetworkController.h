@@ -118,17 +118,27 @@ public:
      */
     void broadcastPass(const std::string& itemDefID, int playerID, int passDirection);
 
-    /*Sends a message to the host that the player located at playerID in the cicle got healed for healAmount.*/
+    /** Sends a message to the host that the player located at playerID in the cicle got healed for healAmount. */
     void broadcastHeal(float healAmount, int playerID);
 
-    /*The following are USED ONLY BY THE HOST*/
-    /*Send the GameState state as the new authoritative version of the game to all players*/
+    /**
+     * Sends a support effect application to the host for authoritative processing.
+     *
+     * @param effectType The kind of support effect that was applied.
+     * @param magnitude  The resolved magnitude of the effect.
+     * @param duration   The timed duration of the effect, or 0 for instant effects.
+     * @param playerID   The 0-based index of the player receiving the effect.
+     */
+    void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID);
+
+    /** The following are USED ONLY BY THE HOST */
+    /** Send the GameState state as the new authoritative version of the game to all players */
     void broadcastGameState(const GameState& state);
 
-    /*Send a message to all clients that the game has been lost*/
+    /** Send a message to all clients that the game has been lost */
     void broadcastLostGame();
 
-    /*Send a message to all clients that the game has been won*/
+    /** Send a message to all clients that the game has been won */
     void broadcastWonGame();
 
     /*Client-Side Lobby Messages*/
@@ -142,8 +152,17 @@ public:
     /*Sends an update notifying players about changes to the lobby (new players joining/leaving)*/
     void broadcastLobbyState();
     
-    /*Sends an update notifying players about changes to the house selections*/
-    void broadcastSelectedHouse(std::string& house);
+    /**
+     * Sends the local player's house selection to the host.
+     *
+     * Note: because sendToHost() does not loop back to the sender,
+     * the host must call setLocalHouse() separately after this to
+     * update their own slot.
+     *
+     * @param house  The ID of the selected house (e.g. "athena").
+     *               Passing an empty string clears the selection.
+     */
+    void broadcastSelectedHouse(const std::string& house);
     
     /*HOST ONLY. Notifies all clients that the host has exited the lobby and the session is over.*/
     void broadcastSessionTerminated();
@@ -160,6 +179,9 @@ public:
 
     /*Returns all the networking messages about healing we recieved after calling getNetworkUpdate()*/
     const std::vector<HealMessage>& getHealUpdates() const { return heals; }
+
+    /*Returns all support effect messages received after calling getNetworkUpdate().*/
+    const std::vector<SupportEffectMessage>& getSupportEffectUpdates() const { return supportEffects; }
 
     /*Returns the most recent version of the authoritative game state*/
     GameStateMessage getStateUpdate() { return _latestGameState; }
@@ -192,6 +214,23 @@ public:
 
     /*Returns the list of networked players, carrying their network ID and username*/
     const std::vector<NetworkedPlayer> getNetworkedPlayers();
+    
+    /**
+     * Returns true if the given houseID is already claimed by any player
+     * other than the local player.
+     *
+     * @param houseID  The house ID to check.
+     * @return         true if another player has claimed it, false otherwise.
+     */
+    bool isHouseTaken(const std::string& houseID) const;
+
+    /**
+     * Returns the set of houseIDs currently claimed by players other than
+     * the local player. Used by HouseSelectScene to grey out unavailable cards.
+     *
+     * @return  A vector of taken house ID strings.
+     */
+    std::vector<std::string> getTakenHouses() const;
     
     /**
      * Registers a disconnect callback on the NetcodeConnection so that when
@@ -231,6 +270,21 @@ public:
     std::string getEnemy() { return _enemy; };
     
     /**
+     * Returns the house ID assigned to the given AI slot from the host's
+     * authoritative AI house map. Used by LobbyScene and HouseSelectScene
+     * to sync AI slot house selections into GameState each frame, and by
+     * updateTakenHouseCards() to grey out houses claimed by AI slots.
+     *
+     * Only meaningful on the host, where _aIHouses is written directly.
+     * On clients, _aIHouses is populated via AI_HOUSE_SELECT messages and
+     * the _aIHouses block embedded in each LOBBY_UPDATE broadcast.
+     *
+     * @param slotIndex  The 0-based game slot index of the AI player.
+     * @return           The house ID assigned to that slot, or "" if unset.
+     */
+    std::string getAIHouse(int slotIndex) const;
+    
+    /**
      * Sets the enemy of the game using their unique Enemy ID. Should be called once after
      * the host chooses a boss.
      *
@@ -253,6 +307,26 @@ public:
      *                 Must match a valid entry in the enemy JSON definition file.
      */
     void broadcastBossSelection(const std::string& enemyID);
+    
+    /**
+     * Broadcasts the host's house selection for an AI slot to all clients.
+     * Clients will update that slot's houseID in their local _onlinePlayers
+     * list upon receiving this message.
+     *
+     * @param slotIndex  The 0-based AI slot index being configured.
+     * @param houseID    The selected house ID, or "" to clear the selection.
+     */
+    void broadcastAIHouseSelection(int slotIndex, const std::string& houseID);
+    
+    /**
+     * Clears the host's AI house assignment for the given slot.
+     * Called when a real player joins a slot that was previously
+     * configured as AI, so the assignment does not bleed back
+     * after the player leaves.
+     *
+     * @param slotIndex  The 0-based slot index to clear.
+     */
+    void clearAIHouse(int slotIndex);
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -272,7 +346,9 @@ protected:
         GAME_LOST = 9,
         GAME_WON = 10,
         SESSION_TERMINATED = 11,
-        BOSS_SELECT = 12
+        BOSS_SELECT = 12,
+        AI_HOUSE_SELECT = 13,
+        PLAYER_SUPPORT_EFFECT = 14
     };
 
     /*Our network connection*/
@@ -296,6 +372,7 @@ private:
     std::vector<AttackMessage> attacks;
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
+    std::vector<SupportEffectMessage> supportEffects;
     GameStateMessage _latestGameState;
     //win/loss booleans
     bool _gameWon;
@@ -321,6 +398,9 @@ private:
     
     //Used internally to handle the different types of networking messages that come in 
     void handleMessage(const std::string& senderID, const std::vector<std::byte>& message);
+    
+    /** Houses chosen by the host for AI slots, keyed by game slot index */
+    std::unordered_map<int, std::string> _aIHouses;
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */

@@ -84,6 +84,12 @@ protected:
 
     /** The state of the game */
     GameState* _gameState = nullptr;
+    
+    /** The game slot the player intends to open in house select (for AI host control) */
+    int _pendingSlotToBeOpened = -1;
+    
+    /** Needed to init AI players when assigning missing houses at game start. */
+    ItemController* _itemController = nullptr;
 
 public:
 #pragma mark -
@@ -119,15 +125,18 @@ public:
      *
      * That is why we have the method {@link #setActive}.
      *
-     * @param assets                             The (loaded) assets for this game mode
-     * @param networkController     The network controller shared across all scenes
-     * @param gameState                       The state of the game
+     * @param assets             The (loaded) assets for this game mode
+     * @param networkController  The network controller shared across all scenes
+     * @param gameState          The state of the game
+     * @param itemController     The item controller needed to init AI players
+     *                           when assignMissingHousesForAI() runs at game start
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets,
               const std::shared_ptr<NetworkController>& networkController,
-              GameState* gameState);
+              GameState* gameState,
+              ItemController* itemController);
     
     /**
      * Retrieves and stores references to the lobby UI elements.
@@ -168,6 +177,19 @@ public:
      *
      */
     Status getStatus() const { return _status; }
+    
+    /**
+     * Returns the game slot index that the host intends to configure in
+     * house select. This is set when the host taps an AI player icon in
+     * the lobby and is consumed by SceneLoader to pass context to
+     * HouseSelectScene for host-managed AI slot selection.
+     *
+     * Returns -1 if no slot is pending (i.e. the local player opened their
+     * own house select rather than an AI slot).
+     *
+     * @return  The 0-based game slot index, or -1 if not applicable.
+     */
+    int getPendingSlotToBeOpened() const { return _pendingSlotToBeOpened; }
     
     /**
      * The method called to update the scene.

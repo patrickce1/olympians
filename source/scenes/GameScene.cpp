@@ -1,5 +1,6 @@
 #include <cugl/cugl.h>
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <random>
 #include <sstream>
@@ -31,6 +32,16 @@ constexpr float ITEM_SLIDE_SNAPBACK_ANIMATION_TIME = 0.3f;
 constexpr float ITEM_MOVEMENT_MAX_SPEED = 2000.0f;
 // Use a nominal dt for velocity estimation to avoid frame-rate dependency
 constexpr float VELOCITY_DT_ESTIMATE = 0.016f; // ~60fps estimate
+//How much larger the item should be when picked up. So it should be .xx percent larger
+constexpr float ITEM_PICKUP_SCALE = 1.12f;
+//Base scaling of items (when not being held)
+constexpr float ITEM_NORMAL_SCALE = 1.0f;
+//Defines how fast should the item increase in size from ITEM_NORMAL_SCALE to ITEM_PICKUP_SCALE
+constexpr float ITEM_SCALE_SPEED = 14.0f;
+//Defines how long it should take for an item that has been used (through the means of passing, attacking, or supporting)
+constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
+//Defines how large the item is once it has been used. So it shrinks to this size.
+constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
 
 #pragma mark HealthState
 
@@ -56,6 +67,45 @@ static HealthState getHealthState(float current, float max) {
     float ratio = current / max;
     if (ratio <= 0.5f) return HealthState::HALF;
     return HealthState::FULL;
+}
+
+/**
+ * Broadcasts the resolved support effects of a used support item to the host.
+ *
+ * Support items are normalized into one or more `SupportEffectMessage` payloads
+ * so the host can apply the same authoritative result to the target player.
+ * Items without explicit effects are treated as direct heals using the provided
+ * resolved magnitude. Shield and barrier items instead send their effect-specific
+ * tuning values from the item definition together with the configured duration.
+ *
+ * @param network   The network controller used to send host-directed updates.
+ * @param def   The item definition describing the support item's effects.
+ * @param resolvedMagnitude   The resolved support magnitude calculated for this item use.
+ * @param targetPlayerID     The 0-based slot index of the player receiving the effect.
+ */
+static void broadcastSupportEffects(NetworkController& network,
+                                    const ItemDef& def,
+                                    float resolvedMagnitude,
+                                    int targetPlayerID) {
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        switch (effect.type) {
+            case ItemDef::EffectType::Shield:
+                network.broadcastSupportEffect(SupportEffectType::Shield,
+                    effect.mitigation,
+                    effect.duration,
+                    targetPlayerID);
+                break;
+            case ItemDef::EffectType::Barrier:
+                network.broadcastSupportEffect(SupportEffectType::Barrier,
+                    effect.multiplier,
+                    effect.duration,
+                    targetPlayerID);
+                break;
+            case ItemDef::EffectType::Stun:
+            case ItemDef::EffectType::Vulnerable:
+                break;
+        }
+    }
 }
 
 /**
@@ -141,11 +191,6 @@ bool GameScene::initSceneGraph() {
         
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
-
-        // Animation sprite will be created on demand and added as a child of bossAnimationSpace
-        if (_bossSprite) {
-            _enemyAnimationSpriteNode = nullptr;  // Will be created on demand with correct texture
-        }
         
         // This is the special effects node, this is where all the animated effects will go.
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
@@ -205,7 +250,7 @@ bool GameScene::initGameSystems() {
     if (!_itemController.init(_assets)) {
         return false;
     }
-    if (!_gameState.init(_itemController)) {
+    if (!_gameState.init(_itemController, _assets)) {
         return false;
     }
     return true;
@@ -343,6 +388,15 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
 
     // Load animation registry from the already-registered enemyAnimations JSON asset
     loadAnimationRegistry();
+    
+    // Pre-create all animation sprites to eliminate runtime stuttering
+    if (!initializeAllEnemyAnimations()) {
+        CULogError("Failed to initialize enemy animations");
+        return false;
+    }
+    
+    // Pass animation registry to EnemyController for attack phase detection
+    _enemyController.setAnimationRegistry(&_animationRegistry);
 
     /*since networking not initialized yet, just assume we are the host
     we recheck if we are player 0 whenever another scene transitions back into this one*/
@@ -383,8 +437,12 @@ void GameScene::dispose() {
         _playerHealthBar = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
-        _enemyAnimationSpriteNode = nullptr;
+        _enemyAnimationSpriteNodes.clear();
+        _currentVisibleAnimationSprite = nullptr;
         _itemWidgets.clear();
+        _itemWidgetScales.clear();
+        _itemWidgetScaleTargets.clear();
+        _consumedItemAnimations.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
             _itemPhysicsWorld->dispose();
@@ -411,25 +469,45 @@ void GameScene::dispose() {
  * Does nothing if the network is not connected.
  */
 void GameScene::updateNetworkOrder() {
-    if (_network && _network->checkConnection() == NetworkController::CONNECTED) {
-        const auto& networkedPlayers = _network->getNetworkedPlayers();
-        for (int i = 0; i < (int)networkedPlayers.size(); i++) {
+    if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
+
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const int totalSlots = (int)_gameState.getPlayers().size();
+
+    for (int i = 0; i < totalSlots; i++) {
+        if (_network->checkRealPlayer(i)) {
+            // Real player slot — reconstruct with name and house from network
             _gameState.setRealPlayer(
                 i,
                 networkedPlayers[i].username,
-                networkedPlayers[i].houseID   // ← new third argument
+                networkedPlayers[i].houseID
             );
+        } else {
+            // AI slot — use demoteToAI() to preserve isAI() == true.
+            // setRealPlayer() produces a plain Player which breaks AI behavior
+            // since updateEnemyAndAI() casts to PlayerAI* to tick the AI.
+            _gameState.demoteToAI(i, _network->getAIHouse(i));
         }
-
-        setLocalPlayer(_network->getLocalPlayerNumber());
-
-        _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
-        _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
-        
-        _gameState.setEnemy(_network->getEnemy());
-        
-        initBackgroundAndBossImage();
     }
+
+    // Log every slot so we can verify AI slots are actually PlayerAI at game start
+    for (int i = 0; i < totalSlots; i++) {
+        Player* p = _gameState.getPlayerBySlot(i);
+        CULog("GameScene::updateNetworkOrder — slot %d: name='%s' house='%s' isAI=%s",
+              i,
+              p->getPlayerName().c_str(),
+              p->getHouseName().c_str(),
+              p->isAI() ? "true" : "false");
+    }
+
+    setLocalPlayer(_network->getLocalPlayerNumber());
+
+    _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
+    _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
+
+    _gameState.setEnemy(_network->getEnemy(), _assets);
+
+    initBackgroundAndBossImage();
 }
 
 /**
@@ -443,16 +521,19 @@ void GameScene::setActive(bool value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
             updateNetworkOrder();
-            _gameState.assignMissingHouses(_itemController);
+            
+            // Re-initialize AI players after updateNetworkOrder() rebuilds
+            // AI slots via demoteToAI(). demoteToAI() creates EasyPlayerAI
+            // objects but cannot call init() since it has no ItemController.
+            // Without this, _db is null and the AI crashes on first update.
+            _gameState.initAI(_itemController);
             
             // Reset enemy animation state for clean start
-            _enemyAnimationElapsedTime = 0.0f;
-            _enemyAnimationCachedFrameIndex = -1;
             _enemyAnimationCurrentDirection = 0;
             
             // Hide animation sprite on scene reset
-            if (_enemyAnimationSpriteNode) {
-                _enemyAnimationSpriteNode->setVisible(false);
+            if (_currentVisibleAnimationSprite) {
+                _currentVisibleAnimationSprite->setVisible(false);
             }
         }
     }
@@ -465,6 +546,9 @@ void GameScene::setActive(bool value) {
  */
 void GameScene::reset() {
     _draggedIcon = nullptr;
+    if (_draggedItemId != 0) {
+        _itemWidgetScaleTargets[_draggedItemId] = ITEM_NORMAL_SCALE;
+    }
     _draggedItemId = 0;
     _draggedItemDef = nullptr;
     _dragStartBodyPosition = Vec2::ZERO;
@@ -472,6 +556,9 @@ void GameScene::reset() {
     _status = Status::PLAYING;
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
+    _itemWidgetScales.clear();
+    _itemWidgetScaleTargets.clear();
+    clearConsumedItemAnimations();
     
     // Clear any active animations before resetting
     clearItemUseAnimations();
@@ -646,6 +733,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
             //NETWORK
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
             }
             // Play the item use sound if defined, otherwise play the support sound
             const std::string& itemUseSound = def->getItemUseSound();
@@ -687,6 +775,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
             //NETWORK
             if (!_network->isHost() && resolvedMagnitude > 0.0f) {
                 _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
             }
             // Play the item use sound if defined, otherwise play the support sound
             const std::string& itemUseSound = def->getItemUseSound();
@@ -917,8 +1006,10 @@ void GameScene::updateEnemyAndAI(float dt) {
  * metadata is unavailable or the enemy is dead.
  */
 void GameScene::hideEnemyAnimationAndShowStatic() {
-    if (_enemyAnimationSpriteNode) {
-        _enemyAnimationSpriteNode->setVisible(false);
+    // Hide all animation sprites
+    if (_currentVisibleAnimationSprite) {
+        _currentVisibleAnimationSprite->setVisible(false);
+        _currentVisibleAnimationSprite = nullptr;
     }
     if (_bossSprite) {
         _bossSprite->setVisible(false);
@@ -943,87 +1034,234 @@ void GameScene::hideEnemyAnimationAndShowStatic() {
  * @param animationEntry  The animation metadata containing texture path and frame info
  * @return true if sprite node was successfully initialized, false on error
  */
-bool GameScene::initializeEnemyAnimationSpriteNode(const AnimationEntry& animationEntry) {
+bool GameScene::initializeAllEnemyAnimations() {
     // Ensure we have the animation container
     if (!_bossSprite) {
         CULogError("Boss animation space not found");
         return false;
     }
     
-    // Allocate texture from file
-    auto texture = cugl::graphics::Texture::allocWithFile(animationEntry.texture);
-    if (!texture) {
-        CULogError("Failed to allocate texture: %s", animationEntry.texture.c_str());
-        return false;
+    // Create sprite node for each animation in the registry
+    for (const auto& [animationId, animationEntry] : _animationRegistry) {
+        // Allocate texture from file
+        auto texture = cugl::graphics::Texture::allocWithFile(animationEntry.texture);
+        if (!texture) {
+            CULogError("Failed to allocate texture: %s", animationEntry.texture.c_str());
+            return false;
+        }
+        
+        // Create SpriteNode with layout: frameRows rows × frameCount columns
+        // The total frame count is frameCount * frameRows (all directions × frames per direction)
+        auto spriteNode = cugl::scene2::SpriteNode::allocWithSheet(
+            texture,
+            animationEntry.frameRows,                                    // rows (4 directions)
+            animationEntry.frameCount,                                   // columns (frames per direction)
+            animationEntry.frameCount * animationEntry.frameRows         // total frames
+        );
+        
+        if (!spriteNode) {
+            CULogError("Failed to allocate SpriteNode for animation: %s", animationId.c_str());
+            return false;
+        }
+        
+        // Configure scale based on viewport size
+        // Smaller screens (phones) get lower scale ~0.90, larger screens (iPad) get higher scale ~0.93
+        cugl::Size viewportSize = getSize();
+        float scale = 0.90f + (viewportSize.height - 800.0f) * 0.00005f;
+        scale = std::clamp(scale, 0.80f, 0.95f);
+        spriteNode->setScale(scale);
+        
+        // Calculate single frame dimensions from texture and grid layout
+        float frameWidth = texture->getWidth() / animationEntry.frameCount;
+        float frameHeight = texture->getHeight() / animationEntry.frameRows;
+        spriteNode->setContentSize(cugl::Size(frameWidth, frameHeight));
+        
+        // Configure anchor and position (lower center of screen)
+        spriteNode->setAnchor(cugl::Vec2(0.5f, 0.5f));
+        spriteNode->setPosition(cugl::Vec2(196.5f, 120.0f));
+        spriteNode->setVisible(false);  // All start invisible
+        
+        // Add to scene hierarchy
+        _bossSprite->addChild(spriteNode);
+        
+        // Store in map for later access
+        _enemyAnimationSpriteNodes[animationId] = spriteNode;
     }
     
-    // Create SpriteNode with layout: frameRows rows × frameCount columns
-    // The total frame count is frameCount * frameRows (all directions × frames per direction)
-    _enemyAnimationSpriteNode = cugl::scene2::SpriteNode::allocWithSheet(
-        texture,
-        animationEntry.frameRows,                                    // rows (4 directions)
-        animationEntry.frameCount,                                   // columns (frames per direction)
-        animationEntry.frameCount * animationEntry.frameRows         // total frames
-    );
-    
-    if (!_enemyAnimationSpriteNode) {
-        CULogError("Failed to allocate SpriteNode for enemy animation");
-        return false;
-    }
-    
-    // Configure scale based on viewport size
-    // Smaller screens (phones) get lower scale ~0.90, larger screens (iPad) get higher scale ~0.93
-    cugl::Size viewportSize = getSize();
-    float scale = 0.90f + (viewportSize.height - 800.0f) * 0.00005f;
-    scale = std::clamp(scale, 0.80f, 0.95f);
-    _enemyAnimationSpriteNode->setScale(scale);
-    
-    // Calculate single frame dimensions from texture and grid layout
-    float frameWidth = texture->getWidth() / animationEntry.frameCount;
-    float frameHeight = texture->getHeight() / animationEntry.frameRows;
-    _enemyAnimationSpriteNode->setContentSize(cugl::Size(frameWidth, frameHeight));
-    
-    // Configure anchor and position (lower center of screen)
-    _enemyAnimationSpriteNode->setAnchor(cugl::Vec2(0.5f, 0.5f));
-    _enemyAnimationSpriteNode->setPosition(cugl::Vec2(196.5f, 200.0f));
-    _enemyAnimationSpriteNode->setVisible(true);
-    
-    // Add to scene hierarchy and make container visible
-    _bossSprite->addChild(_enemyAnimationSpriteNode);
     _bossSprite->setVisible(true);
-    
-    // Reset cached frame index to force update on next frame
-    _enemyAnimationCachedFrameIndex = -1;
-    
     return true;
+}
+
+/**
+ * Switches the visible animation sprite by hiding the current one and showing the new one.
+ * 
+ * Fast O(1) operation that just changes visibility and resets animation timing.
+ * All sprites are pre-created, so this avoids runtime texture loading.
+ * Applies animation-specific position and scale settings.
+ *
+ * @param animationId  The animation ID to make visible
+ */
+void GameScene::switchVisibleAnimation(const std::string& animationId) {
+    // Find the sprite for this animation
+    auto spriteNodeIter = _enemyAnimationSpriteNodes.find(animationId);
+    if (spriteNodeIter == _enemyAnimationSpriteNodes.end()) {
+        CULogError("Animation not found: %s", animationId.c_str());
+        return;
+    }
+    
+    auto newSprite = spriteNodeIter->second;
+    if (!newSprite) {
+        CULogError("Animation sprite is null: %s", animationId.c_str());
+        return;
+    }
+    
+    // Hide the previous animation sprite if there is one
+    if (_currentVisibleAnimationSprite && _currentVisibleAnimationSprite != newSprite) {
+        _currentVisibleAnimationSprite->setVisible(false);
+    }
+    
+    // Show the new animation sprite
+    newSprite->setVisible(true);
+    _currentVisibleAnimationSprite = newSprite;
+    
+    // Apply animation-specific position and scale
+    newSprite->setPosition(cugl::Vec2(_currentAnimationEntry.positionX + _currentAnimationEntry.offsetX,
+                                      _currentAnimationEntry.positionY + _currentAnimationEntry.offsetY));
+    newSprite->setScale(_currentAnimationEntry.scale);
+    
+    // Set initial frame (direction 0, frame 0)
+    newSprite->setFrame(0);
+    
+    CULog("Switched to animation: %s", animationId.c_str());
 }
 
 /**
  * Updates the current animation frame for direction and elapsed time.
  * 
- * Recalculates the direction the enemy should face (0-3) based on relative
- * positions of local player and target, then advances the animation frame
- * based on accumulated elapsed time and frame duration from animation metadata.
- * Only calls setFrame() if the frame index has changed (cached optimization).
+ * Animation behavior:
+ * - Looping animations: frameInRow cycles continuously through all frames
+ * - Buildup/Attack animations:
+ *   * Buildup phase (stateTime < buildup_duration): loops frames 0 to (buildupFrameCount-1)
+ *   * Attack phase (stateTime >= buildup_duration): plays frames buildupFrameCount to end once (clamped)
+ *   * Damage triggers when frameInRow >= damageFrame (only once per state)
+ * 
+ * Direction is recalculated each frame from local player perspective.
  *
  * @param dt                The elapsed time in seconds since last frame
  * @param localPlayerIndex  The local player's index (0-3) for direction calculation
  */
+/**
+ * Ensures the frame index is within valid bounds.
+ * Clamps negative frames to 0 and frames beyond frameCount to frameCount-1.
+ *
+ * @param frameInRow The frame index to validate
+ * @return The clamped frame index
+ */
+int GameScene::validateFrameIndex(int frameInRow) const {
+    if (frameInRow < 0) {
+        return 0;
+    }
+    if (frameInRow >= _currentAnimationEntry.frameCount) {
+        return _currentAnimationEntry.frameCount - 1;
+    }
+    return frameInRow;
+}
+
+/**
+ * Calculates the frame index during the buildup phase of an animation.
+ * Buildup frames loop until the buildup duration elapses.
+ *
+ * @param stateTime The time elapsed in the current state (seconds)
+ * @param buildupDuration The total duration of the buildup phase (seconds)
+ * @param buildupFrames Number of frames in the buildup phase
+ * @return The looping frame index within the buildup frames
+ */
+int GameScene::calculateBuildupFrame(float stateTime, float buildupDuration, int buildupFrames) const {
+    float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
+    return (int)(frameFloat) % buildupFrames;
+}
+
+/**
+ * Calculates the frame index during the attack phase of an animation.
+ * Attack frames play sequentially without looping, clamped to the final frame.
+ *
+ * @param stateTime The time elapsed in the current state (seconds)
+ * @param buildupDuration The total duration of the buildup phase (seconds)
+ * @param buildupFrames Number of frames in the buildup phase
+ * @return The attack phase frame index (clamped to last attack frame)
+ */
+int GameScene::calculateAttackFrame(float stateTime, float buildupDuration, int buildupFrames) const {
+    float timeSinceAttackStart = stateTime - buildupDuration;
+    float frameFloat = timeSinceAttackStart / _currentAnimationEntry.frameDuration;
+    int framesIntoAttack = (int)(frameFloat);
+    int totalAttackFrames = _currentAnimationEntry.frameCount - buildupFrames;
+    
+    // Clamp to last attack frame (no looping)
+    if (framesIntoAttack >= totalAttackFrames) {
+        framesIntoAttack = totalAttackFrames - 1;
+    }
+    
+    return buildupFrames + framesIntoAttack;
+}
+
+/**
+ * Calculates which animation frame should be displayed based on state time and animation phase.
+ * Handles both buildup/attack animations and simple looping animations.
+ *
+ * @param stateTime The time elapsed in the current state (seconds)
+ * @return The frame index within the animation row (0-indexed)
+ */
+int GameScene::calculateAnimationFrame(float stateTime) const {
+    int buildupFrames = _currentAnimationEntry.buildupFrameCount;
+    
+    // Ensure buildupFrameCount is valid
+    if (buildupFrames < 0) buildupFrames = _currentAnimationEntry.frameCount;
+    if (buildupFrames > _currentAnimationEntry.frameCount) buildupFrames = _currentAnimationEntry.frameCount;
+    
+    // Check if this animation has distinct buildup and attack phases
+    if (buildupFrames < _currentAnimationEntry.frameCount) {
+        // Buildup/Attack animation: buildup loops for buildUpTime, then attack plays through
+        auto enemy = _gameState.getEnemy();
+        const auto* stateDef = enemy ? enemy->getCurrentStateDef() : nullptr;
+        float buildupDuration = stateDef ? stateDef->buildUpTime : (buildupFrames * _currentAnimationEntry.frameDuration);
+        
+        if (stateTime < buildupDuration) {
+            return calculateBuildupFrame(stateTime, buildupDuration, buildupFrames);
+        } else {
+            return calculateAttackFrame(stateTime, buildupDuration, buildupFrames);
+        }
+    } else {
+        // Simple looping animation - no attack phase, just loop all frames
+        float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
+        return (int)(frameFloat) % _currentAnimationEntry.frameCount;
+    }
+}
+
+/**
+ * Updates the enemy animation frame based on the current state time and direction.
+ * Calculates the correct frame to display for both looping and buildup/attack animations,
+ * @param dt                The elapsed time in seconds since last frame
+ * @param localPlayerIndex  The local player's index (0-3) for direction calculation
+ * 
+ */
 void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
     auto enemy = _gameState.getEnemy();
-    if (!enemy) {
+    if (!enemy || !_currentVisibleAnimationSprite) {
         return;
     }
     
-    // Show animation sprite and container
-    if (_enemyAnimationSpriteNode) {
-        _enemyAnimationSpriteNode->setVisible(true);
+    // Safety check: ensure animation entry has valid data
+    if (_currentAnimationEntry.frameCount <= 0 || _currentAnimationEntry.frameDuration <= 0) {
+        CULog("WARN: Invalid animation entry: frameCount=%d, frameDuration=%.3f", 
+              _currentAnimationEntry.frameCount, _currentAnimationEntry.frameDuration);
+        return;
     }
+    
+    // Show sprites and hide static fallback
+    _currentVisibleAnimationSprite->setVisible(true);
     if (_bossSprite) {
         _bossSprite->setVisible(true);
     }
-    
-    // Hide static sprite when animation is playing
     if (_gameArea) {
         auto staticSprite = _gameArea->getChildByName("bossIdle");
         if (staticSprite) {
@@ -1031,28 +1269,64 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
         }
     }
     
-    // Recalculate direction based on local player perspective
+    // Calculate direction the enemy should face
     int newDirection = EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex);
+    newDirection = (newDirection < 0 || newDirection > 3) ? 0 : newDirection;  // Safety clamp
     _enemyAnimationCurrentDirection = newDirection;
     
-    // Advance animation elapsed time
-    _enemyAnimationElapsedTime += dt;
+    // Calculate which animation frame should be displayed based on state time
+    float stateTime = enemy->getStateTime();
+    int frameInRow = calculateAnimationFrame(stateTime);
+    frameInRow = validateFrameIndex(frameInRow);
     
-    // Calculate frame within the current direction's row
-    // frameInRow cycles from 0 to (frameCount-1) based on elapsed time
-    int frameInRow = (int)(_enemyAnimationElapsedTime / _currentAnimationEntry.frameDuration) 
-                     % _currentAnimationEntry.frameCount;
+    // Check if damage should trigger at this frame
+    if (_currentAnimationEntry.damageFrame >= 0 && 
+        frameInRow >= _currentAnimationEntry.damageFrame && 
+        !_enemyAttackDamageDealtThisState) {
+        _enemyAttackDamageDealtThisState = true;
+    }
     
-    // Calculate linear frame index into the sprite sheet
-    // Sheet is organized as rows (one per direction), each row has frameCount columns
-    // linearFrame = (direction_row * frameCount) + frameInRow
+    // Calculate the linear frame index for the sprite sheet
+    // Sheet layout: [direction_row][frameCount]
     int linearFrame = (_enemyAnimationCurrentDirection * _currentAnimationEntry.frameCount) + frameInRow;
     
-    // Update sprite frame only if changed (optimization to avoid redundant setFrame calls)
-    if (linearFrame != _enemyAnimationCachedFrameIndex && _enemyAnimationSpriteNode) {
-        _enemyAnimationSpriteNode->setFrame(linearFrame);
-        _enemyAnimationCachedFrameIndex = linearFrame;
+    // Safety clamp linear frame to valid range
+    int maxFrame = _currentAnimationEntry.frameCount * _currentAnimationEntry.frameRows - 1;
+    linearFrame = (linearFrame > maxFrame) ? maxFrame : linearFrame;
+    linearFrame = (linearFrame < 0) ? 0 : linearFrame;
+    
+    // Tell the enemy what frame is currently being displayed
+    enemy->setCurrentAnimationFrame(frameInRow);
+    
+    // Set the frame on the sprite
+    _currentVisibleAnimationSprite->setFrame(linearFrame);
+}
+
+/**
+ * Checks if the current enemy attack animation has completed.
+ * Returns true when an attack animation (with buildup phase) has finished playing
+ * all attack frames (after buildup). Returns false for looping animations or
+ * while buildup/attack is still in progress.
+ * 
+ * @return true if attack animation is complete, false otherwise
+ */
+bool GameScene::isEnemyAttackAnimationComplete() const {
+    // Must have buildup < frameCount to be an attack animation
+    if (_currentAnimationEntry.buildupFrameCount >= _currentAnimationEntry.frameCount) {
+        return false;  // Not an attack animation (it's a looping animation)
     }
+    
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return false;
+    
+    // Calculate total attack animation duration
+    float buildupDuration = _currentAnimationEntry.buildupFrameCount * _currentAnimationEntry.frameDuration;
+    int attackFrameCount = _currentAnimationEntry.frameCount - _currentAnimationEntry.buildupFrameCount;
+    float attackDuration = attackFrameCount * _currentAnimationEntry.frameDuration;
+    float totalDuration = buildupDuration + attackDuration;
+    
+    // Attack is complete if the enemy's state time has exceeded total animation duration
+    return enemy->getStateTime() >= totalDuration;
 }
 
 /**
@@ -1075,50 +1349,47 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
 void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
     auto enemy = _gameState.getEnemy();
     
-    // If enemy doesn't exist, hide animation and show static sprite
+    // If no enemy, hide animation
     if (!enemy) {
         hideEnemyAnimationAndShowStatic();
         return;
     }
     
-    // Get the current state definition that defines animation metadata
+    // Get current state definition
     const auto* stateDef = enemy->getCurrentStateDef();
-    if (!stateDef) {
+    if (!stateDef || stateDef->animationKey.empty()) {
         hideEnemyAnimationAndShowStatic();
         return;
     }
     
-    // Check if animation metadata is available in the registry
-    // Animation is valid if animationKey is not empty AND exists in registry map
-    bool hasMetadata = !stateDef->animationKey.empty() && 
-                       (_animationRegistry.find(stateDef->animationKey) != _animationRegistry.end());
-    
-    if (!hasMetadata) {
+    // Look up animation metadata
+    auto animLookup = _animationRegistry.find(stateDef->animationKey);
+    if (animLookup == _animationRegistry.end()) {
+        CULog("WARN: No animation metadata found for state: %s", stateDef->animationKey.c_str());
         hideEnemyAnimationAndShowStatic();
         return;
     }
     
-    // Retrieve animation metadata from registry
-    auto animationMetadataLookup = _animationRegistry.find(stateDef->animationKey);
-    if (animationMetadataLookup == _animationRegistry.end()) {
+    // Update current animation entry before switching
+    _currentAnimationEntry = animLookup->second;
+    
+    // Check if animation state has changed
+    if (_currentAnimationId != stateDef->animationKey) {
+        _currentAnimationId = stateDef->animationKey;
+        _enemyAttackDamageDealtThisState = false;
+        
+        CULog("State animation changed to: %s", stateDef->animationKey.c_str());
+        switchVisibleAnimation(stateDef->animationKey);
+    }
+    
+    // Ensure sprite exists
+    if (!_currentVisibleAnimationSprite) {
+        CULogError("Animation sprite not initialized");
         hideEnemyAnimationAndShowStatic();
         return;
     }
     
-    const AnimationEntry& animationEntry = animationMetadataLookup->second;
-    
-    // Cache animation entry for frame calculations
-    _currentAnimationEntry = animationEntry;
-    
-    // Initialize sprite node on first frame (lazy initialization)
-    if (!_enemyAnimationSpriteNode) {
-        if (!initializeEnemyAnimationSpriteNode(animationEntry)) {
-            hideEnemyAnimationAndShowStatic();
-            return;
-        }
-    }
-    
-    // Update sprite frame based on current direction and elapsed time
+    // Update animation frame for this frame
     updateEnemyAnimationFrame(dt, localPlayerIndex);
 }
 
@@ -1325,6 +1596,14 @@ void GameScene::handlePlayerInput(InputController& input) {
             _glowAction = finalAction;
             _glowTimer  = _glowDuration;
             if (_draggedIcon) {
+                const bool isUseAction =
+                    (finalAction == InputController::Action::DROP_BOSS ||
+                     finalAction == InputController::Action::DROP_ALLY_LEFT ||
+                     finalAction == InputController::Action::DROP_ALLY_RIGHT);
+                if (isUseAction) {
+                    auto consumedDef = _draggedItemDef ? _draggedItemDef : getHeldItemDef(_draggedItemId);
+                    spawnConsumedItemAnimation(_draggedIcon, consumedDef);
+                }
                 _draggedIcon->setVisible(false);
             }
         } else {
@@ -1346,6 +1625,9 @@ void GameScene::handlePlayerInput(InputController& input) {
     }
 
     _draggedIcon = nullptr;
+    if (_draggedItemId != 0) {
+        _itemWidgetScaleTargets[_draggedItemId] = ITEM_NORMAL_SCALE;
+    }
     _draggedItemId = 0;
     _dragStartBodyPosition = Vec2::ZERO;
     _draggedItemDef = nullptr;
@@ -1402,6 +1684,7 @@ void GameScene::handleDragInitiation(InputController& input) {
 
             _draggedIcon = widget;
             _draggedItemId = id;
+            _itemWidgetScaleTargets[id] = ITEM_PICKUP_SCALE;
             _dragOffset = widget->getPosition() - touchPosScreen;
 
             // Bring item to front of render order when picked up
@@ -1444,9 +1727,9 @@ void GameScene::handleDragTracking(InputController& input) {
 }
 
 /* Checks if any updates about the state of the game were sent over the network.
-* If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
-* If we are the host, we process any attack, heal, and pass messages.
-* After doing so, we send out a new authoritative version of the game state as the host*/
+ * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
+ * If we are the host, we process any attack, heal, support-effect, and pass messages.
+ * After doing so, we send out a new authoritative version of the game state as the host*/
 void GameScene::handleNetworkUpdates() {
     /*Networking pull cycle*/
     _network->getNetworkUpdates();
@@ -1460,6 +1743,7 @@ void GameScene::handleNetworkUpdates() {
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
+        _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
     }
@@ -1935,15 +2219,25 @@ void GameScene::processZoneInteractionsForSlidingItems() {
                 continue;
             }
             
-            // Action matched - trigger it and mark item as used
+            // First time hitting a matching zone - trigger the action immediately
             if (handlePlayerActions(action, itemId)) {
+                const bool isUseAction =
+                    (action == InputController::Action::DROP_BOSS ||
+                        action == InputController::Action::DROP_ALLY_LEFT ||
+                        action == InputController::Action::DROP_ALLY_RIGHT);
+                if (isUseAction) {
+                    auto widgetIt = _itemWidgets.find(itemId);
+                    if (widgetIt != _itemWidgets.end() && widgetIt->second) {
+                        spawnConsumedItemAnimation(widgetIt->second, itemDef);
+                        widgetIt->second->setVisible(false);
+                    }
+                }
                 markItemAsUsed(itemId);
                 itemsToRemove.insert(itemId);
             }
             break;
         }
     }
-    
     // Remove items after iteration completes to avoid iterator invalidation
     for (auto itemId : itemsToRemove) {
         _slidingItems.erase(itemId);
@@ -2054,8 +2348,8 @@ void GameScene::update(float dt, InputController& input) {
     handleDisconnectedPlayers();
 
     handleItemSpawn(dt);
-    updateEnemyAndAI(dt);
     updateEnemyAnimation(dt, _network->getLocalPlayerNumber());
+    updateEnemyAndAI(dt);
     updateDropZoneVisibility();
 
     // Update sliding items before physics world update
@@ -2075,6 +2369,8 @@ void GameScene::update(float dt, InputController& input) {
     processZoneInteractionsForSlidingItems();
     
     syncInventoryWidgets();
+    updateItemWidgetScales(dt);
+    updateConsumedItemAnimations(dt);
     syncItemWidgetsToBodies();
 
     _network->clearQueues();
@@ -2098,6 +2394,7 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     auto widget = PolygonNode::allocWithTexture(texture);
     widget->setContentSize(Size(100, 100));
     widget->setAnchor(Vec2::ANCHOR_BOTTOM_LEFT);
+    widget->setScale(ITEM_NORMAL_SCALE);
     widget->setName("item_" + std::to_string((unsigned long long)item.getId()));
     _inventory->addChild(widget);
     return widget;
@@ -2210,6 +2507,9 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
     if (widget != _itemWidgets.end()) {
         if (_draggedIcon == widget->second) {
             _draggedIcon = nullptr;
+            if (_draggedItemId != 0) {
+                _itemWidgetScaleTargets[_draggedItemId] = ITEM_NORMAL_SCALE;
+            }
             _draggedItemId = 0;
             _dragStartBodyPosition = Vec2::ZERO;
         }
@@ -2230,12 +2530,52 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
         }
         _itemBodies.erase(body);
     }
+
+    _itemWidgetScales.erase(itemId);
+    _itemWidgetScaleTargets.erase(itemId);
     
     // Clean up pass tracking to prevent memory leak
     _passedItemIds.erase(itemId);
 }
 
 /**
+ * Smoothly interpolates each item widget's scale toward its target scale.
+ * Uses a frame-rate independent lerp factor based on the elapsed timestep
+ * and ITEM_SCALE_SPEED. Snaps to the target if within a small epsilon to
+ * avoid floating point drift. Initializes any widget with no tracked scale
+ * to ITEM_NORMAL_SCALE.
+ *
+ * @param dt  The time elapsed since the last update, in seconds.
+ */
+void GameScene::updateItemWidgetScales(float dt) {
+    if (_itemWidgets.empty()) return;
+
+    const float lerpFactor = std::min(1.0f, dt * ITEM_SCALE_SPEED);
+    for (const auto& [itemId, widget] : _itemWidgets) {
+        if (!widget) continue;
+
+        auto current = _itemWidgetScales.find(itemId);
+        if (current == _itemWidgetScales.end()) {
+            _itemWidgetScales[itemId] = ITEM_NORMAL_SCALE;
+            current = _itemWidgetScales.find(itemId);
+        }
+
+        float targetScale = ITEM_NORMAL_SCALE;
+        auto target = _itemWidgetScaleTargets.find(itemId);
+        if (target != _itemWidgetScaleTargets.end()) {
+            targetScale = target->second;
+        }
+
+        float newScale = current->second + (targetScale - current->second) * lerpFactor;
+        if (std::abs(targetScale - newScale) < 0.001f) {
+            newScale = targetScale;
+        }
+
+        current->second = newScale;
+        widget->setScale(newScale);
+    }
+}
+/*
  * Marks an item as used (consumed by an action).
  * Removes the visual widget and physics body from the scene.
  * Item remains in inventory until deferred damage is applied and animation completes.
@@ -2260,6 +2600,99 @@ void GameScene::markItemAsUsed(ItemInstance::ItemId itemId) {
 }
 
 /**
+ * Spawns a ghost animation of a consumed item, fading and scaling it out
+ * from the source widget's position. Creates a temporary polygon node using
+ * the item's icon texture, anchors it to the center of the source widget,
+ * and registers it as an active consumed item animation. Does nothing if
+ * any required reference is null or the item's texture cannot be found.
+ *
+ * Spent/Consumed is the usage of an item through the means of passing, supporting, or attacking.
+ * We are creating a clone of it that represents the visual, but not physical version of it.
+ *
+ * @param sourceWidget  The widget representing the consumed item's position and scale.
+ * @param itemDef       The item definition used to look up the icon texture.
+ */
+void GameScene::spawnConsumedItemAnimation(const std::shared_ptr<SceneNode>& sourceWidget,
+                                           const std::shared_ptr<const ItemDef>& itemDef) {
+    if (!sourceWidget || !itemDef || !_inventory || !_assets) return;
+
+    auto texture = _assets->get<cugl::graphics::Texture>(itemDef->getIconKey());
+    if (!texture) return;
+
+    auto ghost = PolygonNode::allocWithTexture(texture);
+    if (!ghost) return;
+
+    //So that it doesn't shrink to the anchor in bottom left, set the center on the item.
+    cugl::Rect sourceBounds = sourceWidget->getBoundingBox();
+    cugl::Vec2 sourceCenter = sourceBounds.origin + cugl::Vec2(sourceBounds.size.width * 0.5f,sourceBounds.size.height * 0.5f);
+
+    ghost->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+    ghost->setContentSize(sourceWidget->getContentSize());
+    ghost->setPosition(sourceCenter);
+    ghost->setScale(sourceWidget->getScaleX());
+    _inventory->addChild(ghost);
+
+    ConsumedItemAnimation anim;
+    anim.node = ghost;
+    anim.elapsed = 0.0f;
+    anim.duration = ITEM_CONSUME_ANIMATION_DURATION;
+    anim.startScale = sourceWidget->getScaleX();
+    anim.endScale = ITEM_CONSUME_END_SCALE;
+    _consumedItemAnimations.push_back(anim);
+}
+
+/**
+ * Updates the visual "ghost" animations for items that have been used or activated.
+ * As an item is spent (consumed) from the inventory, a temporary ghost node is
+ * animated by scaling it from its initial size to its final 'disappearance' scale.
+ * Spent/Consumed is the usage of an item through the means of passing, supporting, or attacking.
+ *
+ * Calculates the scale interpolation over the item's use duration.
+ * Cleans up the scene graph by detaching nodes once the effect is finished.
+ * Validates durations and node pointers to prevent memory errors.
+ *
+ * @param dt  The time elapsed since the last update, in seconds.
+ */
+void GameScene::updateConsumedItemAnimations(float dt) {
+    if (_consumedItemAnimations.empty()) return;
+
+    for (auto& anim : _consumedItemAnimations) {
+        if (!anim.node || anim.duration <= 0.0f) continue;
+
+        anim.elapsed += dt;
+        float t = std::min(1.0f, anim.elapsed / anim.duration);
+        float scale = anim.startScale + (anim.endScale - anim.startScale) * t;
+        anim.node->setScale(scale);
+    }
+
+    _consumedItemAnimations.erase(
+        std::remove_if(_consumedItemAnimations.begin(), _consumedItemAnimations.end(),
+                       [&](const ConsumedItemAnimation& anim) {
+                           if (!anim.node) return true;
+                           bool finished = anim.elapsed >= anim.duration;
+                           if (finished && _inventory) {
+                               _inventory->removeChild(anim.node);
+                           }
+                           return finished;
+                       }),
+        _consumedItemAnimations.end());
+}
+
+/**
+ * Clears all active consumed item animations, detaching each ghost node
+ * from the inventory scene graph and emptying the animation list.
+ */
+void GameScene::clearConsumedItemAnimations() {
+    if (_inventory) {
+        for (const auto& anim : _consumedItemAnimations) {
+            if (anim.node) {
+                _inventory->removeChild(anim.node);
+            }
+        }
+    }
+    _consumedItemAnimations.clear();
+}
+/*
  * Checks if an item is currently playing an animation.
  * Iterates through active animations to find if the given itemId is animating.
  *
@@ -2293,6 +2726,8 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     
     widget->setPosition(spawnPos);
     _itemWidgets.emplace(id, widget);
+    _itemWidgetScales[id] = ITEM_NORMAL_SCALE;
+    _itemWidgetScaleTargets[id] = ITEM_NORMAL_SCALE;
     createItemBody(id, widget);
     
     auto itemBody = _itemBodies[id];
@@ -2546,12 +2981,18 @@ void GameScene::demoteSlotToAI(int slot) {
     // Snapshot state before overwriting
     float savedHealth    = player->getCurrentHealth();
     auto  savedInventory = player->getInventory();
+    std::string savedHouse = player->getHouseName();
 
     // Delegate the actual demotion to GameState
-    _gameState.demoteToAI(slot);
+    _gameState.demoteToAI(slot, savedHouse);
 
     // Restore health and inventory onto the new AI
     Player* newAI = _gameState.getPlayerBySlot(slot);
+    auto* ai = dynamic_cast<EasyPlayerAI*>(newAI);
+    if (ai) {
+        ai->init(_itemController.getDatabase(), "json/playerAI.json");
+    }
+
     newAI->setCurrentHealth(savedHealth);
     for (const ItemInstance& item : savedInventory) {
         newAI->addItem(item);
@@ -2623,7 +3064,7 @@ void GameScene::handleDisconnectedPlayers() {
 void GameScene::resetGameState() {
     clearItemUseAnimations();
     _gameState.dispose();
-    _gameState.init(_itemController);
+    _gameState.init(_itemController, _assets);
 }
 
 /**
@@ -2865,6 +3306,7 @@ void GameScene::updateItemUseAnimations(float dt) {
 /**
  * Loads the animation registry from enemyAnimations.json and populates _animationRegistry.
  * Parses the JSON array of animation entries and builds a map for O(1) lookup by animation ID.
+ * Supports optional fields for attack phase configuration and position/scale customization.
  */
 void GameScene::loadAnimationRegistry() {
     _animationRegistry.clear();
@@ -2893,6 +3335,18 @@ void GameScene::loadAnimationRegistry() {
         anim.frameCount = entry->getInt("frameCount", 0);
         anim.frameDuration = entry->getFloat("frameDuration", 0.1f);
         anim.frameRows = entry->getInt("frameRows", 1);
+        
+        // Parse attack phase configuration (optional)
+        // Default buildupFrameCount to frameCount (no attack phase) if not specified
+        anim.buildupFrameCount = entry->getInt("buildupFrameCount", anim.frameCount);
+        anim.damageFrame = entry->getInt("damageFrame", -1);
+        
+        // Parse position and scale customization (optional, with defaults)
+        anim.positionX = entry->getFloat("positionX", 196.5f);
+        anim.positionY = entry->getFloat("positionY", 120.0f);
+        anim.scale = entry->getFloat("scale", 0.92f);
+        anim.offsetX = entry->getFloat("offsetX", 0.0f);
+        anim.offsetY = entry->getFloat("offsetY", 0.0f);
         
         if (!anim.id.empty()) {
             _animationRegistry[anim.id] = anim;

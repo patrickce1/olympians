@@ -41,6 +41,9 @@ public:
         State nextState = IDLE;                
         std::vector<EventDef> events;
         std::string animationKey;           // Key to lookup animation in enemyAnimations.json
+        int buildupFrameCount = 0;          // Number of buildup frames in animation
+        int frameCount = 0;                 // Total frames in animation
+        float frameDuration = 0.0f;         // Duration per frame in seconds
     };
 
     struct AIConfig {
@@ -63,6 +66,14 @@ private:
     std::unordered_map<std::string, EnemyDef> _enemies;
     /** A ordered vector of all enemies/bosses for selection */
     std::vector<EnemyDef> _enemiesVector;
+    
+    /** Animation metadata for calculating state durations */
+    struct AnimationMetadata {
+        int buildupFrameCount = 0;
+        int frameCount = 0;
+        float frameDuration = 0.0f;
+    };
+    std::unordered_map<std::string, AnimationMetadata> _animationRegistry;
 
 private:
     /** Parses an event type string from JSON into an EventType enum. */
@@ -92,7 +103,55 @@ private:
     }
 
 public:
-    /** Loads and parses all enemy definitions from a JSON file at the given path. Returns true on success. */
+    /** Loads animation metadata from enemyAnimations.json into registry.
+     * Animation metadata (frameCount, buildupFrameCount, frameDuration) is used to calculate
+     * state durations and animation frame sequences.
+     * 
+     * Should be called before or during loadFromFile so state definitions can access the registry.
+     * 
+     * @param assets AssetManager containing the enemyAnimations.json asset
+     * @return true if loaded successfully, false on error
+     */
+    bool loadAnimationRegistry(const std::shared_ptr<cugl::AssetManager>& assets) {
+        _animationRegistry.clear();
+        
+        auto json = assets->get<cugl::JsonValue>("enemyAnimations");
+        if (!json) {
+            CULog("WARNING: Could not find 'enemyAnimations' asset");
+            return false;
+        }
+        
+        auto registryArray = json->get("animationRegistry");
+        if (!registryArray || !registryArray->isArray()) {
+            CULog("WARNING: enemyAnimations.json missing 'animationRegistry' array");
+            return false;
+        }
+        
+        for (int i = 0; i < registryArray->size(); i++) {
+            auto entry = registryArray->get(i);
+            if (!entry) continue;
+            
+            AnimationMetadata meta;
+            meta.frameCount = entry->getInt("frameCount", 0);
+            meta.frameDuration = entry->getFloat("frameDuration", 0.1f);
+            meta.buildupFrameCount = entry->getInt("buildupFrameCount", meta.frameCount);
+            
+            std::string id = entry->getString("id", "");
+            if (!id.empty()) {
+                _animationRegistry[id] = meta;
+            }
+        }
+        
+        return true;
+    }
+    
+    /** Loads and parses all enemy definitions from a JSON file.
+     * Populates enemy definitions including states, animations, AI parameters, and events.
+     * If animation registry is already loaded, state definitions will include animation metadata.
+     * 
+     * @param path Path to enemies.json file
+     * @return true if loaded successfully, false on error
+     */
     bool loadFromFile(const std::string& path) {
         auto reader = cugl::JsonReader::alloc(path);
         if (!reader) return false;
@@ -119,16 +178,24 @@ public:
                         "Enemy '%s' missing object 'states'", def.id.c_str());
 
             for (int k = 0; k < statesObj->size(); k++) {
-                auto st = statesObj->get(k);
-                if (!st) continue;
+                auto stateJson = statesObj->get(k);
+                if (!stateJson) continue;
 
-                StateDef sdef;
-                sdef.state = parseStateType(st->_key); 
-                sdef.name = st->getString("name", "");
-                sdef.buildUpTime  = st->getFloat("buildUpTime", 0.0f);
-                sdef.cooldownTime = st->getFloat("cooldownTime", 0.0f);
-                sdef.nextState    = parseStateType(st->getString("nextState", "idle"));
-                sdef.animationKey = st->getString("animationKey", "");                 // Read animation key (metadata loads from animation registry, not JSON)
+                StateDef stateDef;
+                stateDef.state = parseStateType(stateJson->_key); 
+                stateDef.name = stateJson->getString("name", "");
+                stateDef.buildUpTime  = stateJson->getFloat("buildUpTime", 0.0f);
+                stateDef.cooldownTime = stateJson->getFloat("cooldownTime", 0.0f);
+                stateDef.nextState    = parseStateType(stateJson->getString("nextState", "idle"));
+                stateDef.animationKey = stateJson->getString("animationKey", "");
+                
+                // Populate animation metadata from registry if available
+                if (!stateDef.animationKey.empty() && _animationRegistry.count(stateDef.animationKey) > 0) {
+                    const auto& animMeta = _animationRegistry.at(stateDef.animationKey);
+                    stateDef.buildupFrameCount = animMeta.buildupFrameCount;
+                    stateDef.frameCount = animMeta.frameCount;
+                    stateDef.frameDuration = animMeta.frameDuration;
+                }
 
                 auto aiObj = entry->get("ai");
                 if (aiObj && aiObj->isObject()) {
@@ -137,26 +204,26 @@ public:
                     def.ai.defenseLikelihood = aiObj->getFloat("defenseLikelihood", 0.05f);
                 }
                 
-                auto evArr = st->get("events");
-                if (evArr && evArr->isArray()) {
-                    for (int j = 0; j < evArr->size(); j++) {
-                        auto ev = evArr->get(j);
-                        if (!ev) continue;
+                auto eventsArray = stateJson->get("events");
+                if (eventsArray && eventsArray->isArray()) {
+                    for (int j = 0; j < eventsArray->size(); j++) {
+                        auto eventJson = eventsArray->get(j);
+                        if (!eventJson) continue;
 
-                        EventDef edef;
-                        edef.type = parseEventType(ev->getString("type", ""));
+                        EventDef eventDef;
+                        eventDef.type = parseEventType(eventJson->getString("type", ""));
 
                         //A "target" only applies to damage and side modifiers, not boss healing self
-                        if (edef.type == EventType::DAMAGE || edef.type == EventType::SIDE_MODIFIER) {
-                            edef.target = ev->getInt("target", 0);
+                        if (eventDef.type == EventType::DAMAGE || eventDef.type == EventType::SIDE_MODIFIER) {
+                            eventDef.target = eventJson->getInt("target", 0);
                         }
-                        edef.amount = ev->getFloat("amount", 0.0f);
-                        edef.duration = ev->getFloat("duration", 0.0f);
-                        sdef.events.push_back(edef);
+                        eventDef.amount = eventJson->getFloat("amount", 0.0f);
+                        eventDef.duration = eventJson->getFloat("duration", 0.0f);
+                        stateDef.events.push_back(eventDef);
                     }
                 }
 
-                def.states[sdef.state] = sdef;
+                def.states[stateDef.state] = stateDef;
             }
 
             CUAssertLog(def.states.count(State::IDLE) > 0,
@@ -176,10 +243,38 @@ public:
     }
 
     bool has(const std::string& id) const { return _enemies.count(id) > 0; }
+    
+    /**
+     * Retrieves an enemy definition by ID.
+     * 
+     * @param id The unique identifier of the enemy to retrieve
+     * @return Reference to the enemy definition
+     * @throws std::out_of_range if the enemy ID is not found
+     */
     const EnemyDef& get(const std::string& id) const { return _enemies.at(id); }
+    
+    /**
+     * Returns all loaded enemy definitions in a lookup map.
+     * 
+     * @return Reference to the map of enemy ID -> EnemyDef
+     */
     const std::unordered_map<std::string, EnemyDef>& getAll() const { return _enemies; }
-    /** Returns all the mapping of enemy id -> EnemyDef */
+    
+    /**
+     * Returns all loaded enemy definitions in a stable order.
+     * Use this for UI iteration where order matters (e.g., boss selection screens).
+     * 
+     * @return Reference to the ordered vector of EnemyDef
+     */
     const std::vector<EnemyDef>& getAllOrdered() const { return _enemiesVector; }
+    
+    /**
+     * Checks if the animation registry has been successfully loaded.
+     * Used for smart initialization to verify animation metadata is available.
+     * 
+     * @return true if animation registry is populated, false otherwise
+     */
+    bool isAnimationRegistryLoaded() const { return !_animationRegistry.empty(); }
 };
 
 #endif /* !__ENEMY_LOADER_H__ */
