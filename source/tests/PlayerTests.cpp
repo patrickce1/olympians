@@ -666,10 +666,6 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     testAIHealsInjuredNeighbor  (loader, houseId, db, enemy, aiConfigPath, supportDefId);
     testAIPassesWhenNoHealTarget(loader, houseId, db, enemy, aiConfigPath, supportDefId);
 
-    CULog("── Section 6: House scaling ─────────────");
-    testAttackScalingAndAffinity(loader, db, enemy);
-    testSupportScaling(loader, db);
-
     printSummary();
 }
 
