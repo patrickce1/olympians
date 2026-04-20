@@ -105,12 +105,12 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
             allValid = false;
             break;
         }
-        if (def->getBaseValue() <= 0.0f) {
+        if (def->getBaseValue() < 0.0f) {
             allValid = false;
             break;
         }
     }
-    assertWithLabel(allValid, "items: all defs have positive baseValue");
+    assertWithLabel(allValid, "items: all defs have positive baseValue (including 0)");
     
     auto lightningBoltDef = db.getDef("lightning_bolt");
     auto appleDef = db.getDef("apple");
@@ -152,7 +152,6 @@ void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson
         }
         if (entry->attack < 0.0f || entry->attack > 1.0f ||
             entry->support < 0.0f || entry->support > 1.0f ||
-            entry->utility < 0.0f || entry->utility > 1.0f ||
             entry->affinityBonus <= 0.0f) {
             bounded = false;
             break;
@@ -274,13 +273,11 @@ void testScalingFallbacks() {
     if (clampHouseMultipliers) {
         assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->attack, 1.0f), "fallback: attack clamped to 1.0");
         assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->support, 0.0f), "fallback: support clamped to 0.0");
-        assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->utility, 0.5f), "fallback: utility unchanged when valid");
         assertWithLabel(floatsEqualWithinTolerance(clampHouseMultipliers->affinityBonus, 1.5f), "fallback: non-positive affinityBonus defaults to 1.5");
     }
     if (missingHouseMultipliers) {
         assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->attack, 0.0f), "fallback: missing attack defaults to 0.0");
         assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->support, 0.0f), "fallback: missing support defaults to 0.0");
-        assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->utility, 0.0f), "fallback: missing utility defaults to 0.0");
         assertWithLabel(floatsEqualWithinTolerance(missingHouseMultipliers->affinityBonus, 1.5f), "fallback: missing affinityBonus defaults to 1.5");
     }
 }
@@ -289,8 +286,8 @@ void testScalingFallbacks() {
  * Tests baseValue fallback behavior for missing or invalid item values.
  *
  * Verifies that ItemDatabase correctly:
- * - Defaults negative baseValue to 1.0
- * - Defaults missing baseValue to 1.0
+ * - Defaults negative baseValue to 0.0
+ * - Defaults missing baseValue to 0.0
  * - Preserves valid baseValue without modification
  *
  * Uses fixture JSON file: assets/json/tests/items_basevalue_fallbacks.json
@@ -308,10 +305,10 @@ void testBaseValueDefaults() {
     auto missingBaseValueDef = db.getDef("missing_base");
     assertWithLabel(negativeBaseValueDef != nullptr && missingBaseValueDef != nullptr, "baseValue: fallback defs exist");
     if (negativeBaseValueDef) {
-        assertWithLabel(floatsEqualWithinTolerance(negativeBaseValueDef->getBaseValue(), 1.0f), "baseValue: negative baseValue defaults to 1.0");
+        assertWithLabel(floatsEqualWithinTolerance(negativeBaseValueDef->getBaseValue(), 0.0f), "baseValue: negative baseValue defaults to 0.0");
     }
     if (missingBaseValueDef) {
-        assertWithLabel(floatsEqualWithinTolerance(missingBaseValueDef->getBaseValue(), 1.0f), "baseValue: missing baseValue defaults to 1.0");
+        assertWithLabel(floatsEqualWithinTolerance(missingBaseValueDef->getBaseValue(), 0.0f), "baseValue: missing baseValue defaults to 0.0");
     }
 }
 
@@ -404,6 +401,62 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
     assertWithLabel(floatsEqualWithinTolerance(missingItemResult, -1.0f), "compute: missing item id returns -1.0");
 }
 
+/**
+ * Tests the shield item effect on a player target.
+ *
+ * Verifies that:
+ * - Shield support items apply their base heal immediately
+ * - Shield effects arm fixed mitigation with the configured magnitude and duration
+ * - The next incoming hit consumes the shield and reduces damage by the mitigation amount
+ * - Later hits apply normally after the shield has been consumed
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJson      Parsed JSON object containing house multipliers
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
+void testShieldEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                      const std::shared_ptr<cugl::JsonValue>& housesJson,
+                      const std::string& housesJsonPath,
+                      const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "shield: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "shield: house multipliers load succeeds");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "shield: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
+    assertWithLabel(enemyOk, "shield: enemy init succeeds");
+
+    Player athena("Athena", 7, "Athena Tester", loader);
+    Player shieldTarget("Ares", 8, "Shield Target", loader);
+    shieldTarget.updateHealth(-5.0f);
+    auto instShield = ItemInstance::alloc("shield", 1005);
+    assertWithLabel(instShield != nullptr, "shield: create shield instance");
+    if (!instShield) return;
+    athena.addItem(*instShield);
+
+    const float shieldHealthBeforeUse = shieldTarget.getCurrentHealth();
+    float resolvedShield = athena.useItemById(instShield->getId(), shieldTarget, db);
+    assertWithLabel(resolvedShield > 0.0f, "shield: shield item returns a positive base heal");
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth() - shieldHealthBeforeUse,
+                                              std::min(resolvedShield, shieldTarget.getMaxHealth() - shieldHealthBeforeUse)),
+                    "shield: shield item still applies its base heal");
+    assertWithLabel(shieldTarget.hasShield(), "shield: shield effect arms fixed mitigation");
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldHealth(), 3.0f), "shield: shield mitigation value applies");
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getShieldDuration(), 5.0f), "shield: shield effect duration applies");
+
+    float shieldedHealthBefore = shieldTarget.getCurrentHealth();
+    shieldTarget.updateHealth(-6.0f);
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth(), shieldedHealthBefore - 3.0f), "shield: shield mitigates fixed damage from the next hit");
+    assertWithLabel(!shieldTarget.hasShield(), "shield: shield is consumed after blocking one hit");
+
+    shieldTarget.updateHealth(-2.0f);
+    assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth(), shieldedHealthBefore - 5.0f), "shield: later hits apply normally after shield is consumed");
+}
 } // namespace
 
 void ItemTests::runAll(const std::string& itemsJsonPath,

@@ -206,7 +206,7 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
 
 /**
  * Loads house multiplier data from a JSON object.
- * Expected schema: { "houses": [ { "id": string, "attack": number?, "support": number?, "utility": number?, "affinityBonus": number? }, ... ] }
+ * Expected schema: { "houses": [ { "id": string, "attack": number?, "support": number?, "affinityBonus": number? }, ... ] }
  * Missing slider values default to 0.0, clamped to [0.0, 1.0]. Missing affinityBonus defaults to 1.5.
  *
  * @param json  The JSON object to parse
@@ -250,10 +250,9 @@ bool ItemDatabase::loadHouseMultipliersFromJson(const std::shared_ptr<JsonValue>
             return clamp01(value);
         };
 
-        // Load attack, support, and utility sliders with default of 0.0 if missing
+        // Load attack and support sliders with default of 0.0 if missing
         multipliers.attack = readSlider("attack", 0.0f);
         multipliers.support = readSlider("support", 0.0f);
-        multipliers.utility = readSlider("utility", 0.0f);
 
         // Load affinityBonus: if missing or invalid, default to 1.5; if present but <= 0, also default to 1.5
         if (houseEntry->has("affinityBonus") && houseEntry->get("affinityBonus")->isNumber()) {

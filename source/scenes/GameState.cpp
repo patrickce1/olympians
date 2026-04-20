@@ -1,5 +1,6 @@
 #include <cugl/cugl.h>
 #include "GameState.h"
+#include <array>
 #include <cstdlib>
 
 /**
@@ -189,6 +190,7 @@ bool GameState::init(ItemController& itemController) {
 void GameState::dispose() {
     for (auto& player : _players) {
         player->clearInventory();
+        player->clearRuntimeEffects();
     }
     _players.clear();
     _playerIdMap.clear();
@@ -203,6 +205,7 @@ void GameState::dispose() {
 void GameState::reset() {
     for (auto& player : _players) {
         player->clearInventory();
+        player->clearRuntimeEffects();
         player->setCurrentHealth(player->getMaxHealth());
     }
     _enemy->setCurrentHealth(_enemy->getMaxHealth());
@@ -280,6 +283,32 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
 }
 
 /**
+ * Goes through the list of support effect messages and applies them to the specified player.
+ *
+ * @param supportEffects  The queued support-effect updates to apply this frame.
+ */
+void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects) {
+    for (const SupportEffectMessage& effect : supportEffects) {
+        if (effect.playerID < 0 || effect.playerID >= (int)_players.size()) continue;
+
+        Player* target = _players[effect.playerID].get();
+        if (!target) continue;
+
+        switch (effect.effectType) {
+            case SupportEffectType::Heal:
+                target->updateHealth(effect.magnitude);
+                break;
+            case SupportEffectType::Shield:
+                target->applyShield(effect.magnitude, effect.duration);
+                break;
+            case SupportEffectType::Barrier:
+                target->applyBarrier(effect.magnitude, effect.duration);
+                break;
+        }
+    }
+}
+
+/**
  * Overwrites the local game state with a snapshot received from the host.
  *
  * Applies the host's authoritative boss and player health values directly,
@@ -299,16 +328,28 @@ void GameState::networkUpdate(GameStateMessage newState) {
     //update boss direction
     _enemy->setTargetIndex(newState.bossTarget);
 
-    // update player health
+    // update player health and authoritative timed support effects
     std::vector<float> healths = {
         newState.player1HP,
         newState.player2HP,
         newState.player3HP,
         newState.player4HP
     };
+    std::vector<std::array<float, 4>> runtimeEffects = {
+        std::array<float, 4>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
+                             newState.player1BarrierMultiplier, newState.player1BarrierDuration},
+        std::array<float, 4>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
+                             newState.player2BarrierMultiplier, newState.player2BarrierDuration},
+        std::array<float, 4>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
+                             newState.player3BarrierMultiplier, newState.player3BarrierDuration},
+        std::array<float, 4>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
+                             newState.player4BarrierMultiplier, newState.player4BarrierDuration}
+    };
 
     for (int i = 0; i < _players.size(); i++) {
         _players[i]->setCurrentHealth(healths[i]);
+        _players[i]->syncRuntimeEffects(runtimeEffects[i][0], runtimeEffects[i][1],
+                                        runtimeEffects[i][2], runtimeEffects[i][3]);
     }
 }
 
