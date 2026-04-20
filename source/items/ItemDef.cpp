@@ -28,7 +28,7 @@ static std::string normalizeToken(std::string token) {
  * @param out    Receives the parsed enum value on success.
  * @return       true if the token matched a known effect type.
  */
-static bool tryParseEffectType(const std::string& value, ItemDef::EffectType& out) {
+static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) {
     if (value == "shield") {
         out = ItemDef::EffectType::Shield;
         return true;
@@ -115,7 +115,7 @@ ItemDef::EffectType ItemDef::effectTypeFromString(std::string value) {
     value = normalizeToken(value);
 
     EffectType parsedType = EffectType::Shield;
-    const bool parsedSuccessfully = tryParseEffectType(value, parsedType);
+    const bool parsedSuccessfully = parseEffectType(value, parsedType);
     CUAssertLog(parsedSuccessfully, "Unsupported effect type '%s'", value.c_str());
     return parsedType;
 }
@@ -138,7 +138,7 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
     if (!typeNode || !typeNode->isString()) return false;
 
     const std::string effectType = normalizeToken(typeNode->asString());
-    if (!tryParseEffectType(effectType, out.type)) return false;
+    if (!parseEffectType(effectType, out.type)) return false;
 
     out.multiplier = 1.0f;
     if (json->has("multiplier") && json->get("multiplier")->isNumber()) {
