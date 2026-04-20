@@ -406,12 +406,12 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
  * @return          true if the player is a real networked player, false if AI.
  */
 bool NetworkController::checkRealPlayer(int playerID) {
-	if (playerID >= _onlinePlayers.size() ) {
+	if (playerID < 0 || playerID >= (int)_onlinePlayers.size()) {
 		return false;
 	}
-	else {
-		return true;
-	}
+
+	// AI placeholders have an empty networkID.
+	return !_onlinePlayers[playerID].networkID.empty();
 }
 
 /**
@@ -447,7 +447,7 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
  */
 void NetworkController::broadcastGameStart(){
 	_serializer.writeSint32(MessageType::GAME_START);
-	_network->broadcast(_serializer.serialize());
+	broadcastToOnlinePlayers(_serializer.serialize());
 	_serializer.reset();
     _gameStarted = true;
 }
@@ -497,7 +497,7 @@ void NetworkController::broadcastGameState(const GameState& state) {
 		}
 	}
 
-	_network->broadcast(_serializer.serialize());
+	broadcastToOnlinePlayers(_serializer.serialize());
 	_serializer.reset();
 }
 
@@ -506,7 +506,7 @@ void NetworkController::broadcastGameState(const GameState& state) {
 */
 void NetworkController::broadcastWonGame() {
 	_serializer.writeSint32(MessageType::GAME_WON);
-	_network->broadcast(_serializer.serialize());
+	broadcastToOnlinePlayers(_serializer.serialize());
 	_serializer.reset();
 }
 
@@ -515,7 +515,7 @@ void NetworkController::broadcastWonGame() {
 */
 void NetworkController::broadcastLostGame() {
 	_serializer.writeSint32(MessageType::GAME_LOST);
-	_network->broadcast(_serializer.serialize());
+	broadcastToOnlinePlayers(_serializer.serialize());
 	_serializer.reset();
 }
 
@@ -545,7 +545,7 @@ void NetworkController::broadcastLobbyState() {
 
     _serializer.writeSint32(MessageType::LOBBY_UPDATE);
     _serializer.writeStringVector(serializablePlayers);
-    _network->broadcast(_serializer.serialize());
+	broadcastToOnlinePlayers(_serializer.serialize());
     _serializer.reset();
 }
 
@@ -679,7 +679,7 @@ void NetworkController::registerHostMigration() {
 void NetworkController::broadcastPlayerDisconnected(int slotIndex) {
     _serializer.writeSint32(MessageType::PLAYER_DISCONNECT);
     _serializer.writeSint32(slotIndex);
-    _network->broadcast(_serializer.serialize());
+	broadcastToOnlinePlayers(_serializer.serialize());
     _serializer.reset();
 }
 
@@ -718,8 +718,7 @@ bool NetworkController::allPlayersSelectedHouse() const {
 void NetworkController::broadcastSessionTerminated() {
     _serializer.reset();
     _serializer.writeSint32(SESSION_TERMINATED);
-    auto msg = _serializer.serialize();
-    _network->broadcast(msg);
+	broadcastToOnlinePlayers(_serializer.serialize());
 }
 
 /**
@@ -736,7 +735,7 @@ void NetworkController::broadcastSessionTerminated() {
 void NetworkController::broadcastBossSelection(const std::string& enemyID) {
     _serializer.writeSint32(MessageType::BOSS_SELECT);
     _serializer.writeString(enemyID);
-    _network->broadcast(_serializer.serialize());
+	broadcastToOnlinePlayers(_serializer.serialize());
     _serializer.reset();
 }
 
@@ -805,7 +804,7 @@ void NetworkController::broadcastAIHouseSelection(int slotIndex, const std::stri
     _serializer.writeSint32(MessageType::AI_HOUSE_SELECT);
     _serializer.writeSint32(slotIndex);
     _serializer.writeString(houseID);
-    _network->broadcast(_serializer.serialize());
+	broadcastToOnlinePlayers(_serializer.serialize());
     _serializer.reset();
 
     // Store locally — host doesn't receive its own broadcast
@@ -831,4 +830,28 @@ void NetworkController::clearAIHouse(int slotIndex) {
         // Broadcast so all clients remove this slot from their taken set
         broadcastLobbyState();
     }
+}
+
+/**
+ * Sends a byte array to all players currently in _onlinePlayers, skipping
+ * the local player. Safer than broadcast() after host migration, as it avoids
+ * writing to dead peer channels left over from disconnected peers.
+ *
+ * @param data  The byte array to send.
+ * @return true if all sends succeeded, false if any failed or no network exists.
+ */
+bool NetworkController::broadcastToOnlinePlayers(const std::vector<std::byte>& data) {
+	if (!_network) return false;
+
+	std::string localID = _network->getUUID();
+	bool success = true;
+
+	for (const NetworkedPlayer& player : _onlinePlayers) {
+		// Skip ourselves
+		if (player.networkID == localID) continue;
+
+		success = _network->sendTo(player.networkID, data) && success;
+	}
+
+	return success;
 }

@@ -166,6 +166,7 @@ void SceneLoader::onShutdown() {
     _bossSelectScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
+    _network->broadcastPlayerDisconnected(_network->getLocalPlayerNumber());
     _network->disconnect();
     netcode::NetworkLayer::stop();
     _assets->unloadAll();

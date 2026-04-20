@@ -357,6 +357,16 @@ protected:
 
     /** The network configuration */
     cugl::netcode::NetcodeConfig _config;
+
+    /**
+     * Sends a byte array to all players currently in _onlinePlayers, skipping
+     * the local player. Safer than broadcast() after host migration, as it avoids
+     * writing to dead peer channels left over from disconnected peers.
+     *
+     * @param data  The byte array to send.
+     * @return true if all sends succeeded, false if any failed or no network exists.
+     */
+    bool broadcastToOnlinePlayers(const std::vector<std::byte>& data);
     
 private:
     /* Lists that keep track of the updates sent by players to the host */
