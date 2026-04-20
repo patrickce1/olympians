@@ -8,6 +8,68 @@ using namespace cugl::scene2;
 using namespace cugl::netcode;
 using namespace std;
 
+namespace {
+constexpr int kMaxPlayers = GameStateMessage::kMaxPlayers;
+
+/**
+ * Reads player health and runtime support-effect values from a game-state payload.
+ *
+ * The payload is expected to contain `kMaxPlayers` health values first,
+ * followed by `kMaxPlayers` groups of shield mitigation, shield duration,
+ * barrier multiplier, and barrier duration values.
+ *
+ * @param deserializer  The deserializer positioned at the first player-health
+ *                      field within a `GAME_UPDATE` payload.
+ * @param stateMsg      The game-state message receiving the decoded player
+ *                      runtime state.
+ */
+void readPlayerRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& stateMsg) {
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        stateMsg.playerHP[ii] = deserializer.readFloat();
+    }
+
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        PlayerRuntimeEffectState& effectState = stateMsg.playerRuntimeEffects[ii];
+        effectState.shieldMitigation = deserializer.readFloat();
+        effectState.shieldDuration = deserializer.readFloat();
+        effectState.barrierMultiplier = deserializer.readFloat();
+        effectState.barrierDuration = deserializer.readFloat();
+    }
+}
+
+/**
+ * Writes player health and runtime support-effect values into a game-state payload.
+ *
+ * The serializer always emits exactly `kMaxPlayers` player slots in slot order.
+ * Missing slots are written with default values so the snapshot stays fixed-width.
+ *
+ * @param serializer  The serializer to append player runtime state to.
+ * @param players     The authoritative players whose health, shield, and barrier
+ *                    values should be written into the outgoing snapshot.
+ */
+void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_ptr<Player>>& players) {
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        const float health = ii < players.size() ? players[ii]->getCurrentHealth() : 0.0f;
+        serializer.writeFloat(health);
+    }
+
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        if (ii < players.size()) {
+            const auto& player = players[ii];
+            serializer.writeFloat(player->getShieldHealth());
+            serializer.writeFloat(player->getShieldDuration());
+            serializer.writeFloat(player->getBarrierMultiplier());
+            serializer.writeFloat(player->getBarrierDuration());
+        } else {
+            serializer.writeFloat(0.0f);
+            serializer.writeFloat(0.0f);
+            serializer.writeFloat(1.0f);
+            serializer.writeFloat(0.0f);
+        }
+    }
+}
+} // namespace
+
 /*HELPERS*/
 
 /**
@@ -203,18 +265,27 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			attacks.push_back(attackMsg);
 			break;
 		}
-		case MessageType::PLAYER_HEAL: {
-			float heal = _deserializer.readFloat();
-			int healRecieverID = _deserializer.readSint32();
+        case MessageType::PLAYER_HEAL: {
+            float heal = _deserializer.readFloat();
+            int healRecieverID = _deserializer.readSint32();
 			HealMessage healMsg;
 			healMsg.heal = heal;
 			healMsg.playerID = healRecieverID;
-			heals.push_back(healMsg);
-			break;
-		}
-		case MessageType::PLAYER_PASS: {
-			std::string itemID = _deserializer.readString();
-			int passRecieverID = _deserializer.readSint32();
+            heals.push_back(healMsg);
+            break;
+        }
+        case MessageType::PLAYER_SUPPORT_EFFECT: {
+            SupportEffectMessage effectMsg;
+            effectMsg.playerID = _deserializer.readSint32();
+            effectMsg.effectType = static_cast<SupportEffectType>(_deserializer.readSint32());
+            effectMsg.magnitude = _deserializer.readFloat();
+            effectMsg.duration = _deserializer.readFloat();
+            supportEffects.push_back(effectMsg);
+            break;
+        }
+        case MessageType::PLAYER_PASS: {
+            std::string itemID = _deserializer.readString();
+            int passRecieverID = _deserializer.readSint32();
 			int passDirection = _deserializer.readSint32();
 			PassMessage passMsg;
 			passMsg.itemID = itemID;
@@ -280,19 +351,17 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _enemy = playerData.back();
             break;
         }
-		case MessageType::GAME_UPDATE : {
-			GameStateMessage stateMsg;
-			stateMsg.bossHealth = _deserializer.readFloat();
-			stateMsg.bossTarget = _deserializer.readSint32();
-			stateMsg.bossState = _deserializer.readSint32();
-			stateMsg.stateTime = _deserializer.readFloat();
-			stateMsg.player1HP = _deserializer.readFloat();
-			stateMsg.player2HP = _deserializer.readFloat();
-			stateMsg.player3HP = _deserializer.readFloat();
-			stateMsg.player4HP = _deserializer.readFloat();
-			_latestGameState = stateMsg;
-			break;
-		}
+			case MessageType::GAME_UPDATE : {
+				GameStateMessage stateMsg;
+				stateMsg.bossHealth = _deserializer.readFloat();
+				stateMsg.bossTarget = _deserializer.readSint32();
+				stateMsg.bossState = _deserializer.readSint32();
+				stateMsg.stateTime = _deserializer.readFloat();
+                readPlayerRuntimeState(_deserializer, stateMsg);
+            
+				_latestGameState = stateMsg;
+				break;
+			}
 		case MessageType::GAME_WON: {
 			_gameWon = true;
 			break;
@@ -356,6 +425,7 @@ void NetworkController::getNetworkUpdates() {
 void NetworkController::clearQueues() {
 	attacks.clear();
 	heals.clear();
+	supportEffects.clear();
 	passes.clear();
 	_gameWon = false;
 	_gameLost = false;
@@ -389,6 +459,24 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
 	_serializer.writeSint32(MessageType::PLAYER_HEAL);
 	_serializer.writeFloat(heal);
 	_serializer.writeSint32(playerID);
+	_network->sendToHost(_serializer.serialize());
+	_serializer.reset();
+}
+
+/**
+ * Sends a support effect application to the host for authoritative processing.
+ *
+ * @param effectType The kind of support effect that was applied.
+ * @param magnitude  The resolved magnitude of the effect.
+ * @param duration   The timed duration of the effect, or 0 for instant effects.
+ * @param playerID   The 0-based index of the player receiving the effect.
+ */
+void NetworkController::broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID) {
+	_serializer.writeSint32(MessageType::PLAYER_SUPPORT_EFFECT);
+	_serializer.writeSint32(playerID);
+	_serializer.writeSint32(static_cast<int>(effectType));
+	_serializer.writeFloat(magnitude);
+	_serializer.writeFloat(duration);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
@@ -481,16 +569,9 @@ void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.writeFloat(state.getEnemy()->getCurrentHealth());
 	_serializer.writeSint32(state.getEnemy()->getTargetIndex());
 	_serializer.writeSint32(state.getEnemy()->getCurrentState());
-	_serializer.writeSint32(state.getEnemy()->getStateTime());
+	_serializer.writeFloat(state.getEnemy()->getStateTime());
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
-	for (int i = 0; i < 4; i++) {
-		if (i < players.size()) {
-			_serializer.writeFloat(players[i]->getCurrentHealth());
-		}
-		else {
-			_serializer.writeFloat(0.0f);
-		}
-	}
+    writePlayerRuntimeState(_serializer, players);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
 }

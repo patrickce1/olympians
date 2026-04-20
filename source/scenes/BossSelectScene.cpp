@@ -307,9 +307,15 @@ void BossSelectScene::updateCarouselDots(int currentIndex) {
 
 /** Loads boss definitions from the enemies JSON to use in selection. */
 bool BossSelectScene::loadBosses() {
+    // Load animation registry first so state durations can be calculated
+    if (!_enemyLoader.loadAnimationRegistry(_assets)) {
+        CULog("BossSelectScene: Failed to load animation registry from enemyAnimations.json");
+        // Non-fatal - continue anyway
+    }
+    
     const std::string enemiesJsonPath = "json/enemies.json";
     if (!_enemyLoader.loadFromFile(enemiesJsonPath)) {
-        CULog("HostSetupScene: Failed to load enemies.json");
+        CULog("BossSelectScene: Failed to load enemies.json");
         return false;
     }
     return true;

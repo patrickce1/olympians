@@ -107,11 +107,22 @@ struct ItemUseAnimation {
  * Contains metadata needed to render and advance animation frames.
  */
 struct AnimationEntry {
-    std::string id;           /**< Animation identifier (e.g., "cyclops_idle_animation") */
-    std::string texture;      /**< Texture asset key (e.g., "gameScene/cyclops/cyclops_idle_animation") */
-    int frameCount;           /**< Number of frames per animation row */
-    float frameDuration;      /**< Duration in seconds per frame */
-    int frameRows;            /**< Number of rows in the sprite sheet */
+    std::string id;                  /**< Animation identifier (e.g., "cyclops_idle_animation") */
+    std::string texture;             /**< Texture asset key (e.g., "gameScene/cyclops/cyclops_idle_animation") */
+    int frameCount;                  /**< Number of frames per animation row */
+    float frameDuration;             /**< Duration in seconds per frame */
+    int frameRows;                   /**< Number of rows in the sprite sheet */
+    
+    // Attack phase configuration
+    int buildupFrameCount = 0;       /**< Number of frames in buildup phase that loop. 0 = no buildup */
+    int damageFrame = -1;            /**< Absolute frame index when damage is dealt (-1 = no auto-damage) */
+    
+    // Position and scale customization
+    float positionX = 196.5f;        /**< Screen X position for this animation */
+    float positionY = 120.0f;        /**< Screen Y position for this animation */
+    float scale = 0.92f;             /**< Scale multiplier for this animation */
+    float offsetX = 0.0f;            /**< X offset from base position */
+    float offsetY = 0.0f;            /**< Y offset from base position */
 };
 
 /**
@@ -337,23 +348,29 @@ protected:
     /** Animation registry loaded from enemyAnimations.json. Maps animation ID to metadata. */
     std::unordered_map<std::string, AnimationEntry> _animationRegistry;
 
-    /** SpriteNode for enemy idle animation. Replaces static sprite when animation is active. */
-    std::shared_ptr<cugl::scene2::SpriteNode> _enemyAnimationSpriteNode;
+    /** Pre-created sprite nodes for all animations, mapped by animation ID. Built once during init(). */
+    std::unordered_map<std::string, std::shared_ptr<cugl::scene2::SpriteNode>> _enemyAnimationSpriteNodes;
+
+    /** Currently visible animation sprite node (pointer to one of the sprites in _enemyAnimationSpriteNodes). */
+    std::shared_ptr<cugl::scene2::SpriteNode> _currentVisibleAnimationSprite;
 
     /** Cached animation entry for currently playing animation. Used for frame calculations. */
     AnimationEntry _currentAnimationEntry;
 
+    /** Animation ID of the currently visible animation (for detecting animation changes). */
+    std::string _currentAnimationId;
+
     /** Current direction (0-3) the enemy faces, computed locally per player from local player index + target index. */
     int _enemyAnimationCurrentDirection = 0;
-
-    /** Accumulated elapsed time for animation frame advancement (resets on idle entry). */
-    float _enemyAnimationElapsedTime = 0.0f;
 
     /** Cached frame index to avoid redundant setFrame() calls (optimization). */
     int _enemyAnimationCachedFrameIndex = -1;
 
     /** Caches whether current idle state has animation metadata (optimization). */
     bool _enemyAnimationHasMetadata = false;
+    
+    /** Flag tracking if damage has been dealt during the current enemy state. Resets when state changes. */
+    bool _enemyAttackDamageDealtThisState = false;
 
 #pragma mark - Controllers
 
@@ -605,16 +622,25 @@ public:
     void updateEnemyAnimation(float dt, int localPlayerIndex);
 
     /**
-     * Initializes the enemy animation sprite node with the given animation metadata.
+     * Pre-creates all enemy animation sprite nodes with their textures and layouts.
      * 
-     * Allocates texture from disk, creates a SpriteNode with the correct layout,
-     * configures scale/anchor/position based on viewport size, and adds it to the
-     * scene hierarchy. Called once when animation metadata first becomes available.
+     * Called during init() to load all animations upfront. This eliminates stuttering
+     * when switching between animations since all sprites are pre-allocated and we only
+     * swap visibility instead of creating/destroying sprites at runtime.
      *
-     * @param animationEntry  The animation metadata containing texture path and frame info
-     * @return true if sprite node was successfully initialized, false on error
+     * @return true if all animations were successfully initialized, false on error
      */
-    bool initializeEnemyAnimationSpriteNode(const AnimationEntry& animationEntry);
+    bool initializeAllEnemyAnimations();
+    
+    /**
+     * Switches the visible animation sprite by hiding the current one and showing the new one.
+     * 
+     * Fast O(1) operation that just changes visibility and resets animation timing.
+     * All sprites are pre-created, so this avoids runtime texture loading.
+     *
+     * @param animationId  The animation ID to make visible
+     */
+    void switchVisibleAnimation(const std::string& animationId);
 
     /**
      * Updates the current animation frame for direction and elapsed time.
@@ -628,6 +654,46 @@ public:
      * @param localPlayerIndex  The local player's index (0-3) for direction calculation
      */
     void updateEnemyAnimationFrame(float dt, int localPlayerIndex);
+
+    /**
+     * Calculates which animation frame should be displayed based on state time and animation phase.
+     * Handles both buildup/attack animations and simple looping animations.
+     *
+     * @param stateTime The time elapsed in the current state (seconds)
+     * @return The frame index within the animation row (0-indexed)
+     */
+    int calculateAnimationFrame(float stateTime) const;
+
+    /**
+     * Calculates the frame index during the buildup phase of an animation.
+     * Buildup frames loop until the buildup duration elapses.
+     *
+     * @param stateTime The time elapsed in the current state (seconds)
+     * @param buildupDuration The total duration of the buildup phase (seconds)
+     * @param buildupFrames Number of frames in the buildup phase
+     * @return The looping frame index within the buildup frames
+     */
+    int calculateBuildupFrame(float stateTime, float buildupDuration, int buildupFrames) const;
+
+    /**
+     * Calculates the frame index during the attack phase of an animation.
+     * Attack frames play sequentially without looping, clamped to the final frame.
+     *
+     * @param stateTime The time elapsed in the current state (seconds)
+     * @param buildupDuration The total duration of the buildup phase (seconds)
+     * @param buildupFrames Number of frames in the buildup phase
+     * @return The attack phase frame index (clamped to last attack frame)
+     */
+    int calculateAttackFrame(float stateTime, float buildupDuration, int buildupFrames) const;
+
+    /**
+     * Ensures the frame index is within valid bounds.
+     * Clamps negative frames to 0 and frames beyond frameCount to frameCount-1.
+     *
+     * @param frameInRow The frame index to validate
+     * @return The clamped frame index
+     */
+    int validateFrameIndex(int frameInRow) const;
 
     /**
      * Hides the enemy animation sprite and shows the static fallback sprite.
@@ -656,6 +722,13 @@ public:
      * @param enemyHealthBefore   The enemy's health before state updates
      */
     void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore);
+    
+    /**
+     * Checks if the current enemy attack animation has finished playing (both buildup and attack phases).
+     *
+     * @return true if attack animation is complete, false otherwise
+     */
+    bool isEnemyAttackAnimationComplete() const;
     
     /**
      * Updates the progress bar with the current ratios of player and enemy health.
