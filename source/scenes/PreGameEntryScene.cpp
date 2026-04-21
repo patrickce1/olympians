@@ -174,13 +174,15 @@ void PreGameEntryScene::update(float timestep) {
     if (!_active || !_loadingBar) return;
 
     // Increase progress based on time
-    _loadingProgress += timestep / LOADING_TIMER;
-
-    if (_loadingProgress > 1.0f) {
-        _loadingProgress = 1.0f;
+    if (!_timeline->isActive("bottom_clouds")){
+        _loadingProgress += timestep / LOADING_TIMER;
+        
+        if (_loadingProgress > 1.0f) {
+            _loadingProgress = 1.0f;
+        }
+        
+        _loadingBar->setProgress(_loadingProgress);
     }
-
-    _loadingBar->setProgress(_loadingProgress);
 
     // When done loading
     if (_loadingProgress >= 1.0f) {
