@@ -250,7 +250,6 @@ void GameState::reset() {
         player->setCurrentHealth(player->getMaxHealth());
     }
     _enemy->setCurrentHealth(_enemy->getMaxHealth());
-    _hostSlot = 0;
 }
 
 /**

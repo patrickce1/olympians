@@ -490,7 +490,6 @@ void NetworkController::clearQueues() {
 	passes.clear();
 	_gameWon = false;
 	_gameLost = false;
-	_gameStarted = false;
     _sessionTerminated = false;
     _disconnectedSlots.clear();
 }

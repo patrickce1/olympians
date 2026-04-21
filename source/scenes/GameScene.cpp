@@ -471,16 +471,16 @@ void GameScene::dispose() {
 void GameScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
     const int totalSlots = (int)_gameState.getPlayers().size();
 
     for (int i = 0; i < totalSlots; i++) {
         if (_network->checkRealPlayer(i)) {
             // Real player slot — reconstruct with name and house from network
+            NetworkedPlayer player = _network->getNetworkedPlayerAtSlot(i);
             _gameState.setRealPlayer(
                 i,
-                networkedPlayers[i].username,
-                networkedPlayers[i].houseID
+                player.username,
+                player.houseID
             );
         } else {
             // AI slot — use demoteToAI() to preserve isAI() == true.
@@ -521,6 +521,10 @@ void GameScene::setActive(bool value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
             updateNetworkOrder();
+            
+            if (_network->isHost()) {
+                _gameState.setHostSlot(_network->getLocalPlayerNumber());
+            }
             
             // Re-initialize AI players after updateNetworkOrder() rebuilds
             // AI slots via demoteToAI(). demoteToAI() creates EasyPlayerAI
@@ -804,19 +808,11 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
 
     // For real players, verify they're still in the networked players list
     if (!target->isAI()) {
-        const auto& networkedPlayers = _network->getNetworkedPlayers();
         int targetSlot = target->getPlayerNumber();
-        if (targetSlot >= (int)networkedPlayers.size()) {
+        if (!_network->checkRealPlayer(targetSlot)) {
             CULog("Cannot pass to player %d: player slot out of range", targetSlot);
             return false;
         }
-    }
-
-    // Check if target player is in disconnected slots
-    const auto& disconnected = _network->getDisconnectedSlots();
-    if (std::find(disconnected.begin(), disconnected.end(), target->getPlayerNumber()) != disconnected.end()) {
-        CULog("Cannot pass to player %d: player is disconnected", target->getPlayerNumber());
-        return false;
     }
 
     for (const ItemInstance& item : local->getInventory()) {
@@ -853,19 +849,11 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
 
     // For real players, verify they're still in the networked players list
     if (!target->isAI()) {
-        const auto& networkedPlayers = _network->getNetworkedPlayers();
         int targetSlot = target->getPlayerNumber();
-        if (targetSlot >= (int)networkedPlayers.size()) {
+        if (!_network->checkRealPlayer(targetSlot)) {
             CULog("Cannot pass to player %d: player slot out of range", targetSlot);
             return false;
         }
-    }
-
-    // Check if target player is in disconnected slots
-    const auto& disconnected = _network->getDisconnectedSlots();
-    if (std::find(disconnected.begin(), disconnected.end(), target->getPlayerNumber()) != disconnected.end()) {
-        CULog("Cannot pass to player %d: player is disconnected", target->getPlayerNumber());
-        return false;
     }
 
     for (const ItemInstance& item : local->getInventory()) {
@@ -3007,6 +2995,9 @@ void GameScene::demoteSlotToAI(int slot) {
     float savedHealth    = player->getCurrentHealth();
     auto  savedInventory = player->getInventory();
     std::string savedHouse = player->getHouseName();
+    
+    // Preserve the house in _aIHouses so LobbyScene restores it correctly
+    _network->setAIHouseForSlot(slot, savedHouse);
 
     // Delegate the actual demotion to GameState
     _gameState.demoteToAI(slot, savedHouse);
