@@ -59,18 +59,12 @@ protected:
     
     /** The current status */
     Status _status;
-
-    /** The timer for the loading bar */
-    float _loadTimer = 0.0f;
     
     /** Progress fo the loading bar */
     float _loadingProgress = 0.0f;
 
     /** The state of the game */
     GameState* _gameState = nullptr;
-    
-    /** Needed to init AI players when assigning missing houses at game start. */
-    ItemController* _itemController = nullptr;
 
 public:
 #pragma mark -
@@ -183,6 +177,14 @@ private:
      */
     void updateEntryScreenTiles(std::vector<Player*> players);
     
+    /**
+     * Animates the entry clouds from off-screen positions into their final
+     * layout positions using the scene's ActionTimeline system.
+     *
+     * Both the top and bottom cloud layers are first positioned outside
+     * the visible screen bounds in `setActive()`, then smoothly transitioned
+     * into their target positions using easing-based MoveTo actions.
+     */
     void animateCloudsIn();
 };
 

@@ -51,7 +51,7 @@ bool PreGameEntryScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
     
-    // Setup UI and listeners
+    // Setup UI
     setupUI();
     
     _status = Status::IDLE;
@@ -256,6 +256,14 @@ void PreGameEntryScene::updateEntryScreenText(std::vector<Player*> players) {
     }
 }
 
+/**
+ * Animates the entry clouds from off-screen positions into their final
+ * layout positions using the scene's ActionTimeline system.
+ *
+ * Both the top and bottom cloud layers are first positioned outside
+ * the visible screen bounds in `setActive()`, then smoothly transitioned
+ * into their target positions using easing-based MoveTo actions.
+ */
 void PreGameEntryScene::animateCloudsIn() {
     if (_topClouds) {
         auto moveTop = cugl::scene2::MoveTo::alloc(_topCloudPos);
