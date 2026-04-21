@@ -686,14 +686,8 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
                                       const std::shared_ptr<const ItemDef>& def,
                                       Player* local, Enemy* enemy) {
     // Calculate damage upfront for the animation
-    const float resolvedMagnitude = calculateItemDamage(local, def, _itemController.getDatabase());
+    const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude <= 0.0f) {
-        return false;
-    }
-    
-    // Remove item from inventory
-    if (!removeItemFromInventory(local, item.getId())) {
-        CULog("ERROR: Failed to remove item %llu from inventory", (unsigned long long)item.getId());
         return false;
     }
     

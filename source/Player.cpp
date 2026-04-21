@@ -289,11 +289,11 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             target.updateHealth(-resolvedMagnitude);
             returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
-//                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
+                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
             }
         } else if (!def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-//                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
+                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
             }
         }
 
