@@ -286,7 +286,7 @@ void SceneLoader::update(float dt) {
                     CULog("Failed to initialize BossSelectScene");
                 }
                 
-                if (_preGameEntryScene.init(_assets, _network, &_gameScene.getGameState(), &_gameScene.getItemController())) {
+                if (_preGameEntryScene.init(_assets, _network, &_gameScene.getGameState())) {
                     _preGameEntryScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize PreGameEntryScene");

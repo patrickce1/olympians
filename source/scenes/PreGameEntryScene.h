@@ -109,15 +109,12 @@ public:
      * @param assets             The (loaded) assets for this game mode
      * @param networkController  The network controller shared across all scenes
      * @param gameState          The state of the game
-     * @param itemController     The item controller needed to init AI players
-     *                           when assignMissingHousesForAI() runs at game start
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets,
               const std::shared_ptr<NetworkController>& networkController,
-              GameState* gameState,
-              ItemController* itemController);
+              GameState* gameState);
     
     /**
      * Retrieves and stores references to the pre game entry scene UI elements.
