@@ -10,7 +10,7 @@
 
 Player::Player(const std::string& houseId, int playerNumber,
                     const std::string& playerName,
-                    const HouseLoader& loader){
+                    const HouseLoader& loader) {
     
     // Set player-specific info
     _playerNumber = playerNumber;
