@@ -705,8 +705,8 @@ void HouseSelectScene::refreshLocalPlayerIcon() {
     // not by list position — after migration the list may have fewer entries
     // and localIndex no longer corresponds to a valid list position.
     int localSlot = _network->getLocalPlayerNumber();
-    NetworkedPlayer np = _network->getNetworkedPlayerAtSlot(localSlot);
-    std::string localHouse = np.houseID;
+    NetworkedPlayer player = _network->getNetworkedPlayerAtSlot(localSlot);
+    std::string localHouse = player.houseID;
 
     if (localHouse.empty()) {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
@@ -724,8 +724,8 @@ void HouseSelectScene::refreshLocalPlayerIcon() {
  */
 bool HouseSelectScene::hasLocalPlayerSelectedHouse() const {
     int localSlot = _network->getLocalPlayerNumber();
-    NetworkedPlayer np = _network->getNetworkedPlayerAtSlot(localSlot);
-    return !np.houseID.empty();
+    NetworkedPlayer player = _network->getNetworkedPlayerAtSlot(localSlot);
+    return !player.houseID.empty();
 }
 
 /**

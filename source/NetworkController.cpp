@@ -330,10 +330,10 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
                 while (usedSlots.count(slot)) slot = (slot + 1) % kMaxPlayers;
 
                 _uuidToSlot[senderID] = slot;
-                NetworkedPlayer np;
-                np.networkID = senderID;
-                np.username = playerName;
-                _playersInfo[senderID] = np;
+                NetworkedPlayer player;
+                player.networkID = senderID;
+                player.username = playerName;
+                _playersInfo[senderID] = player;
                 broadcastLobbyState();
             }
             break;
@@ -558,7 +558,7 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
     
     CULog("Sending broadcasting message to player %d", playerID);
     if (checkRealPlayer(playerID)) {
-        CULog("This was a real player");
+        CULog("Passed to a real player");
         // Find the UUID for this slot.
         std::string uuid = "";
         for (const auto& pair : _uuidToSlot) {
@@ -570,7 +570,7 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
         sendOrQueue(uuid, _serializer.serialize());
     }
     else {
-        CULog("This was not a real player");
+        CULog("Passed to an AI player");
         sendOrQueue("host", _serializer.serialize());
     }
     _serializer.reset();
@@ -960,28 +960,23 @@ void NetworkController::clearAIHouse(int slotIndex) {
  * Registers a disconnect callback on the NetcodeConnection so that when any
  * peer closes, their slot is cleaned up and remaining clients are notified.
  *
- * There are three cases depending on who we are when the disconnect fires:
+ * There are two cases depending on who we are when the disconnect fires:
  *
- * Case 1 — We are already host (isHost() == true):
+ * Case 1 — We are the host (isHost() == true):
  *   A non-host client dropped during normal gameplay. We handle it immediately
- *   by replacing their slot with an AI placeholder, broadcasting a
- *   PLAYER_DISCONNECT message so all clients remove the slot from their UI,
- *   and broadcasting a LOBBY_UPDATE so all clients have the updated player list.
- *   This is the straightforward case — no migration involved.
+ *   by removing them from _uuidToSlot and _playersInfo, pushing their slot
+ *   into _disconnectedSlots so GameScene can demote them to AI this frame,
+ *   broadcasting a PLAYER_DISCONNECT message so all clients remove the slot
+ *   from their UI, and broadcasting a LOBBY_UPDATE so all clients have the
+ *   updated player list.
  *
- * Case 2 — We are a client and _migrating is true:
- *   The host just dropped and triggered migration. We CANNOT handle this
- *   disconnect immediately because:
- *     - isHost() is still false, so we have no authority to broadcast.
- *     - The connection is in MIGRATING state, so all sends would be rejected.
- *   Instead, we park the departing peer's UUID in _pendingDisconnectID.
- *   registerPromotionCallback() Phase 2 will drain it once this client is
- *   confirmed as the new host and the connection is live again.
- *
- * Case 3 — We are a client and _migrating is false:
- *   A non-host peer dropped and we are also a non-host. We compact our local
- *   _onlinePlayers list. No broadcast is needed — the host will send a
- *   LOBBY_UPDATE to all remaining clients on their end.
+ * Case 2 — We are a client (isHost() == false):
+ *   Either the host dropped (triggering migration) or another non-host peer
+ *   dropped. In both cases we clean up _uuidToSlot and _playersInfo locally
+ *   and push the slot into _disconnectedSlots. No broadcast is needed —
+ *   if it was a non-host peer, the host will send a LOBBY_UPDATE to all
+ *   remaining clients. If it was the host, the connection enters MIGRATING
+ *   state and registerPromotionCallback() takes over.
  *
  * Should be called once after open(), alongside registerPromotionCallback().
  */
@@ -1167,11 +1162,11 @@ void NetworkController::removePlayerAtSlot(int slot) {
 void NetworkController::logSlotStates() {
     CULog("[MIGRATION] --- Slot state after migration ---");
     for (const auto& pair : _uuidToSlot) {
-        const NetworkedPlayer& np = _playersInfo.at(pair.first);
+        const NetworkedPlayer& player = _playersInfo.at(pair.first);
         CULog("[MIGRATION] Slot %d: REAL | username='%s' | house='%s' | uuid='%s'",
               pair.second,
-              np.username.c_str(),
-              np.houseID.c_str(),
+              player.username.c_str(),
+              player.houseID.c_str(),
               pair.first.c_str());
     }
     CULog("[MIGRATION] -----------------------------------");

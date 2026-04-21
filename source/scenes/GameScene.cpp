@@ -3386,26 +3386,42 @@ void GameScene::clearItemUseAnimations() {
 }
 
 /**
- * Transitions this client from a non-host role into the authoritative host
- * role after a successful host migration.
- *
- * Steps:
- * 1. Seeds the local GameState from the last received GAME_UPDATE snapshot
- *    so the new host starts simulation from a consistent state rather than
- *    whatever speculative state the client was running locally.
- * 2. Demotes the old host's slot (slot 0) to an AI placeholder in GameState,
- *    since that player is gone and the circle must stay full. The houseID
- *    from NetworkController's _onlinePlayers is used so the AI inherits the
- *    correct house stats.
- * 3. GameScene's per-frame logic already branches on _network->isHost(), so
- *    no further state changes are needed here — the host code path
- *    (broadcastGameState, processing attack/heal queues) activates naturally
- *    on the next frame.
- *
- * Should only be called once per migration, immediately after
- * wasPromotedToHost() returns true. clearPromotionFlag() must be called
- * right after to prevent this from firing again next frame.
- */
+ /**
+  * Transitions this client from a non-host role into the authoritative host
+  * role after a successful host migration.
+  *
+  * Steps:
+  *  1. Seeds the local GameState from the last received GAME_UPDATE snapshot
+  *     so the new host starts simulation from a consistent state rather than
+  *     whatever speculative state the client was running locally.
+  *
+  *  2. Reads _hostSlot from GameState to identify the old host, then demotes
+  *     that slot to an EasyPlayerAI placeholder so the circle stays full.
+  *     The old host's houseID is preserved so the AI inherits the correct
+  *     house stats. The old host is also removed from _uuidToSlot and
+  *     _playersInfo so checkRealPlayer() returns false for that slot
+  *     immediately — we cannot rely on onDisconnect firing in time.
+  *
+  *  3. Updates _hostSlot in both NetworkController and GameState to reflect
+  *     the new host's slot, then inits the new AI so its item database is
+  *     ready for the first tick.
+  *
+  *  4. Registers the old host's house in _aIHouses so that when play returns
+  *     to LobbyScene, updateNetworkOrder() treats the slot as an AI with a
+  *     house rather than wiping it with an empty string.
+  *
+  *  5. Refreshes teammate name labels and blink state so the UI reflects the
+  *     demotion immediately.
+  *
+  * GameScene's per-frame logic already branches on _network->isHost(), so no
+  * further state changes are needed here — the host code path
+  * (broadcastGameState, processing attack/heal queues) activates naturally
+  * on the next frame.
+  *
+  * Should only be called once per migration, immediately after
+  * wasPromotedToHost() returns true. clearPromotionFlag() must be called
+  * right after to prevent this from firing again next frame.
+  */
 void GameScene::becomeHost() {
     GameStateMessage snapshot = _network->getStateUpdate();
     _gameState.initFromNetworkSnapshot(snapshot);

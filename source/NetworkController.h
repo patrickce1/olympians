@@ -251,9 +251,28 @@ public:
     std::vector<std::string> getTakenHouses() const;
     
     /**
-     * Registers a disconnect callback on the NetcodeConnection so that when
-     * any peer closes, their slot is immediately pushed into _disconnectedSlots.
-     * Should be called once after the network connection is established.
+     * Registers a disconnect callback on the NetcodeConnection so that when any
+     * peer closes, their slot is cleaned up and remaining clients are notified.
+     *
+     * There are two cases depending on who we are when the disconnect fires:
+     *
+     * Case 1 — We are the host (isHost() == true):
+     *   A non-host client dropped during normal gameplay. We handle it immediately
+     *   by removing them from _uuidToSlot and _playersInfo, pushing their slot
+     *   into _disconnectedSlots so GameScene can demote them to AI this frame,
+     *   broadcasting a PLAYER_DISCONNECT message so all clients remove the slot
+     *   from their UI, and broadcasting a LOBBY_UPDATE so all clients have the
+     *   updated player list.
+     *
+     * Case 2 — We are a client (isHost() == false):
+     *   Either the host dropped (triggering migration) or another non-host peer
+     *   dropped. In both cases we clean up _uuidToSlot and _playersInfo locally
+     *   and push the slot into _disconnectedSlots. No broadcast is needed —
+     *   if it was a non-host peer, the host will send a LOBBY_UPDATE to all
+     *   remaining clients. If it was the host, the connection enters MIGRATING
+     *   state and registerPromotionCallback() takes over.
+     *
+     * Should be called once after open(), alongside registerPromotionCallback().
      */
     void registerDisconnectCallback();
     
