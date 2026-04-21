@@ -61,11 +61,12 @@ private:
     /**
      * Applies a vulnerable effect to an enemy and returns the resolved multiplier.
      *
-     * @param effect  The serialized effect definition to apply.
-     * @param target  The enemy receiving the vulnerability.
+     * @param effect       The serialized effect definition to apply.
+     * @param target       The enemy receiving the vulnerability.
+     * @param playerIndex  The attacking player's slot index used to resolve the hit side.
      */
-    static float applyVulnerableToEnemy(const ItemDef::Effect& effect, Enemy& target) {
-        target.applyVulnerable(effect.multiplier, effect.duration);
+    static float applyVulnerableToEnemy(const ItemDef::Effect& effect, Enemy& target, int playerIndex) {
+        target.applyVulnerable(effect.multiplier, effect.duration, playerIndex);
         return effect.multiplier;
     }
 
@@ -106,8 +107,9 @@ public:
      * @param effect             The serialized effect definition to apply.
      * @param resolvedMagnitude  The resolved item magnitude associated with the source item.
      * @param target             The enemy receiving the effect.
+     * @param playerIndex        The attacking player's slot index used for side-relative enemy effects.
      */
-    static float applyEffectToEnemy(const ItemDef::Effect& effect, float resolvedMagnitude, Enemy& target) {
+    static float applyEffectToEnemy(const ItemDef::Effect& effect, float resolvedMagnitude, Enemy& target, int playerIndex) {
         (void)resolvedMagnitude;
 
         switch (effect.type) {
@@ -116,7 +118,7 @@ public:
             case ItemDef::EffectType::Love:
                 return applyLoveToEnemy(effect, target);
             case ItemDef::EffectType::Vulnerable:
-                return applyVulnerableToEnemy(effect, target);
+                return applyVulnerableToEnemy(effect, target, playerIndex);
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
                 break;

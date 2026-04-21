@@ -710,6 +710,7 @@ void testVulnerableEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 
     enemy.setCurrentHealth(enemy.getMaxHealth());
     enemy.clearRuntimeEffects();
+    enemy.setTargetIndex(0);
     const float enemyHealthBeforeVulnerableUse = enemy.getCurrentHealth();
     const float resolvedVulnerable = ares.useItemById(instSpear->getId(), enemy, db);
     assertWithLabel(resolvedVulnerable > 0.0f, "vulnerable: vulnerable item returns a positive base damage");
@@ -718,10 +719,22 @@ void testVulnerableEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     assertWithLabel(enemy.isVulnerable(), "vulnerable: vulnerable effect marks enemy as vulnerable");
     assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableMultiplier(), 1.2f), "vulnerable: vulnerable multiplier applies to enemy");
     assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableDuration(), 3.0f), "vulnerable: vulnerable duration applies to enemy");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableMultiplierForSide(2), 1.2f), "vulnerable: hit side receives vulnerable multiplier");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableDurationForSide(2), 3.0f), "vulnerable: hit side stores vulnerable timer");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableMultiplierForSide(1), 1.0f), "vulnerable: untouched side stays neutral");
 
     const float vulnerableHealthBefore = enemy.getCurrentHealth();
-    enemy.updateHealth(-5.0f);
-    assertWithLabel(floatsEqualWithinTolerance(vulnerableHealthBefore - enemy.getCurrentHealth(), 6.0f), "vulnerable: vulnerable increases incoming damage while active");
+    enemy.takeDamage(5.0f, 2);
+    assertWithLabel(floatsEqualWithinTolerance(vulnerableHealthBefore - enemy.getCurrentHealth(), 6.0f), "vulnerable: matching side increases incoming damage while active");
+
+    const float nonVulnerableHealthBefore = enemy.getCurrentHealth();
+    enemy.takeDamage(5.0f, 1);
+    assertWithLabel(floatsEqualWithinTolerance(nonVulnerableHealthBefore - enemy.getCurrentHealth(), 5.0f), "vulnerable: other sides remain neutral");
+
+    enemy.setTargetIndex(1);
+    const float turnedEnemyHealthBefore = enemy.getCurrentHealth();
+    enemy.takeDamage(5.0f, 3);
+    assertWithLabel(floatsEqualWithinTolerance(turnedEnemyHealthBefore - enemy.getCurrentHealth(), 6.0f), "vulnerable: vulnerable side follows the enemy when it turns");
 
     enemy.update(3.1f);
     assertWithLabel(!enemy.isVulnerable(), "vulnerable: vulnerable expires after duration elapses");

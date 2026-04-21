@@ -2,6 +2,7 @@
 #ifndef __ENEMY_H__
 #define __ENEMY_H__
 
+#include <array>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -24,6 +25,9 @@ struct AnimationEntry;
  */
 class Enemy {
 public:
+    /** The number of players in the game */
+    static constexpr int NUM_PLAYERS = 4;
+
     struct FiredEvent {
         EnemyLoader::EventDef def;   // type, target offset, amount, etc.
         EnemyLoader::State state;       // state that fired this event (debug)
@@ -51,8 +55,10 @@ protected:
     /** Maps game states to their state definitions (buildup, cooldown, events, etc.) */
     std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef> _states;
     
-    /** Damage multipliers relative to boss facing direction (0 = facing direction, 1 = right side, etc.) */
-    std::unordered_map<int, float> _sideMultipliers; 
+    /** Effective damage multipliers relative to boss facing direction. */
+    std::array<float, NUM_PLAYERS> _sideMultipliers{};
+    /** Base side multipliers authored by enemy behavior events. */
+    std::array<float, NUM_PLAYERS> _baseSideMultipliers{};
 
     /** Current state of the enemy state machine */
     EnemyLoader::State _currentState = EnemyLoader::State::IDLE;
@@ -75,10 +81,10 @@ protected:
     float _stunDuration = 0.0f;
     /** Remaining love time in seconds. While positive, enemy attacks and retargeting are disabled. */
     float _loveDuration = 0.0f;
-    /** Remaining vulnerable time in seconds. While positive, incoming damage is multiplied. */
-    float _vulnerableDuration = 0.0f;
-    /** Active incoming damage multiplier while the enemy is vulnerable. */
-    float _vulnerableMultiplier = 1.0f;
+    /** Remaining vulnerable time for each relative side in seconds. */
+    std::array<float, NUM_PLAYERS> _vulnerableDurations{};
+    /** Active vulnerability multiplier for each relative side. */
+    std::array<float, NUM_PLAYERS> _vulnerableSideMultipliers{};
     /** Probability the enemy will use their defensive move (0.0 to 1.0) */
     float _defenseLikelihood = 0.0f;
 
@@ -86,9 +92,6 @@ protected:
     std::vector<FiredEvent> _firedEvents;
 
 public:
-    /** The number of players in the game */
-    static const int NUM_PLAYERS = 4;
-
     /** Default constructor, use init() to initialize */
     Enemy() = default;
 
@@ -198,25 +201,66 @@ public:
      * @param duration  The authoritative remaining love time, in seconds.
      */
     void syncLoveDuration(float duration);
-    /** Returns whether the enemy is currently vulnerable. */
-    bool isVulnerable() const { return _vulnerableDuration > 0.0f; }
-    /** Returns the remaining vulnerable duration in seconds. */
-    float getVulnerableDuration() const { return _vulnerableDuration; }
-    /** Returns the current damage multiplier applied while vulnerable. */
-    float getVulnerableMultiplier() const { return _vulnerableMultiplier; }
     /**
-     * Applies a local authoritative vulnerability, extending the current timer and preserving the strongest multiplier.
-     * @param multiplier  Damage multiplier for incoming damage
-     * @param duration      Time this state will last
+     * Returns whether any relative side of the enemy is currently vulnerable.
+     *
+     * @return true if at least one side has a positive vulnerable timer.
      */
-    void applyVulnerable(float multiplier, float duration);
+    bool isVulnerable() const;
+    /**
+     * Returns the longest remaining vulnerable duration across all sides.
+     *
+     * @return The maximum remaining vulnerable time in seconds.
+     */
+    float getVulnerableDuration() const;
+    /**
+     * Returns the strongest active vulnerable multiplier across all sides.
+     *
+     * @return The highest active vulnerable multiplier, or 1.0f if none are active.
+     */
+    float getVulnerableMultiplier() const;
+    /**
+     * Returns the remaining vulnerable duration for a relative side.
+     *
+     * @param relativeIndex The relative side index to query.
+     * @return The remaining vulnerable time for that side in seconds.
+     */
+    float getVulnerableDurationForSide(int relativeIndex) const;
+    /**
+     * Returns the vulnerable multiplier for a relative side.
+     *
+     * @param relativeIndex The relative side index to query.
+     * @return The vulnerable multiplier for that side, or 1.0f if inactive.
+     */
+    float getVulnerableMultiplierForSide(int relativeIndex) const;
+    /**
+     * Returns the authoritative vulnerable durations for all sides.
+     *
+     * @return A per-side array of remaining vulnerable times in seconds.
+     */
+    std::array<float, NUM_PLAYERS> getVulnerableDurations() const { return _vulnerableDurations; }
+    /**
+     * Returns the authoritative vulnerable multipliers for all sides.
+     *
+     * @return A per-side array of active vulnerable multipliers.
+     */
+    std::array<float, NUM_PLAYERS> getVulnerableSideMultipliers() const { return _vulnerableSideMultipliers; }
+    /**
+     * Applies vulnerability to the side hit by the given player.
+     *
+     * @param multiplier  Damage multiplier to apply to the struck side.
+     * @param duration    Time this state will last, in seconds.
+     * @param playerIndex The attacking player's slot index.
+     */
+    void applyVulnerable(float multiplier, float duration, int playerIndex);
     /**
      * Overwrites local vulnerable state from the host snapshot so remote clients mirror the authoritative state.
      *
-     * @param multiplier  The authoritative damage multiplier to apply while vulnerable.
-     * @param duration    The authoritative remaining vulnerable time, in seconds.
+     * @param multipliers The authoritative per-side vulnerable multipliers.
+     * @param durations   The authoritative per-side vulnerable durations, in seconds.
      */
-    void syncVulnerable(float multiplier, float duration);
+    void syncVulnerable(const std::array<float, NUM_PLAYERS>& multipliers,
+                        const std::array<float, NUM_PLAYERS>& durations);
     /** Clears runtime-only enemy combat effects such as stun, love, and vulnerability. */
     void clearRuntimeEffects();
 

@@ -120,25 +120,26 @@ static void broadcastSupportEffects(NetworkController& network,
  * @param def                The item definition describing the attack item's effects.
  * @param resolvedMagnitude  The resolved attack magnitude calculated for this item use.
  */
-static void broadcastEnemyEffects(NetworkController& network,
-                                  const ItemDef& def,
-                                  float resolvedMagnitude) {
+static void broadcastEnemyEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int playerIndex) {
     for (const ItemDef::Effect& effect : def.getEffects()) {
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
                 network.broadcastEnemyEffect(EnemyEffectType::Stun,
                     resolvedMagnitude,
-                    effect.duration);
+                    effect.duration,
+                    playerIndex);
                 break;
             case ItemDef::EffectType::Love:
                 network.broadcastEnemyEffect(EnemyEffectType::Love,
                     resolvedMagnitude,
-                    effect.duration);
+                    effect.duration,
+                    playerIndex);
                 break;
             case ItemDef::EffectType::Vulnerable:
                 network.broadcastEnemyEffect(EnemyEffectType::Vulnerable,
                     effect.multiplier,
-                    effect.duration);
+                    effect.duration,
+                    playerIndex);
                 break;
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:

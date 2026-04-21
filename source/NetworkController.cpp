@@ -73,7 +73,7 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
  * Reads authoritative enemy runtime-effect values from a game-state payload.
  *
  * The payload contains the remaining stun duration, love duration,
- * vulnerable duration, and vulnerable multiplier in that order.
+ * then one vulnerable duration and multiplier pair for each relative boss side.
  *
  * @param deserializer  The deserializer positioned at the first enemy-effect
  *                      field within a `GAME_UPDATE` payload.
@@ -83,15 +83,17 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
 void readEnemyRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& stateMsg) {
     stateMsg.bossStunDuration = deserializer.readFloat();
     stateMsg.bossLoveDuration = deserializer.readFloat();
-    stateMsg.bossVulnerableDuration = deserializer.readFloat();
-    stateMsg.bossVulnerableMultiplier = deserializer.readFloat();
+    for (int side = 0; side < Enemy::NUM_PLAYERS; side++) {
+        stateMsg.bossVulnerableDurations[side] = deserializer.readFloat();
+        stateMsg.bossVulnerableMultipliers[side] = deserializer.readFloat();
+    }
 }
 
 /**
  * Writes authoritative enemy runtime-effect values into a game-state payload.
  *
  * The payload contains the remaining stun duration, love duration,
- * vulnerable duration, and vulnerable multiplier in that order.
+ * then one vulnerable duration and multiplier pair for each relative boss side.
  *
  * @param serializer  The serializer to append enemy runtime state to.
  * @param enemy       The authoritative enemy whose runtime effect values should
@@ -100,15 +102,17 @@ void readEnemyRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& 
 void writeEnemyRuntimeState(NetcodeSerializer& serializer, const shared_ptr<Enemy>& enemy) {
     serializer.writeFloat(enemy->getStunDuration());
     serializer.writeFloat(enemy->getLoveDuration());
-    serializer.writeFloat(enemy->getVulnerableDuration());
-    serializer.writeFloat(enemy->getVulnerableMultiplier());
+    for (int side = 0; side < Enemy::NUM_PLAYERS; side++) {
+        serializer.writeFloat(enemy->getVulnerableDurationForSide(side));
+        serializer.writeFloat(enemy->getVulnerableMultiplierForSide(side));
+    }
 }
 
 /**
  * Reads one enemy-effect message payload from the current deserializer position.
  *
- * The payload contains the enemy effect type followed by the resolved magnitude
- * and the timed duration for that effect.
+ * The payload contains the enemy effect type followed by the resolved magnitude,
+ * the timed duration for that effect, and the attacking player's index.
  *
  * @param deserializer  The deserializer positioned at the enemy-effect payload.
  * @return the decoded enemy-effect message.
@@ -118,14 +122,15 @@ EnemyEffectMessage readEnemyEffectMessage(NetcodeDeserializer& deserializer) {
     effectMsg.effectType = static_cast<EnemyEffectType>(deserializer.readSint32());
     effectMsg.magnitude = deserializer.readFloat();
     effectMsg.duration = deserializer.readFloat();
+    effectMsg.playerIndex = deserializer.readSint32();
     return effectMsg;
 }
 
 /**
  * Writes one enemy-effect message payload to the current serializer position.
  *
- * The payload contains the enemy effect type followed by the resolved magnitude
- * and the timed duration for that effect.
+ * The payload contains the enemy effect type followed by the resolved magnitude,
+ * the timed duration for that effect, and the attacking player's index.
  *
  * @param serializer  The serializer receiving the enemy-effect payload.
  * @param effectMsg   The enemy-effect message to serialize.
@@ -134,6 +139,7 @@ void writeEnemyEffectMessage(NetcodeSerializer& serializer, const EnemyEffectMes
     serializer.writeSint32(static_cast<int>(effectMsg.effectType));
     serializer.writeFloat(effectMsg.magnitude);
     serializer.writeFloat(effectMsg.duration);
+    serializer.writeSint32(effectMsg.playerIndex);
 }
 } // namespace
 
@@ -560,12 +566,14 @@ void NetworkController::broadcastSupportEffect(SupportEffectType effectType, flo
  * @param effectType The type of enemy effect being applied.
  * @param magnitude  The resolved magnitude associated with the attack item.
  * @param duration   The timed duration of the enemy effect.
+ * @param playerIndex The attacking player's slot.
  */
-void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration) {
+void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex) {
     EnemyEffectMessage effectMsg;
     effectMsg.effectType = effectType;
     effectMsg.magnitude = magnitude;
     effectMsg.duration = duration;
+    effectMsg.playerIndex = playerIndex;
 
 	_serializer.writeSint32(MessageType::ENEMY_EFFECT);
     writeEnemyEffectMessage(_serializer, effectMsg);

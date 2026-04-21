@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cugl/cugl.h>
 
 #ifndef __NETWORK_MESSAGES_H__
@@ -74,6 +75,8 @@ struct EnemyEffectMessage {
     float magnitude;
     /** The number of seconds the enemy effect should last. */
     float duration;
+    /** The attacking player's slot, used for side-relative enemy effects. */
+    int playerIndex = 0;
 };
 
 /** Message sent by client to indicate passing an item.
@@ -125,10 +128,10 @@ struct GameStateMessage {
     float bossStunDuration = 0.0f;
     /** Remaining authoritative love time for the boss, in seconds. */
     float bossLoveDuration = 0.0f;
-    /** Remaining authoritative vulnerable time for the boss, in seconds. */
-    float bossVulnerableDuration = 0.0f;
-    /** Active authoritative vulnerable multiplier for the boss. */
-    float bossVulnerableMultiplier = 1.0f;
+    /** Remaining authoritative vulnerable time for each relative boss side, in seconds. */
+    std::array<float, kMaxPlayers> bossVulnerableDurations = {0.0f, 0.0f, 0.0f, 0.0f};
+    /** Active authoritative vulnerable multiplier for each relative boss side. */
+    std::array<float, kMaxPlayers> bossVulnerableMultipliers = {1.0f, 1.0f, 1.0f, 1.0f};
 
     // player health
     union {

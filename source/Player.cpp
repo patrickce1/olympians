@@ -286,14 +286,14 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
         const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
         float returnedMagnitude = 0.0f;
         if (def->getType() == ItemDef::Type::Attack) {
-            target.updateHealth(-resolvedMagnitude);
+            target.takeDamage(resolvedMagnitude, getPlayerNumber());
             returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
+                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
             }
         } else if (!def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
+                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
             }
         }
 

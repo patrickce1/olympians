@@ -136,8 +136,9 @@ public:
      * @param effectType The kind of enemy effect that was applied.
      * @param magnitude  The resolved magnitude of the effect.
      * @param duration   The timed duration of the effect, or 0 for instant effects.
+     * @param playerIndex The attacking player's slot, used for side-relative effects.
      */
-    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration);
+    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex);
 
     /** The following are USED ONLY BY THE HOST */
     /** Send the GameState state as the new authoritative version of the game to all players */
