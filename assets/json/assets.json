@@ -398,6 +398,12 @@
         },
         "poseidonBox": {
             "file": "textures/preGameEntryScene/poseidonBox.png"
+        },
+        "playerNameBG": {
+            "file": "textures/preGameEntryScene/playerNameBG.png"
+        },
+        "houseNameBG": {
+            "file": "textures/preGameEntryScene/houseNameBG.png"
         }
 	},
     "fonts": {
@@ -420,6 +426,10 @@
         "gideon romanRegular16": {
             "file": "fonts/GideonRoman-Regular.ttf",
             "size": 16
+        },
+        "gideon romanRegular8": {
+          "file": "fonts/GideonRoman-Regular.ttf",
+          "size": 8
         },
         "gideon romanRegular10": {
           "file": "fonts/GideonRoman-Regular.ttf",
