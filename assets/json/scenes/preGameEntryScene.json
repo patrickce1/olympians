@@ -31,8 +31,8 @@
                         0
                     ],
                     "size": [
-                        429,
-                        484
+                        641,
+                        447
                     ],
                     "angle": 0,
                     "position": [
@@ -69,7 +69,7 @@
                     "visible": true
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "right",
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
