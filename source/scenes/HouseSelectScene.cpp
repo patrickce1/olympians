@@ -526,23 +526,17 @@ void HouseSelectScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
     _network->getNetworkUpdates();
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
-
-    if (networkedPlayers.empty()) return;
 
     int totalSlots = (int)_gameState->getPlayers().size();
 
     for (int i = 0; i < totalSlots; i++) {
         if (_network->checkRealPlayer(i)) {
-            _gameState->setRealPlayer(
-                i,
-                networkedPlayers[i].username,
-                networkedPlayers[i].houseID
-            );
+            // Look up by slot index, not list position — networkedPlayers
+            // is now a flat list of only real players and cannot be indexed
+            // by slot directly after a migration removes entries.
+            NetworkedPlayer player = _network->getNetworkedPlayerAtSlot(i);
+            _gameState->setRealPlayer(i, player.username, player.houseID);
         } else {
-            // AI slot — use demoteToAI() to preserve isAI() == true.
-            // House is synced from the host's authoritative _aIHouses map,
-            // kept in sync across all clients via LOBBY_UPDATE.
             _gameState->demoteToAI(i, _network->getAIHouse(i));
         }
     }
@@ -707,11 +701,12 @@ void HouseSelectScene::commitHouseUnlock() {
  * carousel preview texture from persisting across activations.
  */
 void HouseSelectScene::refreshLocalPlayerIcon() {
-    int localIndex = _network->getLocalPlayerNumber();
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
-    std::string localHouse = (localIndex >= 0 && localIndex < (int)networkedPlayers.size())
-        ? networkedPlayers[localIndex].houseID
-        : "";
+    // Use getNetworkedPlayerAtSlot so we look up by GameState slot index,
+    // not by list position — after migration the list may have fewer entries
+    // and localIndex no longer corresponds to a valid list position.
+    int localSlot = _network->getLocalPlayerNumber();
+    NetworkedPlayer np = _network->getNetworkedPlayerAtSlot(localSlot);
+    std::string localHouse = np.houseID;
 
     if (localHouse.empty()) {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
@@ -728,10 +723,9 @@ void HouseSelectScene::refreshLocalPlayerIcon() {
  * Returns true if the local player has a house selected in the network.
  */
 bool HouseSelectScene::hasLocalPlayerSelectedHouse() const {
-    int localIndex = _network->getLocalPlayerNumber();
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
-    if (localIndex < 0 || localIndex >= (int)networkedPlayers.size()) return false;
-    return !networkedPlayers[localIndex].houseID.empty();
+    int localSlot = _network->getLocalPlayerNumber();
+    NetworkedPlayer np = _network->getNetworkedPlayerAtSlot(localSlot);
+    return !np.houseID.empty();
 }
 
 /**

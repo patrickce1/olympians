@@ -1733,6 +1733,32 @@ void GameScene::handleDragTracking(InputController& input) {
 void GameScene::handleNetworkUpdates() {
     /*Networking pull cycle*/
     _network->getNetworkUpdates();
+    
+    // Check if we were promoted to host during a migration this frame.
+    // becomeHost() re-seeds the local GameState from the last received
+    // GameStateMessage snapshot and switches this client into the host
+    // code path (broadcasting game state, processing attacks/heals, etc.).
+    // clearPromotionFlag() must be called immediately after so this block
+    // does not re-trigger on the next frame.
+    if (_network->wasPromotedToHost()) {
+        becomeHost();
+        _network->clearPromotionFlag();
+        // Now that GameState is correct, broadcast the updated lobby
+        // state so remaining clients reflect the demotion.
+        _network->broadcastLobbyState();
+    }
+    
+    // During host migration, the old host is gone and the new one hasn't
+    // been confirmed yet. Rather than freezing, keep running the local
+    // simulation so the game feels continuous. The new host will seed from
+    // the last known snapshot via becomeHost(), so any speculative frames
+    // here will be corrected on the first GAME_UPDATE broadcast after
+    // migration resolves. The gap is typically under 2 seconds.
+    if (_network->isMigrating()) {
+        // Still tick AI, enemy, and effects locally so nothing freezes.
+        // Do NOT process network queues — they're empty anyway.
+        return;
+    }
 
     // Track player and enemy health before updates to detect changes
     auto player = _gameState.getLocalPlayer();
@@ -1744,7 +1770,6 @@ void GameScene::handleNetworkUpdates() {
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
-        // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
     }
     else {
@@ -3369,4 +3394,70 @@ void GameScene::clearItemUseAnimations() {
     
     // Clear the animation list
     _activeItemUseAnimations.clear();
+}
+
+/**
+ * Transitions this client from a non-host role into the authoritative host
+ * role after a successful host migration.
+ *
+ * Steps:
+ * 1. Seeds the local GameState from the last received GAME_UPDATE snapshot
+ *    so the new host starts simulation from a consistent state rather than
+ *    whatever speculative state the client was running locally.
+ * 2. Demotes the old host's slot (slot 0) to an AI placeholder in GameState,
+ *    since that player is gone and the circle must stay full. The houseID
+ *    from NetworkController's _onlinePlayers is used so the AI inherits the
+ *    correct house stats.
+ * 3. GameScene's per-frame logic already branches on _network->isHost(), so
+ *    no further state changes are needed here — the host code path
+ *    (broadcastGameState, processing attack/heal queues) activates naturally
+ *    on the next frame.
+ *
+ * Should only be called once per migration, immediately after
+ * wasPromotedToHost() returns true. clearPromotionFlag() must be called
+ * right after to prevent this from firing again next frame.
+ */
+void GameScene::becomeHost() {
+    GameStateMessage snapshot = _network->getStateUpdate();
+    _gameState.initFromNetworkSnapshot(snapshot);
+
+    int oldHostSlot = _gameState.getHostSlot();
+    Player* oldHost = _gameState.getPlayerBySlot(oldHostSlot);
+    std::string oldHostHouse = oldHost ? oldHost->getHouseName() : "";
+
+    // Demote old host slot to AI in GameState.
+    _gameState.demoteToAI(oldHostSlot, oldHostHouse);
+
+    // Remove the old host from _onlinePlayers directly. We cannot rely
+    // on onDisconnect firing in time — it may fire after or not at all
+    // from the new host's perspective. _onlinePlayers only tracks real
+    // players, so erasing here ensures checkRealPlayer() returns false
+    // for the old host's slot immediately.
+    _network->removePlayerAtSlot(oldHostSlot);
+
+    int newHostSlot = _network->getLocalPlayerNumber();
+    _gameState.setHostSlot(newHostSlot);
+    CULog("[MIGRATION] Host slot updated: %d -> %d", oldHostSlot, newHostSlot);
+
+    auto* ai = dynamic_cast<PlayerAI*>(_gameState.getPlayerBySlot(oldHostSlot));
+    if (ai) {
+        ai->init(_itemController.getDatabase(), "json/playerAI.json");
+        CULog("[MIGRATION] AI init succeeded for slot %d", oldHostSlot);
+    } else {
+        CULog("[MIGRATION] AI init FAILED — PlayerAI* was null for slot %d", oldHostSlot);
+    }
+    
+    // Register the old host's house in _aIHouses so that when we return
+    // to LobbyScene, updateNetworkOrder() correctly treats this slot as
+    // an AI slot with a house rather than wiping it with an empty string.
+    _network->setAIHouseForSlot(oldHostSlot, oldHostHouse);
+
+    // Refresh the teammate name labels so the UI reflects the demotion
+    // immediately — same step that handleDisconnectedPlayers() does for
+    // regular client disconnects.
+    refreshTeammateNameLabels();
+    resetTeammateBlinkState();
+    
+    CULog("[MIGRATION] becomeHost() complete. Slot %d demoted to AI with house='%s'",
+          oldHostSlot, oldHostHouse.c_str());
 }

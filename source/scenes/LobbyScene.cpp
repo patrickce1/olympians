@@ -343,21 +343,20 @@ std::vector<Player*> LobbyScene::remapPlayersForDisplay() {
 void LobbyScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
     const int totalSlots = (int)_gameState->getPlayers().size();
 
     for (int i = 0; i < totalSlots; i++) {
         if (_network->checkRealPlayer(i)) {
-            // Real player slot — if it previously had an AI house, clear it first
+            // Look up this slot's player info directly by slot index,
+            // not by list position — networkedPlayers is now indexed by
+            // slot via _uuidToSlot, not by list position.
+            NetworkedPlayer player = _network->getNetworkedPlayerAtSlot(i);
             if (_network->isHost() && !_network->getAIHouse(i).empty()) {
-                _gameState->setRealPlayer(i, networkedPlayers[i].username, "");
+                _gameState->setRealPlayer(i, player.username, "");
                 _network->clearAIHouse(i);
             }
-            _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
+            _gameState->setRealPlayer(i, player.username, player.houseID);
         } else {
-            // AI slot — always use demoteToAI() to preserve isAI() == true.
-            // House is synced from the host's authoritative _aIHouses map,
-            // which is kept in sync across all clients via LOBBY_UPDATE.
             _gameState->demoteToAI(i, _network->getAIHouse(i));
         }
     }
@@ -368,17 +367,9 @@ void LobbyScene::updateNetworkOrder() {
  house select screen.
  */
 void LobbyScene::updateLocalPlayerSelectedHouse() {
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
-    
-    // check if local player has selected house
-    int localIndex = _network->getLocalPlayerNumber();
-
-    if (localIndex < networkedPlayers.size()) {
-        const auto& player = networkedPlayers[localIndex];
-        _hasSelectedHouse = (!player.houseID.empty());
-    } else {
-        _hasSelectedHouse = false;
-    }
+    int localSlot = _network->getLocalPlayerNumber();
+    NetworkedPlayer player = _network->getNetworkedPlayerAtSlot(localSlot);
+    _hasSelectedHouse = !player.houseID.empty();
 }
 
 /**

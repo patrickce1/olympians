@@ -167,6 +167,28 @@ public:
      */
     void supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects);
     
+    /**
+     * Re-initializes this GameState from a snapshot received over the network.
+     * Called by GameScene::becomeHost() when this client is promoted to host
+     * after a migration, seeding the new host's authoritative simulation from
+     * the last known state broadcast by the old host.
+     *
+     * Delegates entirely to networkUpdate(), which applies every field in
+     * GameStateMessage — boss HP, boss phase, state timer, target index, all
+     * four player HPs, and all player shield/barrier runtime effects. Exposed
+     * as a separate method so call sites in GameScene clearly signal intent
+     * (seeding for host takeover) rather than appearing to be a routine
+     * per-frame client sync.
+     *
+     * Note: item inventories, player positions, and other transient state not
+     * carried by GameStateMessage are not restored. They converge naturally
+     * within a few frames as the new host begins broadcasting GAME_UPDATE.
+     *
+     * @param snapshot  The most recent GAME_UPDATE message, stored in
+     *                  NetworkController::_latestGameState.
+     */
+    void initFromNetworkSnapshot(const GameStateMessage& snapshot);
+    
 #pragma mark - Player Access
 
     /**
@@ -258,6 +280,16 @@ public:
      * @param house  The house ID to assign to the new AI, or "" for none.
      */
     void demoteToAI(int slot, const std::string& house = "");
+    
+    /** Returns the slot index of the current host player. */
+    int getHostSlot() const { return _hostSlot; }
+
+    /**
+     * Sets the slot index of the current host player.
+     *
+     * @param slot the slot to be set
+     */
+    void setHostSlot(int slot) { _hostSlot = slot; }
 
 private:
 
@@ -292,6 +324,13 @@ private:
 
     /** Loads house definitions from JSON for player construction. */
     HouseLoader _houseLoader;
+    
+    /**
+     * The slot index of the current host player. Updated whenever the host
+     * changes (migration). Used by becomeHost() to demote the correct slot
+     * to AI without needing to guess from network state.
+     */
+    int _hostSlot = 0;
 };
 
 #endif /* __GAME_STATE_H__ */

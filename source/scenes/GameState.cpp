@@ -250,6 +250,7 @@ void GameState::reset() {
         player->setCurrentHealth(player->getMaxHealth());
     }
     _enemy->setCurrentHealth(_enemy->getMaxHealth());
+    _hostSlot = 0;
 }
 
 /**
@@ -367,38 +368,17 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
  * @param newState  The authoritative game state snapshot from the host.
  */
 void GameState::networkUpdate(GameStateMessage newState) {
-    // update boss health
     _enemy->setCurrentHealth(newState.bossHealth);
-    
-    //ensure state is synced
     _enemy->enterState((EnemyLoader::State) newState.bossState);
     _enemy->setStateTime(newState.stateTime);
-
-    //update boss direction
     _enemy->setTargetIndex(newState.bossTarget);
 
-    // update player health and authoritative timed support effects
-    std::vector<float> healths = {
-        newState.player1HP,
-        newState.player2HP,
-        newState.player3HP,
-        newState.player4HP
-    };
-    std::vector<std::array<float, 4>> runtimeEffects = {
-        std::array<float, 4>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
-                             newState.player1BarrierMultiplier, newState.player1BarrierDuration},
-        std::array<float, 4>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
-                             newState.player2BarrierMultiplier, newState.player2BarrierDuration},
-        std::array<float, 4>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
-                             newState.player3BarrierMultiplier, newState.player3BarrierDuration},
-        std::array<float, 4>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
-                             newState.player4BarrierMultiplier, newState.player4BarrierDuration}
-    };
-
-    for (int i = 0; i < _players.size(); i++) {
-        _players[i]->setCurrentHealth(healths[i]);
-        _players[i]->syncRuntimeEffects(runtimeEffects[i][0], runtimeEffects[i][1],
-                                        runtimeEffects[i][2], runtimeEffects[i][3]);
+    // Use the array form to match how NetworkController serializes/deserializes
+    for (int i = 0; i < (int)_players.size(); i++) {
+        _players[i]->setCurrentHealth(newState.playerHP[i]);
+        const PlayerRuntimeEffectState& fx = newState.playerRuntimeEffects[i];
+        _players[i]->syncRuntimeEffects(fx.shieldMitigation, fx.shieldDuration,
+                                        fx.barrierMultiplier, fx.barrierDuration);
     }
 }
 
@@ -505,4 +485,28 @@ void GameState::demoteToAI(int slot, const std::string& house) {
     if (replacedLocalPlayer) {
         _localPlayer = _players[slot].get();
     }
+}
+
+/**
+ * Re-initializes this GameState from a snapshot received over the network.
+ * Called by GameScene::becomeHost() when this client is promoted to host
+ * after a migration, seeding the new host's authoritative simulation from
+ * the last known state broadcast by the old host.
+ *
+ * Delegates entirely to networkUpdate(), which applies every field in
+ * GameStateMessage — boss HP, boss phase, state timer, target index, all
+ * four player HPs, and all player shield/barrier runtime effects. Exposed
+ * as a separate method so call sites in GameScene clearly signal intent
+ * (seeding for host takeover) rather than appearing to be a routine
+ * per-frame client sync.
+ *
+ * Note: item inventories, player positions, and other transient state not
+ * carried by GameStateMessage are not restored. They converge naturally
+ * within a few frames as the new host begins broadcasting GAME_UPDATE.
+ *
+ * @param snapshot  The most recent GAME_UPDATE message, stored in
+ *                  NetworkController::_latestGameState.
+ */
+void GameState::initFromNetworkSnapshot(const GameStateMessage& snapshot) {
+    networkUpdate(snapshot);
 }

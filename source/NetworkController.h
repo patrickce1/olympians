@@ -26,7 +26,8 @@ public:
         WAITING,
         CONNECTED,
         STARTED,
-        ONGOING
+        ONGOING,
+        MIGRATING
 	};
     
      /**
@@ -62,8 +63,19 @@ public:
     /*Returns the current state of the connection. Check the Status enum for possible values*/
     Status checkConnection();
 
-    /*Tells the network controller to 
-    Calling this function will populate the message queues and variables with new information*/
+    /**
+     * Polls the network connection for incoming messages and processes them.
+     * Should be called once per frame at the start of the update cycle,
+     * before reading from any message queues.
+     *
+     * Also manages the post-migration cooldown timer. After host promotion is
+     * confirmed, we delay all outgoing sends for _postMigrationCooldown frames
+     * to give the RTC worker thread time to finish tearing down the old host's
+     * dead SCTP peer channel. Attempting to send before that cleanup completes
+     * throws errno=32 on the RTC worker thread, which cannot be caught on the
+     * main thread and crashes the app. Once the cooldown hits zero, any messages
+     * that were queued during the window are flushed through sendOrQueue in order.
+     */
     void getNetworkUpdates();
 
     /*Clears all message queues. 
@@ -209,7 +221,13 @@ public:
     /*returns player's position in the circle given their networkID*/
     int getPlayerNumberByID(const std::string& networkID);
 
-    /*returns if this numbered player is a real one or AI*/
+    /**
+     * Returns whether a given player index corresponds to a real (human) player.
+     * A slot is real if any UUID maps to it.
+     *
+     * @param playerID  The 0-based player index to check.
+     * @return          true if the player is a real networked player, false if AI.
+     */
     bool checkRealPlayer(int playerID);
 
     /*Returns the list of networked players, carrying their network ID and username*/
@@ -327,6 +345,94 @@ public:
      * @param slotIndex  The 0-based slot index to clear.
      */
     void clearAIHouse(int slotIndex);
+    
+    /**
+     * Returns true if this client was just confirmed as the new host during a
+     * migration and GameScene has not yet handled the transition. GameScene should
+     * check this once per frame, call becomeHost() when true, then immediately
+     * call clearPromotionFlag() so the flag does not re-trigger.
+     *
+     * @return true if this connection was just confirmed as the new host.
+     */
+    bool wasPromotedToHost() const { return _promotedToHost; }
+
+    /**
+     * Clears the promotion flag after GameScene has consumed it.
+     * Must be called immediately after becomeHost() to prevent the transition
+     * from firing again on the next frame.
+     */
+    void clearPromotionFlag() { _promotedToHost = false; }
+
+    /**
+     * Returns true if the connection is currently mid-migration.
+     * During this window, all outgoing sends are queued rather than transmitted.
+     * GameScene can use this to show a "reconnecting" UI if desired, but does
+     * not need to guard individual broadcastX() calls — queuing is handled
+     * transparently inside NetworkController.
+     *
+     * @return true if host migration is in progress.
+     */
+    bool isMigrating() const { return _migrating; }
+
+    /**
+     * Registers a promotion callback on the NetcodeConnection to handle host
+     * migration. Should be called once after open(), alongside
+     * registerDisconnectCallback(). See .cpp for full two-phase description.
+     */
+    void registerPromotionCallback();
+    
+    /**
+     * Routes an outgoing message either immediately or into the migration queue.
+     *
+     * During a migration (_migrating == true), CUGL rejects all sends. Rather
+     * than silently dropping the message, this method enqueues it with its
+     * intended destination so it can be delivered once migration resolves.
+     *
+     * The destination string encodes routing intent:
+     *   "broadcast"  — deliver to all peers via _network->broadcast()
+     *   "host"       — deliver to the current host via _network->sendToHost()
+     *   <uuid>       — deliver to a specific peer via _network->sendTo(uuid, ...)
+     *
+     * @param destination  Routing key: "broadcast", "host", or a peer UUID.
+     * @param data         The serialized byte payload to send.
+     */
+    void sendOrQueue(const std::string& destination, const std::vector<std::byte>& data);
+    
+    /** Logs the username, house, UUID, and real/AI status of every slot. */
+    void logSlotStates();
+    
+    /**
+     * Removes the real player entry at the given GameState slot index from
+     * _onlinePlayers. Called by GameScene::becomeHost() after demoteToAI()
+     * to ensure the old host is no longer treated as a real player by
+     * checkRealPlayer() and broadcastPass(). Cannot rely on onDisconnect
+     * firing in time from the new host's perspective.
+     *
+     * @param slot  The 0-based GameState slot index to remove.
+     */
+    void removePlayerAtSlot(int slot);
+    
+    /**
+     * Returns the NetworkedPlayer at the given GameState slot index.
+     * Returns an empty NetworkedPlayer if no real player occupies that slot.
+     *
+     * @param slot  The 0-based GameState slot index.
+     * @return      The NetworkedPlayer at that slot, or a default-constructed
+     *              empty NetworkedPlayer if the slot is AI or unoccupied.
+     */
+    NetworkedPlayer getNetworkedPlayerAtSlot(int slot) const;
+    
+    /**
+     * Directly sets an AI house assignment for the given slot without
+     * broadcasting. Used by GameScene::becomeHost() to register the old
+     * host's house so LobbyScene correctly shows it after migration.
+     *
+     * @param slot     The 0-based slot index.
+     * @param houseID  The house ID to assign.
+     */
+    void setAIHouseForSlot(int slot, const std::string& houseID) {
+        _aIHouses[slot] = houseID;
+    }
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -367,6 +473,10 @@ protected:
     /** The network configuration */
     cugl::netcode::NetcodeConfig _config;
     
+    /** The number of frames to wait after host migration happens before queued updates send*/
+    int _postMigrationCooldown = 0;
+
+    
 private:
     /* Lists that keep track of the updates sent by players to the host */
     std::vector<AttackMessage> attacks;
@@ -384,8 +494,19 @@ private:
     //Boolean that tells us if the game has been started by the host in the last network cycle
     bool _gameStarted;
 
-    //Stores the most recent player order that we got. The host's version of this is authoritative
-    std::vector<NetworkedPlayer> _onlinePlayers;
+    /**
+     * Maps each real player's network UUID to their GameState slot index.
+     * AI slots are not stored here — absence from this map means the slot
+     * is AI. This is the authoritative source for checkRealPlayer() and
+     * broadcastPass() routing. Updated when players join, leave, or migrate.
+     */
+    std::unordered_map<std::string, int> _uuidToSlot;
+
+    /**
+     * Maps each real player's network UUID to their NetworkedPlayer info
+     * (username, houseID). Kept in sync with _uuidToSlot.
+     */
+    std::unordered_map<std::string, NetworkedPlayer> _playersInfo;
     
     // True if host sent SESSION_TERMINATED this network cycle
     bool _sessionTerminated = false;
@@ -401,6 +522,43 @@ private:
     
     /** Houses chosen by the host for AI slots, keyed by game slot index */
     std::unordered_map<int, std::string> _aIHouses;
+    
+    /**
+     * True while the CUGL lobby server is migrating the host to a new client.
+     * Outgoing messages are queued into _migrationQueue rather than sent, since
+     * CUGL rejects all sends in the MIGRATING state. Cleared once the new host
+     * is confirmed and the queue is flushed.
+     */
+    bool _migrating = false;
+
+    /**
+     * Set to true when this client has been confirmed by the lobby server as the
+     * new host after a migration. Consumed by GameScene via wasPromotedToHost()
+     * to trigger the becomeHost() handoff. Cleared by clearPromotionFlag() after
+     * GameScene has handled it so it does not re-trigger on subsequent frames.
+     */
+    bool _promotedToHost = false;
+
+    /**
+     * Holds outgoing messages that were attempted during a host migration window.
+     * Each entry is a pair of (destination, payload) where destination is either
+     * a peer UUID for sendTo(), the special string "host" for sendToHost(), or
+     * "broadcast" for broadcast(). Flushed in order once migration completes and
+     * the connection is live again.
+     */
+    std::vector<std::pair<std::string, std::vector<std::byte>>> _migrationQueue;
+    
+    /**
+     * Stores the UUID of a peer that disconnected while a host migration was in
+     * progress. Because onDisconnect fires before onPromotion resolves, we cannot
+     * safely broadcast or demote slots at disconnect time for the departing host —
+     * isHost() is still false and the connection is in MIGRATING state. Instead,
+     * we park the UUID here and drain it inside registerPromotionCallback() Phase 2
+     * once this client is confirmed as the new host and the connection is live.
+     *
+     * Empty string when no deferred disconnect is pending.
+     */
+    std::string _pendingDisconnectID = "";
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */
