@@ -433,6 +433,16 @@ public:
     void setAIHouseForSlot(int slot, const std::string& houseID) {
         _aIHouses[slot] = houseID;
     }
+    
+    /** Returns the slot index of the current host player. */
+    int getHostSlot() const { return _hostSlot; }
+    
+    /**
+     * Sets the slot index of the current host player.
+     *
+     * @param slot the slot to be set
+     */
+    void setHostSlot(int slot) { _hostSlot = slot; }
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -559,6 +569,15 @@ private:
      * Empty string when no deferred disconnect is pending.
      */
     std::string _pendingDisconnectID = "";
+    
+    /**
+     * The slot index of the current host player. Set by the host in
+     * broadcastLobbyState() and received by clients via LOBBY_UPDATE.
+     * Used by GameScene::setActive() to correctly initialise _hostSlot
+     * in GameState for all players, so becomeHost() always demotes the
+     * right slot regardless of how many migrations have occurred.
+     */
+    int _hostSlot = 0;
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */

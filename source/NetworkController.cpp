@@ -356,19 +356,20 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             }
 
             // Parse real players with their slot assignments:
-            while (i < (int)playerData.size() - 1) {
+            while (i < (int)playerData.size() - 2) {
                 std::string uuid  = playerData[i];
                 std::string name  = playerData[i + 1];
                 std::string house = playerData[i + 2];
                 int slot          = std::stoi(playerData[i + 3]);
                 _uuidToSlot[uuid] = slot;
-                NetworkedPlayer np;
-                np.networkID = uuid;
-                np.username  = name;
-                np.houseID   = house;
-                _playersInfo[uuid] = np;
+                NetworkedPlayer player;
+                player.networkID = uuid;
+                player.username  = name;
+                player.houseID   = house;
+                _playersInfo[uuid] = player;
                 i += 4;
             }
+            _hostSlot = std::stoi(playerData[playerData.size() - 2]);
             _enemy = playerData.back();
             break;
         }
@@ -668,7 +669,9 @@ void NetworkController::broadcastLobbyState() {
         serializablePlayers.push_back(np.houseID);
         serializablePlayers.push_back(std::to_string(pair.first));
     }
-
+    
+    // Add host slot as the second-to-last entry, before _enemy
+    serializablePlayers.push_back(std::to_string(_uuidToSlot.at(_network->getUUID())));
     serializablePlayers.push_back(_enemy);
 
     _serializer.writeSint32(MessageType::LOBBY_UPDATE);

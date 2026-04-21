@@ -522,9 +522,7 @@ void GameScene::setActive(bool value) {
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
             updateNetworkOrder();
             
-            if (_network->isHost()) {
-                _gameState.setHostSlot(_network->getLocalPlayerNumber());
-            }
+            _gameState.setHostSlot(_network->getHostSlot());
             
             // Re-initialize AI players after updateNetworkOrder() rebuilds
             // AI slots via demoteToAI(). demoteToAI() creates EasyPlayerAI
@@ -3427,6 +3425,7 @@ void GameScene::becomeHost() {
     _network->removePlayerAtSlot(oldHostSlot);
 
     int newHostSlot = _network->getLocalPlayerNumber();
+    _network->setHostSlot(newHostSlot);
     _gameState.setHostSlot(newHostSlot);
     CULog("[MIGRATION] Host slot updated: %d -> %d", oldHostSlot, newHostSlot);
 
