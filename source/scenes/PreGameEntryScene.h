@@ -19,7 +19,6 @@ public:
      */
     enum Status {
         IDLE,
-        LOADING,
         START
     };
     
