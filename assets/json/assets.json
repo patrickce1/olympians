@@ -115,6 +115,15 @@
         "textfieldBG": {
             "file": "textures/elements/textfieldBG.png"
         },
+        "barSlider": {
+            "file": "textures/elements/barSlider.png"
+        },
+        "selectorStar": {
+            "file": "textures/elements/selectorStar.png"
+        },
+        "dialBox": {
+            "file": "textures/elements/dialBox.png"
+        },
         "cloudBottom": {
             "file": "textures/clientCloud.png"
         },
@@ -530,7 +539,8 @@
         "buttonMedium": "widgets/elements/buttonMedium.json",
         "buttonSmall": "widgets/elements/buttonSmall.json",
         "textfield": "widgets/elements/textfield.json",
-        "keypad": "widgets/elements/keypad.json"
+        "keypad": "widgets/elements/keypad.json",
+        "settingsScene": "json/scenes/settingsScene.json"
     },
     "scene2s": {
         "gameScene": {
@@ -597,6 +607,15 @@
             "format": { "type": "Anchored"},
             "data": {
                 "key": "bossSelectScene",
+                "variables": {}
+            }
+        },
+        "settingsScene": {
+            "type": "Widget",
+            "comment": "Root node of the settings scene",
+            "format": { "type": "Anchored"},
+            "data": {
+                "key": "settingsScene",
                 "variables": {}
             }
         }
