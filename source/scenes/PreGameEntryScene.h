@@ -8,7 +8,7 @@
 #include "../NetworkMessage.h"
 
 /**
- * [TBD]
+ * This class provides the interface to make the pre game entry scene.
  */
 class PreGameEntryScene : public cugl::scene2::Scene2 {
 public:
@@ -154,7 +154,7 @@ private:
     std::vector<Player*> remapPlayersForDisplay();
 
     /**
-     * Updates the username labels in the pre game entry UI to match the given player list.
+     * Updates the username and house labels in the pre game entry UI to match the given player list.
      * The list is expected to already be in display order (local player last)
      * as produced by remapPlayersForDisplay().
      *

@@ -390,6 +390,9 @@
         "aresBox": {
             "file": "textures/preGameEntryScene/aresBox.png"
         },
+        "demeterBox": {
+            "file": "textures/preGameEntryScene/demeterBox.png"
+        },
         "hadesBox": {
             "file": "textures/preGameEntryScene/hadesBox.png"
         },

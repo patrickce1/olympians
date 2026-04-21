@@ -84,9 +84,19 @@ void PreGameEntryScene::setupUI() {
     
     if (bottomSection && topSection) {
         auto extractFromSection = [&](const std::shared_ptr<scene2::SceneNode>& tileBlock) {
-            auto tile = std::dynamic_pointer_cast<scene2::PolygonNode>(tileBlock->getChildByName("emptyTile"));
+            auto tile = std::dynamic_pointer_cast<scene2::PolygonNode>(tileBlock->getChildByName("emptyBox"));
             if (tile) {
                 _playerTiles.push_back(tile);
+            }
+            auto labels = tileBlock->getChildByName("labels");
+            if (labels) {
+                auto houseName = std::dynamic_pointer_cast<scene2::Label>((labels->getChildByName("houseName")->getChildByName("label")));
+                auto playerName = std::dynamic_pointer_cast<scene2::Label>((labels->getChildByName("playerName")->getChildByName("label")));
+                
+                if (houseName && playerName) {
+                    _houseNames.push_back(houseName);
+                    _playerNames.push_back(playerName);
+                }
             }
         };
 
@@ -158,6 +168,7 @@ void PreGameEntryScene::update(float timestep) {
     
     std::vector<Player*> displayOrder = remapPlayersForDisplay();
     updateEntryScreenTiles(displayOrder);
+    updateEntryScreenText(displayOrder);
 }
 
 /**
@@ -207,5 +218,22 @@ void PreGameEntryScene::updateEntryScreenTiles(std::vector<Player*> players) {
             }
         }
     }
-};
+}
+
+/**
+ * Updates the username and house labels in the pre game entry UI to match the given player list.
+ * The list is expected to already be in display order (local player last)
+ * as produced by remapPlayersForDisplay().
+ *
+ * @param players  The display-ordered list of players to read names from.
+ */
+void PreGameEntryScene::updateEntryScreenText(std::vector<Player*> players) {
+    for (int i = 0; i < _playerNames.size(); i++) {
+        _playerNames[i]->setText(players[i]->getPlayerName());
+        
+        std::string name = players[i]->getHouseName();
+        for (char &c : name) c = toupper(c);
+        _houseNames[i]->setText(name);
+    }
+}
 
