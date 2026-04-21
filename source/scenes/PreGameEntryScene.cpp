@@ -216,6 +216,7 @@ void PreGameEntryScene::updateEntryScreenTiles(std::vector<Player*> players) {
             } else {
                 tile->setTexture(_assets->get<cugl::graphics::Texture>("emptyBox"));
             }
+            tile->setScale(0.5f);
         }
     }
 }
