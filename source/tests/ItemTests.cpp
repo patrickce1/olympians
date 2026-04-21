@@ -120,7 +120,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
            "items: lightning_bolt affinity parses as Zeus");
     assertWithLabel(lightningBoltDef && lightningBoltDef->hasEffectType(ItemDef::EffectType::Stun),
            "items: lightning_bolt parses stun effect");
-    assertWithLabel(lightningBoltDef && !lightningBoltDef->getEffects().empty() && floatsEqualWithinTolerance(lightningBoltDef->getEffects()[0].duration, 3.0f),
+    assertWithLabel(lightningBoltDef && !lightningBoltDef->getEffects().empty() && floatsEqualWithinTolerance(lightningBoltDef->getEffects()[0].duration, 2.0f),
            "items: lightning_bolt stun duration parses");
     assertWithLabel(appleDef && appleDef->getHouseAffinity() == ItemDef::House::None,
            "items: apple affinity parses as none");
@@ -581,8 +581,9 @@ void testShieldBarrierCoexistence(const std::shared_ptr<cugl::JsonValue>& itemsJ
  * Verifies that:
  * - Stun attack items still apply their base damage
  * - The enemy enters the stunned state with the configured duration
- * - The enemy remains stunned before the timer expires
- * - The stun state clears after the duration elapses
+ * - The enemy remains in the same state while stunned
+ * - Enemy state timers do not advance while stunned
+ * - The stun state clears after the duration elapses and timers resume
  *
  * @param itemsJson       Parsed JSON object containing item definitions
  * @param housesJson      Parsed JSON object containing house multipliers
@@ -611,6 +612,8 @@ void testStunEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     if (!instLightning) return;
     zeus.addItem(*instLightning);
 
+    enemy.setStateTime(1.25f);
+    const EnemyLoader::State stateBeforeStun = enemy.getCurrentState();
     enemy.setCurrentHealth(enemy.getMaxHealth());
     enemy.clearRuntimeEffects();
     const float enemyHealthBeforeStunUse = enemy.getCurrentHealth();
@@ -619,13 +622,54 @@ void testStunEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     assertWithLabel(floatsEqualWithinTolerance(enemyHealthBeforeStunUse - enemy.getCurrentHealth(), resolvedStun),
                     "stun: stun item still applies its base damage");
     assertWithLabel(enemy.isStunned(), "stun: stun effect marks enemy as stunned");
-    assertWithLabel(floatsEqualWithinTolerance(enemy.getStunDuration(), 3.0f), "stun: stun duration applies to enemy");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getStunDuration(), 2.0f), "stun: stun duration applies to enemy");
+    assertWithLabel(enemy.getCurrentState() == stateBeforeStun, "stun: enemy state is preserved when stunned");
 
     enemy.update(1.0f);
     assertWithLabel(enemy.isStunned(), "stun: enemy remains stunned before duration expires");
+    assertWithLabel(enemy.getCurrentState() == stateBeforeStun, "stun: enemy state remains unchanged during stun");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getStateTime(), 1.25f), "stun: enemy state timer is frozen during stun");
+
+    enemy.update(1.1f);
+    assertWithLabel(!enemy.isStunned(), "stun: enemy stun expires after duration elapses");
+    enemy.update(0.5f);
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getStateTime(), 1.85f), "stun: enemy state timer resumes after stun ends");
+}
+
+/**
+ * Tests the direct love effect on the enemy.
+ *
+ * Verifies that:
+ * - Love immediately forces the enemy into idle
+ * - Love keeps the enemy loved for the configured duration
+ * - The love state clears after the duration elapses
+ *
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
+void testLoveEffect(const std::string& enemiesJsonPath) {
+    Enemy enemy;
+    bool enemyOk = enemy.init("enemy1", enemiesJsonPath);
+    assertWithLabel(enemyOk, "love: enemy init succeeds");
+    if (!enemyOk) return;
+
+    for (const auto& stateEntry : enemy.getStates()) {
+        if (stateEntry.first != EnemyLoader::State::IDLE) {
+            enemy.enterState(stateEntry.first);
+            break;
+        }
+    }
+    enemy.setStateTime(0.75f);
+    enemy.clearRuntimeEffects();
+    enemy.applyLove(3.0f);
+    assertWithLabel(enemy.isLoved(), "love: direct love marks enemy as loved");
+    assertWithLabel(enemy.getCurrentState() == EnemyLoader::State::IDLE, "love: love forces enemy into idle");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getLoveDuration(), 3.0f), "love: love duration applies to enemy");
+
+    enemy.update(1.0f);
+    assertWithLabel(enemy.isLoved(), "love: enemy remains loved before duration expires");
 
     enemy.update(2.1f);
-    assertWithLabel(!enemy.isStunned(), "stun: enemy stun expires after duration elapses");
+    assertWithLabel(!enemy.isLoved(), "love: enemy love expires after duration elapses");
 }
 
 /**
@@ -715,6 +759,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testBarrierEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testShieldBarrierCoexistence(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testStunEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testLoveEffect(enemiesJsonPath);
     testVulnerableEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     
     printSummary();

@@ -370,6 +370,9 @@ void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects)
             case EnemyEffectType::Stun:
                 _enemy->applyStun(effect.duration);
                 break;
+            case EnemyEffectType::Love:
+                _enemy->applyLove(effect.duration);
+                break;
             case EnemyEffectType::Vulnerable:
                 _enemy->applyVulnerable(effect.magnitude, effect.duration);
                 break;
@@ -396,6 +399,11 @@ void GameState::networkUpdate(GameStateMessage newState) {
 
     //update boss direction
     _enemy->setTargetIndex(newState.bossTarget);
+
+    // sync authoritative enemy runtime effects
+    _enemy->syncStunDuration(newState.bossStunDuration);
+    _enemy->syncLoveDuration(newState.bossLoveDuration);
+    _enemy->syncVulnerable(newState.bossVulnerableMultiplier, newState.bossVulnerableDuration);
 
     // update player health and authoritative timed support effects
     std::vector<float> healths = {

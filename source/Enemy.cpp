@@ -107,8 +107,9 @@ bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
     _attackLockout = 0.0f;
     _retargetLikelihood = def.ai.retargetLikelihood;
 
-    // Clear any previous stun state when reinitializing the enemy instance.
+    // Clear any previous stun/love state when reinitializing the enemy instance.
     _stunDuration = 0.0f;
+    _loveDuration = 0.0f;
     _vulnerableDuration = 0.0f;
     _vulnerableMultiplier = 1.0f;
     
@@ -210,7 +211,8 @@ bool Enemy::isInAttackPhase(const std::unordered_map<std::string, class Animatio
 /** Returns true if successfully enters requested state. False and idle otherwise. */
 bool Enemy::requestState(EnemyLoader::State state) {
     if (_states.count(state) == 0) return false;
-    if (isStunned()) return false; // Stunned enemies cannot choose attacks
+    if (isLoved()) return false; // Loved enemies cannot choose attacks
+    if (isStunned()) return false; // Stunned enemies cannot choose attacks while frozen
     if (_attackLockout > 0.0f && state != EnemyLoader::State::IDLE) return false; // Lockout is active, only allow idle
 
     enterState(state);
@@ -249,18 +251,28 @@ void Enemy::forceIdle() {
 void Enemy::tick(float dt) {
     if (dt <= 0.0f) return;
 
-    if (!isStunned()) {
-        _stateTime += dt;
-    }
-
-    _attackLockout = (_attackLockout - dt < 0.0f) ? 0.0f : _attackLockout - dt;
+    const float previousStunDuration = _stunDuration;
+    const float previousLoveDuration = _loveDuration;
 
     if (_stunDuration > 0.0f) {
-        const float previousDuration = _stunDuration;
         _stunDuration = std::max(0.0f, _stunDuration - dt);
-        if (previousDuration > 0.0f && _stunDuration == 0.0f) {
-            CULog("Enemy stun ended: enemy='%s'", _enemyId.c_str());
+        if (previousStunDuration > 0.0f && _stunDuration == 0.0f) {
+            CULog("Enemy stun expired: enemy='%s'", _enemyId.c_str());
         }
+    }
+
+    if (_loveDuration > 0.0f) {
+        _loveDuration = std::max(0.0f, _loveDuration - dt);
+        if (previousLoveDuration > 0.0f && _loveDuration == 0.0f) {
+            CULog("Enemy love expired: enemy='%s'", _enemyId.c_str());
+        }
+    }
+
+    const float frozenDuration = std::max(previousStunDuration, previousLoveDuration);
+    const float activeCombatDt = std::max(0.0f, dt - frozenDuration);
+    if (activeCombatDt > 0.0f) {
+        _stateTime += activeCombatDt;
+        _attackLockout = std::max(0.0f, _attackLockout - activeCombatDt);
     }
 
     if (_vulnerableDuration > 0.0f) {
@@ -345,8 +357,12 @@ EnemyLoader::State Enemy::getNextStateOrIdle() const {
 void Enemy::update(float dt) {
     tick(dt);
 
-    if (isStunned()) {
+    if (isLoved()) {
         forceIdle();
+        return;
+    }
+
+    if (isStunned()) {
         return;
     }
 
@@ -375,7 +391,7 @@ void Enemy::updateHealth(float delta) {
 }
 
 /**
- * Applies or refreshes a stun, forcing the enemy idle and extending the remaining duration.
+ * Applies or refreshes a stun without changing the enemy's current state.
  *
  * @param duration  The stun time to apply, in seconds.
  */
@@ -386,10 +402,9 @@ void Enemy::applyStun(float duration) {
 
     const bool wasStunned = isStunned();
     _stunDuration = std::max(_stunDuration, duration);
-    forceIdle();
 
     if (!wasStunned) {
-        CULog("Enemy stunned: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
+        CULog("Enemy stun applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
     } else {
         CULog("Enemy stun refreshed: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
     }
@@ -406,14 +421,53 @@ void Enemy::syncStunDuration(float duration) {
     const bool willBeStunned = duration > 0.0f;
     _stunDuration = duration;
 
-    if (willBeStunned) {
+    if (!wasStunned && willBeStunned) {
+        CULog("Enemy stun applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
+    } else if (wasStunned && !willBeStunned) {
+        CULog("Enemy stun ended: enemy='%s'", _enemyId.c_str());
+    }
+}
+
+/**
+ * Applies or refreshes a love, forcing the enemy idle and extending the remaining duration.
+ *
+ * @param duration  The love time to apply, in seconds.
+ */
+void Enemy::applyLove(float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    const bool wasLoved = isLoved();
+    _loveDuration = std::max(_loveDuration, duration);
+    forceIdle();
+
+    if (!wasLoved) {
+        CULog("Enemy love applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
+    } else {
+        CULog("Enemy love refreshed: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
+    }
+}
+
+/**
+ * Overwrites local love time from the host snapshot so remote clients mirror the authoritative state.
+ *
+ * @param duration  The authoritative remaining love time, in seconds.
+ */
+void Enemy::syncLoveDuration(float duration) {
+    duration = std::max(0.0f, duration);
+    const bool wasLoved = isLoved();
+    const bool willBeLoved = duration > 0.0f;
+    _loveDuration = duration;
+
+    if (willBeLoved) {
         forceIdle();
     }
 
-    if (!wasStunned && willBeStunned) {
-        CULog("Enemy stunned: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
-    } else if (wasStunned && !willBeStunned) {
-        CULog("Enemy stun ended: enemy='%s'", _enemyId.c_str());
+    if (!wasLoved && willBeLoved) {
+        CULog("Enemy love applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
+    } else if (wasLoved && !willBeLoved) {
+        CULog("Enemy love ended: enemy='%s'", _enemyId.c_str());
     }
 }
 
@@ -472,6 +526,7 @@ void Enemy::syncVulnerable(float multiplier, float duration) {
 /** Clears runtime-only combat effects so a reset round starts from a clean enemy state. */
 void Enemy::clearRuntimeEffects() {
     _stunDuration = 0.0f;
+    _loveDuration = 0.0f;
     _vulnerableDuration = 0.0f;
     _vulnerableMultiplier = 1.0f;
 }

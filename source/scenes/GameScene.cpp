@@ -102,6 +102,7 @@ static void broadcastSupportEffects(NetworkController& network,
                     targetPlayerID);
                 break;
             case ItemDef::EffectType::Stun:
+            case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Vulnerable:
                 break;
         }
@@ -126,13 +127,18 @@ static void broadcastEnemyEffects(NetworkController& network,
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
                 network.broadcastEnemyEffect(EnemyEffectType::Stun,
-                                             resolvedMagnitude,
-                                             effect.duration);
+                    resolvedMagnitude,
+                    effect.duration);
+                break;
+            case ItemDef::EffectType::Love:
+                network.broadcastEnemyEffect(EnemyEffectType::Love,
+                    resolvedMagnitude,
+                    effect.duration);
                 break;
             case ItemDef::EffectType::Vulnerable:
                 network.broadcastEnemyEffect(EnemyEffectType::Vulnerable,
-                                             effect.multiplier,
-                                             effect.duration);
+                    effect.multiplier,
+                    effect.duration);
                 break;
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:

@@ -48,6 +48,17 @@ private:
     }
 
     /**
+     * Applies a love effect to an enemy and returns the love duration.
+     *
+     * @param effect  The serialized effect definition to apply.
+     * @param target  The enemy receiving the love.
+     */
+    static float applyLoveToEnemy(const ItemDef::Effect& effect, Enemy& target) {
+        target.applyLove(effect.duration);
+        return effect.duration;
+    }
+
+    /**
      * Applies a vulnerable effect to an enemy and returns the resolved multiplier.
      *
      * @param effect  The serialized effect definition to apply.
@@ -78,6 +89,7 @@ public:
             case ItemDef::EffectType::Barrier:
                 return applyBarrierToPlayer(effect, target);
             case ItemDef::EffectType::Stun:
+            case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Vulnerable:
                 break;
         }
@@ -101,6 +113,8 @@ public:
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
                 return applyStunToEnemy(effect, target);
+            case ItemDef::EffectType::Love:
+                return applyLoveToEnemy(effect, target);
             case ItemDef::EffectType::Vulnerable:
                 return applyVulnerableToEnemy(effect, target);
             case ItemDef::EffectType::Shield:

@@ -71,8 +71,10 @@ protected:
     
     /** Probability the enemy will retarget on idle entry (0.0 to 1.0) */
     float _retargetLikelihood = 0.0f;
-    /** Remaining stun time in seconds. While positive, enemy attacks and retargeting are disabled. */
+    /** Remaining stun time in seconds. While positive, enemy combat timers are frozen in place. */
     float _stunDuration = 0.0f;
+    /** Remaining love time in seconds. While positive, enemy attacks and retargeting are disabled. */
+    float _loveDuration = 0.0f;
     /** Remaining vulnerable time in seconds. While positive, incoming damage is multiplied. */
     float _vulnerableDuration = 0.0f;
     /** Active incoming damage multiplier while the enemy is vulnerable. */
@@ -169,7 +171,7 @@ public:
     /** Returns the remaining stun duration in seconds. */
     float getStunDuration() const { return _stunDuration; }
     /**
-     * Applies or refreshes a stun, forcing the enemy idle and extending the remaining duration.
+     * Applies or refreshes a stun without changing the enemy's current state.
      *
      * @param duration  The stun time to apply, in seconds.
      */
@@ -180,6 +182,22 @@ public:
      * @param duration  The authoritative remaining stun time, in seconds.
      */
     void syncStunDuration(float duration);
+    /** Returns whether the enemy is currently loved. */
+    bool isLoved() const { return _loveDuration > 0.0f; }
+    /** Returns the remaining love duration in seconds. */
+    float getLoveDuration() const { return _loveDuration; }
+    /**
+     * Applies or refreshes a love, forcing the enemy idle and extending the remaining duration.
+     *
+     * @param duration  The love time to apply, in seconds.
+     */
+    void applyLove(float duration);
+    /**
+     * Overwrites local love time from the host snapshot so remote clients mirror the authoritative state.
+     *
+     * @param duration  The authoritative remaining love time, in seconds.
+     */
+    void syncLoveDuration(float duration);
     /** Returns whether the enemy is currently vulnerable. */
     bool isVulnerable() const { return _vulnerableDuration > 0.0f; }
     /** Returns the remaining vulnerable duration in seconds. */
@@ -199,11 +217,11 @@ public:
      * @param duration    The authoritative remaining vulnerable time, in seconds.
      */
     void syncVulnerable(float multiplier, float duration);
-    /** Clears runtime-only enemy combat effects such as stun and vulnerability. */
+    /** Clears runtime-only enemy combat effects such as stun, love, and vulnerability. */
     void clearRuntimeEffects();
 
     /** Returns true if the enemy is able to start a non-idle state */
-    bool canStartNonIdleState() const { return _attackLockout <= 0.0f && !isStunned(); }
+    bool canStartNonIdleState() const { return _attackLockout <= 0.0f && !isLoved() && !isStunned(); }
 
     /** Returns the likelihood that the enemy will retarget on idle entry */
     float getRetargetLikelihood() const { return _retargetLikelihood; }

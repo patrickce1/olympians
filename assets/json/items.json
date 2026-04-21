@@ -92,11 +92,11 @@
             "type": "attack",
             "rarity": "rare",
             "houseAffinity": "zeus",
-            "baseValue": 1.0,
+            "baseValue": 27.0,
             "effects": [
                 {
                     "type": "stun",
-                    "duration": 3.0
+                    "duration": 2.0
                 }
             ],
             "itemUseAnimation": {
