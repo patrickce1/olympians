@@ -13,6 +13,10 @@ using namespace std;
 #define ROLE_CARD_WIDTH 251
 /** Interpolation smoothing factor*/
 #define SMOOTHING_FACTOR 0.2f
+/** Finger movement dampening while dragging carousel */
+#define SWIPE_DRAG_RESISTANCE 0.55f
+/** Fraction of card width required to commit a swipe */
+#define SWIPE_COMMIT_THRESHOLD 0.33f
 
 
 #pragma mark -
@@ -91,6 +95,8 @@ void BossSelectScene::setupUI() {
         for (int i = 0; i < 3; i++) {
             _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
         }
+        _carouselBasePos = _bossSelectionCardContainer->getPosition();
+        _carouselBaseIndex = _currentIndex;
     }
     
     auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("bossSelectScene.bossSelectionCarouselIcons");
@@ -164,13 +170,37 @@ void BossSelectScene::dispose() {
 void BossSelectScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
+        auto touch = Input::get<Touchscreen>();
+        
         if (value) {
             _status = WAIT;
+            _activeTouch = -1;
+            _isTouchDragging = false;
+            
+            _touchKey = touch->acquireKey(); //Get the key for the touch.
+            //Add all listeners.
+            //Detect touch
+            touch->addBeginListener(_touchKey, [this](const TouchEvent& event, bool focus){
+                this->beginCarouselSwipe(event);
+            });
+            //Allow for the smooth movement
+            touch->addMotionListener(_touchKey, [this](const TouchEvent& event, const Vec2& prev, bool focus){
+                this->updateCarouselSwipe(event);
+            });
+            touch->addEndListener(_touchKey, [this](const TouchEvent& event, bool focus){
+                this->endCarouselSwipe(event);
+            });
+            
             _leftButton->activate();
             _rightButton->activate();
             _backButton->activate();
             configureLockButton();
         } else {
+            //Dispose of the listeners.
+            touch->removeBeginListener(_touchKey);
+            touch->removeMotionListener(_touchKey);
+            touch->removeEndListener(_touchKey);
+            
             _leftButton->deactivate();
             _rightButton->deactivate();
             _backButton->deactivate();
@@ -184,6 +214,74 @@ void BossSelectScene::setActive(bool value) {
         }
     }
 }
+
+/**
+ * Begins tracking a swipe gesture for carousel drag.
+ *
+ * The gesture is ignored while snap animation is active.
+ *
+ * @param event  The touch begin event.
+ */
+void BossSelectScene::beginCarouselSwipe(const cugl::TouchEvent& event) {
+   //Don't realize the swip if the carousel is getting in position or there is none.
+    if (_isAnimating || !_bossSelectionCardContainer) {
+        return;
+    }
+    //Register the touch and determine the origin of the card.
+    _activeTouch = event.touch;
+    _touchStartPos = event.position;
+    _touchStartContainerPos = _bossSelectionCardContainer->getPosition();
+    _isTouchDragging = true;
+}
+
+/**
+ * Updates carousel x-position during an active swipe.
+ *
+ * Movement is damped to feel less slippery and clamped to endpoint anchors
+ * so the user cannot drag past the first/last boss card.
+ *
+ * @param event  The touch motion event.
+ */
+void BossSelectScene::updateCarouselSwipe(const cugl::TouchEvent& event) {
+    //Don't run if there isn't an active touch, we are already dragging, or animating.
+    if (!_isTouchDragging || event.touch != _activeTouch || _isAnimating || !_bossSelectionCardContainer) {
+        return;
+    }
+    //Difference in x between current finger loaction and the start.
+    const float rawDx = event.position.x - _touchStartPos.x;
+    //Dampened to not feel slippery.
+    const float dx = rawDx * SWIPE_DRAG_RESISTANCE;
+    //
+    const int lastIndex = (int)_bossCards.size() - 1;
+    if (lastIndex < 0) {
+        return;
+    }
+
+    float newX = _touchStartContainerPos.x + dx;
+
+    Vec2 pos = _bossSelectionCardContainer->getPosition();
+    _bossSelectionCardContainer->setPosition(Vec2(newX, pos.y));
+}
+
+/**
+ * Finishes swipe tracking and resolves to a snapped card index.
+ *
+ * @param event  The touch end event.
+ */
+void BossSelectScene::endCarouselSwipe(const cugl::TouchEvent& event) {
+    if (event.touch != _activeTouch) {
+        return;
+    }
+
+    if (_isTouchDragging) {
+        snapToNearestIndex();
+    }
+
+    //End the touch
+    _isTouchDragging = false;
+    _activeTouch = -1;
+}
+
 
 /**
  * The method called to update the scene.
@@ -259,13 +357,10 @@ void BossSelectScene::slideTo(int newIndex) {
 
     _isAnimating = true;
 
-    float shiftAmount = ROLE_CARD_WIDTH;
-    
-    int deltaIndex = newIndex - _currentIndex;
     Vec2 currentPos = _bossSelectionCardContainer->getPosition();
-    float targetX = currentPos.x - (deltaIndex * shiftAmount);
     
-    _slideTarget = Vec2(targetX, currentPos.y);
+    //Set where the current slide should take us.
+    _slideTarget = Vec2(getTargetXForIndex(newIndex), currentPos.y);
     _currentIndex = newIndex;
     
     // Set the visibility of all glow overlays to false and the currentIndex card's to true
@@ -286,6 +381,62 @@ void BossSelectScene::slideTo(int newIndex) {
 }
 
 /**
+ * Returns the absolute target x-position for the given card index.
+ *
+ * @param index  The card index in the carousel.
+ *
+ * @return the absolute x-position anchor for that index.
+ */
+float BossSelectScene::getTargetXForIndex(int index) const {
+    //converting an index into an absolute x position.
+    float carouselXAnchor = _carouselBasePos.x;
+    int stepsFromBase = index - _carouselBaseIndex;
+    //pixel offset from the anchor card to the target card
+    float pixelOffset = (stepsFromBase * ROLE_CARD_WIDTH);
+    return carouselXAnchor - pixelOffset;
+}
+
+/**
+ * Resolves swipe result to a discrete selection.
+ *
+ * Small drags snap back to current index. Drags past threshold commit one
+ * step in swipe direction and are clamped to valid index range.
+ */
+void BossSelectScene::snapToNearestIndex() {
+    if (!_bossSelectionCardContainer || _bossCards.empty()) {
+        return;
+    }
+    
+    const float currentX = _bossSelectionCardContainer->getPosition().x;
+    const float anchorX = getTargetXForIndex(_currentIndex);
+    //Distance of current x from base of the carousel.
+    const float delta = currentX - anchorX;
+    const float threshold = ROLE_CARD_WIDTH * SWIPE_COMMIT_THRESHOLD;
+
+    int target = _currentIndex;
+    if (std::abs(delta) >= threshold) {
+        // Right drag (delta > 0) should move to previous card; left drag to next.
+        if (delta > 0){
+            target = (_currentIndex - 1);
+        }
+        else {
+            target = (_currentIndex + 1);
+        }
+        //Stay in bounds
+        if (target < 0){
+            target = 0;
+        }
+        
+        int last = (int)_bossCards.size() - 1;
+        if (target > last){
+            target = last;
+        }
+    }
+
+    slideTo(target);
+}
+
+/**
  * Updates the circular indicators at the bottom of what card in the carousel
  * we are currently at.
  *
@@ -298,9 +449,9 @@ void BossSelectScene::updateCarouselDots(int currentIndex) {
         auto fill   = node->getChildByName("fill");
         
         if (i == currentIndex) {
-            fill->setColor(Color4("#4c3214ff"));
-        } else {
             fill->setColor(Color4("#9d7137ff"));
+        } else {
+            fill->setColor(Color4("#4c3214ff"));
         }
     }
 }

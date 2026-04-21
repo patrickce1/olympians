@@ -61,9 +61,6 @@ protected:
     /** Whether the boss selection screen is sliding to another index */
     bool _isAnimating = false;
     
-    /** How long sliding to new boss index takes */
-    float _slideDuration = 0.3f;
-    
     /** The vector target position of the selection container */
     cugl::Vec2 _slideTarget = cugl::Vec2();
     
@@ -72,6 +69,27 @@ protected:
     
     /** Loads enemy definitions from JSON for boss selection. */
     EnemyLoader _enemyLoader;
+    
+    /** Key for the touchscreen listener. */
+    Uint32 _touchKey;
+    
+    /** Active touch ID for swiping. */
+    Sint64 _activeTouch;
+    
+    /** The starting position of a touch gesture for swiping. */
+    cugl::Vec2 _touchStartPos;
+
+    /** Container position at touch begin, used for drag interpolation. */
+    cugl::Vec2 _touchStartContainerPos;
+
+    /** Whether an active touch is currently dragging the carousel. */
+    bool _isTouchDragging = false;
+
+    /** Absolute snap baseline for carousel x-position. */
+    cugl::Vec2 _carouselBasePos;
+
+    /** The index corresponding to _carouselBasePos. */
+    int _carouselBaseIndex = 1;
 
 public:
 #pragma mark -
@@ -164,6 +182,53 @@ public:
 private:
     
     /**
+     * Starts a swipe gesture for the boss carousel.
+     *
+     * Captures the active touch ID, pointer start position, and carousel
+     * start position for drag-relative movement.
+     *
+     * @param event  The touch begin event.
+     */
+    void beginCarouselSwipe(const cugl::TouchEvent& event);
+
+    /**
+     * Updates carousel position while an active swipe is in progress.
+     *
+     * Applies drag resistance and clamps movement to first/last card bounds.
+     *
+     * @param event  The touch motion event.
+     */
+    void updateCarouselSwipe(const cugl::TouchEvent& event);
+
+    /**
+     * Ends the active swipe gesture and snaps to a valid selection.
+     *
+     * If drag distance passes the commit threshold, advances one card in
+     * swipe direction; otherwise returns to the current card.
+     *
+     * @param event  The touch end event.
+     */
+    void endCarouselSwipe(const cugl::TouchEvent& event);
+
+    /**
+     * Returns the absolute target x-position for the given card index.
+     *
+     * This anchor mapping is used by both drag clamping and snap targets.
+     *
+     * @param index  The card index in the carousel.
+     *
+     * @return the absolute x-position anchor for that index.
+     */
+    float getTargetXForIndex(int index) const;
+
+    /**
+     * Snaps the carousel to a valid card based on drag displacement.
+     *
+     * Uses a thresholded one-step commit model to reduce accidental changes.
+     */
+    void snapToNearestIndex();
+    
+    /**
      * Reconfigures the lock button for this scene
      *
      * This is necessary because what the buttons do depends on the state of the
@@ -178,9 +243,9 @@ private:
      * index is out of bounds. Otherwise computes the target container
      * position and stores it in `_slideTarget`.
      *
-     * @param newIndex The index of the item to slide to.
+    * @param newIndex  The index of the item to slide to.
      */
-    void slideTo(int index);
+    void slideTo(int newIndex);
     
     /**
      * Updates the circular indicators at the bottom of what card in the carousel
