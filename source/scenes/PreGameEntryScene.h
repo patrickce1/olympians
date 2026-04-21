@@ -27,8 +27,23 @@ protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
 
-    /** The network controller shared across all scenes*/
+    /** The network controller shared across all scenes */
     std::shared_ptr<NetworkController> _network;
+    
+    /** Action Timeline for node animations e.g clouds */
+    std::shared_ptr<cugl::ActionTimeline> _timeline;
+    
+    /** The top-right cloud image to be eased in */
+    std::shared_ptr<cugl::scene2::SceneNode> _topClouds;
+    
+    /** The center-bottom cloud image to be eased in*/
+    std::shared_ptr<cugl::scene2::SceneNode> _bottomClouds;
+    
+    /** The original Position of the top cloud */
+    cugl::Vec2 _topCloudPos;
+    
+    /** The original Position of the bottom cloud */
+    cugl::Vec2 _bottomCloudPos;
 
     /** The loading bar for entering a game */
     std::shared_ptr<cugl::scene2::ProgressBar> _loadingBar;
@@ -170,6 +185,8 @@ private:
      * @param players  The display-ordered list of players to read house names from.
      */
     void updateEntryScreenTiles(std::vector<Player*> players);
+    
+    void animateCloudsIn();
 };
 
 #endif /* __PRE_GAME_ENTRY_SCENE_H__ */

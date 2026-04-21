@@ -63,6 +63,8 @@ bool PreGameEntryScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
     // behavior when the host presses Begin Quest.
     _itemController = itemController;
     
+    _timeline = ActionTimeline::alloc();
+    
     addChild(scene);
     setActive(false);
     return true;
@@ -78,6 +80,12 @@ bool PreGameEntryScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
 void PreGameEntryScene::setupUI() {
     _loadingBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
         _assets->get<scene2::SceneNode>("preGameEntryScene.loadingBar.preGameBarFill"));
+    
+    _topClouds = _assets->get<scene2::SceneNode>("preGameEntryScene.preEntryCloud");
+    if (_topClouds) _topCloudPos = _topClouds->getPosition();
+    
+    _bottomClouds = _assets->get<scene2::SceneNode>("preGameEntryScene.preEntryBottomCloud");
+    if (_bottomClouds) _bottomCloudPos = _bottomClouds->getPosition();
     
     auto bottomSection = _assets->get<scene2::SceneNode>("preGameEntryScene.bottomSection");
     auto topSection = _assets->get<scene2::SceneNode>("preGameEntryScene.topSection");
@@ -117,7 +125,10 @@ void PreGameEntryScene::dispose() {
         _playerNames.clear();
         _playerTiles.clear();
         _houseNames.clear();
+        _topClouds = nullptr;
+        _bottomClouds = nullptr;
         _loadingBar = nullptr;
+        _timeline = nullptr;
         _active = false;
     }
     _network = nullptr;
@@ -140,6 +151,16 @@ void PreGameEntryScene::setActive(bool value) {
             if (_loadingBar) {
                 _loadingBar->setProgress(0.0f);
             }
+            
+            if (_topClouds) {
+                _topClouds->setPosition(_topCloudPos + Vec2(0, 300)); // above screen
+            }
+
+            if (_bottomClouds) {
+                _bottomClouds->setPosition(_bottomCloudPos - Vec2(0, 300)); // below screen
+            }
+
+            animateCloudsIn();
         }
     }
 }
@@ -169,6 +190,8 @@ void PreGameEntryScene::update(float timestep) {
     std::vector<Player*> displayOrder = remapPlayersForDisplay();
     updateEntryScreenTiles(displayOrder);
     updateEntryScreenText(displayOrder);
+    
+    _timeline->update(timestep);
 }
 
 /**
@@ -235,6 +258,22 @@ void PreGameEntryScene::updateEntryScreenText(std::vector<Player*> players) {
         std::string name = players[i]->getHouseName();
         for (char &c : name) c = toupper(c);
         _houseNames[i]->setText(name);
+    }
+}
+
+void PreGameEntryScene::animateCloudsIn() {
+    if (_topClouds) {
+        auto moveTop = cugl::scene2::MoveTo::alloc(_topCloudPos);
+        auto easing = EasingFactory::alloc(EasingFactory::Type::CUBIC_OUT);
+
+        _timeline->add("top_clouds", moveTop->attach(_topClouds), 1.2f, easing);
+    }
+
+    if (_bottomClouds) {
+        auto moveBottom = cugl::scene2::MoveTo::alloc(_bottomCloudPos);
+        auto easing = EasingFactory::alloc(EasingFactory::Type::CUBIC_OUT);
+
+        _timeline->add("bottom_clouds", moveBottom->attach(_bottomClouds), 1.2f, easing);
     }
 }
 
