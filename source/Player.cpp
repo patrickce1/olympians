@@ -135,7 +135,7 @@ void Player::applyBarrier(float multiplier, float duration) {
 void Player::updateEffects(float dt) {
     if (_shieldDuration > 0.0f) {
         _shieldDuration = std::max(0.0f, _shieldDuration - dt);
-        if (_shieldDuration == 0.0f) {
+        if (_shieldDuration <= 0.0f) {
             _hasShield = false;
             _shieldHealth = 0.0f;
             CULog("Shield expired: player='%s' house='%s' reason='duration'",
@@ -146,7 +146,7 @@ void Player::updateEffects(float dt) {
 
     if (_barrierDuration > 0.0f) {
         _barrierDuration = std::max(0.0f, _barrierDuration - dt);
-        if (_barrierDuration == 0.0f) {
+        if (_barrierDuration <= 0.0f) {
             _hasBarrier = false;
             _barrierMultiplier = 1.0f;
         }
