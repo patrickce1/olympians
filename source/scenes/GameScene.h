@@ -88,10 +88,19 @@ struct ItemUseAnimation {
     
     /** Pre-calculated damage amount to apply when reaching the resolution frame. */
     float damageAmount = 0.0f;
+
+    /** Base item value before multipliers, for popup display. */
+    float baseValue = 0.0f;
+
+    /** Combined house/affinity multiplier (damageAmount / baseValue), for popup display. */
+    float totalMultiplier = 1.0f;
     
     /** Reserved for future use: originally stored itemId for deferred calculation (now pre-calculated). */
     ItemInstance::ItemId itemId = 0;
-    
+
+    /** Scene-space position where the popup should appear at damage resolution. */
+    cugl::Vec2 popupPosition;
+
     /** Elapsed time in seconds since animation started. Used to calculate current frame. */
     float elapsedTime = 0.0f;
     
@@ -123,6 +132,20 @@ struct AnimationEntry {
     float scale = 0.92f;             /**< Scale multiplier for this animation */
     float offsetX = 0.0f;            /**< X offset from base position */
     float offsetY = 0.0f;            /**< Y offset from base position */
+};
+
+/**
+ * Data for a single popup in a sequence.
+ * General-purpose for any game event: damage, heals, buffs, status effects, health popups, etc.
+ */
+struct FloatingPopupData {
+    std::string text;
+    float fontSize = 32.0f;
+    cugl::Color4 color = cugl::Color4::WHITE;
+    float delaySeconds = 0.0f;
+    float displayDuration = 2.0f;
+    cugl::Vec2 positionOffset = cugl::Vec2::ZERO;
+    bool playSound = true;
 };
 
 /**
@@ -294,6 +317,33 @@ protected:
     std::vector<ConsumedItemAnimation> _consumedItemAnimations;
     /** Vector of currently active item use animations. Multiple animations can play concurrently. */
     std::vector<ItemUseAnimation> _activeItemUseAnimations;
+
+#pragma mark - Floating Popup State
+
+    struct FloatingPopupAnimation {
+        std::shared_ptr<cugl::scene2::SceneNode> node;
+        float elapsed = 0.0f;
+        float animationInDuration = 0.1f;
+        float displayDuration = 2.0f;
+        float animationOutDuration = 0.2f;
+        float displayScale = 1.0f;
+        enum AnimationPhase { IN, DISPLAY, OUT };
+        AnimationPhase phase = IN;
+    };
+
+    struct PendingFloatingPopup {
+        FloatingPopupData data;
+        cugl::Vec2 position;
+        float spawnTime;
+        float elapsed = 0.0f;
+    };
+
+    std::vector<FloatingPopupAnimation> _activeFloatingPopups;
+    std::vector<PendingFloatingPopup> _pendingFloatingPopups;
+
+    static constexpr float FLOATING_POPUP_ANIM_IN  = 0.1f;
+    static constexpr float FLOATING_POPUP_ANIM_OUT = 0.2f;
+    static constexpr float FLOATING_POPUP_BASE_FONT_SIZE = 48.0f;
 
 #pragma mark - Glow Effect State
 
@@ -1035,7 +1085,21 @@ public:
      *
      * @return true if there are active animations, false otherwise
      */
-    bool hasActiveItemAnimations() const { return !_activeItemUseAnimations.empty(); }    
+    bool hasActiveItemAnimations() const { return !_activeItemUseAnimations.empty(); }
+
+    /**
+     * Creates a sequence of animated text popups at a screen location.
+     * Each popup animates in (scale+fade), displays, then fades out.
+     * Popups with non-zero delaySeconds are spawned after the specified delay.
+     *
+     * @param screenPosition  On-screen position where popups appear
+     * @param popups          Sequence of FloatingPopupData defining each popup
+     */
+    void createFloatingPopup(
+        const cugl::Vec2& screenPosition,
+        const std::vector<FloatingPopupData>& popups
+    );
+
     /** Checks if an item is currently playing an animation.
      * Used to prevent respawning items that are mid-animation.
      *
@@ -1099,16 +1163,19 @@ public:
     
     /**
      * Removes an item from a player's inventory by item instance ID.
-     * 
+     *
      * Searches for the item in the player's inventory and erases it if found.
      * This is used to decouple item removal from damage calculation, allowing
      * animations and effects to be applied between consumption and damage.
-     * 
+     *
      * @param player   The player whose inventory to modify
      * @param itemId   The unique ID of the item instance to remove
      * @return         true if item was found and successfully removed, false otherwise
      */
     bool removeItemFromInventory(Player* player, ItemInstance::ItemId itemId);
+
+    void spawnSingleFloatingPopup(const FloatingPopupData& data, const cugl::Vec2& position);
+    void updateFloatingPopupAnimations(float dt);
     
 #pragma mark - Inventory UI
 

@@ -100,7 +100,8 @@
                 "cols": 4,
                 "frameCount": 4,
                 "animationDuration": 0.332,
-                "damageResolutionFrame": 3
+                "damageResolutionFrame": 3,
+                "centerOnDropLocation": true
             }
         },
         {
@@ -120,7 +121,8 @@
                 "cols": 15,
                 "frameCount": 15,
                 "animationDuration": 1.245,
-                "damageResolutionFrame": 7
+                "damageResolutionFrame": 7,
+                "centerOnDropLocation": true
             }
         },
         {
@@ -218,7 +220,8 @@
                 "cols": 8,
                 "frameCount": 8,
                 "animationDuration": 0.664,
-                "damageResolutionFrame": 6
+                "damageResolutionFrame": 6,
+                "centerOnDropLocation": true
             }
         },
         {

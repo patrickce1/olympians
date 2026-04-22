@@ -288,9 +288,10 @@ void ItemDef::parseItemUseAnimation(const std::shared_ptr<JsonValue>& json) {
         animConfig.frameCount = animData->getInt("frameCount");
         animConfig.animationDuration = animData->getFloat("animationDuration");
         animConfig.damageResolutionFrame = animData->getInt("damageResolutionFrame");
-        
-        CULog("DEBUG: Parsed animation config: rows=%d, cols=%d, frames=%d, duration=%.3f, resFrame=%d",
-              animConfig.rows, animConfig.cols, animConfig.frameCount, animConfig.animationDuration, animConfig.damageResolutionFrame);
+        animConfig.centerOnDropLocation = animData->getBool("centerOnDropLocation", false);
+
+        CULog("DEBUG: Parsed animation config: rows=%d, cols=%d, frames=%d, duration=%.3f, resFrame=%d, centerOnDropLocation=%d",
+              animConfig.rows, animConfig.cols, animConfig.frameCount, animConfig.animationDuration, animConfig.damageResolutionFrame, (int)animConfig.centerOnDropLocation);
         
         // Validate animation config
         if (!animConfig.spriteSheetId.empty() && animConfig.rows > 0 && animConfig.cols > 0 &&
