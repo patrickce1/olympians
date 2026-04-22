@@ -1,3 +1,4 @@
+
 {
   "enemies": [
     {
@@ -6,12 +7,14 @@
       "maxHealth": 100.0,
       "spritesheetPath": "textures/cyclops.png",
       "ai": {
-        "retargetLikelihood": 0.35,
-        "defenseLikelihood": 0.15
+        "retargetLikelihood": 0.5,
+        "defenseLikelihood": 0.25
       },
       "customData": {
         "defense1Threshold": 0.75,
-        "defense2Threshold": 0.25
+        "defense2Threshold": 0.25,
+        "boulderTossReductionAmount": 1.0,
+        "franticRate": 1.0
       },
       "states": {
         "idle": {
@@ -22,135 +25,26 @@
               "type": "SIDE_MODIFIER",
               "target": 0,
               "amount": 2.0
-    "enemies": [
-        {
-            "id": "cyclops",
-            "name": "cyclops",
-            "maxHealth": 100.0,
-            "spritesheetPath": "textures/cyclops.png",
-            "ai": {
-                "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.25
-            },
-            "customData": {
-                "eyeMultiplier": 2.0
-            },
-            "states": {
-                "idle": {
-                    "name": "idle",
-                    "animationKey": "cyclops_idle_animation"
-                },
-                "attack_1": {
-                    "name": "club",
-                    "animationKey": "cyclops_boulder_animation",
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 0.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        }
-                    ],
-                    "nextState": "attack_2"
-                },
-                "attack_2": {
-                    "name": "stomp",
-                    "animationKey": "cyclops_boulder_animation",
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        },
-			            {
-                            "type": "DAMAGE",
-                            "target": 1,
-                            "amount": 1.0
-                        },
-			            {
-                            "type": "DAMAGE",
-                            "target": 2,
-                            "amount": 1.0
-                        },
-			            {
-                            "type": "DAMAGE",
-                            "target": 3,
-                            "amount": 1.0
-                        }
-                    ],
-                    "nextState": "idle"
-                },
-                "attack_3": {
-                    "name": "boulder toss",
-                    "animationKey": "cyclops_boulder_animation",
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
-                    "events": [
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        },
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
-                        }
-                    ],
-                    "nextState": "idle"
-                },
-		        "defensive_move" : {
-                    "name": "eye cover",
-                    "animationKey": "cyclops_idle_animation",
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
-                    "events": [
-                        {
-                            "type": "SIDE_MODIFIER",
-                            "target": 0,
-                            "amount": 2.0
-                        },
-			            {
-                            "type": "SIDE_MODIFIER",
-                            "target": 1,
-                            "amount": 1.0
-                        },
-			            {
-                            "type": "SIDE_MODIFIER",
-                            "target": 2,
-                            "amount": 1.0
-                        },
-			            {
-                            "type": "SIDE_MODIFIER",
-                            "target": 3,
-                            "amount": 0.0
-                        }
-		            ],
-                    "nextState": "idle"
-                }
             }
           ]
         },
         "attack_1": {
           "name": "club",
-          "animationKey": "cyclops_idle_animation",
+          "animationKey": "cyclops_boulder_animation",
           "buildUpTime": 4.0,
           "cooldownTime": 0.0,
           "events": [
             {
               "type": "DAMAGE",
               "target": 0,
-              "amount": 1.0
+              "amount": 3.0
             }
           ],
           "nextState": "attack_2"
         },
         "attack_2": {
           "name": "stomp",
-          "animationKey": "cyclops_idle_animation",
+          "animationKey": "cyclops_boulder_animation",
           "buildUpTime": 4.0,
           "cooldownTime": 5.0,
           "events": [
@@ -179,14 +73,14 @@
         },
         "attack_3": {
           "name": "boulder toss",
-          "animationKey": "cyclops_idle_animation",
-          "buildUpTime": 10.0,
-          "cooldownTime": 3.0,
+          "animationKey": "cyclops_boulder_animation",
+          "buildUpTime": 4.0,
+          "cooldownTime": 5.0,
           "events": [
             {
               "type": "DAMAGE",
               "target": 0,
-              "amount": 3.0
+              "amount": 5.0
             }
           ],
           "nextState": "idle"
@@ -200,7 +94,7 @@
             {
               "type": "SIDE_MODIFIER",
               "target": 0,
-              "amount": 0.0
+              "amount": 0
             },
             {
               "type": "SIDE_MODIFIER",
@@ -210,12 +104,12 @@
             {
               "type": "SIDE_MODIFIER",
               "target": 2,
-              "amount": 1.0
+              "amount": 0.5
             },
             {
               "type": "SIDE_MODIFIER",
               "target": 3,
-              "amount": 0.5
+              "amount": 0.0
             }
           ],
           "nextState": "idle"
@@ -266,7 +160,7 @@
           "events": [
             {
               "type": "HEAL",
-              "amount": 10.0   
+              "amount": 10.0
             }
           ],
           "nextState": "idle"

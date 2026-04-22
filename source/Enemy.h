@@ -250,7 +250,7 @@ public:
 
 protected:
     /** Boolean that decides if we are sending debug messages or not*/
-    bool _debug = false;
+    bool _debug = true;
     /** Initializes this enemy instance from an enemy definition.
      * Sets up state machine, health, side multipliers, and AI parameters.
      * 
@@ -272,9 +272,6 @@ protected:
 
     /** Sets the cooldown timer based on the current state of the enemy. */
     void applyCooldown();
-
-    /** Returns the next state if defined by current state or "idle" by default. */
-    EnemyLoader::State getNextStateOrIdle() const;
 
     /** If the boss is currently in cooldown, it skips the cooldown */
     void skipCooldown();

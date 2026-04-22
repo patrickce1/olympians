@@ -1,6 +1,6 @@
 // EnemyController.cpp
 #include "EnemyController.h"
-#include "GameScene.h"
+#include "scenes/GameScene.h"
 #include <algorithm>
 
 using namespace cugl;

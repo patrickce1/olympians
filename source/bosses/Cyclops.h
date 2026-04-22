@@ -12,14 +12,12 @@ private:
 	float _defense1Threshold;
 	/** The health value (absolute, percentage) at which the second enrage triggers */
 	float _defense2Threshold;
+	/** The rate at which Cyclops starts to shorten the wait times in his states. A value of 1 means that all build up goes by 1 second faster than usual*/
+	float _franticRate;
 
-	/** This variable is used in boulder toss to check how long it has been since our last turn
-	  * It is used to clamp the turning rate to prevent the cyclops looking like he is glitching in and out
-	 */
-
-	/**
-	 * This variable defines the clamp of the rate at which the cyclops turns
-	*/
+	/** The rate at which a hit from players shortens the boulder toss build up. 
+	  * Ex. a value of 1.0 means the build up time is shortened by 1 second every time cyclops is hit*/
+	float _boulderTossReductionAmount;
 
 public:
 	Cyclops() {}
@@ -32,6 +30,9 @@ public:
 	
 	/** Override of the enemy update method for custom logic 
 	 * @param dt is the time that passed from the last time update was called
+	 * 
+	 * The boss attacks immidately upon the defense thesholds being triggered
+	 * Certain defense thresholds being met also makes the boss more frantic, switching states more often
 	 */
 	void update(float dt) override;
 

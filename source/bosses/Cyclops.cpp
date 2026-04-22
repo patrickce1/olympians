@@ -10,6 +10,8 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
 	//Extract and assign the defense thresholds
 	_defense1Threshold = Enemy::getMaxHealth() * _customData->getFloat("defense1Threshold", 1.0f);
 	_defense2Threshold = Enemy::getMaxHealth() * _customData->getFloat("defense2Threshold", 1.0f);
+	_franticRate = _customData->getFloat("franticRate", 1.0f);
+	_boulderTossReductionAmount = _customData->getFloat("boulderTossReductionAmount", 1.0f);
 	return success;
 }
 
@@ -18,6 +20,17 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
  */
 void Cyclops::update(float dt) {
 	Enemy::update(dt);
+
+	//Cyclops becomes more frantic as his defense thresholds are met
+	//His build up times are shortened
+	if (Enemy::getCurrentHealth() < _defense1Threshold) {
+		_stateTime += dt * _franticRate;
+	}
+	if (Enemy::getCurrentHealth() < _defense2Threshold) {
+		//basically double the rate by subtracting again
+		_stateTime += dt * _franticRate;
+	}
+
 	//end the current state ASAP to be able to enter defense if the condition was met
 	bool threshold1Met = Enemy::getCurrentHealth() < _defense1Threshold && !_defense1Triggered;
 	bool threshold2Met = Enemy::getCurrentHealth() < _defense1Threshold && !_defense2Triggered;
@@ -65,13 +78,9 @@ bool Cyclops::shouldDefend() {
 void Cyclops::takeDamage(float damage, int playerIndex) {
 	//ATTACK_3 should correspond to the boulder toss for cyclops
 	if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
-		//Make Cyclops face whoever hit him
+		//Make Cyclops face whoever hit him and shorten wait time
 		Enemy::setTargetIndex(playerIndex);
-		//Set the timer to the end of the attack, so that it triggers
-		float shortenedTime = Enemy::getStates().at(EnemyLoader::State::ATTACK_3).buildUpTime - 1;
-		if (Enemy::getStateTime() > shortenedTime) {
-			Enemy::setStateTime(shortenedTime);
-		}
+		_stateTime -= _boulderTossReductionAmount;
 		//Debug statement
 		if (_debug) {
 			CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);

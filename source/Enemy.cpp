@@ -1,6 +1,6 @@
 // Enemy.cpp
 #include "Enemy.h"
-#include "GameScene.h"
+#include "scenes/GameScene.h"
 #include <algorithm>
 #include <cmath>
 #include <cugl/cugl.h>
@@ -387,6 +387,8 @@ bool Enemy::shouldDefend() {
 /** If the boss is currently in cooldown, it skips the cooldown */
 void Enemy::skipCooldown() {
     _attackLockout = 0.0;
+}
+
 /**
  * TESTING ONLY: Resets the static enemy loader state to allow reinitializing with different parameters.
  * Used to clear cached loader state between test runs and actual game initialization.
