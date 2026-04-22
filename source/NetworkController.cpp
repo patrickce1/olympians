@@ -339,6 +339,24 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             break;
         }
         case MessageType::LOBBY_UPDATE: {
+            
+            // If we were in a migration window but were not promoted,
+            // receiving a LOBBY_UPDATE from the new host means migration
+            // resolved without us. Clear _migrating so sendOrQueue routes
+            // messages live again instead of queuing them forever.
+            if (_migrating && !_promotedToHost) {
+                CULog("[MIGRATION] Received LOBBY_UPDATE while migrating but not promoted "
+                      "— migration resolved by another client. Clearing migration flag.");
+                _migrating = false;
+
+                // Flush anything that queued up during the migration window
+                std::vector<std::pair<std::string, std::vector<std::byte>>> toFlush;
+                toFlush.swap(_migrationQueue);
+                for (auto& [dest, data] : toFlush) {
+                    sendOrQueue(dest, data);
+                }
+            }
+            
             std::vector<std::string> playerData = _deserializer.readStringVector();
             _uuidToSlot.clear();
             _playersInfo.clear();
