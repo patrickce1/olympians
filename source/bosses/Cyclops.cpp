@@ -80,7 +80,7 @@ void Cyclops::takeDamage(float damage, int playerIndex) {
 	if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
 		//Make Cyclops face whoever hit him and shorten wait time
 		Enemy::setTargetIndex(playerIndex);
-		_stateTime -= _boulderTossReductionAmount;
+		_stateTime += _boulderTossReductionAmount;
 		//Debug statement
 		if (_debug) {
 			CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
