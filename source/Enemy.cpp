@@ -1,6 +1,6 @@
 // Enemy.cpp
 #include "Enemy.h"
-#include "GameScene.h"
+#include "scenes/GameScene.h"
 #include <algorithm>
 #include <cmath>
 #include <cugl/cugl.h>
