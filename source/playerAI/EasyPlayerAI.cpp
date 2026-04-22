@@ -6,19 +6,19 @@
 bool EasyPlayerAI::init(const ItemDatabase& db, const std::string& path) {
     auto reader = cugl::JsonReader::alloc(path);
     if (!reader) {
-        CULogError("EasyPlayerAI::init — failed to open %s", path.c_str());
+        if (_debug) CULogError("EasyPlayerAI::init — failed to open %s", path.c_str());
         return false;
     }
 
     auto json = reader->readJson();
     if (!json) {
-        CULogError("EasyPlayerAI::init — failed to parse %s", path.c_str());
+        if (_debug) CULogError("EasyPlayerAI::init — failed to parse %s", path.c_str());
         return false;
     }
 
     auto config = json->get("easyPlayerAI");
     if (!config) {
-        CULogError("EasyPlayerAI::init — missing 'easyPlayerAI' block in %s", path.c_str());
+        if (_debug) CULogError("EasyPlayerAI::init — missing 'easyPlayerAI' block in %s", path.c_str());
         return false;
     }
 
@@ -30,28 +30,28 @@ bool EasyPlayerAI::init(const ItemDatabase& db, const std::string& path) {
     if (config->has("thinkInterval") && config->get("thinkInterval")->isNumber()) {
         _thinkInterval = config->getFloat("thinkInterval");
     } else {
-        CULogError("EasyPlayerAI::init — missing or invalid 'thinkInterval' in %s", path.c_str());
+        if (_debug) CULogError("EasyPlayerAI::init — missing or invalid 'thinkInterval' in %s", path.c_str());
         valid = false;
     }
 
     if (config->has("aggressionWeight") && config->get("aggressionWeight")->isNumber()) {
         _aggressionWeight = config->getFloat("aggressionWeight");
     } else {
-        CULogError("EasyPlayerAI::init — missing or invalid 'aggressionWeight' in %s", path.c_str());
+        if (_debug) CULogError("EasyPlayerAI::init — missing or invalid 'aggressionWeight' in %s", path.c_str());
         valid = false;
     }
 
     if (config->has("supportWeight") && config->get("supportWeight")->isNumber()) {
         _supportWeight = config->getFloat("supportWeight");
     } else {
-        CULogError("EasyPlayerAI::init — missing or invalid 'supportWeight' in %s", path.c_str());
+        if (_debug) CULogError("EasyPlayerAI::init — missing or invalid 'supportWeight' in %s", path.c_str());
         valid = false;
     }
 
     if (config->has("healThreshold") && config->get("healThreshold")->isNumber()) {
         _healThreshold = config->getFloat("healThreshold");
     } else {
-        CULogError("EasyPlayerAI::init — missing or invalid 'healThreshold' in %s", path.c_str());
+        if (_debug) CULogError("EasyPlayerAI::init — missing or invalid 'healThreshold' in %s", path.c_str());
         valid = false;
     }
 
@@ -128,12 +128,12 @@ void EasyPlayerAI::actAttack(Enemy& enemy, ItemController& items) {
     }
 
     if (attackItems.empty()){
-        CULog("[EasyPlayerAI '%s'] actAttack — no attack items in inventory, aborting", getPlayerName().c_str());
+        if (_debug) CULog("[EasyPlayerAI '%s'] actAttack — no attack items in inventory, aborting", getPlayerName().c_str());
         return;
     }
 
     ItemInstance::ItemId chosen = attackItems[rand() % attackItems.size()];
-    CULog("[EasyPlayerAI '%s'] actAttack — using item %llu on enemy '%s'",
+    if (_debug) CULog("[EasyPlayerAI '%s'] actAttack — using item %llu on enemy '%s'",
           getPlayerName().c_str(),
           (unsigned long long)chosen,
           enemy.getId().c_str());
@@ -161,7 +161,7 @@ void EasyPlayerAI::actSupport(ItemController& items) {
     check(getRightPlayer());
 
     if (!target){
-        CULog("[EasyPlayerAI '%s'] actSupport — no neighbour below healThreshold %.2f, aborting",
+        if (_debug) CULog("[EasyPlayerAI '%s'] actSupport — no neighbour below healThreshold %.2f, aborting",
                 getPlayerName().c_str(), _healThreshold);
         return;
     }
@@ -175,13 +175,13 @@ void EasyPlayerAI::actSupport(ItemController& items) {
     }
 
     if (supportItems.empty()){
-        CULog("[EasyPlayerAI '%s'] actSupport — no support items in inventory, aborting",
+        if (_debug) CULog("[EasyPlayerAI '%s'] actSupport — no support items in inventory, aborting",
                 getPlayerName().c_str());
         return;
     }
 
     ItemInstance::ItemId chosen = supportItems[rand() % supportItems.size()];
-    CULog("[EasyPlayerAI '%s'] actSupport — using item %llu on '%s' (hp ratio=%.2f)",
+    if (_debug) CULog("[EasyPlayerAI '%s'] actSupport — using item %llu on '%s' (hp ratio=%.2f)",
           getPlayerName().c_str(),
           (unsigned long long)chosen,
           target->getPlayerName().c_str(),
@@ -194,7 +194,7 @@ void EasyPlayerAI::actSupport(ItemController& items) {
  */
 void EasyPlayerAI::actPass() {
     if (getInventory().empty()) {
-        CULog("[EasyPlayerAI '%s'] actPass — inventory empty, aborting", getPlayerName().c_str());
+        if (_debug) CULog("[EasyPlayerAI '%s'] actPass — inventory empty, aborting", getPlayerName().c_str());
         return;
     }
 
@@ -205,7 +205,7 @@ void EasyPlayerAI::actPass() {
         targets.push_back(getRightPlayer());
 
     if (targets.empty()) {
-        CULog("[EasyPlayerAI '%s'] actPass — no alive neighbours, aborting", getPlayerName().c_str());
+        if (_debug) CULog("[EasyPlayerAI '%s'] actPass — no alive neighbours, aborting", getPlayerName().c_str());
         return;
     }
 
@@ -221,7 +221,7 @@ void EasyPlayerAI::actPass() {
         passDirection = 2;  // Passing right
     }
     
-    CULog("[EasyPlayerAI '%s'] actPass — passing item %llu to '%s'",
+    if (_debug) CULog("[EasyPlayerAI '%s'] actPass — passing item %llu to '%s'",
           getPlayerName().c_str(),
           (unsigned long long)item.getId(),
           chosenTarget->getPlayerName().c_str());

@@ -19,6 +19,10 @@ private:
     
     /** The inventory of the player stored as a vector of ItemInstance objects*/
     std::vector<ItemInstance> _inventory;
+
+    /** Debug boolean. Set to false to prevent debug statements */
+    bool _debug = false;
+
     /** The player number of this user**/
     int _playerNumber;
     /** The player name*/
