@@ -12,6 +12,10 @@ using namespace std;
 #define ROLE_CARD_WIDTH 300
 /** Interpolation smoothing factor*/
 #define SMOOTHING_FACTOR 0.2f
+/** Finger movement dampening while dragging carousel */
+#define SWIPE_DRAG_RESISTANCE 0.55f
+/** Fraction of card width required to commit a swipe */
+#define SWIPE_COMMIT_THRESHOLD 0.33f
 
 #pragma mark -
 #pragma mark Provided Methods
@@ -110,6 +114,8 @@ void HouseSelectScene::setupUI() {
         for (int i = 0; i < _houseLoader.getAllOrdered().size(); i++) {
             _houseCards.push_back(_houseSelectionCardContainer->getChild(i));
         }
+        _carouselBasePos = _houseSelectionCardContainer->getPosition();
+        _carouselBaseIndex = _currentIndex;
     }
     
     auto houseCarouselDotsContainer = _assets->get<scene2::SceneNode>("houseSelectScene.classSelectionCarouselIcons");
@@ -218,8 +224,28 @@ void HouseSelectScene::dispose() {
 void HouseSelectScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
+        auto touch = Input::get<Touchscreen>();
+        
         if (value) {
             _status = WAITING;
+            _activeTouch = -1;
+            _isTouchDragging = false;
+                        
+            _touchKey = touch->acquireKey(); //Get the key for the touch.
+            //Add all listeners.
+            //Detect touch
+            touch->addBeginListener(_touchKey, [this](const TouchEvent& event, bool focus){
+                this->beginCarouselSwipe(event);
+            });
+            //Allow for the smooth movement
+            touch->addMotionListener(_touchKey, [this](const TouchEvent& event, const Vec2& prev, bool focus){
+                this->updateCarouselSwipe(event);
+            });
+            touch->addEndListener(_touchKey, [this](const TouchEvent& event, bool focus){
+                this->endCarouselSwipe(event);
+            });
+                        
+            
 
             if (_pendingReset) {
                 _pendingReset = false;
@@ -252,6 +278,10 @@ void HouseSelectScene::setActive(bool value) {
             _rightButton->activate();
             _backButton->activate();
         } else {
+            //Dispose of the listeners.
+            touch->removeBeginListener(_touchKey);
+            touch->removeMotionListener(_touchKey);
+            touch->removeEndListener(_touchKey);
             // Save current state before deactivating
             SlotState& state = _slotStates[_targetSlot];
             state.carouselIndex = _currentIndex;
@@ -269,6 +299,75 @@ void HouseSelectScene::setActive(bool value) {
         }
     }
 }
+
+/**
+ * Begins tracking a swipe gesture for carousel drag.
+ *
+ * The gesture is ignored while snap animation is active.
+ *
+ * @param event  The touch begin event.
+ */
+void HouseSelectScene::beginCarouselSwipe(const cugl::TouchEvent& event) {
+   //Don't realize the swip if the carousel is getting in position or there is none.
+    if (_isAnimating || !_houseSelectionCardContainer) {
+        return;
+    }
+    //Register the touch and determine the origin of the card.
+    _activeTouch = event.touch;
+    _touchStartPos = event.position;
+    _touchStartContainerPos = _houseSelectionCardContainer->getPosition();
+    _isTouchDragging = true;
+}
+
+/**
+ * Updates carousel x-position during an active swipe.
+ *
+ * Movement is damped to feel less slippery and clamped to endpoint anchors
+ * so the user cannot drag past the first/last boss card.
+ *
+ * @param event  The touch motion event.
+ */
+void HouseSelectScene::updateCarouselSwipe(const cugl::TouchEvent& event) {
+    //Don't run if there isn't an active touch, we are already dragging, or animating.
+    if (!_isTouchDragging || event.touch != _activeTouch || _isAnimating || !_houseSelectionCardContainer) {
+        return;
+    }
+    //Difference in x between current finger loaction and the start.
+    const float rawDx = event.position.x - _touchStartPos.x;
+    //Dampened to not feel slippery.
+    const float dx = rawDx * SWIPE_DRAG_RESISTANCE;
+    //
+    const int lastIndex = (int)_houseCards.size() - 1;
+    if (lastIndex < 0) {
+        return;
+    }
+
+    float newX = _touchStartContainerPos.x + dx;
+
+    Vec2 pos = _houseSelectionCardContainer->getPosition();
+    _houseSelectionCardContainer->setPosition(Vec2(newX, pos.y));
+}
+
+/**
+ * Finishes swipe tracking and resolves to a snapped card index.
+ *
+ * @param event  The touch end event.
+ */
+void HouseSelectScene::endCarouselSwipe(const cugl::TouchEvent& event) {
+    if (event.touch != _activeTouch) {
+        return;
+    }
+
+    if (_isTouchDragging) {
+        snapToNearestIndex();
+    }
+
+    //End the touch
+    _isTouchDragging = false;
+    _activeTouch = -1;
+}
+
+
 
 /**
  * Updates the text in the given button.
@@ -358,13 +457,8 @@ void HouseSelectScene::slideTo(int newIndex) {
 
     _isAnimating = true;
 
-    float shiftAmount = ROLE_CARD_WIDTH;
-    
-    int deltaIndex = newIndex - _currentIndex;
     Vec2 currentPos = _houseSelectionCardContainer->getPosition();
-    float targetX = currentPos.x - (deltaIndex * shiftAmount);
-    
-    _slideTarget = Vec2(targetX, currentPos.y);
+    _slideTarget = Vec2(getTargetXForIndex(newIndex),currentPos.y);
     _currentIndex = newIndex;
     
     for (int i = 0; i < _houseCards.size(); i++) {
@@ -387,6 +481,63 @@ void HouseSelectScene::slideTo(int newIndex) {
 }
 
 /**
+ * Returns the absolute target x-position for the given card index.
+ *
+ * @param index  The card index in the carousel.
+ *
+ * @return the absolute x-position anchor for that index.
+ */
+float HouseSelectScene::getTargetXForIndex(int index) const {
+    //converting an index into an absolute x position.
+    float carouselXAnchor = _carouselBasePos.x;
+    int stepsFromBase = index - _carouselBaseIndex;
+    //pixel offset from the anchor card to the target card
+    float pixelOffset = (stepsFromBase * ROLE_CARD_WIDTH);
+    return carouselXAnchor - pixelOffset;
+}
+
+/**
+ * Resolves swipe result to a discrete selection.
+ *
+ * Small drags snap back to current index. Drags past threshold commit one
+ * step in swipe direction and are clamped to valid index range.
+ */
+void HouseSelectScene::snapToNearestIndex() {
+    if (!_houseSelectionCardContainer || _houseCards.empty()) {
+        return;
+    }
+    
+    const float currentX = _houseSelectionCardContainer->getPosition().x;
+    const float anchorX = getTargetXForIndex(_currentIndex);
+    //Distance of current x from base of the carousel.
+    const float delta = currentX - anchorX;
+    const float threshold = ROLE_CARD_WIDTH * SWIPE_COMMIT_THRESHOLD;
+
+    int target = _currentIndex;
+    if (std::abs(delta) >= threshold) {
+        // Right drag (delta > 0) should move to previous card; left drag to next.
+        if (delta > 0){
+            target = (_currentIndex - 1);
+        }
+        else {
+            target = (_currentIndex + 1);
+        }
+        //Stay in bounds
+        if (target < 0){
+            target = 0;
+        }
+        
+        int last = (int)_houseCards.size() - 1;
+        if (target > last){
+            target = last;
+        }
+    }
+
+    slideTo(target);
+}
+
+
+/**
  * Updates the circular indicators at the bottom of what card in the carousel
  * we are currently at.
  *
@@ -399,9 +550,9 @@ void HouseSelectScene::updateCarouselDots(int currentIndex) {
         auto fill   = node->getChildByName("fill");
         
         if (i == currentIndex) {
-            fill->setColor(Color4("#4c3214ff"));
-        } else {
             fill->setColor(Color4("#9d7137ff"));
+        } else {
+            fill->setColor(Color4("#4c3214ff"));
         }
     }
 }
