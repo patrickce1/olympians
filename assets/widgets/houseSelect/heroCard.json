@@ -3,7 +3,9 @@
         "glow" : ["children","glowOverlayHero", "data", "visible"],
         "heroPoster": ["children","heroPoster", "data", "texture"],
         "heroName": ["children","title", "children", "HERO", "data", "text"],
-        "heroStats": ["children","heroStats", "data", "texture"]
+        "heroStats": ["children","heroStats", "data", "texture"],
+        "rare": ["children", "heroItems", "children", "rare", "data", "texture"],
+        "divine": ["children", "heroItems", "children", "divine", "data", "texture"]
     },
     "contents": {
         "type": "Node",
@@ -199,6 +201,98 @@
                     "absolute": false,
                     "x_offset": 0.18,
                     "y_offset": -0.75
+                }
+            },
+            "heroItems": {
+                "type": "Node",
+                "format": {
+                    "type": "Float",
+                    "x_alignment": "center",
+                    "y_alignment": "middle",
+                    "orientation": "horizontal"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        131,
+                        80
+                    ],
+                    "angle": 0,
+                    "position": [
+                        53,
+                        125
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "rare": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "item_sword",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                60,
+                                60
+                            ],
+                            "angle": 0,
+                            "position": [
+                                30,
+                                30
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "priority": 0,
+                            "padding": [
+                                0,
+                                0,
+                                -9,
+                                0
+                            ]
+                        }
+                    },
+                    "divine": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "item_poseidon_tide",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                72,
+                                72
+                            ],
+                            "angle": 0,
+                            "position": [
+                                91,
+                                40
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "priority": 1,
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ]
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.16,
+                    "y_offset": -0.62
                 }
             }
         }
