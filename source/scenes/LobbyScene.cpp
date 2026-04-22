@@ -249,6 +249,7 @@ void LobbyScene::setActive(bool value) {
                 _network->disconnect();
                 _pendingDisconnect = false;
             }
+            _hasJoinedLobby = false;
             _backButton->deactivate();
             _enterGame->deactivate();
             _bossLobbyButton->deactivate();
@@ -413,7 +414,13 @@ void LobbyScene::update(float timestep) {
             return;
         }
         
-        _network->broadcastJoinedLobby();
+        // Only broadcast our join once — sending every frame causes
+        // re-registration of disconnected players since the host treats
+        // any unrecognized UUID as a new joiner.
+        if (!_hasJoinedLobby) {
+            _network->broadcastJoinedLobby();
+            _hasJoinedLobby = true;
+        }
     }
     else {
         _gameId->setText("#####");

@@ -349,12 +349,9 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
                       "— migration resolved by another client. Clearing migration flag.");
                 _migrating = false;
 
-                // Flush anything that queued up during the migration window
-                std::vector<std::pair<std::string, std::vector<std::byte>>> toFlush;
-                toFlush.swap(_migrationQueue);
-                for (auto& [dest, data] : toFlush) {
-                    sendOrQueue(dest, data);
-                }
+                // Discard stale messages queued during the migration window —
+                // they contain outdated damage/heal values and must not be replayed.
+                _migrationQueue.clear();
             }
             
             std::vector<std::string> playerData = _deserializer.readStringVector();

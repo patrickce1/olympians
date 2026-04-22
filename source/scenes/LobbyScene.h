@@ -90,6 +90,9 @@ protected:
     
     /** Needed to init AI players when assigning missing houses at game start. */
     ItemController* _itemController = nullptr;
+    
+    /** True once we have broadcast our join message this session. */
+    bool _hasJoinedLobby = false;
 
 public:
 #pragma mark -
