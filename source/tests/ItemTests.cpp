@@ -126,7 +126,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
  * Verifies that:
  * - ItemDatabase loads house multipliers successfully from parsed JSON
  * - All six houses (Zeus, Poseidon, Athena, Ares, Hephaestus, Demeter) have loaded multipliers
- * - All multiplier values (attack, support, utility) are bounded in [0.0, 1.0]
+ * - All multiplier values (attack, support) are bounded in [0.0, 1.0]
  * - Affinity bonus values are positive (> 0.0)
  *
  * @param housesJson Parsed JSON object containing house definitions with multiplier data
@@ -164,7 +164,7 @@ void testHouseMultipliersLoad(const std::shared_ptr<cugl::JsonValue>& housesJson
  * Tests parsing of enum string representations (Type, Rarity, House).
  *
  * Verifies that ItemDef parsing functions correctly convert strings to enum values:
- * - Type parsing: "attack", "support", "utility"
+ * - Type parsing: "attack", "support"
  * - Rarity parsing: "common", "rare", "divine"
  * - House parsing: "Zeus", "Ares", "none", and other house names
  */
@@ -227,7 +227,7 @@ void testWeightedRollAndInstanceCreation(const std::shared_ptr<cugl::JsonValue>&
  *
  * Verifies that ItemDatabase correctly rejects items with:
  * - Invalid rarity values (not in {common, rare, divine})
- * - Invalid type values (not in {attack, support, utility})
+ * - Invalid type values (not in {attack, support})
  *
  * Uses fixture JSON files stored in assets/json/tests/ directory.
  */
@@ -251,7 +251,7 @@ void testValidationFailures() {
  * Tests multiplier value clamping and default fallbacks for missing or invalid values.
  *
  * Verifies that ItemDatabase correctly:
- * - Clamps attack/support/utility values to [0.0, 1.0]
+ * - Clamps attack/support values to [0.0, 1.0]
  * - Defaults missing slider values to 0.0
  * - Defaults invalid or missing affinityBonus to 1.5
  * - Creates default entries for houses without multiplier data
