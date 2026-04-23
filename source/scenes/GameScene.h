@@ -320,21 +320,39 @@ protected:
 
 #pragma mark - Floating Popup State
 
+    /**
+     * Tracks one live floating-text popup animation.
+     * Advances through three phases: scale-in, display, then fade-out.
+     */
     struct FloatingPopupAnimation {
+        /** Container scene node holding the outline copies and colored label. */
         std::shared_ptr<cugl::scene2::SceneNode> node;
+        /** Time elapsed in the current animation, in seconds. */
         float elapsed = 0.0f;
+        /** Duration of the scale-in phase, in seconds. */
         float animationInDuration = 0.1f;
+        /** Duration the popup holds at full scale before fading, in seconds. */
         float displayDuration = 2.0f;
+        /** Duration of the fade-out phase, in seconds. */
         float animationOutDuration = 0.2f;
+        /** Target scale derived from the popup's font size relative to the base font size. */
         float displayScale = 1.0f;
         enum AnimationPhase { IN, DISPLAY, OUT };
         AnimationPhase phase = IN;
     };
 
+    /**
+     * A popup that has been queued but not yet spawned.
+     * Spawned once its delay timer elapses in updateFloatingPopupAnimations().
+     */
     struct PendingFloatingPopup {
+        /** Visual and timing data for this popup. */
         FloatingPopupData data;
+        /** Final screen-space position (base position + positionOffset already applied). */
         cugl::Vec2 position;
+        /** Delay in seconds before this popup spawns. */
         float spawnTime;
+        /** Time elapsed since the popup was queued, in seconds. */
         float elapsed = 0.0f;
     };
 
@@ -1174,8 +1192,93 @@ public:
      */
     bool removeItemFromInventory(Player* player, ItemInstance::ItemId itemId);
 
+    /**
+     * Immediately builds the scene-graph nodes for one floating popup and adds it to
+     * the active animation list. Creates a container node sized to the text bounds,
+     * adds 8 black outline copies at cardinal and diagonal offsets, then adds the
+     * colored label on top. All children are anchored to the container center.
+     *
+     * @param data      Visual and timing parameters for the popup.
+     * @param position  Screen-space center position for the popup.
+     */
     void spawnSingleFloatingPopup(const FloatingPopupData& data, const cugl::Vec2& position);
+
+    /**
+     * Advances all pending and active floating popups by one frame.
+     * Pending popups are spawned once their delay timer elapses.
+     * Active popups animate through scale-in, display, and fade-out phases, then
+     * are removed from the scene graph when complete.
+     *
+     * @param dt  Delta time in seconds.
+     */
     void updateFloatingPopupAnimations(float dt);
+
+    /**
+     * Returns the screen-space drop position of the given item's physics body.
+     * Falls back to the viewport center (55% height) when no body is found.
+     *
+     * @param itemId  The item instance whose body position to resolve.
+     * @return        Screen-space position to anchor popups at.
+     */
+    cugl::Vec2 resolveItemDropPosition(ItemInstance::ItemId itemId) const;
+
+    /**
+     * Builds the ordered popup sequence for an attack item use.
+     *
+     * Produces a 3-entry sequence when the side multiplier is neutral (≈1.0):
+     *   base damage (grey) → house multiplier (yellow) → final damage (color-coded)
+     *
+     * Produces a 5-entry sequence when a meaningful side multiplier is present:
+     *   base → house mult → pre-enemy damage → side mult → final damage
+     *
+     * @param baseValue          Item's raw base damage.
+     * @param totalMultiplier    Combined house/affinity multiplier.
+     * @param sideMultiplier     Enemy side multiplier for the attacking player.
+     * @param preSideDamage      Damage after house multiplier, before side multiplier.
+     * @param finalDamage        Damage after all multipliers applied.
+     * @param valueFontSize      Font size for value popups (base, pre-enemy, final).
+     * @param multiplierFontSize Base font size for multiplier popups (house, side).
+     * @return Ordered list of FloatingPopupData for the sequence.
+     */
+    std::vector<FloatingPopupData> buildAttackDamagePopups(
+        float baseValue, float totalMultiplier, float sideMultiplier,
+        float preSideDamage, float finalDamage,
+        float valueFontSize, float multiplierFontSize
+    ) const;
+
+    /**
+     * Builds the ordered popup sequence for a heal support item use.
+     *
+     * Returns a 3-entry sequence when a house multiplier is active:
+     *   base heal (grey) → multiplier (yellow) → final heal (green)
+     *
+     * Returns a 1-entry sequence when the multiplier is neutral (≈1.0):
+     *   final heal (green)
+     *
+     * @param baseValue     Item's raw base heal value.
+     * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
+     * @return Ordered list of FloatingPopupData for the sequence.
+     */
+    std::vector<FloatingPopupData> buildHealPopups(float baseValue, float resolvedHeal) const;
+
+    /**
+     * Fires visual popups for any shield or barrier effects on a support item.
+     * Shield effects show "[X.X]" in cyan; barrier effects show "[XX%]" in purple,
+     * where the percentage is the damage reduction (e.g. multiplier 0.5 → "50%").
+     * Must be called before useItemById so shield-only items (which return magnitude=0)
+     * still produce a popup.
+     *
+     * @param def      The item definition whose effects to scan.
+     * @param dropPos  Screen-space position where popups appear.
+     */
+    void spawnEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos);
+
+    /**
+     * Plays the item's defined use sound, or the generic "support" sound if none is set.
+     *
+     * @param def  The item definition.
+     */
+    void playSupportItemSound(const std::shared_ptr<const ItemDef>& def);
     
 #pragma mark - Inventory UI
 

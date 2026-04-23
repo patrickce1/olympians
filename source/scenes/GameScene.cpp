@@ -564,8 +564,8 @@ void GameScene::reset() {
 
     // Clear any active animations before resetting
     clearItemUseAnimations();
-    for (auto& anim : _activeFloatingPopups) {
-        if (anim.node) anim.node->removeFromParent();
+    for (auto& popupAnim : _activeFloatingPopups) {
+        if (popupAnim.node) popupAnim.node->removeFromParent();
     }
     _activeFloatingPopups.clear();
     _pendingFloatingPopups.clear();
@@ -653,41 +653,32 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
 bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
                                       const std::shared_ptr<const ItemDef>& def,
                                       Player* local, Enemy* enemy) {
-    // Capture drop position before item is consumed.
-    cugl::Vec2 dropPos;
-    auto bodyIt = _itemBodies.find(itemId);
-    if (bodyIt != _itemBodies.end() && bodyIt->second) {
-        dropPos = bodyIt->second->getPosition();
-    }
-    // Vec2::ZERO signals startItemUseAnimation to use the default viewport center
+    const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
 
-    // Calculate damage upfront for the animation
     const float resolvedMagnitude = calculateItemDamage(local, def, _itemController.getDatabase());
     if (resolvedMagnitude <= 0.0f) {
         return false;
     }
 
-    // Remove item from inventory
     if (!removeItemFromInventory(local, item.getId())) {
         CULog("ERROR: Failed to remove item %llu from inventory", (unsigned long long)item.getId());
         return false;
     }
 
     const auto& animConfig = def->getItemUseAnimation();
-
     CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
           resolvedMagnitude);
 
-    // Animation position: viewport center by default, or drop position if centerOnDropLocation=true in JSON
-    cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
-    const float baseValue = def->getBaseValue();
+    // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
+    const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
+    const float baseValue      = def->getBaseValue();
     const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
 
     startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
     if (!_activeItemUseAnimations.empty()) {
-        _activeItemUseAnimations.back().popupPosition = dropPos;
-        _activeItemUseAnimations.back().baseValue = baseValue;
-        _activeItemUseAnimations.back().totalMultiplier = totalMultiplier;
+        _activeItemUseAnimations.back().popupPosition   = dropPos;
+        _activeItemUseAnimations.back().baseValue        = baseValue;
+        _activeItemUseAnimations.back().totalMultiplier  = totalMultiplier;
     }
 
     return true;
@@ -708,17 +699,8 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
 bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
                                        const std::shared_ptr<const ItemDef>& def,
                                        Player* local, Enemy* enemy) {
-    // Capture drop position before item is consumed.
-    cugl::Vec2 dropPos;
-    auto bodyIt = _itemBodies.find(itemId);
-    if (bodyIt != _itemBodies.end() && bodyIt->second) {
-        dropPos = bodyIt->second->getPosition();
-    } else {
-        cugl::Size viewSize = getSize();
-        dropPos = cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
-    }
+    const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
 
-    // Apply damage immediately using the standard useItemById path
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude <= 0.0f) {
         return false;
@@ -727,59 +709,20 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     CULog("Player attacked enemy '%s' with item %llu (damage: %.1f, immediate)",
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
 
-    // Broadcast damage immediately to network if not host
     if (!_network->isHost()) {
         _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
     }
-
-    // Host hears enemy take damage immediately
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique("enemy_hurt");
         CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
     }
 
-    {
-        const float baseValue       = def->getBaseValue();
-        const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
-        const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
-        const float finalDamage     = resolvedMagnitude * sideMultiplier;
-        const bool  hasSideMult     = (std::abs(sideMultiplier - 1.0f) > 0.01f);
-
-        char baseBuf[32], houseBuf[32], preBuf[32], sideBuf[32], finalBuf[32];
-        std::snprintf(baseBuf,  sizeof(baseBuf),  "-%.1f", baseValue);
-        std::snprintf(houseBuf, sizeof(houseBuf), "%.1fx", totalMultiplier);
-        std::snprintf(preBuf,   sizeof(preBuf),   "-%.1f", resolvedMagnitude);
-        std::snprintf(sideBuf,  sizeof(sideBuf),  "%.1fx", sideMultiplier);
-        std::snprintf(finalBuf, sizeof(finalBuf), "-%.1f", finalDamage);
-
-        const float houseLog    = 0.2f * std::log(std::max(1.0f, totalMultiplier));
-        const float sideLog     = 0.2f * std::log(std::max(1.0f, sideMultiplier));
-        const float combinedLog = 0.2f * std::log(std::max(1.0f, totalMultiplier * sideMultiplier));
-        const cugl::Color4 sideColor = (sideMultiplier >= 1.0f)
-            ? cugl::Color4(150, 220,  80, 255)
-            : cugl::Color4(120, 160, 255, 255);
-        auto dmgColor = [](float dmg) -> cugl::Color4 {
-            if (dmg < 1.0f)  return cugl::Color4(140, 180, 255, 255);
-            if (dmg < 1.5f)  return cugl::Color4(255, 165,  40, 255);
-            return                  cugl::Color4(255,  55,  55, 255);
-        };
-
-        if (hasSideMult) {
-            createFloatingPopup(dropPos, {
-                FloatingPopupData{baseBuf,  26.0f,                    cugl::Color4(160, 160, 160, 255), 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
-                FloatingPopupData{houseBuf, 17.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
-                FloatingPopupData{preBuf,   26.0f*(1.0f+houseLog),    dmgColor(resolvedMagnitude),      0.3f,  0.15f, cugl::Vec2::ZERO,         true},
-                FloatingPopupData{sideBuf,  17.0f*(1.0f+sideLog),     sideColor,                        0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
-                FloatingPopupData{finalBuf, 26.0f*(1.0f+combinedLog), dmgColor(finalDamage),            0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
-            });
-        } else {
-            createFloatingPopup(dropPos, {
-                FloatingPopupData{baseBuf,  26.0f,                 cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-                FloatingPopupData{houseBuf, 17.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-                FloatingPopupData{finalBuf, 26.0f*(1.0f+houseLog), dmgColor(resolvedMagnitude),      0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
-            });
-        }
-    }
+    const float baseValue      = def->getBaseValue();
+    const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
+    const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
+    const float finalDamage     = resolvedMagnitude * sideMultiplier;
+    createFloatingPopup(dropPos, buildAttackDamagePopups(
+        baseValue, totalMultiplier, sideMultiplier, resolvedMagnitude, finalDamage, 26.0f, 17.0f));
 
     return true;
 }
@@ -795,90 +738,28 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
     if (!local || !target || !target->isAlive() || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
-        if (item.getId() != itemId) {
-            continue;
-        }
+        if (item.getId() != itemId) continue;
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Support) {
-            // Shield/barrier popups fire before the magnitude guard (these items return 0)
-            {
-                cugl::Vec2 dropPos;
-                auto bodyIt = _itemBodies.find(itemId);
-                if (bodyIt != _itemBodies.end() && bodyIt->second) {
-                    dropPos = bodyIt->second->getPosition();
-                } else {
-                    cugl::Size viewSize = getSize();
-                    dropPos = cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
-                }
-                for (const auto& effect : def->getEffects()) {
-                    if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
-                        char buf[32];
-                        std::snprintf(buf, sizeof(buf), "[%.1f]", effect.mitigation);
-                        createFloatingPopup(dropPos, {
-                            FloatingPopupData{buf, 26.0f, cugl::Color4(80, 200, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}
-                        });
-                    } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier > 0.0f) {
-                        char buf[32];
-                        const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
-                        std::snprintf(buf, sizeof(buf), "[%.0f%%]", reductionPct);
-                        createFloatingPopup(dropPos, {
-                            FloatingPopupData{buf, 26.0f, cugl::Color4(180, 80, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}
-                        });
-                    }
-                }
-            }
+        if (!def || def->getType() != ItemDef::Type::Support) return false;
 
-            const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-            if (resolvedMagnitude <= 0.0f) {
-                return false;
-            }
+        const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
 
-            //NETWORK
-            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
-                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
-            }
-            // Play the item use sound if defined, otherwise play the support sound
-            const std::string& itemUseSound = def->getItemUseSound();
-            if (!itemUseSound.empty()) {
-                _audio->playSoundUnique(itemUseSound);
-            } else {
-                _audio->playSoundUnique("support");
-            }
-            CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
+        // Shield/barrier popups must fire before useItemById because shield-only
+        // items return 0 and would be filtered by the magnitude guard below.
+        spawnEffectPopups(def, dropPos);
 
-            {
-                cugl::Vec2 dropPos;
-                auto bodyIt = _itemBodies.find(itemId);
-                if (bodyIt != _itemBodies.end() && bodyIt->second) {
-                    dropPos = bodyIt->second->getPosition();
-                } else {
-                    cugl::Size viewSize = getSize();
-                    dropPos = cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
-                }
-                const float baseValue      = def->getBaseValue();
-                const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
-                const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
-                char baseBuf[32], multBuf[32], finalBuf[32];
-                std::snprintf(baseBuf,  sizeof(baseBuf),  "+%.1f", baseValue);
-                std::snprintf(multBuf,  sizeof(multBuf),  "%.1fx", totalMultiplier);
-                std::snprintf(finalBuf, sizeof(finalBuf), "+%.1f", resolvedMagnitude);
-                if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
-                    createFloatingPopup(dropPos, {
-                        FloatingPopupData{baseBuf,  26.0f,                 cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-                        FloatingPopupData{multBuf,  17.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-                        FloatingPopupData{finalBuf, 26.0f*(1.0f+houseLog), cugl::Color4( 80, 220,  80, 255), 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
-                    });
-                } else {
-                    createFloatingPopup(dropPos, {
-                        FloatingPopupData{finalBuf, 26.0f, cugl::Color4(80, 220, 80, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true},
-                    });
-                }
-            }
-            return true;
+        const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
+        if (resolvedMagnitude <= 0.0f) return false;
+
+        if (!_network->isHost()) {
+            _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
         }
-        return false;
+        playSupportItemSound(def);
+        CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
+        return true;
     }
     return false;
 }
@@ -894,90 +775,28 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
     if (!local || !target || !target->isAlive() || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
-        if (item.getId() != itemId) {
-            continue;
-        }
+        if (item.getId() != itemId) continue;
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Support) {
-            // Shield/barrier popups fire before the magnitude guard (these items return 0)
-            {
-                cugl::Vec2 dropPos;
-                auto bodyIt = _itemBodies.find(itemId);
-                if (bodyIt != _itemBodies.end() && bodyIt->second) {
-                    dropPos = bodyIt->second->getPosition();
-                } else {
-                    cugl::Size viewSize = getSize();
-                    dropPos = cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
-                }
-                for (const auto& effect : def->getEffects()) {
-                    if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
-                        char buf[32];
-                        std::snprintf(buf, sizeof(buf), "[%.1f]", effect.mitigation);
-                        createFloatingPopup(dropPos, {
-                            FloatingPopupData{buf, 26.0f, cugl::Color4(80, 200, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}
-                        });
-                    } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier > 0.0f) {
-                        char buf[32];
-                        const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
-                        std::snprintf(buf, sizeof(buf), "[%.0f%%]", reductionPct);
-                        createFloatingPopup(dropPos, {
-                            FloatingPopupData{buf, 26.0f, cugl::Color4(180, 80, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}
-                        });
-                    }
-                }
-            }
+        if (!def || def->getType() != ItemDef::Type::Support) return false;
 
-            const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-            if (resolvedMagnitude <= 0.0f) {
-                return false;
-            }
+        const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
 
-            //NETWORK
-            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
-                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
-            }
-            // Play the item use sound if defined, otherwise play the support sound
-            const std::string& itemUseSound = def->getItemUseSound();
-            if (!itemUseSound.empty()) {
-                _audio->playSoundUnique(itemUseSound);
-            } else {
-                _audio->playSoundUnique("support");
-            }
-            CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
+        // Shield/barrier popups must fire before useItemById because shield-only
+        // items return 0 and would be filtered by the magnitude guard below.
+        spawnEffectPopups(def, dropPos);
 
-            {
-                cugl::Vec2 dropPos;
-                auto bodyIt = _itemBodies.find(itemId);
-                if (bodyIt != _itemBodies.end() && bodyIt->second) {
-                    dropPos = bodyIt->second->getPosition();
-                } else {
-                    cugl::Size viewSize = getSize();
-                    dropPos = cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
-                }
-                const float baseValue       = def->getBaseValue();
-                const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
-                const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
-                char baseBuf[32], multBuf[32], finalBuf[32];
-                std::snprintf(baseBuf,  sizeof(baseBuf),  "+%.1f", baseValue);
-                std::snprintf(multBuf,  sizeof(multBuf),  "%.1fx", totalMultiplier);
-                std::snprintf(finalBuf, sizeof(finalBuf), "+%.1f", resolvedMagnitude);
-                if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
-                    createFloatingPopup(dropPos, {
-                        FloatingPopupData{baseBuf,  26.0f,                 cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-                        FloatingPopupData{multBuf,  17.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-                        FloatingPopupData{finalBuf, 26.0f*(1.0f+houseLog), cugl::Color4( 80, 220,  80, 255), 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
-                    });
-                } else {
-                    createFloatingPopup(dropPos, {
-                        FloatingPopupData{finalBuf, 26.0f, cugl::Color4(80, 220, 80, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true},
-                    });
-                }
-            }
-            return true;
+        const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
+        if (resolvedMagnitude <= 0.0f) return false;
+
+        if (!_network->isHost()) {
+            _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
         }
-        return false;
+        playSupportItemSound(def);
+        CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
+        return true;
     }
     return false;
 }
@@ -2891,8 +2710,8 @@ void GameScene::clearConsumedItemAnimations() {
  * @return true if the item has an active animation, false otherwise
  */
 bool GameScene::isItemAnimating(ItemInstance::ItemId itemId) const {
-    for (const auto& anim : _activeItemUseAnimations) {
-        if (anim.itemId == itemId) {
+    for (const auto& activeAnim : _activeItemUseAnimations) {
+        if (activeAnim.itemId == itemId) {
             return true;
         }
     }
@@ -3436,103 +3255,55 @@ void GameScene::updateItemUseAnimations(float dt) {
     std::vector<size_t> completedIndices;
     
     for (size_t i = 0; i < _activeItemUseAnimations.size(); ++i) {
-        auto& anim = _activeItemUseAnimations[i];
-        
-        // Advance elapsed time
-        anim.elapsedTime += dt;
-        
-        // Calculate normalized progress (0.0 to 1.0)
-        float progress = std::min(1.0f, anim.elapsedTime / anim.animationDuration);
-        
-        // Calculate which frame we're on
-        int frameIndex = static_cast<int>(progress * anim.frameCount);
-        frameIndex = std::min(frameIndex, anim.frameCount - 1);  // Clamp to valid range
-        
-        // Only call setFrame if the frame index actually changed
-        if (frameIndex != anim.currentFrameIndex) {
-            anim.currentFrameIndex = frameIndex;
-            anim.node->setFrame(frameIndex);
+        auto& activeAnim = _activeItemUseAnimations[i];
+
+        activeAnim.elapsedTime += dt;
+
+        const float progress   = std::min(1.0f, activeAnim.elapsedTime / activeAnim.animationDuration);
+        int         frameIndex = std::min(static_cast<int>(progress * activeAnim.frameCount),
+                                          activeAnim.frameCount - 1);
+
+        if (frameIndex != activeAnim.currentFrameIndex) {
+            activeAnim.currentFrameIndex = frameIndex;
+            activeAnim.node->setFrame(frameIndex);
         }
-        
-        // Check if we've reached or passed the damage resolution frame
-        if (!anim.damageResolved && frameIndex >= anim.damageResolutionFrame) {
-            anim.damageResolved = true;
-            
-            // Apply pre-calculated damage to enemy at resolution frame
-            // This is where gameplay effect systems can hook in
-            if (anim.damageAmount > 0.0f) {
+
+        if (!activeAnim.damageResolved && frameIndex >= activeAnim.damageResolutionFrame) {
+            activeAnim.damageResolved = true;
+
+            if (activeAnim.damageAmount > 0.0f) {
                 auto enemy = _gameState.getEnemy();
                 if (enemy) {
-                    enemy->takeDamage(anim.damageAmount, _gameState.getLocalPlayer()->getPlayerNumber());
+                    const int   playerNum      = _gameState.getLocalPlayer()->getPlayerNumber();
+                    const float sideMultiplier = enemy->getSideMultiplier(playerNum);
+                    const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
 
-                    {
-                        const int   playerNum      = _gameState.getLocalPlayer()->getPlayerNumber();
-                        const float sideMultiplier = enemy->getSideMultiplier(playerNum);
-                        const float finalDamage    = anim.damageAmount * sideMultiplier;
-                        const bool  hasSideMult    = (std::abs(sideMultiplier - 1.0f) > 0.01f);
+                    enemy->takeDamage(activeAnim.damageAmount, playerNum);
+                    createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
+                        activeAnim.baseValue, activeAnim.totalMultiplier, sideMultiplier,
+                        activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
 
-                        char baseBuf[32], houseBuf[32], preBuf[32], sideBuf[32], finalBuf[32];
-                        std::snprintf(baseBuf,  sizeof(baseBuf),  "-%.1f", anim.baseValue);
-                        std::snprintf(houseBuf, sizeof(houseBuf), "%.1fx", anim.totalMultiplier);
-                        std::snprintf(preBuf,   sizeof(preBuf),   "-%.1f", anim.damageAmount);
-                        std::snprintf(sideBuf,  sizeof(sideBuf),  "%.1fx", sideMultiplier);
-                        std::snprintf(finalBuf, sizeof(finalBuf), "-%.1f", finalDamage);
-
-                        const float houseLog    = 0.2f * std::log(std::max(1.0f, anim.totalMultiplier));
-                        const float sideLog     = 0.2f * std::log(std::max(1.0f, sideMultiplier));
-                        const float combinedLog = 0.2f * std::log(std::max(1.0f, anim.totalMultiplier * sideMultiplier));
-                        const cugl::Color4 sideColor = (sideMultiplier >= 1.0f)
-                            ? cugl::Color4(150, 220,  80, 255)
-                            : cugl::Color4(120, 160, 255, 255);
-                        auto dmgColor = [](float dmg) -> cugl::Color4 {
-                            if (dmg < 1.0f)  return cugl::Color4(120, 160, 255, 255);
-                            if (dmg < 1.5f)  return cugl::Color4(255, 150,  30, 255);
-                            return                  cugl::Color4(220,  30,  30, 255);
-                        };
-
-                        if (hasSideMult) {
-                            createFloatingPopup(anim.popupPosition, {
-                                FloatingPopupData{baseBuf,  22.0f,                    cugl::Color4(160, 160, 160, 255), 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
-                                FloatingPopupData{houseBuf, 14.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
-                                FloatingPopupData{preBuf,   22.0f*(1.0f+houseLog),    dmgColor(anim.damageAmount),      0.3f,  0.15f, cugl::Vec2::ZERO,         true},
-                                FloatingPopupData{sideBuf,  14.0f*(1.0f+sideLog),     sideColor,                        0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
-                                FloatingPopupData{finalBuf, 22.0f*(1.0f+combinedLog), dmgColor(finalDamage),            0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
-                            });
-                        } else {
-                            createFloatingPopup(anim.popupPosition, {
-                                FloatingPopupData{baseBuf,  22.0f,                 cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-                                FloatingPopupData{houseBuf, 14.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-                                FloatingPopupData{finalBuf, 22.0f*(1.0f+houseLog), dmgColor(anim.damageAmount),      0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
-                            });
-                        }
-                    }
-
-                    // Only non-hosts broadcast damage messages.
-                    // Hosts apply damage locally and broadcast it via broadcastGameState().
+                    // Non-hosts broadcast damage so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
-                        Player* local = _gameState.getLocalPlayer();
-                        _network->broadcastDamage(anim.damageAmount, local->getPlayerNumber());
+                        _network->broadcastDamage(activeAnim.damageAmount, playerNum);
                     }
                 }
             }
-            
-            // Play enemy_hurt sound at resolution frame
-            // Host plays it immediately; clients will hear it through network sync
+
+            // Host plays enemy_hurt immediately; clients hear it via network sync.
             if (_network && _network->isHost() && _audio) {
                 _audio->playSoundUnique("enemy_hurt");
             }
         }
-        
-        // Check if animation is complete
-        if (anim.elapsedTime >= anim.animationDuration) {
-            anim.node->removeFromParent();
+
+        if (activeAnim.elapsedTime >= activeAnim.animationDuration) {
+            activeAnim.node->removeFromParent();
             completedIndices.push_back(i);
         }
     }
     
-    // Remove completed animations in reverse order to maintain indices
-    for (auto completedIndexIter = completedIndices.rbegin(); completedIndexIter != completedIndices.rend(); ++completedIndexIter) {
-        _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *completedIndexIter);
+    for (auto indexToRemove = completedIndices.rbegin(); indexToRemove != completedIndices.rend(); ++indexToRemove) {
+        _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *indexToRemove);
     }
 }
 
@@ -3594,9 +3365,9 @@ void GameScene::loadAnimationRegistry() {
  */
 void GameScene::clearItemUseAnimations() {
     // Remove all animation nodes from the scene graph
-    for (auto& anim : _activeItemUseAnimations) {
-        if (anim.node) {
-            anim.node->removeFromParent();
+    for (auto& activeAnim : _activeItemUseAnimations) {
+        if (activeAnim.node) {
+            activeAnim.node->removeFromParent();
         }
     }
     
@@ -3604,6 +3375,147 @@ void GameScene::clearItemUseAnimations() {
     _activeItemUseAnimations.clear();
 }
 
+// ---------------------------------------------------------------------------
+// Popup color helper (file-scope, not part of the class API)
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps a damage multiplier magnitude to a popup color.
+ * Blue for sub-1.0, orange for 1.0–1.5, red for anything above 1.5.
+ */
+static cugl::Color4 damageColor(float damage) {
+    if (damage < 1.0f) return cugl::Color4(140, 180, 255, 255);
+    if (damage < 1.5f) return cugl::Color4(255, 165,  40, 255);
+    return                   cugl::Color4(255,  55,  55, 255);
+}
+
+// ---------------------------------------------------------------------------
+// Popup helper implementations
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the screen-space drop position of the given item's physics body.
+ * Falls back to the viewport center (55% height) when no body is found.
+ */
+cugl::Vec2 GameScene::resolveItemDropPosition(ItemInstance::ItemId itemId) const {
+    auto bodyEntry = _itemBodies.find(itemId);
+    if (bodyEntry != _itemBodies.end() && bodyEntry->second) {
+        return bodyEntry->second->getPosition();
+    }
+    cugl::Size viewSize = getSize();
+    return cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
+}
+
+/**
+ * Builds the ordered popup sequence for an attack item use.
+ * See header for full parameter and sequence documentation.
+ */
+std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
+    float baseValue, float totalMultiplier, float sideMultiplier,
+    float preSideDamage, float finalDamage,
+    float valueFontSize, float multiplierFontSize) const
+{
+    const bool hasSideMult = (std::abs(sideMultiplier - 1.0f) > 0.01f);
+
+    char baseBuf[32], houseBuf[32], preBuf[32], sideBuf[32], finalBuf[32];
+    std::snprintf(baseBuf,  sizeof(baseBuf),  "-%.1f", baseValue);
+    std::snprintf(houseBuf, sizeof(houseBuf), "%.1fx", totalMultiplier);
+    std::snprintf(preBuf,   sizeof(preBuf),   "-%.1f", preSideDamage);
+    std::snprintf(sideBuf,  sizeof(sideBuf),  "%.1fx", sideMultiplier);
+    std::snprintf(finalBuf, sizeof(finalBuf), "-%.1f", finalDamage);
+
+    const float houseLog    = 0.2f * std::log(std::max(1.0f, totalMultiplier));
+    const float sideLog     = 0.2f * std::log(std::max(1.0f, sideMultiplier));
+    const float combinedLog = 0.2f * std::log(std::max(1.0f, totalMultiplier * sideMultiplier));
+
+    const cugl::Color4 sideColor = (sideMultiplier >= 1.0f)
+        ? cugl::Color4(150, 220,  80, 255)
+        : cugl::Color4(120, 160, 255, 255);
+
+    if (hasSideMult) {
+        return {
+            {baseBuf,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
+            {houseBuf, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
+            {preBuf,   valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        0.3f,  0.15f, cugl::Vec2::ZERO,         true},
+            {sideBuf,  multiplierFontSize * (1.0f + sideLog),          sideColor,                        0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
+            {finalBuf, valueFontSize      * (1.0f + combinedLog),      damageColor(finalDamage),          0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
+        };
+    }
+    return {
+        {baseBuf,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+        {houseBuf, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+        {finalBuf, valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+    };
+}
+
+/**
+ * Builds the ordered popup sequence for a heal support item use.
+ * See header for full parameter and sequence documentation.
+ */
+std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal) const {
+    const float totalMultiplier = (baseValue > 0.0f) ? resolvedHeal / baseValue : 1.0f;
+    const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
+
+    char baseBuf[32], multBuf[32], finalBuf[32];
+    std::snprintf(baseBuf,  sizeof(baseBuf),  "+%.1f", baseValue);
+    std::snprintf(multBuf,  sizeof(multBuf),  "%.1fx", totalMultiplier);
+    std::snprintf(finalBuf, sizeof(finalBuf), "+%.1f", resolvedHeal);
+
+    const cugl::Color4 healGreen(80, 220, 80, 255);
+
+    if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
+        return {
+            {baseBuf,  26.0f,                    cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+            {multBuf,  17.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+            {finalBuf, 26.0f*(1.0f+houseLog),    healGreen,                        0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+        };
+    }
+    return {
+        {finalBuf, 26.0f, healGreen, 0.0f, 0.5f, cugl::Vec2::ZERO, true},
+    };
+}
+
+/**
+ * Fires visual popups for any shield or barrier effects on a support item.
+ * Must be called before useItemById so shield-only items still produce a popup.
+ * See header for full documentation.
+ */
+void GameScene::spawnEffectPopups(const std::shared_ptr<const ItemDef>& def,
+                                   const cugl::Vec2& dropPos) {
+    for (const auto& effect : def->getEffects()) {
+        if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
+            char buf[32];
+            std::snprintf(buf, sizeof(buf), "[%.1f]", effect.mitigation);
+            createFloatingPopup(dropPos, {{buf, 26.0f, cugl::Color4(80, 200, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+        } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier > 0.0f) {
+            char buf[32];
+            const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
+            std::snprintf(buf, sizeof(buf), "[%.0f%%]", reductionPct);
+            createFloatingPopup(dropPos, {{buf, 26.0f, cugl::Color4(180, 80, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+        }
+    }
+}
+
+/**
+ * Plays the item's defined use sound, or the generic "support" sound if none is set.
+ */
+void GameScene::playSupportItemSound(const std::shared_ptr<const ItemDef>& def) {
+    const std::string& soundKey = def->getItemUseSound();
+    _audio->playSoundUnique(soundKey.empty() ? "support" : soundKey);
+}
+
+// ---------------------------------------------------------------------------
+// Popup queuing, spawning, and animation
+// ---------------------------------------------------------------------------
+
+/**
+ * Queues a sequence of popups to appear at a screen position.
+ * Popups with a non-zero delaySeconds are held in the pending list until
+ * their delay elapses in updateFloatingPopupAnimations().
+ *
+ * @param screenPosition  Base screen-space position (positionOffset from each popup is added on top).
+ * @param popups          Ordered sequence of popup descriptors.
+ */
 void GameScene::createFloatingPopup(
     const cugl::Vec2& screenPosition,
     const std::vector<FloatingPopupData>& popups)
@@ -3619,19 +3531,26 @@ void GameScene::createFloatingPopup(
     }
 }
 
+/**
+ * Immediately builds and activates one floating popup.
+ * Measures the label's text bounds, sizes the container to match so
+ * ANCHOR_CENTER resolves correctly, then adds 8 black outline copies
+ * (cardinal + diagonal offsets) followed by the colored label on top.
+ * Registers the container in _activeFloatingPopups to begin animating.
+ */
 void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cugl::Vec2& position) {
     auto font = _assets->get<cugl::graphics::Font>("gamePin");
     if (!font) return;
 
     if (data.playSound && _audio) _audio->playSoundUnique("popup_ding");
 
-    float displayScale = data.fontSize / FLOATING_POPUP_BASE_FONT_SIZE;
+    const float displayScale = data.fontSize / FLOATING_POPUP_BASE_FONT_SIZE;
 
     auto label = cugl::scene2::Label::allocWithText(data.text, font);
     if (!label) return;
     label->setForeground(data.color);
-    cugl::Size textSize = label->getContentSize();
-    cugl::Vec2 center(textSize.width * 0.5f, textSize.height * 0.5f);
+    const cugl::Size textSize = label->getContentSize();
+    const cugl::Vec2 center(textSize.width * 0.5f, textSize.height * 0.5f);
 
     auto container = cugl::scene2::SceneNode::alloc();
     container->setContentSize(textSize);
@@ -3639,21 +3558,21 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
     container->setPosition(position);
     container->setScale(0.0f);
 
-    // 8 black copies offset in all directions for a complete crisp outline
+    // 8 black copies at cardinal + diagonal offsets produce a crisp outline.
     const float outlineOffset = 3.0f;
-    const cugl::Vec2 offsets[] = {
+    const cugl::Vec2 outlineOffsets[] = {
         { outlineOffset,  0},             {-outlineOffset,  0},
         { 0,              outlineOffset}, { 0,             -outlineOffset},
         { outlineOffset,  outlineOffset}, {-outlineOffset,  outlineOffset},
         { outlineOffset, -outlineOffset}, {-outlineOffset, -outlineOffset}
     };
-    for (const auto& off : offsets) {
-        auto outline = cugl::scene2::Label::allocWithText(data.text, font);
-        if (outline) {
-            outline->setAnchor(cugl::Vec2::ANCHOR_CENTER);
-            outline->setPosition(center + off);
-            outline->setForeground(cugl::Color4::BLACK);
-            container->addChild(outline);
+    for (const auto& off : outlineOffsets) {
+        auto outlineLabel = cugl::scene2::Label::allocWithText(data.text, font);
+        if (outlineLabel) {
+            outlineLabel->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            outlineLabel->setPosition(center + off);
+            outlineLabel->setForeground(cugl::Color4::BLACK);
+            container->addChild(outlineLabel);
         }
     }
 
@@ -3663,62 +3582,68 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
 
     _specialEffectsLayer->addChild(container);
 
-    FloatingPopupAnimation anim;
-    anim.node = container;
-    anim.elapsed = 0.0f;
-    anim.animationInDuration = FLOATING_POPUP_ANIM_IN;
-    anim.displayDuration = data.displayDuration;
-    anim.animationOutDuration = FLOATING_POPUP_ANIM_OUT;
-    anim.displayScale = displayScale;
-    anim.phase = FloatingPopupAnimation::IN;
+    FloatingPopupAnimation popupAnim;
+    popupAnim.node               = container;
+    popupAnim.elapsed            = 0.0f;
+    popupAnim.animationInDuration  = FLOATING_POPUP_ANIM_IN;
+    popupAnim.displayDuration    = data.displayDuration;
+    popupAnim.animationOutDuration = FLOATING_POPUP_ANIM_OUT;
+    popupAnim.displayScale       = displayScale;
+    popupAnim.phase              = FloatingPopupAnimation::IN;
 
-    _activeFloatingPopups.push_back(anim);
+    _activeFloatingPopups.push_back(popupAnim);
 }
 
+/**
+ * Advances all pending and active floating popups by one frame.
+ * Pending popups are spawned once their delay timer elapses.
+ * Active popups step through scale-in (with a slight overshoot), hold, then fade out.
+ */
 void GameScene::updateFloatingPopupAnimations(float dt) {
-    // Advance pending timers and spawn when delay is reached
-    for (auto it = _pendingFloatingPopups.begin(); it != _pendingFloatingPopups.end(); ) {
-        it->elapsed += dt;
-        if (it->elapsed >= it->spawnTime) {
-            spawnSingleFloatingPopup(it->data, it->position);
-            it = _pendingFloatingPopups.erase(it);
+    for (auto pendingEntry = _pendingFloatingPopups.begin(); pendingEntry != _pendingFloatingPopups.end(); ) {
+        pendingEntry->elapsed += dt;
+        if (pendingEntry->elapsed >= pendingEntry->spawnTime) {
+            spawnSingleFloatingPopup(pendingEntry->data, pendingEntry->position);
+            pendingEntry = _pendingFloatingPopups.erase(pendingEntry);
         } else {
-            ++it;
+            ++pendingEntry;
         }
     }
 
-    // Animate active popups
-    for (auto it = _activeFloatingPopups.begin(); it != _activeFloatingPopups.end(); ) {
-        it->elapsed += dt;
-        float totalDuration = it->animationInDuration + it->displayDuration + it->animationOutDuration;
+    for (auto popupEntry = _activeFloatingPopups.begin(); popupEntry != _activeFloatingPopups.end(); ) {
+        popupEntry->elapsed += dt;
+        const float totalDuration = popupEntry->animationInDuration
+                                  + popupEntry->displayDuration
+                                  + popupEntry->animationOutDuration;
 
-        if (it->elapsed >= totalDuration) {
-            it->node->removeFromParent();
-            it = _activeFloatingPopups.erase(it);
+        if (popupEntry->elapsed >= totalDuration) {
+            popupEntry->node->removeFromParent();
+            popupEntry = _activeFloatingPopups.erase(popupEntry);
             continue;
         }
 
         float scale, alpha;
-        if (it->elapsed < it->animationInDuration) {
-            it->phase = FloatingPopupAnimation::IN;
-            float t = it->elapsed / it->animationInDuration;
-            // Overshoot to 1.25x at t=0.6, settle to 1.0 by t=1.0
-            float overshoot = t < 0.6f ? (t / 0.6f) * 1.25f : 1.25f - (t - 0.6f) / 0.4f * 0.25f;
-            scale = overshoot * it->displayScale;
+        if (popupEntry->elapsed < popupEntry->animationInDuration) {
+            popupEntry->phase = FloatingPopupAnimation::IN;
+            const float t = popupEntry->elapsed / popupEntry->animationInDuration;
+            // Overshoot to 1.25× at t=0.6, settle to 1.0× by t=1.0
+            const float overshoot = t < 0.6f ? (t / 0.6f) * 1.25f : 1.25f - (t - 0.6f) / 0.4f * 0.25f;
+            scale = overshoot * popupEntry->displayScale;
             alpha = t;
-        } else if (it->elapsed < it->animationInDuration + it->displayDuration) {
-            it->phase = FloatingPopupAnimation::DISPLAY;
-            scale = it->displayScale;
+        } else if (popupEntry->elapsed < popupEntry->animationInDuration + popupEntry->displayDuration) {
+            popupEntry->phase = FloatingPopupAnimation::DISPLAY;
+            scale = popupEntry->displayScale;
             alpha = 1.0f;
         } else {
-            it->phase = FloatingPopupAnimation::OUT;
-            float t = (it->elapsed - it->animationInDuration - it->displayDuration) / it->animationOutDuration;
-            scale = it->displayScale * (1.0f - t * 0.5f);
+            popupEntry->phase = FloatingPopupAnimation::OUT;
+            const float t = (popupEntry->elapsed - popupEntry->animationInDuration - popupEntry->displayDuration)
+                          / popupEntry->animationOutDuration;
+            scale = popupEntry->displayScale * (1.0f - t * 0.5f);
             alpha = 1.0f - t;
         }
 
-        it->node->setScale(scale);
-        it->node->setColor(cugl::Color4(255, 255, 255, (uint8_t)(alpha * 255)));
-        ++it;
+        popupEntry->node->setScale(scale);
+        popupEntry->node->setColor(cugl::Color4(255, 255, 255, (uint8_t)(alpha * 255)));
+        ++popupEntry;
     }
 }
