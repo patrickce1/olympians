@@ -484,6 +484,8 @@ void GameScene::dispose() {
         _itemWidgetScales.clear();
         _itemWidgetScaleTargets.clear();
         _consumedItemAnimations.clear();
+        _activeFloatingPopups.clear();
+        _pendingFloatingPopups.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
             _itemPhysicsWorld->dispose();
@@ -600,9 +602,14 @@ void GameScene::reset() {
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
-    
+
     // Clear any active animations before resetting
     clearItemUseAnimations();
+    for (auto& popupAnim : _activeFloatingPopups) {
+        if (popupAnim.node) popupAnim.node->removeFromParent();
+    }
+    _activeFloatingPopups.clear();
+    _pendingFloatingPopups.clear();
     _itemController.reset();
 
     std::vector<ItemInstance::ItemId> itemIds;
@@ -687,21 +694,29 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
 bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
                                       const std::shared_ptr<const ItemDef>& def,
                                       Player* local, Enemy* enemy) {
+    const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
     // Calculate damage upfront for the animation
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
-    
+
     const auto& animConfig = def->getItemUseAnimation();
-    
     CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
           resolvedMagnitude);
-    
-    // Queue animation with pre-calculated damage (item already removed)
-    // Damage will be applied at resolution frame
-    startItemUseAnimation(animConfig, resolvedMagnitude, cugl::Vec2::ZERO, 0);
-    
+
+    // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
+    const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
+    const float baseValue      = def->getBaseValue();
+    const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
+
+    startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
+    if (!_activeItemUseAnimations.empty()) {
+        _activeItemUseAnimations.back().popupPosition   = dropPos;
+        _activeItemUseAnimations.back().baseValue        = baseValue;
+        _activeItemUseAnimations.back().totalMultiplier  = totalMultiplier;
+    }
+
     return true;
 }
 
@@ -720,26 +735,31 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
 bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemInstance& item,
                                        const std::shared_ptr<const ItemDef>& def,
                                        Player* local, Enemy* enemy) {
-    // Apply damage immediately using the standard useItemById path
+    const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
+
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
-    
+
     CULog("Player attacked enemy '%s' with item %llu (damage: %.1f, immediate)",
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
-    
-    // Broadcast damage immediately to network if not host
+
     if (!_network->isHost()) {
         _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
     }
-    
-    // Host hears enemy take damage immediately
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique("enemy_hurt");
         CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
     }
-    
+
+    const float baseValue      = def->getBaseValue();
+    const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
+    const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
+    const float finalDamage     = resolvedMagnitude * sideMultiplier;
+    createFloatingPopup(dropPos, buildAttackDamagePopups(
+        baseValue, totalMultiplier, sideMultiplier, resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+
     return true;
 }
 
@@ -754,33 +774,29 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
     if (!local || !target || !target->isAlive() || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
-        if (item.getId() != itemId) {
-            continue;
-        }
+        if (item.getId() != itemId) continue;
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Support) {
-            const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-            if (resolvedMagnitude < 0.0f) {
-                return false;
-            }
+        if (!def || def->getType() != ItemDef::Type::Support) return false;
 
-            //NETWORK
-            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
-                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
-            }
-            // Play the item use sound if defined, otherwise play the support sound
-            const std::string& itemUseSound = def->getItemUseSound();
-            if (!itemUseSound.empty()) {
-                _audio->playSoundUnique(itemUseSound);
-            } else {
-                _audio->playSoundUnique("support");
-            }
-            CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
-            return true;
+        const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
+
+        // Shield/barrier popups must fire before useItemById because shield-only
+        // items return 0 and would be filtered by the magnitude guard below.
+        spawnDefensiveEffectPopups(def, dropPos);
+
+        const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
+        if (resolvedMagnitude < 0.0f) return false;
+
+        if (!_network->isHost()) {
+            _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
         }
-        return false;
+            
+        playSupportItemSound(def);
+        CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
+        return true;
     }
     return false;
 }
@@ -796,33 +812,28 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
     if (!local || !target || !target->isAlive() || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
-        if (item.getId() != itemId) {
-            continue;
-        }
+        if (item.getId() != itemId) continue;
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Support) {
-            const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-            if (resolvedMagnitude < 0.0f) {
-                return false;
-            }
+        if (!def || def->getType() != ItemDef::Type::Support) return false;
 
-            //NETWORK
-            if (!_network->isHost() && resolvedMagnitude > 0.0f) {
-                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
-            }
-            // Play the item use sound if defined, otherwise play the support sound
-            const std::string& itemUseSound = def->getItemUseSound();
-            if (!itemUseSound.empty()) {
-                _audio->playSoundUnique(itemUseSound);
-            } else {
-                _audio->playSoundUnique("support");
-            }
-            CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
-            return true;
+        const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
+
+        // Shield/barrier popups must fire before useItemById because shield-only
+        // items return 0 and would be filtered by the magnitude guard below.
+        spawnDefensiveEffectPopups(def, dropPos);
+
+        const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
+        if (resolvedMagnitude < 0.0f) return false;
+
+        if (!_network->isHost()) {
+            _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
         }
-        return false;
+        playSupportItemSound(def);
+        CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
+        return true;
     }
     return false;
 }
@@ -2403,6 +2414,7 @@ void GameScene::update(float dt, InputController& input) {
     updateSlidingItems(dt);
     updateSnapbackAnimations(dt);
     updateItemUseAnimations(dt);
+    updatePopupAnimations(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);
@@ -2622,6 +2634,7 @@ void GameScene::updateItemWidgetScales(float dt) {
         widget->setScale(newScale);
     }
 }
+
 /*
  * Marks an item as used (consumed by an action).
  * Removes the visual widget and physics body from the scene.
@@ -2747,8 +2760,8 @@ void GameScene::clearConsumedItemAnimations() {
  * @return true if the item has an active animation, false otherwise
  */
 bool GameScene::isItemAnimating(ItemInstance::ItemId itemId) const {
-    for (const auto& anim : _activeItemUseAnimations) {
-        if (anim.itemId == itemId) {
+    for (const auto& activeAnim : _activeItemUseAnimations) {
+        if (activeAnim.itemId == itemId) {
             return true;
         }
     }
@@ -3292,61 +3305,59 @@ void GameScene::updateItemUseAnimations(float dt) {
     std::vector<size_t> completedIndices;
     
     for (size_t i = 0; i < _activeItemUseAnimations.size(); ++i) {
-        auto& anim = _activeItemUseAnimations[i];
-        
-        // Advance elapsed time
-        anim.elapsedTime += dt;
-        
-        // Calculate normalized progress (0.0 to 1.0)
-        float progress = std::min(1.0f, anim.elapsedTime / anim.animationDuration);
-        
-        // Calculate which frame we're on
-        int frameIndex = static_cast<int>(progress * anim.frameCount);
-        frameIndex = std::min(frameIndex, anim.frameCount - 1);  // Clamp to valid range
-        
-        // Only call setFrame if the frame index actually changed
-        if (frameIndex != anim.currentFrameIndex) {
-            anim.currentFrameIndex = frameIndex;
-            anim.node->setFrame(frameIndex);
+        auto& activeAnim = _activeItemUseAnimations[i];
+
+        // Advance time and derive the current frame from normalized progress.
+        activeAnim.elapsedTime += dt;
+        const float progress = std::min(1.0f, activeAnim.elapsedTime / activeAnim.animationDuration);
+        int frameIndex = std::min(static_cast<int>(progress * activeAnim.frameCount), activeAnim.frameCount - 1);
+
+        // Only call setFrame when the index actually changes to avoid redundant GPU uploads.
+        if (frameIndex != activeAnim.currentFrameIndex) {
+            activeAnim.currentFrameIndex = frameIndex;
+            activeAnim.node->setFrame(frameIndex);
         }
-        
-        // Check if we've reached or passed the damage resolution frame
-        if (!anim.damageResolved && frameIndex >= anim.damageResolutionFrame) {
-            anim.damageResolved = true;
-            
-            // Apply pre-calculated damage to enemy at resolution frame
-            // This is where gameplay effect systems can hook in
-            if (anim.damageAmount > 0.0f) {
+
+        // Damage resolution fires exactly once when we hit or pass the keyframe.
+        if (!activeAnim.damageResolved && frameIndex >= activeAnim.damageResolutionFrame) {
+            activeAnim.damageResolved = true;
+
+            if (activeAnim.damageAmount > 0.0f) {
                 auto enemy = _gameState.getEnemy();
                 if (enemy) {
-                    enemy->takeDamage(anim.damageAmount, _gameState.getLocalPlayer()->getPlayerNumber());
-                    
-                    // Only non-hosts broadcast damage messages.
-                    // Hosts apply damage locally and broadcast it via broadcastGameState().
+                    const int   playerNum      = _gameState.getLocalPlayer()->getPlayerNumber();
+                    const float sideMultiplier = enemy->getSideMultiplier(playerNum);
+                    const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
+
+                    // Apply pre-calculated damage and show the popup sequence.
+                    enemy->takeDamage(activeAnim.damageAmount, playerNum);
+                    createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
+                        activeAnim.baseValue, activeAnim.totalMultiplier, sideMultiplier,
+                        activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
+
+                    // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
-                        Player* local = _gameState.getLocalPlayer();
-                        _network->broadcastDamage(anim.damageAmount, local->getPlayerNumber());
+                        _network->broadcastDamage(activeAnim.damageAmount, playerNum);
                     }
                 }
             }
-            
-            // Play enemy_hurt sound at resolution frame
-            // Host plays it immediately; clients will hear it through network sync
+
+            // Host plays enemy_hurt immediately; clients hear it via network sync.
             if (_network && _network->isHost() && _audio) {
                 _audio->playSoundUnique("enemy_hurt");
             }
         }
-        
-        // Check if animation is complete
-        if (anim.elapsedTime >= anim.animationDuration) {
-            anim.node->removeFromParent();
+
+        // Queue for removal once the full animation duration has elapsed.
+        if (activeAnim.elapsedTime >= activeAnim.animationDuration) {
+            activeAnim.node->removeFromParent();
             completedIndices.push_back(i);
         }
     }
-    
-    // Remove completed animations in reverse order to maintain indices
-    for (auto completedIndexIter = completedIndices.rbegin(); completedIndexIter != completedIndices.rend(); ++completedIndexIter) {
-        _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *completedIndexIter);
+
+    // Erase in reverse order so earlier indices stay valid as we remove later ones.
+    for (auto indexToRemove = completedIndices.rbegin(); indexToRemove != completedIndices.rend(); ++indexToRemove) {
+        _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *indexToRemove);
     }
 }
 
@@ -3408,12 +3419,320 @@ void GameScene::loadAnimationRegistry() {
  */
 void GameScene::clearItemUseAnimations() {
     // Remove all animation nodes from the scene graph
-    for (auto& anim : _activeItemUseAnimations) {
-        if (anim.node) {
-            anim.node->removeFromParent();
+    for (auto& activeAnimation : _activeItemUseAnimations) {
+        if (activeAnimation.node) {
+            activeAnimation.node->removeFromParent();
         }
     }
     
     // Clear the animation list
     _activeItemUseAnimations.clear();
+}
+
+#pragma mark Popup Helpers
+
+/**
+ * Maps a damage multiplier magnitude to a popup color.
+ * Blue for sub-1.0, orange for 1.0–1.5, red for anything above 1.5.
+
+ * @param damage The damage value to evaluate (after all multipliers applied)
+ * @return The Color4 to use for the damage popup text
+ */
+static cugl::Color4 damageColor(float damage) {
+    if (damage < 1.0f) return cugl::Color4(140, 180, 255, 255);
+    if (damage < 2.5f) return cugl::Color4(255, 165,  40, 255);
+    return cugl::Color4(255,  55,  55, 255);
+}
+
+
+/**
+ * Returns the screen-space drop position of the given item's physics body.
+ * Falls back to the viewport center (55% height) when no body is found.
+ * @param itemId The ID of the item instance to find the body for
+ * @return The center of the item in screen coordinates
+ */
+cugl::Vec2 GameScene::resolveItemDropPosition(ItemInstance::ItemId itemId) const {
+    auto itemBody = _itemBodies.find(itemId);
+    if (itemBody != _itemBodies.end() && itemBody->second) {
+        return itemBody->second->getPosition();
+    }
+    cugl::Size viewSize = getSize();
+    return cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
+}
+
+/**
+ * Builds the ordered popup sequence for an attack item use.
+ * See header for full parameter and sequence documentation.
+ * 
+ * @param baseValue The original damage value from the item definition
+ * @param totalMultiplier The combined multiplier from house role and affinity bonuses
+ * @param sideMultiplier The enemy's side multiplier for the attacking player
+ * @param preSideDamage The damage after applying house multipliers but before side multiplier
+ * @param finalDamage The final damage after applying all multipliers
+ * @param valueFontSize The base font size for damage values (house multiplier and final damage)
+ * @param multiplierFontSize The base font size for multipliers (house and side)
+ * @return A vector of FloatingPopupData structs defining the popup sequence
+ */
+std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
+    float baseValue, float totalMultiplier, float sideMultiplier,
+    float preSideDamage, float finalDamage,
+    float valueFontSize, float multiplierFontSize) const
+{
+    const bool hasSideMult = (std::abs(sideMultiplier - 1.0f) > 0.01f);
+
+    // Format each value as a fixed one-decimal string.
+    char baseText[32], houseText[32], preText[32], sideText[32], finalText[32];
+    std::snprintf(baseText,  sizeof(baseText),  "-%.1f", baseValue);
+    std::snprintf(houseText, sizeof(houseText), "%.1fx", totalMultiplier);
+    std::snprintf(preText,   sizeof(preText),   "-%.1f", preSideDamage);
+    std::snprintf(sideText,  sizeof(sideText),  "%.1fx", sideMultiplier);
+    std::snprintf(finalText, sizeof(finalText), "-%.1f", finalDamage);
+
+    // Log-scale the multiplier font size so larger multipliers get proportionally bigger text.
+    const float houseLog    = 0.2f * std::log(std::max(1.0f, totalMultiplier));
+    const float sideLog     = 0.2f * std::log(std::max(1.0f, sideMultiplier));
+    const float combinedLog = 0.2f * std::log(std::max(1.0f, totalMultiplier * sideMultiplier));
+
+    // Green for a bonus side, blue for a penalty side.
+    const cugl::Color4 sideColor = (sideMultiplier >= 1.0f)
+        ? cugl::Color4(150, 220,  80, 255)
+        : cugl::Color4(120, 160, 255, 255);
+
+    // If the enemy has a side multiplier on the local player's side
+    if (hasSideMult) {
+        return {
+            {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
+            {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
+            {preText,   valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        cugl::Color4::BLACK, 0.3f,  0.15f, cugl::Vec2::ZERO,         true},
+            {sideText,  multiplierFontSize * (1.0f + sideLog),          sideColor,                        cugl::Color4::BLACK, 0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
+            {finalText, valueFontSize      * (1.0f + combinedLog),      damageColor(finalDamage),          cugl::Color4::BLACK, 0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
+        };
+    }
+    return {
+        {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+        {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+        {finalText, valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+    };
+}
+
+/**
+ * Builds the ordered popup sequence for a heal support item use.
+ * See header for the full sequence description.
+ *
+ * @param baseValue     Item's raw base heal value from the item definition.
+ * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
+ * @return Ordered list of FloatingPopupData for the sequence (1 or 3 entries).
+ */
+std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal) const {
+    // Back-calculate the house multiplier from the resolved heal so we can show it in the sequence.
+    const float totalMultiplier = (baseValue > 0.0f) ? resolvedHeal / baseValue : 1.0f;
+    const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
+
+    char baseText[32], houseText[32], finalText[32];
+    std::snprintf(baseText,  sizeof(baseText),  "+%.1f", baseValue);
+    std::snprintf(houseText,  sizeof(houseText),  "%.1fx", totalMultiplier);
+    std::snprintf(finalText, sizeof(finalText), "+%.1f", resolvedHeal);
+
+    const cugl::Color4 healGreen(80, 220, 80, 255);
+
+    // Only show the full sequence when the multiplier actually changed something.
+    if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
+        return {
+            {baseText,  26.0f,                    cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+            {houseText, 17.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+            {finalText, 26.0f*(1.0f+houseLog),    healGreen,                        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+        };
+    }
+    return {
+        {finalText, 26.0f, healGreen, cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true},
+    };
+}
+
+/**
+ * Fires visual popups for any shield or barrier effects on a support item.
+ * Must be called before useItemById so shield-only items still produce a popup.
+ *
+ * @param def      The item definition whose effects to scan.
+ * @param dropPos  Screen-space position where popups appear.
+ */
+void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
+                                   const cugl::Vec2& dropPos) {
+    for (const auto& effect : def->getEffects()) {
+        if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
+            char text[32];
+            std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+        } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier > 0.0f) {
+            char text[32];
+            const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
+            std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+        }
+    }
+}
+
+/**
+ * Plays the item's defined use sound, or the generic "support" sound if none is set.
+ *
+ * @param def  The item definition to read the sound key from.
+ */
+void GameScene::playSupportItemSound(const std::shared_ptr<const ItemDef>& def) {
+    const std::string& soundKey = def->getItemUseSound();
+    _audio->playSoundUnique(soundKey.empty() ? "support" : soundKey);
+}
+
+#pragma mark Popup Management
+
+/**
+ * Queues a sequence of popups to appear at a screen position.
+ * Popups with a non-zero delaySeconds are held in the pending list until
+ * their delay elapses in updatePopupAnimations().
+ *
+ * @param screenPosition  Base screen-space position (positionOffset from each popup is added on top).
+ * @param popups          Ordered sequence of popup descriptors.
+ */
+void GameScene::createFloatingPopup(
+    const cugl::Vec2& screenPosition,
+    const std::vector<FloatingPopupData>& popups)
+{
+    if (popups.empty()) return;
+    for (const auto& data : popups) {
+        PendingFloatingPopup pending;
+        pending.data = data;
+        pending.position = screenPosition + data.positionOffset;
+        pending.spawnTime = data.delaySeconds;
+        pending.elapsed = 0.0f;
+        _pendingFloatingPopups.push_back(pending);
+    }
+}
+
+/**
+ * Immediately builds and activates one floating popup.
+ * Measures the label's text bounds, sizes the container to match so
+ * ANCHOR_CENTER resolves correctly, then adds 8 black outline copies
+ * (cardinal + diagonal offsets) followed by the colored label on top.
+ * Registers the container in _activeFloatingPopups to begin animating.
+ * 
+ * @param data      Popup descriptor defining text, fill color, stroke color, font size, and timing.
+ * @param position  Screen-space position to spawn the popup at (positionOffset already applied).
+ * 
+ */
+void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cugl::Vec2& position) {
+    auto font = _assets->get<cugl::graphics::Font>("gamePin");
+    if (!font) return;
+
+    if (data.playSound && _audio) _audio->playSoundUnique("popup_ding");
+
+    // displayScale maps the requested font size onto the base font size the asset was baked at.
+    const float displayScale = data.fontSize / FLOATING_POPUP_BASE_FONT_SIZE;
+
+    // Allocate the colored label first so we can measure its content size.
+    auto label = cugl::scene2::Label::allocWithText(data.text, font);
+    if (!label) return;
+    label->setForeground(data.color);
+    const cugl::Size textSize = label->getContentSize();
+    const cugl::Vec2 center(textSize.width * 0.5f, textSize.height * 0.5f);
+
+    // The container must be given an explicit content size matching the label so
+    // ANCHOR_CENTER resolves to the true visual center, not (0,0).
+    auto container = cugl::scene2::SceneNode::alloc();
+    container->setContentSize(textSize);
+    container->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+    container->setPosition(position);
+    container->setScale(0.0f);
+
+    // 8 black copies at cardinal + diagonal offsets produce a crisp outline.
+    const float outlineOffset = 3.0f;
+    const cugl::Vec2 outlineOffsets[] = {
+        { outlineOffset,  0},             {-outlineOffset,  0},
+        { 0,              outlineOffset}, { 0,             -outlineOffset},
+        { outlineOffset,  outlineOffset}, {-outlineOffset,  outlineOffset},
+        { outlineOffset, -outlineOffset}, {-outlineOffset, -outlineOffset}
+    };
+    for (const auto& offset : outlineOffsets) {
+        auto outlineLabel = cugl::scene2::Label::allocWithText(data.text, font);
+        if (outlineLabel) {
+            outlineLabel->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            outlineLabel->setPosition(center + offset);
+            outlineLabel->setForeground(data.strokeColor);
+            container->addChild(outlineLabel);
+        }
+    }
+
+    label->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+    label->setPosition(center);
+    container->addChild(label);
+
+    _specialEffectsLayer->addChild(container);
+
+    FloatingPopupAnimation popupAnim;
+    popupAnim.node               = container;
+    popupAnim.elapsed            = 0.0f;
+    popupAnim.animationInDuration  = FLOATING_POPUP_ANIM_IN;
+    popupAnim.displayDuration    = data.displayDuration;
+    popupAnim.animationOutDuration = FLOATING_POPUP_ANIM_OUT;
+    popupAnim.displayScale       = displayScale;
+    popupAnim.phase              = FloatingPopupAnimation::IN;
+
+    _activeFloatingPopups.push_back(popupAnim);
+}
+
+/**
+ * Advances all pending and active floating popups by one frame.
+ * Pending popups are spawned once their delay timer elapses.
+ * Active popups step through scale-in (with a slight overshoot), hold, then fade out.
+ * @param dt Delta time in seconds (from game loop)
+ */
+void GameScene::updatePopupAnimations(float dt) {
+    // Spawn any pending popups whose delay timer has elapsed.
+    for (auto pendingEntry = _pendingFloatingPopups.begin(); pendingEntry != _pendingFloatingPopups.end(); ) {
+        pendingEntry->elapsed += dt;
+        if (pendingEntry->elapsed >= pendingEntry->spawnTime) {
+            spawnSingleFloatingPopup(pendingEntry->data, pendingEntry->position);
+            pendingEntry = _pendingFloatingPopups.erase(pendingEntry);
+        } else {
+            ++pendingEntry;
+        }
+    }
+
+    // Advance each live popup through its three animation phases.
+    for (auto popupEntry = _activeFloatingPopups.begin(); popupEntry != _activeFloatingPopups.end(); ) {
+        popupEntry->elapsed += dt;
+        const float totalDuration = popupEntry->animationInDuration
+                                  + popupEntry->displayDuration
+                                  + popupEntry->animationOutDuration;
+
+        if (popupEntry->elapsed >= totalDuration) {
+            popupEntry->node->removeFromParent();
+            popupEntry = _activeFloatingPopups.erase(popupEntry);
+            continue;
+        }
+
+        float scale, alpha;
+        if (popupEntry->elapsed < popupEntry->animationInDuration) {
+            // Phase IN: scale up with a brief overshoot for a punchy feel.
+            popupEntry->phase = FloatingPopupAnimation::IN;
+            const float t = popupEntry->elapsed / popupEntry->animationInDuration;
+            // Overshoot to 1.25× at t=0.6, settle to 1.0× by t=1.0
+            const float overshoot = t < 0.6f ? (t / 0.6f) * 1.25f : 1.25f - (t - 0.6f) / 0.4f * 0.25f;
+            scale = overshoot * popupEntry->displayScale;
+            alpha = t;
+        } else if (popupEntry->elapsed < popupEntry->animationInDuration + popupEntry->displayDuration) {
+            // Phase DISPLAY: hold at full scale and full opacity.
+            popupEntry->phase = FloatingPopupAnimation::DISPLAY;
+            scale = popupEntry->displayScale;
+            alpha = 1.0f;
+        } else {
+            // Phase OUT: shrink slightly while fading to transparent.
+            popupEntry->phase = FloatingPopupAnimation::OUT;
+            const float t = (popupEntry->elapsed - popupEntry->animationInDuration - popupEntry->displayDuration)
+                          / popupEntry->animationOutDuration;
+            scale = popupEntry->displayScale * (1.0f - t * 0.5f);
+            alpha = 1.0f - t;
+        }
+
+        popupEntry->node->setScale(scale);
+        popupEntry->node->setColor(cugl::Color4(255, 255, 255, (uint8_t)(alpha * 255)));
+        ++popupEntry;
+    }
 }
