@@ -168,7 +168,7 @@ void SceneLoader::onShutdown() {
     Logger::close("debug");
     netcode::NetworkLayer::stop();
     _assets->unloadAll();
-
+    _assets->dispose();
     // Delete all smart pointers
     _batch = nullptr;
     _assets = nullptr;

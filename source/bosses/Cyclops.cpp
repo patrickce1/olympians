@@ -8,8 +8,8 @@
 bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
 	bool success = Enemy::init("cyclops", jsonPath);
 	//Extract and assign the defense thresholds
-	_defense1Threshold = Enemy::getMaxHealth() * _customData->getFloat("defense1Threshold", 1.0f);
-	_defense2Threshold = Enemy::getMaxHealth() * _customData->getFloat("defense2Threshold", 1.0f);
+	_frantic1Threshold = Enemy::getMaxHealth() * _customData->getFloat("defense1Threshold", 1.0f);
+	_frantic1Threshold = Enemy::getMaxHealth() * _customData->getFloat("defense2Threshold", 1.0f);
 	_franticRate = _customData->getFloat("franticRate", 1.0f);
 	_boulderTossReductionAmount = _customData->getFloat("boulderTossReductionAmount", 1.0f);
 	return success;
@@ -19,12 +19,12 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
  * @param dt is the time that passed from the last time update was called
  */
 void Cyclops::update(float dt) {
-	if (_debug) CULog("[EnemyController] State: '%s'. The time is %f", getStates().at(_currentState).name.c_str(), _stateTime);
+	//if (_debug) CULog("[EnemyController] State: '%s'. The time is %f", getStates().at(_currentState).name.c_str(), _stateTime);
 	float updatedDt = dt;
-	if (Enemy::getCurrentHealth() < _defense1Threshold) {
+	if (Enemy::getCurrentHealth() < _frantic1Threshold) {
 		updatedDt += dt * _franticRate;
 	}
-	if (Enemy::getCurrentHealth() < _defense2Threshold) {
+	if (Enemy::getCurrentHealth() < _frantic1Threshold) {
 		//basically double the rate by subtracting again
 		updatedDt += dt * _franticRate;
 	}
@@ -51,22 +51,22 @@ void Cyclops::update(float dt) {
   * Triggers if either of damage thresholds are reached
   */
 bool Cyclops::shouldDefend() {
-	if (Enemy::getCurrentHealth() < _defense1Threshold && !_defense1Triggered) {
-		if (_debug) {
-			CULog("[Cyclops]: defense threshold 1 at health %f", Enemy::getCurrentHealth());
-		}
-		_defense1Triggered = true;
-		//Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
-		return true;
-	}
-	if (Enemy::getCurrentHealth() < _defense2Threshold && !_defense2Triggered) {
-		if (_debug) {
-			CULog("[Cyclops]: defense threshold 2 at health %f", Enemy::getCurrentHealth());
-		}
-		_defense2Triggered = true;
-		//Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
-		return true;
-	}
+	//if (Enemy::getCurrentHealth() < _frantic1Threshold && !_defense1Triggered) {
+	//	if (_debug) {
+	//		CULog("[Cyclops]: defense threshold 1 at health %f", Enemy::getCurrentHealth());
+	//	}
+	//	_defense1Triggered = true;
+	//	//Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
+	//	return true;
+	//}
+	//if (Enemy::getCurrentHealth() < _defense2Threshold && !_defense2Triggered) {
+	//	if (_debug) {
+	//		CULog("[Cyclops]: defense threshold 2 at health %f", Enemy::getCurrentHealth());
+	//	}
+	//	_defense2Triggered = true;
+	//	//Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
+	//	return true;
+	//}
 	return false;
 }
 
@@ -79,15 +79,15 @@ bool Cyclops::shouldDefend() {
  *		where the boss immidiately does damage based on the side it got hit from
 */
 void Cyclops::takeDamage(float damage, int playerIndex) {
-	//if (_debug) CULog("[EnemyController] State: '%s'. The time is %f", getStates().at(_currentState).name.c_str(), _stateTime);
-	////ATTACK_3 should correspond to the boulder toss for cyclops
-	//if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
-	//	//Make Cyclops face whoever hit him and shorten wait time
-	//	Enemy::setTargetIndex(playerIndex);
-	//	//_stateTime += _boulderTossReductionAmount;
-	//	//Debug statement
-	//	if (_debug) CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
-	//}
+	//if (_debug) CULog("[Cyclops] State: '%s'. The time is %f", getStates().at(_currentState).name.c_str(), _stateTime);
+	//ATTACK_3 should correspond to the boulder toss for cyclops
+	if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
+		//Make Cyclops face whoever hit him and shorten wait time
+		Enemy::setTargetIndex(playerIndex);
+		Enemy::update(_boulderTossReductionAmount);
+		//Debug statement
+		if (_debug) CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
+	}
 
 	Enemy::takeDamage(damage, playerIndex);
 }

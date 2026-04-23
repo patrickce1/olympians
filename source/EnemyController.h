@@ -61,7 +61,7 @@ public:
 
 private:
     /** Debug boolean. Set to false to prevent debug statements */
-    bool _debug = false;
+    bool _debug = true;
 
     cugl::Random _rng;
     
