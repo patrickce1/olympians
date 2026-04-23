@@ -2365,7 +2365,7 @@ void GameScene::update(float dt, InputController& input) {
     updateSlidingItems(dt);
     updateSnapbackAnimations(dt);
     updateItemUseAnimations(dt);
-    updateFloatingPopupAnimations(dt);
+    updatePopupAnimations(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);
@@ -2585,6 +2585,7 @@ void GameScene::updateItemWidgetScales(float dt) {
         widget->setScale(newScale);
     }
 }
+
 /*
  * Marks an item as used (consumed by an action).
  * Removes the visual widget and physics body from the scene.
@@ -3259,9 +3260,8 @@ void GameScene::updateItemUseAnimations(float dt) {
 
         // Advance time and derive the current frame from normalized progress.
         activeAnim.elapsedTime += dt;
-        const float progress   = std::min(1.0f, activeAnim.elapsedTime / activeAnim.animationDuration);
-        int         frameIndex = std::min(static_cast<int>(progress * activeAnim.frameCount),
-                                          activeAnim.frameCount - 1);
+        const float progress = std::min(1.0f, activeAnim.elapsedTime / activeAnim.animationDuration);
+        int frameIndex = std::min(static_cast<int>(progress * activeAnim.frameCount), activeAnim.frameCount - 1);
 
         // Only call setFrame when the index actually changes to avoid redundant GPU uploads.
         if (frameIndex != activeAnim.currentFrameIndex) {
@@ -3370,9 +3370,9 @@ void GameScene::loadAnimationRegistry() {
  */
 void GameScene::clearItemUseAnimations() {
     // Remove all animation nodes from the scene graph
-    for (auto& activeAnim : _activeItemUseAnimations) {
-        if (activeAnim.node) {
-            activeAnim.node->removeFromParent();
+    for (auto& activeAnimation : _activeItemUseAnimations) {
+        if (activeAnimation.node) {
+            activeAnimation.node->removeFromParent();
         }
     }
     
@@ -3380,32 +3380,32 @@ void GameScene::clearItemUseAnimations() {
     _activeItemUseAnimations.clear();
 }
 
-// ---------------------------------------------------------------------------
-// Popup color helper (file-scope, not part of the class API)
-// ---------------------------------------------------------------------------
+#pragma mark Popup Helpers
 
 /**
  * Maps a damage multiplier magnitude to a popup color.
  * Blue for sub-1.0, orange for 1.0–1.5, red for anything above 1.5.
+
+ * @param damage The damage value to evaluate (after all multipliers applied)
+ * @return The Color4 to use for the damage popup text
  */
 static cugl::Color4 damageColor(float damage) {
     if (damage < 1.0f) return cugl::Color4(140, 180, 255, 255);
     if (damage < 2.5f) return cugl::Color4(255, 165,  40, 255);
-    return                   cugl::Color4(255,  55,  55, 255);
+    return cugl::Color4(255,  55,  55, 255);
 }
 
-// ---------------------------------------------------------------------------
-// Popup helper implementations
-// ---------------------------------------------------------------------------
 
 /**
  * Returns the screen-space drop position of the given item's physics body.
  * Falls back to the viewport center (55% height) when no body is found.
+ * @param itemId The ID of the item instance to find the body for
+ * @return The center of the item in screen coordinates
  */
 cugl::Vec2 GameScene::resolveItemDropPosition(ItemInstance::ItemId itemId) const {
-    auto bodyEntry = _itemBodies.find(itemId);
-    if (bodyEntry != _itemBodies.end() && bodyEntry->second) {
-        return bodyEntry->second->getPosition();
+    auto itemBody = _itemBodies.find(itemId);
+    if (itemBody != _itemBodies.end() && itemBody->second) {
+        return itemBody->second->getPosition();
     }
     cugl::Size viewSize = getSize();
     return cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
@@ -3414,6 +3414,15 @@ cugl::Vec2 GameScene::resolveItemDropPosition(ItemInstance::ItemId itemId) const
 /**
  * Builds the ordered popup sequence for an attack item use.
  * See header for full parameter and sequence documentation.
+ * 
+ * @param baseValue The original damage value from the item definition
+ * @param totalMultiplier The combined multiplier from house role and affinity bonuses
+ * @param sideMultiplier The enemy's side multiplier for the attacking player
+ * @param preSideDamage The damage after applying house multipliers but before side multiplier
+ * @param finalDamage The final damage after applying all multipliers
+ * @param valueFontSize The base font size for damage values (house multiplier and final damage)
+ * @param multiplierFontSize The base font size for multipliers (house and side)
+ * @return A vector of FloatingPopupData structs defining the popup sequence
  */
 std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
     float baseValue, float totalMultiplier, float sideMultiplier,
@@ -3423,12 +3432,12 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
     const bool hasSideMult = (std::abs(sideMultiplier - 1.0f) > 0.01f);
 
     // Format each value as a fixed one-decimal string.
-    char baseBuf[32], houseBuf[32], preBuf[32], sideBuf[32], finalBuf[32];
-    std::snprintf(baseBuf,  sizeof(baseBuf),  "-%.1f", baseValue);
-    std::snprintf(houseBuf, sizeof(houseBuf), "%.1fx", totalMultiplier);
-    std::snprintf(preBuf,   sizeof(preBuf),   "-%.1f", preSideDamage);
-    std::snprintf(sideBuf,  sizeof(sideBuf),  "%.1fx", sideMultiplier);
-    std::snprintf(finalBuf, sizeof(finalBuf), "-%.1f", finalDamage);
+    char baseText[32], houseText[32], preText[32], sideText[32], finalText[32];
+    std::snprintf(baseText,  sizeof(baseText),  "-%.1f", baseValue);
+    std::snprintf(houseText, sizeof(houseText), "%.1fx", totalMultiplier);
+    std::snprintf(preText,   sizeof(preText),   "-%.1f", preSideDamage);
+    std::snprintf(sideText,  sizeof(sideText),  "%.1fx", sideMultiplier);
+    std::snprintf(finalText, sizeof(finalText), "-%.1f", finalDamage);
 
     // Log-scale the multiplier font size so larger multipliers get proportionally bigger text.
     const float houseLog    = 0.2f * std::log(std::max(1.0f, totalMultiplier));
@@ -3440,88 +3449,95 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
         ? cugl::Color4(150, 220,  80, 255)
         : cugl::Color4(120, 160, 255, 255);
 
+    // If the enemy has a side multiplier on the local player's side
     if (hasSideMult) {
         return {
-            {baseBuf,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
-            {houseBuf, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
-            {preBuf,   valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        0.3f,  0.15f, cugl::Vec2::ZERO,         true},
-            {sideBuf,  multiplierFontSize * (1.0f + sideLog),          sideColor,                        0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
-            {finalBuf, valueFontSize      * (1.0f + combinedLog),      damageColor(finalDamage),          0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
+            {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
+            {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
+            {preText,   valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        0.3f,  0.15f, cugl::Vec2::ZERO,         true},
+            {sideText,  multiplierFontSize * (1.0f + sideLog),          sideColor,                        0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
+            {finalText, valueFontSize      * (1.0f + combinedLog),      damageColor(finalDamage),          0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
         };
     }
     return {
-        {baseBuf,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-        {houseBuf, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-        {finalBuf, valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+        {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+        {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+        {finalText, valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
     };
 }
 
 /**
  * Builds the ordered popup sequence for a heal support item use.
- * See header for full parameter and sequence documentation.
+ * See header for the full sequence description.
+ *
+ * @param baseValue     Item's raw base heal value from the item definition.
+ * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
+ * @return Ordered list of FloatingPopupData for the sequence (1 or 3 entries).
  */
 std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal) const {
     // Back-calculate the house multiplier from the resolved heal so we can show it in the sequence.
     const float totalMultiplier = (baseValue > 0.0f) ? resolvedHeal / baseValue : 1.0f;
     const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
 
-    char baseBuf[32], multBuf[32], finalBuf[32];
-    std::snprintf(baseBuf,  sizeof(baseBuf),  "+%.1f", baseValue);
-    std::snprintf(multBuf,  sizeof(multBuf),  "%.1fx", totalMultiplier);
-    std::snprintf(finalBuf, sizeof(finalBuf), "+%.1f", resolvedHeal);
+    char baseText[32], houseText[32], finalText[32];
+    std::snprintf(baseText,  sizeof(baseText),  "+%.1f", baseValue);
+    std::snprintf(houseText,  sizeof(houseText),  "%.1fx", totalMultiplier);
+    std::snprintf(finalText, sizeof(finalText), "+%.1f", resolvedHeal);
 
     const cugl::Color4 healGreen(80, 220, 80, 255);
 
     // Only show the full sequence when the multiplier actually changed something.
     if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
         return {
-            {baseBuf,  26.0f,                    cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-            {multBuf,  17.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-            {finalBuf, 26.0f*(1.0f+houseLog),    healGreen,                        0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+            {baseText,  26.0f,                    cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+            {houseText,  17.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+            {finalText, 26.0f*(1.0f+houseLog),    healGreen,                        0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
         };
     }
     return {
-        {finalBuf, 26.0f, healGreen, 0.0f, 0.5f, cugl::Vec2::ZERO, true},
+        {finalText, 26.0f, healGreen, 0.0f, 0.5f, cugl::Vec2::ZERO, true},
     };
 }
 
 /**
  * Fires visual popups for any shield or barrier effects on a support item.
  * Must be called before useItemById so shield-only items still produce a popup.
- * See header for full documentation.
+ *
+ * @param def      The item definition whose effects to scan.
+ * @param dropPos  Screen-space position where popups appear.
  */
 void GameScene::spawnEffectPopups(const std::shared_ptr<const ItemDef>& def,
                                    const cugl::Vec2& dropPos) {
     for (const auto& effect : def->getEffects()) {
         if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
-            char buf[32];
-            std::snprintf(buf, sizeof(buf), "[%.1f]", effect.mitigation);
-            createFloatingPopup(dropPos, {{buf, 26.0f, cugl::Color4(80, 200, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+            char text[32];
+            std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
         } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier > 0.0f) {
-            char buf[32];
+            char text[32];
             const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
-            std::snprintf(buf, sizeof(buf), "[%.0f%%]", reductionPct);
-            createFloatingPopup(dropPos, {{buf, 26.0f, cugl::Color4(180, 80, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+            std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
         }
     }
 }
 
 /**
  * Plays the item's defined use sound, or the generic "support" sound if none is set.
+ *
+ * @param def  The item definition to read the sound key from.
  */
 void GameScene::playSupportItemSound(const std::shared_ptr<const ItemDef>& def) {
     const std::string& soundKey = def->getItemUseSound();
     _audio->playSoundUnique(soundKey.empty() ? "support" : soundKey);
 }
 
-// ---------------------------------------------------------------------------
-// Popup queuing, spawning, and animation
-// ---------------------------------------------------------------------------
+#pragma mark Popup Management
 
 /**
  * Queues a sequence of popups to appear at a screen position.
  * Popups with a non-zero delaySeconds are held in the pending list until
- * their delay elapses in updateFloatingPopupAnimations().
+ * their delay elapses in updatePopupAnimations().
  *
  * @param screenPosition  Base screen-space position (positionOffset from each popup is added on top).
  * @param popups          Ordered sequence of popup descriptors.
@@ -3547,6 +3563,10 @@ void GameScene::createFloatingPopup(
  * ANCHOR_CENTER resolves correctly, then adds 8 black outline copies
  * (cardinal + diagonal offsets) followed by the colored label on top.
  * Registers the container in _activeFloatingPopups to begin animating.
+ * 
+ * @param data The popup descriptor defining text, color, font size, and animation timing
+ * @param position The screen-space position to spawn the popup at (already offset by data.positionOffset)
+ * 
  */
 void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cugl::Vec2& position) {
     auto font = _assets->get<cugl::graphics::Font>("gamePin");
@@ -3580,11 +3600,11 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
         { outlineOffset,  outlineOffset}, {-outlineOffset,  outlineOffset},
         { outlineOffset, -outlineOffset}, {-outlineOffset, -outlineOffset}
     };
-    for (const auto& off : outlineOffsets) {
+    for (const auto& offset : outlineOffsets) {
         auto outlineLabel = cugl::scene2::Label::allocWithText(data.text, font);
         if (outlineLabel) {
             outlineLabel->setAnchor(cugl::Vec2::ANCHOR_CENTER);
-            outlineLabel->setPosition(center + off);
+            outlineLabel->setPosition(center + offset);
             outlineLabel->setForeground(cugl::Color4::BLACK);
             container->addChild(outlineLabel);
         }
@@ -3612,8 +3632,9 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
  * Advances all pending and active floating popups by one frame.
  * Pending popups are spawned once their delay timer elapses.
  * Active popups step through scale-in (with a slight overshoot), hold, then fade out.
+ * @param dt Delta time in seconds (from game loop)
  */
-void GameScene::updateFloatingPopupAnimations(float dt) {
+void GameScene::updatePopupAnimations(float dt) {
     // Spawn any pending popups whose delay timer has elapsed.
     for (auto pendingEntry = _pendingFloatingPopups.begin(); pendingEntry != _pendingFloatingPopups.end(); ) {
         pendingEntry->elapsed += dt;

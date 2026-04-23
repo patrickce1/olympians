@@ -15,6 +15,14 @@
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 
+
+/** Animation duration for floating popups to scale in, in seconds. */
+static constexpr float FLOATING_POPUP_ANIM_IN  = 0.1f;
+/** Animation duration for floating popups to fade out, in seconds. */
+static constexpr float FLOATING_POPUP_ANIM_OUT = 0.2f;
+/** Base font size the popup asset was baked at; used to derive display scale. */
+static constexpr float FLOATING_POPUP_BASE_FONT_SIZE = 48.0f;
+
 /**
  * Represents the state of a single snapback animation for a dropped item.
  * Multiple items can be snapping back simultaneously.
@@ -343,7 +351,7 @@ protected:
 
     /**
      * A popup that has been queued but not yet spawned.
-     * Spawned once its delay timer elapses in updateFloatingPopupAnimations().
+     * Spawned once its delay timer elapses in updatePopupAnimations().
      */
     struct PendingFloatingPopup {
         /** Visual and timing data for this popup. */
@@ -356,12 +364,10 @@ protected:
         float elapsed = 0.0f;
     };
 
+    /** Vector of currently active floating popup animations. */
     std::vector<FloatingPopupAnimation> _activeFloatingPopups;
+    /** Vector of pending floating popups that have been queued but not yet spawned. */
     std::vector<PendingFloatingPopup> _pendingFloatingPopups;
-
-    static constexpr float FLOATING_POPUP_ANIM_IN  = 0.1f;
-    static constexpr float FLOATING_POPUP_ANIM_OUT = 0.2f;
-    static constexpr float FLOATING_POPUP_BASE_FONT_SIZE = 48.0f;
 
 #pragma mark - Glow Effect State
 
@@ -1211,7 +1217,7 @@ public:
      *
      * @param dt  Delta time in seconds.
      */
-    void updateFloatingPopupAnimations(float dt);
+    void updatePopupAnimations(float dt);
 
     /**
      * Returns the screen-space drop position of the given item's physics body.
