@@ -8,7 +8,9 @@ private:
 	float _frantic1Threshold;
 	/** The health value (absolute, percentage) at which the second enrage triggers */
 	float _frantic2Threshold;
-	/** The rate at which Cyclops starts to shorten the wait times in his states. A value of 1 means that all build up goes by 1 second faster than usual*/
+	/** By what percentage the cyclops begins to increase his rate of attack after each enrage. 
+	  * Ex. 0.5 would mean his attacks go by 50% faster. If both thresholds were met in this scenario,
+	  * his attacks would be going by 100% faster */
 	float _franticRate;
 
 	/** The rate at which a hit from players shortens the boulder toss build up. 
@@ -23,6 +25,18 @@ public:
 	 * @param jsonPath is the path to the enemies.json file
 	 */
 	bool init(const std::string& enemyId, const std::string& jsonPath) override;
+
+	/** Initializes the cyclops with animation metadata from AssetManager.
+	 * This version uses smart caching to load animation registry only when needed.
+	 * Prefers this method when assets are available to ensure proper animation setup.
+	 * This also initializes all custom data that the cyclops uses
+	 * 
+	 * @param enemyId The unique ID of the enemy to load (e.g., "cyclops")
+	 * @param jsonPath Path to enemies.json configuration file
+	 * @param assets AssetManager containing enemyAnimations.json and other asset definitions
+	 * @return true if initialization succeeds, false on error
+	 */
+	bool init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) override;
 	
 	/** Override of the enemy update method for custom logic 
 	 * @param dt is the time that passed from the last time update was called

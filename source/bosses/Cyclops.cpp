@@ -8,10 +8,33 @@
 bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
 	bool success = Enemy::init("cyclops", jsonPath);
 	//Extract and assign the defense thresholds
-	_frantic1Threshold = Enemy::getMaxHealth() * _customData->getFloat("defense1Threshold", 1.0f);
-	_frantic1Threshold = Enemy::getMaxHealth() * _customData->getFloat("defense2Threshold", 1.0f);
+	_frantic1Threshold = Enemy::getMaxHealth() * _customData->getFloat("frantic1Threshold", 1.0f);
+	_frantic2Threshold = Enemy::getMaxHealth() * _customData->getFloat("frantic2Threshold", 1.0f);
 	_franticRate = _customData->getFloat("franticRate", 1.0f);
 	_boulderTossReductionAmount = _customData->getFloat("boulderTossReductionAmount", 1.0f);
+	CULog("[Cyclops]: frantic rate %f, frantic threshold %f, frantic threshold 2 %f", _franticRate, _frantic1Threshold, _frantic2Threshold);
+	return success;
+}
+
+/** Initializes the cyclops with animation metadata from AssetManager.
+ * This version uses smart caching to load animation registry only when needed.
+ * Prefers this method when assets are available to ensure proper animation setup.
+ * This also initializes all custom data that the cyclops uses
+ *
+ * @param enemyId The unique ID of the enemy to load (e.g., "cyclops")
+ * @param jsonPath Path to enemies.json configuration file
+ * @param assets AssetManager containing enemyAnimations.json and other asset definitions
+ * @return true if initialization succeeds, false on error
+ */
+bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) {
+	bool success = Enemy::init("cyclops", jsonPath, assets);
+	//Extract and assign the defense thresholds
+	_frantic1Threshold = Enemy::getMaxHealth() * _customData->getFloat("frantic1Threshold", 1.0f);
+	_frantic2Threshold = Enemy::getMaxHealth() * _customData->getFloat("frantic2Threshold", 1.0f);
+	_franticRate = _customData->getFloat("franticRate", 1.0f);
+	_currentHealth = _frantic2Threshold;
+	_boulderTossReductionAmount = _customData->getFloat("boulderTossReductionAmount", 1.0f);
+	CULog("[Cyclops]: frantic rate %f, frantic threshold %f, frantic threshold 2 %f", _franticRate, _frantic1Threshold, _frantic2Threshold);
 	return success;
 }
 
@@ -19,7 +42,8 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
  * @param dt is the time that passed from the last time update was called
  */
 void Cyclops::update(float dt) {
-	//if (_debug) CULog("[EnemyController] State: '%s'. The time is %f", getStates().at(_currentState).name.c_str(), _stateTime);
+	//Cyclops becomes more frantic as his defense thresholds are met
+	//His build up times are shortened
 	float updatedDt = dt;
 	if (Enemy::getCurrentHealth() < _frantic1Threshold) {
 		updatedDt += dt * _franticRate;
@@ -29,44 +53,12 @@ void Cyclops::update(float dt) {
 		updatedDt += dt * _franticRate;
 	}
 	Enemy::update(updatedDt);
-
-	//Cyclops becomes more frantic as his defense thresholds are met
-	//His build up times are shortened
-
-
-	//end the current state ASAP to be able to enter defense if the condition was met
-	//bool threshold1Met = Enemy::getCurrentHealth() < _defense1Threshold && !_defense1Triggered;
-	//bool threshold2Met = Enemy::getCurrentHealth() < _defense1Threshold && !_defense2Triggered;
-	//if (threshold1Met || threshold2Met) {
-	//	if (_debug) {
-	//		CULog("[Cyclops]: Entering defense as soon as possible, currently in %s", Enemy::getStates().at(Enemy::getCurrentState()).name.c_str());
-	//	}
-	//	Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
-	//	//necessary to skip the idle
-	//	Enemy::skipCooldown();
-	//}
 }
 
 /** Defines the cyclops' custom behavior for when he chooses to defend 
   * Triggers if either of damage thresholds are reached
   */
 bool Cyclops::shouldDefend() {
-	//if (Enemy::getCurrentHealth() < _frantic1Threshold && !_defense1Triggered) {
-	//	if (_debug) {
-	//		CULog("[Cyclops]: defense threshold 1 at health %f", Enemy::getCurrentHealth());
-	//	}
-	//	_defense1Triggered = true;
-	//	//Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
-	//	return true;
-	//}
-	//if (Enemy::getCurrentHealth() < _defense2Threshold && !_defense2Triggered) {
-	//	if (_debug) {
-	//		CULog("[Cyclops]: defense threshold 2 at health %f", Enemy::getCurrentHealth());
-	//	}
-	//	_defense2Triggered = true;
-	//	//Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
-	//	return true;
-	//}
 	return false;
 }
 
@@ -79,7 +71,6 @@ bool Cyclops::shouldDefend() {
  *		where the boss immidiately does damage based on the side it got hit from
 */
 void Cyclops::takeDamage(float damage, int playerIndex) {
-	//if (_debug) CULog("[Cyclops] State: '%s'. The time is %f", getStates().at(_currentState).name.c_str(), _stateTime);
 	//ATTACK_3 should correspond to the boulder toss for cyclops
 	if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
 		//Make Cyclops face whoever hit him and shorten wait time
