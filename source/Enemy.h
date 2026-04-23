@@ -317,10 +317,17 @@ public:
      */
     bool isInAttackPhase(const std::unordered_map<std::string, class AnimationEntry>& animationRegistry) const;
 
-    /** Returns true if successfully enters requested state. False and idle otherwise. */
+    /** Returns true if successfully enters requested state. False and idle otherwise.
+     *
+     * @param state   The requested state.
+     * @return True if successfully enters requested state. False otherwise.
+     */
     bool requestState(EnemyLoader::State state);
 
-    /** Main update loop for enemy. Handles firing events, applying cooldown, transition to next state. */
+    /** Main update loop for enemy. Handles firing events, applying cooldown, transition to next state.
+     *
+     * @param dt  The elapsed time since the previous frame, in seconds.
+     */
     void virtual update(float dt);
 
     /** Return contents of current event buffer and clears it.*/
@@ -361,7 +368,10 @@ protected:
      */
     bool initializeFromDef(const EnemyLoader::EnemyDef& def);
 
-    /** Updates timers.*/
+    /** Updates enemy effects timers.
+     *
+     * @param dt  The elapsed time since the previous frame, in seconds.
+     */
     void tick(float dt);
 
     /** Returns true if the animation has completed and events have not yet fired in this state.

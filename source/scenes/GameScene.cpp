@@ -119,6 +119,7 @@ static void broadcastSupportEffects(NetworkController& network,
  * @param network            The network controller used to send host-directed updates.
  * @param def                The item definition describing the attack item's effects.
  * @param resolvedMagnitude  The resolved attack magnitude calculated for this item use.
+ * @param playerIndex    The index of the player applying the enemy effect.
  */
 static void broadcastEnemyEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int playerIndex) {
     for (const ItemDef::Effect& effect : def.getEffects()) {

@@ -50,6 +50,8 @@ private:
     /**
      * Applies a love effect to an enemy and returns the love duration.
      *
+     * LOVE effect: same as a stun, but resets the enemy's state to IDLE
+     *
      * @param effect  The serialized effect definition to apply.
      * @param target  The enemy receiving the love.
      */

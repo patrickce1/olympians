@@ -236,7 +236,11 @@ bool Enemy::isInAttackPhase(const std::unordered_map<std::string, class Animatio
     return _stateTime >= buildupDuration;
 }
 
-/** Returns true if successfully enters requested state. False and idle otherwise. */
+/** Returns true if successfully enters requested state. False and idle otherwise.
+ *
+ * @param state   The requested state.
+ * @return True if successfully enters requested state. False otherwise.
+ */
 bool Enemy::requestState(EnemyLoader::State state) {
     if (_states.count(state) == 0) return false;
     if (isLoved()) return false; // Loved enemies cannot choose attacks
@@ -275,7 +279,10 @@ void Enemy::forceIdle() {
     }
 }
 
-/** Updates timers.*/
+/** Updates enemy effects timers.
+ *
+ * @param dt  The elapsed time since the previous frame, in seconds.
+ */
 void Enemy::tick(float dt) {
     if (dt <= 0.0f) return;
 
