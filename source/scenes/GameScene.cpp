@@ -3257,17 +3257,19 @@ void GameScene::updateItemUseAnimations(float dt) {
     for (size_t i = 0; i < _activeItemUseAnimations.size(); ++i) {
         auto& activeAnim = _activeItemUseAnimations[i];
 
+        // Advance time and derive the current frame from normalized progress.
         activeAnim.elapsedTime += dt;
-
         const float progress   = std::min(1.0f, activeAnim.elapsedTime / activeAnim.animationDuration);
         int         frameIndex = std::min(static_cast<int>(progress * activeAnim.frameCount),
                                           activeAnim.frameCount - 1);
 
+        // Only call setFrame when the index actually changes to avoid redundant GPU uploads.
         if (frameIndex != activeAnim.currentFrameIndex) {
             activeAnim.currentFrameIndex = frameIndex;
             activeAnim.node->setFrame(frameIndex);
         }
 
+        // Damage resolution fires exactly once when we hit or pass the keyframe.
         if (!activeAnim.damageResolved && frameIndex >= activeAnim.damageResolutionFrame) {
             activeAnim.damageResolved = true;
 
@@ -3278,12 +3280,13 @@ void GameScene::updateItemUseAnimations(float dt) {
                     const float sideMultiplier = enemy->getSideMultiplier(playerNum);
                     const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
 
+                    // Apply pre-calculated damage and show the popup sequence.
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
                     createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
                         activeAnim.baseValue, activeAnim.totalMultiplier, sideMultiplier,
                         activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
 
-                    // Non-hosts broadcast damage so the host applies it on the same frame.
+                    // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
                         _network->broadcastDamage(activeAnim.damageAmount, playerNum);
                     }
@@ -3296,12 +3299,14 @@ void GameScene::updateItemUseAnimations(float dt) {
             }
         }
 
+        // Queue for removal once the full animation duration has elapsed.
         if (activeAnim.elapsedTime >= activeAnim.animationDuration) {
             activeAnim.node->removeFromParent();
             completedIndices.push_back(i);
         }
     }
-    
+
+    // Erase in reverse order so earlier indices stay valid as we remove later ones.
     for (auto indexToRemove = completedIndices.rbegin(); indexToRemove != completedIndices.rend(); ++indexToRemove) {
         _activeItemUseAnimations.erase(_activeItemUseAnimations.begin() + *indexToRemove);
     }
@@ -3417,6 +3422,7 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
 {
     const bool hasSideMult = (std::abs(sideMultiplier - 1.0f) > 0.01f);
 
+    // Format each value as a fixed one-decimal string.
     char baseBuf[32], houseBuf[32], preBuf[32], sideBuf[32], finalBuf[32];
     std::snprintf(baseBuf,  sizeof(baseBuf),  "-%.1f", baseValue);
     std::snprintf(houseBuf, sizeof(houseBuf), "%.1fx", totalMultiplier);
@@ -3424,10 +3430,12 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
     std::snprintf(sideBuf,  sizeof(sideBuf),  "%.1fx", sideMultiplier);
     std::snprintf(finalBuf, sizeof(finalBuf), "-%.1f", finalDamage);
 
+    // Log-scale the multiplier font size so larger multipliers get proportionally bigger text.
     const float houseLog    = 0.2f * std::log(std::max(1.0f, totalMultiplier));
     const float sideLog     = 0.2f * std::log(std::max(1.0f, sideMultiplier));
     const float combinedLog = 0.2f * std::log(std::max(1.0f, totalMultiplier * sideMultiplier));
 
+    // Green for a bonus side, blue for a penalty side.
     const cugl::Color4 sideColor = (sideMultiplier >= 1.0f)
         ? cugl::Color4(150, 220,  80, 255)
         : cugl::Color4(120, 160, 255, 255);
@@ -3453,6 +3461,7 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
  * See header for full parameter and sequence documentation.
  */
 std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal) const {
+    // Back-calculate the house multiplier from the resolved heal so we can show it in the sequence.
     const float totalMultiplier = (baseValue > 0.0f) ? resolvedHeal / baseValue : 1.0f;
     const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
 
@@ -3463,6 +3472,7 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
 
     const cugl::Color4 healGreen(80, 220, 80, 255);
 
+    // Only show the full sequence when the multiplier actually changed something.
     if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
         return {
             {baseBuf,  26.0f,                    cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
@@ -3544,14 +3554,18 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
 
     if (data.playSound && _audio) _audio->playSoundUnique("popup_ding");
 
+    // displayScale maps the requested font size onto the base font size the asset was baked at.
     const float displayScale = data.fontSize / FLOATING_POPUP_BASE_FONT_SIZE;
 
+    // Allocate the colored label first so we can measure its content size.
     auto label = cugl::scene2::Label::allocWithText(data.text, font);
     if (!label) return;
     label->setForeground(data.color);
     const cugl::Size textSize = label->getContentSize();
     const cugl::Vec2 center(textSize.width * 0.5f, textSize.height * 0.5f);
 
+    // The container must be given an explicit content size matching the label so
+    // ANCHOR_CENTER resolves to the true visual center, not (0,0).
     auto container = cugl::scene2::SceneNode::alloc();
     container->setContentSize(textSize);
     container->setAnchor(cugl::Vec2::ANCHOR_CENTER);
@@ -3600,6 +3614,7 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
  * Active popups step through scale-in (with a slight overshoot), hold, then fade out.
  */
 void GameScene::updateFloatingPopupAnimations(float dt) {
+    // Spawn any pending popups whose delay timer has elapsed.
     for (auto pendingEntry = _pendingFloatingPopups.begin(); pendingEntry != _pendingFloatingPopups.end(); ) {
         pendingEntry->elapsed += dt;
         if (pendingEntry->elapsed >= pendingEntry->spawnTime) {
@@ -3610,6 +3625,7 @@ void GameScene::updateFloatingPopupAnimations(float dt) {
         }
     }
 
+    // Advance each live popup through its three animation phases.
     for (auto popupEntry = _activeFloatingPopups.begin(); popupEntry != _activeFloatingPopups.end(); ) {
         popupEntry->elapsed += dt;
         const float totalDuration = popupEntry->animationInDuration
@@ -3624,6 +3640,7 @@ void GameScene::updateFloatingPopupAnimations(float dt) {
 
         float scale, alpha;
         if (popupEntry->elapsed < popupEntry->animationInDuration) {
+            // Phase IN: scale up with a brief overshoot for a punchy feel.
             popupEntry->phase = FloatingPopupAnimation::IN;
             const float t = popupEntry->elapsed / popupEntry->animationInDuration;
             // Overshoot to 1.25× at t=0.6, settle to 1.0× by t=1.0
@@ -3631,10 +3648,12 @@ void GameScene::updateFloatingPopupAnimations(float dt) {
             scale = overshoot * popupEntry->displayScale;
             alpha = t;
         } else if (popupEntry->elapsed < popupEntry->animationInDuration + popupEntry->displayDuration) {
+            // Phase DISPLAY: hold at full scale and full opacity.
             popupEntry->phase = FloatingPopupAnimation::DISPLAY;
             scale = popupEntry->displayScale;
             alpha = 1.0f;
         } else {
+            // Phase OUT: shrink slightly while fading to transparent.
             popupEntry->phase = FloatingPopupAnimation::OUT;
             const float t = (popupEntry->elapsed - popupEntry->animationInDuration - popupEntry->displayDuration)
                           / popupEntry->animationOutDuration;
