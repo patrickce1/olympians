@@ -759,24 +759,24 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
             ? cugl::Color4(150, 220,  80, 255)
             : cugl::Color4(120, 160, 255, 255);
         auto dmgColor = [](float dmg) -> cugl::Color4 {
-            if (dmg < 1.0f)  return cugl::Color4(120, 160, 255, 255);
-            if (dmg < 1.5f)  return cugl::Color4(255, 150,  30, 255);
-            return                  cugl::Color4(220,  30,  30, 255);
+            if (dmg < 1.0f)  return cugl::Color4(140, 180, 255, 255);
+            if (dmg < 1.5f)  return cugl::Color4(255, 165,  40, 255);
+            return                  cugl::Color4(255,  55,  55, 255);
         };
 
         if (hasSideMult) {
             createFloatingPopup(dropPos, {
-                FloatingPopupData{baseBuf,  22.0f,                    cugl::Color4(160, 160, 160, 255), 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
-                FloatingPopupData{houseBuf, 14.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
-                FloatingPopupData{preBuf,   22.0f*(1.0f+houseLog),    dmgColor(resolvedMagnitude),      0.3f,  0.15f, cugl::Vec2::ZERO,         true},
-                FloatingPopupData{sideBuf,  14.0f*(1.0f+sideLog),     sideColor,                        0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
-                FloatingPopupData{finalBuf, 22.0f*(1.0f+combinedLog), dmgColor(finalDamage),            0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
+                FloatingPopupData{baseBuf,  26.0f,                    cugl::Color4(160, 160, 160, 255), 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
+                FloatingPopupData{houseBuf, 17.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
+                FloatingPopupData{preBuf,   26.0f*(1.0f+houseLog),    dmgColor(resolvedMagnitude),      0.3f,  0.15f, cugl::Vec2::ZERO,         true},
+                FloatingPopupData{sideBuf,  17.0f*(1.0f+sideLog),     sideColor,                        0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
+                FloatingPopupData{finalBuf, 26.0f*(1.0f+combinedLog), dmgColor(finalDamage),            0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
             });
         } else {
             createFloatingPopup(dropPos, {
-                FloatingPopupData{baseBuf,  22.0f,                 cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-                FloatingPopupData{houseBuf, 14.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-                FloatingPopupData{finalBuf, 22.0f*(1.0f+houseLog), dmgColor(resolvedMagnitude),      0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+                FloatingPopupData{baseBuf,  26.0f,                 cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+                FloatingPopupData{houseBuf, 17.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+                FloatingPopupData{finalBuf, 26.0f*(1.0f+houseLog), dmgColor(resolvedMagnitude),      0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
             });
         }
     }
@@ -801,6 +801,34 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
+            // Shield/barrier popups fire before the magnitude guard (these items return 0)
+            {
+                cugl::Vec2 dropPos;
+                auto bodyIt = _itemBodies.find(itemId);
+                if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                    dropPos = bodyIt->second->getPosition();
+                } else {
+                    cugl::Size viewSize = getSize();
+                    dropPos = cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
+                }
+                for (const auto& effect : def->getEffects()) {
+                    if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
+                        char buf[32];
+                        std::snprintf(buf, sizeof(buf), "[%.1f]", effect.mitigation);
+                        createFloatingPopup(dropPos, {
+                            FloatingPopupData{buf, 26.0f, cugl::Color4(80, 200, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}
+                        });
+                    } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier > 0.0f) {
+                        char buf[32];
+                        const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
+                        std::snprintf(buf, sizeof(buf), "[%.0f%%]", reductionPct);
+                        createFloatingPopup(dropPos, {
+                            FloatingPopupData{buf, 26.0f, cugl::Color4(180, 80, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}
+                        });
+                    }
+                }
+            }
+
             const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
             if (resolvedMagnitude <= 0.0f) {
                 return false;
@@ -818,7 +846,36 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
             } else {
                 _audio->playSoundUnique("support");
             }
-            CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
+            CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
+
+            {
+                cugl::Vec2 dropPos;
+                auto bodyIt = _itemBodies.find(itemId);
+                if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                    dropPos = bodyIt->second->getPosition();
+                } else {
+                    cugl::Size viewSize = getSize();
+                    dropPos = cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
+                }
+                const float baseValue      = def->getBaseValue();
+                const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
+                const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
+                char baseBuf[32], multBuf[32], finalBuf[32];
+                std::snprintf(baseBuf,  sizeof(baseBuf),  "+%.1f", baseValue);
+                std::snprintf(multBuf,  sizeof(multBuf),  "%.1fx", totalMultiplier);
+                std::snprintf(finalBuf, sizeof(finalBuf), "+%.1f", resolvedMagnitude);
+                if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
+                    createFloatingPopup(dropPos, {
+                        FloatingPopupData{baseBuf,  26.0f,                 cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+                        FloatingPopupData{multBuf,  17.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+                        FloatingPopupData{finalBuf, 26.0f*(1.0f+houseLog), cugl::Color4( 80, 220,  80, 255), 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+                    });
+                } else {
+                    createFloatingPopup(dropPos, {
+                        FloatingPopupData{finalBuf, 26.0f, cugl::Color4(80, 220, 80, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true},
+                    });
+                }
+            }
             return true;
         }
         return false;
@@ -843,6 +900,34 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
+            // Shield/barrier popups fire before the magnitude guard (these items return 0)
+            {
+                cugl::Vec2 dropPos;
+                auto bodyIt = _itemBodies.find(itemId);
+                if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                    dropPos = bodyIt->second->getPosition();
+                } else {
+                    cugl::Size viewSize = getSize();
+                    dropPos = cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
+                }
+                for (const auto& effect : def->getEffects()) {
+                    if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
+                        char buf[32];
+                        std::snprintf(buf, sizeof(buf), "[%.1f]", effect.mitigation);
+                        createFloatingPopup(dropPos, {
+                            FloatingPopupData{buf, 26.0f, cugl::Color4(80, 200, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}
+                        });
+                    } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier > 0.0f) {
+                        char buf[32];
+                        const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
+                        std::snprintf(buf, sizeof(buf), "[%.0f%%]", reductionPct);
+                        createFloatingPopup(dropPos, {
+                            FloatingPopupData{buf, 26.0f, cugl::Color4(180, 80, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}
+                        });
+                    }
+                }
+            }
+
             const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
             if (resolvedMagnitude <= 0.0f) {
                 return false;
@@ -861,6 +946,35 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
                 _audio->playSoundUnique("support");
             }
             CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
+
+            {
+                cugl::Vec2 dropPos;
+                auto bodyIt = _itemBodies.find(itemId);
+                if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                    dropPos = bodyIt->second->getPosition();
+                } else {
+                    cugl::Size viewSize = getSize();
+                    dropPos = cugl::Vec2(viewSize.width * 0.5f, viewSize.height * 0.55f);
+                }
+                const float baseValue       = def->getBaseValue();
+                const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
+                const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
+                char baseBuf[32], multBuf[32], finalBuf[32];
+                std::snprintf(baseBuf,  sizeof(baseBuf),  "+%.1f", baseValue);
+                std::snprintf(multBuf,  sizeof(multBuf),  "%.1fx", totalMultiplier);
+                std::snprintf(finalBuf, sizeof(finalBuf), "+%.1f", resolvedMagnitude);
+                if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
+                    createFloatingPopup(dropPos, {
+                        FloatingPopupData{baseBuf,  26.0f,                 cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+                        FloatingPopupData{multBuf,  17.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+                        FloatingPopupData{finalBuf, 26.0f*(1.0f+houseLog), cugl::Color4( 80, 220,  80, 255), 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+                    });
+                } else {
+                    createFloatingPopup(dropPos, {
+                        FloatingPopupData{finalBuf, 26.0f, cugl::Color4(80, 220, 80, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true},
+                    });
+                }
+            }
             return true;
         }
         return false;
