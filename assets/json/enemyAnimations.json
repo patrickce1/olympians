@@ -26,6 +26,20 @@
             "scale": 0.98,
             "offsetX": 0,
             "offsetY": 0
+        },
+        {
+            "id": "cyclops_slash_animation",
+            "texture": "textures/gameScene/cyclops/cyclops_slash_animation.png",
+            "frameCount": 9,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "buildupFrameCount": 5,
+            "damageFrame": 5,
+            "positionX": 196.5,
+            "positionY": 151.0,
+            "scale": 0.54,
+            "offsetX": 0,
+            "offsetY": 0
         }
     ]
 }

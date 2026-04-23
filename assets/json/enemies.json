@@ -19,7 +19,7 @@
                 },
                 "attack_1": {
                     "name": "club",
-                    "animationKey": "cyclops_boulder_animation",
+                    "animationKey": "cyclops_slash_animation",
                     "buildUpTime": 4.0,
                     "cooldownTime": 0.0,
                     "events": [
