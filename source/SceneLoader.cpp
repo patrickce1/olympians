@@ -220,6 +220,11 @@ void SceneLoader::onResize() {
  * Otherwise, it should maintain the current scene.
  */
 void SceneLoader::update(float dt) {
+    // Settings overlay always gets updated when active
+    if (_settingsScene.isActive()) {
+        _settingsScene.update(dt);
+        return; // don't update the underlying scene while settings is open
+    }
     
     switch (_currentScene) {
         case State::LOAD:
@@ -242,7 +247,7 @@ void SceneLoader::update(float dt) {
                 
                 if (_menuScene.init(_assets)) {
                     _loadingScene->setActive(false);
-                    SettingsManager::get()->init(_assets);
+                    
                     _menuScene.setSpriteBatch(_batch);
                     _menuScene.setActive(true);
                     _currentScene = State::MENU;
@@ -285,6 +290,14 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize BossSelectScene");
                 }
+                
+                // Init the settings overlay once, after all assets are ready
+                if (_settingsScene.init(_assets)){
+                    _settingsScene.setOnClose([this]() {
+                        _paused = false;
+                    });
+                    _settingsScene.setSpriteBatch(_batch);
+                }
             }
             break;
         case State::MENU:
@@ -298,6 +311,8 @@ void SceneLoader::update(float dt) {
                     break;
                 case MenuScene::Action::OPEN_SETTINGS:
                     CULog("SettingsScene placeholder pressed");
+                    _paused = true;
+                    _settingsScene.setActive(true);
                     break;
                 case MenuScene::Action::NONE:
                 default:
@@ -537,6 +552,9 @@ void SceneLoader::draw() {
         case State::BOSSSELECT:
             _bossSelectScene.render();
             break;
+    }
+    if (_settingsScene.isActive()) {
+        _settingsScene.render();
     }
 }
 

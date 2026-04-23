@@ -42,6 +42,7 @@ bool SettingsScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     setupUI();
     setupListeners();
     
+    addChild(_scene);
     setActive(false);
     return true;
 }
@@ -56,35 +57,45 @@ bool SettingsScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 void SettingsScene::setupUI() {
     // Assign pointers to active buttons and text-fields
     _usernameField = std::dynamic_pointer_cast<scene2::TextField>(
-        _assets->get<scene2::SceneNode>("clientScene.center.playerName.text"));
+       _assets->get<scene2::SceneNode>("settingsScene.username.text"));
+    
+//    if(!_usernameField){
+//        CULog("ain't loading from json");
+//    }
     
     _backButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("clientScene.back"));
+        _scene->getChildByName("back"));
+    if(_backButton) {
+        CULog("ain't loading from json");
+    }
     
     _sfxSlider = std::dynamic_pointer_cast<scene2::Slider>(
-        _assets->get<scene2::SceneNode>("clientScene.back"));;
+        _scene->getChildByName("audioSlider"));
     
     _musicSlider = std::dynamic_pointer_cast<scene2::Slider>(
-        _assets->get<scene2::SceneNode>("clientScene.back"));;
+        _scene->getChildByName("musicSlider"));
     
-    /** The toggle button for screen effects */
     _effectsButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("clientScene.back"));
+        _assets->get<scene2::SceneNode>("settingsScene.screenShake.toggleButton"));
     
-    /** The toggle button for haptics */
     _hapticsButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("clientScene.back"));
+        _assets->get<scene2::SceneNode>("settingsScene.haptics.toggleButton"));
     
     _saveButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("clientScene.back"));
+        _scene->getChildByName("save"));
     
-    std::shared_ptr<cugl::scene2::Label> usernamePlaceholder = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.placeholder"));
+    auto usernamePlaceholder = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("settingsScene.username.placeholder"));
     usernamePlaceholder->setText("ENTER NAME");
     
     // Set the placeholders to invisible when typing starts
     _usernameField->addTypeListener([this, usernamePlaceholder](const std::string& name, const std::string& value) {
         usernamePlaceholder->setVisible(value.empty());
     });
+    
+    auto overlay = _scene->getChildByName("background");
+    overlay->setContentSize(getSize());
+    overlay->setAnchor(Vec2::ANCHOR_CENTER);
+    overlay->setPosition(getSize()/2);
 }
 
 /**
@@ -95,5 +106,130 @@ void SettingsScene::setupUI() {
  *  to toggle the visibility of its placeholder label.
  */
 void SettingsScene::setupListeners() {
-    
-};
+    // Back button — hide the overlay
+    _backButton->addListener([this](const std::string& name, bool down) {
+        if (!down) {
+            setActive(false);
+            // notify whoever cares (e.g. resume the game)
+            if (_onClose) _onClose();
+        }
+    });
+
+    // Save button — persist settings
+    _saveButton->addListener([this](const std::string& name, bool down) {
+        if (!down) {
+//            saveSettings();
+        }
+    });
+
+    _sfxSlider->addListener([this](const std::string& name, float value) {
+        _sfxVolume = value;
+    });
+
+    _musicSlider->addListener([this](const std::string& name, float value) {
+        _musicVolume = value;
+    });
+
+    // Effects toggle
+    _effectsButton->addListener([this](const std::string& name, bool down) {
+        if (!down) _effectsEnabled = !_effectsEnabled;
+    });
+
+    // Haptics toggle
+    _hapticsButton->addListener([this](const std::string& name, bool down) {
+        if (!down) _hapticsEnabled = !_hapticsEnabled;
+    });
+}
+
+/**
+ * Disposes of all (non-static) resources allocated to this mode.
+ */
+void SettingsScene::dispose() {
+    if (_active) {
+        removeAllChildren();
+        _usernameField = nullptr;
+        _backButton = nullptr;
+        _sfxSlider = nullptr;
+        _musicSlider = nullptr;
+        _effectsButton = nullptr;
+        _hapticsButton = nullptr;
+        _active = false;
+        _saveButton = nullptr;
+    }
+}
+
+/**
+ * Sets whether the scene is currently active.
+ *
+ * This method should be used to toggle all the UI elements. Buttons
+ * should be activated when it is made active and deactivated when
+ * it is not.
+ *
+ * @param value whether the scene is currently active
+ */
+void SettingsScene::setActive(bool value) {
+    if (isActive() != value) {
+        Scene2::setActive(value);
+        setInputEnabled(value);
+        if (!value) {
+            // Reset any buttons that may have been held down
+            _saveButton->setDown(false);
+            _backButton->setDown(false);
+        }
+    }
+}
+
+/**
+ * Updates the scene each frame.
+ *
+ * Currently a no-op — the settings scene is fully event-driven.
+ * Reserved for future use (e.g. animated transitions).
+ *
+ * @param timestep  The amount of time (in seconds) since the last frame
+ */
+void SettingsScene::update(float timestep) {
+}
+
+///**
+// * Renders the scene to the given sprite batch.
+// *
+// * Delegates to the parent Scene2::render() only when active,
+// * so there is zero rendering cost while the overlay is hidden.
+// *
+// * @param batch     The sprite batch to draw with
+// */
+//void SettingsScene::render() {
+//    if (!isActive()) return;
+//    Scene2::render();
+//}
+
+#pragma mark -
+#pragma mark Helpers
+
+/**
+ * Enables or disables all interactive input controls.
+ *
+ * Called internally by setActive() to activate or deactivate
+ * every button, slider, and text field in one place.
+ *
+ * @param enabled  Whether controls should accept input
+ */
+void SettingsScene::setInputEnabled(bool enabled) {
+    if (enabled) {
+//        _usernameField->activate();
+        _backButton->activate();
+        _sfxSlider->activate();
+        _musicSlider->activate();
+        _effectsButton->activate();
+        _hapticsButton->activate();
+        _saveButton->activate();
+    } else {
+//        _usernameField->deactivate();
+        _backButton->deactivate();
+        _sfxSlider->deactivate();
+        _musicSlider->deactivate();
+        _effectsButton->deactivate();
+        _hapticsButton->deactivate();
+        _saveButton->deactivate();
+    }
+}

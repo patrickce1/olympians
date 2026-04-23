@@ -8,13 +8,13 @@
 #include "scenes/LobbyScene.h"
 #include "scenes/HouseSelectScene.h"
 #include "scenes/BossSelectScene.h"
+#include "scenes/SettingsScene.h"
 #include "InputController.h"
 #include "AudioController.h"
 #include "tests/PlayerTests.h"
 #include "tests/EnemyTests.h"
 #include "tests/ItemTests.h"
 #include "NetworkController.h"
-#include "SettingsManager.h"
 #include <algorithm>
 #include <cugl/core/CUBase.h>
 #include <cugl/core/util/CULogger.h>
@@ -83,6 +83,15 @@ protected:
     
     /*The scene where the host changes what boss they want to play with and where other player can view all the different bosses */
     BossSelectScene _bossSelectScene;
+    
+    /*The persistent settings overlay, shown on top of any active scene*/
+    SettingsScene _settingsScene;
+
+    /**
+     * Whether the current scene is paused because settings is open.
+     * Used to gate update() calls on the underlying scene.
+     */
+    bool _paused = false;
     //more scenes to come...
 
 public:

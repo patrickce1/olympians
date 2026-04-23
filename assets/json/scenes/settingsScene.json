@@ -22,6 +22,22 @@
             "visible": true
         },
         "children": {
+            "background": {
+                "type": "Polygon",
+                "data": {
+                    "anchor": [0.5, 0.5],
+                    "color": [0,0,0,200],
+                    "angle": 0,
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
             "save": {
                 "type": "Button",
                 "format": {
@@ -538,7 +554,7 @@
                     "y_offset": -0.51
                 }
             },
-            "label": {
+            "musicLabel": {
                 "type": "Label",
                 "data": {
                     "anchor": [
@@ -596,6 +612,11 @@
                         67,
                         482.8
                     ],
+                    "bounds" : [121,18.6,242,0],
+                    "range" : [0.0, 1.0],
+                    "value" : [0.5],
+                    "knob": "selectorStar",
+                    "path": "barSlider",
                     "visible": true
                 },
                 "children": {
@@ -616,11 +637,6 @@
                                 0.5,
                                 11.2
                             ],
-                            "bounds" : [121,18.6,242,0],
-                            "range" : [0.0, 1.0],
-                            "value" : [0.5],
-                            "knob": "selectorStar",
-                            "path": "barSlider",
                             "visible": true
                         },
                         "layout": {
@@ -667,7 +683,7 @@
                     "y_offset": -0.39
                 }
             },
-            "label": {
+            "sfxLabel": {
                 "type": "Label",
                 "data": {
                     "anchor": [
@@ -706,93 +722,12 @@
                     "y_offset": -0.35
                 }
             },
-            "textfield": {
-                "type": "Node",
-                "format": {
-                    "type": "Anchored"
-                },
+            "username": {
+                "type": "Widget",
                 "data": {
-                    "anchor": [
-                        0.5,
-                        1
-                    ],
-                    "size": [
-                        254,
-                        50
-                    ],
-                    "angle": 0,
-                    "position": [
-                        70,
-                        588
-                    ],
-                    "visible": true
-                },
-                "children": {
-                    "textfieldBG": {
-                        "type": "Image",
-                        "data": {
-                            "texture": "textfieldBG",
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "size": [
-                                254,
-                                50
-                            ],
-                            "angle": 0,
-                            "position": [
-                                0,
-                                0
-                            ],
-                            "visible": true
-                        },
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
-                            "absolute": false,
-                            "x_offset": 0,
-                            "y_offset": 0
-                        }
-                    },
-                    "ENTER NAME": {
-                        "type": "Label",
-                        "data": {
-                            "anchor": [
-                                0,
-                                1
-                            ],
-                            "size": [
-                                135,
-                                24
-                            ],
-                            "position": [
-                                21,
-                                12
-                            ],
-                            "angle": 0,
-                            "visible": true,
-                            "font": "gideon romanRegular20",
-                            "text": "ENTER NAME",
-                            "foreground": "#af8b5bff",
-                            "background": "#00000000",
-                            "padding": [
-                                0,
-                                0,
-                                0,
-                                0
-                            ],
-                            "valign": "top",
-                            "halign": "left"
-                        },
-                        "children": {},
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
-                            "absolute": false,
-                            "x_offset": 0.08,
-                            "y_offset": -0.28
-                        }
+                    "key": "textfield",
+                    "variables": {
+                        "text": ""
                     }
                 },
                 "layout": {
@@ -800,10 +735,10 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.25
+                    "y_offset": -0.28
                 }
             },
-            "USERNAME": {
+            "usernameHeader": {
                 "type": "Label",
                 "data": {
                     "anchor": [
@@ -939,31 +874,63 @@
                     "y_offset": -0.13
                 }
             },
-            "backArrow": {
-                "type": "Image",
+            "back": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
                 "data": {
-                    "texture": "backArrow",
                     "anchor": [
                         0,
                         1
                     ],
                     "size": [
-                        44.5,
-                        37
+                        43,
+                        43
                     ],
                     "angle": 0,
                     "position": [
-                        23,
-                        743
+                        15,
+                        765
                     ],
-                    "visible": true
+                    "visible": true,
+                    "upnode": "buttonBackBG"
+                },
+                "children": {
+                    "buttonBackBG": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "backArrow",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                43,
+                                36
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
                 },
                 "layout": {
                     "x_anchor": "left",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.06,
-                    "y_offset": -0.08
+                    "x_offset": 0.04,
+                    "y_offset": -0.05
                 }
             }
         }
