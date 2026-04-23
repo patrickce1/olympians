@@ -1,6 +1,7 @@
 #include "Cyclops.h"
 
 /** Override version of Enemy's init method, where custom data can be initialized
+
  * @param enemyID represents the name/id of the boss we are trying to get the data for
  * @param jsonPath is the path to the enemies.json file
  * 
