@@ -22,7 +22,7 @@
             "visible": true
         },
         "children": {
-            "medium": {
+            "save": {
                 "type": "Button",
                 "format": {
                     "type": "Anchored"
@@ -145,7 +145,7 @@
                     "visible": true
                 },
                 "children": {
-                    "SCREEN SHAKE": {
+                    "label": {
                         "type": "Label",
                         "data": {
                             "anchor": [
@@ -187,7 +187,7 @@
                         }
                     },
                     "toggleButton": {
-                        "type": "Node",
+                        "type": "Button",
                         "format": {
                             "type": "Anchored"
                         },
@@ -205,6 +205,8 @@
                                 244.25,
                                 18.75
                             ],
+                            "downnode": "selectorStar",
+                            "toggle": true,
                             "visible": true
                         },
                         "children": {
@@ -307,7 +309,7 @@
                     "visible": true
                 },
                 "children": {
-                    "HAPTICS": {
+                    "label": {
                         "type": "Label",
                         "data": {
                             "anchor": [
@@ -349,7 +351,7 @@
                         }
                     },
                     "toggleButton": {
-                        "type": "Node",
+                        "type": "Button",
                         "format": {
                             "type": "Anchored"
                         },
@@ -367,6 +369,8 @@
                                 244.25,
                                 18.75
                             ],
+                            "downnode": "selectorStar",
+                            "toggle": true,
                             "visible": true
                         },
                         "children": {
@@ -445,7 +449,7 @@
                 }
             },
             "musicSlider": {
-                "type": "Node",
+                "type": "Slider",
                 "format": {
                     "type": "Anchored"
                 },
@@ -463,6 +467,11 @@
                         66.5,
                         376.8
                     ],
+                    "bounds" : [124,18.6,268,0],
+                    "range" : [0.0, 1.0],
+                    "value" : [0.5],
+                    "knob": "selectorStar",
+                    "path": "barSlider",
                     "visible": true
                 },
                 "children": {
@@ -529,7 +538,7 @@
                     "y_offset": -0.51
                 }
             },
-            "MUSIC": {
+            "label": {
                 "type": "Label",
                 "data": {
                     "anchor": [
@@ -569,7 +578,7 @@
                 }
             },
             "audioSlider": {
-                "type": "Node",
+                "type": "Slider",
                 "format": {
                     "type": "Anchored"
                 },
@@ -607,6 +616,11 @@
                                 0.5,
                                 11.2
                             ],
+                            "bounds" : [121,18.6,242,0],
+                            "range" : [0.0, 1.0],
+                            "value" : [0.5],
+                            "knob": "selectorStar",
+                            "path": "barSlider",
                             "visible": true
                         },
                         "layout": {
@@ -653,7 +667,7 @@
                     "y_offset": -0.39
                 }
             },
-            "AUDIO/SFX": {
+            "label": {
                 "type": "Label",
                 "data": {
                     "anchor": [

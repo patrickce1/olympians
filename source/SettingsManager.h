@@ -1,4 +1,5 @@
-// SettingsManager.h
+#include "scenes/SettingsScene.h"
+
 class SettingsManager {
 public:
     static SettingsManager* get();           // singleton accessor
@@ -6,14 +7,14 @@ public:
     void show();
     void hide();
     bool isVisible() const;
-    void update(float dt);                   // called from your app update loop
-    void render(const std::shared_ptr<cugl::SpriteBatch>& batch);
+    void update(float dt);
+    void render(const std::shared_ptr<cugl::graphics::SpriteBatch&> batch);
 
     // Settings values — add whatever you need
     float musicVolume = 1.0f;
     float sfxVolume   = 1.0f;
     bool screenEffects = true;
-    bool haptics = true
+    bool haptics = true;
 
     void save();   // write to file
     void load();   // read from file

@@ -241,9 +241,10 @@ void SceneLoader::update(float dt) {
 
                 
                 if (_menuScene.init(_assets)) {
+                    _loadingScene->setActive(false);
+                    SettingsManager::get()->init(_assets);
                     _menuScene.setSpriteBatch(_batch);
                     _menuScene.setActive(true);
-                    _loadingScene->setActive(false);
                     _currentScene = State::MENU;
                 } else {
                     CULog("Failed to initialize MenuScene");

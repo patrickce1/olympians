@@ -12,6 +12,9 @@ protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
     
+    /** The root scene node for this scene graph. */
+    std::shared_ptr<cugl::scene2::SceneNode> _scene;
+    
     /** The text-field where you can change your username */
     std::shared_ptr<cugl::scene2::TextField> _usernameField;
     
@@ -31,8 +34,7 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _hapticsButton;
     
     /** The save button to save the data and close the settings scene */
-    std::shared_ptr<cugl::scene2::Button> _backButton;
-};
+    std::shared_ptr<cugl::scene2::Button> _saveButton;
 
 public:
 #pragma mark -
@@ -106,9 +108,9 @@ public:
     /**
      * Updates the scene each frame.
      */
-    void update(float timestep);
+    void update(float timestep) override;
 
-    void render(const std::shared_ptr<cugl::SpriteBatch>& batch) override;
+    void render(const std::shared_ptr<cugl::graphics::SpriteBatch&>& batch);
 
     void setVisible(bool visible);
     

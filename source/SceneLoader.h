@@ -14,6 +14,7 @@
 #include "tests/EnemyTests.h"
 #include "tests/ItemTests.h"
 #include "NetworkController.h"
+#include "SettingsManager.h"
 #include <algorithm>
 #include <cugl/core/CUBase.h>
 #include <cugl/core/util/CULogger.h>
