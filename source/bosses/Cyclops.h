@@ -12,7 +12,6 @@ private:
 	  * Ex. 0.5 would mean his attacks go by 50% faster. If both thresholds were met in this scenario,
 	  * his attacks would be going by 100% faster */
 	float _franticRate;
-
 	/** The rate at which a hit from players shortens the boulder toss build up. 
 	  * Ex. a value of 1.0 means the build up time is shortened by 1 second every time cyclops is hit*/
 	float _boulderTossReductionAmount;
