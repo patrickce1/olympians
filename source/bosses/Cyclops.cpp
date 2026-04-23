@@ -4,7 +4,6 @@
  *
  * @param enemyID represents the name/id of the boss we are trying to get the data for
  * @param jsonPath is the path to the enemies.json file
- * 
  */
 bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
 	bool success = Enemy::init("cyclops", jsonPath);
