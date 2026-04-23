@@ -747,7 +747,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnEffectPopups(def, dropPos);
+        spawnDefensiveEffectPopups(def, dropPos);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude <= 0.0f) return false;
@@ -784,7 +784,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnEffectPopups(def, dropPos);
+        spawnDefensiveEffectPopups(def, dropPos);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude <= 0.0f) return false;
@@ -3452,17 +3452,17 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
     // If the enemy has a side multiplier on the local player's side
     if (hasSideMult) {
         return {
-            {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
-            {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
-            {preText,   valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        0.3f,  0.15f, cugl::Vec2::ZERO,         true},
-            {sideText,  multiplierFontSize * (1.0f + sideLog),          sideColor,                        0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
-            {finalText, valueFontSize      * (1.0f + combinedLog),      damageColor(finalDamage),          0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
+            {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
+            {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
+            {preText,   valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        cugl::Color4::BLACK, 0.3f,  0.15f, cugl::Vec2::ZERO,         true},
+            {sideText,  multiplierFontSize * (1.0f + sideLog),          sideColor,                        cugl::Color4::BLACK, 0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
+            {finalText, valueFontSize      * (1.0f + combinedLog),      damageColor(finalDamage),          cugl::Color4::BLACK, 0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
         };
     }
     return {
-        {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-        {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-        {finalText, valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+        {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+        {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+        {finalText, valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
     };
 }
 
@@ -3489,13 +3489,13 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
     // Only show the full sequence when the multiplier actually changed something.
     if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
         return {
-            {baseText,  26.0f,                    cugl::Color4(160, 160, 160, 255), 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-            {houseText,  17.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-            {finalText, 26.0f*(1.0f+houseLog),    healGreen,                        0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+            {baseText,  26.0f,                    cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+            {houseText, 17.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+            {finalText, 26.0f*(1.0f+houseLog),    healGreen,                        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
         };
     }
     return {
-        {finalText, 26.0f, healGreen, 0.0f, 0.5f, cugl::Vec2::ZERO, true},
+        {finalText, 26.0f, healGreen, cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true},
     };
 }
 
@@ -3506,18 +3506,18 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
  * @param def      The item definition whose effects to scan.
  * @param dropPos  Screen-space position where popups appear.
  */
-void GameScene::spawnEffectPopups(const std::shared_ptr<const ItemDef>& def,
+void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
                                    const cugl::Vec2& dropPos) {
     for (const auto& effect : def->getEffects()) {
         if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
             char text[32];
             std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
-            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
         } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier > 0.0f) {
             char text[32];
             const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
             std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);
-            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
         }
     }
 }
@@ -3564,8 +3564,8 @@ void GameScene::createFloatingPopup(
  * (cardinal + diagonal offsets) followed by the colored label on top.
  * Registers the container in _activeFloatingPopups to begin animating.
  * 
- * @param data The popup descriptor defining text, color, font size, and animation timing
- * @param position The screen-space position to spawn the popup at (already offset by data.positionOffset)
+ * @param data      Popup descriptor defining text, fill color, stroke color, font size, and timing.
+ * @param position  Screen-space position to spawn the popup at (positionOffset already applied).
  * 
  */
 void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cugl::Vec2& position) {
@@ -3605,7 +3605,7 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
         if (outlineLabel) {
             outlineLabel->setAnchor(cugl::Vec2::ANCHOR_CENTER);
             outlineLabel->setPosition(center + offset);
-            outlineLabel->setForeground(cugl::Color4::BLACK);
+            outlineLabel->setForeground(data.strokeColor);
             container->addChild(outlineLabel);
         }
     }

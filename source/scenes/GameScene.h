@@ -147,12 +147,21 @@ struct AnimationEntry {
  * General-purpose for any game event: damage, heals, buffs, status effects, health popups, etc.
  */
 struct FloatingPopupData {
+    /** Text content to display. */
     std::string text;
+    /** Font size for this popup. Scaled relative to FLOATING_POPUP_BASE_FONT_SIZE. */
     float fontSize = 32.0f;
+    /** Foreground (fill) color of the text. */
     cugl::Color4 color = cugl::Color4::WHITE;
+    /** Outline (stroke) color drawn behind the text. Defaults to black. */
+    cugl::Color4 strokeColor = cugl::Color4::BLACK;
+    /** Seconds to wait after createFloatingPopup() is called before this popup spawns. */
     float delaySeconds = 0.0f;
+    /** Seconds the popup holds at full opacity before fading out. */
     float displayDuration = 2.0f;
+    /** Additional offset applied on top of the base screen position. */
     cugl::Vec2 positionOffset = cugl::Vec2::ZERO;
+    /** If true, plays the popup_ding sound when this popup spawns. */
     bool playSound = true;
 };
 
@@ -1204,7 +1213,7 @@ public:
      * adds 8 black outline copies at cardinal and diagonal offsets, then adds the
      * colored label on top. All children are anchored to the container center.
      *
-     * @param data      Visual and timing parameters for the popup.
+     * @param data      Visual and timing parameters for the popup, including fill and stroke color.
      * @param position  Screen-space center position for the popup.
      */
     void spawnSingleFloatingPopup(const FloatingPopupData& data, const cugl::Vec2& position);
@@ -1277,7 +1286,7 @@ public:
      * @param def      The item definition whose effects to scan.
      * @param dropPos  Screen-space position where popups appear.
      */
-    void spawnEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos);
+    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos);
 
     /**
      * Plays the item's defined use sound, or the generic "support" sound if none is set.
