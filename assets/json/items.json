@@ -135,10 +135,10 @@
             "effects": []
         },
         {
-            "id": "cornucopia",
-            "name": "Cornucopia",
+            "id": "wheat",
+            "name": "Wheat",
             "description": " ",
-            "icon": "item_cornucopia",
+            "icon": "item_wheat",
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "demeter",
@@ -239,6 +239,28 @@
                 "animationDuration": 0.747,
                 "damageResolutionFrame": 7
             }
+        },
+        {
+            "id": "resurrection",
+            "name": "Resurrection",
+            "description": " ",
+            "icon": "item_hades_resurrection",
+            "type": "support",
+            "rarity": "divine",
+            "houseAffinity": "hades",
+            "baseValue": 0.0,
+            "effects": []
+        },
+        {
+            "id": "cornucopia",
+            "name": "Cornucopia",
+            "description": " ",
+            "icon": "item_demeter_cornucopia",
+            "type": "support",
+            "rarity": "divine",
+            "houseAffinity": "demeter",
+            "baseValue": 2.0,
+            "effects": []
         }
     ],
     "itemInterval": 7.0,

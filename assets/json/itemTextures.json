@@ -24,8 +24,8 @@
         "item_helm": {
             "file": "textures/items/helm_r.png"
         },
-        "item_cornucopia": {
-            "file": "textures/items/cornucopia_r.png"
+        "item_wheat": {
+            "file": "textures/items/wheat_r.png"
         },
         "item_mallet": {
             "file": "textures/items/mallet_r.png"
@@ -37,10 +37,16 @@
             "file": "textures/items/spear_r.png"
         },
         "item_poseidon_tide": {
-            "file": "textures/items/poseidons_tide_d.png"
+            "file": "textures/items/poseidon_tide_d.png"
         },
         "item_zeus_thunderstorm": {
             "file": "textures/items/zeus_thunderstorm_d.png"
+        },
+        "item_hades_resurrection": {
+            "file": "textures/items/hades_resurrection_d.png"
+        },
+        "item_demeter_cornucopia": {
+            "file": "textures/items/demeter_cornucopia_d.png"
         }
     }
 }
