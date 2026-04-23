@@ -16,6 +16,11 @@ private:
 	/** The rate at which a hit from players shortens the boulder toss build up. 
 	  * Ex. a value of 1.0 means the build up time is shortened by 1 second every time cyclops is hit*/
 	float _boulderTossReductionAmount;
+	/** The maximum stateTime threshold for the boulder throw animation's attack phase.
+	  * When the boss is attacked, this variable prevents the state from ending before the throw animation completes,
+      * ensuring the boulder release frames are always fully played out.
+    */
+	float _boulderHigherBound;
 
 public:
 	Cyclops() {}
@@ -45,9 +50,6 @@ public:
 	 * Certain defense thresholds being met also makes the boss more frantic, switching states more often
 	 */
 	void update(float dt) override;
-
-	/** Defines the cyclops' custom behavior for when he chooses to defend */
-	bool shouldDefend() override;
 
 	/* Handles taking damage and applying the side modifiers
      * Use this method instead of updateHealth() for appropriate damage multiplication 

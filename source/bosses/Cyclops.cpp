@@ -12,7 +12,8 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
 	_frantic2Threshold = Enemy::getMaxHealth() * _customData->getFloat("frantic2Threshold", 1.0f);
 	_franticRate = _customData->getFloat("franticRate", 1.0f);
 	_boulderTossReductionAmount = _customData->getFloat("boulderTossReductionAmount", 1.0f);
-	CULog("[Cyclops]: frantic rate %f, frantic threshold %f, frantic threshold 2 %f", _franticRate, _frantic1Threshold, _frantic2Threshold);
+	_boulderHigherBound = _customData->getFloat("boulderHigherBound", 1.0f);
+	if(_debug) CULog("[Cyclops]: Initialized with frantic rate %f, frantic threshold %f, frantic threshold 2 %f", _franticRate, _frantic1Threshold, _frantic2Threshold);
 	return success;
 }
 
@@ -32,9 +33,9 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath, cons
 	_frantic1Threshold = Enemy::getMaxHealth() * _customData->getFloat("frantic1Threshold", 1.0f);
 	_frantic2Threshold = Enemy::getMaxHealth() * _customData->getFloat("frantic2Threshold", 1.0f);
 	_franticRate = _customData->getFloat("franticRate", 1.0f);
-	_currentHealth = _frantic2Threshold;
 	_boulderTossReductionAmount = _customData->getFloat("boulderTossReductionAmount", 1.0f);
-	CULog("[Cyclops]: frantic rate %f, frantic threshold %f, frantic threshold 2 %f", _franticRate, _frantic1Threshold, _frantic2Threshold);
+	_boulderHigherBound = _customData->getFloat("boulderHigherBound", 1.0f);
+	if(_debug) CULog("[Cyclops]: Initialized with frantic rate %f, frantic threshold %f, frantic threshold 2 %f", _franticRate, _frantic1Threshold, _frantic2Threshold);
 	return success;
 }
 
@@ -55,13 +56,6 @@ void Cyclops::update(float dt) {
 	Enemy::update(updatedDt);
 }
 
-/** Defines the cyclops' custom behavior for when he chooses to defend 
-  * Triggers if either of damage thresholds are reached
-  */
-bool Cyclops::shouldDefend() {
-	return false;
-}
-
 /* Handles taking damage and applying the side modifiers
  * Use this method instead of updateHealth() for appropriate damage multiplication
  * @param damage is the amount of damage being done to the boss
@@ -74,8 +68,9 @@ void Cyclops::takeDamage(float damage, int playerIndex) {
 	//ATTACK_3 should correspond to the boulder toss for cyclops
 	if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
 		//Make Cyclops face whoever hit him and shorten wait time
+		float skipDt = std::min(_stateTime + _boulderTossReductionAmount, _boulderHigherBound) - _stateTime;
 		Enemy::setTargetIndex(playerIndex);
-		Enemy::update(_boulderTossReductionAmount);
+		Enemy::update(skipDt);
 		//Debug statement
 		if (_debug) CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
 	}
