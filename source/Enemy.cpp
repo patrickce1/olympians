@@ -284,14 +284,14 @@ void Enemy::tick(float dt) {
 
     if (_stunDuration > 0.0f) {
         _stunDuration = std::max(0.0f, _stunDuration - dt);
-        if (previousStunDuration > 0.0f && _stunDuration == 0.0f) {
+        if (previousStunDuration > 0.0f && _stunDuration <= 0.0f) {
             CULog("Enemy stun expired: enemy='%s'", _enemyId.c_str());
         }
     }
 
     if (_loveDuration > 0.0f) {
         _loveDuration = std::max(0.0f, _loveDuration - dt);
-        if (previousLoveDuration > 0.0f && _loveDuration == 0.0f) {
+        if (previousLoveDuration > 0.0f && _loveDuration <= 0.0f) {
             CULog("Enemy love expired: enemy='%s'", _enemyId.c_str());
         }
     }

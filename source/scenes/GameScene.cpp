@@ -688,7 +688,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
                                       Player* local, Enemy* enemy) {
     // Calculate damage upfront for the animation
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
-    if (resolvedMagnitude <= 0.0f) {
+    if (resolvedMagnitude < 0.0f) {
         return false;
     }
     
@@ -721,7 +721,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
                                        Player* local, Enemy* enemy) {
     // Apply damage immediately using the standard useItemById path
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
-    if (resolvedMagnitude <= 0.0f) {
+    if (resolvedMagnitude < 0.0f) {
         return false;
     }
     
@@ -760,7 +760,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-            if (resolvedMagnitude <= 0.0f) {
+            if (resolvedMagnitude < 0.0f) {
                 return false;
             }
 
@@ -776,7 +776,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
             } else {
                 _audio->playSoundUnique("support");
             }
-            CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
+            CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
             return true;
         }
         return false;
@@ -802,7 +802,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         auto def = _itemController.getDatabase().getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Support) {
             const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-            if (resolvedMagnitude <= 0.0f) {
+            if (resolvedMagnitude < 0.0f) {
                 return false;
             }
 
@@ -1760,11 +1760,15 @@ void GameScene::handleDragTracking(InputController& input) {
     }
 }
 
-/* Checks if any updates about the state of the game were sent over the network.
+/**
+ * Checks if any updates about the state of the game were sent over the network.
  * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
- * If we are the host, we process any attack, heal, support-effect, and pass messages.
- * After doing so, we send out a new authoritative version of the game state as the host*/
-void GameScene::handleNetworkUpdates() {
+ * If we are the host, we process any attack, heal, effect, and pass messages, then tick timed player effects.
+ * After doing so, we send out a new authoritative version of the game state as the host.
+ *
+ * @param dt  The elapsed time since the previous frame, in seconds.
+ */
+void GameScene::handleNetworkUpdates(float dt) {
     /*Networking pull cycle*/
     _network->getNetworkUpdates();
 
@@ -1779,6 +1783,13 @@ void GameScene::handleNetworkUpdates() {
         _gameState.healUpdates(_network->getHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
+
+        for (auto& player : _gameState.getPlayers()) {
+            if (player) {
+                player->updateEffects(dt);
+            }
+        }
+
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
     }
@@ -2379,7 +2390,7 @@ void GameScene::update(float dt, InputController& input) {
         input.resetAction();
     }
 
-    handleNetworkUpdates();
+    handleNetworkUpdates(dt);
     handleDisconnectedPlayers();
 
     handleItemSpawn(dt);
@@ -3141,7 +3152,7 @@ float GameScene::calculateItemDamage(const Player* player, const std::shared_ptr
     }
     float resolvedMagnitude = itemDef->getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
     if (resolvedMagnitude <= 0.0f) {
-        resolvedMagnitude = 0.01f;
+        resolvedMagnitude = 0.0f;
     }
     
     CULog("ItemDamageCalc: item='%s' playerHouse='%s' baseVal=%.3f * (1+%.3f) * %.3f = %.3f",
