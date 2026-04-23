@@ -3390,7 +3390,7 @@ void GameScene::clearItemUseAnimations() {
  */
 static cugl::Color4 damageColor(float damage) {
     if (damage < 1.0f) return cugl::Color4(140, 180, 255, 255);
-    if (damage < 1.5f) return cugl::Color4(255, 165,  40, 255);
+    if (damage < 2.5f) return cugl::Color4(255, 165,  40, 255);
     return                   cugl::Color4(255,  55,  55, 255);
 }
 
