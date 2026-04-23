@@ -375,6 +375,7 @@ protected:
 
     /** Vector of currently active floating popup animations. */
     std::vector<FloatingPopupAnimation> _activeFloatingPopups;
+    
     /** Vector of pending floating popups that have been queued but not yet spawned. */
     std::vector<PendingFloatingPopup> _pendingFloatingPopups;
 
