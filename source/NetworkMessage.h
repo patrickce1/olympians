@@ -114,22 +114,29 @@ struct GameStateMessage {
 
     // boss health
     float bossHealth;
+    
     // who the boss is facing
     int bossTarget;
+    
     // which phase the boss is in
     // check EnemyLoader.h to see what each number corresponds to
     int bossState;
+    
     // how long the boss has been in this phase for
     float stateTime;
+    
     // We might need to send side multiplier data over network
     // based on how we decide to indicate it
     // but that is for UI people to add to ts
     /** Remaining authoritative stun time for the boss, in seconds. */
     float bossStunDuration = 0.0f;
+    
     /** Remaining authoritative love time for the boss, in seconds. */
     float bossLoveDuration = 0.0f;
+    
     /** Remaining authoritative vulnerable time for each relative boss side, in seconds. */
     std::array<float, kMaxPlayers> bossVulnerableDurations = {0.0f, 0.0f, 0.0f, 0.0f};
+    
     /** Active authoritative vulnerable multiplier for each relative boss side. */
     std::array<float, kMaxPlayers> bossVulnerableMultipliers = {1.0f, 1.0f, 1.0f, 1.0f};
 
