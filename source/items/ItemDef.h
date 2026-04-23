@@ -69,6 +69,7 @@ public:
         Shield,
         Barrier,
         Stun,
+        Love,
         Vulnerable
     };
 

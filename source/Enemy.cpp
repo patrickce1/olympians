@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cugl/cugl.h>
+#include <cmath>
 
 using namespace cugl;
 
@@ -77,6 +78,28 @@ static EnemyLoader& getEnemyLoader() {
 }
 
 /**
+ * Wraps a side index into the valid relative-side range [0, NUM_PLAYERS).
+ *
+ * @param index The raw side index to normalize.
+ * @return The wrapped relative side index.
+ */
+static int normalizeSideIndex(int index) {
+    const int wrapped = index % Enemy::NUM_PLAYERS;
+    return (wrapped < 0) ? wrapped + Enemy::NUM_PLAYERS : wrapped;
+}
+
+/**
+ * Converts an attacking player's slot into the side they occupy relative to the enemy's current facing.
+ *
+ * @param playerIndex The attacking player's slot index.
+ * @param targetIndex The player slot the enemy is currently facing.
+ * @return The relative side index, where 0 is the enemy's current facing side.
+ */
+static int relativeSideForPlayer(int playerIndex, int targetIndex) {
+    return normalizeSideIndex(playerIndex - targetIndex);
+}
+
+/**
  * Initializes this enemy instance from the given enemy definition.
  * Sets up state machine, health, side multipliers, and AI parameters.
  * 
@@ -94,6 +117,9 @@ bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
     // Initialize all side damage multipliers to default (1.0 = no modification)
     for (int i = 0; i < NUM_PLAYERS; i++) {
         _sideMultipliers[i] = 1.0f;
+        _baseSideMultipliers[i] = 1.0f;
+        _vulnerableDurations[i] = 0.0f;
+        _vulnerableSideMultipliers[i] = 1.0f;
     }
 
     // Verify required idle state exists
@@ -105,8 +131,18 @@ bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
     enterState(EnemyLoader::State::IDLE);
     _attackLockout = 0.0f;
     _retargetLikelihood = def.ai.retargetLikelihood;
+
+    // Clear any previous stun/love state when reinitializing the enemy instance.
+    _stunDuration = 0.0f;
+    _loveDuration = 0.0f;
+
+    for (int i = 0; i < NUM_PLAYERS; i++) {
+        _vulnerableDurations[i] = 0.0f;
+        _vulnerableSideMultipliers[i] = 1.0f;
+    }
+
     _defenseLikelihood = def.ai.defenseLikelihood;
-    
+
     return true;
 }
 
@@ -200,9 +236,15 @@ bool Enemy::isInAttackPhase(const std::unordered_map<std::string, class Animatio
     return _stateTime >= buildupDuration;
 }
 
-/** Returns true if successfully enters requested state. False and idle otherwise. */
+/** Returns true if successfully enters requested state. False and idle otherwise.
+ *
+ * @param state   The requested state.
+ * @return True if successfully enters requested state. False otherwise.
+ */
 bool Enemy::requestState(EnemyLoader::State state) {
-    if (_states.count(state) == 0) return false;    // State doesn't exist
+    if (_states.count(state) == 0) return false;
+    if (isLoved()) return false; // Loved enemies cannot choose attacks
+    if (isStunned()) return false; // Stunned enemies cannot choose attacks while frozen
     if (_attackLockout > 0.0f && state != EnemyLoader::State::IDLE) return false; // Lockout is active, only allow idle
 
     enterState(state);
@@ -227,11 +269,60 @@ void Enemy::enterState(EnemyLoader::State state) {
     _currentState = state;
 }
 
-/** Updates timers.*/
+/** Forces the enemy into idle and clears progress on the interrupted state. */
+void Enemy::forceIdle() {
+    if (_currentState != EnemyLoader::State::IDLE) {
+        enterState(EnemyLoader::State::IDLE);
+    } else {
+        _stateTime = 0.0f;
+        _eventsFiredThisState = false;
+    }
+}
+
+/** Updates enemy effects timers.
+ *
+ * @param dt  The elapsed time since the previous frame, in seconds.
+ */
 void Enemy::tick(float dt) {
     if (dt <= 0.0f) return;
-    _stateTime += dt;
-    _attackLockout = (_attackLockout - dt < 0.0f) ? 0.0f : _attackLockout - dt;
+
+    const float previousStunDuration = _stunDuration;
+    const float previousLoveDuration = _loveDuration;
+
+    if (_stunDuration > 0.0f) {
+        _stunDuration = std::max(0.0f, _stunDuration - dt);
+        if (previousStunDuration > 0.0f && _stunDuration <= 0.0f) {
+            CULog("Enemy stun expired: enemy='%s'", _enemyId.c_str());
+        }
+    }
+
+    if (_loveDuration > 0.0f) {
+        _loveDuration = std::max(0.0f, _loveDuration - dt);
+        if (previousLoveDuration > 0.0f && _loveDuration <= 0.0f) {
+            CULog("Enemy love expired: enemy='%s'", _enemyId.c_str());
+        }
+    }
+
+    const float frozenDuration = std::max(previousStunDuration, previousLoveDuration);
+    const float activeCombatDt = std::max(0.0f, dt - frozenDuration);
+    if (activeCombatDt > 0.0f) {
+        _stateTime += activeCombatDt;
+        _attackLockout = std::max(0.0f, _attackLockout - activeCombatDt);
+    }
+
+    for (int side = 0; side < NUM_PLAYERS; side++) {
+        if (_vulnerableDurations[side] <= 0.0f) {
+            continue;
+        }
+
+        const float previousDuration = _vulnerableDurations[side];
+        _vulnerableDurations[side] = std::max(0.0f, _vulnerableDurations[side] - dt);
+        if (previousDuration > 0.0f && _vulnerableDurations[side] == 0.0f) {
+            _vulnerableSideMultipliers[side] = 1.0f;
+            setSideMultiplier(side, _baseSideMultipliers[side]);
+            CULog("Enemy vulnerability ended: enemy='%s' side=%d", _enemyId.c_str(), side);
+        }
+    }
 }
 
 /** Returns true when the animation has fully completed and events have not yet fired.
@@ -306,6 +397,15 @@ EnemyLoader::State Enemy::getNextStateOrIdle() const {
 void Enemy::update(float dt) {
     tick(dt);
 
+    if (isLoved()) {
+        forceIdle();
+        return;
+    }
+
+    if (isStunned()) {
+        return;
+    }
+
     if (readyToFire()) {
         fireEvents();
         applyCooldown();
@@ -327,21 +427,232 @@ void Enemy::updateHealth(float delta) {
     if (_currentHealth < 0.0f) _currentHealth = 0.0f;
 }
 
-/* Handles taking damage and applying the side modifiers
- * Use this method instead of updateHealth() for appropriate damage multiplication
- * @param damage is the amount of damage being done to the boss
- * @param playerIndex is the index that was assigned to the player by the host
-*/
-void Enemy::takeDamage(float damage, int playerIndex) {
-    //get relative index based on which side of the boss the player is on
-    int relativeIndex = (playerIndex - _targetIndex + NUM_PLAYERS) % NUM_PLAYERS;
-
-    float multiplier = 1.0f;
-    if (relativeIndex < _sideMultipliers.size()) {
-        multiplier = _sideMultipliers[relativeIndex];
+/**
+ * Applies or refreshes a stun without changing the enemy's current state.
+ *
+ * @param duration  The stun time to apply, in seconds.
+ */
+void Enemy::applyStun(float duration) {
+    if (duration <= 0.0f) {
+        return;
     }
 
-    updateHealth(-(damage * multiplier));
+    const bool wasStunned = isStunned();
+    _stunDuration = std::max(_stunDuration, duration);
+
+    if (!wasStunned) {
+        CULog("Enemy stun applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
+    } else {
+        CULog("Enemy stun refreshed: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
+    }
+}
+
+/**
+ * Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state.
+ *
+ * @param duration  The authoritative remaining stun time, in seconds.
+ */
+void Enemy::syncStunDuration(float duration) {
+    duration = std::max(0.0f, duration);
+    const bool wasStunned = isStunned();
+    const bool willBeStunned = duration > 0.0f;
+    _stunDuration = duration;
+
+    if (!wasStunned && willBeStunned) {
+        CULog("Enemy stun applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
+    } else if (wasStunned && !willBeStunned) {
+        CULog("Enemy stun ended: enemy='%s'", _enemyId.c_str());
+    }
+}
+
+/**
+ * Applies or refreshes a love, forcing the enemy idle and extending the remaining duration.
+ *
+ * @param duration  The love time to apply, in seconds.
+ */
+void Enemy::applyLove(float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    const bool wasLoved = isLoved();
+    _loveDuration = std::max(_loveDuration, duration);
+    forceIdle();
+
+    if (!wasLoved) {
+        CULog("Enemy love applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
+    } else {
+        CULog("Enemy love refreshed: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
+    }
+}
+
+/**
+ * Overwrites local love time from the host snapshot so remote clients mirror the authoritative state.
+ *
+ * @param duration  The authoritative remaining love time, in seconds.
+ */
+void Enemy::syncLoveDuration(float duration) {
+    duration = std::max(0.0f, duration);
+    const bool wasLoved = isLoved();
+    const bool willBeLoved = duration > 0.0f;
+    _loveDuration = duration;
+
+    if (willBeLoved) {
+        forceIdle();
+    }
+
+    if (!wasLoved && willBeLoved) {
+        CULog("Enemy love applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
+    } else if (wasLoved && !willBeLoved) {
+        CULog("Enemy love ended: enemy='%s'", _enemyId.c_str());
+    }
+}
+
+/**
+ * Returns whether any relative side of the enemy is currently vulnerable.
+ *
+ * @return true if at least one side has a positive vulnerable timer.
+ */
+bool Enemy::isVulnerable() const {
+    for (float duration : _vulnerableDurations) {
+        if (duration > 0.0f) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Returns the longest remaining vulnerable duration across all relative sides.
+ *
+ * @return The maximum remaining vulnerable time in seconds.
+ */
+float Enemy::getVulnerableDuration() const {
+    float longestDuration = 0.0f;
+    for (float duration : _vulnerableDurations) {
+        longestDuration = std::max(longestDuration, duration);
+    }
+    return longestDuration;
+}
+
+/**
+ * Returns the strongest active vulnerable multiplier across all relative sides.
+ *
+ * @return The highest active vulnerable multiplier, or 1.0f if none are active.
+ */
+float Enemy::getVulnerableMultiplier() const {
+    float strongestMultiplier = 1.0f;
+    for (int side = 0; side < NUM_PLAYERS; side++) {
+        if (_vulnerableDurations[side] > 0.0f) {
+            strongestMultiplier = std::max(strongestMultiplier, _vulnerableSideMultipliers[side]);
+        }
+    }
+    return strongestMultiplier;
+}
+
+/**
+ * Returns the remaining vulnerable duration for one relative side.
+ *
+ * @param relativeIndex The relative side index to query.
+ * @return The remaining vulnerable time for that side in seconds.
+ */
+float Enemy::getVulnerableDurationForSide(int relativeIndex) const {
+    return _vulnerableDurations[normalizeSideIndex(relativeIndex)];
+}
+
+/**
+ * Returns the active vulnerable multiplier for one relative side.
+ *
+ * @param relativeIndex The relative side index to query.
+ * @return The vulnerable multiplier for that side, or 1.0f if inactive.
+ */
+float Enemy::getVulnerableMultiplierForSide(int relativeIndex) const {
+    const int side = normalizeSideIndex(relativeIndex);
+    return (_vulnerableDurations[side] > 0.0f) ? _vulnerableSideMultipliers[side] : 1.0f;
+}
+
+/**
+ * Applies vulnerability to the side hit by the given player.
+ *
+ * The side is stored relative to the enemy's current facing so it follows turns
+ * until that side's timer expires.
+ *
+ * @param multiplier The damage multiplier to apply to the struck side.
+ * @param duration   The vulnerable duration in seconds.
+ * @param playerIndex The attacking player's slot index.
+ */
+void Enemy::applyVulnerable(float multiplier, float duration, int playerIndex) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    const int relativeIndex = relativeSideForPlayer(playerIndex, _targetIndex);
+    const bool wasVulnerable = _vulnerableDurations[relativeIndex] > 0.0f;
+    _vulnerableDurations[relativeIndex] = std::max(_vulnerableDurations[relativeIndex], duration);
+    _vulnerableSideMultipliers[relativeIndex] = std::max(_vulnerableSideMultipliers[relativeIndex], std::max(1.0f, multiplier));
+    setSideMultiplier(relativeIndex, _baseSideMultipliers[relativeIndex]);
+
+    if (!wasVulnerable) {
+        CULog("Enemy vulnerable: enemy='%s' side=%d multiplier=%.3f duration=%.3f",
+              _enemyId.c_str(),
+              relativeIndex,
+              _vulnerableSideMultipliers[relativeIndex],
+              _vulnerableDurations[relativeIndex]);
+    } else {
+        CULog("Enemy vulnerability refreshed: enemy='%s' side=%d multiplier=%.3f duration=%.3f",
+              _enemyId.c_str(),
+              relativeIndex,
+              _vulnerableSideMultipliers[relativeIndex],
+              _vulnerableDurations[relativeIndex]);
+    }
+}
+
+/**
+ * Overwrites local vulnerable state from the host snapshot so remote clients mirror the authoritative state.
+ *
+ * @param multipliers The authoritative per-side vulnerable multipliers.
+ * @param durations   The authoritative per-side vulnerable durations in seconds.
+ */
+void Enemy::syncVulnerable(const std::array<float, NUM_PLAYERS>& multipliers,
+                           const std::array<float, NUM_PLAYERS>& durations) {
+    const bool wasVulnerable = isVulnerable();
+    bool willBeVulnerable = false;
+
+    for (int side = 0; side < NUM_PLAYERS; side++) {
+        _vulnerableDurations[side] = std::max(0.0f, durations[side]);
+        _vulnerableSideMultipliers[side] = (_vulnerableDurations[side] > 0.0f) ? std::max(1.0f, multipliers[side]) : 1.0f;
+        setSideMultiplier(side, _baseSideMultipliers[side]);
+        willBeVulnerable = willBeVulnerable || (_vulnerableDurations[side] > 0.0f);
+    }
+
+    if (!wasVulnerable && willBeVulnerable) {
+        CULog("Enemy vulnerable: enemy='%s'", _enemyId.c_str());
+    } else if (wasVulnerable && !willBeVulnerable) {
+        CULog("Enemy vulnerability ended: enemy='%s'", _enemyId.c_str());
+    }
+}
+
+/** Clears runtime-only combat effects so a reset round starts from a clean enemy state. */
+void Enemy::clearRuntimeEffects() {
+    _stunDuration = 0.0f;
+    _loveDuration = 0.0f;
+
+    for (int side = 0; side < NUM_PLAYERS; side++) {
+        _vulnerableDurations[side] = 0.0f;
+        _vulnerableSideMultipliers[side] = 1.0f;
+        setSideMultiplier(side, _baseSideMultipliers[side]);
+    }
+}
+
+/** Handles taking damage and applying the side modifiers
+ * Use this method instead of updateHealth() for appropriate damage multiplication
+ *
+ * @param damage is the amount of damage being done to the boss
+ * @param playerIndex is the index that was assigned to the player by the host
+ */
+void Enemy::takeDamage(float damage, int playerIndex) {
+    const int relativeIndex = relativeSideForPlayer(playerIndex, _targetIndex);
+    updateHealth(-(damage * _sideMultipliers[relativeIndex]));
 }
 
 /** Lets you change the multipler value on the side equal to relativeIndex
@@ -349,18 +660,17 @@ void Enemy::takeDamage(float damage, int playerIndex) {
  * @param multiplier the damage multiplier we want to apply to relativeIndex
  */
 void Enemy::setSideMultiplier(int relativeIndex, float multiplier) {
-    _sideMultipliers[relativeIndex] = multiplier;
+    const int side = normalizeSideIndex(relativeIndex);
+    _baseSideMultipliers[side] = multiplier;
+    _sideMultipliers[side] = _baseSideMultipliers[side] * _vulnerableSideMultipliers[side];
 }
 
 /** Returns the multiplier data for the given absolute side index.
  * @param absoluteIndex is the side we want to get. Index 0 corresponds to the side facing the host, regardless of the boss' direction.
  */
 float Enemy::getSideMultiplier(int absoluteIndex) {
-    int relativeIndex = (absoluteIndex - _targetIndex + NUM_PLAYERS) % NUM_PLAYERS;
-    if (relativeIndex < _sideMultipliers.size()) {
-        return _sideMultipliers[relativeIndex];
-    }
-    return 1.0f;
+    const int relativeIndex = relativeSideForPlayer(absoluteIndex, _targetIndex);
+    return _sideMultipliers[relativeIndex];
 }
 
 /** Checks if this enemy should use their defensive move

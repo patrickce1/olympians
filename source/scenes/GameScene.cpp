@@ -102,7 +102,48 @@ static void broadcastSupportEffects(NetworkController& network,
                     targetPlayerID);
                 break;
             case ItemDef::EffectType::Stun:
+            case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Vulnerable:
+                break;
+        }
+    }
+}
+
+/**
+ * Broadcasts the resolved enemy-facing effects of an attack item to the host.
+ *
+ * Attack items without explicit effects fall back to direct damage. Attack items
+ * with explicit effects serialize those effect payloads instead so the host can
+ * apply the same authoritative result and replicate it through snapshots.
+ *
+ * @param network            The network controller used to send host-directed updates.
+ * @param def                The item definition describing the attack item's effects.
+ * @param resolvedMagnitude  The resolved attack magnitude calculated for this item use.
+ * @param playerIndex    The index of the player applying the enemy effect.
+ */
+static void broadcastEnemyEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int playerIndex) {
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        switch (effect.type) {
+            case ItemDef::EffectType::Stun:
+                network.broadcastEnemyEffect(EnemyEffectType::Stun,
+                    resolvedMagnitude,
+                    effect.duration,
+                    playerIndex);
+                break;
+            case ItemDef::EffectType::Love:
+                network.broadcastEnemyEffect(EnemyEffectType::Love,
+                    resolvedMagnitude,
+                    effect.duration,
+                    playerIndex);
+                break;
+            case ItemDef::EffectType::Vulnerable:
+                network.broadcastEnemyEffect(EnemyEffectType::Vulnerable,
+                    effect.multiplier,
+                    effect.duration,
+                    playerIndex);
+                break;
+            case ItemDef::EffectType::Shield:
+            case ItemDef::EffectType::Barrier:
                 break;
         }
     }
@@ -654,14 +695,9 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
                                       const std::shared_ptr<const ItemDef>& def,
                                       Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
-
-    const float resolvedMagnitude = calculateItemDamage(local, def, _itemController.getDatabase());
-    if (resolvedMagnitude <= 0.0f) {
-        return false;
-    }
-
-    if (!removeItemFromInventory(local, item.getId())) {
-        CULog("ERROR: Failed to remove item %llu from inventory", (unsigned long long)item.getId());
+    // Calculate damage upfront for the animation
+    const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+    if (resolvedMagnitude < 0.0f) {
         return false;
     }
 
@@ -702,7 +738,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
 
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
-    if (resolvedMagnitude <= 0.0f) {
+    if (resolvedMagnitude < 0.0f) {
         return false;
     }
 
@@ -750,12 +786,13 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         spawnDefensiveEffectPopups(def, dropPos);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-        if (resolvedMagnitude <= 0.0f) return false;
+        if (resolvedMagnitude < 0.0f) return false;
 
         if (!_network->isHost()) {
             _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
             broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
         }
+            
         playSupportItemSound(def);
         CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
         createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
@@ -787,7 +824,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         spawnDefensiveEffectPopups(def, dropPos);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
-        if (resolvedMagnitude <= 0.0f) return false;
+        if (resolvedMagnitude < 0.0f) return false;
 
         if (!_network->isHost()) {
             _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
@@ -1735,11 +1772,15 @@ void GameScene::handleDragTracking(InputController& input) {
     }
 }
 
-/* Checks if any updates about the state of the game were sent over the network.
+/**
+ * Checks if any updates about the state of the game were sent over the network.
  * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
- * If we are the host, we process any attack, heal, support-effect, and pass messages.
- * After doing so, we send out a new authoritative version of the game state as the host*/
-void GameScene::handleNetworkUpdates() {
+ * If we are the host, we process any attack, heal, effect, and pass messages, then tick timed player effects.
+ * After doing so, we send out a new authoritative version of the game state as the host.
+ *
+ * @param dt  The elapsed time since the previous frame, in seconds.
+ */
+void GameScene::handleNetworkUpdates(float dt) {
     /*Networking pull cycle*/
     _network->getNetworkUpdates();
 
@@ -1753,6 +1794,14 @@ void GameScene::handleNetworkUpdates() {
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
+        _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
+
+        for (auto& player : _gameState.getPlayers()) {
+            if (player) {
+                player->updateEffects(dt);
+            }
+        }
+
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState);
     }
@@ -2353,7 +2402,7 @@ void GameScene::update(float dt, InputController& input) {
         input.resetAction();
     }
 
-    handleNetworkUpdates();
+    handleNetworkUpdates(dt);
     handleDisconnectedPlayers();
 
     handleItemSpawn(dt);
@@ -3117,7 +3166,7 @@ float GameScene::calculateItemDamage(const Player* player, const std::shared_ptr
     }
     float resolvedMagnitude = itemDef->getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
     if (resolvedMagnitude <= 0.0f) {
-        resolvedMagnitude = 0.01f;
+        resolvedMagnitude = 0.0f;
     }
     
     CULog("ItemDamageCalc: item='%s' playerHouse='%s' baseVal=%.3f * (1+%.3f) * %.3f = %.3f",

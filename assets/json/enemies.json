@@ -3,7 +3,7 @@
         {
             "id": "cyclops",
             "name": "cyclops",
-            "maxHealth": 100.0,
+            "maxHealth": 10000.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
                 "retargetLikelihood": 0.5,
@@ -20,13 +20,13 @@
                 "attack_1": {
                     "name": "club",
                     "animationKey": "cyclops_boulder_animation",
-                    "buildUpTime": 4.0,
+                    "buildUpTime": 1.0,
                     "cooldownTime": 0.0,
                     "events": [
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 1.0
+                            "amount": 45.0
                         }
                     ],
                     "nextState": "attack_2"
@@ -40,22 +40,22 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 1.0
+                            "amount": 20.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 1,
-                            "amount": 1.0
+                            "amount": 20.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 2,
-                            "amount": 1.0
+                            "amount": 20.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 3,
-                            "amount": 1.0
+                            "amount": 20.0
                         }
                     ],
                     "nextState": "idle"
@@ -69,12 +69,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 1.0
-                        },
-                        {
-                            "type": "DAMAGE",
-                            "target": 0,
-                            "amount": 1.0
+                            "amount": 70.0
                         }
                     ],
                     "nextState": "idle"
