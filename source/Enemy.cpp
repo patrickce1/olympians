@@ -218,13 +218,10 @@ void Enemy::setRetargetLikelihood(float v) {
 
 /** Immediately enters the state and resets timers. */
 void Enemy::enterState(EnemyLoader::State state) {
-    // Only reset stateTime if actually changing states
-    // If staying in the same state (like IDLE -> IDLE), keep accumulating time
-    if (_currentState != state) {
-        _stateTime = 0.0f;
-        _eventsFiredThisState = false;
-    }
     _currentState = state;
+    _stateTime = 0.0f;
+    _eventsFiredThisState = false;
+    _currentAnimationFrame = 0;
 }
 
 /** Updates timers.*/

@@ -145,7 +145,7 @@ public:
     /** Returns how long the enemy has been in the current state */
     float getStateTime() const { return _stateTime; }
 
-    /** Sets how long the enemy has been in the current state */
+    /** Sets how long the enemy has been in the current state. Caps at the top of the build up time */
     void setStateTime(float stateTime) { _stateTime = stateTime; }
     
     /** Returns the current animation frame being displayed (0-indexed within row) */
@@ -251,6 +251,7 @@ public:
 protected:
     /** Boolean that decides if we are sending debug messages or not*/
     bool _debug = true;
+
     /** Initializes this enemy instance from an enemy definition.
      * Sets up state machine, health, side multipliers, and AI parameters.
      * 

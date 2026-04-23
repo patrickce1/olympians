@@ -19,29 +19,32 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
  * @param dt is the time that passed from the last time update was called
  */
 void Cyclops::update(float dt) {
-	Enemy::update(dt);
-
-	//Cyclops becomes more frantic as his defense thresholds are met
-	//His build up times are shortened
+	if (_debug) CULog("[EnemyController] State: '%s'. The time is %f", getStates().at(_currentState).name.c_str(), _stateTime);
+	float updatedDt = dt;
 	if (Enemy::getCurrentHealth() < _defense1Threshold) {
-		_stateTime += dt * _franticRate;
+		updatedDt += dt * _franticRate;
 	}
 	if (Enemy::getCurrentHealth() < _defense2Threshold) {
 		//basically double the rate by subtracting again
-		_stateTime += dt * _franticRate;
+		updatedDt += dt * _franticRate;
 	}
+	Enemy::update(updatedDt);
+
+	//Cyclops becomes more frantic as his defense thresholds are met
+	//His build up times are shortened
+
 
 	//end the current state ASAP to be able to enter defense if the condition was met
-	bool threshold1Met = Enemy::getCurrentHealth() < _defense1Threshold && !_defense1Triggered;
-	bool threshold2Met = Enemy::getCurrentHealth() < _defense1Threshold && !_defense2Triggered;
-	if (threshold1Met || threshold2Met) {
-		if (_debug) {
-			CULog("[Cyclops]: Entering defense as soon as possible, currently in %s", Enemy::getStates().at(Enemy::getCurrentState()).name.c_str());
-		}
-		Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
-		//necessary to skip the idle
-		Enemy::skipCooldown();
-	}
+	//bool threshold1Met = Enemy::getCurrentHealth() < _defense1Threshold && !_defense1Triggered;
+	//bool threshold2Met = Enemy::getCurrentHealth() < _defense1Threshold && !_defense2Triggered;
+	//if (threshold1Met || threshold2Met) {
+	//	if (_debug) {
+	//		CULog("[Cyclops]: Entering defense as soon as possible, currently in %s", Enemy::getStates().at(Enemy::getCurrentState()).name.c_str());
+	//	}
+	//	Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
+	//	//necessary to skip the idle
+	//	Enemy::skipCooldown();
+	//}
 }
 
 /** Defines the cyclops' custom behavior for when he chooses to defend 
@@ -53,7 +56,7 @@ bool Cyclops::shouldDefend() {
 			CULog("[Cyclops]: defense threshold 1 at health %f", Enemy::getCurrentHealth());
 		}
 		_defense1Triggered = true;
-		Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
+		//Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
 		return true;
 	}
 	if (Enemy::getCurrentHealth() < _defense2Threshold && !_defense2Triggered) {
@@ -61,7 +64,7 @@ bool Cyclops::shouldDefend() {
 			CULog("[Cyclops]: defense threshold 2 at health %f", Enemy::getCurrentHealth());
 		}
 		_defense2Triggered = true;
-		Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
+		//Enemy::setStateTime(Enemy::getStates().at(Enemy::getCurrentState()).buildUpTime);
 		return true;
 	}
 	return false;
@@ -76,16 +79,15 @@ bool Cyclops::shouldDefend() {
  *		where the boss immidiately does damage based on the side it got hit from
 */
 void Cyclops::takeDamage(float damage, int playerIndex) {
-	//ATTACK_3 should correspond to the boulder toss for cyclops
-	if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
-		//Make Cyclops face whoever hit him and shorten wait time
-		Enemy::setTargetIndex(playerIndex);
-		_stateTime += _boulderTossReductionAmount;
-		//Debug statement
-		if (_debug) {
-			CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
-		}
-	}
+	//if (_debug) CULog("[EnemyController] State: '%s'. The time is %f", getStates().at(_currentState).name.c_str(), _stateTime);
+	////ATTACK_3 should correspond to the boulder toss for cyclops
+	//if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
+	//	//Make Cyclops face whoever hit him and shorten wait time
+	//	Enemy::setTargetIndex(playerIndex);
+	//	//_stateTime += _boulderTossReductionAmount;
+	//	//Debug statement
+	//	if (_debug) CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
+	//}
 
 	Enemy::takeDamage(damage, playerIndex);
 }
