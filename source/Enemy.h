@@ -145,7 +145,9 @@ public:
     /** Returns how long the enemy has been in the current state */
     float getStateTime() const { return _stateTime; }
 
-    /** Sets how long the enemy has been in the current state.*/
+    /** Sets how long the enemy has been in the current state.
+      * @param stateTime is the new time we want to set the state time to
+    */
     void setStateTime(float stateTime) { _stateTime = stateTime; }
     
     /** Returns the current animation frame being displayed (0-indexed within row) */

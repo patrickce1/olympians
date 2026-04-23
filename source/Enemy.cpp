@@ -216,7 +216,9 @@ void Enemy::setRetargetLikelihood(float v) {
     _retargetLikelihood = v;
 }
 
-/** Immediately enters the state and resets timers. */
+/** Immediately enters the state and resets timers. 
+  * @param state is the state we want to enter
+*/
 void Enemy::enterState(EnemyLoader::State state) {
     _currentState = state;
     _stateTime = 0.0f;
