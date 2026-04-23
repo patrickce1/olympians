@@ -49,8 +49,8 @@ void Cyclops::update(float dt) {
 	if (Enemy::getCurrentHealth() < _frantic1Threshold) {
 		updatedDt += dt * _franticRate;
 	}
-	if (Enemy::getCurrentHealth() < _frantic1Threshold) {
-		//basically double the rate by subtracting again
+	if (Enemy::getCurrentHealth() < _frantic2Threshold) {
+		//Passing frantic2Threshold doubles the frantic rate basically
 		updatedDt += dt * _franticRate;
 	}
 	Enemy::update(updatedDt);
@@ -67,11 +67,13 @@ void Cyclops::update(float dt) {
 void Cyclops::takeDamage(float damage, int playerIndex) {
 	//ATTACK_3 should correspond to the boulder toss for cyclops
 	if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
-		//Make Cyclops face whoever hit him and shorten wait time
+		//make sure the time increase doesn't go over the boundary we set to prevent animation from skipping
 		float skipDt = std::min(_stateTime + _boulderTossReductionAmount, _boulderHigherBound) - _stateTime;
+		//Make Cyclops face whoever hit him and shorten wait time
 		Enemy::setTargetIndex(playerIndex);
+		//make the enemy skip the amount of time we need to skip
 		Enemy::update(skipDt);
-		//Debug statement
+
 		if (_debug) CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
 	}
 
