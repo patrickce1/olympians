@@ -610,7 +610,7 @@
                 "variables": {}
             }
         },
-        "settingsScene": {
+        "settingsOverlay": {
             "type": "Widget",
             "comment": "Root node of the settings scene",
             "format": { "type": "Anchored"},
