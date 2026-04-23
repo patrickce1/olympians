@@ -13,7 +13,7 @@
             "type": "attack",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 2.0,
+            "baseValue": 20.0,
             "effects": [],
             "itemUseSound": "attack_slash",
             "itemUseAnimation": {
@@ -33,7 +33,7 @@
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 2.0,
+            "baseValue": 10.0,
             "effects": []
         },
         {
@@ -44,7 +44,7 @@
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 1.0,
+            "baseValue": 15.0,
             "effects": []
         },
         {
@@ -55,7 +55,7 @@
             "type": "attack",
             "rarity": "common",
             "houseAffinity": "none",
-            "baseValue": 1.0,
+            "baseValue": 23.0,
             "effects": [],
             "itemUseSound": "attack_thrust",
             "itemUseAnimation": {
@@ -116,7 +116,7 @@
             "type": "attack",
             "rarity": "rare",
             "houseAffinity": "poseidon",
-            "baseValue": 1.0,
+            "baseValue": 27.0,
             "effects": [],
             "itemUseSound": "attack_thrust",
             "itemUseAnimation": {
@@ -136,7 +136,7 @@
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "hades",
-            "baseValue": 1.0,
+            "baseValue": 20.0,
             "effects": []
         },
         {
@@ -147,7 +147,7 @@
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "demeter",
-            "baseValue": 1.0,
+            "baseValue": 25.0,
             "effects": []
         },
         {
@@ -158,7 +158,7 @@
             "type": "attack",
             "rarity": "rare",
             "houseAffinity": "hephaestus",
-            "baseValue": 1.0,
+            "baseValue": 10.0,
             "effects": [],
             "itemUseSound": "attack_thud",
             "itemUseAnimation": {
@@ -221,7 +221,7 @@
             "type": "attack",
             "rarity": "divine",
             "houseAffinity": "zeus",
-            "baseValue": 1.0,
+            "baseValue": 80.0,
             "effects": [],
             "itemUseAnimation": {
                 "spriteSheetId": "storm_animation",
@@ -240,7 +240,7 @@
             "type": "attack",
             "rarity": "divine",
             "houseAffinity": "poseidon",
-            "baseValue": 1.0,
+            "baseValue": 20.0,
             "effects": [],
             "itemUseAnimation": {
                 "spriteSheetId": "tide_animation",
@@ -252,7 +252,7 @@
             }
         }
     ],
-    "itemInterval": 7.0,
-    "itemTimerStart": 3.5,
+    "itemInterval": 3.0,
+    "itemTimerStart": 1.5,
     "maxInventorySpawnItems": 5
 }
