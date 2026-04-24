@@ -413,6 +413,11 @@ void Enemy::update(float dt) {
     }
 }
 
+void Enemy::advanceStateTime(float amount) {
+    _stateTime += amount;
+    _attackLockout = std::max(0.0f, _attackLockout - amount);
+}
+
 /** Return contents of current event buffer and clears it.*/
 std::vector<Enemy::FiredEvent> Enemy::takeFiredEvents() {
     std::vector<FiredEvent> out;

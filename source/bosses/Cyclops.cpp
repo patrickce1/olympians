@@ -45,15 +45,16 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath, cons
 void Cyclops::update(float dt) {
 	//Cyclops becomes more frantic as his defense thresholds are met
 	//His build up times are shortened
-	float updatedDt = dt;
+	float extraDt = 0;
 	if (Enemy::getCurrentHealth() < _frantic1Threshold) {
-		updatedDt += dt * _franticRate;
+		extraDt += dt * _franticRate;
 	}
 	if (Enemy::getCurrentHealth() < _frantic2Threshold) {
 		//Passing frantic2Threshold doubles the frantic rate basically
-		updatedDt += dt * _franticRate;
+		extraDt += dt * _franticRate;
 	}
-	Enemy::update(updatedDt);
+	Enemy::update(dt);
+	Enemy::advanceStateTime(extraDt);
 }
 
 /* Handles taking damage and applying the side modifiers
@@ -72,7 +73,7 @@ void Cyclops::takeDamage(float damage, int playerIndex) {
 		//Make Cyclops face whoever hit him and shorten wait time
 		Enemy::setTargetIndex(playerIndex);
 		//make the enemy skip the amount of time we need to skip
-		Enemy::update(skipDt);
+		Enemy::advanceStateTime(skipDt);
 
 		if (_debug) CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
 	}

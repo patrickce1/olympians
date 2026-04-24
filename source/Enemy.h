@@ -355,6 +355,16 @@ public:
      */
     void virtual update(float dt);
 
+    /**
+     * Advances the enemy's state machine and attack lockout by the given amount,
+     * without affecting any effect timers (stun, love, vulnerable).
+     * Use this instead of a fake dt when you want to speed up state transitions
+     * while leaving effect durations intact.
+     *
+     * @param amount  The time to advance, in seconds.
+     */
+    void advanceStateTime(float dt);
+
     /** Return contents of current event buffer and clears it.*/
     std::vector<FiredEvent> takeFiredEvents();
 
