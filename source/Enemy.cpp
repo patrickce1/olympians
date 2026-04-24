@@ -644,15 +644,36 @@ void Enemy::clearRuntimeEffects() {
     }
 }
 
-/** Handles taking damage and applying the side modifiers
+/* Handles taking damage and applying the side modifiers
  * Use this method instead of updateHealth() for appropriate damage multiplication
- *
  * @param damage is the amount of damage being done to the boss
  * @param playerIndex is the index that was assigned to the player by the host
- */
+*/
 void Enemy::takeDamage(float damage, int playerIndex) {
-    const int relativeIndex = relativeSideForPlayer(playerIndex, _targetIndex);
-    updateHealth(-(damage * _sideMultipliers[relativeIndex]));
+    //get relative index based on which side of the boss the player is on
+    int relativeIndex = (playerIndex - _targetIndex + NUM_PLAYERS) % NUM_PLAYERS;
+
+    float multiplier = 1.0f;
+    if (relativeIndex < _sideMultipliers.size()) {
+        multiplier = _sideMultipliers[relativeIndex];
+    }
+
+    // Debug logging for damage calculation
+    if (_debug) {
+        CULog(
+            "[Enemy]: Damage Calculation. State %s | PlayerIndex: %d | TargetIndex: %d | RelativeIndex: %d | "
+            "BaseDamage: %f | Multiplier: %f | FinalDamage: %f",
+            _states.at(_currentState).name.c_str(),
+            playerIndex,
+            _targetIndex,
+            relativeIndex,
+            damage,
+            multiplier,
+            damage * multiplier
+        );
+    }
+
+    updateHealth(-(damage * multiplier));
 }
 
 /** Lets you change the multipler value on the side equal to relativeIndex
