@@ -226,6 +226,19 @@ void SceneLoader::update(float dt) {
         if (_settingsScene.consumeClose()) {
             _settingsScene.setActive(false);
             _paused = false;
+            switch (_currentScene) {
+               case State::HOSTSETUP:
+//                   _hostSetupScene.setInputEnabled(true);
+                   break;
+               case State::CLIENT:
+                   _clientScene.setInputEnabled(true);
+                   break;
+               case State::LOBBY:
+//                   _lobbyScene.setInputEnabled(true);
+                   break;
+               default:
+                   break;
+           }
         }
         return;
     }
@@ -251,7 +264,6 @@ void SceneLoader::update(float dt) {
                 
                 if (_menuScene.init(_assets)) {
                     _loadingScene->setActive(false);
-                    
                     _menuScene.setSpriteBatch(_batch);
                     _menuScene.setActive(true);
                     _currentScene = State::MENU;
@@ -322,6 +334,10 @@ void SceneLoader::update(float dt) {
             break;
         case State::CLIENT:
             _clientScene.update(dt);
+            if (_clientScene.consumeSettings()) {
+                _clientScene.setInputEnabled(false);
+                _settingsScene.setActive(true);
+            }
             switch (_clientScene.getStatus()) {
                 case ClientScene::Status::START:
                     CULog("Transitioning to LobbyScene...");

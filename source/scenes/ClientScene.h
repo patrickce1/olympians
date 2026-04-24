@@ -56,8 +56,10 @@ protected:
     std::shared_ptr<cugl::scene2::Label> _textFieldPlaceholder;
     /** The game id label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _playerName;
-    /** The host game button for the menu scene */
+    /** The host game button for the client scene */
     std::shared_ptr<cugl::scene2::Button> _hostButton;
+    /** The settings button to display settings menu */
+    std::shared_ptr<cugl::scene2::Button> _settingsButton;
     /** Stores the current user input for the gameID as a numeric string.*/
     std::string _inputBuffer = "";
     /** Collection of all keypad buttons fir gameID (digits + backspace). */
@@ -78,6 +80,8 @@ protected:
     bool _pendingInputDisable = false;
     /** Whether the loading circle is spinning. */
     bool _isSpinning = false;
+    /** Set to true when the user taps the settings button */
+    bool _pendingSettings = false;
     
 public:
 #pragma mark -
@@ -175,6 +179,17 @@ public:
      */
     void update(float timestep);
     
+    /**
+     * Returns true if the user has requested to open settings, then resets the flag.
+     */
+    bool consumeSettings();
+    
+    /**
+     * Enables or disables all interactive input controls.
+     * @param enabled  Whether controls should accept input.
+     */
+    void setInputEnabled(bool enabled);
+    
 private:
     /**
      * Updates the text in the given button.
@@ -200,12 +215,6 @@ private:
      * Removes the last character from the input buffer and updates the UI.
      */
     void removeLastChar();
-    
-    /**
-     * Enables or disables all interactive input controls.
-     * @param enabled  Whether controls should accept input.
-     */
-    void setInputEnabled(bool enabled);
  
     /**
      * Displays the error popup with the given message and enters ERROR_DISPLAY.
