@@ -394,9 +394,7 @@ void SceneLoader::update(float dt) {
                         _currentScene = State::CLIENT;
                     }
                     break;
-                    
-                // Host broadcast SESSION_TERMINATED — they left intentionally but the client
-                // didn't press back themselves. Show the error popup on HostSetupScene.
+                // Host broadcast SESSION_TERMINATED
                 case LobbyScene::Status::HOST_LEFT:
                     CULog("Host left lobby — returning client to HostSetupScene...");
                     _gameScene.resetGameState();
@@ -406,7 +404,7 @@ void SceneLoader::update(float dt) {
                     _hostSetupScene.showHostDisconnectedError();
                     _currentScene = State::HOSTSETUP;
                     break;
-
+                //Host unexpectedly disconnected
                 case LobbyScene::Status::HOST_DISCONNECTED:
                     CULog("Host disconnected in lobby — returning client to HostSetupScene...");
                     _gameScene.resetGameState();
