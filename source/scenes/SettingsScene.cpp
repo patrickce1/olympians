@@ -59,15 +59,8 @@ void SettingsScene::setupUI() {
     _usernameField = std::dynamic_pointer_cast<scene2::TextField>(
        _assets->get<scene2::SceneNode>("settingsScene.username.text"));
     
-//    if(!_usernameField){
-//        CULog("ain't loading from json");
-//    }
-    
     _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _scene->getChildByName("back"));
-    if(_backButton) {
-        CULog("ain't loading from json");
-    }
     
     _sfxSlider = std::dynamic_pointer_cast<scene2::Slider>(
         _scene->getChildByName("audioSlider"));
@@ -77,9 +70,11 @@ void SettingsScene::setupUI() {
     
     _effectsButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("settingsScene.screenShake.toggleButton"));
+    _effectsButton->setDown(true);
     
     _hapticsButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("settingsScene.haptics.toggleButton"));
+    _hapticsButton->setDown(true);
     
     _saveButton = std::dynamic_pointer_cast<scene2::Button>(
         _scene->getChildByName("save"));
@@ -87,7 +82,7 @@ void SettingsScene::setupUI() {
     auto usernamePlaceholder = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("settingsScene.username.placeholder"));
     usernamePlaceholder->setText("ENTER NAME");
     
-    // Set the placeholders to invisible when typing starts
+    // Set the placeholder to invisible when typing starts
     _usernameField->addTypeListener([this, usernamePlaceholder](const std::string& name, const std::string& value) {
         usernamePlaceholder->setVisible(value.empty());
     });
@@ -190,19 +185,6 @@ void SettingsScene::setActive(bool value) {
 void SettingsScene::update(float timestep) {
 }
 
-///**
-// * Renders the scene to the given sprite batch.
-// *
-// * Delegates to the parent Scene2::render() only when active,
-// * so there is zero rendering cost while the overlay is hidden.
-// *
-// * @param batch     The sprite batch to draw with
-// */
-//void SettingsScene::render() {
-//    if (!isActive()) return;
-//    Scene2::render();
-//}
-
 #pragma mark -
 #pragma mark Helpers
 
@@ -216,7 +198,7 @@ void SettingsScene::update(float timestep) {
  */
 void SettingsScene::setInputEnabled(bool enabled) {
     if (enabled) {
-//        _usernameField->activate();
+        _usernameField->activate();
         _backButton->activate();
         _sfxSlider->activate();
         _musicSlider->activate();
@@ -224,7 +206,7 @@ void SettingsScene::setInputEnabled(bool enabled) {
         _hapticsButton->activate();
         _saveButton->activate();
     } else {
-//        _usernameField->deactivate();
+        _usernameField->deactivate();
         _backButton->deactivate();
         _sfxSlider->deactivate();
         _musicSlider->deactivate();
