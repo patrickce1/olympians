@@ -119,6 +119,7 @@ static void broadcastSupportEffects(NetworkController& network,
  * @param def                The item definition describing the attack item's effects.
  * @param resolvedMagnitude  The resolved attack magnitude calculated for this item use.
  * @param playerIndex    The index of the player applying the enemy effect.
+ * @return   The collection of enemy effects to be applied this frame.
  */
 static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, float resolvedMagnitude, int playerIndex) {
     std::vector<EnemyEffectMessage> enemyEffects;
@@ -151,7 +152,11 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
     return enemyEffects;
 }
 
-/** Sends all collected enemy-facing effects of an attack item to the host. */
+/** Sends all collected enemy-facing effects of an attack item to the host.
+ *
+ * @param network    The network to send the enemy effects over.
+ * @param enemyEffects   The collection of enemy effects to send over the network.
+ */
 static void broadcastEnemyEffects(NetworkController& network, const std::vector<EnemyEffectMessage>& enemyEffects) {
     for (const EnemyEffectMessage& effectMsg : enemyEffects) {
         network.broadcastEnemyEffect(effectMsg.effectType,
