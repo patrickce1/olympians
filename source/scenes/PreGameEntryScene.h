@@ -114,8 +114,7 @@ public:
      * @return true if the controller is initialized properly, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets,
-              const std::shared_ptr<NetworkController>& networkController,
-              GameState* gameState);
+              const std::shared_ptr<NetworkController>& networkController, GameState* gameState);
     
     /**
      * Retrieves and stores references to the pre game entry scene UI elements.

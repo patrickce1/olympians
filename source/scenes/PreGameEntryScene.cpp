@@ -31,8 +31,7 @@ using namespace std;
  * @return true if the controller is initialized properly, false otherwise.
  */
 bool PreGameEntryScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
-          const std::shared_ptr<NetworkController>& networkController,
-          GameState* gameState) {
+          const std::shared_ptr<NetworkController>& networkController,GameState* gameState) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
