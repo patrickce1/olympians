@@ -66,6 +66,12 @@ protected:
      *  reacting inside the listener, which avoids mid-frame setActive crashes.
      */
     bool _pendingClose = false;
+    
+    /** Called when the music slider changes, passes new multiplier value */
+    std::function<void(float)> _onMusicVolumeChange;
+
+    /** Called when the SFX slider changes, passes new multiplier value */
+    std::function<void(float)> _onSFXVolumeChange;
 
 public:
 #pragma mark -
@@ -150,15 +156,9 @@ public:
      */
     void update(float timestep) override;
 
-//    /**
-//     * Renders the scene to the given sprite batch.
-//     *
-//     * Only renders when the scene is active (visible).
-//     */
-//    void render() override;
 
 #pragma mark -
-#pragma mark Settings Persistence
+#pragma mark Settings & Persistence
 
     /**
      * Serializes current settings to a JSON file in the app's save directory.
@@ -184,6 +184,20 @@ public:
         _pendingClose = false;
         return val;
     }
+    
+    /**
+     * Registers a callback invoked whenever the music volume slider changes.
+     *
+     *  @param cb  Receives the new multiplier in [0,1]
+     */
+    void setOnMusicVolumeChange(std::function<void(float)> cb) { _onMusicVolumeChange = cb; }
+
+    /**
+     * Registers a callback invoked whenever the SFX volume slider changes.
+     *
+     *  @param cb  Receives the new multiplier in [0,1]
+     */
+    void setOnSFXVolumeChange(std::function<void(float)> cb) { _onSFXVolumeChange = cb; }
 
 private:
 #pragma mark -

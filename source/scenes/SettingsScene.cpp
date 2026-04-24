@@ -116,10 +116,12 @@ void SettingsScene::setupListeners() {
 
     _sfxSlider->addListener([this](const std::string& name, float value) {
         _sfxVolume = value;
+        if (_onSFXVolumeChange) _onSFXVolumeChange(value);
     });
 
     _musicSlider->addListener([this](const std::string& name, float value) {
         _musicVolume = value;
+        if (_onMusicVolumeChange) _onMusicVolumeChange(value);
     });
 
     // Effects toggle

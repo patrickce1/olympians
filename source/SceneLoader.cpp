@@ -310,6 +310,14 @@ void SceneLoader::update(float dt) {
                 // Init the settings overlay once, after all assets are ready
                 if (_settingsScene.init(_assets)){
                     _settingsScene.setSpriteBatch(_batch);
+                    
+                    _settingsScene.setOnMusicVolumeChange([this](float value) {
+                        _audio.setMusicVolumeMultiplier(value);
+                    });
+
+                    _settingsScene.setOnSFXVolumeChange([this](float value) {
+                        _audio.setSFXVolumeMultiplier(value);
+                    });
                 }
             }
             break;
