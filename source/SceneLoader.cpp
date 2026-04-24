@@ -388,9 +388,10 @@ void SceneLoader::update(float dt) {
                         _currentScene = State::HOSTSETUP;
                     } else {
                         CULog("Transitioning to ClientScene...");
-                        _clientScene.setActive(true);
-                        _lobbyScene.setActive(false);   // disconnect fires here
-                        _currentScene = State::CLIENT;
+                        _hostSetupScene.setActive(true);
+                        _lobbyScene.setActive(false);
+                        _hostSetupScene.showHostDisconnectedError();
+                        _currentScene = State::HOSTSETUP;
                     }
                     break;
                 case LobbyScene::Status::HOST_DISCONNECTED:
