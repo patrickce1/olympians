@@ -393,6 +393,15 @@ void SceneLoader::update(float dt) {
                         _currentScene = State::CLIENT;
                     }
                     break;
+                case LobbyScene::Status::HOST_DISCONNECTED:
+                    CULog("Host disconnected in lobby — returning client to HostSetupScene...");
+                    _gameScene.resetGameState();
+                    _houseSelectScene.setPendingReset(true);
+                    _lobbyScene.setActive(false);
+                    _hostSetupScene.setActive(true);
+                    _hostSetupScene.showHostDisconnectedError();
+                    _currentScene = State::HOSTSETUP;
+                    break;
                 default:
                     break;;
             }
@@ -419,6 +428,15 @@ void SceneLoader::update(float dt) {
                         _houseSelectScene.setActive(false);
                         _currentScene = State::LOBBY;
                     }
+                    break;
+                case HouseSelectScene::Status::HOST_DISCONNECTED:
+                    CULog("Host disconnected in HouseSelect — returning to HostSetupScene...");
+                    _gameScene.resetGameState();
+                    _houseSelectScene.setPendingReset(true);
+                    _houseSelectScene.setActive(false);
+                    _hostSetupScene.setActive(true);
+                    _hostSetupScene.showHostDisconnectedError();
+                    _currentScene = State::HOSTSETUP;
                     break;
                 default:
                     break;
@@ -491,6 +509,15 @@ void SceneLoader::update(float dt) {
                     _gameScene.reset();
                     break;
                 case GameScene::Status::PLAYING:
+                    break;
+                case GameScene::Status::HOST_DISCONNECTED:
+                    CULog("Host disconnected in game — returning client to HostSetupScene...");
+                    _audio.playMusic("lobby");
+                    _gameScene.setActive(false);
+                    _gameScene.reset();
+                    _hostSetupScene.setActive(true);
+                    _hostSetupScene.showHostDisconnectedError();
+                    _currentScene = State::HOSTSETUP;
                     break;
                 }
             break;

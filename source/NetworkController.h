@@ -342,6 +342,14 @@ public:
      * @param slotIndex  The 0-based slot index to clear.
      */
     void clearAIHouse(int slotIndex);
+    
+    /**
+     * Returns true if the host dropped unexpectedly. Checks both the explicit
+     * _hostDisconnected flag and polls the connection state directly each frame,
+     * since CUGL's onDisconnect callback is unreliable when receive() is called
+     * every frame. CLIENT ONLY — always false on the host.
+     */
+    bool wasHostDisconnected() const;
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -406,6 +414,9 @@ private:
     
     // True if host sent SESSION_TERMINATED this network cycle
     bool _sessionTerminated = false;
+    
+    // True if the host's peer connection dropped (hard disconnect, no broadcast)
+    bool _hostDisconnected = false;
 
     //Player's chosen username
     std::string _playerName;
@@ -418,6 +429,9 @@ private:
     
     /** Houses chosen by the host for AI slots, keyed by game slot index */
     std::unordered_map<int, std::string> _aIHouses;
+    
+    /** Network UUID of the session host. Set when the host self-registers (host side) */
+    std::string _hostNetworkID;
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */

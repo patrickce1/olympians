@@ -184,6 +184,7 @@ public:
         PLAYING,
         WON,
         LOST,
+        HOST_DISCONNECTED
     };
 protected:
 #pragma mark - Scene Graph Nodes
