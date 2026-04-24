@@ -10,7 +10,11 @@
                 "defenseLikelihood": 0.25
             },
             "customData": {
-                "eyeMultiplier": 2.0
+                "frantic1Threshold": 0.75,
+                "frantic2Threshold": 0.25,
+                "boulderTossReductionAmount": 1.0,
+                "boulderHigherBound": 3.7,
+                "franticRate": 0.75
             },
             "states": {
                 "idle": {
