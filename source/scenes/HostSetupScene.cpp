@@ -373,7 +373,7 @@ void HostSetupScene::showHostDisconnectedError() {
         auto label = std::dynamic_pointer_cast<scene2::Label>(
             _errorPopup->getChildByName("errorLabel"));
         if (label) {
-            label->setText("Host disconnected");
+            label->setText("Host disconnected.\nReturning to connection screen...");
         }
         _errorPopup->setVisible(true);
         _errorTimer = 0.0f;
