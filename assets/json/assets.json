@@ -70,6 +70,12 @@
         "cyclops": {
             "file": "textures/gameScene/cyclops/cyclops.png"
         },
+        "circeBackground": {
+            "file": "textures/gameScene/circe/background.png"
+        },
+        "circe": {
+            "file": "textures/gameScene/circe/circe.png"
+        },
         "healthFrame": {
             "file": "textures/gameScene/healthFrame.png"
         },
