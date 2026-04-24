@@ -161,7 +161,7 @@
                         1
                     ],
                     "size": [
-                        33.6,
+                        46.4,
                         8
                     ],
                     "angle": 0,
@@ -659,6 +659,170 @@
                             "padding": [
                                 0,
                                 0,
+                                4.800000190734863,
+                                0
+                            ]
+                        }
+                    },
+                    "Ellipse 4": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Anchored"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "angle": 0,
+                            "size": [
+                                8,
+                                8
+                            ],
+                            "position": [
+                                29.600000381469727,
+                                4
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "fill": {
+                                "type": "Solid",
+                                "data": {
+                                    "polygon": [
+                                        4,
+                                        0,
+                                        3.6,
+                                        1.74,
+                                        2.49,
+                                        3.13,
+                                        0.89,
+                                        3.9,
+                                        -0.89,
+                                        3.9,
+                                        -2.49,
+                                        3.13,
+                                        -3.6,
+                                        1.74,
+                                        -4,
+                                        0,
+                                        -3.6,
+                                        -1.74,
+                                        -2.49,
+                                        -3.13,
+                                        -0.89,
+                                        -3.9,
+                                        0.89,
+                                        -3.9,
+                                        2.49,
+                                        -3.13,
+                                        3.6,
+                                        -1.74
+                                    ],
+                                    "color": "#9d7137ff",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            },
+                            "stroke": {
+                                "type": "Path",
+                                "data": {
+                                    "color": "#9d7137ff",
+                                    "path": {
+                                        "vertices": [
+                                            3.75,
+                                            0,
+                                            3.66,
+                                            0.83,
+                                            3.38,
+                                            1.63,
+                                            2.93,
+                                            2.34,
+                                            2.34,
+                                            2.93,
+                                            1.63,
+                                            3.38,
+                                            0.83,
+                                            3.66,
+                                            0,
+                                            3.75,
+                                            -0.83,
+                                            3.66,
+                                            -1.63,
+                                            3.38,
+                                            -2.34,
+                                            2.93,
+                                            -2.93,
+                                            2.34,
+                                            -3.38,
+                                            1.63,
+                                            -3.66,
+                                            0.83,
+                                            -3.75,
+                                            0,
+                                            -3.66,
+                                            -0.83,
+                                            -3.38,
+                                            -1.63,
+                                            -2.93,
+                                            -2.34,
+                                            -2.34,
+                                            -2.93,
+                                            -1.63,
+                                            -3.38,
+                                            -0.83,
+                                            -3.66,
+                                            0,
+                                            -3.75,
+                                            0.83,
+                                            -3.66,
+                                            1.63,
+                                            -3.38,
+                                            2.34,
+                                            -2.93,
+                                            2.93,
+                                            -2.34,
+                                            3.38,
+                                            -1.63,
+                                            3.66,
+                                            -0.83
+                                        ],
+                                        "closed": true
+                                    },
+                                    "stroke": 1,
+                                    "joint": "square",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            }
+                        },
+                        "layout": {
+                            "priority": 3,
+                            "padding": [
+                                0,
+                                0,
                                 0,
                                 0
                             ]
@@ -709,7 +873,7 @@
                                 1
                             ],
                             "size": [
-                                788,
+                                1039,
                                 462
                             ],
                             "angle": 0,
@@ -764,6 +928,28 @@
                                     ]
                                 }
                             },
+                            "circeCard": {
+                                "type": "Widget",
+                                "format": { "type": "Anchored" },
+                                "data": {
+                                    "key": "bossCard",
+                                    "variables": {
+                                        "image": "circePoster",
+                                        "description": "",
+                                        "name": "-CIRCE-",
+                                        "glow": false
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 2,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        -35,
+                                        0
+                                    ]
+                                }
+                            },
                             "emptyCard": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
@@ -777,7 +963,7 @@
                                     }
                                 },
                                 "layout": {
-                                    "priority": 2,
+                                    "priority": 3,
                                     "padding": [
                                         0,
                                         0,

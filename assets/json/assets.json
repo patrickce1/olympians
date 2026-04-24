@@ -124,6 +124,9 @@
         "cerberusShowroom": {
             "file": "textures/houseSelect/cerberusShowroom.png"
         },
+        "circeShowroom": {
+            "file": "textures/houseSelect/circeShowroom.png"
+        },
         "buttonSmallBG": {
             "file": "textures/houseSelect/buttonSmallBG.png"
         },
