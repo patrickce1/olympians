@@ -727,7 +727,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
 
     startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
     if (!_activeItemUseAnimations.empty()) {
-        _activeItemUseAnimations.back().popupPosition   = dropPos;
+        _activeItemUseAnimations.back().popupPosition    = dropPos;
         _activeItemUseAnimations.back().baseValue        = baseValue;
         _activeItemUseAnimations.back().totalMultiplier  = totalMultiplier;
         _activeItemUseAnimations.back().enemyEffects     = enemyEffects;
