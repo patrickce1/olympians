@@ -96,6 +96,7 @@ void HostSetupScene::setupUI() {
         for (int i = 0; i < numCards; i++) {
             _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
         }
+        _baseCarouselPosition = _bossSelectionCardContainer->getPosition();
     }
 
     std::shared_ptr<cugl::scene2::Label> placeName =
@@ -201,7 +202,7 @@ void HostSetupScene::setActive(bool value) {
             _currentIndex = 1;
             _isAnimating = false;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
-            float startX = pos.x + (ROLE_CARD_WIDTH / 2.0f);
+            float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
             _bossSelectionCardContainer->setPosition(Vec2(startX, pos.y));
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);

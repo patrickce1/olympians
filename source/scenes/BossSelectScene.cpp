@@ -92,6 +92,7 @@ void BossSelectScene::setupUI() {
         for (int i = 0; i < numCards; i++) {
             _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
         }
+        _baseCarouselPosition = _bossSelectionCardContainer->getPosition();
     }
     
     auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("bossSelectScene.bossSelectionCarouselIcons");
@@ -172,7 +173,7 @@ void BossSelectScene::setActive(bool value) {
             _currentIndex = 1;
             _isAnimating = false;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
-            float startX = pos.x + (ROLE_CARD_WIDTH / 2.0f);
+            float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
             _bossSelectionCardContainer->setPosition(Vec2(startX, pos.y));
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);
