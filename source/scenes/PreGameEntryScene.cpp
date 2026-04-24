@@ -303,7 +303,6 @@ void PreGameEntryScene::animateCloudsIn() {
     }
 }
 
-
 /**
  * Displays the error popup with the given message and switches to
  * Status::ERROR_DISPLAY so update() can auto-dismiss it.
