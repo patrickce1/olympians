@@ -354,6 +354,15 @@
         "loadingCircle": {
             "file": "textures/elements/loadingCircle.png"
         },
+        "book": {
+            "file": "textures/elements/book.png"
+        },
+        "settings": {
+            "file": "textures/elements/settings.png"
+        },
+        "sideIconBG": {
+            "file": "textures/elements/sideIconBG.png"
+        },
         "backArrow": {
           "file": "textures/backArrow.png"
         },

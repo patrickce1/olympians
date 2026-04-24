@@ -42,6 +42,87 @@
                     "y_offset": 0
                 }
             },
+            "settingsTab": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        1,
+                        1
+                    ],
+                    "size": [
+                        47,
+                        64
+                    ],
+                    "angle": 0,
+                    "position": [
+                        350,
+                        657
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "sideIconBG": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "sideIconBG",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                47,
+                                64
+                            ],
+                            "angle": 0,
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "settings": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "settings",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                27,
+                                27
+                            ],
+                            "angle": 0,
+                            "position": [
+                                10,
+                                14
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0.09,
+                            "y_offset": 0.05
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.1
+                }
+            },
             "indicator": {
                 "type": "Node",
                 "format": {
