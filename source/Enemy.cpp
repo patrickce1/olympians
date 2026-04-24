@@ -413,6 +413,14 @@ void Enemy::update(float dt) {
     }
 }
 
+/**
+     * Advances the enemy's state machine and attack lockout by the given amount,
+     * without affecting any effect timers (stun, love, vulnerable).
+     * Use this instead of a fake dt when you want to speed up state transitions
+     * while leaving effect durations intact.
+     *
+     * @param amount  The time to advance, in seconds.
+     */
 void Enemy::advanceStateTime(float amount) {
     _stateTime += amount;
     _attackLockout = std::max(0.0f, _attackLockout - amount);
