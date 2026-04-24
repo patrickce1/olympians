@@ -621,6 +621,45 @@ void Enemy::applyVulnerable(float multiplier, float duration, int playerIndex) {
 }
 
 /**
+ * Applies the same vulnerability to all relative sides of the enemy.
+ *
+ * @param multiplier The damage multiplier to apply to each side.
+ * @param duration   The vulnerable duration in seconds.
+ * @return true if at least one side was updated, false if duration was not positive.
+ */
+bool Enemy::applyVulnerableToAllSides(float multiplier, float duration) {
+    if (duration <= 0.0f) {
+        return false;
+    }
+
+    bool updatedAnySide = false;
+    const float resolvedMultiplier = std::max(1.0f, multiplier);
+    for (int side = 0; side < NUM_PLAYERS; side++) {
+        const bool wasVulnerable = _vulnerableDurations[side] > 0.0f;
+        _vulnerableDurations[side] = std::max(_vulnerableDurations[side], duration);
+        _vulnerableSideMultipliers[side] = std::max(_vulnerableSideMultipliers[side], resolvedMultiplier);
+        setSideMultiplier(side, _baseSideMultipliers[side]);
+        updatedAnySide = true;
+
+        if (!wasVulnerable) {
+            CULog("Enemy vulnerable: enemy='%s' side=%d multiplier=%.3f duration=%.3f",
+                  _enemyId.c_str(),
+                  side,
+                  _vulnerableSideMultipliers[side],
+                  _vulnerableDurations[side]);
+        } else {
+            CULog("Enemy vulnerability refreshed: enemy='%s' side=%d multiplier=%.3f duration=%.3f",
+                  _enemyId.c_str(),
+                  side,
+                  _vulnerableSideMultipliers[side],
+                  _vulnerableDurations[side]);
+        }
+    }
+
+    return updatedAnySide;
+}
+
+/**
  * Overwrites local vulnerable state from the host snapshot so remote clients mirror the authoritative state.
  *
  * @param multipliers The authoritative per-side vulnerable multipliers.

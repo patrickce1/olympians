@@ -140,8 +140,9 @@ public:
      * @param magnitude  The resolved magnitude of the effect.
      * @param duration   The timed duration of the effect, or 0 for instant effects.
      * @param playerIndex The attacking player's slot, used for side-relative effects.
+     * @param applyToAllSides Whether the enemy effect should be applied to all four boss sides.
      */
-    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex);
+    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides);
 
     /** The following are USED ONLY BY THE HOST */
     /** Send the GameState state as the new authoritative version of the game to all players */

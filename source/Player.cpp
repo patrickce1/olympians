@@ -219,6 +219,28 @@ static float computeResolvedItemMagnitude(const Player& player,
 }
 
 /**
+ * Applies one enemy effect for an attack item, handling any item-specific targeting rules.
+ *
+ * @param def                The item definition that produced the effect.
+ * @param effect             The enemy effect to apply.
+ * @param resolvedMagnitude  The resolved attack magnitude for this item use.
+ * @param target             The enemy receiving the effect.
+ * @param playerIndex        The attacking player's slot index.
+ * @return The applied effect magnitude reported by the effect system.
+ */
+static float applyAttackEffectToEnemy(const ItemDef::Effect& effect,
+                                      float resolvedMagnitude,
+                                      Enemy& target,
+                                      int playerIndex) {
+    if (effect.type == ItemDef::EffectType::Vulnerable && effect.applyToAllSides) {
+        const bool applied = target.applyVulnerableToAllSides(effect.multiplier, effect.duration);
+        return applied ? effect.multiplier : 0.0f;
+    }
+
+    return EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target, playerIndex);
+}
+
+/**
  * Uses the inventory item with the given id on a player target.
  *
  * Support items heal the target using the resolved item magnitude, while any
@@ -294,11 +316,11 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             target.takeDamage(resolvedMagnitude, getPlayerNumber());
             returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
             }
         } else if (!def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
             }
         }
 

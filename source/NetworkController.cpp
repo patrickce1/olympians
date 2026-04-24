@@ -123,6 +123,7 @@ EnemyEffectMessage readEnemyEffectMessage(NetcodeDeserializer& deserializer) {
     effectMsg.magnitude = deserializer.readFloat();
     effectMsg.duration = deserializer.readFloat();
     effectMsg.playerIndex = deserializer.readSint32();
+    effectMsg.applyToAllSides = deserializer.readBool();
     return effectMsg;
 }
 
@@ -140,6 +141,7 @@ void writeEnemyEffectMessage(NetcodeSerializer& serializer, const EnemyEffectMes
     serializer.writeFloat(effectMsg.magnitude);
     serializer.writeFloat(effectMsg.duration);
     serializer.writeSint32(effectMsg.playerIndex);
+    serializer.writeBool(effectMsg.applyToAllSides);
 }
 } // namespace
 
@@ -569,12 +571,13 @@ void NetworkController::broadcastSupportEffect(SupportEffectType effectType, flo
  * @param duration   The timed duration of the enemy effect.
  * @param playerIndex The attacking player's slot.
  */
-void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex) {
+void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides) {
     EnemyEffectMessage effectMsg;
     effectMsg.effectType = effectType;
     effectMsg.magnitude = magnitude;
     effectMsg.duration = duration;
     effectMsg.playerIndex = playerIndex;
+    effectMsg.applyToAllSides = applyToAllSides;
 
 	_serializer.writeSint32(MessageType::ENEMY_EFFECT);
     writeEnemyEffectMessage(_serializer, effectMsg);
