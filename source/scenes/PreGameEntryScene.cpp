@@ -212,8 +212,6 @@ void PreGameEntryScene::update(float timestep) {
     }
 }
 
-}
-
 /**
  * Remaps the full player list from GameState so the local player always
  * appears last (bottom slot of the UI). Walks the circular player array
