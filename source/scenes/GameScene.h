@@ -357,8 +357,8 @@ protected:
         float animationOutDuration = 0.2f;
         /** Target scale derived from the popup's font size relative to the base font size. */
         float displayScale = 1.0f;
-        enum AnimationPhase { IN, DISPLAY, OUT };
-        AnimationPhase phase = IN;
+        enum AnimationPhase { ANIM_IN, ANIM_DISPLAY, ANIM_OUT };
+        AnimationPhase phase = ANIM_IN;
     };
 
     /**

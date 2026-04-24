@@ -34,6 +34,9 @@ public:
     };
 
 protected:
+    /** Debug boolean. Set to false to prevent debug statements */
+    bool _debug = false;
+
     /** Unique identifier for this enemy (e.g., "cyclops", "cerberus") */
     std::string _enemyId;
     
@@ -351,6 +354,16 @@ public:
      * @param dt  The elapsed time since the previous frame, in seconds.
      */
     void virtual update(float dt);
+
+    /**
+     * Advances the enemy's state machine and attack lockout by the given amount,
+     * without affecting any effect timers (stun, love, vulnerable).
+     * Use this instead of a fake dt when you want to speed up state transitions
+     * while leaving effect durations intact.
+     *
+     * @param amount  The time to advance, in seconds.
+     */
+    void advanceStateTime(float amount);
 
     /** Return contents of current event buffer and clears it.*/
     std::vector<FiredEvent> takeFiredEvents();

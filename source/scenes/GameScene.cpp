@@ -3690,7 +3690,7 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
     popupAnim.displayDuration    = data.displayDuration;
     popupAnim.animationOutDuration = FLOATING_POPUP_ANIM_OUT;
     popupAnim.displayScale       = displayScale;
-    popupAnim.phase              = FloatingPopupAnimation::IN;
+    popupAnim.phase              = FloatingPopupAnimation::ANIM_IN;
 
     _activeFloatingPopups.push_back(popupAnim);
 }
@@ -3729,7 +3729,7 @@ void GameScene::updatePopupAnimations(float dt) {
         float scale, alpha;
         if (popupEntry->elapsed < popupEntry->animationInDuration) {
             // Phase IN: scale up with a brief overshoot for a punchy feel.
-            popupEntry->phase = FloatingPopupAnimation::IN;
+            popupEntry->phase = FloatingPopupAnimation::ANIM_IN;
             const float t = popupEntry->elapsed / popupEntry->animationInDuration;
             // Overshoot to 1.25× at t=0.6, settle to 1.0× by t=1.0
             const float overshoot = t < 0.6f ? (t / 0.6f) * 1.25f : 1.25f - (t - 0.6f) / 0.4f * 0.25f;
@@ -3737,12 +3737,12 @@ void GameScene::updatePopupAnimations(float dt) {
             alpha = t;
         } else if (popupEntry->elapsed < popupEntry->animationInDuration + popupEntry->displayDuration) {
             // Phase DISPLAY: hold at full scale and full opacity.
-            popupEntry->phase = FloatingPopupAnimation::DISPLAY;
+            popupEntry->phase = FloatingPopupAnimation::ANIM_DISPLAY;
             scale = popupEntry->displayScale;
             alpha = 1.0f;
         } else {
             // Phase OUT: shrink slightly while fading to transparent.
-            popupEntry->phase = FloatingPopupAnimation::OUT;
+            popupEntry->phase = FloatingPopupAnimation::ANIM_OUT;
             const float t = (popupEntry->elapsed - popupEntry->animationInDuration - popupEntry->displayDuration)
                           / popupEntry->animationOutDuration;
             scale = popupEntry->displayScale * (1.0f - t * 0.5f);
