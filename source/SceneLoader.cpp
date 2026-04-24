@@ -382,18 +382,31 @@ void SceneLoader::update(float dt) {
                     _gameScene.resetGameState();
                     _houseSelectScene.setPendingReset(true);
                     if (_network->isHost()) {
-                        CULog("Transitioning to HostSetupScene...");
-                        _hostSetupScene.setActive(true);
-                        _lobbyScene.setActive(false);   // disconnect fires here
-                        _currentScene = State::HOSTSETUP;
-                    } else {
-                        CULog("Transitioning to ClientScene...");
+                        CULog("Host backed out of lobby — returning to HostSetupScene...");
                         _hostSetupScene.setActive(true);
                         _lobbyScene.setActive(false);
-                        _hostSetupScene.showHostDisconnectedError();
                         _currentScene = State::HOSTSETUP;
+                    } else {
+                        // Client voluntarily left — preserve game ID so they don't retype it.
+                        CULog("Client backed out of lobby — returning to ClientScene...");
+                        _clientScene.setActive(true, true); // preserveGameId = true
+                        _lobbyScene.setActive(false);
+                        _currentScene = State::CLIENT;
                     }
                     break;
+                    
+                // Host broadcast SESSION_TERMINATED — they left intentionally but the client
+                // didn't press back themselves. Show the error popup on HostSetupScene.
+                case LobbyScene::Status::HOST_LEFT:
+                    CULog("Host left lobby — returning client to HostSetupScene...");
+                    _gameScene.resetGameState();
+                    _houseSelectScene.setPendingReset(true);
+                    _lobbyScene.setActive(false);
+                    _hostSetupScene.setActive(true);
+                    _hostSetupScene.showHostDisconnectedError();
+                    _currentScene = State::HOSTSETUP;
+                    break;
+
                 case LobbyScene::Status::HOST_DISCONNECTED:
                     CULog("Host disconnected in lobby — returning client to HostSetupScene...");
                     _gameScene.resetGameState();

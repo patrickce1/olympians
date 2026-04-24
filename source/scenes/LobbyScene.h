@@ -28,6 +28,7 @@ public:
         BOSSSELECT,
         START,
         ABORT,
+        HOST_LEFT,
         HOST_DISCONNECTED
     };
     

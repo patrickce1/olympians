@@ -438,7 +438,7 @@ void LobbyScene::update(float timestep) {
         if (_network->wasSessionTerminated()) {
             _network->clearQueues();
             _network->disconnect();
-            _status = Status::ABORT;
+            _status = Status::HOST_LEFT;
             return;
         }
         
