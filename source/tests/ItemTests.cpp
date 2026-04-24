@@ -399,7 +399,7 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
     // Support common item (Demeter + apple) should not use affinity
     Player demeter("demeter", 3, "Demeter Tester", loader);
     Player ally("ares", 4, "Ally", loader);
-    ally.updateHealth(-4.0f);
+    ally.updateHealth(-20.0f);
 
     auto instApple = ItemInstance::alloc("apple", 1003);
     assertWithLabel(instApple != nullptr, "compute: create apple instance");
@@ -408,7 +408,7 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
 
     float allyBefore = ally.getCurrentHealth();
     float resolvedSupport = demeter.useItemById(instApple->getId(), ally, db);
-    float expectedSupport = 2.0f * (1.0f + 0.9f);
+    float expectedSupport = 10.0f * (1.0f + 0.9f);
     assertWithLabel(floatsEqualWithinTolerance(resolvedSupport, expectedSupport), "compute: support scaling resolves correctly");
     assertWithLabel(floatsEqualWithinTolerance(ally.getCurrentHealth() - allyBefore, expectedSupport), "compute: support heal equals resolved value");
 
