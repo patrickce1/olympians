@@ -260,8 +260,6 @@ void NetworkController::disconnect() {
     _gameWon = false;
     _gameLost = false;
     _sessionTerminated = false;
-    _hostDisconnected = false;
-    _hostNetworkID = "";
     _disconnectedSlots.clear();
     _enemy = "";
     _aIHouses.clear();
@@ -401,7 +399,6 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			break;
 		}
         case MessageType::LOBBY_UPDATE: {
-            _hostNetworkID = _deserializer.readString();
             std::vector<std::string> playerData = _deserializer.readStringVector();
             _onlinePlayers.clear();
             _aIHouses.clear();
@@ -723,7 +720,6 @@ void NetworkController::broadcastLobbyState() {
     serializablePlayers.push_back(_enemy);
 
     _serializer.writeSint32(MessageType::LOBBY_UPDATE);
-    _serializer.writeString(_network->getUUID());
     _serializer.writeStringVector(serializablePlayers);
     _network->broadcast(_serializer.serialize());
     _serializer.reset();
@@ -757,7 +753,6 @@ void NetworkController::setPlayerName(const std::string& name) {
 		newPlayer.username = name;
 		newPlayer.networkID = _network->getUUID();
 		_onlinePlayers.push_back(newPlayer);
-        _hostNetworkID = newPlayer.networkID;
 	}
 }
 
@@ -815,14 +810,6 @@ void NetworkController::registerDisconnectCallback() {
 
     _network->onDisconnect([this](const std::string& peerID) {
         CULog("NetworkController: peer %s disconnected", peerID.c_str());
-        
-        // If we are a client and the host's UUID matches the disconnecting peer,
-        // flag it immediately — before touching _onlinePlayers. This catches hard
-        // drops where broadcastSessionTerminated() was never sent.
-        if (!isHost() && !_hostNetworkID.empty() && peerID == _hostNetworkID) {
-            CULog("NetworkController: host %s dropped — flagging _hostDisconnected", peerID.c_str());
-            _hostDisconnected = true;
-        }
         
         // Find which slot this networkID maps to.
         for (int i = 0; i < (int)_onlinePlayers.size(); i++) {
@@ -1025,13 +1012,11 @@ void NetworkController::clearAIHouse(int slotIndex) {
 }
 
 /**
- * Returns true if the host dropped unexpectedly. Checks both the explicit
- * _hostDisconnected flag and polls the connection state directly each frame,
+ * Returns true if the host dropped unexpectedly. Polls the connection state directly each frame,
  * since CUGL's onDisconnect callback is unreliable when receive() is called
  * every frame. CLIENT ONLY — always false on the host.
  */
 bool NetworkController::wasHostDisconnected() const {
-    if (_hostDisconnected) return true;
     if (_network && !_network->isHost()) {
         auto state = _network->getState();
         return state == NetcodeConnection::State::DISCONNECTED

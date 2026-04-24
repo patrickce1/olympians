@@ -414,9 +414,6 @@ private:
     
     // True if host sent SESSION_TERMINATED this network cycle
     bool _sessionTerminated = false;
-    
-    // True if the host's peer connection dropped (hard disconnect, no broadcast)
-    bool _hostDisconnected = false;
 
     //Player's chosen username
     std::string _playerName;
@@ -429,9 +426,6 @@ private:
     
     /** Houses chosen by the host for AI slots, keyed by game slot index */
     std::unordered_map<int, std::string> _aIHouses;
-    
-    /** Network UUID of the session host. Set when the host self-registers (host side) */
-    std::string _hostNetworkID;
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */
