@@ -109,6 +109,9 @@ struct ItemUseAnimation {
     /** Scene-space position where the popup should appear at damage resolution. */
     cugl::Vec2 popupPosition;
 
+    /** Enemy effects to send alongside deferred damage when a non-host client resolves the hit. */
+    std::vector<EnemyEffectMessage> enemyEffects;
+
     /** Elapsed time in seconds since animation started. Used to calculate current frame. */
     float elapsedTime = 0.0f;
     
