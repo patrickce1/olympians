@@ -35,7 +35,7 @@ public:
 
 protected:
     /** Debug boolean. Set to false to prevent debug statements */
-    bool _debug = true;
+    bool _debug = false;
 
     /** Unique identifier for this enemy (e.g., "cyclops", "cerberus") */
     std::string _enemyId;
