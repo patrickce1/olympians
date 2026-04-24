@@ -24,7 +24,8 @@ public:
     enum Boss {
         CYCLOPS = 0,
         CERBERUS = 1,
-        CIRCE = 2
+        CIRCE = 2,
+        GAIA = 3
     };
 
     struct EventDef {
@@ -100,6 +101,7 @@ private:
         if (s == "cyclops")  return Boss::CYCLOPS;
         if (s == "cerberus") return Boss::CERBERUS;
         if (s == "circe") return Boss::CIRCE;
+        if (s == "gaia") return Boss::GAIA;
         CUAssertLog(false, "Unknown boss type: %s", s.c_str());
         return Boss::CYCLOPS;
     }

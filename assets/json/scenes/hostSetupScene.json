@@ -939,15 +939,15 @@
                                     ]
                                 }
                             },
-                            "emptyCard": {
+                            "gaiaCard": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "bossCard",
                                     "variables": {
-                                        "image": "bossPosterEmpty",
+                                        "image": "gaiaPoster",
                                         "description": "",
-                                        "name": "-BOSS-",
+                                        "name": "-GAIA-",
                                         "glow": false
                                     }
                                 },
