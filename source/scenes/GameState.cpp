@@ -130,7 +130,7 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
  */
 bool GameState::initEnemy() {
     const std::string enemyJsonPath = "json/enemies.json";
-    _enemy = std::make_shared<Enemy>();
+    _enemy = std::make_shared<Cyclops>(); //cyclops is the default boss
     if (!_enemy->init("cyclops", enemyJsonPath)) {
         CULog("GameState: Failed to initialize enemy");
         return false;
@@ -273,9 +273,7 @@ void GameState::setLocalPlayer(int assignedIndex) {
  */
 void GameState::setEnemy(std::string enemyID) {
     const std::string enemyJsonPath = "json/enemies.json";
-    if (_enemy == nullptr) {
-        _enemy = createEnemyByID(enemyID);
-    }
+    _enemy = createEnemyByID(enemyID);
     _enemy->init(enemyID, enemyJsonPath);
 }
 
