@@ -358,29 +358,6 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
 }
 
 /**
- * Applies enemy-targeted effect messages from clients onto the host's authoritative enemy state.
- *
- * @param enemyEffects  The queued enemy-effect updates to apply this frame.
- */
-void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects) {
-    if (!_enemy) return;
-
-    for (const EnemyEffectMessage& effect : enemyEffects) {
-        switch (effect.effectType) {
-            case EnemyEffectType::Stun:
-                _enemy->applyStun(effect.duration);
-                break;
-            case EnemyEffectType::Love:
-                _enemy->applyLove(effect.duration);
-                break;
-            case EnemyEffectType::Vulnerable:
-                _enemy->applyVulnerable(effect.magnitude, effect.duration, effect.playerIndex);
-                break;
-        }
-    }
-}
-
-/**
  * Overwrites the local game state with a snapshot received from the host.
  *
  * Applies the host's authoritative boss and player health values directly,
@@ -399,11 +376,6 @@ void GameState::networkUpdate(GameStateMessage newState) {
 
     //update boss direction
     _enemy->setTargetIndex(newState.bossTarget);
-
-    // sync authoritative enemy runtime effects
-    _enemy->syncStunDuration(newState.bossStunDuration);
-    _enemy->syncLoveDuration(newState.bossLoveDuration);
-    _enemy->syncVulnerable(newState.bossVulnerableMultipliers, newState.bossVulnerableDurations);
 
     // update player health and authoritative timed support effects
     std::vector<float> healths = {

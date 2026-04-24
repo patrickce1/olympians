@@ -68,79 +68,6 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
         }
     }
 }
-
-/**
- * Reads authoritative enemy runtime-effect values from a game-state payload.
- *
- * The payload contains the remaining stun duration, love duration,
- * then one vulnerable duration and multiplier pair for each relative boss side.
- *
- * @param deserializer  The deserializer positioned at the first enemy-effect
- *                      field within a `GAME_UPDATE` payload.
- * @param stateMsg      The game-state message receiving the decoded enemy
- *                      runtime state.
- */
-void readEnemyRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& stateMsg) {
-    stateMsg.bossStunDuration = deserializer.readFloat();
-    stateMsg.bossLoveDuration = deserializer.readFloat();
-    for (int side = 0; side < Enemy::NUM_PLAYERS; side++) {
-        stateMsg.bossVulnerableDurations[side] = deserializer.readFloat();
-        stateMsg.bossVulnerableMultipliers[side] = deserializer.readFloat();
-    }
-}
-
-/**
- * Writes authoritative enemy runtime-effect values into a game-state payload.
- *
- * The payload contains the remaining stun duration, love duration,
- * then one vulnerable duration and multiplier pair for each relative boss side.
- *
- * @param serializer  The serializer to append enemy runtime state to.
- * @param enemy       The authoritative enemy whose runtime effect values should
- *                    be written into the outgoing snapshot.
- */
-void writeEnemyRuntimeState(NetcodeSerializer& serializer, const shared_ptr<Enemy>& enemy) {
-    serializer.writeFloat(enemy->getStunDuration());
-    serializer.writeFloat(enemy->getLoveDuration());
-    for (int side = 0; side < Enemy::NUM_PLAYERS; side++) {
-        serializer.writeFloat(enemy->getVulnerableDurationForSide(side));
-        serializer.writeFloat(enemy->getVulnerableMultiplierForSide(side));
-    }
-}
-
-/**
- * Reads one enemy-effect message payload from the current deserializer position.
- *
- * The payload contains the enemy effect type followed by the resolved magnitude,
- * the timed duration for that effect, and the attacking player's index.
- *
- * @param deserializer  The deserializer positioned at the enemy-effect payload.
- * @return the decoded enemy-effect message.
- */
-EnemyEffectMessage readEnemyEffectMessage(NetcodeDeserializer& deserializer) {
-    EnemyEffectMessage effectMsg;
-    effectMsg.effectType = static_cast<EnemyEffectType>(deserializer.readSint32());
-    effectMsg.magnitude = deserializer.readFloat();
-    effectMsg.duration = deserializer.readFloat();
-    effectMsg.playerIndex = deserializer.readSint32();
-    return effectMsg;
-}
-
-/**
- * Writes one enemy-effect message payload to the current serializer position.
- *
- * The payload contains the enemy effect type followed by the resolved magnitude,
- * the timed duration for that effect, and the attacking player's index.
- *
- * @param serializer  The serializer receiving the enemy-effect payload.
- * @param effectMsg   The enemy-effect message to serialize.
- */
-void writeEnemyEffectMessage(NetcodeSerializer& serializer, const EnemyEffectMessage& effectMsg) {
-    serializer.writeSint32(static_cast<int>(effectMsg.effectType));
-    serializer.writeFloat(effectMsg.magnitude);
-    serializer.writeFloat(effectMsg.duration);
-    serializer.writeSint32(effectMsg.playerIndex);
-}
 } // namespace
 
 /*HELPERS*/
@@ -356,10 +283,6 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             supportEffects.push_back(effectMsg);
             break;
         }
-        case MessageType::ENEMY_EFFECT: {
-            enemyEffects.push_back(readEnemyEffectMessage(_deserializer));
-            break;
-        }
         case MessageType::PLAYER_PASS: {
             std::string itemID = _deserializer.readString();
             int passRecieverID = _deserializer.readSint32();
@@ -428,18 +351,17 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _enemy = playerData.back();
             break;
         }
-		case MessageType::GAME_UPDATE : {
-			GameStateMessage stateMsg;
-            stateMsg.bossHealth = _deserializer.readFloat();
-            stateMsg.bossTarget = _deserializer.readSint32();
-            stateMsg.bossState = _deserializer.readSint32();
-            stateMsg.stateTime = _deserializer.readFloat();
-            readEnemyRuntimeState(_deserializer, stateMsg);
-            readPlayerRuntimeState(_deserializer, stateMsg);
+			case MessageType::GAME_UPDATE : {
+				GameStateMessage stateMsg;
+				stateMsg.bossHealth = _deserializer.readFloat();
+				stateMsg.bossTarget = _deserializer.readSint32();
+				stateMsg.bossState = _deserializer.readSint32();
+				stateMsg.stateTime = _deserializer.readFloat();
+                readPlayerRuntimeState(_deserializer, stateMsg);
             
-			_latestGameState = stateMsg;
-			break;
-		}
+				_latestGameState = stateMsg;
+				break;
+			}
 		case MessageType::GAME_WON: {
 			_gameWon = true;
 			break;
@@ -504,7 +426,6 @@ void NetworkController::clearQueues() {
 	attacks.clear();
 	heals.clear();
 	supportEffects.clear();
-	enemyEffects.clear();
 	passes.clear();
 	_gameWon = false;
 	_gameLost = false;
@@ -556,27 +477,6 @@ void NetworkController::broadcastSupportEffect(SupportEffectType effectType, flo
 	_serializer.writeSint32(static_cast<int>(effectType));
 	_serializer.writeFloat(magnitude);
 	_serializer.writeFloat(duration);
-	_network->sendToHost(_serializer.serialize());
-	_serializer.reset();
-}
-
-/**
- * Sends an enemy-affecting item effect to the host so the host can apply it once and replicate the result.
- *
- * @param effectType The type of enemy effect being applied.
- * @param magnitude  The resolved magnitude associated with the attack item.
- * @param duration   The timed duration of the enemy effect.
- * @param playerIndex The attacking player's slot.
- */
-void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex) {
-    EnemyEffectMessage effectMsg;
-    effectMsg.effectType = effectType;
-    effectMsg.magnitude = magnitude;
-    effectMsg.duration = duration;
-    effectMsg.playerIndex = playerIndex;
-
-	_serializer.writeSint32(MessageType::ENEMY_EFFECT);
-    writeEnemyEffectMessage(_serializer, effectMsg);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
@@ -670,7 +570,6 @@ void NetworkController::broadcastGameState(const GameState& state) {
 	_serializer.writeSint32(state.getEnemy()->getTargetIndex());
 	_serializer.writeSint32(state.getEnemy()->getCurrentState());
 	_serializer.writeFloat(state.getEnemy()->getStateTime());
-    writeEnemyRuntimeState(_serializer, state.getEnemy());
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
     writePlayerRuntimeState(_serializer, players);
 	_network->broadcast(_serializer.serialize());

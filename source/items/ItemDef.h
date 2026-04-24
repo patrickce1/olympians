@@ -29,9 +29,6 @@ struct ItemUseAnimationConfig {
     
     /** Frame index at which to trigger damage resolution and network broadcast. */
     int damageResolutionFrame = 0;
-
-    /** If true, animation plays at the item drop position. If false (default), plays at the viewport center. */
-    bool centerOnDropLocation = false;
 };
 
 /**
@@ -69,7 +66,6 @@ public:
         Shield,
         Barrier,
         Stun,
-        Love,
         Vulnerable
     };
 
