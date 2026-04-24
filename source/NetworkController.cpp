@@ -805,7 +805,6 @@ int NetworkController::getPlayerNumberByID(const std::string& networkID) {
  * Should be called once after the network connection is established.
  */
 void NetworkController::registerDisconnectCallback() {
-    CULog("In registerdisconnect callback");
     if (!_network) return;
 
     _network->onDisconnect([this](const std::string& peerID) {
