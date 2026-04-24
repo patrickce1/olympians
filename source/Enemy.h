@@ -363,7 +363,7 @@ public:
      *
      * @param amount  The time to advance, in seconds.
      */
-    void advanceStateTime(float dt);
+    void advanceStateTime(float amount);
 
     /** Return contents of current event buffer and clears it.*/
     std::vector<FiredEvent> takeFiredEvents();
