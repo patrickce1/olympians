@@ -43,7 +43,7 @@
                 }
             },
             "settingsTab": {
-                "type": "Node",
+                "type": "Button",
                 "format": {
                     "type": "Anchored"
                 },
@@ -61,6 +61,7 @@
                         350,
                         657
                     ],
+                    "upnode": "sideIconBG",
                     "visible": true
                 },
                 "children": {
