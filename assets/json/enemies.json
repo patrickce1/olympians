@@ -19,7 +19,29 @@
             "states": {
                 "idle": {
                     "name": "idle",
-                    "animationKey": "cyclops_idle_animation"
+                    "animationKey": "cyclops_idle_animation",
+                    "events": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 2.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 1.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 1.0
+                        }
+                    ]
                 },
                 "attack_1": {
                     "name": "club",
@@ -87,22 +109,22 @@
                         {
                             "type": "SIDE_MODIFIER",
                             "target": 0,
-                            "amount": 2.0
+                            "amount": 0.0
                         },
 			            {
                             "type": "SIDE_MODIFIER",
                             "target": 1,
-                            "amount": 1.0
+                            "amount": 0.5
                         },
 			            {
                             "type": "SIDE_MODIFIER",
                             "target": 2,
-                            "amount": 1.0
+                            "amount": 0.5
                         },
 			            {
                             "type": "SIDE_MODIFIER",
                             "target": 3,
-                            "amount": 0.0
+                            "amount": 1.0
                         }
 		            ],
                     "nextState": "idle"
