@@ -317,7 +317,7 @@ void Enemy::tick(float dt) {
 
         const float previousDuration = _vulnerableDurations[side];
         _vulnerableDurations[side] = std::max(0.0f, _vulnerableDurations[side] - dt);
-        if (previousDuration > 0.0f && _vulnerableDurations[side] == 0.0f) {
+        if (previousDuration > 0.0f && _vulnerableDurations[side] <= 0.0f) {
             _vulnerableSideMultipliers[side] = 1.0f;
             setSideMultiplier(side, _baseSideMultipliers[side]);
             CULog("Enemy vulnerability ended: enemy='%s' side=%d", _enemyId.c_str(), side);
