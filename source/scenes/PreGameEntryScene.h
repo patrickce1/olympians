@@ -19,7 +19,9 @@ public:
      */
     enum Status {
         IDLE,
-        START
+        START,
+        ERROR_DISPLAY,
+        ABORT
     };
     
 protected:
@@ -64,6 +66,12 @@ protected:
 
     /** The state of the game */
     GameState* _gameState = nullptr;
+    
+    /** Seconds elapsed since the error popup was shown. */
+    float _errorTimer;
+    
+    /** Optional error-popup node (may be nullptr if absent from JSON scene). */
+    std::shared_ptr<cugl::scene2::SceneNode> _errorPopup;
 
 public:
 #pragma mark -
@@ -185,6 +193,15 @@ private:
      * into their target positions using easing-based MoveTo actions.
      */
     void animateCloudsIn();
+ 
+    /**
+     * Displays the error popup with the given message and enters ERROR_DISPLAY.
+     * @param message  Human-readable error text.
+     */
+    void showError(const std::string& message);
+ 
+    /** Hides the error popup and resets to IDLE. */
+    void dismissError();
 };
 
 #endif /* __PRE_GAME_ENTRY_SCENE_H__ */

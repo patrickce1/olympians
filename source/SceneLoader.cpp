@@ -468,6 +468,11 @@ void SceneLoader::update(float dt) {
                     _preGameEntryScene.setActive(false);
                     _currentScene = State::GAME;
                     break;
+                case PreGameEntryScene::Status::ABORT:
+                    CULog("Transitioning to LobbyScene from PreGameEntryScene...");
+                    _lobbyScene.setActive(true);
+                    _preGameEntryScene.setActive(false);
+                    _currentScene = State::LOBBY;
                 default:
                     break;
             }

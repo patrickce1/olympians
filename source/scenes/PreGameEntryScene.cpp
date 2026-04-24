@@ -11,6 +11,8 @@ using namespace std;
 #define SCENE_HEIGHT  852
 /** Loading Bar Timer */
 #define LOADING_TIMER  5.0f
+/** How long (seconds) to show the error popup before auto-dismissing */
+#define ERROR_DISPLAY_TIME  2.0f
 
 /**
  * Initializes the scene contents, and starts the scene
@@ -57,6 +59,8 @@ bool PreGameEntryScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
     _status = Status::IDLE;
     
     _timeline = ActionTimeline::alloc();
+    
+    _errorTimer = 0.0f;
     
     addChild(scene);
     setActive(false);
@@ -107,6 +111,15 @@ void PreGameEntryScene::setupUI() {
         extractFromSection(bottomSection->getChildByName("localPlayerTile"));
     }
     
+    // Error popup node
+    _errorPopup = _assets->get<scene2::SceneNode>("preGameEntryScene.errorPopup");
+    if (_errorPopup) {
+        auto overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(_errorPopup->getChildByName("overlayBG"));
+        overlay->setContentSize(getSize());
+        overlay->setAnchor(Vec2::ANCHOR_CENTER);
+        overlay->setPosition(getSize()/2);
+        _errorPopup->setVisible(false);
+    }
 }
 
 /**
@@ -123,6 +136,7 @@ void PreGameEntryScene::dispose() {
         _loadingBar = nullptr;
         _timeline = nullptr;
         _active = false;
+        _errorPopup = nullptr;
     }
     _network = nullptr;
 }
@@ -154,6 +168,9 @@ void PreGameEntryScene::setActive(bool value) {
             }
 
             animateCloudsIn();
+            
+            _errorTimer = 0.0f;
+            if (_errorPopup) _errorPopup->setVisible(false);
         }
     }
 }
@@ -167,7 +184,7 @@ void PreGameEntryScene::update(float timestep) {
     if (!_active || !_loadingBar) return;
 
     // Increase progress based on time
-    if (!_timeline->isActive("bottom_clouds")){
+    if (!_timeline->isActive("bottom_clouds") && _status != Status::ERROR_DISPLAY){
         _loadingProgress += timestep / LOADING_TIMER;
         
         if (_loadingProgress > 1.0f) {
@@ -187,6 +204,15 @@ void PreGameEntryScene::update(float timestep) {
     updateEntryScreenText(displayOrder);
     
     _timeline->update(timestep);
+    
+    if (_status == Status::ERROR_DISPLAY) {
+        _errorTimer += timestep;
+        if (_errorTimer >= ERROR_DISPLAY_TIME) {
+            dismissError();
+        }
+    }
+}
+
 }
 
 /**
@@ -278,5 +304,40 @@ void PreGameEntryScene::animateCloudsIn() {
 
         _timeline->add("bottom_clouds", moveBottom->attach(_bottomClouds), 1.2f, easing);
     }
+}
+
+
+/**
+ * Displays the error popup with the given message and switches to
+ * Status::ERROR_DISPLAY so update() can auto-dismiss it.
+ *
+ * If no "clientScene.errorPopup" node was found during setupUI(), the
+ * message is printed to the console and the scene resets immediately.
+ *
+ * @param message  Human-readable error text to show.
+ */
+void PreGameEntryScene::showError(const std::string& message) {
+    if (_errorPopup) {
+        auto label = std::dynamic_pointer_cast<scene2::Label>(
+            _errorPopup->getChildByName("errorLabel"));
+        if (label) {
+            label->setText(message);
+        }
+        _errorPopup->setVisible(true);
+    }
+
+    _errorTimer = 0.0f;
+    _status = Status::ERROR_DISPLAY;
+}
+
+/**
+ * Hides the error popup and returns the scene to IDLE so the player can
+ * correct their input and try again.
+ */
+void PreGameEntryScene::dismissError() {
+    if (_errorPopup) {
+        _errorPopup->setVisible(false);
+    }
+    _status = Status::ABORT;
 }
 
