@@ -228,13 +228,13 @@ void SceneLoader::update(float dt) {
             _paused = false;
             switch (_currentScene) {
                case State::HOSTSETUP:
-//                   _hostSetupScene.setInputEnabled(true);
+                   _hostSetupScene.setInputEnabled(true);
                    break;
                case State::CLIENT:
                    _clientScene.setInputEnabled(true);
                    break;
                case State::LOBBY:
-//                   _lobbyScene.setInputEnabled(true);
+                   _lobbyScene.setInputEnabled(true);
                    break;
                default:
                    break;
@@ -364,6 +364,10 @@ void SceneLoader::update(float dt) {
             break;
         case State::HOSTSETUP:
             _hostSetupScene.update(dt);
+            if (_hostSetupScene.consumeSettings()) {
+                _hostSetupScene.setInputEnabled(false);
+                _settingsScene.setActive(true);
+            }
             switch (_hostSetupScene.getStatus()) {
                 case HostSetupScene::Status::START:
                     CULog("Transitioning to LobbyScene...");
@@ -390,6 +394,10 @@ void SceneLoader::update(float dt) {
             break;
         case State::LOBBY:
             _lobbyScene.update(dt);
+            if (_lobbyScene.consumeSettings()) {
+                _lobbyScene.setInputEnabled(false);
+                _settingsScene.setActive(true);
+            }
             switch (_lobbyScene.getStatus()) {
                 case LobbyScene::Status::START:
                     CULog("Transitioning to GameScene...");

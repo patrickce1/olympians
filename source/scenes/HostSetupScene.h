@@ -49,6 +49,9 @@ protected:
     /** The join game (client scene) button for the host setup scene */
     std::shared_ptr<cugl::scene2::Button> _joinButton;
     
+    /** The settings button to display settings menu */
+    std::shared_ptr<cugl::scene2::Button> _settingsButton;
+    
     /** The player label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _hostName;
     
@@ -84,6 +87,9 @@ protected:
     
     /** Loads enemy definitions from JSON for boss selection. */
     EnemyLoader _enemyLoader;
+    
+    /** Set to true when the user taps the settings button */
+    bool _pendingSettings = false;
 
 public:
 #pragma mark -
@@ -174,6 +180,16 @@ public:
      */
     void update(float timestep) override;
     
+    /**
+     * Returns true if the user has requested to open settings, then resets the flag.
+     */
+    bool consumeSettings();
+    
+    /**
+     * Enables or disables all interactive input controls.
+     * @param enabled  Whether controls should accept input.
+     */
+    void setInputEnabled(bool enabled);
 
 private:
     /**

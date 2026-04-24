@@ -82,6 +82,9 @@ void LobbyScene::setupUI() {
 
     _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("lobbyScene.back"));
+    
+    _settingsButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("lobbyScene.settingsTab"));
 
     _gameId = std::dynamic_pointer_cast<scene2::Label>(
         _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
@@ -202,6 +205,10 @@ void LobbyScene::setupListeners() {
             }
         });
     }
+    
+    _settingsButton->addListener([this](const std::string& name, bool down) {
+        if (!down) _pendingSettings = true;
+    });
 }
 
 /**
@@ -218,6 +225,7 @@ void LobbyScene::dispose() {
         _bossImage = nullptr;
         _bossLobbyButton = nullptr;
         _playerInfoContainer = nullptr;
+        _settingsButton = nullptr;
         _active = false;
     }
     _network = nullptr;
@@ -241,6 +249,7 @@ void LobbyScene::setActive(bool value) {
             _enterGame->deactivate();
             _backButton->activate();
             _bossLobbyButton->activate();
+            _settingsButton->activate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->activate();
             }
@@ -252,6 +261,7 @@ void LobbyScene::setActive(bool value) {
             _backButton->deactivate();
             _enterGame->deactivate();
             _bossLobbyButton->deactivate();
+            _settingsButton->deactivate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->deactivate();
                 icon->setDown(false);
@@ -445,7 +455,7 @@ void LobbyScene::update(float timestep) {
     updateLobbyBossImage(_network->getEnemy());
     
     // Only the host can start; only enable the button when all players have locked in a house.
-    if (_network->isHost()) {
+    if (_network->isHost() && !_isShowingSettings) {
             _enterGame->activate();
     } else {
         _enterGame->deactivate();
@@ -479,3 +489,40 @@ void LobbyScene::update(float timestep) {
     }
 }
 
+/**
+ * Returns true if the user has requested to open settings, then resets the flag.
+ */
+bool LobbyScene::consumeSettings() {
+    bool val = _pendingSettings;
+    _pendingSettings = false;
+    _backButton->deactivate();
+    _isShowingSettings = true;
+    return val;
+};
+
+/**
+ * Enables or disables all interactive input controls.
+ *
+ * Called with false when a join attempt starts so the player cannot spam
+ * the button, and called with true when the scene resets to IDLE.
+ *
+ * @param enabled  Whether the controls should accept input.
+ */
+void LobbyScene::setInputEnabled(bool enabled) {
+    if (enabled) {
+        _backButton->activate();
+        _bossLobbyButton->activate();
+        _settingsButton->activate();
+        for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+            icon->activate();
+        }
+    } else {
+        _backButton->deactivate();
+        _bossLobbyButton->deactivate();
+        _settingsButton->deactivate();
+        for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+            icon->deactivate();
+        }
+        _isShowingSettings = false;
+    }
+}
