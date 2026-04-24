@@ -291,14 +291,14 @@ void Enemy::tick(float dt) {
 
     if (_stunDuration > 0.0f) {
         _stunDuration = std::max(0.0f, _stunDuration - dt);
-        if (previousStunDuration > 0.0f && _stunDuration <= 0.0f) {
+        if (previousStunDuration > 0.0f && _stunDuration <= 0.0f && _debug) {
             CULog("Enemy stun expired: enemy='%s'", _enemyId.c_str());
         }
     }
 
     if (_loveDuration > 0.0f) {
         _loveDuration = std::max(0.0f, _loveDuration - dt);
-        if (previousLoveDuration > 0.0f && _loveDuration <= 0.0f) {
+        if (previousLoveDuration > 0.0f && _loveDuration <= 0.0f && _debug) {
             CULog("Enemy love expired: enemy='%s'", _enemyId.c_str());
         }
     }
@@ -320,7 +320,9 @@ void Enemy::tick(float dt) {
         if (previousDuration > 0.0f && _vulnerableDurations[side] <= 0.0f) {
             _vulnerableSideMultipliers[side] = 1.0f;
             setSideMultiplier(side, _baseSideMultipliers[side]);
-            CULog("Enemy vulnerability ended: enemy='%s' side=%d", _enemyId.c_str(), side);
+            if (_debug) {
+                CULog("Enemy vulnerability ended: enemy='%s' side=%d", _enemyId.c_str(), side);
+            }
         }
     }
 }
@@ -453,6 +455,8 @@ void Enemy::applyStun(float duration) {
     const bool wasStunned = isStunned();
     _stunDuration = std::max(_stunDuration, duration);
 
+    if (!_debug) return;
+    
     if (!wasStunned) {
         CULog("Enemy stun applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
     } else {
@@ -471,9 +475,9 @@ void Enemy::syncStunDuration(float duration) {
     const bool willBeStunned = duration > 0.0f;
     _stunDuration = duration;
 
-    if (!wasStunned && willBeStunned) {
+    if (!wasStunned && willBeStunned && _debug) {
         CULog("Enemy stun applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _stunDuration);
-    } else if (wasStunned && !willBeStunned) {
+    } else if (wasStunned && !willBeStunned && _debug) {
         CULog("Enemy stun ended: enemy='%s'", _enemyId.c_str());
     }
 }
@@ -492,6 +496,8 @@ void Enemy::applyLove(float duration) {
     _loveDuration = std::max(_loveDuration, duration);
     forceIdle();
 
+    if (!_debug) return;
+    
     if (!wasLoved) {
         CULog("Enemy love applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
     } else {
@@ -514,9 +520,9 @@ void Enemy::syncLoveDuration(float duration) {
         forceIdle();
     }
 
-    if (!wasLoved && willBeLoved) {
+    if (!wasLoved && willBeLoved && _debug) {
         CULog("Enemy love applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
-    } else if (wasLoved && !willBeLoved) {
+    } else if (wasLoved && !willBeLoved && _debug) {
         CULog("Enemy love ended: enemy='%s'", _enemyId.c_str());
     }
 }
@@ -605,6 +611,8 @@ void Enemy::applyVulnerable(float multiplier, float duration, int playerIndex) {
     _vulnerableSideMultipliers[relativeIndex] = std::max(_vulnerableSideMultipliers[relativeIndex], std::max(1.0f, multiplier));
     setSideMultiplier(relativeIndex, _baseSideMultipliers[relativeIndex]);
 
+    if (!_debug) return;
+    
     if (!wasVulnerable) {
         CULog("Enemy vulnerable: enemy='%s' side=%d multiplier=%.3f duration=%.3f",
               _enemyId.c_str(),
@@ -641,6 +649,8 @@ bool Enemy::applyVulnerableToAllSides(float multiplier, float duration) {
         setSideMultiplier(side, _baseSideMultipliers[side]);
         updatedAnySide = true;
 
+        if (_debug) continue;
+        
         if (!wasVulnerable) {
             CULog("Enemy vulnerable: enemy='%s' side=%d multiplier=%.3f duration=%.3f",
                   _enemyId.c_str(),
@@ -677,9 +687,9 @@ void Enemy::syncVulnerable(const std::array<float, NUM_PLAYERS>& multipliers,
         willBeVulnerable = willBeVulnerable || (_vulnerableDurations[side] > 0.0f);
     }
 
-    if (!wasVulnerable && willBeVulnerable) {
+    if (!wasVulnerable && willBeVulnerable && _debug) {
         CULog("Enemy vulnerable: enemy='%s'", _enemyId.c_str());
-    } else if (wasVulnerable && !willBeVulnerable) {
+    } else if (wasVulnerable && !willBeVulnerable && _debug) {
         CULog("Enemy vulnerability ended: enemy='%s'", _enemyId.c_str());
     }
 }
