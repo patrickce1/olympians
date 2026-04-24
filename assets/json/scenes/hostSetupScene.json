@@ -698,7 +698,7 @@
                                 1
                             ],
                             "size": [
-                                788,
+                                1039,
                                 462
                             ],
                             "angle": 0,
@@ -753,6 +753,28 @@
                                     ]
                                 }
                             },
+                            "circeCard": {
+                                "type": "Widget",
+                                "format": { "type": "Anchored" },
+                                "data": {
+                                    "key": "bossCard",
+                                    "variables": {
+                                        "image": "circePoster",
+                                        "description": "",
+                                        "name": "-CIRCE-",
+                                        "glow": false
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 2,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        -35,
+                                        0
+                                    ]
+                                }
+                            },
                             "emptyCard": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
@@ -766,7 +788,7 @@
                                     }
                                 },
                                 "layout": {
-                                    "priority": 2,
+                                    "priority": 3,
                                     "padding": [
                                         0,
                                         0,

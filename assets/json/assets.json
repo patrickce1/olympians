@@ -270,6 +270,9 @@
         "cerberusPoster": {
             "file": "textures/hostScene/cerberusPoster.png"
         },
+        "circePoster": {
+            "file": "textures/hostScene/circePoster.png"
+        },
         "bossPosterEmpty": {
             "file": "textures/hostScene/bossPosterEmpty.png"
         },
@@ -296,6 +299,9 @@
         },
         "cerberusLobbyImage": {
             "file": "textures/lobbyScene/cerberusLobbyImage.png"
+        },
+        "circeLobbyImage": {
+            "file": "textures/lobbyScene/circeLobbyImage.png"
         },
         "glowBorder": {
             "file": "textures/lobbyScene/glowBorder.png"

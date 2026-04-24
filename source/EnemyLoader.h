@@ -24,6 +24,7 @@ public:
     enum Boss {
         CYCLOPS = 0,
         CERBERUS = 1,
+        CIRCE = 2
     };
 
     struct EventDef {
@@ -98,6 +99,7 @@ private:
     static Boss parseBoss(const std::string& s) {
         if (s == "cyclops")  return Boss::CYCLOPS;
         if (s == "cerberus") return Boss::CERBERUS;
+        if (s == "circe") return Boss::CIRCE;
         CUAssertLog(false, "Unknown boss type: %s", s.c_str());
         return Boss::CYCLOPS;
     }
