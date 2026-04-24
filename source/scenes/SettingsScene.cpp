@@ -103,17 +103,14 @@ void SettingsScene::setupUI() {
 void SettingsScene::setupListeners() {
     // Back button — hide the overlay
     _backButton->addListener([this](const std::string& name, bool down) {
-        if (!down) {
-            setActive(false);
-            // notify whoever cares (e.g. resume the game)
-            if (_onClose) _onClose();
-        }
+        if (!down) _pendingClose = true;
     });
 
     // Save button — persist settings
     _saveButton->addListener([this](const std::string& name, bool down) {
         if (!down) {
 //            saveSettings();
+            _pendingClose = true;
         }
     });
 

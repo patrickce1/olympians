@@ -61,12 +61,11 @@ protected:
     /** The player's display name */
     std::string _username;
 
-    /**
-     * Callback invoked when the user closes the settings scene
-     * (via back or save). Wire this in SceneLoader to resume the
-     * underlying scene.
+    /** Set to true when the user has requested to close the overlay.
+     *  SceneLoader polls this each frame via consumeClose() rather than
+     *  reacting inside the listener, which avoids mid-frame setActive crashes.
      */
-    std::function<void()> _onClose;
+    bool _pendingClose = false;
 
 public:
 #pragma mark -
@@ -175,19 +174,16 @@ public:
      * values are kept and no error is raised.
      */
     void loadSettings();
-
-#pragma mark -
-#pragma mark Callbacks
-
+    
     /**
-     * Registers a callback to be invoked when the settings overlay is closed.
-     *
-     * Use this in SceneLoader to resume or unpause the underlying scene
-     * when the user presses back or save.
-     *
-     * @param cb    The callback function to invoke on close
+     * Returns true if the user has pressed back or save, then resets the flag.
+     * Call this from SceneLoader::update() after _settingsScene.update().
      */
-    void setOnClose(std::function<void()> cb) { _onClose = cb; }
+    bool consumeClose() {
+        bool val = _pendingClose;
+        _pendingClose = false;
+        return val;
+    }
 
 private:
 #pragma mark -

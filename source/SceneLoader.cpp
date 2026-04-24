@@ -223,7 +223,11 @@ void SceneLoader::update(float dt) {
     // Settings overlay always gets updated when active
     if (_settingsScene.isActive()) {
         _settingsScene.update(dt);
-        return; // don't update the underlying scene while settings is open
+        if (_settingsScene.consumeClose()) {
+            _settingsScene.setActive(false);
+            _paused = false;
+        }
+        return;
     }
     
     switch (_currentScene) {
@@ -293,9 +297,6 @@ void SceneLoader::update(float dt) {
                 
                 // Init the settings overlay once, after all assets are ready
                 if (_settingsScene.init(_assets)){
-                    _settingsScene.setOnClose([this]() {
-                        _paused = false;
-                    });
                     _settingsScene.setSpriteBatch(_batch);
                 }
             }
