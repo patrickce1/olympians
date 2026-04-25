@@ -1805,6 +1805,14 @@ void GameScene::handleDragTracking(InputController& input) {
 void GameScene::handleNetworkUpdates(float dt) {
     /*Networking pull cycle*/
     _network->getNetworkUpdates();
+    
+    // If we are a client and the host dropped, kick back to the setup flow
+    // before any game logic runs this frame. LobbyScene does the same check.
+    if (_network->wasHostDisconnected() && !_network->isHost()) {
+        _network->disconnect();
+        _status = Status::HOST_DISCONNECTED;
+        return;
+    }
 
     // Track player and enemy health before updates to detect changes
     auto player = _gameState.getLocalPlayer();

@@ -342,6 +342,14 @@ public:
      * @param slotIndex  The 0-based slot index to clear.
      */
     void clearAIHouse(int slotIndex);
+    
+    /**
+     * Returns true if the host dropped unexpectedly. Checks both the explicit
+     * _hostDisconnected flag and polls the connection state directly each frame,
+     * since CUGL's onDisconnect callback is unreliable when receive() is called
+     * every frame. CLIENT ONLY — always false on the host.
+     */
+    bool wasHostDisconnected() const;
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
