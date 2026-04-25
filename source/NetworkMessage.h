@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cugl/cugl.h>
 
 #ifndef __NETWORK_MESSAGES_H__
@@ -43,6 +44,16 @@ enum class SupportEffectType : int32_t {
     Barrier = 2
 };
 
+/** Attack effect categories sent from clients to the host. */
+enum class EnemyEffectType : int32_t {
+    /** Freezes enemy timer progression for a duration without changing state. */
+    Stun = 0,
+    /** Forces the enemy idle for a duration. */
+    Love = 1,
+    /** Increases incoming damage to the enemy for a duration. */
+    Vulnerable = 2
+};
+
 /** Message sent by the client to indicate a support effect applied to a player.
  * The playerID is the order of the player in the circle to whom the effect is applied.
  * The effectType identifies whether this is a heal, shield, or barrier effect.
@@ -54,6 +65,18 @@ struct SupportEffectMessage {
     SupportEffectType effectType;
     float magnitude;
     float duration;
+};
+
+/** Message sent by the client to indicate an enemy-affecting item effect. */
+struct EnemyEffectMessage {
+    /** The category of enemy effect to apply. */
+    EnemyEffectType effectType;
+    /** The resolved item magnitude associated with the attack. */
+    float magnitude;
+    /** The number of seconds the enemy effect should last. */
+    float duration;
+    /** The attacking player's slot, used for side-relative enemy effects. */
+    int playerIndex = 0;
 };
 
 /** Message sent by client to indicate passing an item.
@@ -91,16 +114,31 @@ struct GameStateMessage {
 
     // boss health
     float bossHealth;
+    
     // who the boss is facing
     int bossTarget;
+    
     // which phase the boss is in
     // check EnemyLoader.h to see what each number corresponds to
     int bossState;
+    
     // how long the boss has been in this phase for
     float stateTime;
+    
     // We might need to send side multiplier data over network
     // based on how we decide to indicate it
     // but that is for UI people to add to ts
+    /** Remaining authoritative stun time for the boss, in seconds. */
+    float bossStunDuration = 0.0f;
+    
+    /** Remaining authoritative love time for the boss, in seconds. */
+    float bossLoveDuration = 0.0f;
+    
+    /** Remaining authoritative vulnerable time for each relative boss side, in seconds. */
+    std::array<float, kMaxPlayers> bossVulnerableDurations = {0.0f, 0.0f, 0.0f, 0.0f};
+    
+    /** Active authoritative vulnerable multiplier for each relative boss side. */
+    std::array<float, kMaxPlayers> bossVulnerableMultipliers = {1.0f, 1.0f, 1.0f, 1.0f};
 
     // player health
     union {

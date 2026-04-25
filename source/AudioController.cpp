@@ -13,7 +13,7 @@ AudioController::AudioController() : _assets(nullptr) {}
  */
 bool AudioController::init(const std::shared_ptr<AssetManager>& assets) {
     if (assets == nullptr) {
-        CULog("AudioController: assets cannot be null");
+        if (_debug) CULog("AudioController: assets cannot be null");
         return false;
     }
     _assets = assets;
@@ -38,9 +38,9 @@ void AudioController::dispose() {
 bool AudioController::startAudioEngine(Uint32 slots) {
     bool success = AudioEngine::start(slots);
     if (success) {
-        CULog("AudioController: AudioEngine started with %u slots", slots);
+        if (_debug) CULog("AudioController: AudioEngine started with %u slots", slots);
     } else {
-        CULog("AudioController: Failed to start AudioEngine");
+        if (_debug) CULog("AudioController: Failed to start AudioEngine");
     }
     return success;
 }
@@ -50,7 +50,7 @@ bool AudioController::startAudioEngine(Uint32 slots) {
  */
 void AudioController::stopAudioEngine() {
     AudioEngine::stop();
-    CULog("AudioController: AudioEngine stopped");
+    if (_debug) CULog("AudioController: AudioEngine stopped");
 }
 
 /**
@@ -66,19 +66,19 @@ void AudioController::stopAudioEngine() {
 bool AudioController::playSound(const std::string& key, const std::string& soundKey,
                                 bool loop, float volume, bool force) {
     if (_assets == nullptr) {
-        CULog("AudioController::playSound: assets not initialized");
+        if (_debug) CULog("AudioController::playSound: assets not initialized");
         return false;
     }
 
     auto engine = AudioEngine::get();
     if (engine == nullptr) {
-        CULog("AudioController::playSound: AudioEngine not initialized");
+        if (_debug) CULog("AudioController::playSound: AudioEngine not initialized");
         return false;
     }
 
     auto sound = _assets->get<Sound>(soundKey);
     if (sound == nullptr) {
-        CULog("AudioController::playSound: sound '%s' not found in assets", soundKey.c_str());
+        if (_debug) CULog("AudioController::playSound: sound '%s' not found in assets", soundKey.c_str());
         return false;
     }
 
@@ -96,9 +96,9 @@ bool AudioController::playSound(const std::string& key, const std::string& sound
 
     bool success = engine->play(key, sound, loop, finalVolume, force);
     if (success) {
-        CULog("AudioController: Playing sound '%s' with key '%s' (volume=%.2f)", soundKey.c_str(), key.c_str(), finalVolume);
+        if (_debug) CULog("AudioController: Playing sound '%s' with key '%s' (volume=%.2f)", soundKey.c_str(), key.c_str(), finalVolume);
     } else {
-        CULog("AudioController: Failed to play sound '%s' (no available slots)", soundKey.c_str());
+        if (_debug) CULog("AudioController: Failed to play sound '%s' (no available slots)", soundKey.c_str());
     }
     return success;
 }
@@ -113,7 +113,7 @@ void AudioController::stopSound(const std::string& key, float fade) {
     auto engine = AudioEngine::get();
     if (engine != nullptr) {
         engine->clear(key, fade);
-        CULog("AudioController: Stopped sound with key '%s'", key.c_str());
+        if (_debug) CULog("AudioController: Stopped sound with key '%s'", key.c_str());
     }
 }
 
@@ -127,7 +127,7 @@ void AudioController::pauseSound(const std::string& key, float fade) {
     auto engine = AudioEngine::get();
     if (engine != nullptr) {
         engine->pause(key, fade);
-        CULog("AudioController: Paused sound with key '%s'", key.c_str());
+        if (_debug) CULog("AudioController: Paused sound with key '%s'", key.c_str());
     }
 }
 
@@ -140,7 +140,7 @@ void AudioController::resumeSound(const std::string& key) {
     auto engine = AudioEngine::get();
     if (engine != nullptr) {
         engine->resume(key);
-        CULog("AudioController: Resumed sound with key '%s'", key.c_str());
+        if (_debug) CULog("AudioController: Resumed sound with key '%s'", key.c_str());
     }
 }
 
@@ -154,7 +154,7 @@ void AudioController::setVolume(const std::string& key, float volume) {
     auto engine = AudioEngine::get();
     if (engine != nullptr) {
         engine->setVolume(key, volume);
-        CULog("AudioController: Set volume for '%s' to %.2f", key.c_str(), volume);
+        if (_debug) CULog("AudioController: Set volume for '%s' to %.2f", key.c_str(), volume);
     }
 }
 
@@ -181,7 +181,7 @@ void AudioController::stopAllSounds(float fade) {
     auto engine = AudioEngine::get();
     if (engine != nullptr) {
         engine->clear(fade);
-        CULog("AudioController: Stopped all sounds");
+        if (_debug) CULog("AudioController: Stopped all sounds");
     }
 }
 
@@ -194,7 +194,7 @@ void AudioController::pauseAllSounds(float fade) {
     auto engine = AudioEngine::get();
     if (engine != nullptr) {
         engine->pause(fade);
-        CULog("AudioController: Paused all sounds");
+        if (_debug) CULog("AudioController: Paused all sounds");
     }
 }
 
@@ -205,7 +205,7 @@ void AudioController::resumeAllSounds() {
     auto engine = AudioEngine::get();
     if (engine != nullptr) {
         engine->resume();
-        CULog("AudioController: Resumed all sounds");
+        if (_debug) CULog("AudioController: Resumed all sounds");
     }
 }
 
@@ -219,30 +219,30 @@ void AudioController::resumeAllSounds() {
 void AudioController::playMusic(const std::string& soundKey, bool loop, float volume) {
     // Don't restart music if the same track is already playing
     if (_currentMusicKey == soundKey) {
-        CULog("AudioController: Music '%s' already playing, skipping restart", soundKey.c_str());
+        if (_debug) CULog("AudioController: Music '%s' already playing, skipping restart", soundKey.c_str());
         return;
     }
 
     if (_assets == nullptr) {
-        CULog("AudioController::playMusic: assets not initialized");
+        if (_debug) CULog("AudioController::playMusic: assets not initialized");
         return;
     }
 
     auto engine = AudioEngine::get();
     if (engine == nullptr) {
-        CULog("AudioController::playMusic: AudioEngine not initialized");
+        if (_debug) CULog("AudioController::playMusic: AudioEngine not initialized");
         return;
     }
 
     auto sound = _assets->get<Sound>(soundKey);
     if (sound == nullptr) {
-        CULog("AudioController::playMusic: music '%s' not found in assets", soundKey.c_str());
+        if (_debug) CULog("AudioController::playMusic: music '%s' not found in assets", soundKey.c_str());
         return;
     }
 
     auto musicQueue = engine->getMusicQueue();
     if (musicQueue == nullptr) {
-        CULog("AudioController::playMusic: failed to get music queue");
+        if (_debug) CULog("AudioController::playMusic: failed to get music queue");
         return;
     }
 
@@ -263,7 +263,7 @@ void AudioController::playMusic(const std::string& soundKey, bool loop, float vo
     
     musicQueue->play(sound, loop);
     _currentMusicKey = soundKey;
-    CULog("AudioController: Playing music '%s' (loop=%d, volume=%.2f)", soundKey.c_str(), loop, finalVolume);
+    if (_debug) CULog("AudioController: Playing music '%s' (loop=%d, volume=%.2f)", soundKey.c_str(), loop, finalVolume);
 }
 
 /**
@@ -277,7 +277,7 @@ void AudioController::stopMusic(float fade) {
         auto musicQueue = engine->getMusicQueue();
         if (musicQueue != nullptr) {
             musicQueue->clear(fade);
-            CULog("AudioController: Stopped music");
+            if (_debug) CULog("AudioController: Stopped music");
         }
     }
 }
@@ -293,7 +293,7 @@ void AudioController::pauseMusic(float fade) {
         auto musicQueue = engine->getMusicQueue();
         if (musicQueue != nullptr) {
             musicQueue->pause(fade);
-            CULog("AudioController: Paused music");
+            if (_debug) CULog("AudioController: Paused music");
         }
     }
 }
@@ -307,7 +307,7 @@ void AudioController::resumeMusic() {
         auto musicQueue = engine->getMusicQueue();
         if (musicQueue != nullptr) {
             musicQueue->resume();
-            CULog("AudioController: Resumed music");
+            if (_debug) CULog("AudioController: Resumed music");
         }
     }
 }
@@ -323,7 +323,7 @@ void AudioController::setMusicVolume(float volume) {
         auto musicQueue = engine->getMusicQueue();
         if (musicQueue != nullptr) {
             musicQueue->setVolume(volume);
-            CULog("AudioController: Set music volume to %.2f", volume);
+            if (_debug) CULog("AudioController: Set music volume to %.2f", volume);
         }
     }
 }
@@ -365,7 +365,7 @@ bool AudioController::playSoundUnique(const std::string& soundKey, bool loop, fl
  */
 void AudioController::setMusicVolumeMultiplier(float multiplier) {
     _musicVolumeMultiplier = std::max(0.0f, std::min(1.0f, multiplier));
-    CULog("AudioController: Set music volume multiplier to %.2f", _musicVolumeMultiplier);
+    if (_debug) CULog("AudioController: Set music volume multiplier to %.2f", _musicVolumeMultiplier);
 }
 
 /**
@@ -385,7 +385,7 @@ float AudioController::getMusicVolumeMultiplier() const {
  */
 void AudioController::setSFXVolumeMultiplier(float multiplier) {
     _sfxVolumeMultiplier = std::max(0.0f, std::min(1.0f, multiplier));
-    CULog("AudioController: Set SFX volume multiplier to %.2f", _sfxVolumeMultiplier);
+    if (_debug) CULog("AudioController: Set SFX volume multiplier to %.2f", _sfxVolumeMultiplier);
 }
 
 /**
@@ -406,20 +406,20 @@ void AudioController::loadDefaultVolumes() {
     // Try to load assets.json using JsonReader
     auto reader = JsonReader::allocWithAsset("json/assets.json");
     if (reader == nullptr) {
-        CULog("AudioController: Failed to load assets.json");
+        if (_debug) CULog("AudioController: Failed to load assets.json");
         return;
     }
     
     auto assetsJson = reader->readJson();
     if (assetsJson == nullptr) {
-        CULog("AudioController: Failed to parse assets.json");
+        if (_debug) CULog("AudioController: Failed to parse assets.json");
         return;
     }
     
     // Read sounds section
     auto soundsJson = assetsJson->get("sounds");
     if (soundsJson == nullptr || !soundsJson->isObject()) {
-        CULog("AudioController: No sounds section in assets.json");
+        if (_debug) CULog("AudioController: No sounds section in assets.json");
         return;
     }
     
@@ -430,7 +430,7 @@ void AudioController::loadDefaultVolumes() {
         if (soundEntry->isObject() && soundEntry->has("volume")) {
             float volume = soundEntry->get("volume")->asFloat();
             _defaultVolumes[soundName] = volume;
-            CULog("AudioController: Loaded default volume for '%s': %.2f", soundName.c_str(), volume);
+            if (_debug) CULog("AudioController: Loaded default volume for '%s': %.2f", soundName.c_str(), volume);
         }
     }
 }

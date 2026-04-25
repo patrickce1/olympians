@@ -1,6 +1,6 @@
 // EnemyController.cpp
 #include "EnemyController.h"
-#include "GameScene.h"
+#include "scenes/GameScene.h"
 #include <algorithm>
 
 using namespace cugl;
@@ -44,9 +44,19 @@ bool anyPlayersAlive(const std::vector<std::shared_ptr<Player>>& players) {
 
 /** Upon entering idle state, this function possibly chooses a new target for the enemy. */
 void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enemy, std::vector<std::shared_ptr<Player>>& players) {
+    // Don't retarget if enemy is currently stunned or loved.
+    if (enemy->isStunned()) {
+        CULog("[EnemyController] Target: retarget skipped because enemy '%s' is stunned", enemy->getId().c_str());
+        return;
+    }
+    if (enemy->isLoved()) {
+        CULog("[EnemyController] Target: retarget skipped because enemy '%s' is loved", enemy->getId().c_str());
+        return;
+    }
+
     // Don't retarget if currently in attack phase (prevent interruptions during active attacks)
     if (_animationRegistry && enemy->isInAttackPhase(*_animationRegistry)) {
-        CULog("[EnemyController] Target: Player[%d] (Retained: in attack phase)", enemy->getTargetIndex());
+        if (_debug) CULog("[EnemyController] Target: Player[%d] (Retained: in attack phase)", enemy->getTargetIndex());
         return;
     }
     
@@ -56,7 +66,7 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
 
     const int n = (int)players.size();
     if (n <= 0) {
-        CULog("[EnemyController] Target: No players on idle entry");
+        if (_debug) CULog("[EnemyController] Target: No players on idle entry");
         return;
     }
     std::vector<int> living;
@@ -67,7 +77,7 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
 
     // BASE CASE: All players dead
     if (living.empty()) {
-        CULog("[EnemyController] Target: None (All players dead)");
+        if (_debug) CULog("[EnemyController] Target: None (All players dead)");
         enemy->setTargetIndex(-1);
         return;
     }
@@ -76,7 +86,7 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
     bool curValid = (enemy->getTargetIndex() >= 0 && enemy->getTargetIndex() < n && players[enemy->getTargetIndex()]->isAlive());
     if (!curValid) {
         const int pick = (int)(_rng.getUint32() % (Uint32)living.size());
-        CULog("[EnemyController] Target: Player[%d] -> Player[%d] (Current target was invalid/dead)", enemy->getTargetIndex(), living[pick]);
+        if (_debug) CULog("[EnemyController] Target: Player[%d] -> Player[%d] (Current target was invalid/dead)", enemy->getTargetIndex(), living[pick]);
         enemy->setTargetIndex(living[pick]);
         return;
     }
@@ -84,7 +94,7 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
     // Roll probability on whether to switch to a different target
     float r = (float)_rng.getFloat(); // [0,1)
     if (r >= chance) {
-        CULog("[EnemyController] Target: Player[%d] (Retained original target)", enemy->getTargetIndex());
+        if (_debug) CULog("[EnemyController] Target: Player[%d] (Retained original target)", enemy->getTargetIndex());
         return;
     }
     
@@ -95,11 +105,11 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
         if (idx != enemy->getTargetIndex()) candidates.push_back(idx);
     }
     if (candidates.empty()) {
-        CULog("[EnemyController] Target: Player[%d] (Only living player)", enemy->getTargetIndex());
+        if (_debug) CULog("[EnemyController] Target: Player[%d] (Only living player)", enemy->getTargetIndex());
         return;
     }
     const int pick = (int)(_rng.getUint32() % (Uint32)candidates.size());
-    CULog("[EnemyController] Target: Player[%d] -> Player[%d] (Retargeted on idle entry)", enemy->getTargetIndex(), candidates[pick]);
+    if (_debug) CULog("[EnemyController] Target: Player[%d] -> Player[%d] (Retargeted on idle entry)", enemy->getTargetIndex(), candidates[pick]);
     enemy->setTargetIndex(candidates[pick]);
 }
 
@@ -118,16 +128,16 @@ EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<
     attacks.push_back(EnemyLoader::State::ATTACK_2);
     attacks.push_back(EnemyLoader::State::ATTACK_3);
 
-    if (attacks.empty()) { CULog("[EnemyController] Attack: No attack states available"); return EnemyLoader::State::IDLE; }
+    if (attacks.empty()) { if (_debug) CULog("[EnemyController] Attack: No attack states available"); return EnemyLoader::State::IDLE; }
 
     int idx = (int)(_rng.getUint32() % (Uint32)attacks.size());
     EnemyLoader::State selectedAttack = attacks[idx];
-    CULog("[EnemyController] State: '%s' (Attack)", enemy->getStates().at(selectedAttack).name.c_str());
+    if (_debug) CULog("[EnemyController] State: '%s' (Attack)", enemy->getStates().at(selectedAttack).name.c_str());
     return selectedAttack;
 }
 
 void EnemyController::enterIdle(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
-    CULog("[EnemyController] State: '%s' (Idle)", enemy->getId().c_str());
+    if (_debug) CULog("[EnemyController] State: '%s' (Idle)", enemy->getId().c_str());
     enemy->requestState(EnemyLoader::State::IDLE);
     maybeRetargetOnIdleEntry(enemy, players);
 }
@@ -145,7 +155,7 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
     }
     
     EnemyLoader::State cur = enemy->getCurrentState();
-    if (cur != prev) { CULog("[EnemyController] State: '%s' -> '%s'", enemy->getStates().at(prev).name.c_str(), enemy->getStates().at(cur).name.c_str()); }
+    if (cur != prev) { if (_debug) CULog("[EnemyController] State: '%s' -> '%s'", enemy->getStates().at(prev).name.c_str(), enemy->getStates().at(cur).name.c_str()); }
 
     handleIdleEntryIfNeeded(prev, cur, enemy, players);
 
@@ -176,7 +186,7 @@ void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, st
                 resolveHealEvent(enemy, event);
                 break;
             default:
-                CULog("[EnemyController] Event: Unhandled event type in state '%s' for enemy '%s'", enemy->getStates().at(event.state).name.c_str(), enemy->getId().c_str());
+                if (_debug) CULog("[EnemyController] Event: Unhandled event type in state '%s' for enemy '%s'", enemy->getStates().at(event.state).name.c_str(), enemy->getId().c_str());
                 break;
         }
     }
@@ -187,7 +197,7 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
 
     int n = (int)players.size();
     if (n <= 0) {
-        CULog("[EnemyController] Event: DAMAGE fired but players list is empty");
+        if (_debug) CULog("[EnemyController] Event: DAMAGE fired but players list is empty");
         return;
     }
 
@@ -196,7 +206,7 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
     
     // Victim was killed before event completed
     if (!players[victim]->isAlive()) {
-        CULog("[EnemyController] Event: Enemy '%s', state '%s', Player[%d] was already dead",
+        if (_debug) CULog("[EnemyController] Event: Enemy '%s', state '%s', Player[%d] was already dead",
               enemy->getId().c_str(),
               enemy->getStates().at(fe.state).name.c_str(),
               victim);
@@ -204,7 +214,7 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
         float damage = fe.def.amount;
         players[victim]->updateHealth(-damage);
 
-        CULog("[EnemyController] Event: Enemy '%s', state '%s', DAMAGE %.1f, Player[%d] Health -> %.1f",
+        if (_debug) CULog("[EnemyController] Event: Enemy '%s', state '%s', DAMAGE %.1f, Player[%d] Health -> %.1f",
               enemy->getId().c_str(),
               enemy->getStates().at(fe.state).name.c_str(),
               damage,

@@ -10,7 +10,7 @@
 
 Player::Player(const std::string& houseId, int playerNumber,
                     const std::string& playerName,
-                    const HouseLoader& loader){
+                    const HouseLoader& loader) {
     
     // Set player-specific info
     _playerNumber = playerNumber;
@@ -60,16 +60,20 @@ void Player::updateHealth(float delta) {
             
             _shieldHealth = std::max(0.0f, _shieldHealth - tempDamage);
             
-            CULog("Shield update: player='%s' house='%s' reason='hit' absorbed=%.3f remainingDamage=%.3f",
-                  _playerName.c_str(),
-                  _houseId.c_str(),
-                  absorbedAmount,
-                  incomingDamage);
+            if (_debug) {
+                CULog("Shield update: player='%s' house='%s' reason='hit' absorbed=%.3f remainingDamage=%.3f",
+                    _playerName.c_str(),
+                    _houseId.c_str(),
+                    absorbedAmount,
+                    incomingDamage);
+            }
             
             if (_shieldHealth <= 0.0f) {
-                CULog("Shield expired: player='%s' house='%s' reason='used'",
-                      _playerName.c_str(),
-                      _houseId.c_str());
+                if (_debug) {
+                    CULog("Shield expired: player='%s' house='%s' reason='used'",
+                        _playerName.c_str(),
+                        _houseId.c_str());
+                }
                 
                 _hasShield = false;
                 _shieldHealth = 0.0f;
@@ -98,11 +102,14 @@ void Player::applyShield(float mitigation, float duration) {
     _hasShield = true;
     _shieldHealth = std::max(0.0f, mitigation);
     _shieldDuration = duration;
-    CULog("Shield applied: player='%s' house='%s' mitigation=%.3f duration=%.3f",
-        _playerName.c_str(),
-        _houseId.c_str(),
-        _shieldHealth,
-        _shieldDuration);
+    
+    if (_debug) {
+        CULog("Shield applied: player='%s' house='%s' mitigation=%.3f duration=%.3f",
+            _playerName.c_str(),
+            _houseId.c_str(),
+            _shieldHealth,
+            _shieldDuration);
+    }
 }
 
 /**
@@ -135,18 +142,20 @@ void Player::applyBarrier(float multiplier, float duration) {
 void Player::updateEffects(float dt) {
     if (_shieldDuration > 0.0f) {
         _shieldDuration = std::max(0.0f, _shieldDuration - dt);
-        if (_shieldDuration == 0.0f) {
+        if (_shieldDuration <= 0.0f) {
             _hasShield = false;
             _shieldHealth = 0.0f;
-            CULog("Shield expired: player='%s' house='%s' reason='duration'",
-                _playerName.c_str(),
-                _houseId.c_str());
+            if (_debug) {
+                CULog("Shield expired: player='%s' house='%s' reason='duration'",
+                    _playerName.c_str(),
+                    _houseId.c_str());
+            }
         }
     }
 
     if (_barrierDuration > 0.0f) {
         _barrierDuration = std::max(0.0f, _barrierDuration - dt);
-        if (_barrierDuration == 0.0f) {
+        if (_barrierDuration <= 0.0f) {
             _hasBarrier = false;
             _barrierMultiplier = 1.0f;
         }
@@ -205,10 +214,6 @@ static float computeResolvedItemMagnitude(const Player& player,
     if (resolvedMagnitude <= 0.0f) {
         resolvedMagnitude = 0.0f;
     }
-    
-    CULog("[Item Value Calculation]\nItem: '%s'\nEffective value: '%.3f'",
-        def.getName().c_str(),
-        resolvedMagnitude);
 
     return resolvedMagnitude;
 }
@@ -286,14 +291,14 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
         const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
         float returnedMagnitude = 0.0f;
         if (def->getType() == ItemDef::Type::Attack) {
-            target.updateHealth(-resolvedMagnitude);
+            target.takeDamage(resolvedMagnitude, getPlayerNumber());
             returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
-//                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
+                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
             }
         } else if (!def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-//                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
+                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
             }
         }
 

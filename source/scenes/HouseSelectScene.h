@@ -27,7 +27,9 @@ public:
         /** Player canceled or left house select; back to lobby */
         ABORT,
         /** Game scene has been started by host*/
-        GAMESCENE_START
+        GAMESCENE_START,
+        /** The host has disconnected*/
+        HOST_DISCONNECTED
     };
     
     /**

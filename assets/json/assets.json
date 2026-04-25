@@ -465,6 +465,11 @@
         "gamePin": {
             "file":     "fonts/GRECOromanLubedWrestling.ttf",
             "size":     48
+        },
+        "gamePinShadow": {
+            "file":     "fonts/GRECOromanLubedWrestling.ttf",
+            "size":     48,
+            "padding":  4
         }
     },
     "jsons": {
@@ -554,6 +559,12 @@
         "player_hurt_deep": {
             "type":     "sample",
             "file":     "sounds/player_hurt_deep.wav",
+            "stream":   false,
+            "volume":   0.45
+        },
+        "popup_ding": {
+            "type":     "sample",
+            "file":     "sounds/popup_ding.wav",
             "stream":   false,
             "volume":   0.45
         }
