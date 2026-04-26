@@ -434,7 +434,7 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void LobbyScene::update(float timestep) {
-    //Disconnect Error Pop Up Logic
+    // Disconnect Error Pop Up Logic
     if (_errorPopup && _errorPopup->isVisible()) {
         _errorTimer += timestep;
         if (_errorTimer >= ERROR_DISPLAY_TIME) {
