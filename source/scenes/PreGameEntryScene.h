@@ -21,7 +21,8 @@ public:
         IDLE,
         START,
         ERROR_DISPLAY,
-        ABORT
+        ABORT,
+        PLAYER_DISCONNECTED   // A player disconnected mid-countdown; return to lobby.
     };
     
 protected:
@@ -72,6 +73,10 @@ protected:
     
     /** Optional error-popup node (may be nullptr if absent from JSON scene). */
     std::shared_ptr<cugl::scene2::SceneNode> _errorPopup;
+    
+    /** Player name set when a disconnect is detected during the countdown.
+     *  SceneLoader reads this to show a lobby banner before switching scenes. */
+    std::string _disconnectMessage;
 
 public:
 #pragma mark -
@@ -150,6 +155,9 @@ public:
      * @param timestep  The amount of time (in seconds) since the last frame
      */
     void update(float timestep) override;
+    
+    /** Returns the name of the player who disconnected (empty if none). */
+    const std::string& getDisconnectMessage() const { return _disconnectMessage; }
 
 private:
     /**

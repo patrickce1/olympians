@@ -499,6 +499,14 @@ void SceneLoader::update(float dt) {
                     _preGameEntryScene.setActive(false);
                     _currentScene = State::GAME;
                     break;
+                case PreGameEntryScene::Status::PLAYER_DISCONNECTED:
+                    CULog("Player disconnected in PreGameEntry — returning to LobbyScene...");
+                    _lobbyScene.setDisconnectBanner(
+                        _preGameEntryScene.getDisconnectMessage());
+                    _lobbyScene.setActive(true);
+                    _preGameEntryScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
                 case PreGameEntryScene::Status::ABORT:
                     CULog("Transitioning to LobbyScene from PreGameEntryScene...");
                     _lobbyScene.setActive(true);

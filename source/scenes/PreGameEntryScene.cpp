@@ -153,6 +153,7 @@ void PreGameEntryScene::setActive(bool value) {
         if (value) {
             _status = IDLE;
             _loadingProgress = 0.0f;
+            _disconnectMessage = "";
 
             if (_loadingBar) {
                 _loadingBar->setProgress(0.0f);
@@ -181,6 +182,23 @@ void PreGameEntryScene::setActive(bool value) {
  */
 void PreGameEntryScene::update(float timestep) {
     if (!_active || !_loadingBar) return;
+    
+    _network->getNetworkUpdates();
+    
+    // ── Disconnect detection ─────────────────────────────────────────────────
+    // getNetworkUpdates() is called by whoever owns the network loop before
+    // update() runs, so _disconnectedSlots is already populated this frame.
+    for (int slot : _network->getDisconnectedSlots()) {
+        // Only care about real-player slots
+        const auto& players = _gameState->getPlayers();
+        if (slot < 0 || slot >= (int)players.size()) continue;
+        if (players[slot]->isAI()) continue;
+
+        std::string name = players[slot]->getPlayerName();
+        _disconnectMessage = name + " disconnected";
+        _status = Status::PLAYER_DISCONNECTED;
+        return;   // bail immediately; SceneLoader will handle the transition
+    }
 
     // Increase progress based on time
     if (!_timeline->isActive("bottom_clouds") && _status != Status::ERROR_DISPLAY){
