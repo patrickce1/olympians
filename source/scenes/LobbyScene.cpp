@@ -11,6 +11,8 @@ using namespace std;
 #define SCENE_HEIGHT  852
 /** Player Icon Blink Timer */
 #define BLINK_TIMER  0.5f
+/** Error display time for disconnect error */
+#define ERROR_DISPLAY_TIME  2.0f
 
 /**
  * Initializes the controller contents, and starts the game
@@ -109,6 +111,18 @@ void LobbyScene::setupUI() {
     }
     
     _localPlayerIconIndicator = _assets->get<scene2::SceneNode>("lobbyScene.tableArea.playerCard3.glowBorder");
+    
+    _errorPopup = _assets->get<scene2::SceneNode>("lobbyScene.errorPopup");
+    if (_errorPopup) {
+        auto overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(
+            _errorPopup->getChildByName("overlayBG"));
+        if (overlay) {
+            overlay->setContentSize(getSize());
+            overlay->setAnchor(Vec2::ANCHOR_CENTER);
+            overlay->setPosition(getSize() / 2);
+        }
+        _errorPopup->setVisible(false);
+    }
 }
 
 /**
@@ -243,6 +257,12 @@ void LobbyScene::setActive(bool value) {
             _bossLobbyButton->activate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->activate();
+            }
+            
+            // Show a disconnect banner if one was queued by SceneLoader
+            if (!_disconnectBanner.empty()) {
+                showDisconnectBanner(_disconnectBanner);
+                _disconnectBanner = "";
             }
         } else {
             if (_pendingDisconnect) {
@@ -414,6 +434,15 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void LobbyScene::update(float timestep) {
+    // Disconnect Error Pop Up Logic
+    if (_errorPopup && _errorPopup->isVisible()) {
+        _errorTimer += timestep;
+        if (_errorTimer >= ERROR_DISPLAY_TIME) {
+            _errorPopup->setVisible(false);
+            _errorTimer = 0.0f;
+        }
+    }
+    
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
         std::string roomNum = _network->getRoom();
@@ -493,3 +522,18 @@ void LobbyScene::update(float timestep) {
     }
 }
 
+/**
+ * Shows a temporary disconnect notification using the error popup node.
+ * Auto-dismisses after ERROR_DISPLAY_TIME seconds via the existing
+ * _errorTimer mechanism in update().
+ *
+ *@param message  The "[Name] disconnected" string to display.
+ */
+void LobbyScene::showDisconnectBanner(const std::string& message) {
+    if (!_errorPopup) return;
+    auto label = std::dynamic_pointer_cast<scene2::Label>(
+        _errorPopup->getChildByName("errorLabel"));
+    if (label) label->setText(message);
+    _errorPopup->setVisible(true);
+    _errorTimer = 0.0f;
+}

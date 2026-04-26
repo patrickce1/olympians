@@ -2222,7 +2222,6 @@
                         "data": {
                             "key": "playerHouseIcon",
                             "variables": {
-                                "houseImage" : "teamSelectIconEmpty",
                                 "glow" : false
                             }
                         },
