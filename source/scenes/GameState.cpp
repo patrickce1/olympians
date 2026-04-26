@@ -153,6 +153,9 @@ static std::shared_ptr<Enemy> createEnemyByID(const std::string& enemyID) {
         // TODO: Create a custom Cerberus class in a future PR
         return std::make_shared<Enemy>();
     }
+    else if (enemyID == "gaia") {
+        return std::make_shared<Gaia>();
+    }
     // Fallback for unknown enemy types
     return std::make_shared<Enemy>();
 }

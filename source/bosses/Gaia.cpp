@@ -5,9 +5,10 @@
   * @param jsonPath is the path to the enemies.json file
   */
 bool Gaia::init(const std::string& enemyId, const std::string& jsonPath) {
-	Enemy::init(enemyId, jsonPath);
+	bool success = Enemy::init(enemyId, jsonPath);
 	_spawnCooldownConstant = _customData->getFloat("spawnCooldownConstant", 1.0f);
 	_currentSpawnTime = 0.0f;
+	return success;
 }
 
 /** Initializes the cyclops with animation metadata from AssetManager.
@@ -21,9 +22,10 @@ bool Gaia::init(const std::string& enemyId, const std::string& jsonPath) {
   * @return true if initialization succeeds, false on error
   */
 bool Gaia::init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) {
-	Enemy::init(enemyId, jsonPath, assets);
+	bool success = Enemy::init(enemyId, jsonPath, assets);
 	_spawnCooldownConstant = _customData->getFloat("spawnCooldownConstant", 1.0f);
 	_currentSpawnTime = 0.0f;
+	return success;
 }
 
 /** Override of the enemy update method for custom logic

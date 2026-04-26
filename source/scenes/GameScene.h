@@ -936,7 +936,6 @@ public:
      */
     std::shared_ptr<const ItemDef> getHeldItemDef(ItemInstance::ItemId itemId);
 
-
     /** Custom method called inside of handleItemSpawn that is used specifically for the Gaia boss
       * If gaia is supposed to spawn a rock in a player's inventory, the host sends the appropriate message to the players
       * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well

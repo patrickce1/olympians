@@ -1,3 +1,5 @@
+#ifndef __GAIA__
+#define __GAIA__
 #include "../Enemy.h"
 #include <cugl/cugl.h>
 
@@ -45,3 +47,4 @@ public:
 	  */
 	bool spawnRockForPlayer();
 };
+#endif // __GAIA__

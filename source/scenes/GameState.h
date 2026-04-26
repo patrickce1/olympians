@@ -12,6 +12,7 @@
 #include "../playerAI/EasyPlayerAI.h"
 #include "../NetworkMessage.h"
 #include "../bosses/Cyclops.h"
+#include "../bosses/Gaia.h"
 
 /**
  * Pure data model for the game world.

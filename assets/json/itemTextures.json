@@ -41,6 +41,9 @@
         },
         "item_zeus_thunderstorm": {
             "file": "textures/items/zeus_thunderstorm_d.png"
+        },  
+        "item_gaia_rock" : {
+            "file": "textures/attack.png"
         }
     }
 }

@@ -242,7 +242,7 @@
         {
             "id": "gaia",
             "name": "gaia",
-            "maxHealth": 100.0,
+            "maxHealth": 10000.0,
             "spritesheetPath": "textures/gaia.png",
             "ai": {
                 "retargetLikelihood": 0.5,
@@ -284,10 +284,6 @@
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
-                        {
-                            "type": "HEAL",
-                            "amount": 10.0
-                        }
                     ],
                     "nextState": "idle"
                 }

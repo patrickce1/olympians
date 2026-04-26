@@ -676,7 +676,10 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
         }
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Attack) {
+        if (def && def->getType() == ItemDef::Type::Attack && def->getId() == "gaia_rock") {
+            float resolvedHeal = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+            enemy->updateHealth(resolvedHeal);
+        } else if (def && def->getType() == ItemDef::Type::Attack) {
             // Play the item use sound if defined, otherwise play the attack sound
             const std::string& itemUseSound = def->getItemUseSound();
             if (!itemUseSound.empty()) {
@@ -1894,9 +1897,19 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
 void GameScene::handleGaiaSpawn() {
     if (_gameState.getEnemy()->getId() == "gaia") {
         shared_ptr<Gaia> gaia = std::dynamic_pointer_cast<Gaia>(_gameState.getEnemy());
-        if (_network->isHost()) {
-            //figure out if gaia wants to spawn
-            //send messages or spawn in AI hands as necessary
+        if (_network->isHost() && gaia->spawnRockForPlayer()) {
+            CULog("Time to spawn for %d," );
+            int target = gaia->getTargetIndex();
+            //_gameState.getPlayerById(target)
+            _itemController.giveItemByID(_gameState.getLocalPlayer(), "gaia_rock");
+
+            ////if we're spawning for a player online we need to do networking, otherwise we just go ahead
+            //bool localSpawn = 
+            //if (!(_gameState.getPlayerById(target)->isAI() || _gameState.getPlayerById(target) ==)) {
+            //    //networked broadcast to the player
+            //}
+            //else {
+            //}
         }
         else {
             //if the player is not us or AI, we need to send a spawn message to that player
