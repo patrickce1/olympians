@@ -286,9 +286,7 @@ void GameState::setEnemy(std::string enemyID) {
  */
 void GameState::setEnemy(std::string enemyID, const std::shared_ptr<cugl::AssetManager>& assets) {
     const std::string enemyJsonPath = "json/enemies.json";
-    if (_enemy == nullptr) {
-        _enemy = createEnemyByID(enemyID);
-    }
+    _enemy = createEnemyByID(enemyID);
     _enemy->init(enemyID, enemyJsonPath, assets);
 }
 
