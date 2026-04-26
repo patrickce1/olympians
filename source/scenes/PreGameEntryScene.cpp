@@ -184,9 +184,19 @@ void PreGameEntryScene::update(float timestep) {
     if (!_active || !_loadingBar) return;
     
     _network->getNetworkUpdates();
-    updateNetworkOrder();
     
-    // ── Disconnect detection ─────────────────────────────────────────────────
+    // Host disconnect
+    if (!_network->isHost()) {
+        if (_network->wasHostDisconnected()) {
+            _network->clearQueues();
+            _network->disconnect();
+            _status = Status::HOST_DISCONNECTED;
+            return;
+        }
+    }
+    
+    // Client disconnect
+    updateNetworkOrder();
     if (_status == Status::PLAYER_DISCONNECTED) return;
     
     //Host disconnect
@@ -371,17 +381,24 @@ void PreGameEntryScene::updateNetworkOrder() {
 
     const auto& players = _gameState->getPlayers();
     const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const auto& disconnectedSlots = _network->getDisconnectedSlots();
     const int totalSlots = (int)players.size();
 
+    // Check disconnected slots first — read the name from GameState before
+    // any demoteToAI call can overwrite it.
+    for (int slot : disconnectedSlots) {
+        if (slot < 0 || slot >= totalSlots) continue;
+        if (players[slot]->isAI()) continue;
+
+        _disconnectMessage = players[slot]->getPlayerName() + " disconnected";
+        _status = Status::PLAYER_DISCONNECTED;
+        return;
+    }
+
+    // Sync real players and AI slots from network state.
     for (int i = 0; i < totalSlots; i++) {
         if (_network->checkRealPlayer(i)) {
             _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
-        } else if (!players[i]->isAI()) {
-            // Was a real player, now gone — treat as disconnect
-            std::string name = players[i]->getPlayerName();
-            _disconnectMessage = name + " disconnected";
-            _status = Status::PLAYER_DISCONNECTED;
-            return;
         } else {
             _gameState->demoteToAI(i, _network->getAIHouse(i));
         }
