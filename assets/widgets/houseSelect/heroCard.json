@@ -3,7 +3,7 @@
         "glow" : ["children","glowOverlayHero", "data", "visible"],
         "heroPoster": ["children","heroPoster", "data", "texture"],
         "heroName": ["children","title", "children", "HERO", "data", "text"],
-        "heroStats": ["children","heroStats", "data", "texture"],
+        "heroStats": ["children","heroStats", "data", "texture"]
     },
     "contents": {
         "type": "Node",
@@ -184,7 +184,7 @@
                     ],
                     "size": [
                         207,
-                        65
+                        66
                     ],
                     "angle": 0,
                     "position": [

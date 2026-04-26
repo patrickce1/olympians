@@ -1744,11 +1744,9 @@
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats",
-                                        "rare": "item_lightning",
-                                        "divine": "item_zeus_thunderstorm"
+                                        "heroPoster": "zeusPoster",
+                                        "heroName": "-ZEUS-",
+                                        "heroStats": "statsZeus"
                                     }
                                 },
                                 "layout": {
@@ -1768,9 +1766,9 @@
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "aphroditePoster",
+                                        "heroName": "-APHRODITE-",
+                                        "heroStats": "statsAphrodite"
                                     }
                                 },
                                 "layout": {
@@ -1929,9 +1927,9 @@
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "hermesPoster",
+                                        "heroName": "-HERMES-",
+                                        "heroStats": "statsHermes"
                                     }
                                 },
                                 "layout": {
