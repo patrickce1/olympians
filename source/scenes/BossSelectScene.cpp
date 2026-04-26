@@ -169,7 +169,6 @@ void BossSelectScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = WAIT;
-            
             _currentIndex = 1;
             _isAnimating = false;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
