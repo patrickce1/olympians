@@ -101,9 +101,11 @@ void HostSetupScene::setupUI() {
     _bossSelectionCardContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.bossCardContainer");
 
     if (_bossSelectionCardContainer) {
-        for (int i = 0; i < 3; i++) {
+        auto numCards = _bossSelectionCardContainer->getChildCount();
+        for (int i = 0; i < numCards; i++) {
             _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
         }
+        _baseCarouselPosition = _bossSelectionCardContainer->getPosition();
     }
 
     std::shared_ptr<cugl::scene2::Label> placeName =
@@ -119,7 +121,8 @@ void HostSetupScene::setupUI() {
     auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossSelectionCarouselIcons");
     
     if (bossCarouselDotsContainer) {
-        for (int i = 0; i < 3; i++) {
+        auto numDots = bossCarouselDotsContainer->getChildCount();
+        for (int i = 0; i < numDots; i++) {
             _bossCarouselDotIndicators.push_back(bossCarouselDotsContainer->getChild(i));
         }
     }
@@ -203,6 +206,14 @@ void HostSetupScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = WAIT;
+            _currentIndex = 1;
+            _isAnimating = false;
+            Vec2 pos = _bossSelectionCardContainer->getPosition();
+            float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
+            _bossSelectionCardContainer->setPosition(Vec2(startX, pos.y));
+            _slideTarget = Vec2(startX, pos.y);
+            updateCarouselDots(1);
+            
             _startGame->activate();
             _leftButton->activate();
             _rightButton->activate();
