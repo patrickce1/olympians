@@ -403,7 +403,6 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
     } else if (_currentBoss == "gaia") {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("gaiaLobbyImage"));
     }
-    
     _bossImage->setContentSize(228,228);
 }
 
