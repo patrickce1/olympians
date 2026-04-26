@@ -514,6 +514,7 @@ void SceneLoader::update(float dt) {
                     _currentScene = State::LOBBY;
                 case PreGameEntryScene::Status::HOST_DISCONNECTED:
                     CULog("Host disconnected in PreGameEntry — returning client to HostSetupScene...");
+                    _audio.playMusic("lobby");
                     _gameScene.resetGameState();
                     _houseSelectScene.setPendingReset(true);
                     _preGameEntryScene.setActive(false);

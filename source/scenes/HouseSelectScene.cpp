@@ -318,7 +318,7 @@ void HouseSelectScene::update(float timestep) {
         return;
     }
     
-    updateNetworkOrder();   // this will call getNetworkUpdates + clearQueues internally
+    updateNetworkOrder();
     updateTeammateIcons();
     updateTakenHouseCards();
     _playerIconGlow->setVisible(hasLocalPlayerSelectedHouse());

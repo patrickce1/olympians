@@ -161,12 +161,12 @@ public:
     const std::string& getDisconnectMessage() const { return _disconnectMessage; }
     
     /**
-     * Syncs the latest network state into GameState for real player slots only.
-     * Updates each real player's username and house selection to match what the
-     * network controller has received. AI slots are left completely untouched
-     * since their houses are already set in GameState from the lobby, and
-     * disconnected players are handled separately by the disconnect detection
-     * logic in update().
+     * Syncs the latest network state into GameState and detects player disconnects.
+     * For each slot: if still a real player, updates their username and house; if
+     * it was a real player but is no longer connected, stores their name in
+     * _disconnectMessage, sets status to PLAYER_DISCONNECTED, and returns early so
+     * SceneLoader can route everyone back to the lobby; if it was always an AI,
+     * updates its house assignment from the network's authoritative AI house map.
      *
      * Called every frame so that clients who arrived from HouseSelectScene or
      * BossSelectScene (which do not run this sync) are caught up before

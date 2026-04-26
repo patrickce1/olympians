@@ -187,6 +187,8 @@ void PreGameEntryScene::update(float timestep) {
     updateNetworkOrder();
     
     // ── Disconnect detection ─────────────────────────────────────────────────
+    if (_status == Status::PLAYER_DISCONNECTED) return;
+    
     //Host disconnect
     if (!_network->isHost()) {
         if (_network->wasHostDisconnected()) {
@@ -195,19 +197,6 @@ void PreGameEntryScene::update(float timestep) {
             _status = Status::HOST_DISCONNECTED;
             return;
         }
-    }
-    
-    //Client disconnect
-    for (int slot : _network->getDisconnectedSlots()) {
-        // Only care about real-player slots
-        const auto& players = _gameState->getPlayers();
-        if (slot < 0 || slot >= (int)players.size()) continue;
-        if (players[slot]->isAI()) continue;
-
-        std::string name = players[slot]->getPlayerName();
-        _disconnectMessage = name + " disconnected";
-        _status = Status::PLAYER_DISCONNECTED;
-        return;   // bail immediately; SceneLoader will handle the transition
     }
 
     // Increase progress based on time
@@ -366,12 +355,12 @@ void PreGameEntryScene::dismissError() {
 }
 
 /**
- * Syncs the latest network state into GameState for real player slots only.
- * Updates each real player's username and house selection to match what the
- * network controller has received. AI slots are left completely untouched
- * since their houses are already set in GameState from the lobby, and
- * disconnected players are handled separately by the disconnect detection
- * logic in update().
+ * Syncs the latest network state into GameState and detects player disconnects.
+ * For each slot: if still a real player, updates their username and house; if
+ * it was a real player but is no longer connected, stores their name in
+ * _disconnectMessage, sets status to PLAYER_DISCONNECTED, and returns early so
+ * SceneLoader can route everyone back to the lobby; if it was always an AI,
+ * updates its house assignment from the network's authoritative AI house map.
  *
  * Called every frame so that clients who arrived from HouseSelectScene or
  * BossSelectScene (which do not run this sync) are caught up before
@@ -380,12 +369,21 @@ void PreGameEntryScene::dismissError() {
 void PreGameEntryScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
+    const auto& players = _gameState->getPlayers();
     const auto& networkedPlayers = _network->getNetworkedPlayers();
-    const int totalSlots = (int)_gameState->getPlayers().size();
+    const int totalSlots = (int)players.size();
 
     for (int i = 0; i < totalSlots; i++) {
         if (_network->checkRealPlayer(i)) {
             _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
+        } else if (!players[i]->isAI()) {
+            // Was a real player, now gone — treat as disconnect
+            std::string name = players[i]->getPlayerName();
+            _disconnectMessage = name + " disconnected";
+            _status = Status::PLAYER_DISCONNECTED;
+            return;
+        } else {
+            _gameState->demoteToAI(i, _network->getAIHouse(i));
         }
     }
 }
