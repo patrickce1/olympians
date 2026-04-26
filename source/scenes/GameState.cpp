@@ -286,9 +286,7 @@ void GameState::setEnemy(std::string enemyID) {
  */
 void GameState::setEnemy(std::string enemyID, const std::shared_ptr<cugl::AssetManager>& assets) {
     const std::string enemyJsonPath = "json/enemies.json";
-    if (_enemy == nullptr) {
-        _enemy = createEnemyByID(enemyID);
-    }
+    _enemy = createEnemyByID(enemyID);
     _enemy->init(enemyID, enemyJsonPath, assets);
 }
 
@@ -372,7 +370,11 @@ void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects)
                 _enemy->applyLove(effect.duration);
                 break;
             case EnemyEffectType::Vulnerable:
-                _enemy->applyVulnerable(effect.magnitude, effect.duration, effect.playerIndex);
+                if (effect.applyToAllSides) {
+                    _enemy->applyVulnerableToAllSides(effect.magnitude, effect.duration);
+                } else {
+                    _enemy->applyVulnerable(effect.magnitude, effect.duration, effect.playerIndex);
+                }
                 break;
         }
     }

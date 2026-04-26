@@ -77,6 +77,8 @@ struct EnemyEffectMessage {
     float duration;
     /** The attacking player's slot, used for side-relative enemy effects. */
     int playerIndex = 0;
+    /** Whether the effect should be applied to all four boss sides instead of one side. */
+    bool applyToAllSides = false;
 };
 
 /** Message sent by client to indicate passing an item.

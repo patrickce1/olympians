@@ -118,7 +118,14 @@
             "rarity": "rare",
             "houseAffinity": "poseidon",
             "baseValue": 27.0,
-            "effects": [],
+            "effects": [
+                {
+                    "type": "vulnerable",
+                    "multiplier": 2.0,
+                    "duration": 2.0,
+                    "applyToAllSides": true
+                }
+            ],
             "itemUseSound": "attack_thrust",
             "itemUseAnimation": {
                 "spriteSheetId": "trident_animation",
@@ -202,7 +209,8 @@
                 {
                     "type": "vulnerable",
                     "multiplier": 2.0,
-                    "duration": 5.0
+                    "duration": 5.0,
+                    "applyToAllSides": false
                 }
             ],
             "itemUseSound": "attack_thrust",
