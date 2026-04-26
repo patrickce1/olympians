@@ -228,10 +228,8 @@ static float computeResolvedItemMagnitude(const Player& player,
  * @param playerIndex        The attacking player's slot index.
  * @return The applied effect magnitude reported by the effect system.
  */
-static float applyAttackEffectToEnemy(const ItemDef::Effect& effect,
-                                      float resolvedMagnitude,
-                                      Enemy& target,
-                                      int playerIndex) {
+static float applyAttackEffectToEnemy(const ItemDef::Effect& effect, float resolvedMagnitude,
+                                      Enemy& target, int playerIndex) {
     if (effect.type == ItemDef::EffectType::Vulnerable && effect.applyToAllSides) {
         const bool applied = target.applyVulnerableToAllSides(effect.multiplier, effect.duration);
         return applied ? effect.multiplier : 0.0f;
