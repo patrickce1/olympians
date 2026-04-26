@@ -123,6 +123,7 @@ EnemyEffectMessage readEnemyEffectMessage(NetcodeDeserializer& deserializer) {
     effectMsg.magnitude = deserializer.readFloat();
     effectMsg.duration = deserializer.readFloat();
     effectMsg.playerIndex = deserializer.readSint32();
+    effectMsg.applyToAllSides = deserializer.readBool();
     return effectMsg;
 }
 
@@ -140,6 +141,7 @@ void writeEnemyEffectMessage(NetcodeSerializer& serializer, const EnemyEffectMes
     serializer.writeFloat(effectMsg.magnitude);
     serializer.writeFloat(effectMsg.duration);
     serializer.writeSint32(effectMsg.playerIndex);
+    serializer.writeBool(effectMsg.applyToAllSides);
 }
 } // namespace
 
@@ -523,6 +525,7 @@ void NetworkController::clearQueues() {
 void NetworkController::broadcastDamage(float damageAmount, int playerIndex) {
 	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
 	_serializer.writeFloat(damageAmount);
+	_serializer.writeSint32(playerIndex);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
@@ -567,13 +570,15 @@ void NetworkController::broadcastSupportEffect(SupportEffectType effectType, flo
  * @param magnitude  The resolved magnitude associated with the attack item.
  * @param duration   The timed duration of the enemy effect.
  * @param playerIndex The attacking player's slot.
+ * @param applyToAllSides Whether the enemy effect should be applied to all four boss sides.
  */
-void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex) {
+void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides) {
     EnemyEffectMessage effectMsg;
     effectMsg.effectType = effectType;
     effectMsg.magnitude = magnitude;
     effectMsg.duration = duration;
     effectMsg.playerIndex = playerIndex;
+    effectMsg.applyToAllSides = applyToAllSides;
 
 	_serializer.writeSint32(MessageType::ENEMY_EFFECT);
     writeEnemyEffectMessage(_serializer, effectMsg);
@@ -773,6 +778,7 @@ const std::vector<NetworkedPlayer> NetworkController::getNetworkedPlayers() {
  * @return  The local player's index, or -1 if not found.
  */
 int NetworkController::getLocalPlayerNumber() {
+    if (!_network) return -1;
 	std::string localID = _network->getUUID();
 	for (int i = 0; i < _onlinePlayers.size(); i++) {
 		if (_onlinePlayers[i].networkID == localID) {
@@ -1007,4 +1013,18 @@ void NetworkController::clearAIHouse(int slotIndex) {
         // Broadcast so all clients remove this slot from their taken set
         broadcastLobbyState();
     }
+}
+
+/**
+ * Returns true if the host dropped unexpectedly. Polls the connection state directly each frame,
+ * since CUGL's onDisconnect callback is unreliable when receive() is called
+ * every frame. CLIENT ONLY — always false on the host.
+ */
+bool NetworkController::wasHostDisconnected() const {
+    if (_network && !_network->isHost()) {
+        auto state = _network->getState();
+        return state == NetcodeConnection::State::DISCONNECTED
+            || state == NetcodeConnection::State::FAILED;
+    }
+    return false;
 }

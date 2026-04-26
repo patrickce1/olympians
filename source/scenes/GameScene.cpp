@@ -110,42 +110,62 @@ static void broadcastSupportEffects(NetworkController& network,
 }
 
 /**
- * Broadcasts the resolved enemy-facing effects of an attack item to the host.
+ * Collects the resolved enemy-facing effects of an attack item.
  *
- * Attack items without explicit effects fall back to direct damage. Attack items
- * with explicit effects serialize those effect payloads instead so the host can
- * apply the same authoritative result and replicate it through snapshots.
+ * Attack items without explicit enemy effects return an empty list. Attack items
+ * with explicit effects serialize those effect payloads so the host can apply the
+ * same authoritative result and replicate it through snapshots.
  *
- * @param network            The network controller used to send host-directed updates.
  * @param def                The item definition describing the attack item's effects.
  * @param resolvedMagnitude  The resolved attack magnitude calculated for this item use.
  * @param playerIndex    The index of the player applying the enemy effect.
+ * @return   The collection of enemy effects to be applied this frame.
  */
-static void broadcastEnemyEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int playerIndex) {
+static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, float resolvedMagnitude, int playerIndex) {
+    std::vector<EnemyEffectMessage> enemyEffects;
     for (const ItemDef::Effect& effect : def.getEffects()) {
+        EnemyEffectMessage effectMsg;
+        effectMsg.duration = effect.duration;
+        effectMsg.playerIndex = playerIndex;
+        effectMsg.applyToAllSides = false;
+
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
-                network.broadcastEnemyEffect(EnemyEffectType::Stun,
-                    resolvedMagnitude,
-                    effect.duration,
-                    playerIndex);
+                effectMsg.effectType = EnemyEffectType::Stun;
+                effectMsg.magnitude = resolvedMagnitude;
+                enemyEffects.push_back(effectMsg);
                 break;
             case ItemDef::EffectType::Love:
-                network.broadcastEnemyEffect(EnemyEffectType::Love,
-                    resolvedMagnitude,
-                    effect.duration,
-                    playerIndex);
+                effectMsg.effectType = EnemyEffectType::Love;
+                effectMsg.magnitude = resolvedMagnitude;
+                enemyEffects.push_back(effectMsg);
                 break;
             case ItemDef::EffectType::Vulnerable:
-                network.broadcastEnemyEffect(EnemyEffectType::Vulnerable,
-                    effect.multiplier,
-                    effect.duration,
-                    playerIndex);
+                effectMsg.effectType = EnemyEffectType::Vulnerable;
+                effectMsg.magnitude = effect.multiplier;
+                effectMsg.applyToAllSides = effect.applyToAllSides;
+                enemyEffects.push_back(effectMsg);
                 break;
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
                 break;
         }
+    }
+    return enemyEffects;
+}
+
+/** Sends all collected enemy-facing effects of an attack item to the host.
+ *
+ * @param network    The network to send the enemy effects over.
+ * @param enemyEffects   The collection of enemy effects to send over the network.
+ */
+static void broadcastEnemyEffects(NetworkController& network, const std::vector<EnemyEffectMessage>& enemyEffects) {
+    for (const EnemyEffectMessage& effectMsg : enemyEffects) {
+        network.broadcastEnemyEffect(effectMsg.effectType,
+            effectMsg.magnitude,
+            effectMsg.duration,
+            effectMsg.playerIndex,
+            effectMsg.applyToAllSides);
     }
 }
 
@@ -707,12 +727,16 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
     const float baseValue      = def->getBaseValue();
     const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
+    const std::vector<EnemyEffectMessage> enemyEffects =
+        (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber())
+                              : std::vector<EnemyEffectMessage>{};
 
     startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
     if (!_activeItemUseAnimations.empty()) {
-        _activeItemUseAnimations.back().popupPosition   = dropPos;
+        _activeItemUseAnimations.back().popupPosition    = dropPos;
         _activeItemUseAnimations.back().baseValue        = baseValue;
         _activeItemUseAnimations.back().totalMultiplier  = totalMultiplier;
+        _activeItemUseAnimations.back().enemyEffects     = enemyEffects;
     }
 
     return true;
@@ -745,6 +769,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
 
     if (!_network->isHost()) {
         _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
+        broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber()));
     }
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique("enemy_hurt");
@@ -1781,6 +1806,14 @@ void GameScene::handleDragTracking(InputController& input) {
 void GameScene::handleNetworkUpdates(float dt) {
     /*Networking pull cycle*/
     _network->getNetworkUpdates();
+    
+    // If we are a client and the host dropped, kick back to the setup flow
+    // before any game logic runs this frame. LobbyScene does the same check.
+    if (_network->wasHostDisconnected() && !_network->isHost()) {
+        _network->disconnect();
+        _status = Status::HOST_DISCONNECTED;
+        return;
+    }
 
     // Track player and enemy health before updates to detect changes
     auto player = _gameState.getLocalPlayer();
@@ -3336,6 +3369,7 @@ void GameScene::updateItemUseAnimations(float dt) {
                     // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
                         _network->broadcastDamage(activeAnim.damageAmount, playerNum);
+                        broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
                     }
                 }
             }
@@ -3670,7 +3704,7 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
     popupAnim.displayDuration    = data.displayDuration;
     popupAnim.animationOutDuration = FLOATING_POPUP_ANIM_OUT;
     popupAnim.displayScale       = displayScale;
-    popupAnim.phase              = FloatingPopupAnimation::IN;
+    popupAnim.phase              = FloatingPopupAnimation::ANIM_IN;
 
     _activeFloatingPopups.push_back(popupAnim);
 }
@@ -3709,7 +3743,7 @@ void GameScene::updatePopupAnimations(float dt) {
         float scale, alpha;
         if (popupEntry->elapsed < popupEntry->animationInDuration) {
             // Phase IN: scale up with a brief overshoot for a punchy feel.
-            popupEntry->phase = FloatingPopupAnimation::IN;
+            popupEntry->phase = FloatingPopupAnimation::ANIM_IN;
             const float t = popupEntry->elapsed / popupEntry->animationInDuration;
             // Overshoot to 1.25× at t=0.6, settle to 1.0× by t=1.0
             const float overshoot = t < 0.6f ? (t / 0.6f) * 1.25f : 1.25f - (t - 0.6f) / 0.4f * 0.25f;
@@ -3717,12 +3751,12 @@ void GameScene::updatePopupAnimations(float dt) {
             alpha = t;
         } else if (popupEntry->elapsed < popupEntry->animationInDuration + popupEntry->displayDuration) {
             // Phase DISPLAY: hold at full scale and full opacity.
-            popupEntry->phase = FloatingPopupAnimation::DISPLAY;
+            popupEntry->phase = FloatingPopupAnimation::ANIM_DISPLAY;
             scale = popupEntry->displayScale;
             alpha = 1.0f;
         } else {
             // Phase OUT: shrink slightly while fading to transparent.
-            popupEntry->phase = FloatingPopupAnimation::OUT;
+            popupEntry->phase = FloatingPopupAnimation::ANIM_OUT;
             const float t = (popupEntry->elapsed - popupEntry->animationInDuration - popupEntry->displayDuration)
                           / popupEntry->animationOutDuration;
             scale = popupEntry->displayScale * (1.0f - t * 0.5f);

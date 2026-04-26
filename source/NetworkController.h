@@ -140,8 +140,9 @@ public:
      * @param magnitude  The resolved magnitude of the effect.
      * @param duration   The timed duration of the effect, or 0 for instant effects.
      * @param playerIndex The attacking player's slot, used for side-relative effects.
+     * @param applyToAllSides Whether the enemy effect should be applied to all four boss sides.
      */
-    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex);
+    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides);
 
     /** The following are USED ONLY BY THE HOST */
     /** Send the GameState state as the new authoritative version of the game to all players */
@@ -342,6 +343,14 @@ public:
      * @param slotIndex  The 0-based slot index to clear.
      */
     void clearAIHouse(int slotIndex);
+    
+    /**
+     * Returns true if the host dropped unexpectedly. Checks both the explicit
+     * _hostDisconnected flag and polls the connection state directly each frame,
+     * since CUGL's onDisconnect callback is unreliable when receive() is called
+     * every frame. CLIENT ONLY — always false on the host.
+     */
+    bool wasHostDisconnected() const;
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network

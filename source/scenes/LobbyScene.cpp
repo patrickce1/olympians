@@ -438,10 +438,20 @@ void LobbyScene::update(float timestep) {
         if (_network->checkGameStarted()) {
             _status = START;
         }
+        
+        // Host voluntarily left — they broadcast SESSION_TERMINATED before disconnecting.
         if (_network->wasSessionTerminated()) {
             _network->clearQueues();
             _network->disconnect();
-            _status = Status::ABORT;
+            _status = Status::HOST_LEFT;
+            return;
+        }
+        
+        // Host dropped unexpectedly — no broadcast, detected via the disconnect callback.
+        if (_network->wasHostDisconnected()) {
+            _network->clearQueues();
+            _network->disconnect();
+            _status = Status::HOST_DISCONNECTED;
             return;
         }
     }

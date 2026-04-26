@@ -1605,6 +1605,84 @@
                     "x_offset": 0.05,
                     "y_offset": -0.06
                 }
+            },
+            "errorPopup": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [0.5, 0.5],
+                    "size": [393, 852],
+                    "angle": 0,
+                    "visible": false
+                },
+                "children": {
+                    "overlayBG": {
+                        "type": "Polygon",
+                        "data": {
+                            "anchor": [0.5, 0.5],
+                            "color": [0, 0, 0, 200],
+                            "angle": 0,
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "popupBG": {
+                        "type": "Image",
+                        "data": {
+                            "anchor": [0.5, 0.5],
+                            "texture": "centerPopup",
+                            "size": [433, 326],
+                            "angle": 0,
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "errorLabel": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [0.5, 0.5],
+                            "size": [250, 105],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular18",
+                            "text": "",
+                            "foreground": "#FFD59Fff",
+                            "background": "#00000000",
+                            "padding": [0, 0, 0, 0],
+                            "valign": "middle",
+                            "halign": "center",
+                            "wrap": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
             }
         }
     }

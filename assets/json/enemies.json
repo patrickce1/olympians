@@ -10,12 +10,38 @@
                 "defenseLikelihood": 0.25
             },
             "customData": {
-                "eyeMultiplier": 2.0
+                "frantic1Threshold": 0.75,
+                "frantic2Threshold": 0.25,
+                "boulderTossReductionAmount": 1.0,
+                "boulderHigherBound": 3.7,
+                "franticRate": 0.75
             },
             "states": {
                 "idle": {
                     "name": "idle",
-                    "animationKey": "cyclops_idle_animation"
+                    "animationKey": "cyclops_idle_animation",
+                    "events": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 2.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 1.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 1.0
+                        }
+                    ]
                 },
                 "attack_1": {
                     "name": "club",
@@ -83,22 +109,22 @@
                         {
                             "type": "SIDE_MODIFIER",
                             "target": 0,
-                            "amount": 2.0
+                            "amount": 0.0
                         },
 			            {
                             "type": "SIDE_MODIFIER",
                             "target": 1,
-                            "amount": 1.0
+                            "amount": 0.5
                         },
 			            {
                             "type": "SIDE_MODIFIER",
                             "target": 2,
-                            "amount": 1.0
+                            "amount": 0.5
                         },
 			            {
                             "type": "SIDE_MODIFIER",
                             "target": 3,
-                            "amount": 0.0
+                            "amount": 1.0
                         }
 		            ],
                     "nextState": "idle"
