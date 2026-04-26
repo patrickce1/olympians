@@ -139,7 +139,7 @@
                         1,
                         281
                     ],
-                    "visible": true
+                    "visible": false
                 },
                 "children": {
                     "loseSubheader": {
