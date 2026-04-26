@@ -306,6 +306,15 @@
         "hadesSIcon": {
             "file": "textures/houseSelect/hadesSIcon.png"
         },
+        "hermesSIcon": {
+            "file": "textures/houseSelect/hermesSIcon.png"
+        },
+        "zeusSIcon": {
+            "file": "textures/houseSelect/zeusSIcon.png"
+        },
+        "aphroditeSIcon": {
+            "file": "textures/houseSelect/aphroditeSIcon.png"
+        },
         "hephaestusSIcon": {
             "file": "textures/houseSelect/hephaestusSIcon.png"
         },
