@@ -9,7 +9,7 @@
 #include "../NetworkController.h"
 
 /**
- * This class provides the interface to make the boss select scene.
+ * This class provides the interface to make the win lose scene.
  */
 class WinLoseScene : public cugl::scene2::Scene2 {
 public:
@@ -35,6 +35,12 @@ protected:
     /** The return button for the boss select scene */
     std::shared_ptr<cugl::scene2::Button> _returnButton;
     
+    /** The base images for showing victory */
+    std::shared_ptr<cugl::scene2::SceneNode> _victoryImage;
+    
+    /** The base images for showing defeat */
+    std::shared_ptr<cugl::scene2::SceneNode> _defeatImage;
+    
     /** The current status */
     Status _status;
     
@@ -45,12 +51,12 @@ public:
 #pragma mark -
 #pragma mark Constructors
     /**
-     * Creates a new bost select scene with the default values.
+     * Creates a new win/lose scene with the default values.
      *
      * This constructor does not allocate any objects or start the game.
      * This allows us to use the object without a heap pointer.
      */
-    BossSelectScene() : cugl::scene2::Scene2() {}
+    WinLoseScene() : cugl::scene2::Scene2() {}
     
     /**
      * Disposes of all (non-static) resources allocated to this mode.
@@ -58,7 +64,7 @@ public:
      * This method is different from dispose() in that it ALSO shuts off any
      * static resources, like the input controller.
      */
-    ~BossSelectScene() { dispose(); }
+    ~WinLoseScene() { dispose(); }
     
     /**
      * Disposes of all (non-static) resources allocated to this mode.
@@ -83,20 +89,16 @@ public:
     bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
     
     /**
-     * Retrieves and stores references to the BossSelectScene UI elements.
+     * Retrieves and stores references to the WinLoseScene UI elements.
      *
      * This method looks up UI components from the scene graph including the
-     * lock button, back button, carousel navigation
-     * buttons, and the role carousel container. It also initializes the
-     * carousel item list.
+     * images and the return button. When stats are added more background UI
+     * will be added.
      */
     void setupUI();
     
     /**
-     * Attaches input listeners to the boss select buttons.
-     *
-     * This method assigns callbacks for starting the game, returning to the
-     * previous menu, and navigating the role selection carousel.
+     * Attaches input listeners to the return button.
      */
     void setupListeners();
     
@@ -114,7 +116,7 @@ public:
     /**
      * Returns the scene status.
      *
-     * Any value other than WAIT will transition to a new scene.
+     * Any value other than IDLE will transition to a new scene.
      *
      * @return the scene status
      *
@@ -131,7 +133,7 @@ public:
     /**
      * Sets the whether we won or lost.
      */
-    void setDidWin(bool value) const { _didWin = value; }
+    void setDidWin(bool value) { _didWin = value; }
     
 
 private:

@@ -369,11 +369,11 @@
         "winSubheader": {
             "file": "textures/winLoseScene/winSubheader.png"
         },
-        "defeatSign": {
-            "file": "textures/winLoseScene/defeatSign.png"
+        "loseSign": {
+            "file": "textures/winLoseScene/loseSign.png"
         },
-        "defeatSubheader": {
-            "file": "textures/winLoseScene/defeatSubheader.png"
+        "loseSubheader": {
+            "file": "textures/winLoseScene/loseSubheader.png"
         }
 	},
     "fonts": {

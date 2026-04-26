@@ -164,6 +164,7 @@ void SceneLoader::onShutdown() {
     _lobbyScene.dispose();
     _houseSelectScene.dispose();
     _bossSelectScene.dispose();
+    _winLoseScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
     netcode::NetworkLayer::stop();
@@ -282,6 +283,12 @@ void SceneLoader::update(float dt) {
                 
                 if (_bossSelectScene.init(_assets, _network)) {
                     _bossSelectScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize BossSelectScene");
+                }
+                
+                if (_winLoseScene.init(_assets, _network)) {
+                    _winLoseScene.setSpriteBatch(_batch);
                 } else {
                     CULog("Failed to initialize BossSelectScene");
                 }
@@ -482,6 +489,19 @@ void SceneLoader::update(float dt) {
                     break;
             }
             break;
+        case State::WINLOSE:
+            _winLoseScene.update(dt);
+            switch (_winLoseScene.getStatus()) {
+                case WinLoseScene::Status::ABORT:
+                    _audio.playMusic("lobby");
+                    _lobbyScene.setActive(true);
+                    _winLoseScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                default:
+                    break;
+            }
+            break;
         case State::GAME:
             InputController::Action action = _input.getAction();
                 switch (action) {
@@ -509,16 +529,18 @@ void SceneLoader::update(float dt) {
             switch (_gameScene.getStatus()) {
                 case GameScene::Status::LOST:
                     _audio.playMusic("lobby");
-                    _lobbyScene.setActive(true);
+                    _winLoseScene.setDidWin(false);
+                    _winLoseScene.setActive(true);
                     _gameScene.setActive(false);
-                    _currentScene = State::LOBBY;
+                    _currentScene = State::WINLOSE;
                     _gameScene.reset();
                     break;
                 case GameScene::Status::WON:
                     _audio.playMusic("lobby");
-                    _lobbyScene.setActive(true);
+                    _winLoseScene.setDidWin(true);
+                    _winLoseScene.setActive(true);
                     _gameScene.setActive(false);
-                    _currentScene = State::LOBBY;
+                    _currentScene = State::WINLOSE;
                     _gameScene.reset();
                     break;
                 case GameScene::Status::PLAYING:
@@ -575,6 +597,9 @@ void SceneLoader::draw() {
             break;
         case State::BOSSSELECT:
             _bossSelectScene.render();
+            break;
+        case State::WINLOSE:
+            _winLoseScene.render();
             break;
     }
 }

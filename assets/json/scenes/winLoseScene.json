@@ -120,78 +120,82 @@
                     "y_offset": -0.83
                 }
             },
-            "winSubheader": {
-                "type": "Image",
-                "data": {
-                    "texture": "winSubheader",
-                    "anchor": [
-                        0,
-                        1
-                    ],
-                    "size": [
-                        295.5,
-                        43
-                    ],
-                    "angle": 0,
-                    "position": [
-                        49,
-                        281
-                    ],
-                    "visible": true
+            "loser": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
                 },
-                "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "top",
-                    "absolute": false,
-                    "x_offset": 0.12,
-                    "y_offset": -0.62
-                }
-            },
-            "loseSubheader": {
-                "type": "Image",
                 "data": {
-                    "texture": "loseSubheader",
-                    "anchor": [
-                        0,
-                        1
-                    ],
-                    "size": [
-                        291,
-                        43
-                    ],
-                    "angle": 0,
-                    "position": [
-                        49,
-                        281
-                    ],
-                    "visible": false
-                },
-                "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "top",
-                    "absolute": false,
-                    "x_offset": 0.12,
-                    "y_offset": -0.62
-                }
-            },
-            "defeatSign": {
-                "type": "Image",
-                "data": {
-                    "texture": "defeatSign",
                     "anchor": [
                         0,
                         1
                     ],
                     "size": [
                         393,
-                        325
+                        370
                     ],
                     "angle": 0,
                     "position": [
                         1,
-                        326
+                        281
                     ],
-                    "visible": false
+                    "visible": true
+                },
+                "children": {
+                    "loseSubheader": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "loseSubheader",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                291,
+                                43
+                            ],
+                            "angle": 0,
+                            "position": [
+                                48,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.12,
+                            "y_offset": -0.88
+                        }
+                    },
+                    "loseSign": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "loseSign",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                393,
+                                325
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                45
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
                 },
                 "layout": {
                     "x_anchor": "left",
@@ -201,24 +205,82 @@
                     "y_offset": -0.24
                 }
             },
-            "winSign": {
-                "type": "Image",
+            "winner": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
                 "data": {
-                    "texture": "winSign",
                     "anchor": [
                         0,
                         1
                     ],
                     "size": [
                         393,
-                        325
+                        370
                     ],
                     "angle": 0,
                     "position": [
                         1,
-                        326
+                        281
                     ],
                     "visible": true
+                },
+                "children": {
+                    "winSubheader": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "winSubheader",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                295.5,
+                                43
+                            ],
+                            "angle": 0,
+                            "position": [
+                                48,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.12,
+                            "y_offset": -0.88
+                        }
+                    },
+                    "winSign": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "winSign",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                393,
+                                325
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                45
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
                 },
                 "layout": {
                     "x_anchor": "left",

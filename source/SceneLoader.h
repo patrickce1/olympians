@@ -8,6 +8,7 @@
 #include "scenes/LobbyScene.h"
 #include "scenes/HouseSelectScene.h"
 #include "scenes/BossSelectScene.h"
+#include "scenes/WinLoseScene.h"
 #include "InputController.h"
 #include "AudioController.h"
 #include "tests/PlayerTests.h"
@@ -33,6 +34,7 @@ protected:
         MENU,
         HOUSESELECT,
         BOSSSELECT,
+        WINLOSE,
         GAME
     };
 
@@ -82,6 +84,9 @@ protected:
     
     /*The scene where the host changes what boss they want to play with and where other player can view all the different bosses */
     BossSelectScene _bossSelectScene;
+    
+    /*The scene where the players learn whether they won or lost */
+    WinLoseScene _winLoseScene;
     //more scenes to come...
 
 public:
