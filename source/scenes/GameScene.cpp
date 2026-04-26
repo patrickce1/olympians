@@ -1887,6 +1887,24 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
     }
 }
 
+/** Custom method called inside of handleItemSpawn that is used specifically for the Gaia boss
+  * If gaia is supposed to spawn a rock in a player's inventory, the host sends the appropriate message to the players
+  * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well
+  */
+void GameScene::handleGaiaSpawn() {
+    if (_gameState.getEnemy()->getId() == "gaia") {
+        shared_ptr<Gaia> gaia = std::dynamic_pointer_cast<Gaia>(_gameState.getEnemy());
+        if (_network->isHost()) {
+            //figure out if gaia wants to spawn
+            //send messages or spawn in AI hands as necessary
+        }
+        else {
+            //if the player is not us or AI, we need to send a spawn message to that player
+        }
+    }
+    return;
+}
+
 /**
  * Spawns items for the local player every frame, and for all AI-controlled
  * players if this machine is the host. AI item spawning is host-only since
@@ -1897,6 +1915,9 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
 void GameScene::handleItemSpawn(float dt) {
     // Always spawn items for the local human player.
     _itemController.update(dt, _gameState.getLocalPlayer());
+
+    //handle gaia spawning, the method checks if the enemy is actually gaia
+    handleGaiaSpawn();
 
     // Only the host spawns items for AI players, since the host is the
     // authoritative source for all AI state and broadcasts it to clients.

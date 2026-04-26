@@ -249,7 +249,7 @@
                 "defenseLikelihood": 1.0
             },
             "customData": {
-                "eyeMultiplier": 1.0
+                "spawnCooldownConstant": 2.0
             },
             "states": {
                 "idle": {
