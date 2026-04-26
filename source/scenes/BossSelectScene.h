@@ -24,7 +24,7 @@ public:
         /** Selection was aborted; back to lobby */
         ABORT,
         /** Game scene has been started by host**/
-        PRE_GAMESCENE_START
+        GAMESCENE_START
     };
     
 protected:
