@@ -27,7 +27,9 @@ public:
         SELECT,
         BOSSSELECT,
         START,
-        ABORT
+        ABORT,
+        HOST_LEFT,
+        HOST_DISCONNECTED
     };
     
 protected:

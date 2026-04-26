@@ -84,12 +84,24 @@ protected:
     
     /** The current status */
     Status _status;
+
+    /** How long (seconds) to show the error popup before auto-dismissing */
+    static constexpr float ERROR_DISPLAY_TIME = 2.5f;
+
+    /** Error popup node — shared asset from clientScene */
+    std::shared_ptr<cugl::scene2::SceneNode> _errorPopup;
+
+    /** Countdown timer for the error popup auto-dismiss */
+    float _errorTimer = 0.0f;
     
     /** Loads enemy definitions from JSON for boss selection. */
     EnemyLoader _enemyLoader;
-    
+
     /** Set to true when the user taps the settings button */
     bool _pendingSettings = false;
+
+    /** The initial position of the boss carousel. */
+    cugl::Vec2 _baseCarouselPosition;
 
 public:
 #pragma mark -
@@ -190,6 +202,16 @@ public:
      * @param enabled  Whether controls should accept input.
      */
     void setInputEnabled(bool enabled);
+
+    /**
+     * Shows the "Host disconnected" error popup.
+     *
+     * Called by SceneLoader immediately after activating HostSetupScene when
+     * a client is kicked due to a host disconnect in LobbyScene or GameScene.
+     * The popup auto-dismisses after ERROR_DISPLAY_TIME seconds, leaving the
+     * player on a clean, interactive HostSetupScene to host or join a fresh session.
+     */
+    void showHostDisconnectedError();
 
 private:
     /**

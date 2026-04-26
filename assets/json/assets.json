@@ -70,6 +70,18 @@
         "cyclops": {
             "file": "textures/gameScene/cyclops/cyclops.png"
         },
+        "circeBackground": {
+            "file": "textures/gameScene/circe/background.png"
+        },
+        "circe": {
+            "file": "textures/gameScene/circe/circe.png"
+        },
+        "gaiaBackground": {
+            "file": "textures/gameScene/gaia/background.png"
+        },
+        "gaia": {
+            "file": "textures/gameScene/gaia/gaia.png"
+        },
         "healthFrame": {
             "file": "textures/gameScene/healthFrame.png"
         },
@@ -132,6 +144,12 @@
         },
         "cerberusShowroom": {
             "file": "textures/houseSelect/cerberusShowroom.png"
+        },
+        "circeShowroom": {
+            "file": "textures/houseSelect/circeShowroom.png"
+        },
+        "gaiaShowroom": {
+            "file": "textures/houseSelect/gaiaShowroom.png"
         },
         "buttonSmallBG": {
             "file": "textures/houseSelect/buttonSmallBG.png"
@@ -279,6 +297,12 @@
         "cerberusPoster": {
             "file": "textures/hostScene/cerberusPoster.png"
         },
+        "circePoster": {
+            "file": "textures/hostScene/circePoster.png"
+        },
+        "gaiaPoster": {
+            "file": "textures/hostScene/gaiaPoster.png"
+        },
         "bossPosterEmpty": {
             "file": "textures/hostScene/bossPosterEmpty.png"
         },
@@ -305,6 +329,12 @@
         },
         "cerberusLobbyImage": {
             "file": "textures/lobbyScene/cerberusLobbyImage.png"
+        },
+        "circeLobbyImage": {
+            "file": "textures/lobbyScene/circeLobbyImage.png"
+        },
+        "gaiaLobbyImage": {
+            "file": "textures/lobbyScene/gaiaLobbyImage.png"
         },
         "glowBorder": {
             "file": "textures/lobbyScene/glowBorder.png"
@@ -438,6 +468,11 @@
         "gamePin": {
             "file":     "fonts/GRECOromanLubedWrestling.ttf",
             "size":     48
+        },
+        "gamePinShadow": {
+            "file":     "fonts/GRECOromanLubedWrestling.ttf",
+            "size":     48,
+            "padding":  4
         }
     },
     "jsons": {
@@ -527,6 +562,12 @@
         "player_hurt_deep": {
             "type":     "sample",
             "file":     "sounds/player_hurt_deep.wav",
+            "stream":   false,
+            "volume":   0.45
+        },
+        "popup_ding": {
+            "type":     "sample",
+            "file":     "sounds/popup_ding.wav",
             "stream":   false,
             "volume":   0.45
         }

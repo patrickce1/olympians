@@ -22,7 +22,7 @@ static std::string normalizeToken(std::string token) {
 /**
  * Parses a normalized JSON effect token into an ItemDef::EffectType.
  *
- * Supports shield, barrier, stun, and vulnerable effect strings.
+ * Supports shield, barrier, stun, love, and vulnerable effect strings.
  *
  * @param value  The normalized effect token from JSON.
  * @param out    Receives the parsed enum value on success.
@@ -39,6 +39,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
     }
     if (value == "stun") {
         out = ItemDef::EffectType::Stun;
+        return true;
+    }
+    if (value == "love") {
+        out = ItemDef::EffectType::Love;
         return true;
     }
     if (value == "vulnerable") {
@@ -157,6 +161,11 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
     out.duration = 0.0f;
     if (json->has("duration") && json->get("duration")->isNumber()) {
         out.duration = std::max(0.0f, json->getFloat("duration"));
+    }
+
+    out.applyToAllSides = false;
+    if (json->has("applyToAllSides") && json->get("applyToAllSides")->isBool()) {
+        out.applyToAllSides = json->getBool("applyToAllSides", false);
     }
 
     return true;
@@ -288,9 +297,10 @@ void ItemDef::parseItemUseAnimation(const std::shared_ptr<JsonValue>& json) {
         animConfig.frameCount = animData->getInt("frameCount");
         animConfig.animationDuration = animData->getFloat("animationDuration");
         animConfig.damageResolutionFrame = animData->getInt("damageResolutionFrame");
-        
-        CULog("DEBUG: Parsed animation config: rows=%d, cols=%d, frames=%d, duration=%.3f, resFrame=%d",
-              animConfig.rows, animConfig.cols, animConfig.frameCount, animConfig.animationDuration, animConfig.damageResolutionFrame);
+        animConfig.centerOnDropLocation = animData->getBool("centerOnDropLocation", false);
+
+        CULog("DEBUG: Parsed animation config: rows=%d, cols=%d, frames=%d, duration=%.3f, resFrame=%d, centerOnDropLocation=%d",
+              animConfig.rows, animConfig.cols, animConfig.frameCount, animConfig.animationDuration, animConfig.damageResolutionFrame, (int)animConfig.centerOnDropLocation);
         
         // Validate animation config
         if (!animConfig.spriteSheetId.empty() && animConfig.rows > 0 && animConfig.cols > 0 &&

@@ -378,24 +378,26 @@ static void testUseAttackItemDamagesEnemy(const HouseLoader& loader,
     assertWithLabel(players[0]->getInventory().empty(),     "useAttackItem: item consumed from inventory");
 }
 
-/** Checks using a support item heals an ally and consumes the item. */
+/**
+ * Checks using the Apple support item heals an ally and consumes the item.
+ *
+ * @param loader   House definitions used to construct test players
+ * @param houseId  The house assigned to both test players
+ * @param db       Item database used to resolve and apply the Apple item
+ */
 static void testUseSupportItemHealsAlly(const HouseLoader& loader,
                                         const std::string& houseId,
-                                        const ItemDatabase& db,
-                                        const std::string& supportDefId) {
+                                        const ItemDatabase& db) {
     auto players = makeTwoPlayers(loader, houseId);
     players[1]->updateHealth(-20.0f);
     float hpBefore = players[1]->getCurrentHealth();
 
-    players[0]->addItem(makeItem(supportDefId));
+    auto appleDef = db.getDef("apple");
+    assertWithLabel(appleDef != nullptr, "useSupportItem: apple def exists");
+    if (!appleDef) return;
 
-    for (const ItemInstance& item : players[0]->getInventory()) {
-        auto def = db.getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Support) {
-            players[0]->useItemById(item.getId(), *players[1], db);
-            break;
-        }
-    }
+    players[0]->addItem(makeItem("apple"));
+    players[0]->useItemById(players[0]->getInventory()[0].getId(), *players[1], db);
 
     CULog("── healAlly: hp %.1f → %.1f ──────────────",
           hpBefore, players[1]->getCurrentHealth());
@@ -656,7 +658,7 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
 
     CULog("── Section 4: Card usage ────────────────");
     testUseAttackItemDamagesEnemy  (loader, houseId, db, enemy, attackDefId);
-    testUseSupportItemHealsAlly    (loader, houseId, db, supportDefId);
+    testUseSupportItemHealsAlly    (loader, houseId, db);
     testUseAttackItemOnAllyIsNoop  (loader, houseId, db, attackDefId);
     testUseSupportItemOnEnemyIsNoop(loader, houseId, db, enemy, supportDefId);
 
@@ -668,4 +670,3 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
 
     printSummary();
 }
-

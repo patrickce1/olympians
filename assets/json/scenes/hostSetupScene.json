@@ -232,7 +232,7 @@
                         1
                     ],
                     "size": [
-                        33.6,
+                        46.4,
                         8
                     ],
                     "angle": 0,
@@ -730,6 +730,170 @@
                             "padding": [
                                 0,
                                 0,
+                                4.800000190734863,
+                                0
+                            ]
+                        }
+                    },
+                    "Ellipse 4": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Anchored"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "angle": 0,
+                            "size": [
+                                8,
+                                8
+                            ],
+                            "position": [
+                                29.600000381469727,
+                                4
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "fill": {
+                                "type": "Solid",
+                                "data": {
+                                    "polygon": [
+                                        4,
+                                        0,
+                                        3.6,
+                                        1.74,
+                                        2.49,
+                                        3.13,
+                                        0.89,
+                                        3.9,
+                                        -0.89,
+                                        3.9,
+                                        -2.49,
+                                        3.13,
+                                        -3.6,
+                                        1.74,
+                                        -4,
+                                        0,
+                                        -3.6,
+                                        -1.74,
+                                        -2.49,
+                                        -3.13,
+                                        -0.89,
+                                        -3.9,
+                                        0.89,
+                                        -3.9,
+                                        2.49,
+                                        -3.13,
+                                        3.6,
+                                        -1.74
+                                    ],
+                                    "color": "#9d7137ff",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            },
+                            "stroke": {
+                                "type": "Path",
+                                "data": {
+                                    "color": "#9d7137ff",
+                                    "path": {
+                                        "vertices": [
+                                            3.75,
+                                            0,
+                                            3.66,
+                                            0.83,
+                                            3.38,
+                                            1.63,
+                                            2.93,
+                                            2.34,
+                                            2.34,
+                                            2.93,
+                                            1.63,
+                                            3.38,
+                                            0.83,
+                                            3.66,
+                                            0,
+                                            3.75,
+                                            -0.83,
+                                            3.66,
+                                            -1.63,
+                                            3.38,
+                                            -2.34,
+                                            2.93,
+                                            -2.93,
+                                            2.34,
+                                            -3.38,
+                                            1.63,
+                                            -3.66,
+                                            0.83,
+                                            -3.75,
+                                            0,
+                                            -3.66,
+                                            -0.83,
+                                            -3.38,
+                                            -1.63,
+                                            -2.93,
+                                            -2.34,
+                                            -2.34,
+                                            -2.93,
+                                            -1.63,
+                                            -3.38,
+                                            -0.83,
+                                            -3.66,
+                                            0,
+                                            -3.75,
+                                            0.83,
+                                            -3.66,
+                                            1.63,
+                                            -3.38,
+                                            2.34,
+                                            -2.93,
+                                            2.93,
+                                            -2.34,
+                                            3.38,
+                                            -1.63,
+                                            3.66,
+                                            -0.83
+                                        ],
+                                        "closed": true
+                                    },
+                                    "stroke": 1,
+                                    "joint": "square",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle"
+                                }
+                            }
+                        },
+                        "layout": {
+                            "priority": 3,
+                            "padding": [
+                                0,
+                                0,
                                 0,
                                 0
                             ]
@@ -780,7 +944,7 @@
                                 1
                             ],
                             "size": [
-                                788,
+                                1039,
                                 462
                             ],
                             "angle": 0,
@@ -791,6 +955,28 @@
                             "visible": true
                         },
                         "children": {
+                            "circeCard": {
+                                "type": "Widget",
+                                "format": { "type": "Anchored" },
+                                "data": {
+                                    "key": "bossCard",
+                                    "variables": {
+                                        "image": "circePoster",
+                                        "description": "Circe, a cunning enchantress who tests your resolve with illusions. Defeat her to break her spell.",
+                                        "name": "-CIRCE-",
+                                        "glow": false
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        -35,
+                                        0
+                                    ]
+                                }
+                            },
                             "cyclopsCard": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
@@ -804,7 +990,7 @@
                                     }
                                 },
                                 "layout": {
-                                    "priority": 0,
+                                    "priority": 1,
                                     "padding": [
                                         0,
                                         0,
@@ -826,7 +1012,7 @@
                                     }
                                 },
                                 "layout": {
-                                    "priority": 1,
+                                    "priority": 2,
                                     "padding": [
                                         0,
                                         0,
@@ -835,20 +1021,20 @@
                                     ]
                                 }
                             },
-                            "emptyCard": {
+                            "gaiaCard": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "bossCard",
                                     "variables": {
-                                        "image": "bossPosterEmpty",
-                                        "description": "",
-                                        "name": "-BOSS-",
+                                        "image": "gaiaPoster",
+                                        "description": "Gaia, the primordial force of the earth. Defeat her to overcome nature itself.",
+                                        "name": "-GAIA-",
                                         "glow": false
                                     }
                                 },
                                 "layout": {
-                                    "priority": 2,
+                                    "priority": 3,
                                     "padding": [
                                         0,
                                         0,
@@ -1500,6 +1686,84 @@
                     "absolute": false,
                     "x_offset": 0.05,
                     "y_offset": -0.06
+                }
+            },
+            "errorPopup": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [0.5, 0.5],
+                    "size": [393, 852],
+                    "angle": 0,
+                    "visible": false
+                },
+                "children": {
+                    "overlayBG": {
+                        "type": "Polygon",
+                        "data": {
+                            "anchor": [0.5, 0.5],
+                            "color": [0, 0, 0, 200],
+                            "angle": 0,
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "popupBG": {
+                        "type": "Image",
+                        "data": {
+                            "anchor": [0.5, 0.5],
+                            "texture": "centerPopup",
+                            "size": [433, 326],
+                            "angle": 0,
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "errorLabel": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [0.5, 0.5],
+                            "size": [250, 105],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular18",
+                            "text": "",
+                            "foreground": "#FFD59Fff",
+                            "background": "#00000000",
+                            "padding": [0, 0, 0, 0],
+                            "valign": "middle",
+                            "halign": "center",
+                            "wrap": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
                 }
             }
         }
