@@ -362,6 +362,18 @@
         },
         "supportZoneR": {
             "file": "textures/gameScene/supportRZoneBG.png"
+        },
+        "winSign": {
+            "file": "textures/winLoseScene/winSign.png"
+        },
+        "winSubheader": {
+            "file": "textures/winLoseScene/winSubheader.png"
+        },
+        "defeatSign": {
+            "file": "textures/winLoseScene/defeatSign.png"
+        },
+        "defeatSubheader": {
+            "file": "textures/winLoseScene/defeatSubheader.png"
         }
 	},
     "fonts": {
@@ -534,6 +546,7 @@
         "lobbyScene": "json/scenes/lobbyScene.json",
         "houseSelectScene": "json/scenes/houseSelectionScene.json",
         "bossSelectScene": "json/scenes/bossSelectionScene.json",
+        "winLoseScene": "json/scenes/winLoseScene.json",
         "heroCard" : "widgets/houseSelect/heroCard.json",
         "teamHouseIcon" : "widgets/houseSelect/teamHouseIcon.json",
         "playerHouseIcon" : "widgets/houseSelect/playerHouseIcon.json",
@@ -608,6 +621,15 @@
             "format": { "type": "Anchored"},
             "data": {
                 "key": "bossSelectScene",
+                "variables": {}
+            }
+        },
+        "winLoseScene": {
+            "type": "Widget",
+            "comment": "Root node of the win/lose select scene",
+            "format": { "type": "Anchored"},
+            "data": {
+                "key": "winLoseScene",
                 "variables": {}
             }
         }
