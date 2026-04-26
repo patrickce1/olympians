@@ -226,6 +226,36 @@
             "wrapS":    "clamp",
             "wrapT":    "clamp"
         },
+        "hermesPoster": {
+            "file": "textures/houseSelect/hermesPoster.png"
+        },
+        "statsHermes": {
+            "file": "textures/houseSelect/statsHermes.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "zeusPoster": {
+            "file": "textures/houseSelect/zeusPoster.png"
+        },
+        "statsZeus": {
+            "file": "textures/houseSelect/statsZeus.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "aphroditePoster": {
+            "file": "textures/houseSelect/aphroditePoster.png"
+        },
+        "statsAphrodite": {
+            "file": "textures/houseSelect/statsAphrodite.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
         "leftScroll": {
             "file": "textures/houseSelect/leftScroll.png"
         },
