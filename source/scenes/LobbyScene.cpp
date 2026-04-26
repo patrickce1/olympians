@@ -11,7 +11,7 @@ using namespace std;
 #define SCENE_HEIGHT  852
 /** Player Icon Blink Timer */
 #define BLINK_TIMER  0.5f
-/** Error display time for disconnect error*/
+/** Error display time for disconnect error */
 #define ERROR_DISPLAY_TIME  2.0f
 
 /**
