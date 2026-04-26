@@ -778,6 +778,7 @@ const std::vector<NetworkedPlayer> NetworkController::getNetworkedPlayers() {
  * @return  The local player's index, or -1 if not found.
  */
 int NetworkController::getLocalPlayerNumber() {
+    if (!_network) return -1;
 	std::string localID = _network->getUUID();
 	for (int i = 0; i < _onlinePlayers.size(); i++) {
 		if (_onlinePlayers[i].networkID == localID) {
@@ -1012,4 +1013,18 @@ void NetworkController::clearAIHouse(int slotIndex) {
         // Broadcast so all clients remove this slot from their taken set
         broadcastLobbyState();
     }
+}
+
+/**
+ * Returns true if the host dropped unexpectedly. Polls the connection state directly each frame,
+ * since CUGL's onDisconnect callback is unreliable when receive() is called
+ * every frame. CLIENT ONLY — always false on the host.
+ */
+bool NetworkController::wasHostDisconnected() const {
+    if (_network && !_network->isHost()) {
+        auto state = _network->getState();
+        return state == NetcodeConnection::State::DISCONNECTED
+            || state == NetcodeConnection::State::FAILED;
+    }
+    return false;
 }
