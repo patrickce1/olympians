@@ -187,8 +187,17 @@ void PreGameEntryScene::update(float timestep) {
     updateNetworkOrder();
     
     // ── Disconnect detection ─────────────────────────────────────────────────
-    // getNetworkUpdates() is called by whoever owns the network loop before
-    // update() runs, so _disconnectedSlots is already populated this frame.
+    //Host disconnect
+    if (!_network->isHost()) {
+        if (_network->wasHostDisconnected()) {
+            _network->clearQueues();
+            _network->disconnect();
+            _status = Status::HOST_DISCONNECTED;
+            return;
+        }
+    }
+    
+    //Client disconnect
     for (int slot : _network->getDisconnectedSlots()) {
         // Only care about real-player slots
         const auto& players = _gameState->getPlayers();

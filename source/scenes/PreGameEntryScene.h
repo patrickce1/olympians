@@ -22,7 +22,8 @@ public:
         START,
         ERROR_DISPLAY,
         ABORT,
-        PLAYER_DISCONNECTED   // A player disconnected mid-countdown; return to lobby.
+        PLAYER_DISCONNECTED,
+        HOST_DISCONNECTED
     };
     
 protected:

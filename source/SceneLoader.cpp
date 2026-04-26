@@ -512,6 +512,15 @@ void SceneLoader::update(float dt) {
                     _lobbyScene.setActive(true);
                     _preGameEntryScene.setActive(false);
                     _currentScene = State::LOBBY;
+                case PreGameEntryScene::Status::HOST_DISCONNECTED:
+                    CULog("Host disconnected in PreGameEntry — returning client to HostSetupScene...");
+                    _gameScene.resetGameState();
+                    _houseSelectScene.setPendingReset(true);
+                    _preGameEntryScene.setActive(false);
+                    _hostSetupScene.setActive(true);
+                    _hostSetupScene.showHostDisconnectedError();
+                    _currentScene = State::HOSTSETUP;
+                    break;
                 default:
                     break;
             }
