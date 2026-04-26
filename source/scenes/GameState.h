@@ -150,14 +150,15 @@ public:
      */
     void reset();
 
-    /*Convinient way to update the game state and inventory by just providing the struct from the network controller. USED BY CLIENTS*/
+    /** Convinient way to update the game state and inventory by just providing the struct from the network controller. USED BY CLIENTS */
     void networkUpdate(GameStateMessage updatedState);
 
-    /*Convinient functions to handle updates recieved from the network. USED BY THE HOST*/
-    /*Updates the gameState object by applying all the damage present in the messages of `attacks`*/
+    /** Convinient functions to handle updates recieved from the network. USED BY THE HOST
+     *  Updates the gameState object by applying all the damage present in the messages of `attacks`
+     */
     void attackUpdates(std::vector<AttackMessage> attacks);
 
-    /*Updates the gameState object by handling all healing requests in the messages in `heals`*/
+    /** Updates the gameState object by handling all healing requests in the messages in `heals` */
     void healUpdates(std::vector<HealMessage> heals);
 
     /**
@@ -166,6 +167,13 @@ public:
      * @param supportEffects  The queued support-effect updates to apply this frame.
      */
     void supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects);
+    
+    /**
+     * Applies enemy effect messages received from clients to the authoritative game state.
+     *
+     * @param enemyEffects  The queued enemy-effect updates to apply this frame.
+     */
+    void enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects);
     
 #pragma mark - Player Access
 

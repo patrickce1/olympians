@@ -130,7 +130,7 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
  */
 bool GameState::initEnemy() {
     const std::string enemyJsonPath = "json/enemies.json";
-    _enemy = std::make_shared<Enemy>();
+    _enemy = std::make_shared<Cyclops>(); //cyclops is the default boss
     if (!_enemy->init("cyclops", enemyJsonPath)) {
         CULog("GameState: Failed to initialize enemy");
         return false;
@@ -273,9 +273,7 @@ void GameState::setLocalPlayer(int assignedIndex) {
  */
 void GameState::setEnemy(std::string enemyID) {
     const std::string enemyJsonPath = "json/enemies.json";
-    if (_enemy == nullptr) {
-        _enemy = createEnemyByID(enemyID);
-    }
+    _enemy = createEnemyByID(enemyID);
     _enemy->init(enemyID, enemyJsonPath);
 }
 
@@ -288,9 +286,7 @@ void GameState::setEnemy(std::string enemyID) {
  */
 void GameState::setEnemy(std::string enemyID, const std::shared_ptr<cugl::AssetManager>& assets) {
     const std::string enemyJsonPath = "json/enemies.json";
-    if (_enemy == nullptr) {
-        _enemy = createEnemyByID(enemyID);
-    }
+    _enemy = createEnemyByID(enemyID);
     _enemy->init(enemyID, enemyJsonPath, assets);
 }
 
@@ -358,6 +354,33 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
 }
 
 /**
+ * Applies enemy-targeted effect messages from clients onto the host's authoritative enemy state.
+ *
+ * @param enemyEffects  The queued enemy-effect updates to apply this frame.
+ */
+void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects) {
+    if (!_enemy) return;
+
+    for (const EnemyEffectMessage& effect : enemyEffects) {
+        switch (effect.effectType) {
+            case EnemyEffectType::Stun:
+                _enemy->applyStun(effect.duration);
+                break;
+            case EnemyEffectType::Love:
+                _enemy->applyLove(effect.duration);
+                break;
+            case EnemyEffectType::Vulnerable:
+                if (effect.applyToAllSides) {
+                    _enemy->applyVulnerableToAllSides(effect.magnitude, effect.duration);
+                } else {
+                    _enemy->applyVulnerable(effect.magnitude, effect.duration, effect.playerIndex);
+                }
+                break;
+        }
+    }
+}
+
+/**
  * Overwrites the local game state with a snapshot received from the host.
  *
  * Applies the host's authoritative boss and player health values directly,
@@ -376,6 +399,11 @@ void GameState::networkUpdate(GameStateMessage newState) {
 
     //update boss direction
     _enemy->setTargetIndex(newState.bossTarget);
+
+    // sync authoritative enemy runtime effects
+    _enemy->syncStunDuration(newState.bossStunDuration);
+    _enemy->syncLoveDuration(newState.bossLoveDuration);
+    _enemy->syncVulnerable(newState.bossVulnerableMultipliers, newState.bossVulnerableDurations);
 
     // update player health and authoritative timed support effects
     std::vector<float> healths = {
