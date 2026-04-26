@@ -372,7 +372,11 @@ void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects)
                 _enemy->applyLove(effect.duration);
                 break;
             case EnemyEffectType::Vulnerable:
-                _enemy->applyVulnerable(effect.magnitude, effect.duration, effect.playerIndex);
+                if (effect.applyToAllSides) {
+                    _enemy->applyVulnerableToAllSides(effect.magnitude, effect.duration);
+                } else {
+                    _enemy->applyVulnerable(effect.magnitude, effect.duration, effect.playerIndex);
+                }
                 break;
         }
     }

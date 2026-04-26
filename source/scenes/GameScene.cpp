@@ -127,6 +127,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
         EnemyEffectMessage effectMsg;
         effectMsg.duration = effect.duration;
         effectMsg.playerIndex = playerIndex;
+        effectMsg.applyToAllSides = false;
 
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
@@ -142,6 +143,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Vulnerable:
                 effectMsg.effectType = EnemyEffectType::Vulnerable;
                 effectMsg.magnitude = effect.multiplier;
+                effectMsg.applyToAllSides = effect.applyToAllSides;
                 enemyEffects.push_back(effectMsg);
                 break;
             case ItemDef::EffectType::Shield:
@@ -162,7 +164,8 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
         network.broadcastEnemyEffect(effectMsg.effectType,
             effectMsg.magnitude,
             effectMsg.duration,
-            effectMsg.playerIndex);
+            effectMsg.playerIndex,
+            effectMsg.applyToAllSides);
     }
 }
 
