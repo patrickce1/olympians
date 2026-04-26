@@ -6,6 +6,257 @@
     },
     "items": [
         {
+            "id": "sword",
+            "name": "Sword",
+            "description": "Just a plain set of swords.",
+            "icon": "item_sword",
+            "type": "attack",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 20.0,
+            "effects": [],
+            "itemUseSound": "attack_slash",
+            "itemUseAnimation": {
+                "spriteSheetId": "sword_animation",
+                "rows": 1,
+                "cols": 5,
+                "frameCount": 5,
+                "animationDuration": 0.415,
+                "damageResolutionFrame": 4
+            }
+        },
+        {
+            "id": "apple",
+            "name": "Apple",
+            "description": "Just a plain apple.",
+            "icon": "item_apple",
+            "type": "support",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 10.0,
+            "effects": []
+        },
+        {
+            "id": "nectar",
+            "name": "Nectar",
+            "description": "The god's dessert.",
+            "icon": "item_nectar",
+            "type": "support",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 15.0,
+            "effects": []
+        },
+        {
+            "id": "arrow",
+            "name": "Bow and Arrow",
+            "description": "For long range shots.",
+            "icon": "item_arrow",
+            "type": "attack",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 23.0,
+            "effects": [],
+            "itemUseSound": "attack_thrust",
+            "itemUseAnimation": {
+                "spriteSheetId": "arrows_animation",
+                "rows": 1,
+                "cols": 7,
+                "frameCount": 7,
+                "animationDuration": 0.581,
+                "damageResolutionFrame": 5
+            }
+        },
+        {
+            "id": "shield",
+            "name": "Shield",
+            "description": "Help a brother out.",
+            "icon": "item_shield",
+            "type": "support",
+            "rarity": "common",
+            "houseAffinity": "none",
+            "baseValue": 0.0,
+            "effects": [
+                {
+                    "type": "shield",
+                    "mitigation": 20.0,
+                    "duration": 5.0
+                }
+            ]
+        },
+        {
+            "id": "lightning_bolt",
+            "name": "Lightning Bolt",
+            "description": "A crackling bolt of lightning sent from the king of the gods himself.",
+            "icon": "item_lightning",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "zeus",
+            "baseValue": 27.0,
+            "effects": [
+                {
+                    "type": "stun",
+                    "duration": 2.0
+                }
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "lightning_animation",
+                "rows": 1,
+                "cols": 4,
+                "frameCount": 4,
+                "animationDuration": 0.332,
+                "damageResolutionFrame": 3,
+                "centerOnDropLocation": true
+            }
+        },
+        {
+            "id": "trident",
+            "name": "Trident",
+            "description": " ",
+            "icon": "item_trident",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "poseidon",
+            "baseValue": 27.0,
+            "effects": [
+                {
+                    "type": "vulnerable",
+                    "multiplier": 2.0,
+                    "duration": 2.0,
+                    "applyToAllSides": true
+                }
+            ],
+            "itemUseSound": "attack_thrust",
+            "itemUseAnimation": {
+                "spriteSheetId": "trident_animation",
+                "rows": 1,
+                "cols": 15,
+                "frameCount": 15,
+                "animationDuration": 1.245,
+                "damageResolutionFrame": 7,
+                "centerOnDropLocation": true
+            }
+        },
+        {
+            "id": "helm",
+            "name": "Helm",
+            "description": " ",
+            "icon": "item_helm",
+            "type": "support",
+            "rarity": "rare",
+            "houseAffinity": "hades",
+            "baseValue": 20.0,
+            "effects": []
+        },
+        {
+            "id": "wheat",
+            "name": "Wheat",
+            "description": " ",
+            "icon": "item_wheat",
+            "type": "support",
+            "rarity": "rare",
+            "houseAffinity": "demeter",
+            "baseValue": 25.0,
+            "effects": []
+        },
+        {
+            "id": "mallet",
+            "name": "Mallet",
+            "description": " ",
+            "icon": "item_mallet",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "hephaestus",
+            "baseValue": 10.0,
+            "effects": [],
+            "itemUseSound": "attack_thud",
+            "itemUseAnimation": {
+                "spriteSheetId": "mallet_animation",
+                "rows": 1,
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.083,
+                "damageResolutionFrame": 5
+            }
+        },
+        {
+            "id": "aegis",
+            "name": "Aegis Shield",
+            "description": " ",
+            "icon": "item_aegis",
+            "type": "support",
+            "rarity": "rare",
+            "houseAffinity": "athena",
+            "baseValue": 0.0,
+            "effects": [
+                {
+                    "type": "barrier",
+                    "multiplier": 0.5,
+                    "duration": 10.0
+                }
+            ]
+        },
+        {
+            "id": "spear",
+            "name": "Spear",
+            "description": " ",
+            "icon": "item_spear",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "ares",
+            "baseValue": 27.0,
+            "effects": [
+                {
+                    "type": "vulnerable",
+                    "multiplier": 2.0,
+                    "duration": 5.0,
+                    "applyToAllSides": false
+                }
+            ],
+            "itemUseSound": "attack_thrust",
+            "itemUseAnimation": {
+                "spriteSheetId": "spear_animation",
+                "rows": 1,
+                "cols": 9,
+                "frameCount": 9,
+                "animationDuration": 0.747,
+                "damageResolutionFrame": 4
+            }
+        },
+        {
+            "id": "wings",
+            "name": "Winged Sandals",
+            "description": " ",
+            "icon": "item_wings",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "hermes",
+            "baseValue": 0.0,
+            "effects": []
+        },
+        {
+            "id": "potion",
+            "name": "Love Potion",
+            "description": " ",
+            "icon": "item_potion",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "aphrodite",
+            "baseValue": 0.0,
+            "effects": []
+        },
+        {
+            "id": "wheat",
+            "name": "Wheat",
+            "description": " ",
+            "icon": "item_wheat",
+            "type": "support",
+            "rarity": "rare",
+            "houseAffinity": "demeter",
+            "baseValue": 25.0,
+            "effects": []
+        },
+        {
             "id": "thunderstorm",
             "name": "Thunderstorm",
             "description": " ",
