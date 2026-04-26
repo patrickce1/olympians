@@ -9,7 +9,7 @@
             "damageFrame": -1,
             "positionX": 196.5,
             "positionY": 86.0,
-            "scale": 0.88,
+            "scale": 0.84,
             "offsetX": 0,
             "offsetY": 0
         },
@@ -22,8 +22,8 @@
             "buildupFrameCount": 4,
             "damageFrame": 6,
             "positionX": 196.5,
-            "positionY": 151.0,
-            "scale": 0.98,
+            "positionY": 165.0,
+            "scale": 0.95,
             "offsetX": 0,
             "offsetY": 0
         },
@@ -36,8 +36,8 @@
             "buildupFrameCount": 5,
             "damageFrame": 5,
             "positionX": 196.5,
-            "positionY": 151.0,
-            "scale": 0.54,
+            "positionY": 175.0,
+            "scale": 0.6,
             "offsetX": 0,
             "offsetY": 0
         }
