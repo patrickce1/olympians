@@ -22,9 +22,9 @@ public:
 
     // Enum that tracks which boss this is
     enum Boss {
-        CYCLOPS = 0,
+        CIRCE = 0,
         CERBERUS = 1,
-        CIRCE = 2,
+        CYCLOPS = 2,
         GAIA = 3
     };
 

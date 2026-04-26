@@ -873,6 +873,28 @@
                             "visible": true
                         },
                         "children": {
+                            "circeCard": {
+                                "type": "Widget",
+                                "format": { "type": "Anchored" },
+                                "data": {
+                                    "key": "bossCard",
+                                    "variables": {
+                                        "image": "circePoster",
+                                        "description": "Circe, a cunning enchantress who tests your resolve with illusions. Defeat her to break her spell.",
+                                        "name": "-CIRCE-",
+                                        "glow": false
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        -35,
+                                        0
+                                    ]
+                                }
+                            },
                             "cyclopsCard": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
@@ -886,7 +908,7 @@
                                     }
                                 },
                                 "layout": {
-                                    "priority": 0,
+                                    "priority": 1,
                                     "padding": [
                                         0,
                                         0,
@@ -908,28 +930,6 @@
                                     }
                                 },
                                 "layout": {
-                                    "priority": 1,
-                                    "padding": [
-                                        0,
-                                        0,
-                                        -35,
-                                        0
-                                    ]
-                                }
-                            },
-                            "circeCard": {
-                                "type": "Widget",
-                                "format": { "type": "Anchored" },
-                                "data": {
-                                    "key": "bossCard",
-                                    "variables": {
-                                        "image": "circePoster",
-                                        "description": "",
-                                        "name": "-CIRCE-",
-                                        "glow": false
-                                    }
-                                },
-                                "layout": {
                                     "priority": 2,
                                     "padding": [
                                         0,
@@ -946,7 +946,7 @@
                                     "key": "bossCard",
                                     "variables": {
                                         "image": "gaiaPoster",
-                                        "description": "",
+                                        "description": "Gaia, the primordial force of the earth. Defeat her to overcome nature itself.",
                                         "name": "-GAIA-",
                                         "glow": false
                                     }
