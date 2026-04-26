@@ -109,6 +109,9 @@ struct ItemUseAnimation {
     /** Scene-space position where the popup should appear at damage resolution. */
     cugl::Vec2 popupPosition;
 
+    /** Enemy effects to send alongside deferred damage when a non-host client resolves the hit. */
+    std::vector<EnemyEffectMessage> enemyEffects;
+
     /** Elapsed time in seconds since animation started. Used to calculate current frame. */
     float elapsedTime = 0.0f;
     
@@ -184,6 +187,7 @@ public:
         PLAYING,
         WON,
         LOST,
+        HOST_DISCONNECTED
     };
 protected:
 #pragma mark - Scene Graph Nodes
@@ -354,8 +358,8 @@ protected:
         float animationOutDuration = 0.2f;
         /** Target scale derived from the popup's font size relative to the base font size. */
         float displayScale = 1.0f;
-        enum AnimationPhase { IN, DISPLAY, OUT };
-        AnimationPhase phase = IN;
+        enum AnimationPhase { ANIM_IN, ANIM_DISPLAY, ANIM_OUT };
+        AnimationPhase phase = ANIM_IN;
     };
 
     /**
@@ -1468,11 +1472,15 @@ public:
     bool isDebugMode() const {return _debugMode; }
 
 #pragma mark - Networking
-    /* Checks if any updates about the state of the game were sent over the network. 
-    * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us. 
-    * If we are the host, we process any attack, heal, and pass messages. 
-    * After doing so, we send out a new authoritative version of the game state as the host*/
-    void handleNetworkUpdates();
+    /**
+     * Checks if any updates about the state of the game were sent over the network.
+     * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
+     * If we are the host, we process any attack, heal, effect, and pass messages, then tick timed player effects.
+     * After doing so, we send out a new authoritative version of the game state as the host.
+     *
+     * @param dt  The elapsed time since the previous frame, in seconds.
+     */
+    void handleNetworkUpdates(float dt);
     
     /**
      * Syncs the local game state with the current network player order.

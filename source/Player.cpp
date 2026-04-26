@@ -10,7 +10,7 @@
 
 Player::Player(const std::string& houseId, int playerNumber,
                     const std::string& playerName,
-                    const HouseLoader& loader){
+                    const HouseLoader& loader) {
     
     // Set player-specific info
     _playerNumber = playerNumber;
@@ -142,7 +142,7 @@ void Player::applyBarrier(float multiplier, float duration) {
 void Player::updateEffects(float dt) {
     if (_shieldDuration > 0.0f) {
         _shieldDuration = std::max(0.0f, _shieldDuration - dt);
-        if (_shieldDuration == 0.0f) {
+        if (_shieldDuration <= 0.0f) {
             _hasShield = false;
             _shieldHealth = 0.0f;
             if (_debug) {
@@ -155,7 +155,7 @@ void Player::updateEffects(float dt) {
 
     if (_barrierDuration > 0.0f) {
         _barrierDuration = std::max(0.0f, _barrierDuration - dt);
-        if (_barrierDuration == 0.0f) {
+        if (_barrierDuration <= 0.0f) {
             _hasBarrier = false;
             _barrierMultiplier = 1.0f;
         }
@@ -291,14 +291,14 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
         const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
         float returnedMagnitude = 0.0f;
         if (def->getType() == ItemDef::Type::Attack) {
-            target.updateHealth(-resolvedMagnitude);
+            target.takeDamage(resolvedMagnitude, getPlayerNumber());
             returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
-//                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
+                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
             }
         } else if (!def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-//                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target);
+                EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
             }
         }
 
