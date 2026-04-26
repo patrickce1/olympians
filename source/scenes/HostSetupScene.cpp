@@ -290,7 +290,7 @@ void HostSetupScene::configureStartButton() {
  */
 void HostSetupScene::slideTo(int newIndex) {
     if (_isAnimating) return;
-    if (newIndex < 0 || newIndex >= (int)_bossCards.size()) return;
+    if (newIndex < 0 || newIndex >= _bossCards.size()) return;
 
     _isAnimating = true;
 
