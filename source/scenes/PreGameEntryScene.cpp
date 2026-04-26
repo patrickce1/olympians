@@ -184,6 +184,7 @@ void PreGameEntryScene::update(float timestep) {
     if (!_active || !_loadingBar) return;
     
     _network->getNetworkUpdates();
+    updateNetworkOrder();
     
     // ── Disconnect detection ─────────────────────────────────────────────────
     // getNetworkUpdates() is called by whoever owns the network loop before
@@ -355,3 +356,27 @@ void PreGameEntryScene::dismissError() {
     _status = Status::ABORT;
 }
 
+/**
+ * Syncs the latest network state into GameState for real player slots only.
+ * Updates each real player's username and house selection to match what the
+ * network controller has received. AI slots are left completely untouched
+ * since their houses are already set in GameState from the lobby, and
+ * disconnected players are handled separately by the disconnect detection
+ * logic in update().
+ *
+ * Called every frame so that clients who arrived from HouseSelectScene or
+ * BossSelectScene (which do not run this sync) are caught up before
+ * GameScene starts.
+ */
+void PreGameEntryScene::updateNetworkOrder() {
+    if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
+
+    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const int totalSlots = (int)_gameState->getPlayers().size();
+
+    for (int i = 0; i < totalSlots; i++) {
+        if (_network->checkRealPlayer(i)) {
+            _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
+        }
+    }
+}
