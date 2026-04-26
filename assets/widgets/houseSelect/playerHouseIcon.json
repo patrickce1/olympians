@@ -1,5 +1,6 @@
 {
     "variables": {
+        "houseImage" : ["children", "emptyLocalIcon", "data", "variables", "houseImage"],
         "glow" : ["children", "lockedGlow", "data", "visible"]
     },
     "contents": {

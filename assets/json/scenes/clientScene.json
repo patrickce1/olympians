@@ -24,7 +24,7 @@
                 "data": {
                     "texture": "cloudBottom",
                     "anchor": [
-                        1,
+                        0.5,
                         0
                     ],
                     "size": [
@@ -35,11 +35,11 @@
                     "visible": true
                 },
                 "layout": {
-                    "x_anchor": "right",
+                    "x_anchor": "center",
                     "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.04
+                    "y_offset": 0
                 }
             },
             "indicator": {

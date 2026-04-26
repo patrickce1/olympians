@@ -314,11 +314,11 @@ void HouseSelectScene::update(float timestep) {
     // Forward to game scene if host started while we were here
     if (!_network->isHost() && _network->checkGameStarted()) {
         _network->clearQueues();
-        _status = Status::PRE_GAMESCENE_START;
+        _status = Status::GAMESCENE_START;
         return;
     }
     
-    updateNetworkOrder();
+    updateNetworkOrder();   // this will call getNetworkUpdates + clearQueues internally
     updateTeammateIcons();
     updateTakenHouseCards();
     _playerIconGlow->setVisible(hasLocalPlayerSelectedHouse());
