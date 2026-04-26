@@ -89,7 +89,7 @@ public:
         float mitigation = 0.0f;
         /** Duration in seconds for timed effects. */
         float duration = 0.0f;
-        /** Whether a vulnerable effect should apply to all four boss sides. */
+        /** Whether an item effect should apply to all four boss sides. */
         bool applyToAllSides = false;
     };
 
