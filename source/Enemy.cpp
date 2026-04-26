@@ -640,6 +640,7 @@ bool Enemy::applyVulnerableToAllSides(float multiplier, float duration) {
         return false;
     }
 
+    // updatedAnySide is for potential future use
     bool updatedAnySide = false;
     const float resolvedMultiplier = std::max(1.0f, multiplier);
     for (int side = 0; side < NUM_PLAYERS; side++) {
