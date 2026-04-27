@@ -142,16 +142,16 @@
                         0.5
                     ],
                     "size": [
-                        82.00000762939453,
-                        13.000000953674316
+                        437.06,
+                        69.29
                     ],
                     "position": [
                         35,
                         12.999999046325684
                     ],
-                    "angle": -3.4007486469852513e-22,
+                    "angle": 0,
                     "visible": true,
-                    "font": "gideon romanRegular12",
+                    "font": "mainFont",
                     "text": "USERNAME",
                     "foreground": "#000000ff",
                     "background": "#00000000",
@@ -162,7 +162,8 @@
                         0
                     ],
                     "valign": "top",
-                    "halign": "right"
+                    "halign": "right",
+                    "scale": 0.188
                 },
                 "children": {},
                 "layout": {

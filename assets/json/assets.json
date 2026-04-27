@@ -536,10 +536,6 @@
             "file": "fonts/GideonRoman-Regular.ttf",
             "size": 10
         },
-        "gideon romanRegular12": {
-            "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 12
-        },
         "gideon romanRegular48": {
             "file": "fonts/GideonRoman-Regular.ttf",
             "size": 48
@@ -673,7 +669,6 @@
     },
     "widgets": {
         "scene": "json/scenes/gameScene.json",
-        "gameArea": "widgets/gameArea.json",
         "inventory": "widgets/inventory.json",
         "playerSlot": "widgets/playerSlot.json",
         "leftIcon": "widgets/leftIcon.json",

@@ -142,8 +142,8 @@
                         1
                     ],
                     "size": [
-                        82,
-                        13
+                        437.06,
+                        69.29
                     ],
                     "position": [
                         9,
@@ -151,7 +151,7 @@
                     ],
                     "angle": 0,
                     "visible": true,
-                    "font": "gideon romanRegular12",
+                    "font": "mainFont",
                     "text": "USERNAME",
                     "foreground": "#000000ff",
                     "background": "#00000000",
@@ -162,7 +162,8 @@
                         0
                     ],
                     "valign": "top",
-                    "halign": "left"
+                    "halign": "left",
+                    "scale": 0.188
                 },
                 "children": {},
                 "layout": {

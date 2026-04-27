@@ -103,8 +103,8 @@
                                 1
                             ],
                             "size": [
-                                63,
-                                14
+                                335.79,
+                                74.62
                             ],
                             "position": [
                                 36,
@@ -112,7 +112,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular12",
+                            "font": "mainFont",
                             "text": "CERBERUS",
                             "foreground": "#553a19ff",
                             "background": "#00000000",
@@ -123,7 +123,8 @@
                                 0
                             ],
                             "valign": "middle",
-                            "halign": "center"
+                            "halign": "center",
+                            "scale": 0.188
                         },
                         "children": {},
                         "layout": {
@@ -406,8 +407,8 @@
                                         1
                                     ],
                                     "size": [
-                                        95.00000762939453,
-                                        13.000000953674316
+                                        506.35,
+                                        69.29
                                     ],
                                     "position": [
                                         16,
@@ -415,7 +416,7 @@
                                     ],
                                     "angle": 0,
                                     "visible": true,
-                                    "font": "gideon romanRegular12",
+                                    "font": "mainFont",
                                     "text": "USERNAME",
                                     "foreground": "#000000ff",
                                     "background": "#00000000",
@@ -426,7 +427,8 @@
                                         0
                                     ],
                                     "valign": "middle",
-                                    "halign": "left"
+                                    "halign": "left",
+                                    "scale": 0.188
                                 },
                                 "children": {},
                                 "layout": {
