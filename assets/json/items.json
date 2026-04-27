@@ -145,8 +145,14 @@
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "hades",
-            "baseValue": 20.0,
-            "effects": []
+            "baseValue": 0.0,
+            "effects": [
+                {
+                    "type": "barrier",
+                    "multiplier": 0.0,
+                    "duration": 1000.0
+                }
+            ]
         },
         {
             "id": "wheat",
