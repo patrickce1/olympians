@@ -424,6 +424,8 @@ void Enemy::update(float dt) {
      * @param amount  The time to advance, in seconds.
      */
 void Enemy::advanceStateTime(float amount) {
+    if (isStunned() || isLoved()) return;
+    
     _stateTime += amount;
     _attackLockout = std::max(0.0f, _attackLockout - amount);
 }
@@ -449,6 +451,23 @@ void Enemy::updateHealth(float delta) {
  */
 void Enemy::applyStun(float duration) {
     if (duration <= 0.0f) {
+        return;
+    }
+
+    // Check if stun is applied during attack animation; ignore stun if true
+    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+    const bool isInAttackPhase =
+        stateDef &&
+        stateDef->frameCount > 0 &&
+        stateDef->buildupFrameCount < stateDef->frameCount &&
+        _stateTime >= (stateDef->buildupFrameCount * stateDef->frameDuration);
+
+    if (isInAttackPhase) {
+        if (_debug) {
+            CULog("Enemy stun ignored during attack phase: enemy='%s' state='%s'",
+                  _enemyId.c_str(),
+                  stateDef->name.c_str());
+        }
         return;
     }
 
