@@ -92,17 +92,19 @@ void BossSelectScene::setupUI() {
     _bossSelectionCardContainer = _assets->get<scene2::SceneNode>("bossSelectScene.bossCarousel.bossCardContainer");
 
     if (_bossSelectionCardContainer) {
-        for (int i = 0; i < 3; i++) {
+        auto numCards = _bossSelectionCardContainer->getChildCount();
+        for (int i = 0; i < numCards; i++) {
             _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
         }
-        _carouselBasePos = _bossSelectionCardContainer->getPosition();
-        _carouselBaseIndex = _currentIndex;
+//        _carouselBaseIndex = _currentIndex;
+        _baseCarouselPosition = _bossSelectionCardContainer->getPosition();
     }
     
     auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("bossSelectScene.bossSelectionCarouselIcons");
     
     if (bossCarouselDotsContainer) {
-        for (int i = 0; i < 3; i++) {
+        auto numDots = bossCarouselDotsContainer->getChildCount();
+        for (int i = 0; i < numDots; i++) {
             _bossCarouselDotIndicators.push_back(bossCarouselDotsContainer->getChild(i));
         }
     }
@@ -190,6 +192,12 @@ void BossSelectScene::setActive(bool value) {
             touch->addEndListener(_touchKey, [this](const TouchEvent& event, bool focus){
                 this->endCarouselSwipe(event);
             });
+            _isAnimating = false;
+            Vec2 pos = _bossSelectionCardContainer->getPosition();
+            float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
+            _bossSelectionCardContainer->setPosition(Vec2(startX, pos.y));
+            _slideTarget = Vec2(startX, pos.y);
+            updateCarouselDots(1);
             
             _leftButton->activate();
             _rightButton->activate();
@@ -388,12 +396,11 @@ void BossSelectScene::slideTo(int newIndex) {
  */
 float BossSelectScene::getTargetXForIndex(int index) const {
     //converting an index into an absolute x position.
-    float carouselXAnchor = _carouselBasePos.x;
+    float carouselXAnchor = _baseCarouselPosition.x;
     int stepsFromBase = index - _carouselBaseIndex;
     //pixel offset from the anchor card to the target card
     float pixelOffset = (stepsFromBase * ROLE_CARD_WIDTH);
-    return carouselXAnchor - pixelOffset;
-}
+    return (carouselXAnchor - pixelOffset) + (ROLE_CARD_WIDTH / 2.0f);}
 
 /**
  * Resolves swipe result to a discrete selection.

@@ -85,11 +85,10 @@ protected:
     /** Whether an active touch is currently dragging the carousel. */
     bool _isTouchDragging = false;
 
-    /** Absolute snap baseline for carousel x-position. */
-    cugl::Vec2 _carouselBasePos;
-
     /** The index corresponding to _carouselBasePos. */
     int _carouselBaseIndex = 1;
+    /** The initial position of the boss carousel. */
+    cugl::Vec2 _baseCarouselPosition;
 
 public:
 #pragma mark -

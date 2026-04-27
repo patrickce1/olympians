@@ -59,11 +59,12 @@ public:
     */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets);
 
-    /*Returns the current state of the connection. Check the Status enum for possible values*/
+    /** Returns the current state of the connection. Check the Status enum for possible values */
     Status checkConnection();
 
-    /*Tells the network controller to 
-    Calling this function will populate the message queues and variables with new information*/
+    /** Tells the network controller to
+     *  Calling this function will populate the message queues and variables with new information
+     */
     void getNetworkUpdates();
 
     /*Clears all message queues. 
@@ -72,20 +73,21 @@ public:
     void clearQueues();
 
     /**
-    * Connects to the game server as specified in the assets file
-    *
-    * The {@link #init} method set the configuration data. This method simply uses
-    * this to create a new {@Link NetworkConnection}. 
-    *
-    * @param room  The room ID to use. Should be a 5-digit base 10 number
-    *
-    * To check the status of the connection, use {@link #checkConnection()}
-    */
+     * Connects to the game server as specified in the assets file
+     *
+     * The {@link #init} method set the configuration data. This method simply uses
+     * this to create a new {@Link NetworkConnection}.
+     *
+     * @param room  The room ID to use. Should be a 5-digit base 10 number
+     *
+     * To check the status of the connection, use {@link #checkConnection()}
+     */
     void joinRoom(const std::string room);
 
-    /*Creates a lobby for other players to join, 
-    IMPORTANT: the program could be still negotiating connection
-    by the end of the function. Use {@link #checkConnection()} to ensure status of connection*/
+    /** Creates a lobby for other players to join,
+     * IMPORTANT: the program could be still negotiating connection
+     * by the end of the function. Use {@link #checkConnection()} to ensure status of connection
+     */
     void hostRoom();
 
     /*Returns a string with the room id if the room exists. Nullptr otherwise*/
@@ -130,6 +132,17 @@ public:
      * @param playerID   The 0-based index of the player receiving the effect.
      */
     void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID);
+    
+    /**
+     * Sends an enemy-affecting attack effect to the host for authoritative processing.
+     *
+     * @param effectType The kind of enemy effect that was applied.
+     * @param magnitude  The resolved magnitude of the effect.
+     * @param duration   The timed duration of the effect, or 0 for instant effects.
+     * @param playerIndex The attacking player's slot, used for side-relative effects.
+     * @param applyToAllSides Whether the enemy effect should be applied to all four boss sides.
+     */
+    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides);
 
     /** The following are USED ONLY BY THE HOST */
     /** Send the GameState state as the new authoritative version of the game to all players */
@@ -182,6 +195,9 @@ public:
 
     /*Returns all support effect messages received after calling getNetworkUpdate().*/
     const std::vector<SupportEffectMessage>& getSupportEffectUpdates() const { return supportEffects; }
+
+    /*Returns all enemy effect messages received after calling getNetworkUpdate().*/
+    const std::vector<EnemyEffectMessage>& getEnemyEffectUpdates() const { return enemyEffects; }
 
     /*Returns the most recent version of the authoritative game state*/
     GameStateMessage getStateUpdate() { return _latestGameState; }
@@ -327,6 +343,14 @@ public:
      * @param slotIndex  The 0-based slot index to clear.
      */
     void clearAIHouse(int slotIndex);
+    
+    /**
+     * Returns true if the host dropped unexpectedly. Checks both the explicit
+     * _hostDisconnected flag and polls the connection state directly each frame,
+     * since CUGL's onDisconnect callback is unreliable when receive() is called
+     * every frame. CLIENT ONLY — always false on the host.
+     */
+    bool wasHostDisconnected() const;
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -348,31 +372,33 @@ protected:
         SESSION_TERMINATED = 11,
         BOSS_SELECT = 12,
         AI_HOUSE_SELECT = 13,
-        PLAYER_SUPPORT_EFFECT = 14
+        PLAYER_SUPPORT_EFFECT = 14,
+        ENEMY_EFFECT = 15
     };
 
-    /*Our network connection*/
-	std::shared_ptr<cugl::netcode::NetcodeConnection> _network;
+    /** Our network connection */
+    std::shared_ptr<cugl::netcode::NetcodeConnection> _network;
 
-    /*Serializer and desializer that lets us make bytes more readable and easy to decode across the network*/
+    /** Serializer and desializer that lets us make bytes more readable and easy to decode across the network */
     cugl::netcode::NetcodeSerializer _serializer;
     cugl::netcode::NetcodeDeserializer _deserializer;
 
-    /*Keeps track of the id of the game we are in*/
+    /** Keeps track of the id of the game we are in */
     std::string _gameid;
 
-    /*Keeps track of the connection status*/
+    /** Keeps track of the connection status */
     Status _status;
 
     /** The network configuration */
     cugl::netcode::NetcodeConfig _config;
     
 private:
-    /* Lists that keep track of the updates sent by players to the host */
+    /** Lists that keep track of the updates sent by players to the host */
     std::vector<AttackMessage> attacks;
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
     std::vector<SupportEffectMessage> supportEffects;
+    std::vector<EnemyEffectMessage> enemyEffects;
     GameStateMessage _latestGameState;
     //win/loss booleans
     bool _gameWon;

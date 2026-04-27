@@ -295,6 +295,13 @@ void HouseSelectScene::updateText(const std::shared_ptr<scene2::Button>& button,
  */
 void HouseSelectScene::update(float timestep) {
     _network->getNetworkUpdates();
+    
+    // Check if host disconnected
+    if (_network->wasHostDisconnected() && !_network->isHost()) {
+        _network->disconnect();
+        _status = Status::HOST_DISCONNECTED;
+        return;
+    }
 
     // Check kick BEFORE clearQueues wipes the flag
     if (!_network->isHost() && _network->wasSessionTerminated()) {
@@ -498,6 +505,10 @@ void HouseSelectScene::updateBossBGImage(std::string enemyID) {
         _backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>("cyclopsShowroom"));
     } else if (_currentBoss == "cerberus") {
         _backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusShowroom"));
+    } else if (_currentBoss == "circe") {
+        _backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>("circeShowroom"));
+    } else if (_currentBoss == "gaia") {
+        _backgroundImage->setTexture(_assets->get<cugl::graphics::Texture>("gaiaShowroom"));
     }
 }
 

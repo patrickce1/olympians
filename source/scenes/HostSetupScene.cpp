@@ -70,6 +70,15 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, con
  * carousel item list and configures the placeholder label.
  */
 void HostSetupScene::setupUI() {
+    _errorPopup = _assets->get<scene2::SceneNode>("hostSetupScene.errorPopup");
+    if (_errorPopup) {
+        auto overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(
+            _errorPopup->getChildByName("overlayBG"));
+        overlay->setContentSize(getSize());
+        overlay->setAnchor(Vec2::ANCHOR_CENTER);
+        overlay->setPosition(getSize() / 2);
+        _errorPopup->setVisible(false);
+    }
 
     _startGame = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("hostSetupScene.start"));
@@ -92,9 +101,11 @@ void HostSetupScene::setupUI() {
     _bossSelectionCardContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.bossCardContainer");
 
     if (_bossSelectionCardContainer) {
-        for (int i = 0; i < 3; i++) {
+        auto numCards = _bossSelectionCardContainer->getChildCount();
+        for (int i = 0; i < numCards; i++) {
             _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
         }
+        _baseCarouselPosition = _bossSelectionCardContainer->getPosition();
     }
 
     std::shared_ptr<cugl::scene2::Label> placeName =
@@ -110,7 +121,8 @@ void HostSetupScene::setupUI() {
     auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossSelectionCarouselIcons");
     
     if (bossCarouselDotsContainer) {
-        for (int i = 0; i < 3; i++) {
+        auto numDots = bossCarouselDotsContainer->getChildCount();
+        for (int i = 0; i < numDots; i++) {
             _bossCarouselDotIndicators.push_back(bossCarouselDotsContainer->getChild(i));
         }
     }
@@ -123,7 +135,6 @@ void HostSetupScene::setupUI() {
  * previous menu, and navigating the role selection carousel.
  */
 void HostSetupScene::setupListeners() {
-    
     _startGame->addListener([this](const std::string& name, bool down) {
         if (!down) {
             if(_hostName->getText() != ""){
@@ -195,6 +206,14 @@ void HostSetupScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = WAIT;
+            _currentIndex = 1;
+            _isAnimating = false;
+            Vec2 pos = _bossSelectionCardContainer->getPosition();
+            float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
+            _bossSelectionCardContainer->setPosition(Vec2(startX, pos.y));
+            _slideTarget = Vec2(startX, pos.y);
+            updateCarouselDots(1);
+            
             _startGame->activate();
             _leftButton->activate();
             _rightButton->activate();
@@ -243,6 +262,15 @@ void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, c
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void HostSetupScene::update(float timestep) {
+    // Auto-dismiss the error popup after ERROR_DISPLAY_TIME seconds.
+    if (_errorPopup && _errorPopup->isVisible()) {
+        _errorTimer += timestep;
+        if (_errorTimer >= ERROR_DISPLAY_TIME) {
+            _errorPopup->setVisible(false);
+            _errorTimer = 0.0f;
+        }
+    }
+    
     if (_isAnimating) {
         Vec2 current = _bossSelectionCardContainer->getPosition();
         Vec2 next = current.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor
@@ -342,4 +370,23 @@ bool HostSetupScene::loadBosses() {
         return false;
     }
     return true;
+}
+
+/**
+ * Shows the "Host disconnected" error popup.
+ *
+ * Mirrors the showError() pattern from ClientScene. Sets the errorLabel
+ * text, makes the popup visible, and resets the auto-dismiss timer so
+ * update() will hide it after ERROR_DISPLAY_TIME seconds.
+ */
+void HostSetupScene::showHostDisconnectedError() {
+    if (_errorPopup) {
+        auto label = std::dynamic_pointer_cast<scene2::Label>(
+            _errorPopup->getChildByName("errorLabel"));
+        if (label) {
+            label->setText("Host disconnected.\nReturning to Quest Select");
+        }
+        _errorPopup->setVisible(true);
+        _errorTimer = 0.0f;
+    }
 }
