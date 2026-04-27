@@ -213,7 +213,7 @@ bool Enemy::isInAttackAnimationPhase() const {
     return stateDef &&
            stateDef->frameCount > 0 &&
            stateDef->buildupFrameCount < stateDef->frameCount &&
-           _stateTime >= (stateDef->buildupFrameCount * stateDef->frameDuration);
+           _stateTime >= (stateDef->buildUpTime);
 }
 
 /**
