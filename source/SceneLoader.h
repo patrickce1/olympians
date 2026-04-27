@@ -8,6 +8,7 @@
 #include "scenes/LobbyScene.h"
 #include "scenes/HouseSelectScene.h"
 #include "scenes/BossSelectScene.h"
+#include "scenes/SettingsScene.h"
 #include "scenes/WinLoseScene.h"
 #include "scenes/PreGameEntryScene.h"
 #include "InputController.h"
@@ -41,7 +42,14 @@ protected:
         PREGAMEENTRY,
         GAME
     };
+    
+    /**
+     * Whether the current scene is paused because settings is open.
+     * Used to gate update() calls on the underlying scene.
+     */
+    bool _paused = false;
 
+    /** The current scene */
     State _currentScene;
 
     /** The loaders to (synchronously) load in assets */
@@ -88,6 +96,9 @@ protected:
 
     /*The scene where the host changes what boss they want to play with and where other player can view all the different bosses */
     BossSelectScene _bossSelectScene;
+    
+    /*The persistent settings overlay, shown on top of any active scene*/
+    SettingsScene _settingsScene;
 
     /*The scene where the players learn whether they won or lost */
     WinLoseScene _winLoseScene;
