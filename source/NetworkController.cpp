@@ -258,13 +258,13 @@ void NetworkController::disconnect() {
     _network->close();
     _network = nullptr;
     _onlinePlayers.clear();
-    _gameStarted = false;
     _gameWon = false;
     _gameLost = false;
     _sessionTerminated = false;
     _disconnectedSlots.clear();
     _enemy = "";
     _aIHouses.clear();
+    _hostsCurrentScene = -1;
 }
 
 /**
@@ -373,10 +373,6 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			passes.push_back(passMsg);
 			break;
 		}
-		case MessageType::GAME_START: {
-			_gameStarted = true;
-			break;
-		}
 		case MessageType::PLAYER_JOIN: {
 			std::string playerName = _deserializer.readString();
 			CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
@@ -479,6 +475,10 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _aIHouses[slot] = houseID;
             break;
         }
+        case MessageType::HOSTS_CURRENT_SCENE: {
+            _hostsCurrentScene = _deserializer.readSint32();
+            break;
+        }
 	}
 }
 
@@ -510,7 +510,7 @@ void NetworkController::clearQueues() {
 	passes.clear();
 	_gameWon = false;
 	_gameLost = false;
-	_gameStarted = false;
+    _hostsCurrentScene = -1;
     _sessionTerminated = false;
     _disconnectedSlots.clear();
 }
@@ -627,26 +627,6 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
 		_network->sendToHost(_serializer.serialize());
 	}
 	_serializer.reset();
-}
-
-/**
- * Broadcasts a game start message to all connected clients.
- * Should only be called by the host when the game is ready to begin.
- */
-void NetworkController::broadcastGameStart(){
-	_serializer.writeSint32(MessageType::GAME_START);
-	_network->broadcast(_serializer.serialize());
-	_serializer.reset();
-    _gameStarted = true;
-}
-
-/**
- * Returns whether the host has broadcast a game start message.
- *
- * @return  true if the game has started, false otherwise.
- */
-bool NetworkController::checkGameStarted() {
-	return _gameStarted;
 }
 
 /**
@@ -1027,4 +1007,18 @@ bool NetworkController::wasHostDisconnected() const {
             || state == NetcodeConnection::State::FAILED;
     }
     return false;
+}
+
+/**
+ * Broadcasts the host's current scene state to all clients.
+ * Called every frame by the host so clients can mirror scene transitions
+ * even if they missed the original transition signal.
+ *
+ * @param sceneState  0 = PreGameEntryScene, 1 = GameScene
+ */
+void NetworkController::broadcastHostsCurrentScene(int sceneState) {
+    _serializer.writeSint32(MessageType::HOSTS_CURRENT_SCENE);
+    _serializer.writeSint32(sceneState);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }

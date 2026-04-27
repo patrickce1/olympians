@@ -351,6 +351,24 @@ public:
      * every frame. CLIENT ONLY — always false on the host.
      */
     bool wasHostDisconnected() const;
+    
+    /**
+     * Broadcasts the host's current scene state to all clients every frame.
+     * Clients use this to mirror the host's scene transitions, ensuring no
+     * client gets left behind if they missed the original transition signal.
+     *
+     * @param sceneState  0 = PreGameEntryScene, 1 = GameScene
+     */
+    void broadcastHostsCurrentScene(int sceneState);
+
+    /**
+     * Returns the most recent scene state broadcast by the host.
+     * Used by clients to detect when the host has transitioned scenes
+     * and advance accordingly.
+     *
+     * @return  0 = PreGameEntryScene, 1 = GameScene, -1 = unknown (not yet received)
+     */
+    int getHostsCurrentScene() const { return _hostsCurrentScene; }
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -362,7 +380,7 @@ protected:
         PLAYER_HEAL = 1,
         PLAYER_PASS = 2,
         GAME_UPDATE = 3,
-        GAME_START = 4,
+        HOSTS_CURRENT_SCENE = 4,
         LOBBY_UPDATE = 5,
         PLAYER_JOIN = 6,
         SELECT_HOUSE = 7,
@@ -407,8 +425,8 @@ private:
     // A vector storing the slots containing all the disconnected players that haven't been reassigned.
     std::vector<int> _disconnectedSlots;
 
-    //Boolean that tells us if the game has been started by the host in the last network cycle
-    bool _gameStarted;
+    // The last scene state broadcast by the host. -1 = unknown, 0 = pregame, 1 = game.
+    int _hostsCurrentScene = -1;
 
     //Stores the most recent player order that we got. The host's version of this is authoritative
     std::vector<NetworkedPlayer> _onlinePlayers;

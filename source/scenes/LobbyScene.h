@@ -26,7 +26,8 @@ public:
         WAIT,
         SELECT,
         BOSSSELECT,
-        START,
+        PRE_GAME_START,        // host is in PreGameEntryScene
+        GAME_START,            // host is already in GameScene
         ABORT,
         HOST_LEFT,
         HOST_DISCONNECTED

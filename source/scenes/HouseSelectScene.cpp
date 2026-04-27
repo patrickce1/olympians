@@ -311,9 +311,8 @@ void HouseSelectScene::update(float timestep) {
         return;
     }
     
-    // Forward to game scene if host started while we were here
-    if (!_network->isHost() && _network->checkGameStarted()) {
-        _network->clearQueues();
+    // Forward to PreGameScene
+    if (_network->getHostsCurrentScene() == 0) {
         _status = Status::PRE_GAMESCENE_START;
         return;
     }

@@ -183,6 +183,9 @@ void PreGameEntryScene::setActive(bool value) {
 void PreGameEntryScene::update(float timestep) {
     if (!_active || !_loadingBar) return;
     
+    if (_network->isHost()) {
+        _network->broadcastHostsCurrentScene(0);
+    }
     _network->getNetworkUpdates();
     
     // Host disconnect

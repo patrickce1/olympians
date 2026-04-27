@@ -2428,6 +2428,10 @@ void GameScene::updateDropZoneVisibility(){
  */
 void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
+    
+    if (_network->isHost()) {
+        _network->broadcastHostsCurrentScene(1);
+    }
 
     handleResetButton(input);
     handlePlayerInput(input);

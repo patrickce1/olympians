@@ -366,12 +366,19 @@ void SceneLoader::update(float dt) {
         case State::LOBBY:
             _lobbyScene.update(dt);
             switch (_lobbyScene.getStatus()) {
-                case LobbyScene::Status::START:
+                case LobbyScene::Status::PRE_GAME_START:
                     CULog("Transitioning to PreGameEntryScene...");
-                    _audio.playMusic("lobby");
+                    _audio.playMusic("battle");
                     _preGameEntryScene.setActive(true);
                     _lobbyScene.setActive(false);
                     _currentScene = State::PREGAMEENTRY;
+                    break;
+                case LobbyScene::Status::GAME_START:
+                    CULog("Transitioning directly to GameScene from Lobby — host already in game...");
+                    _audio.playMusic("battle");
+                    _gameScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::GAME;
                     break;
                 case LobbyScene::Status::SELECT:
                     CULog("Transitioning to HouseSelectScene...");

@@ -155,8 +155,7 @@ void LobbyScene::setupListeners() {
         //Confirm all players have house according to network.
         if (!_network->allPlayersSelectedHouse()) return;
 
-        _network->broadcastGameStart();
-        _status = Status::START;
+        _status = Status::PRE_GAME_START;
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
@@ -463,8 +462,15 @@ void LobbyScene::update(float timestep) {
 
     _network->getNetworkUpdates();
     if (!_network->isHost()) {
-        if (_network->checkGameStarted()) {
-            _status = START;
+        
+        // The host is in preGameScene
+        if (_network->getHostsCurrentScene() == 0) {
+            _status = Status::PRE_GAME_START;
+        }
+        
+        // The host is in GameScene
+        if (_network->getHostsCurrentScene() == 1) {
+            _status = Status::GAME_START;
         }
         
         // Host voluntarily left — they broadcast SESSION_TERMINATED before disconnecting.
