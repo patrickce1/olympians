@@ -330,6 +330,13 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
     }
 }
 
+/* Goes through the list of boss heal messages in heals and increase boss health according to the heal amount*/
+void GameState::bossHealUpdates(std::vector<BossHealMessage> bossHeals) {
+    for (BossHealMessage bossHeal : bossHeals) {
+        _enemy->updateHealth(bossHeal.healAmount);
+    }
+}
+
 /**
  * Goes through the list of support effect messages and applies them to the specified player.
  *

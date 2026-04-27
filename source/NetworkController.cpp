@@ -479,6 +479,11 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _aIHouses[slot] = houseID;
             break;
         }
+        case MessageType::BOSS_HEAL: {
+            BossHealMessage msg;
+            msg.healAmount = _deserializer.readFloat();
+            bossHeals.push_back(msg);
+        }
 	}
 }
 
@@ -528,6 +533,20 @@ void NetworkController::broadcastDamage(float damageAmount, int playerIndex) {
 	_serializer.writeSint32(playerIndex);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
+}
+
+
+/**
+  * Sends a message about the boss being healed by a player
+  * For now, intended to only be used
+  *
+  * @param healAmount is the amount of health healed
+  */
+void NetworkController::broadcastBossHeal(float healAmount) {
+    _serializer.writeSint32(MessageType::BOSS_HEAL);
+    _serializer.writeFloat(healAmount);
+    _network->sendToHost(_serializer.serialize());
+    _serializer.reset();
 }
 
 /**

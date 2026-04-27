@@ -111,6 +111,14 @@ public:
     void broadcastDamage(float damageAmount, int playerIndex);
 
     /**
+      * Sends a message about the boss being healed by a player
+      * For now, intended to only be used 
+      * 
+      * @param healAmount is the amount of health healed
+      */
+    void broadcastBossHeal(float healAmount);
+
+    /**
      * Sends a message to the corresponding player that an item with the given definition has been passed to them.
      * If sent to an AI player, the host handles it; otherwise, the receiving player handles it on their end.
      *
@@ -192,6 +200,9 @@ public:
 
     /*Returns all the networking messages about healing we recieved after calling getNetworkUpdate()*/
     const std::vector<HealMessage>& getHealUpdates() const { return heals; }
+
+    /*Returns all the networking messages about players healing the boss we recieved after called getNetworkUpdate().*/
+    const std::vector<BossHealMessage>& getBossHealUpdates() const { return bossHeals; }
 
     /*Returns all support effect messages received after calling getNetworkUpdate().*/
     const std::vector<SupportEffectMessage>& getSupportEffectUpdates() const { return supportEffects; }
@@ -373,7 +384,8 @@ protected:
         BOSS_SELECT = 12,
         AI_HOUSE_SELECT = 13,
         PLAYER_SUPPORT_EFFECT = 14,
-        ENEMY_EFFECT = 15
+        ENEMY_EFFECT = 15,
+        BOSS_HEAL = 16
     };
 
     /** Our network connection */
@@ -395,6 +407,7 @@ protected:
 private:
     /** Lists that keep track of the updates sent by players to the host */
     std::vector<AttackMessage> attacks;
+    std::vector<BossHealMessage> bossHeals;
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
     std::vector<SupportEffectMessage> supportEffects;

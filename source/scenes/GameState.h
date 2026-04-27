@@ -162,6 +162,10 @@ public:
     /** Updates the gameState object by handling all healing requests in the messages in `heals` */
     void healUpdates(std::vector<HealMessage> heals);
 
+    /** Updates the gameState object by handling all messages about players healing the boss.
+      @param bossHeals is a list of all healing messages recieved*/
+    void bossHealUpdates(std::vector<BossHealMessage> bossHeals);
+
     /**
      * Applies support effect messages received from clients to the authoritative game state.
      *

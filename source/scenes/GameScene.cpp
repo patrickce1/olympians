@@ -771,6 +771,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
 
     if (!_network->isHost()) {
+        //TODO custom healing effect
         _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
         broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber()));
     }
@@ -1827,6 +1828,7 @@ void GameScene::handleNetworkUpdates(float dt) {
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
+        _gameState.bossHealUpdates(_network->getBossHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
 
@@ -1900,16 +1902,7 @@ void GameScene::handleGaiaSpawn() {
         if (_network->isHost() && gaia->spawnRockForPlayer()) {
             CULog("Time to spawn for %d," );
             int target = gaia->getTargetIndex();
-            //_gameState.getPlayerById(target)
-            _itemController.giveItemByID(_gameState.getLocalPlayer(), "gaia_rock");
-
-            ////if we're spawning for a player online we need to do networking, otherwise we just go ahead
-            //bool localSpawn = 
-            //if (!(_gameState.getPlayerById(target)->isAI() || _gameState.getPlayerById(target) ==)) {
-            //    //networked broadcast to the player
-            //}
-            //else {
-            //}
+            _itemController.giveItemByID(_gameState.getPlayerById(target), "gaia_rock");
         }
         else {
             //if the player is not us or AI, we need to send a spawn message to that player
@@ -3402,6 +3395,7 @@ void GameScene::updateItemUseAnimations(float dt) {
 
                     // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
+                        //TODO custom healing effect
                         _network->broadcastDamage(activeAnim.damageAmount, playerNum);
                         broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
                     }
