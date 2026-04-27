@@ -341,10 +341,10 @@ void ClientScene::update(float timestep) {
 /**
  * Returns true if the user has requested to open settings, then resets the flag.
  */
-bool ClientScene::consumeSettings() {
-    bool val = _pendingSettings;
+bool ClientScene::shouldOpenSettings() {
+    bool ifPendingSettings = _pendingSettings;
     _pendingSettings = false;
-    return val;
+    return ifPendingSettings;
 };
 
 // ---------------------------------------------------------------------------
@@ -373,8 +373,8 @@ void ClientScene::setInputEnabled(bool enabled) {
         _hostButton->deactivate();
         _playerName->deactivate();
         _settingsButton->deactivate();
+        _backButton->deactivate();
         for (auto& btn : _keypadButtons) btn->deactivate();
-        // Keep _backButton active so the user can cancel the join attempt.
     }
 }
 

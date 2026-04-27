@@ -298,10 +298,10 @@ void HostSetupScene::update(float timestep) {
 /**
  * Returns true if the user has requested to open settings, then resets the flag.
  */
-bool HostSetupScene::consumeSettings() {
-    bool val = _pendingSettings;
+bool HostSetupScene::shouldOpenSettings() {
+    bool ifPendingSettings = _pendingSettings;
     _pendingSettings = false;
-    return val;
+    return ifPendingSettings;
 };
 
 /**

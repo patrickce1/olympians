@@ -69,7 +69,7 @@ void SettingsScene::setupUI() {
         _scene->getChildByName("musicSlider"));
     
     _effectsButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("settingsScene.screenShake.toggleButton"));
+        _assets->get<scene2::SceneNode>("settingsScene.vibrations.toggleButton"));
     _effectsButton->setDown(true);
     
     _hapticsButton = std::dynamic_pointer_cast<scene2::Button>(

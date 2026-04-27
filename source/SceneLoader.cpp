@@ -359,7 +359,7 @@ void SceneLoader::update(float dt) {
         break;
     case State::CLIENT:
         _clientScene.update(dt);
-        if (_clientScene.consumeSettings()) {
+        if (_clientScene.shouldOpenSettings()) {
             _clientScene.setInputEnabled(false);
             _settingsScene.setActive(true);
         }
@@ -389,7 +389,7 @@ void SceneLoader::update(float dt) {
         break;
     case State::HOSTSETUP:
         _hostSetupScene.update(dt);
-        if (_hostSetupScene.consumeSettings()) {
+        if (_hostSetupScene.shouldOpenSettings()) {
             _hostSetupScene.setInputEnabled(false);
             _settingsScene.setActive(true);
         }

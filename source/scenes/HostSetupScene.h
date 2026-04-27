@@ -195,7 +195,7 @@ public:
     /**
      * Returns true if the user has requested to open settings, then resets the flag.
      */
-    bool consumeSettings();
+    bool shouldOpenSettings();
     
     /**
      * Enables or disables all interactive input controls.
