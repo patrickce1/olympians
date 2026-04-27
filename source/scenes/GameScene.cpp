@@ -771,8 +771,13 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
 
     if (!_network->isHost()) {
-        //TODO custom healing effect
-        _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
+        //TODO if we add an animation for gaia's rock we will have to change it
+        if (def->getId() == "gaia_rock") {
+            _network->broadcastBossHeal(resolvedMagnitude);
+        }
+        else {
+            _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
+        }
         broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber()));
     }
     if (_network->isHost() && _audio) {
@@ -1835,6 +1840,7 @@ void GameScene::handleNetworkUpdates(float dt) {
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
+        _gameState.bossHealUpdates(_network->getBossHealUpdates());
 
         for (auto& player : _gameState.getPlayers()) {
             if (player) {

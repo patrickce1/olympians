@@ -483,6 +483,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             BossHealMessage msg;
             msg.healAmount = _deserializer.readFloat();
             bossHeals.push_back(msg);
+            break;
         }
         case MessageType::GAIA_SPAWN: {
             gaiaSpawns++;
