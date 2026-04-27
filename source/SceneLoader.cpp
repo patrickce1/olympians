@@ -449,6 +449,7 @@ void SceneLoader::update(float dt) {
                         _gameScene.resetGameState();
                         _houseSelectScene.setPendingReset(true);
                         _hostSetupScene.setActive(true);
+                        _hostSetupScene.showHostDisconnectedError();
                         _houseSelectScene.setActive(false);
                         _currentScene = State::HOSTSETUP;
                     } else {
@@ -485,6 +486,7 @@ void SceneLoader::update(float dt) {
                         _gameScene.resetGameState();
                         _houseSelectScene.setPendingReset(true);
                         _hostSetupScene.setActive(true);
+                        _hostSetupScene.showHostDisconnectedError();
                         _bossSelectScene.setActive(false);
                         _currentScene = State::HOSTSETUP;
                     } else {
