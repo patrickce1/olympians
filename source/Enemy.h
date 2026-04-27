@@ -184,12 +184,15 @@ public:
     
     /** Returns the remaining stun duration in seconds. */
     float getStunDuration() const { return _stunDuration; }
+    
     /**
      * Applies or refreshes a stun without changing the enemy's current state.
+     * Will NOT apply if the enemy is in the attack phase.
      *
      * @param duration  The stun time to apply, in seconds.
      */
     void applyStun(float duration);
+    
     /**
      * Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state.
      *
