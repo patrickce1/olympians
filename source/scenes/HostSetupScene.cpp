@@ -229,7 +229,6 @@ void HostSetupScene::setActive(bool value) {
                  this->endCarouselSwipe(event);
              });
              
-            _currentIndex = 1;
             _isAnimating = false;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
             float startX = getTargetXForIndex(_currentIndex);
