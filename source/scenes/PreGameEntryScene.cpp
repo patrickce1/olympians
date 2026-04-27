@@ -188,6 +188,10 @@ void PreGameEntryScene::update(float timestep) {
     }
     _network->getNetworkUpdates();
     
+    // Client disconnect
+    updateNetworkOrder();
+    if (_status == Status::PLAYER_DISCONNECTED) return;
+    
     // Host disconnect
     if (!_network->isHost()) {
         if (_network->wasHostDisconnected()) {
@@ -197,20 +201,7 @@ void PreGameEntryScene::update(float timestep) {
             return;
         }
     }
-    
-    // Client disconnect
-    updateNetworkOrder();
-    if (_status == Status::PLAYER_DISCONNECTED) return;
-    
-    //Host disconnect
-    if (!_network->isHost()) {
-        if (_network->wasHostDisconnected()) {
-            _network->clearQueues();
-            _network->disconnect();
-            _status = Status::HOST_DISCONNECTED;
-            return;
-        }
-    }
+
 
     // Increase progress based on time
     if (!_timeline->isActive("bottom_clouds") && _status != Status::ERROR_DISPLAY){
@@ -383,26 +374,35 @@ void PreGameEntryScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
     const auto& players = _gameState->getPlayers();
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
     const auto& disconnectedSlots = _network->getDisconnectedSlots();
     const int totalSlots = (int)players.size();
 
-    // Check disconnected slots first — read the name from GameState before
+    CULog("PreGameEntryScene::updateNetworkOrder — disconnectedSlots size: %d", (int)disconnectedSlots.size());
+    for (int slot : disconnectedSlots) {
+        CULog("  disconnected slot: %d", slot);
+    }
+
+    // Check disconnected slots first — read name from GameState before
     // any demoteToAI call can overwrite it.
     for (int slot : disconnectedSlots) {
         if (slot < 0 || slot >= totalSlots) continue;
-        if (players[slot]->isAI()) continue;
-
+        CULog("PreGameEntryScene::updateNetworkOrder — detecting disconnect at slot %d name='%s'",
+              slot, players[slot]->getPlayerName().c_str());
         _disconnectMessage = players[slot]->getPlayerName() + " disconnected";
         _status = Status::PLAYER_DISCONNECTED;
         return;
     }
 
-    // Sync real players and AI slots from network state.
     for (int i = 0; i < totalSlots; i++) {
-        if (_network->checkRealPlayer(i)) {
-            _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
+        auto it = slotToPlayer.find(i);
+        if (it != slotToPlayer.end()) {
+            CULog("PreGameEntryScene::updateNetworkOrder — slot %d: setRealPlayer name='%s' house='%s'",
+                  i, it->second.username.c_str(), it->second.houseID.c_str());
+            _gameState->setRealPlayer(i, it->second.username, it->second.houseID);
         } else {
+            CULog("PreGameEntryScene::updateNetworkOrder — slot %d: demoteToAI house='%s'",
+                  i, _network->getAIHouse(i).c_str());
             _gameState->demoteToAI(i, _network->getAIHouse(i));
         }
     }

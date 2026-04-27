@@ -229,7 +229,7 @@ public:
     bool checkRealPlayer(int playerID);
 
     /*Returns the list of networked players, carrying their network ID and username*/
-    const std::vector<NetworkedPlayer> getNetworkedPlayers();
+    const std::unordered_map<int, NetworkedPlayer>& getNetworkedPlayers() const { return _slotToPlayer; }
     
     /**
      * Returns true if the given houseID is already claimed by any player
@@ -326,7 +326,7 @@ public:
     
     /**
      * Broadcasts the host's house selection for an AI slot to all clients.
-     * Clients will update that slot's houseID in their local _onlinePlayers
+     * Clients will update that slot's houseID in their local _uiudToSlot
      * list upon receiving this message.
      *
      * @param slotIndex  The 0-based AI slot index being configured.
@@ -366,7 +366,7 @@ public:
      * Used by clients to detect when the host has transitioned scenes
      * and advance accordingly.
      *
-     * @return  0 = PreGameEntryScene, 1 = GameScene, -1 = unknown (not yet received)
+     * @return  0 = PreGameEntryScene, 1 = GameScene, 2 = LobbyScene -1 = unknown (not yet received)
      */
     int getHostsCurrentScene() const { return _hostsCurrentScene; }
 
@@ -428,8 +428,11 @@ private:
     // The last scene state broadcast by the host. -1 = unknown, 0 = pregame, 1 = game.
     int _hostsCurrentScene = -1;
 
-    //Stores the most recent player order that we got. The host's version of this is authoritative
-    std::vector<NetworkedPlayer> _onlinePlayers;
+    /** Maps each player's network UUID to their fixed game slot index. */
+    std::unordered_map<std::string, int> _uuidToSlot;
+    
+    /** Maps each game slot index to that player's networked data. */
+    std::unordered_map<int, NetworkedPlayer> _slotToPlayer;
     
     // True if host sent SESSION_TERMINATED this network cycle
     bool _sessionTerminated = false;

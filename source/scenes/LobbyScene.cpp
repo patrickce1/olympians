@@ -362,21 +362,21 @@ std::vector<Player*> LobbyScene::remapPlayersForDisplay() {
 void LobbyScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
+    const auto& disconnectedSlots = _network->getDisconnectedSlots();
     const int totalSlots = (int)_gameState->getPlayers().size();
 
     for (int i = 0; i < totalSlots; i++) {
-        if (_network->checkRealPlayer(i)) {
-            // Real player slot — if it previously had an AI house, clear it first
-            if (_network->isHost() && !_network->getAIHouse(i).empty()) {
-                _gameState->setRealPlayer(i, networkedPlayers[i].username, "");
-                _network->clearAIHouse(i);
+        auto pair = slotToPlayer.find(i);
+        if (pair != slotToPlayer.end()) {
+            // Real player slot — check if they just disconnected
+            if (std::find(disconnectedSlots.begin(), disconnectedSlots.end(), i) != disconnectedSlots.end()) {
+                _gameState->demoteToAI(i, _network->getAIHouse(i));
+            } else {
+                _gameState->setRealPlayer(i, pair->second.username, pair->second.houseID);
             }
-            _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
         } else {
-            // AI slot — always use demoteToAI() to preserve isAI() == true.
-            // House is synced from the host's authoritative _aIHouses map,
-            // which is kept in sync across all clients via LOBBY_UPDATE.
+            // AI slot — sync house assignment
             _gameState->demoteToAI(i, _network->getAIHouse(i));
         }
     }
@@ -387,14 +387,13 @@ void LobbyScene::updateNetworkOrder() {
  house select screen.
  */
 void LobbyScene::updateLocalPlayerSelectedHouse() {
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
     
-    // check if local player has selected house
     int localIndex = _network->getLocalPlayerNumber();
 
-    if (localIndex < networkedPlayers.size()) {
-        const auto& player = networkedPlayers[localIndex];
-        _hasSelectedHouse = (!player.houseID.empty());
+    auto pair = slotToPlayer.find(localIndex);
+    if (pair != slotToPlayer.end()) {
+        _hasSelectedHouse = !pair->second.houseID.empty();
     } else {
         _hasSelectedHouse = false;
     }
@@ -440,6 +439,11 @@ void LobbyScene::update(float timestep) {
             _errorPopup->setVisible(false);
             _errorTimer = 0.0f;
         }
+    }
+    
+    //Host is in lobbyScene
+    if (_network->isHost()) {
+        _network->broadcastHostsCurrentScene(2);
     }
     
     //get the room once we are fully connected

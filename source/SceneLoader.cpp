@@ -511,6 +511,7 @@ void SceneLoader::update(float dt) {
                     break;
                 case PreGameEntryScene::Status::PLAYER_DISCONNECTED:
                     CULog("Player disconnected in PreGameEntry — returning to LobbyScene...");
+                    _audio.playMusic("lobby");
                     _lobbyScene.setDisconnectBanner(
                         _preGameEntryScene.getDisconnectMessage());
                     _lobbyScene.setActive(true);
