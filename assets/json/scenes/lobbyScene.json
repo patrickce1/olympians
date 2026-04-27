@@ -103,8 +103,8 @@
                                 1
                             ],
                             "size": [
-                                108,
-                                19
+                                432,
+                                76
                             ],
                             "position": [
                                 116.00009155273438,
@@ -112,7 +112,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular16",
+                            "font": "mainFont",
                             "text": "BEGIN QUEST",
                             "foreground": "#ffd9a9ff",
                             "background": "#00000000",
@@ -123,7 +123,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "center"
+                            "halign": "center",
+                            "scale": 0.25
                         },
                         "children": {},
                         "layout": {
@@ -419,8 +420,8 @@
                                         1
                                     ],
                                     "size": [
-                                        90,
-                                        19
+                                        360,
+                                        76
                                     ],
                                     "position": [
                                         65,
@@ -428,7 +429,7 @@
                                     ],
                                     "angle": 0,
                                     "visible": true,
-                                    "font": "gideon romanRegular16",
+                                    "font": "mainFont",
                                     "text": "waiting...",
                                     "foreground": "#fdc782ff",
                                     "background": "#00000000",
@@ -439,7 +440,8 @@
                                         0
                                     ],
                                     "valign": "top",
-                                    "halign": "center"
+                                    "halign": "center",
+                                    "scale": 0.25
                                 },
                                 "children": {},
                                 "layout": {
@@ -580,8 +582,8 @@
                                         0.5
                                     ],
                                     "size": [
-                                        90,
-                                        19
+                                        360,
+                                        76
                                     ],
                                     "position": [
                                         42.42641067504883,
@@ -589,7 +591,7 @@
                                     ],
                                     "angle": 0,
                                     "visible": true,
-                                    "font": "gideon romanRegular16",
+                                    "font": "mainFont",
                                     "text": "waiting...",
                                     "foreground": "#fdc782ff",
                                     "background": "#00000000",
@@ -600,7 +602,8 @@
                                         0
                                     ],
                                     "valign": "top",
-                                    "halign": "center"
+                                    "halign": "center",
+                                    "scale": 0.25
                                 },
                                 "children": {},
                                 "layout": {
@@ -655,8 +658,8 @@
                                         0.5
                                     ],
                                     "size": [
-                                        90,
-                                        19
+                                        360,
+                                        76
                                     ],
                                     "position": [
                                         42.42641067504883,
@@ -664,7 +667,7 @@
                                     ],
                                     "angle": 0,
                                     "visible": true,
-                                    "font": "gideon romanRegular16",
+                                    "font": "mainFont",
                                     "text": "waiting...",
                                     "foreground": "#fdc782ff",
                                     "background": "#00000000",
@@ -675,7 +678,8 @@
                                         0
                                     ],
                                     "valign": "top",
-                                    "halign": "center"
+                                    "halign": "center",
+                                    "scale": 0.25
                                 },
                                 "children": {},
                                 "layout": {
@@ -906,8 +910,8 @@
                                         0.5
                                     ],
                                     "size": [
-                                        90,
-                                        19
+                                        360,
+                                        76
                                     ],
                                     "position": [
                                         42.42641067504883,
@@ -915,7 +919,7 @@
                                     ],
                                     "angle": 0,
                                     "visible": true,
-                                    "font": "gideon romanRegular16",
+                                    "font": "mainFont",
                                     "text": "waiting...",
                                     "foreground": "#fdc782ff",
                                     "background": "#00000000",
@@ -926,7 +930,8 @@
                                         0
                                     ],
                                     "valign": "top",
-                                    "halign": "center"
+                                    "halign": "center",
+                                    "scale": 0.25
                                 },
                                 "children": {},
                                 "layout": {
