@@ -3,7 +3,7 @@
         "common": 0.45,
         "rare": 0.40,
         "divine": 0.15,
-        "boss_item": 0.0
+        "special": 0.0
     },
     "items": [
         {
@@ -269,7 +269,7 @@
             "description": " ",
             "icon": "item_gaia_rock",
             "type": "attack",
-            "rarity": "common",
+            "rarity": "special",
             "houseAffinity": "none",
             "baseValue": 2000.0,
             "effects": []

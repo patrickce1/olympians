@@ -39,6 +39,7 @@ void ItemDatabase::clearBuckets() {
     _bucketsByRarity[ItemDef::Rarity::Common]    = Bucket();
     _bucketsByRarity[ItemDef::Rarity::Rare]      = Bucket();
     _bucketsByRarity[ItemDef::Rarity::Divine]    = Bucket();
+    _bucketsByRarity[ItemDef::Rarity::Special]   = Bucket();
 }
 
 /** Clears buckets and the item database collection */
@@ -105,6 +106,7 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     loadOne("common",    ItemDef::Rarity::Common);
     loadOne("rare",      ItemDef::Rarity::Rare);
     loadOne("divine",    ItemDef::Rarity::Divine);
+    loadOne("special",   ItemDef::Rarity::Special);
 }
 
 /** Returns the probability weight of the given rarity */

@@ -249,7 +249,7 @@
                 "defenseLikelihood": 1.0
             },
             "customData": {
-                "spawnCooldownConstant": 2.0
+                "spawnCooldownConstant": 5.0
             },
             "states": {
                 "idle": {
