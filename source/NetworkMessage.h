@@ -25,6 +25,7 @@ struct JoinMessage {
 struct AttackMessage {
     float damage;
     int damageDirection;
+    std::string itemDefID;
 };
 
 /* Message sent by the client to the host to indicate healing.
@@ -141,6 +142,9 @@ struct GameStateMessage {
     
     /** Active authoritative vulnerable multiplier for each relative boss side. */
     std::array<float, kMaxPlayers> bossVulnerableMultipliers = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    /** Authoritative number of prior mallet uses recorded for each player this round. */
+    std::array<int32_t, kMaxPlayers> playerMalletUseCounts = {0, 0, 0, 0};
 
     // player health
     union {

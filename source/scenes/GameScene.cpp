@@ -706,11 +706,14 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
                                       const std::shared_ptr<const ItemDef>& def,
                                       Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
-    // Calculate damage upfront for the animation
-    const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+    const float resolvedMagnitude = local->resolveItemMagnitude(*def, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
+    if (!removeItemFromInventory(local, item.getId())) {
+        return false;
+    }
+    local->recordItemUse(*def);
 
     const auto& animConfig = def->getItemUseAnimation();
     CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
@@ -730,6 +733,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         _activeItemUseAnimations.back().baseValue        = baseValue;
         _activeItemUseAnimations.back().totalMultiplier  = totalMultiplier;
         _activeItemUseAnimations.back().enemyEffects     = enemyEffects;
+        _activeItemUseAnimations.back().itemDefID        = def->getId();
     }
 
     return true;
@@ -761,7 +765,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
 
     if (!_network->isHost()) {
-        _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
+        _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
         broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber()));
     }
     if (_network->isHost() && _audio) {
@@ -3371,7 +3375,7 @@ void GameScene::updateItemUseAnimations(float dt) {
 
                     // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
-                        _network->broadcastDamage(activeAnim.damageAmount, playerNum);
+                        _network->broadcastDamage(activeAnim.damageAmount, playerNum, activeAnim.itemDefID);
                         broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
                     }
                 }

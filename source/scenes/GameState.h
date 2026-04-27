@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include "../items/ItemDatabase.h"
 #include "../Player.h"
 #include "../Enemy.h"
 #include "../HouseLoader.h"
@@ -300,6 +301,9 @@ private:
 
     /** Loads house definitions from JSON for player construction. */
     HouseLoader _houseLoader;
+
+    /** Item database used by the host to resolve authoritative attack magnitudes. */
+    const ItemDatabase* _itemDatabase = nullptr;
 };
 
 #endif /* __GAME_STATE_H__ */

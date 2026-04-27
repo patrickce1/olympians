@@ -112,6 +112,9 @@ struct ItemUseAnimation {
     /** Enemy effects to send alongside deferred damage when a non-host client resolves the hit. */
     std::vector<EnemyEffectMessage> enemyEffects;
 
+    /** Definition ID of the consumed attack item, used for host-authoritative damage resolution. */
+    std::string itemDefID;
+
     /** Elapsed time in seconds since animation started. Used to calculate current frame. */
     float elapsedTime = 0.0f;
     

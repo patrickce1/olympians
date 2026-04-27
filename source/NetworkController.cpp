@@ -35,6 +35,10 @@ void readPlayerRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage&
         effectState.barrierMultiplier = deserializer.readFloat();
         effectState.barrierDuration = deserializer.readFloat();
     }
+
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        stateMsg.playerMalletUseCounts[ii] = deserializer.readSint32();
+    }
 }
 
 /**
@@ -66,6 +70,11 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
             serializer.writeFloat(1.0f);
             serializer.writeFloat(0.0f);
         }
+    }
+
+    for (int ii = 0; ii < kMaxPlayers; ++ii) {
+        const int malletUseCount = ii < players.size() ? players[ii]->getMalletUseCount() : 0;
+        serializer.writeSint32(malletUseCount);
     }
 }
 
@@ -338,7 +347,8 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			AttackMessage attackMsg;
 			attackMsg.damage = damage;
 			attackMsg.damageDirection = playerIndex;
-			attacks.push_back(attackMsg);
+			attackMsg.itemDefID = _deserializer.readString();
+				attacks.push_back(attackMsg);
 			break;
 		}
         case MessageType::PLAYER_HEAL: {
@@ -532,13 +542,15 @@ void NetworkController::clearQueues() {
  * Sends an attack message to the host with the given damage value.
  * Called by non-host clients when the local player attacks the boss.
  *
- * @param damage    The amount of damage dealt to the boss.
- * @param playerIndex Which player is dealing damage to the boss
+ * @param damageAmount The locally resolved damage amount to report for this attack.
+ * @param playerIndex The attacking player's slot index.
+ * @param itemDefID The definition ID of the attack item so the host can recompute authoritative damage.
  */
-void NetworkController::broadcastDamage(float damageAmount, int playerIndex) {
+void NetworkController::broadcastDamage(float damageAmount, int playerIndex, const std::string& itemDefID) {
 	_serializer.writeSint32(MessageType::BOSS_DAMAGE);
 	_serializer.writeFloat(damageAmount);
 	_serializer.writeSint32(playerIndex);
+	_serializer.writeString(itemDefID);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
