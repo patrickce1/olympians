@@ -50,7 +50,19 @@ void Player::updateHealth(float delta) {
         // Barrier applies first as percentage mitigation, then shield removes a fixed amount.
         if (_hasBarrier && _barrierDuration > 0.0f) {
             incomingDamage *= _barrierMultiplier;
-            _barrierMultiplier = 1.0f;
+            
+            // Barrier is only removed on hit for invincibility barriers
+            if (_barrierMultiplier == 0.0f) {
+                _hasBarrier = false;
+                _barrierMultiplier = 1.0f;
+                _barrierDuration = 0.0f;
+                
+                if (_debug) {
+                    CULog("Invincibility expired: player='%s' house='%s' reason='hit'",
+                        _playerName.c_str(),
+                        _houseId.c_str());
+                }
+            }
         }
 
         if (_hasShield && _shieldDuration > 0.0f) {
@@ -126,6 +138,14 @@ void Player::applyBarrier(float multiplier, float duration) {
     _hasBarrier = true;
     _barrierMultiplier = std::max(0.0f, multiplier);
     _barrierDuration = duration;
+    
+    if (_debug) {
+        CULog("Barrier applied: player='%s' house='%s' multiplier=%.3f duration=%.3f",
+            _playerName.c_str(),
+            _houseId.c_str(),
+            _barrierMultiplier,
+            _barrierDuration);
+    }
 }
 
 /**
@@ -158,6 +178,11 @@ void Player::updateEffects(float dt) {
         if (_barrierDuration <= 0.0f) {
             _hasBarrier = false;
             _barrierMultiplier = 1.0f;
+            if (_debug) {
+                CULog("Barrier expired: player='%s' house='%s' reason='duration'",
+                    _playerName.c_str(),
+                    _houseId.c_str());
+            }
         }
     }
 }
