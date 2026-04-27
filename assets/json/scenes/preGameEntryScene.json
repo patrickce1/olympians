@@ -283,8 +283,8 @@
                                                         1
                                                     ],
                                                     "size": [
-                                                        72,
-                                                        11
+                                                        576,
+                                                        88
                                                     ],
                                                     "position": [
                                                         9,
@@ -292,7 +292,7 @@
                                                     ],
                                                     "angle": 0,
                                                     "visible": true,
-                                                    "font": "gideon romanRegular8",
+                                                    "font": "mainFont",
                                                     "text": "HOUSE NAME",
                                                     "foreground": "#000000ff",
                                                     "background": "#00000000",
@@ -303,7 +303,8 @@
                                                         0
                                                     ],
                                                     "valign": "top",
-                                                    "halign": "center"
+                                                    "halign": "center",
+                                                    "scale": 0.125
                                                 },
                                                 "children": {},
                                                 "layout": {
@@ -623,8 +624,8 @@
                                                         1
                                                     ],
                                                     "size": [
-                                                        72,
-                                                        11
+                                                        576,
+                                                        88
                                                     ],
                                                     "position": [
                                                         9,
@@ -632,7 +633,7 @@
                                                     ],
                                                     "angle": 0,
                                                     "visible": true,
-                                                    "font": "gideon romanRegular8",
+                                                    "font": "mainFont",
                                                     "text": "HOUSE NAME",
                                                     "foreground": "#000000ff",
                                                     "background": "#00000000",
@@ -643,7 +644,8 @@
                                                         0
                                                     ],
                                                     "valign": "top",
-                                                    "halign": "center"
+                                                    "halign": "center",
+                                                    "scale": 0.125
                                                 },
                                                 "children": {},
                                                 "layout": {
@@ -1083,8 +1085,8 @@
                                                         1
                                                     ],
                                                     "size": [
-                                                        72,
-                                                        11
+                                                        576,
+                                                        88
                                                     ],
                                                     "position": [
                                                         9,
@@ -1092,7 +1094,7 @@
                                                     ],
                                                     "angle": 0,
                                                     "visible": true,
-                                                    "font": "gideon romanRegular8",
+                                                    "font": "mainFont",
                                                     "text": "HOUSE NAME",
                                                     "foreground": "#000000ff",
                                                     "background": "#00000000",
@@ -1103,7 +1105,8 @@
                                                         0
                                                     ],
                                                     "valign": "top",
-                                                    "halign": "center"
+                                                    "halign": "center",
+                                                    "scale": 0.125
                                                 },
                                                 "children": {},
                                                 "layout": {
@@ -1396,8 +1399,8 @@
                                                         1
                                                     ],
                                                     "size": [
-                                                        72,
-                                                        11
+                                                        576,
+                                                        88
                                                     ],
                                                     "position": [
                                                         9,
@@ -1405,7 +1408,7 @@
                                                     ],
                                                     "angle": 0,
                                                     "visible": true,
-                                                    "font": "gideon romanRegular8",
+                                                    "font": "mainFont",
                                                     "text": "HOUSE NAME",
                                                     "foreground": "#000000ff",
                                                     "background": "#00000000",
@@ -1416,7 +1419,8 @@
                                                         0
                                                     ],
                                                     "valign": "top",
-                                                    "halign": "center"
+                                                    "halign": "center",
+                                                    "scale": 0.125
                                                 },
                                                 "children": {},
                                                 "layout": {
@@ -1640,16 +1644,17 @@
                         "type": "Label",
                         "data": {
                             "anchor": [0.5, 0.5],
-                            "size": [202, 105],
+                            "size": [718.86, 373.67],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular18",
+                            "font": "mainFont",
                             "text": "",
                             "foreground": "#FFD59Fff",
                             "background": "#00000000",
                             "padding": [0, 0, 0, 0],
                             "valign": "middle",
                             "halign": "center",
+                            "scale": 0.281,
                             "wrap": true
                         },
                         "layout": {

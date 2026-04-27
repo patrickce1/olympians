@@ -1258,8 +1258,8 @@
                                 1
                             ],
                             "size": [
-                                171,
-                                29
+                                456,
+                                77.3
                             ],
                             "position": [
                                 56,
@@ -1267,7 +1267,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular24",
+                            "font": "mainFont",
                             "text": "SELECT QUEST",
                             "foreground": "#ffd9a9ff",
                             "background": "#00000000",
@@ -1278,7 +1278,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "center"
+                            "halign": "center",
+                            "scale": 0.375
                         },
                         "children": {},
                         "layout": {
@@ -1658,16 +1659,17 @@
                         "type": "Label",
                         "data": {
                             "anchor": [0.5, 0.5],
-                            "size": [250, 105],
+                            "size": [889.68, 373.67],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular18",
+                            "font": "mainFont",
                             "text": "",
                             "foreground": "#FFD59Fff",
                             "background": "#00000000",
                             "padding": [0, 0, 0, 0],
                             "valign": "middle",
                             "halign": "center",
+                            "scale": 0.281,
                             "wrap": true
                         },
                         "layout": {
