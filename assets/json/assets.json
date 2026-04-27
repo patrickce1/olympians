@@ -381,6 +381,15 @@
         "menuBG": {
             "file": "textures/menuBG.png"
         },
+        "leftNameBG": {
+            "file": "textures/gameScene/leftNameBG.png"
+        },
+        "rightNameBG": {
+            "file": "textures/gameScene/rightNameBG.png"
+        },
+        "backFrame": {
+            "file": "textures/gameScene/backFrame.png"
+        },
         "attackZone": {
             "file": "textures/gameScene/attackZoneBG.png"
         },
@@ -555,6 +564,8 @@
         "gameArea":   "widgets/gameArea.json",
         "inventory":   "widgets/inventory.json",
         "playerSlot": "widgets/playerSlot.json",
+        "leftIcon": "widgets/leftIcon.json",
+        "rightIcon": "widgets/rightIcon.json",
         "ability":     "widgets/ability.json",
         "client": "json/scenes/clientScene.json",
         "textfield": "widgets/elements/textfield.json",

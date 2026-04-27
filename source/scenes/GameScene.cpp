@@ -230,17 +230,17 @@ bool GameScene::initSceneGraph() {
         _gameArea->setContentWidth(dimen.width);
         
         // Left and right teammate icon
-        _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("leftIcon")
-                                                                         ->getChild(0));
+        _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.playerIcon.player"));
         
-        _rightPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("rightIcon")
-                                                                          ->getChild(0));
+        _rightPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.playerIcon.player"));
         
         _leftPlayerName = std::dynamic_pointer_cast<scene2::Label>(
-             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftName.username"));
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.username"));
         
         _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
-             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightName.username"));
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.username"));
         
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.healthFill"));
