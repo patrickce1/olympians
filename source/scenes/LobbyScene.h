@@ -108,7 +108,6 @@ protected:
     /** Pointer to the error/banner popup node. */
     std::shared_ptr<cugl::scene2::SceneNode> _errorPopup;
 
-
 public:
 #pragma mark -
 #pragma mark Constructors
