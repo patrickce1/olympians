@@ -1,6 +1,60 @@
 {
     "enemies": [
         {
+            "id": "circe",
+            "name": "circe",
+            "maxHealth": 100.0,
+            "spritesheetPath": "textures/circe.png",
+            "ai": {
+                "retargetLikelihood": 0.5,
+                "defenseLikelihood": 1.0
+            },
+            "customData": {
+                "eyeMultiplier": 1.0
+            },
+            "states": {
+                "idle": {
+                    "name": "idle"
+                },
+                "attack_1": {
+                    "name": "",
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 0.0,
+                    "events": [
+                    ],
+                    "nextState": "idle"
+                },
+                "attack_2": {
+                    "name": "",
+                    "buildUpTime": 3.0,
+                    "cooldownTime": 1.0,
+                    "events": [
+                    ],
+                    "nextState": "idle"
+                },
+                "attack_3": {
+                    "name": "",
+                    "buildUpTime": 3.0,
+                    "cooldownTime": 1.0,
+                    "events": [
+                    ],
+                    "nextState": "idle"
+                },
+                "defensive_move" : {
+                    "name": "test heal move",
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 5.0,
+                    "events": [
+                        {
+                            "type": "HEAL",
+                            "amount": 10.0
+                        }
+                    ],
+                    "nextState": "idle"
+                }
+            }
+        },
+        {
             "id": "cyclops",
             "name": "cyclops",
             "maxHealth": 10000.0,
@@ -142,6 +196,60 @@
             },
             "customData": {
                 "eyeMultiplier": 2.0
+            },
+            "states": {
+                "idle": {
+                    "name": "idle"
+                },
+                "attack_1": {
+                    "name": "",
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 0.0,
+                    "events": [
+                    ],
+                    "nextState": "idle"
+                },
+                "attack_2": {
+                    "name": "",
+                    "buildUpTime": 3.0,
+                    "cooldownTime": 1.0,
+                    "events": [
+                    ],
+                    "nextState": "idle"
+                },
+                "attack_3": {
+                    "name": "",
+                    "buildUpTime": 3.0,
+                    "cooldownTime": 1.0,
+                    "events": [
+                    ],
+                    "nextState": "idle"
+                },
+                "defensive_move" : {
+                    "name": "test heal move",
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 5.0,
+                    "events": [
+                        {
+                            "type": "HEAL",
+                            "amount": 10.0
+                        }
+                    ],
+                    "nextState": "idle"
+                }
+            }
+        },
+        {
+            "id": "gaia",
+            "name": "gaia",
+            "maxHealth": 100.0,
+            "spritesheetPath": "textures/gaia.png",
+            "ai": {
+                "retargetLikelihood": 0.5,
+                "defenseLikelihood": 1.0
+            },
+            "customData": {
+                "eyeMultiplier": 1.0
             },
             "states": {
                 "idle": {

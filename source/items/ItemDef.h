@@ -89,6 +89,8 @@ public:
         float mitigation = 0.0f;
         /** Duration in seconds for timed effects. */
         float duration = 0.0f;
+        /** Whether an item effect should apply to all four boss sides. */
+        bool applyToAllSides = false;
     };
 
 private:
@@ -174,6 +176,7 @@ public:
      * Returns true if this item contains at least one effect of the given type.
      *
      * @param type  The effect category to search for.
+     * @return true if the item contains at least one matching effect.
      */
     bool hasEffectType(EffectType type) const;
 

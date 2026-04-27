@@ -115,6 +115,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto lightningBoltDef = db.getDef("lightning_bolt");
     auto appleDef = db.getDef("apple");
     auto shieldDef = db.getDef("shield");
+    auto helmDef = db.getDef("helm");
     auto spearDef = db.getDef("spear");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
            "items: lightning_bolt affinity parses as Zeus");
@@ -128,6 +129,12 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
            "items: shield parses shield effect");
     assertWithLabel(shieldDef && !shieldDef->getEffects().empty() && floatsEqualWithinTolerance(shieldDef->getEffects()[0].duration, 5.0f),
            "items: shield effect duration parses");
+    assertWithLabel(helmDef && helmDef->hasEffectType(ItemDef::EffectType::Barrier),
+           "items: helm parses barrier effect");
+    assertWithLabel(helmDef && !helmDef->getEffects().empty() &&
+                    floatsEqualWithinTolerance(helmDef->getEffects()[0].multiplier, 0.0f) &&
+                    floatsEqualWithinTolerance(helmDef->getEffects()[0].duration, 1000.0f),
+           "items: helm barrier values parse");
     assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
            "items: spear parses vulnerable effect");
     assertWithLabel(spearDef && !spearDef->getEffects().empty() && floatsEqualWithinTolerance(spearDef->getEffects()[0].multiplier, 2.0f),
@@ -557,6 +564,70 @@ void testBarrierEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 }
 
 /**
+ * Tests the helm item effect on a player target.
+ *
+ * Verifies that:
+ * - Helm applies a barrier effect with zero damage multiplier
+ * - The configured long-duration barrier values are preserved on the target
+ * - The next incoming hit is fully negated
+ * - Later hits use the neutral multiplier after the first protected hit
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJson      Parsed JSON object containing house multipliers
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
+void testHelmEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                    const std::shared_ptr<cugl::JsonValue>& housesJson,
+                    const std::string& housesJsonPath,
+                    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "helm: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "helm: house multipliers load succeeds");
+
+    auto helmDef = db.getDef("helm");
+    assertWithLabel(helmDef != nullptr, "helm: helm def exists");
+    if (!helmDef || helmDef->getEffects().empty()) return;
+
+    const ItemDef::Effect helmEffect = helmDef->getEffects()[0];
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "helm: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "helm: enemy init succeeds");
+    if (!enemyOk) return;
+
+    Player hades("hades", 11, "Hades Tester", loader);
+    Player helmTarget("ares", 12, "Helm Target", loader);
+    helmTarget.updateHealth(-8.0f);
+    auto instHelm = ItemInstance::alloc("helm", 1011);
+    assertWithLabel(instHelm != nullptr, "helm: create helm instance");
+    if (!instHelm) return;
+    hades.addItem(*instHelm);
+
+    const float helmHealthBeforeUse = helmTarget.getCurrentHealth();
+    const float resolvedHelm = hades.useItemById(instHelm->getId(), helmTarget, db);
+    assertWithLabel(floatsEqualWithinTolerance(resolvedHelm, 0.0f), "helm: helm item returns zero resolved base heal");
+    assertWithLabel(floatsEqualWithinTolerance(helmTarget.getCurrentHealth(), helmHealthBeforeUse), "helm: helm does not change health on use");
+    assertWithLabel(helmTarget.hasBarrier(), "helm: helm arms a barrier on the target");
+    assertWithLabel(floatsEqualWithinTolerance(helmTarget.getBarrierMultiplier(), helmEffect.multiplier), "helm: helm barrier multiplier applies");
+    assertWithLabel(floatsEqualWithinTolerance(helmTarget.getBarrierDuration(), helmEffect.duration), "helm: helm barrier duration applies");
+
+    const float firstHitHealthBefore = helmTarget.getCurrentHealth();
+    helmTarget.updateHealth(-6.0f);
+    assertWithLabel(floatsEqualWithinTolerance(helmTarget.getCurrentHealth(), firstHitHealthBefore), "helm: first hit is fully negated");
+    assertWithLabel(helmTarget.hasBarrier(), "helm: barrier remains active after the first protected hit");
+    assertWithLabel(floatsEqualWithinTolerance(helmTarget.getBarrierMultiplier(), 1.0f), "helm: barrier multiplier resets after protecting one hit");
+
+    const float secondHitHealthBefore = helmTarget.getCurrentHealth();
+    helmTarget.updateHealth(-6.0f);
+    assertWithLabel(floatsEqualWithinTolerance(secondHitHealthBefore - helmTarget.getCurrentHealth(), 6.0f), "helm: later hits use the neutral barrier multiplier");
+}
+
+/**
  * Tests that shield and barrier can coexist on the same target.
  *
  * Verifies that:
@@ -741,6 +812,7 @@ void testVulnerableEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     if (!vulnerableDef || vulnerableDef->getEffects().empty()) return;
 
     const ItemDef::Effect vulnerableEffect = vulnerableDef->getEffects()[0];
+    assertWithLabel(!vulnerableEffect.applyToAllSides, "vulnerable: spear vulnerable effect stays single-side");
 
     HouseLoader loader;
     bool housesOk = loader.loadFromFile(housesJsonPath);
@@ -793,6 +865,61 @@ void testVulnerableEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     assertWithLabel(!enemy.isVulnerable(), "vulnerable: vulnerable expires after duration elapses");
 }
 
+/**
+ * Verifies that trident applies vulnerability to all four boss sides.
+ *
+ * @param itemsJson        Parsed items fixture JSON.
+ * @param housesJson       Parsed houses fixture JSON.
+ * @param housesJsonPath   Path to the houses fixture used for loading Player house data.
+ * @param enemiesJsonPath  Path to the enemies fixture used for loading the test enemy.
+ * @return None.
+ */
+void testTridentVulnerableAllSides(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                                   const std::shared_ptr<cugl::JsonValue>& housesJson,
+                                   const std::string& housesJsonPath,
+                                   const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "trident vulnerable: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "trident vulnerable: house multipliers load succeeds");
+
+    auto tridentDef = db.getDef("trident");
+    assertWithLabel(tridentDef != nullptr, "trident vulnerable: trident def exists");
+    if (!tridentDef || tridentDef->getEffects().empty()) return;
+
+    const ItemDef::Effect vulnerableEffect = tridentDef->getEffects()[0];
+    assertWithLabel(vulnerableEffect.applyToAllSides, "trident vulnerable: trident vulnerable effect is marked as all-sides");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "trident vulnerable: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "trident vulnerable: enemy init succeeds");
+    if (!enemyOk) return;
+
+    Player poseidon("poseidon", 2, "Poseidon Tester", loader);
+    auto instTrident = ItemInstance::alloc("trident", 2020);
+    assertWithLabel(instTrident != nullptr, "trident vulnerable: create trident instance");
+    if (!instTrident) return;
+    poseidon.addItem(*instTrident);
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    enemy.setTargetIndex(0);
+    const float enemyHealthBeforeUse = enemy.getCurrentHealth();
+    const float resolvedVulnerable = poseidon.useItemById(instTrident->getId(), enemy, db);
+    assertWithLabel(resolvedVulnerable > 0.0f, "trident vulnerable: trident returns a positive base damage");
+    assertWithLabel((enemyHealthBeforeUse - enemy.getCurrentHealth()) > 0.0f, "trident vulnerable: trident still applies its base damage");
+
+    for (int side = 0; side < Enemy::NUM_PLAYERS; side++) {
+        assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableMultiplierForSide(side), vulnerableEffect.multiplier),
+                        "trident vulnerable: every side receives the vulnerable multiplier");
+        assertWithLabel(floatsEqualWithinTolerance(enemy.getVulnerableDurationForSide(side), vulnerableEffect.duration),
+                        "trident vulnerable: every side receives the vulnerable duration");
+    }
+}
+
 } // namespace
 
 void ItemTests::runAll(const std::string& itemsJsonPath,
@@ -823,10 +950,12 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testEffectiveValueComputation(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testShieldEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testBarrierEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testHelmEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testShieldBarrierCoexistence(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testStunEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testLoveEffect(enemiesJsonPath);
     testVulnerableEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testTridentVulnerableAllSides(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     
     printSummary();
 }

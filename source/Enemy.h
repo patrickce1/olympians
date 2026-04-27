@@ -276,6 +276,15 @@ public:
      * @param playerIndex The attacking player's slot index.
      */
     void applyVulnerable(float multiplier, float duration, int playerIndex);
+
+    /**
+     * Applies the same vulnerability to all relative sides of the enemy.
+     *
+     * @param multiplier  Damage multiplier to apply to each side.
+     * @param duration    Time this state will last, in seconds.
+     * @return true if at least one side was updated, false if the request was ignored.
+     */
+    bool applyVulnerableToAllSides(float multiplier, float duration);
     
     /**
      * Overwrites local vulnerable state from the host snapshot so remote clients mirror the authoritative state.

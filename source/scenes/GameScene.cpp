@@ -127,6 +127,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
         EnemyEffectMessage effectMsg;
         effectMsg.duration = effect.duration;
         effectMsg.playerIndex = playerIndex;
+        effectMsg.applyToAllSides = false;
 
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
@@ -142,6 +143,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Vulnerable:
                 effectMsg.effectType = EnemyEffectType::Vulnerable;
                 effectMsg.magnitude = effect.multiplier;
+                effectMsg.applyToAllSides = effect.applyToAllSides;
                 enemyEffects.push_back(effectMsg);
                 break;
             case ItemDef::EffectType::Shield:
@@ -162,7 +164,8 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
         network.broadcastEnemyEffect(effectMsg.effectType,
             effectMsg.magnitude,
             effectMsg.duration,
-            effectMsg.playerIndex);
+            effectMsg.playerIndex,
+            effectMsg.applyToAllSides);
     }
 }
 
@@ -225,8 +228,6 @@ bool GameScene::initSceneGraph() {
 
     if (_gameArea) {
         _gameArea->setContentWidth(dimen.width);
-        auto gameAreaBG = _gameArea->getChildByName("background");
-        gameAreaBG->setContentWidth(dimen.width);
         
         // Left and right teammate icon
         _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("leftIcon")
@@ -817,6 +818,8 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
             
         playSupportItemSound(def);
         CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
+        
+        if (resolvedMagnitude == 0.0f) return true;
         createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
         return true;
     }
@@ -854,6 +857,8 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         }
         playSupportItemSound(def);
         CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
+        
+        if (resolvedMagnitude == 0.0f) return true;
         createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
         return true;
     }
@@ -3624,7 +3629,7 @@ void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>&
             char text[32];
             std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
             createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
-        } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier > 0.0f) {
+        } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier < 1.0f) {
             char text[32];
             const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
             std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);
