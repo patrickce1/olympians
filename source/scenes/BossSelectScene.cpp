@@ -282,7 +282,6 @@ void BossSelectScene::endCarouselSwipe(const cugl::TouchEvent& event) {
     _activeTouch = -1;
 }
 
-
 /**
  * The method called to update the scene.
  *
