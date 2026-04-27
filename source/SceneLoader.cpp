@@ -446,7 +446,6 @@ void SceneLoader::update(float dt)
             {
                 CULog("Host backed out of lobby — returning to HostSetupScene...");
                 _hostSetupScene.setActive(true);
-                _hostSetupScene.showHostDisconnectedError();
                 _lobbyScene.setActive(false);
                 _currentScene = State::HOSTSETUP;
             }
@@ -566,6 +565,13 @@ void SceneLoader::update(float dt)
             _lobbyScene.setActive(true);
             _winLoseScene.setActive(false);
             _currentScene = State::LOBBY;
+            break;
+        case WinLoseScene::Status::PRE_GAMESCENE_START:
+            CULog("Transitioning to PreGameScene from WinLoseScene...");
+            _audio.playMusic("battle");
+            _preGameEntryScene.setActive(true);
+            _winLoseScene.setActive(false);
+            _currentScene = State::PREGAMEENTRY;
             break;
         default:
             break;

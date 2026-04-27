@@ -1843,19 +1843,24 @@ void GameScene::handleNetworkUpdates(float dt) {
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
     
     // Check if we won or lost (common to both host and client)
-    if (_gameState.didWin()) {
-        if (_network->isHost()) {
+    if (_network->isHost()) {
+        if (_gameState.didWin()) {
             _network->broadcastWonGame();
-        }
-        _status = Status::WON;
-        CULog("We won!");
-    }
-    else if(_gameState.didLose()){
-        if (_network->isHost()) {
+            _status = Status::WON;
+            CULog("We won!");
+        } else if (_gameState.didLose()) {
             _network->broadcastLostGame();
+            _status = Status::LOST;
+            CULog("We lost!");
         }
-        _status = Status::LOST;
-        CULog("We lost!");
+    } else {
+        if (_network->checkGameWon()) {
+            _status = Status::WON;
+            CULog("We won!");
+        } else if (_network->checkGameLost()) {
+            _status = Status::LOST;
+            CULog("We lost!");
+        }
     }
 
     processNetworkedPasses(_network->getPassUpdates());

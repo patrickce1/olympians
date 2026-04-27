@@ -23,6 +23,8 @@ public:
         IDLE,
         /** back to lobby */
         ABORT,
+        /** forward to pre gamescene*/
+        PRE_GAMESCENE_START
     };
     
 protected:
