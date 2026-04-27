@@ -149,9 +149,10 @@ void HouseSelectScene::setupListeners() {
             // In AI slot mode, also block the host's own locked house
             if (!taken && _targetSlot != -1) {
                 int localIndex = _network->getLocalPlayerNumber();
-                const auto& networkedPlayers = _network->getNetworkedPlayers();
-                if (localIndex >= 0 && localIndex < (int)networkedPlayers.size()) {
-                    taken = (networkedPlayers[localIndex].houseID == selectedHouse.id);
+                const auto& slotToPlayer = _network->getNetworkedPlayers();
+                auto pair = slotToPlayer.find(localIndex);
+                if (pair != slotToPlayer.end()) {
+                    taken = (pair->second.houseID == selectedHouse.id);
                 }
             }
 
@@ -410,14 +411,13 @@ void HouseSelectScene::update(float timestep) {
         return;
     }
     
-    // Forward to game scene if host started while we were here
-    if (!_network->isHost() && _network->checkGameStarted()) {
-        _network->clearQueues();
-        _status = Status::GAMESCENE_START;
+    // Forward to PreGameScene
+    if (_network->getHostsCurrentScene() == 0) {
+        _status = Status::PRE_GAMESCENE_START;
         return;
     }
     
-    updateNetworkOrder();   // this will call getNetworkUpdates + clearQueues internally
+    updateNetworkOrder();
     updateTeammateIcons();
     updateTakenHouseCards();
     _playerIconGlow->setVisible(hasLocalPlayerSelectedHouse());
@@ -688,19 +688,15 @@ void HouseSelectScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
     _network->getNetworkUpdates();
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
-
-    if (networkedPlayers.empty()) return;
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
+    if (slotToPlayer.empty()) return;
 
     int totalSlots = (int)_gameState->getPlayers().size();
 
     for (int i = 0; i < totalSlots; i++) {
-        if (_network->checkRealPlayer(i)) {
-            _gameState->setRealPlayer(
-                i,
-                networkedPlayers[i].username,
-                networkedPlayers[i].houseID
-            );
+        auto pair = slotToPlayer.find(i);
+        if (pair != slotToPlayer.end()) {
+            _gameState->setRealPlayer(i, pair->second.username, pair->second.houseID);
         } else {
             // AI slot — use demoteToAI() to preserve isAI() == true.
             // House is synced from the host's authoritative _aIHouses map,
@@ -769,9 +765,10 @@ void HouseSelectScene::updateTakenHouseCards() {
     // In AI slot mode, the host's own house is also unavailable
     if (_targetSlot != -1) {
         int localIndex = _network->getLocalPlayerNumber();
-        const auto& networkedPlayers = _network->getNetworkedPlayers();
-        if (localIndex >= 0 && localIndex < (int)networkedPlayers.size()) {
-            const std::string& hostHouse = networkedPlayers[localIndex].houseID;
+        const auto& slotToPlayer = _network->getNetworkedPlayers();
+        auto pair = slotToPlayer.find(localIndex);
+        if (pair != slotToPlayer.end()) {
+            const std::string& hostHouse = pair->second.houseID;
             if (!hostHouse.empty()) {
                 takenHouses.push_back(hostHouse);
             }
@@ -870,10 +867,9 @@ void HouseSelectScene::commitHouseUnlock() {
  */
 void HouseSelectScene::refreshLocalPlayerIcon() {
     int localIndex = _network->getLocalPlayerNumber();
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
-    std::string localHouse = (localIndex >= 0 && localIndex < (int)networkedPlayers.size())
-        ? networkedPlayers[localIndex].houseID
-        : "";
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
+    auto pair = slotToPlayer.find(localIndex);
+    std::string localHouse = (pair != slotToPlayer.end()) ? pair->second.houseID : "";
 
     if (localHouse.empty()) {
         _playerIconImage->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
@@ -891,9 +887,10 @@ void HouseSelectScene::refreshLocalPlayerIcon() {
  */
 bool HouseSelectScene::hasLocalPlayerSelectedHouse() const {
     int localIndex = _network->getLocalPlayerNumber();
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
-    if (localIndex < 0 || localIndex >= (int)networkedPlayers.size()) return false;
-    return !networkedPlayers[localIndex].houseID.empty();
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
+    auto pair = slotToPlayer.find(localIndex);
+    if (pair == slotToPlayer.end()) return false;
+    return !pair->second.houseID.empty();
 }
 
 /**

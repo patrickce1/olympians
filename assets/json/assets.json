@@ -226,6 +226,36 @@
             "wrapS":    "clamp",
             "wrapT":    "clamp"
         },
+        "hermesPoster": {
+            "file": "textures/houseSelect/hermesPoster.png"
+        },
+        "statsHermes": {
+            "file": "textures/houseSelect/statsHermes.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "zeusPoster": {
+            "file": "textures/houseSelect/zeusPoster.png"
+        },
+        "statsZeus": {
+            "file": "textures/houseSelect/statsZeus.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "aphroditePoster": {
+            "file": "textures/houseSelect/aphroditePoster.png"
+        },
+        "statsAphrodite": {
+            "file": "textures/houseSelect/statsAphrodite.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
         "leftScroll": {
             "file": "textures/houseSelect/leftScroll.png"
         },
@@ -275,6 +305,15 @@
         },
         "hadesSIcon": {
             "file": "textures/houseSelect/hadesSIcon.png"
+        },
+        "hermesSIcon": {
+            "file": "textures/houseSelect/hermesSIcon.png"
+        },
+        "zeusSIcon": {
+            "file": "textures/houseSelect/zeusSIcon.png"
+        },
+        "aphroditeSIcon": {
+            "file": "textures/houseSelect/aphroditeSIcon.png"
         },
         "hephaestusSIcon": {
             "file": "textures/houseSelect/hephaestusSIcon.png"
@@ -392,6 +431,51 @@
         },
         "supportZoneR": {
             "file": "textures/gameScene/supportRZoneBG.png"
+        },
+        "dropShadow": {
+            "file": "textures/preGameEntryScene/dropShadow.png"
+        },
+        "emptyBox": {
+            "file": "textures/preGameEntryScene/emptyBox.png"
+        },
+        "localBorder": {
+            "file": "textures/preGameEntryScene/localBorder.png"
+        },
+        "preEntryBottomCloud": {
+            "file": "textures/preGameEntryScene/preEntryBottomCloud.png"
+        },
+        "preEntryCloud": {
+            "file": "textures/preGameEntryScene/preEntryCloud.png"
+        },
+        "preGameBarFill": {
+            "file": "textures/preGameEntryScene/preGameBarFill.png"
+        },
+        "preGameBarOutline": {
+            "file": "textures/preGameEntryScene/preGameBarOutline.png"
+        },
+        "athenaBox": {
+            "file": "textures/preGameEntryScene/athenaBox.png"
+        },
+        "aresBox": {
+            "file": "textures/preGameEntryScene/aresBox.png"
+        },
+        "demeterBox": {
+            "file": "textures/preGameEntryScene/demeterBox.png"
+        },
+        "hadesBox": {
+            "file": "textures/preGameEntryScene/hadesBox.png"
+        },
+        "hephaestusBox": {
+            "file": "textures/preGameEntryScene/hephaestusBox.png"
+        },
+        "poseidonBox": {
+            "file": "textures/preGameEntryScene/poseidonBox.png"
+        },
+        "playerNameBG": {
+            "file": "textures/preGameEntryScene/playerNameBG.png"
+        },
+        "houseNameBG": {
+            "file": "textures/preGameEntryScene/houseNameBG.png"
         }
 	},
     "fonts": {
@@ -414,6 +498,10 @@
         "gideon romanRegular16": {
             "file": "fonts/GideonRoman-Regular.ttf",
             "size": 16
+        },
+        "gideon romanRegular8": {
+          "file": "fonts/GideonRoman-Regular.ttf",
+          "size": 8
         },
         "gideon romanRegular10": {
           "file": "fonts/GideonRoman-Regular.ttf",
@@ -564,6 +652,7 @@
         "lobbyScene": "json/scenes/lobbyScene.json",
         "houseSelectScene": "json/scenes/houseSelectionScene.json",
         "bossSelectScene": "json/scenes/bossSelectionScene.json",
+        "preGameEntryScene": "json/scenes/preGameEntryScene.json",
         "heroCard" : "widgets/houseSelect/heroCard.json",
         "teamHouseIcon" : "widgets/houseSelect/teamHouseIcon.json",
         "playerHouseIcon" : "widgets/houseSelect/playerHouseIcon.json",
@@ -638,6 +727,15 @@
             "format": { "type": "Anchored"},
             "data": {
                 "key": "bossSelectScene",
+                "variables": {}
+            }
+        },
+        "preGameEntryScene": {
+            "type": "Widget",
+            "comment": "Root node of the pre-game entry scene",
+            "format": { "type": "Anchored"},
+            "data": {
+                "key": "preGameEntryScene",
                 "variables": {}
             }
         }

@@ -76,6 +76,7 @@ void SceneLoader::onStartup() {
 
     // This reads the given JSON file and uses it to load all other assets
     _assets->loadDirectory("json/scenes/loading.json");
+    _assets->loadDirectory("json/itemTextures.json");
 
     // Activate mouse or touch screen input as appropriate
     // We have to do this BEFORE the scene, because the scene has a button
@@ -166,6 +167,7 @@ void SceneLoader::onShutdown() {
     _lobbyScene.dispose();
     _houseSelectScene.dispose();
     _bossSelectScene.dispose();
+    _preGameEntryScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
     netcode::NetworkLayer::stop();
@@ -287,6 +289,12 @@ void SceneLoader::update(float dt) {
                 } else {
                     CULog("Failed to initialize BossSelectScene");
                 }
+                
+                if (_preGameEntryScene.init(_assets, _network, &_gameScene.getGameState())) {
+                    _preGameEntryScene.setSpriteBatch(_batch);
+                } else {
+                    CULog("Failed to initialize PreGameEntryScene");
+                }
             }
             break;
         case State::MENU:
@@ -361,8 +369,15 @@ void SceneLoader::update(float dt) {
         case State::LOBBY:
             _lobbyScene.update(dt);
             switch (_lobbyScene.getStatus()) {
-                case LobbyScene::Status::START:
-                    CULog("Transitioning to GameScene...");
+                case LobbyScene::Status::PRE_GAME_START:
+                    CULog("Transitioning to PreGameEntryScene...");
+                    _audio.playMusic("battle");
+                    _preGameEntryScene.setActive(true);
+                    _lobbyScene.setActive(false);
+                    _currentScene = State::PREGAMEENTRY;
+                    break;
+                case LobbyScene::Status::GAME_START:
+                    CULog("Transitioning directly to GameScene from Lobby — host already in game...");
                     _audio.playMusic("battle");
                     _gameScene.setActive(true);
                     _lobbyScene.setActive(false);
@@ -387,6 +402,7 @@ void SceneLoader::update(float dt) {
                     if (_network->isHost()) {
                         CULog("Host backed out of lobby — returning to HostSetupScene...");
                         _hostSetupScene.setActive(true);
+                        _hostSetupScene.showHostDisconnectedError();
                         _lobbyScene.setActive(false);
                         _currentScene = State::HOSTSETUP;
                     } else {
@@ -424,18 +440,19 @@ void SceneLoader::update(float dt) {
         case State::HOUSESELECT:
             _houseSelectScene.update(dt);
             switch (_houseSelectScene.getStatus()) {
-                case HouseSelectScene::Status::GAMESCENE_START:
-                    CULog("Transitioning to GameScene from HouseSelect...");
+                case HouseSelectScene::Status::PRE_GAMESCENE_START:
+                    CULog("Transitioning to PreGameScene from HouseSelect...");
                     _audio.playMusic("battle");
-                    _gameScene.setActive(true);
+                    _preGameEntryScene.setActive(true);
                     _houseSelectScene.setActive(false);
-                    _currentScene = State::GAME;
+                    _currentScene = State::PREGAMEENTRY;
                     break;
                 case HouseSelectScene::Status::ABORT:
                     if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
                         _gameScene.resetGameState();
                         _houseSelectScene.setPendingReset(true);
                         _hostSetupScene.setActive(true);
+                        _hostSetupScene.showHostDisconnectedError();
                         _houseSelectScene.setActive(false);
                         _currentScene = State::HOSTSETUP;
                     } else {
@@ -460,18 +477,19 @@ void SceneLoader::update(float dt) {
         case State::BOSSSELECT:
             _bossSelectScene.update(dt);
             switch (_bossSelectScene.getStatus()) {
-                case BossSelectScene::Status::GAMESCENE_START:
-                    CULog("Transitioning to GameScene from BossSelect...");
+                case BossSelectScene::Status::PRE_GAMESCENE_START:
+                    CULog("Transitioning to PreGameScene from BossSelect...");
                     _audio.playMusic("battle");
-                    _gameScene.setActive(true);
+                    _preGameEntryScene.setActive(true);
                     _bossSelectScene.setActive(false);
-                    _currentScene = State::GAME;
+                    _currentScene = State::PREGAMEENTRY;
                     break;
                 case BossSelectScene::Status::ABORT:
                     if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
                         _gameScene.resetGameState();
                         _houseSelectScene.setPendingReset(true);
                         _hostSetupScene.setActive(true);
+                        _hostSetupScene.showHostDisconnectedError();
                         _bossSelectScene.setActive(false);
                         _currentScene = State::HOSTSETUP;
                     } else {
@@ -479,6 +497,45 @@ void SceneLoader::update(float dt) {
                         _bossSelectScene.setActive(false);
                         _currentScene = State::LOBBY;
                     }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case State::PREGAMEENTRY:
+            _preGameEntryScene.update(dt);
+            switch (_preGameEntryScene.getStatus()) {
+                case PreGameEntryScene::Status::START:
+                    CULog("Transitioning to GameScene from PreGameEntryScene...");
+                    _audio.playMusic("battle");
+                    _gameScene.setActive(true);
+                    _preGameEntryScene.setActive(false);
+                    _currentScene = State::GAME;
+                    break;
+                case PreGameEntryScene::Status::PLAYER_DISCONNECTED:
+                    CULog("Player disconnected in PreGameEntry — returning to LobbyScene...");
+                    _audio.playMusic("lobby");
+                    _lobbyScene.setDisconnectBanner(
+                        _preGameEntryScene.getDisconnectMessage());
+                    _lobbyScene.setActive(true);
+                    _preGameEntryScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                case PreGameEntryScene::Status::ABORT:
+                    CULog("Transitioning to LobbyScene from PreGameEntryScene...");
+                    _lobbyScene.setActive(true);
+                    _preGameEntryScene.setActive(false);
+                    _currentScene = State::LOBBY;
+                    break;
+                case PreGameEntryScene::Status::HOST_DISCONNECTED:
+                    CULog("Host disconnected in PreGameEntry — returning client to HostSetupScene...");
+                    _audio.playMusic("lobby");
+                    _gameScene.resetGameState();
+                    _houseSelectScene.setPendingReset(true);
+                    _preGameEntryScene.setActive(false);
+                    _hostSetupScene.setActive(true);
+                    _hostSetupScene.showHostDisconnectedError();
+                    _currentScene = State::HOSTSETUP;
                     break;
                 default:
                     break;
@@ -577,6 +634,9 @@ void SceneLoader::draw() {
             break;
         case State::BOSSSELECT:
             _bossSelectScene.render();
+            break;
+        case State::PREGAMEENTRY:
+            _preGameEntryScene.render();
             break;
     }
 }
