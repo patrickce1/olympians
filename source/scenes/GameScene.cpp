@@ -242,12 +242,6 @@ bool GameScene::initSceneGraph() {
         _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
              _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.username"));
         
-        _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
-               _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.healthFill"));
-        
-        _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
-               _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
-        
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
         
@@ -268,10 +262,20 @@ bool GameScene::initSceneGraph() {
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
         
-        _playerHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
-            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.label"));
+        _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
         
-        _localPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_assets->get<scene2::SceneNode>("gameScene.inventory.playerLiveIcon.playerImage"));
+        _bossName = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.bossName.label"));
+        
+        _playerName = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.playerInfo.playerName.label"));
+        
+        _playerHouseName = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.playerInfo.playerHouse.label"));
+        
+        _localPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.playerIcon.player"));
     }
     
     addChild(_scene);
@@ -491,9 +495,10 @@ void GameScene::dispose() {
         _supportRightArea = nullptr;
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
-        _bossHealthBarText = nullptr;
-        _playerHealthBarText = nullptr;
         _playerHealthBar = nullptr;
+        _playerName = nullptr;
+        _bossName = nullptr;
+        _playerHouseName = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
         _enemyAnimationSpriteNodes.clear();
@@ -1474,11 +1479,9 @@ void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
     if (!enemy || !enemy->isAlive()) return;
     
     _bossHealthBar->setProgress(enemy->getCurrentHealth()/enemy->getMaxHealth());
-    _bossHealthBarText->setText(std::to_string((int)enemy->getCurrentHealth()) + "/" + std::to_string((int)enemy->getMaxHealth()));
     
     auto player = _gameState.getLocalPlayer();
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
-    _playerHealthBarText->setText(std::to_string((int)player->getCurrentHealth()) + "/" + std::to_string((int)player->getMaxHealth()));
 }
 
 /**
@@ -1501,7 +1504,6 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
     };
 
     applyTexture(_localPlayerSlot, localPlayer);
-    _localPlayerSlot->setScale(0.415f);
     applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
     updateTeammateBlink(_leftPlayerSlot, localPlayer->getLeftPlayer(),

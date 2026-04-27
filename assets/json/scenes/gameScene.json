@@ -144,127 +144,6 @@
                             "y_offset": 0
                         }
                     },
-                    "enemyHealth": {
-                        "type": "Node",
-                        "format": {
-                            "type": "Anchored"
-                        },
-                        "data": {
-                            "anchor": [
-                                0.5,
-                                0
-                            ],
-                            "size": [
-                                211.3,
-                                16.07
-                            ],
-                            "angle": 0,
-                            "visible": true
-                        },
-                        "children": {
-                            "healthFrame": {
-                                "type": "Image",
-                                "data": {
-                                    "texture": "healthFrame",
-                                    "anchor": [
-                                        0,
-                                        0
-                                    ],
-                                    "size": [
-                                        211.3,
-                                        16.07
-                                    ],
-                                    "angle": 0,
-                                    "position": [
-                                        0,
-                                        0
-                                    ],
-                                    "visible": true
-                                },
-                                "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "bottom",
-                                    "absolute": false,
-                                    "x_offset": 0,
-                                    "y_offset": 0
-                                }
-                            },
-                            "healthFill": {
-                                "type": "Progress",
-                                "data": {
-                                    "texture": "healthFill",
-                                    "anchor": [
-                                        0,
-                                        0
-                                    ],
-                                    "size": [
-                                        203.66,
-                                        10.04
-                                    ],
-                                    "angle": 0,
-                                    "position": [
-                                        3.82,
-                                        3.01
-                                    ],
-                                    "interior": [0,203.66],
-                                    "visible": true
-                                },
-                                "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "bottom",
-                                    "absolute": false,
-                                    "x_offset": 0.02,
-                                    "y_offset": 0.19
-                                }
-                            },
-                            "label": {
-                                "type": "Label",
-                                "data": {
-                                    "anchor": [
-                                        0,
-                                        0.5
-                                    ],
-                                    "size": [
-                                        71,
-                                        24
-                                    ],
-                                    "position": [
-                                        74.0810546875,
-                                        0
-                                    ],
-                                    "angle": 0,
-                                    "visible": false,
-                                    "font": "gideon romanRegular20",
-                                    "text": "100/100",
-                                    "foreground": "#ffffffff",
-                                    "background": "#00000000",
-                                    "padding": [
-                                        0,
-                                        0,
-                                        0,
-                                        0
-                                    ],
-                                    "valign": "top",
-                                    "halign": "center"
-                                },
-                                "children": {},
-                                "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "middle",
-                                    "absolute": false,
-                                    "x_offset": 0.35,
-                                    "y_offset": 0
-                                }
-                            }
-                        },
-                        "layout": {
-                            "x_anchor": "center",
-                            "y_anchor": "bottom",
-                            "absolute": false,
-                            "x_offset": 0,
-                            "y_offset": 0.1
-                        }
-                    },
                     "leftIcon": {
                         "type": "Widget",
                         "data": {
@@ -276,7 +155,7 @@
                             "x_anchor": "left",
                             "y_anchor": "bottom",
                             "absolute": false,
-                            "x_offset": -0.01,
+                            "x_offset": 0,
                             "y_offset": 0.78
                         }
                     },
@@ -291,7 +170,7 @@
                             "x_anchor": "right",
                             "y_anchor": "bottom",
                             "absolute": false,
-                            "x_offset": 0.01,
+                            "x_offset": 0,
                             "y_offset": 0.78
                         }
                     },

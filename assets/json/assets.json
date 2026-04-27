@@ -94,10 +94,10 @@
         "inventoryBackground": {
             "file": "textures/gameScene/inventoryBackground1.png"
         },
-        "playerHealthFrame": {
+        "healthBarFrame": {
             "file": "textures/gameScene/healthBarFrame.png"
         },
-        "playerHealthFill": {
+        "healthBarFill": {
             "file": "textures/gameScene/healthBarFill.png"
         },
         "playerImage": {
@@ -401,6 +401,18 @@
         },
         "supportZoneR": {
             "file": "textures/gameScene/supportRZoneBG.png"
+        },
+        "bossNameBG": {
+            "file": "textures/gameScene/bossNameBG.png"
+        },
+        "healthFillRed": {
+            "file": "textures/gameScene/healthFillRed.png"
+        },
+        "playerNameBG": {
+            "file": "textures/gameScene/playerNameBG.png"
+        },
+        "playerHouseBG": {
+            "file": "textures/gameScene/playerHouseBG.png"
         }
 	},
     "fonts": {
@@ -439,6 +451,10 @@
         "gideon romanRegular18": {
             "file": "fonts/GideonRoman-Regular.ttf",
             "size": 18
+        },
+        "mainFont": {
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 64
         },
         "menuTitle": {
             "file":     "fonts/GRECOromanLubedWrestling.ttf",

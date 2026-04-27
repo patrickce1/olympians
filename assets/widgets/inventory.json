@@ -12,7 +12,7 @@
             ],
             "size": [
                 393,
-                302
+                340
             ],
             "angle": 0,
             "position": [
@@ -46,6 +46,500 @@
                     "y_offset": 0
                 }
             },
+            "bossName": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        133,
+                        35
+                    ],
+                    "angle": 0,
+                    "position": [
+                        126,
+                        305
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "bossNameBG": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "bossNameBG",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                133,
+                                35
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "label": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                1
+                            ],
+                            "size": [
+                                63,
+                                14
+                            ],
+                            "position": [
+                                36,
+                                4
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "gideon romanRegular12",
+                            "text": "CERBERUS",
+                            "foreground": "#553a19ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "middle",
+                            "halign": "center"
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.01,
+                            "y_offset": -0.49
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": -0.01,
+                    "y_offset": -0.005
+                }
+            },
+            "enemyHealth": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        271.5,
+                        32
+                    ],
+                    "angle": 0,
+                    "position": [
+                        58,
+                        289
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "healthFrame": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "healthFrame",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                271.5,
+                                32
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "healthFill": {
+                        "type": "Progress",
+                        "data": {
+                            "texture": "healthFillRed",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                245,
+                                11
+                            ],
+                            "angle": 0,
+                            "position": [
+                                13,
+                                6.5
+                            ],
+                            "interior": [9, 236],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.05,
+                            "y_offset": -0.45
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": -0.01,
+                    "y_offset": -0.06
+                }
+            },
+            "playerInfo": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        154.5,
+                        46
+                    ],
+                    "angle": 0,
+                    "position": [
+                        68,
+                        38
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "playerHouse": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Anchored"
+                        },
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                96,
+                                14
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                32
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "playerHouseBG": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "playerHouseBG",
+                                    "anchor": [
+                                        0,
+                                        1
+                                    ],
+                                    "size": [
+                                        96,
+                                        14
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "left",
+                                    "y_anchor": "top",
+                                    "absolute": false,
+                                    "x_offset": 0,
+                                    "y_offset": 0
+                                }
+                            },
+                            "label": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0,
+                                        1
+                                    ],
+                                    "size": [
+                                        62.000003814697266,
+                                        14.000000953674316
+                                    ],
+                                    "position": [
+                                        16,
+                                        -9.5367431640625e-7
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "mainFont",
+                                    "text": "HOUSENAME",
+                                    "foreground": "#000000ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "middle",
+                                    "halign": "left",
+                                    "scale": 0.125
+                                },
+                                "children": {},
+                                "layout": {
+                                    "x_anchor": "left",
+                                    "y_anchor": "top",
+                                    "absolute": false,
+                                    "x_offset": 0.17,
+                                    "y_offset": 0
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "playerName": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Anchored"
+                        },
+                        "data": {
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                153.5,
+                                43
+                            ],
+                            "angle": 0,
+                            "position": [
+                                1,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "playerNameBG": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "playerNameBG",
+                                    "anchor": [
+                                        0,
+                                        1
+                                    ],
+                                    "size": [
+                                        153.5,
+                                        43
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "x_anchor": "left",
+                                    "y_anchor": "top",
+                                    "absolute": false,
+                                    "x_offset": 0,
+                                    "y_offset": 0
+                                }
+                            },
+                            "label": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0,
+                                        1
+                                    ],
+                                    "size": [
+                                        95.00000762939453,
+                                        13.000000953674316
+                                    ],
+                                    "position": [
+                                        16,
+                                        11.999999046325684
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "gideon romanRegular12",
+                                    "text": "USERNAME",
+                                    "foreground": "#000000ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "middle",
+                                    "halign": "left"
+                                },
+                                "children": {},
+                                "layout": {
+                                    "x_anchor": "left",
+                                    "y_anchor": "top",
+                                    "absolute": false,
+                                    "x_offset": 0.1,
+                                    "y_offset": -0.42
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.01,
+                            "y_offset": -0.07
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.17,
+                    "y_offset": 0.11
+                }
+            },
+            "playerIcon": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        78,
+                        74
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        44
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "backFrame": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "backFrame",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                78,
+                                72
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                2
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0.01
+                        }
+                    },
+                    "player": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "athenaDeath",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                140,
+                                140
+                            ],
+                            "angle": 0,
+                            "position": [
+                                4,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.03
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0.13
+                }
+            },
             "playerHealth": {
                 "type": "Node",
                 "format": {
@@ -57,13 +551,13 @@
                         0
                     ],
                     "size": [
-                        239.65,
-                        24
+                        257,
+                        22
                     ],
                     "angle": 0,
                     "position": [
-                        102,
-                        60
+                        0,
+                        30
                     ],
                     "visible": true
                 },
@@ -71,46 +565,19 @@
                     "healthBarFrame": {
                         "type": "Image",
                         "data": {
-                            "texture": "playerHealthFrame",
+                            "texture": "healthBarFrame",
                             "anchor": [
                                 0,
                                 1
                             ],
                             "size": [
-                                243,
-                                15
+                                257,
+                                22
                             ],
                             "angle": 0,
                             "position": [
-                                -2,
-                                4
-                            ],
-                            "visible": true
-                        },
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
-                            "absolute": false,
-                            "x_offset": -0.01,
-                            "y_offset": -0.21
-                        }
-                    },
-                    "healthBarFill": {
-                        "type": "Progress",
-                        "data": {
-                            "texture": "playerHealthFill",
-                            "anchor": [
                                 0,
-                                1
-                            ],
-                            "size": [
-                                237,
-                                9
-                            ],
-                            "angle": 0,
-                            "position": [
-                                1,
-                                7.5
+                                0
                             ],
                             "visible": true
                         },
@@ -119,131 +586,35 @@
                             "y_anchor": "top",
                             "absolute": false,
                             "x_offset": 0,
-                            "y_offset": -0.31
+                            "y_offset": 0
                         }
                     },
-                    "label": {
-                        "type": "Label",
+                    "healthBarFill": {
+                        "type": "Progress",
                         "data": {
+                            "texture": "healthBarFill",
                             "anchor": [
                                 0,
                                 1
                             ],
                             "size": [
-                                71,
-                                24
-                            ],
-                            "position": [
-                                80,
-                                0
+                                242,
+                                11
                             ],
                             "angle": 0,
-                            "visible": false,
-                            "font": "gideon romanRegular20",
-                            "text": "100/100",
-                            "foreground": "#ffffffff",
-                            "background": "#00000000",
-                            "padding": [
-                                0,
-                                0,
-                                0,
-                                0
+                            "position": [
+                                2.5,
+                                3.5
                             ],
-                            "valign": "top",
-                            "halign": "center"
+                            "interior": [0, 233],
+                            "visible": true
                         },
-                        "children": {},
                         "layout": {
                             "x_anchor": "left",
                             "y_anchor": "top",
                             "absolute": false,
-                            "x_offset": 0.33,
-                            "y_offset": 0
-                        }
-                    }
-                },
-                "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "bottom",
-                    "absolute": false,
-                    "x_offset": 0.26,
-                    "y_offset": 0.2
-                }
-            },
-            "playerLiveIcon": {
-                "type": "Node",
-                "format": {
-                    "type": "Anchored"
-                },
-                "data": {
-                    "anchor": [
-                        0,
-                        0
-                    ],
-                    "size": [
-                        133.56,
-                        133.56
-                    ],
-                    "angle": 0,
-                    "position": [
-                        1.92,
-                        30.44
-                    ],
-                    "visible": true
-                },
-                "children": {
-                    "playerImage": {
-                        "type": "Image",
-                        "data": {
-                            "texture": "playerImage",
-                            "anchor": [
-                                0,
-                                0
-                            ],
-                            "size": [
-                                138,
-                                138
-                            ],
-                            "angle": 0,
-                            "position": [
-                                38.08,
-                                37.64
-                            ],
-                            "visible": true
-                        },
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "bottom",
-                            "absolute": false,
-                            "x_offset": 0.29,
-                            "y_offset": 0.28
-                        }
-                    },
-                    "outsideFrame": {
-                        "type": "Image",
-                        "data": {
-                            "texture": "playerImageFrame",
-                            "anchor": [
-                                0,
-                                0
-                            ],
-                            "size": [
-                                67,
-                                67
-                            ],
-                            "angle": 0,
-                            "position": [
-                                33.08,
-                                33.64
-                            ],
-                            "visible": true
-                        },
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "bottom",
-                            "absolute": false,
-                            "x_offset": 0.25,
-                            "y_offset": 0.25
+                            "x_offset": 0.01,
+                            "y_offset": -0.34
                         }
                     }
                 },
@@ -252,7 +623,7 @@
                     "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": 0.1
+                    "y_offset": 0.09
                 }
             }
         }

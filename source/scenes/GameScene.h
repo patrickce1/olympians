@@ -268,11 +268,20 @@ protected:
     /** The boss health bar text showing amount of health left */
     std::shared_ptr<cugl::scene2::Label> _bossHealthBarText;
     
+    /** The name of boss on top of boss health bar */
+    std::shared_ptr<cugl::scene2::Label> _bossName;
+    
     /** The player's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBar;
     
     /** The player's health bar text showing amount of health left */
     std::shared_ptr<cugl::scene2::Label> _playerHealthBarText;
+    
+    /** The player's name label showing username */
+    std::shared_ptr<cugl::scene2::Label> _playerName;
+    
+    /** The player's name label showing house name  */
+    std::shared_ptr<cugl::scene2::Label> _playerHouseName;
     
     /** UI slot used to display player's avatar in inventory. */
     std::shared_ptr<cugl::scene2::PolygonNode> _localPlayerSlot;
