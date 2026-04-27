@@ -271,7 +271,7 @@
             "type": "attack",
             "rarity": "special",
             "houseAffinity": "none",
-            "baseValue": 2000.0,
+            "baseValue": 200.0,
             "effects": []
         }
     ],
