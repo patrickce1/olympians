@@ -46,7 +46,7 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _backButton;
     
     /** The settings button to display settings menu */
-    std::shared_ptr<cugl::scene2::Button> _settingsButton;
+    std::shared_ptr<cugl::scene2::Button> _itemsButton;
     
     /** The game id label */
     std::shared_ptr<cugl::scene2::Label> _gameId;
@@ -95,12 +95,7 @@ protected:
     
     /** Needed to init AI players when assigning missing houses at game start. */
     ItemController* _itemController = nullptr;
-    
-    /** Set to true when the user taps the settings button */
-    bool _pendingSettings = false;
-    
-    /** Set to true when the user is currently in settings scene */
-    bool _isShowingSettings = false;
+
 
 public:
 #pragma mark -
@@ -210,11 +205,6 @@ public:
      * @param timestep  The amount of time (in seconds) since the last frame
      */
     void update(float timestep) override;
-    
-    /**
-     * Returns true if the user has requested to open settings, then resets the flag.
-     */
-    bool consumeSettings();
     
     /**
      * Enables or disables all interactive input controls.

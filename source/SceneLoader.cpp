@@ -403,10 +403,6 @@ void SceneLoader::update(float dt) {
             break;
         case State::LOBBY:
             _lobbyScene.update(dt);
-            if (_lobbyScene.consumeSettings()) {
-                _lobbyScene.setInputEnabled(false);
-                _settingsScene.setActive(true);
-            }
             switch (_lobbyScene.getStatus()) {
                 case LobbyScene::Status::START:
                     CULog("Transitioning to GameScene...");
