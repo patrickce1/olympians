@@ -40,6 +40,21 @@
             "scale": 0.6,
             "offsetX": 0,
             "offsetY": 0
+        },
+        {
+            "id": "cyclops_defense_animation",
+            "texture": "textures/gameScene/cyclops/cyclops_defense_animation.png",
+            "frameCount": 12,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "damageFrame": 3,
+            "loopStartFrame": 6,
+            "loopEndFrame": 9,
+            "positionX": 196.5,
+            "positionY": 155.0,
+            "scale": 0.5,
+            "offsetX": 0,
+            "offsetY": 0
         }
     ]
 }

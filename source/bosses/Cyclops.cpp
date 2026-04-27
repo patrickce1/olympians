@@ -12,7 +12,6 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
 	_frantic2Threshold = Enemy::getMaxHealth() * _customData->getFloat("frantic2Threshold", 1.0f);
 	_franticRate = _customData->getFloat("franticRate", 1.0f);
 	_boulderTossReductionAmount = _customData->getFloat("boulderTossReductionAmount", 1.0f);
-	_boulderHigherBound = _customData->getFloat("boulderHigherBound", 1.0f);
 	if (_debug) CULog("[Cyclops]: Initialized with frantic rate %f, frantic threshold %f, frantic threshold 2 %f", _franticRate, _frantic1Threshold, _frantic2Threshold);
 	return success;
 }
@@ -34,7 +33,6 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath, cons
 	_frantic2Threshold = Enemy::getMaxHealth() * _customData->getFloat("frantic2Threshold", 1.0f);
 	_franticRate = _customData->getFloat("franticRate", 1.0f);
 	_boulderTossReductionAmount = _customData->getFloat("boulderTossReductionAmount", 1.0f);
-	_boulderHigherBound = _customData->getFloat("boulderHigherBound", 1.0f);
 	if (_debug) CULog("[Cyclops]: Initialized with frantic rate %f, frantic threshold %f, frantic threshold 2 %f", _franticRate, _frantic1Threshold, _frantic2Threshold);
 	return success;
 }
@@ -54,7 +52,10 @@ void Cyclops::update(float dt) {
 		extraDt += dt * _franticRate;
 	}
 	Enemy::update(dt);
-	Enemy::advanceStateTime(extraDt);
+	// Frantic only shortens cooldowns between attacks, not the attacks or defense themselves
+	if (Enemy::getCurrentState() == EnemyLoader::State::IDLE) {
+		Enemy::advanceStateTime(extraDt);
+	}
 }
 
 /* Handles taking damage and applying the side modifiers
@@ -66,17 +67,21 @@ void Cyclops::update(float dt) {
  *		where the boss immidiately does damage based on the side it got hit from
 */
 void Cyclops::takeDamage(float damage, int playerIndex) {
-	//ATTACK_3 should correspond to the boulder toss for cyclops
-	if (Enemy::_currentState == EnemyLoader::State::ATTACK_3) {
-		//make sure the time increase doesn't go over the boundary we set to prevent animation from skipping
-		float skipDt = std::min(_stateTime + _boulderTossReductionAmount, _boulderHigherBound) - _stateTime;
-		//Make Cyclops face whoever hit him and shorten wait time
+	if (Enemy::getCurrentState() == EnemyLoader::State::ATTACK_3) {
 		Enemy::setTargetIndex(playerIndex);
-		//make the enemy skip the amount of time we need to skip
-		Enemy::advanceStateTime(skipDt);
-
+		const auto* stateDef = Enemy::getCurrentStateDef();
+		if (stateDef && _stateTime < stateDef->buildUpTime) {
+			float oneLoopDuration = stateDef->buildupFrameCount * stateDef->frameDuration;
+			float safeZoneEnd = stateDef->buildUpTime - oneLoopDuration;
+			if (safeZoneEnd <= 0.0f || _stateTime >= safeZoneEnd) {
+				// Less than one buildup loop remaining — reset to start
+				Enemy::setStateTime(0.0f);
+			} else {
+				float skip = std::min(_stateTime + _boulderTossReductionAmount, safeZoneEnd) - _stateTime;
+				Enemy::advanceStateTime(skip);
+			}
+		}
 		if (_debug) CULog("[Cyclops]: Took damage while in boulder toss. This attack should hit player %d", playerIndex);
 	}
-
 	Enemy::takeDamage(damage, playerIndex);
 }

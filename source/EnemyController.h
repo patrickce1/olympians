@@ -61,10 +61,19 @@ public:
 
 private:
     /** Debug boolean. Set to false to prevent debug statements */
-    bool _debug = false;
+    bool _debug = true;
 
     cugl::Random _rng;
-    
+
+    /** Seconds to wait in idle before turning to face the new target. */
+    static constexpr float IDLE_RETARGET_DELAY = 0.5f;
+
+    /** True while waiting to retarget; cleared when the timer fires or idle is exited. */
+    bool _pendingRetarget = false;
+
+    /** Countdown to the deferred retarget. */
+    float _retargetTimer = 0.0f;
+
     /** Reference to animation registry for attack phase detection during retarget guards. */
     const std::unordered_map<std::string, class AnimationEntry>* _animationRegistry = nullptr;
 

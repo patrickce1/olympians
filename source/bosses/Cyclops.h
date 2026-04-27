@@ -15,11 +15,6 @@ private:
 	/** The rate at which a hit from players shortens the boulder toss build up.
 	  * Ex. a value of 1.0 means the build up time is shortened by 1 second every time cyclops is hit*/
 	float _boulderTossReductionAmount;
-	/** The maximum stateTime threshold for the boulder throw animation's attack phase.
-	  * When the boss is attacked, this variable prevents the state from ending before the throw animation completes,
-	  * ensuring the boulder release frames are always fully played out.
-	*/
-	float _boulderHigherBound;
 
 public:
 	Cyclops() {}

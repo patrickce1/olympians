@@ -6,14 +6,13 @@
             "maxHealth": 10000.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
-                "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.25
+                "retargetLikelihood": 0.75,
+                "defenseLikelihood": 0.3
             },
             "customData": {
                 "frantic1Threshold": 0.75,
                 "frantic2Threshold": 0.25,
                 "boulderTossReductionAmount": 1.0,
-                "boulderHigherBound": 3.7,
                 "franticRate": 0.75
             },
             "states": {
@@ -45,7 +44,7 @@
                 },
                 "attack_1": {
                     "name": "club",
-                    "animationKey": "cyclops_boulder_animation",
+                    "animationKey": "cyclops_slash_animation",
                     "buildUpTime": 1.0,
                     "cooldownTime": 0.0,
                     "events": [
@@ -59,7 +58,7 @@
                 },
                 "attack_2": {
                     "name": "stomp",
-                    "animationKey": "cyclops_boulder_animation",
+                    "animationKey": "cyclops_slash_animation",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
@@ -89,7 +88,7 @@
                 "attack_3": {
                     "name": "boulder toss",
                     "animationKey": "cyclops_boulder_animation",
-                    "buildUpTime": 4.0,
+                    "buildUpTime": 7.0,
                     "cooldownTime": 5.0,
                     "events": [
                         {
@@ -102,10 +101,10 @@
                 },
 		        "defensive_move" : {
                     "name": "eye cover",
-                    "animationKey": "cyclops_idle_animation",
-                    "buildUpTime": 4.0,
+                    "animationKey": "cyclops_defense_animation",
+                    "buildUpTime": 5.0,
                     "cooldownTime": 5.0,
-                    "events": [
+                    "entryEvents": [
                         {
                             "type": "SIDE_MODIFIER",
                             "target": 0,
@@ -127,6 +126,7 @@
                             "amount": 1.0
                         }
 		            ],
+                    "events": [],
                     "nextState": "idle"
                 }
             }

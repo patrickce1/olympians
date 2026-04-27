@@ -116,7 +116,12 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
 /** Checks whether the enemy has just entered idle on this frame. */
 void EnemyController::handleIdleEntryIfNeeded(EnemyLoader::State prevState, EnemyLoader::State curState, const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
     if (curState == EnemyLoader::State::IDLE && prevState != EnemyLoader::State::IDLE) {
-        maybeRetargetOnIdleEntry(enemy, players);
+        // Don't retarget immediately — hold current facing and turn after a short delay
+        _pendingRetarget = true;
+        _retargetTimer = IDLE_RETARGET_DELAY;
+    } else if (curState != EnemyLoader::State::IDLE) {
+        // Left idle before the timer fired — cancel
+        _pendingRetarget = false;
     }
 }
 
@@ -139,7 +144,8 @@ EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<
 void EnemyController::enterIdle(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
     if (_debug) CULog("[EnemyController] State: '%s' (Idle)", enemy->getId().c_str());
     enemy->requestState(EnemyLoader::State::IDLE);
-    maybeRetargetOnIdleEntry(enemy, players);
+    _pendingRetarget = true;
+    _retargetTimer = IDLE_RETARGET_DELAY;
 }
 
 /** Main update loop for enemy controller. Handles state changes and attack events. */
@@ -158,6 +164,15 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
     if (cur != prev) { if (_debug) CULog("[EnemyController] State: '%s' -> '%s'", enemy->getStates().at(prev).name.c_str(), enemy->getStates().at(cur).name.c_str()); }
 
     handleIdleEntryIfNeeded(prev, cur, enemy, players);
+
+    // Tick deferred retarget timer
+    if (_pendingRetarget && cur == EnemyLoader::State::IDLE) {
+        _retargetTimer -= dt;
+        if (_retargetTimer <= 0.0f) {
+            _pendingRetarget = false;
+            maybeRetargetOnIdleEntry(enemy, players);
+        }
+    }
 
     // If idle and not locked out, pick an attack by tag and start it
     if (cur == EnemyLoader::State::IDLE && enemy->canStartNonIdleState() && anyPlayersAlive(players)) {

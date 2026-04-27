@@ -260,13 +260,20 @@ void Enemy::setRetargetLikelihood(float v) {
 
 /** Immediately enters the state and resets timers. */
 void Enemy::enterState(EnemyLoader::State state) {
-    // Only reset stateTime if actually changing states
-    // If staying in the same state (like IDLE -> IDLE), keep accumulating time
     if (_currentState != state) {
         _stateTime = 0.0f;
         _eventsFiredThisState = false;
+        _currentState = state;
+        const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+        if (stateDef) {
+            for (const auto& eventDef : stateDef->entryEvents) {
+                FiredEvent firedEvent;
+                firedEvent.def = eventDef;
+                firedEvent.state = state;
+                _firedEvents.push_back(firedEvent);
+            }
+        }
     }
-    _currentState = state;
 }
 
 /** Forces the enemy into idle and clears progress on the interrupted state. */
