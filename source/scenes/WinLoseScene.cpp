@@ -10,7 +10,6 @@ using namespace std;
 /** Regardless of logo, lock the height to this */
 #define SCENE_HEIGHT  852
 
-
 #pragma mark -
 #pragma mark Provided Methods
 
@@ -68,7 +67,6 @@ bool WinLoseScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const
 void WinLoseScene::setupUI() {
     _returnButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("winLoseScene.return"));
-    
     
     _victoryImage = _assets->get<scene2::SceneNode>("winLoseScene.winner");
     
