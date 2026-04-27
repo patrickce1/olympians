@@ -405,6 +405,10 @@ void GameScene::initBackgroundAndBossImage() {
     
     auto bossImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("bossIdle"));
     bossImage->setTexture(_assets->get<cugl::graphics::Texture>(boss));
+    
+    std::string name = boss;
+    for (char &c : name) c = toupper(c);
+    _bossName->setText(name);
 }
 
 /**
@@ -561,6 +565,11 @@ void GameScene::updateNetworkOrder() {
     }
 
     setLocalPlayer(_network->getLocalPlayerNumber());
+    _playerName->setText(_gameState.getLocalPlayer()->getPlayerName());
+    
+    std::string name = _gameState.getLocalPlayer()->getHouseName();
+    for (char &c : name) c = toupper(c);
+    _playerHouseName->setText(name);
 
     _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
     _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
