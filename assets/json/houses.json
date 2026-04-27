@@ -36,7 +36,7 @@
             "specialAbilities": ["harvest"],
             "spritesheetPath": "textures/demeter.png",
             "attack": 0.4,
-            "support": 0.10,
+            "support": 1.0,
             "utility": 0.5,
             "affinityBonus": 1.5
         },
