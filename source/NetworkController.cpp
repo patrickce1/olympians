@@ -513,6 +513,7 @@ void NetworkController::clearQueues() {
 	supportEffects.clear();
 	enemyEffects.clear();
 	passes.clear();
+    bossHeals.clear();
 	_gameWon = false;
 	_gameLost = false;
 	_gameStarted = false;
