@@ -696,14 +696,14 @@ void NetworkController::broadcastLobbyState() {
     std::vector<std::string> serializablePlayers;
 
     for (int i = 0; i < 4; i++) {
-        auto it = _slotToPlayer.find(i);
-        if (it != _slotToPlayer.end()) {
+        auto pair = _slotToPlayer.find(i);
+        if (pair != _slotToPlayer.end()) {
             // Real player at this slot
             serializablePlayers.push_back("player");
             serializablePlayers.push_back(std::to_string(i));
-            serializablePlayers.push_back(it->second.networkID);
-            serializablePlayers.push_back(it->second.username);
-            serializablePlayers.push_back(it->second.houseID);
+            serializablePlayers.push_back(pair->second.networkID);
+            serializablePlayers.push_back(pair->second.username);
+            serializablePlayers.push_back(pair->second.houseID);
         } else {
             // AI at this slot — look up house from _aIHouses
             auto aIPair = _aIHouses.find(i);

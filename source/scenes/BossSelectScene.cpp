@@ -219,6 +219,7 @@ void BossSelectScene::update(float timestep) {
         }
     }
     
+    // Forward to pre game scene if host started while we were here
     if (_network->getHostsCurrentScene() == 0) {
         _status = Status::PRE_GAMESCENE_START;
         return;

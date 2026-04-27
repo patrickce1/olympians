@@ -378,31 +378,20 @@ void PreGameEntryScene::updateNetworkOrder() {
     const auto& disconnectedSlots = _network->getDisconnectedSlots();
     const int totalSlots = (int)players.size();
 
-    CULog("PreGameEntryScene::updateNetworkOrder — disconnectedSlots size: %d", (int)disconnectedSlots.size());
-    for (int slot : disconnectedSlots) {
-        CULog("  disconnected slot: %d", slot);
-    }
-
     // Check disconnected slots first — read name from GameState before
     // any demoteToAI call can overwrite it.
     for (int slot : disconnectedSlots) {
         if (slot < 0 || slot >= totalSlots) continue;
-        CULog("PreGameEntryScene::updateNetworkOrder — detecting disconnect at slot %d name='%s'",
-              slot, players[slot]->getPlayerName().c_str());
         _disconnectMessage = players[slot]->getPlayerName() + " disconnected";
         _status = Status::PLAYER_DISCONNECTED;
         return;
     }
 
     for (int i = 0; i < totalSlots; i++) {
-        auto it = slotToPlayer.find(i);
-        if (it != slotToPlayer.end()) {
-            CULog("PreGameEntryScene::updateNetworkOrder — slot %d: setRealPlayer name='%s' house='%s'",
-                  i, it->second.username.c_str(), it->second.houseID.c_str());
-            _gameState->setRealPlayer(i, it->second.username, it->second.houseID);
+        auto pair = slotToPlayer.find(i);
+        if (pair != slotToPlayer.end()) {
+            _gameState->setRealPlayer(i, pair->second.username, pair->second.houseID);
         } else {
-            CULog("PreGameEntryScene::updateNetworkOrder — slot %d: demoteToAI house='%s'",
-                  i, _network->getAIHouse(i).c_str());
             _gameState->demoteToAI(i, _network->getAIHouse(i));
         }
     }
