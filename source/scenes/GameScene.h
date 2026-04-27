@@ -15,6 +15,14 @@
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 
+
+/** Animation duration for floating popups to scale in, in seconds. */
+static constexpr float FLOATING_POPUP_ANIM_IN  = 0.1f;
+/** Animation duration for floating popups to fade out, in seconds. */
+static constexpr float FLOATING_POPUP_ANIM_OUT = 0.2f;
+/** Base font size the popup asset was baked at; used to derive display scale. */
+static constexpr float FLOATING_POPUP_BASE_FONT_SIZE = 48.0f;
+
 /**
  * Represents the state of a single snapback animation for a dropped item.
  * Multiple items can be snapping back simultaneously.
@@ -88,10 +96,22 @@ struct ItemUseAnimation {
     
     /** Pre-calculated damage amount to apply when reaching the resolution frame. */
     float damageAmount = 0.0f;
+
+    /** Base item value before multipliers, for popup display. */
+    float baseValue = 0.0f;
+
+    /** Combined house/affinity multiplier (damageAmount / baseValue), for popup display. */
+    float totalMultiplier = 1.0f;
     
     /** Reserved for future use: originally stored itemId for deferred calculation (now pre-calculated). */
     ItemInstance::ItemId itemId = 0;
-    
+
+    /** Scene-space position where the popup should appear at damage resolution. */
+    cugl::Vec2 popupPosition;
+
+    /** Enemy effects to send alongside deferred damage when a non-host client resolves the hit. */
+    std::vector<EnemyEffectMessage> enemyEffects;
+
     /** Elapsed time in seconds since animation started. Used to calculate current frame. */
     float elapsedTime = 0.0f;
     
@@ -126,6 +146,29 @@ struct AnimationEntry {
 };
 
 /**
+ * Data for a single popup in a sequence.
+ * General-purpose for any game event: damage, heals, buffs, status effects, health popups, etc.
+ */
+struct FloatingPopupData {
+    /** Text content to display. */
+    std::string text;
+    /** Font size for this popup. Scaled relative to FLOATING_POPUP_BASE_FONT_SIZE. */
+    float fontSize = 32.0f;
+    /** Foreground (fill) color of the text. */
+    cugl::Color4 color = cugl::Color4::WHITE;
+    /** Outline (stroke) color drawn behind the text. Defaults to black. */
+    cugl::Color4 strokeColor = cugl::Color4::BLACK;
+    /** Seconds to wait after createFloatingPopup() is called before this popup spawns. */
+    float delaySeconds = 0.0f;
+    /** Seconds the popup holds at full opacity before fading out. */
+    float displayDuration = 2.0f;
+    /** Additional offset applied on top of the base screen position. */
+    cugl::Vec2 positionOffset = cugl::Vec2::ZERO;
+    /** If true, plays the popup_ding sound when this popup spawns. */
+    bool playSound = true;
+};
+
+/**
  * Controller for the core game scene.
  *
  * GameScene is a pure controller: it owns the scene graph, handles input,
@@ -144,6 +187,7 @@ public:
         PLAYING,
         WON,
         LOST,
+        HOST_DISCONNECTED
     };
 protected:
 #pragma mark - Scene Graph Nodes
@@ -294,6 +338,50 @@ protected:
     std::vector<ConsumedItemAnimation> _consumedItemAnimations;
     /** Vector of currently active item use animations. Multiple animations can play concurrently. */
     std::vector<ItemUseAnimation> _activeItemUseAnimations;
+
+#pragma mark - Floating Popup State
+
+    /**
+     * Tracks one live floating-text popup animation.
+     * Advances through three phases: scale-in, display, then fade-out.
+     */
+    struct FloatingPopupAnimation {
+        /** Container scene node holding the outline copies and colored label. */
+        std::shared_ptr<cugl::scene2::SceneNode> node;
+        /** Time elapsed in the current animation, in seconds. */
+        float elapsed = 0.0f;
+        /** Duration of the scale-in phase, in seconds. */
+        float animationInDuration = 0.1f;
+        /** Duration the popup holds at full scale before fading, in seconds. */
+        float displayDuration = 2.0f;
+        /** Duration of the fade-out phase, in seconds. */
+        float animationOutDuration = 0.2f;
+        /** Target scale derived from the popup's font size relative to the base font size. */
+        float displayScale = 1.0f;
+        enum AnimationPhase { ANIM_IN, ANIM_DISPLAY, ANIM_OUT };
+        AnimationPhase phase = ANIM_IN;
+    };
+
+    /**
+     * A popup that has been queued but not yet spawned.
+     * Spawned once its delay timer elapses in updatePopupAnimations().
+     */
+    struct PendingFloatingPopup {
+        /** Visual and timing data for this popup. */
+        FloatingPopupData data;
+        /** Final screen-space position (base position + positionOffset already applied). */
+        cugl::Vec2 position;
+        /** Delay in seconds before this popup spawns. */
+        float spawnTime;
+        /** Time elapsed since the popup was queued, in seconds. */
+        float elapsed = 0.0f;
+    };
+
+    /** Vector of currently active floating popup animations. */
+    std::vector<FloatingPopupAnimation> _activeFloatingPopups;
+    
+    /** Vector of pending floating popups that have been queued but not yet spawned. */
+    std::vector<PendingFloatingPopup> _pendingFloatingPopups;
 
 #pragma mark - Glow Effect State
 
@@ -1035,7 +1123,21 @@ public:
      *
      * @return true if there are active animations, false otherwise
      */
-    bool hasActiveItemAnimations() const { return !_activeItemUseAnimations.empty(); }    
+    bool hasActiveItemAnimations() const { return !_activeItemUseAnimations.empty(); }
+
+    /**
+     * Creates a sequence of animated text popups at a screen location.
+     * Each popup animates in (scale+fade), displays, then fades out.
+     * Popups with non-zero delaySeconds are spawned after the specified delay.
+     *
+     * @param screenPosition  On-screen position where popups appear
+     * @param popups          Sequence of FloatingPopupData defining each popup
+     */
+    void createFloatingPopup(
+        const cugl::Vec2& screenPosition,
+        const std::vector<FloatingPopupData>& popups
+    );
+
     /** Checks if an item is currently playing an animation.
      * Used to prevent respawning items that are mid-animation.
      *
@@ -1099,16 +1201,104 @@ public:
     
     /**
      * Removes an item from a player's inventory by item instance ID.
-     * 
+     *
      * Searches for the item in the player's inventory and erases it if found.
      * This is used to decouple item removal from damage calculation, allowing
      * animations and effects to be applied between consumption and damage.
-     * 
+     *
      * @param player   The player whose inventory to modify
      * @param itemId   The unique ID of the item instance to remove
      * @return         true if item was found and successfully removed, false otherwise
      */
     bool removeItemFromInventory(Player* player, ItemInstance::ItemId itemId);
+
+    /**
+     * Immediately builds the scene-graph nodes for one floating popup and adds it to
+     * the active animation list. Creates a container node sized to the text bounds,
+     * adds 8 black outline copies at cardinal and diagonal offsets, then adds the
+     * colored label on top. All children are anchored to the container center.
+     *
+     * @param data      Visual and timing parameters for the popup, including fill and stroke color.
+     * @param position  Screen-space center position for the popup.
+     */
+    void spawnSingleFloatingPopup(const FloatingPopupData& data, const cugl::Vec2& position);
+
+    /**
+     * Advances all pending and active floating popups by one frame.
+     * Pending popups are spawned once their delay timer elapses.
+     * Active popups animate through scale-in, display, and fade-out phases, then
+     * are removed from the scene graph when complete.
+     *
+     * @param dt  Delta time in seconds.
+     */
+    void updatePopupAnimations(float dt);
+
+    /**
+     * Returns the screen-space drop position of the given item's physics body.
+     * Falls back to the viewport center (55% height) when no body is found.
+     *
+     * @param itemId  The item instance whose body position to resolve.
+     * @return        Screen-space position to anchor popups at.
+     */
+    cugl::Vec2 resolveItemDropPosition(ItemInstance::ItemId itemId) const;
+
+    /**
+     * Builds the ordered popup sequence for an attack item use.
+     *
+     * Produces a 3-entry sequence when the side multiplier is neutral (≈1.0):
+     *   base damage (grey) → house multiplier (yellow) → final damage (color-coded)
+     *
+     * Produces a 5-entry sequence when a meaningful side multiplier is present:
+     *   base → house mult → pre-enemy damage → side mult → final damage
+     *
+     * @param baseValue          Item's raw base damage.
+     * @param totalMultiplier    Combined house/affinity multiplier.
+     * @param sideMultiplier     Enemy side multiplier for the attacking player.
+     * @param preSideDamage      Damage after house multiplier, before side multiplier.
+     * @param finalDamage        Damage after all multipliers applied.
+     * @param valueFontSize      Font size for value popups (base, pre-enemy, final).
+     * @param multiplierFontSize Base font size for multiplier popups (house, side).
+     * @return Ordered list of FloatingPopupData for the sequence.
+     */
+    std::vector<FloatingPopupData> buildAttackDamagePopups(
+        float baseValue, float totalMultiplier, float sideMultiplier,
+        float preSideDamage, float finalDamage,
+        float valueFontSize, float multiplierFontSize
+    ) const;
+
+    /**
+     * Builds the ordered popup sequence for a heal support item use.
+     *
+     * Returns a 3-entry sequence when a house multiplier is active:
+     *   base heal (grey) → multiplier (yellow) → final heal (green)
+     *
+     * Returns a 1-entry sequence when the multiplier is neutral (≈1.0):
+     *   final heal (green)
+     *
+     * @param baseValue     Item's raw base heal value.
+     * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
+     * @return Ordered list of FloatingPopupData for the sequence.
+     */
+    std::vector<FloatingPopupData> buildHealPopups(float baseValue, float resolvedHeal) const;
+
+    /**
+     * Fires visual popups for any shield or barrier effects on a support item.
+     * Shield effects show "[X.X]" in cyan; barrier effects show "[XX%]" in purple,
+     * where the percentage is the damage reduction (e.g. multiplier 0.5 → "50%").
+     * Must be called before useItemById so shield-only items (which return magnitude=0)
+     * still produce a popup.
+     *
+     * @param def      The item definition whose effects to scan.
+     * @param dropPos  Screen-space position where popups appear.
+     */
+    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos);
+
+    /**
+     * Plays the item's defined use sound, or the generic "support" sound if none is set.
+     *
+     * @param def  The item definition.
+     */
+    void playSupportItemSound(const std::shared_ptr<const ItemDef>& def);
     
 #pragma mark - Inventory UI
 
@@ -1282,11 +1472,15 @@ public:
     bool isDebugMode() const {return _debugMode; }
 
 #pragma mark - Networking
-    /* Checks if any updates about the state of the game were sent over the network. 
-    * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us. 
-    * If we are the host, we process any attack, heal, and pass messages. 
-    * After doing so, we send out a new authoritative version of the game state as the host*/
-    void handleNetworkUpdates();
+    /**
+     * Checks if any updates about the state of the game were sent over the network.
+     * If we are a client, we update the state of the game to match the hosts' version and process any passes sent to us.
+     * If we are the host, we process any attack, heal, effect, and pass messages, then tick timed player effects.
+     * After doing so, we send out a new authoritative version of the game state as the host.
+     *
+     * @param dt  The elapsed time since the previous frame, in seconds.
+     */
+    void handleNetworkUpdates(float dt);
     
     /**
      * Syncs the local game state with the current network player order.

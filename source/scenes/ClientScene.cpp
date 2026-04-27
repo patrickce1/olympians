@@ -219,15 +219,30 @@ void ClientScene::dispose() {
  * should be activated when it is made active and deactivated when
  * it is not.
  *
- * @param value whether the scene is currently active
+ * @param value         Whether the scene is active.
+ * @param preserveGameId  If true, the game ID input field and buffer are
+ *                        left untouched on activation. Pass true when the
+ *                        client voluntarily navigated back from the lobby
+ *                        so they don't have to retype the code. Pass false
+ *                        (default) on host-disconnect kickouts so the stale
+ *                        room code is cleared.
  */
-void ClientScene::setActive(bool value) {
+void ClientScene::setActive(bool value, bool preserveGameId) {
     if (isActive() != value) {
         Scene2::setActive(value);
         if (value) {
             _status = IDLE;
             _joinTimer = 0.0f;
             _errorTimer = 0.0f;
+            
+            // Clear the game ID unless the player navigated back voluntarily.
+            // On host-disconnect kickouts the stale room code is meaningless
+            // since that session is gone, so we blank it to avoid confusion.
+            if (!preserveGameId) {
+                _inputBuffer = "";
+                if (_gameId) _gameId->setText("");
+                if (_textFieldPlaceholder) _textFieldPlaceholder->setVisible(true);
+            }
             if (_errorPopup) _errorPopup->setVisible(false);
             if (_loading) {
                 _loading->setVisible(false);
