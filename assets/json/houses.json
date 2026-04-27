@@ -2,7 +2,7 @@
     "houses": [
         {
             "id": "zeus",
-            "maxHealth": 5.0,
+            "maxHealth": 100.0,
             "specialAbilities": ["bolt"],
             "spritesheetPath": "textures/zeus.png",
             "attack": 0.9,
@@ -12,7 +12,7 @@
         },
         {
             "id": "aphrodite",
-            "maxHealth": 5.0,
+            "maxHealth": 100.0,
             "specialAbilities": ["love"],
             "spritesheetPath": "textures/aphrodite.png",
             "attack": 0.6,
@@ -22,7 +22,7 @@
         },
         {
             "id": "hades",
-            "maxHealth": 5.0,
+            "maxHealth": 100.0,
             "specialAbilities": ["resurrect"],
             "spritesheetPath": "textures/hades.png",
             "attack": 0.7,
@@ -32,7 +32,7 @@
         },
         {
             "id": "demeter",
-            "maxHealth": 5.0,
+            "maxHealth": 100.0,
             "specialAbilities": ["harvest"],
             "spritesheetPath": "textures/demeter.png",
             "attack": 0.3,
@@ -42,7 +42,7 @@
         },
         {
             "id": "athena",
-            "maxHealth": 5.0,
+            "maxHealth": 100.0,
             "specialAbilities": ["aegis"],
             "spritesheetPath": "textures/athena.png",
             "attack": 0.6,
@@ -52,7 +52,7 @@
         },
         {
             "id": "poseidon",
-            "maxHealth": 5.0,
+            "maxHealth": 100.0,
             "specialAbilities": ["whirlpool"],
             "spritesheetPath": "textures/poseidon.png",
             "attack": 0.8,
@@ -62,7 +62,7 @@
         },
         {
             "id": "ares",
-            "maxHealth": 5.0,
+            "maxHealth": 100.0,
             "specialAbilities": ["armor"],
             "spritesheetPath": "textures/ares.png",
             "attack": 1.0,
@@ -72,7 +72,7 @@
         },
         {
             "id": "hephaestus",
-            "maxHealth": 5.0,
+            "maxHealth": 100.0,
             "specialAbilities": ["mallet"],
             "spritesheetPath": "textures/hephaestus.png",
             "attack": 1.0,
@@ -82,7 +82,7 @@
         },
         {
             "id": "hermes",
-            "maxHealth": 5.0,
+            "maxHealth": 100.0,
             "specialAbilities": ["speed"],
             "spritesheetPath": "textures/hermes.png",
             "attack": 1.0,

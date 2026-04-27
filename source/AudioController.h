@@ -17,6 +17,9 @@ using namespace cugl::audio;
  */
 class AudioController {
 protected:
+    /** Debug boolean. Set to false to prevent debug statements */
+    bool _debug = false;
+
     /** Reference to the asset manager for loading sounds */
     std::shared_ptr<AssetManager> _assets;
     

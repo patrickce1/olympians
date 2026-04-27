@@ -154,9 +154,15 @@ public:
      * should be activated when it is made active and deactivated when
      * it is not.
      *
-     * @param value whether the scene is currently active
+     * @param value                     Whether the scene is active.
+     * @param preserveGameId  If true, the game ID input field and buffer are
+     *                       left untouched on activation. Pass true when the
+     *                       client voluntarily navigated back from the lobby
+     *                       so they don't have to retype the code. Pass false
+     *                       (default) on host-disconnect kickouts so the stale
+     *                       room code is cleared.
      */
-    virtual void setActive(bool value) override;
+    virtual void setActive(bool value, bool preserveGameId = false);
     
     /**
      * Returns the scene status.

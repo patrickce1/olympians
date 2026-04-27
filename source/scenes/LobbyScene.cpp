@@ -398,6 +398,10 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cyclopsLobbyImage"));
     } else if (_currentBoss == "cerberus") {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusLobbyImage"));
+    } else if (_currentBoss == "circe") {
+        _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("circeLobbyImage"));
+    } else if (_currentBoss == "gaia") {
+        _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("gaiaLobbyImage"));
     }
     _bossImage->setContentSize(228,228);
 }
@@ -433,10 +437,20 @@ void LobbyScene::update(float timestep) {
         if (_network->checkGameStarted()) {
             _status = START;
         }
+        
+        // Host voluntarily left — they broadcast SESSION_TERMINATED before disconnecting.
         if (_network->wasSessionTerminated()) {
             _network->clearQueues();
             _network->disconnect();
-            _status = Status::ABORT;
+            _status = Status::HOST_LEFT;
+            return;
+        }
+        
+        // Host dropped unexpectedly — no broadcast, detected via the disconnect callback.
+        if (_network->wasHostDisconnected()) {
+            _network->clearQueues();
+            _network->disconnect();
+            _status = Status::HOST_DISCONNECTED;
             return;
         }
     }

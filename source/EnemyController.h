@@ -60,6 +60,9 @@ public:
     }
 
 private:
+    /** Debug boolean. Set to false to prevent debug statements */
+    bool _debug = false;
+
     cugl::Random _rng;
     
     /** Reference to animation registry for attack phase detection during retarget guards. */

@@ -53,6 +53,8 @@ public:
     };
 
 protected:
+    /** Debug boolean. Set to false to prevent debug statements */
+    bool _debug = false;
 
     /** The current FSM state of this AI controller. */
     State _state = State::IDLE;
