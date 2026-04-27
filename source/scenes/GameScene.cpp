@@ -3088,7 +3088,7 @@ void GameScene::demoteSlotToAI(int slot) {
 }
 
 /**
- * HOST + CLIENTS. Updates the left and right teammate name labels to
+ * HOST and CLIENTS refresh. Updates the left and right teammate name labels to
  * reflect the current AI/human state of each neighbour.
  */
 void GameScene::refreshTeammateNameLabels() {
