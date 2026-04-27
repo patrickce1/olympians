@@ -399,6 +399,7 @@ void SceneLoader::update(float dt) {
                     if (_network->isHost()) {
                         CULog("Host backed out of lobby — returning to HostSetupScene...");
                         _hostSetupScene.setActive(true);
+                        _hostSetupScene.showHostDisconnectedError();
                         _lobbyScene.setActive(false);
                         _currentScene = State::HOSTSETUP;
                     } else {
