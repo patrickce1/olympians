@@ -440,7 +440,7 @@ float HostSetupScene::getTargetXForIndex(int index) const {
     int stepsFromBase = index - _carouselBaseIndex;
     //pixel offset from the anchor card to the target card
     float pixelOffset = (stepsFromBase * ROLE_CARD_WIDTH);
-    return carouselXAnchor - pixelOffset;
+    return (carouselXAnchor - pixelOffset) + (ROLE_CARD_WIDTH / 2.0f);
 }
 
 /**
