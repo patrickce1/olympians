@@ -132,6 +132,15 @@ public:
     void broadcastHeal(float healAmount, int playerID);
 
     /**
+     * Sends a Gaia spawn message to the player at the given slot.
+     * If the target is a real player, sends directly to their network UUID.
+     * Otherwise, does nothing because host is expected to locally handle spawning in the hands of AI player
+     *
+     * @param playerID  The 0-based index of the player to send the Gaia spawn to.
+     */
+     void broadcastGaiaSpawn(int playerID);
+
+    /**
      * Sends a support effect application to the host for authoritative processing.
      *
      * @param effectType The kind of support effect that was applied.
@@ -209,6 +218,9 @@ public:
 
     /*Returns all enemy effect messages received after calling getNetworkUpdate().*/
     const std::vector<EnemyEffectMessage>& getEnemyEffectUpdates() const { return enemyEffects; }
+
+    /**Returns the number of Gaia item spawn messages we recieved after calling getNetworkUpdate()*/
+    int getNumGaiaSpawns() const { return gaiaSpawns; }
 
     /*Returns the most recent version of the authoritative game state*/
     GameStateMessage getStateUpdate() { return _latestGameState; }
@@ -363,6 +375,10 @@ public:
      */
     bool wasHostDisconnected() const;
 
+    /**
+     * Broadcast a message to player at 
+    */
+
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
     
@@ -385,7 +401,8 @@ protected:
         AI_HOUSE_SELECT = 13,
         PLAYER_SUPPORT_EFFECT = 14,
         ENEMY_EFFECT = 15,
-        BOSS_HEAL = 16
+        BOSS_HEAL = 16,
+        GAIA_SPAWN = 17
     };
 
     /** Our network connection */
@@ -412,6 +429,10 @@ private:
     std::vector<HealMessage> heals;
     std::vector<SupportEffectMessage> supportEffects;
     std::vector<EnemyEffectMessage> enemyEffects;
+
+    /** Integer that keeps track of how many messages a client recieved to spawn in Gaia rocks*/
+    int gaiaSpawns;
+
     GameStateMessage _latestGameState;
     //win/loss booleans
     bool _gameWon;

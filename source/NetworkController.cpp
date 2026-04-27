@@ -484,6 +484,10 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             msg.healAmount = _deserializer.readFloat();
             bossHeals.push_back(msg);
         }
+        case MessageType::GAIA_SPAWN: {
+            gaiaSpawns++;
+            break;
+        }
 	}
 }
 
@@ -514,6 +518,7 @@ void NetworkController::clearQueues() {
 	enemyEffects.clear();
 	passes.clear();
     bossHeals.clear();
+    gaiaSpawns = 0;
 	_gameWon = false;
 	_gameLost = false;
 	_gameStarted = false;
@@ -563,6 +568,18 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
 	_serializer.writeSint32(playerID);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
+}
+
+
+void NetworkController::broadcastGaiaSpawn(int playerID) {
+    _serializer.writeSint32(MessageType::GAIA_SPAWN);
+
+    if (checkRealPlayer(playerID)) {
+        std::string playerNetworkID = _onlinePlayers[playerID].networkID;
+        _network->sendTo(playerNetworkID, _serializer.serialize());
+    }
+
+    _serializer.reset();
 }
 
 /**

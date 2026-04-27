@@ -1901,17 +1901,26 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
   * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well
   */
 void GameScene::handleGaiaSpawn() {
-    if (_gameState.getEnemy()->getId() == "gaia") {
-        shared_ptr<Gaia> gaia = std::dynamic_pointer_cast<Gaia>(_gameState.getEnemy());
-        if (_network->isHost() && gaia->spawnRockForPlayer()) {
-            CULog("Time to spawn for %d," );
-            int target = gaia->getTargetIndex();
+    if (!(_gameState.getEnemy()->getId() == "gaia")) { return; }
+
+    shared_ptr<Gaia> gaia = std::dynamic_pointer_cast<Gaia>(_gameState.getEnemy());
+
+    if (_network->isHost() && gaia->spawnRockForPlayer()) {
+        int target = gaia->getTargetIndex();
+        if (_gameState.getPlayerById(target)->isAI()) {
             _itemController.giveItemByID(_gameState.getPlayerById(target), "gaia_rock");
         }
         else {
-            //if the player is not us or AI, we need to send a spawn message to that player
+            _network->broadcastGaiaSpawn(target);
         }
     }
+    else {
+        //if we're a client check for any recieved messages over the network about it
+        for (int i = 0; i < _network->getNumGaiaSpawns(); i++) {
+            _itemController.giveItemByID(_gameState.getLocalPlayer(), "gaia_rock");
+        }
+    }
+    
     return;
 }
 
