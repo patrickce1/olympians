@@ -446,6 +446,7 @@ void Enemy::updateHealth(float delta) {
 
 /**
  * Applies or refreshes a stun without changing the enemy's current state.
+ * Will NOT apply if the enemy is in the attack phase.
  *
  * @param duration  The stun time to apply, in seconds.
  */
