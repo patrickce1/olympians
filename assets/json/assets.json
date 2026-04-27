@@ -1,29 +1,29 @@
 {
-	"textures": {
-		"logo": {
-			"file":     "textures/logo.png",
-			"minfilter":"linear-linear",
-			"magfilter":"linear",
-			"wrapS":    "clamp",
-			"wrapT":    "clamp",
-			"mipmaps":  true
-		},
-		"close-normal": {
-			"file":     "textures/CloseNormal.png",
-			"minfilter":"nearest",
-			"magfilter":"linear",
-			"wrapS":    "clamp",
-			"wrapT":    "clamp"
-		},
-		"close-selected": {
-			"file":     "textures/CloseSelected.png",
-			"minfilter":"nearest",
-			"magfilter":"linear",
-			"wrapS":    "clamp",
-			"wrapT":    "clamp"
-		},
+    "textures": {
+        "logo": {
+            "file": "textures/logo.png",
+            "minfilter": "linear-linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp",
+            "mipmaps": true
+        },
+        "close-normal": {
+            "file": "textures/CloseNormal.png",
+            "minfilter": "nearest",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
+        },
+        "close-selected": {
+            "file": "textures/CloseSelected.png",
+            "minfilter": "nearest",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
+        },
         "background": {
-                   "file": "textures/background-small.png"
+            "file": "textures/background-small.png"
         },
         "attack_area": {
             "file": "textures/attack_area.png"
@@ -112,7 +112,7 @@
         "heal": {
             "file": "textures/gameScene/heal.png"
         },
-        "debugReset" : {
+        "debugReset": {
             "file": "textures/attack.png"
         },
         "buttonBG": {
@@ -167,15 +167,15 @@
             "file": "textures/houseSelect/athenaPoster.png",
             "minfilter": "linear",
             "magfilter": "linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "statsAthena": {
             "file": "textures/houseSelect/statsAthena.png",
             "minfilter": "linear",
             "magfilter": "linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "poseidonPoster": {
             "file": "textures/houseSelect/poseidonPoster.png"
@@ -184,36 +184,36 @@
             "file": "textures/houseSelect/statsPoseidon.png",
             "minfilter": "linear",
             "magfilter": "linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "aresPoster": {
             "file": "textures/houseSelect/aresPoster.png",
             "minfilter": "linear",
             "magfilter": "linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "statsAres": {
             "file": "textures/houseSelect/statsAres.png",
             "minfilter": "linear",
             "magfilter": "linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "demeterPoster": {
             "file": "textures/houseSelect/demeterPoster.png",
             "minfilter": "linear",
             "magfilter": "linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "statsDemeter": {
             "file": "textures/houseSelect/statsDemeter.png",
             "minfilter": "linear",
             "magfilter": "linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "hadesPoster": {
             "file": "textures/houseSelect/hadesPoster.png"
@@ -222,8 +222,8 @@
             "file": "textures/houseSelect/statsHades.png",
             "minfilter": "linear",
             "magfilter": "linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "hephaestusPoster": {
             "file": "textures/houseSelect/hephaestusPoster.png"
@@ -232,8 +232,38 @@
             "file": "textures/houseSelect/statsHephaestus.png",
             "minfilter": "linear",
             "magfilter": "linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "wrapS": "clamp",
+            "wrapT": "clamp"
+        },
+        "hermesPoster": {
+            "file": "textures/houseSelect/hermesPoster.png"
+        },
+        "statsHermes": {
+            "file": "textures/houseSelect/statsHermes.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
+        },
+        "zeusPoster": {
+            "file": "textures/houseSelect/zeusPoster.png"
+        },
+        "statsZeus": {
+            "file": "textures/houseSelect/statsZeus.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
+        },
+        "aphroditePoster": {
+            "file": "textures/houseSelect/aphroditePoster.png"
+        },
+        "statsAphrodite": {
+            "file": "textures/houseSelect/statsAphrodite.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "leftScroll": {
             "file": "textures/houseSelect/leftScroll.png"
@@ -264,26 +294,35 @@
         },
         "athenaSIcon": {
             "file": "textures/houseSelect/athenaSIcon.png",
-            "minfilter":"linear",
-            "magfilter":"linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "poseidonSIcon": {
             "file": "textures/houseSelect/poseidonSIcon.png"
         },
         "aresSIcon": {
             "file": "textures/houseSelect/aresSIcon.png",
-            "minfilter":"linear",
-            "magfilter":"linear",
-            "wrapS":    "clamp",
-            "wrapT":    "clamp"
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "demeterSIcon": {
             "file": "textures/houseSelect/demeterSIcon.png"
         },
         "hadesSIcon": {
             "file": "textures/houseSelect/hadesSIcon.png"
+        },
+        "hermesSIcon": {
+            "file": "textures/houseSelect/hermesSIcon.png"
+        },
+        "zeusSIcon": {
+            "file": "textures/houseSelect/zeusSIcon.png"
+        },
+        "aphroditeSIcon": {
+            "file": "textures/houseSelect/aphroditeSIcon.png"
         },
         "hephaestusSIcon": {
             "file": "textures/houseSelect/hephaestusSIcon.png"
@@ -394,7 +433,7 @@
             "file": "textures/elements/sideIconBG.png"
         },
         "backArrow": {
-          "file": "textures/backArrow.png"
+            "file": "textures/backArrow.png"
         },
         "menuBG": {
             "file": "textures/menuBG.png"
@@ -410,16 +449,73 @@
         },
         "supportZoneR": {
             "file": "textures/gameScene/supportRZoneBG.png"
+        },
+        "winSign": {
+            "file": "textures/winLoseScene/winSign.png"
+        },
+        "winSubheader": {
+            "file": "textures/winLoseScene/winSubheader.png"
+        },
+        "loseSign": {
+            "file": "textures/winLoseScene/loseSign.png"
+        },
+        "loseSubheader": {
+            "file": "textures/winLoseScene/loseSubheader.png"
+        },
+        "dropShadow": {
+            "file": "textures/preGameEntryScene/dropShadow.png"
+        },
+        "emptyBox": {
+            "file": "textures/preGameEntryScene/emptyBox.png"
+        },
+        "localBorder": {
+            "file": "textures/preGameEntryScene/localBorder.png"
+        },
+        "preEntryBottomCloud": {
+            "file": "textures/preGameEntryScene/preEntryBottomCloud.png"
+        },
+        "preEntryCloud": {
+            "file": "textures/preGameEntryScene/preEntryCloud.png"
+        },
+        "preGameBarFill": {
+            "file": "textures/preGameEntryScene/preGameBarFill.png"
+        },
+        "preGameBarOutline": {
+            "file": "textures/preGameEntryScene/preGameBarOutline.png"
+        },
+        "athenaBox": {
+            "file": "textures/preGameEntryScene/athenaBox.png"
+        },
+        "aresBox": {
+            "file": "textures/preGameEntryScene/aresBox.png"
+        },
+        "demeterBox": {
+            "file": "textures/preGameEntryScene/demeterBox.png"
+        },
+        "hadesBox": {
+            "file": "textures/preGameEntryScene/hadesBox.png"
+        },
+        "hephaestusBox": {
+            "file": "textures/preGameEntryScene/hephaestusBox.png"
+        },
+        "poseidonBox": {
+            "file": "textures/preGameEntryScene/poseidonBox.png"
+        },
+        "playerNameBG": {
+            "file": "textures/preGameEntryScene/playerNameBG.png"
+        },
+        "houseNameBG": {
+            "file": "textures/preGameEntryScene/houseNameBG.png"
         }
-	},
+    },
     "fonts": {
         "felt": {
-            "file":     "fonts/MarkerFelt.ttf",
-            "size":     64
+            "file": "fonts/MarkerFelt.ttf",
+            "size": 64
         },
         "sans": {
-            "file":     "fonts/Roboto-Bold.ttf",
-            "size":     20
+            "file": "fonts/Roboto-Bold.ttf",
+            "size": 20
         },
         "gideon romanRegular20": {
             "file": "fonts/GideonRoman-Regular.ttf",
@@ -437,42 +533,46 @@
             "file": "fonts/GideonRoman-Regular.ttf",
             "size": 16
         },
+        "gideon romanRegular8": {
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 8
+        },
         "gideon romanRegular10": {
-          "file": "fonts/GideonRoman-Regular.ttf",
-          "size": 10
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 10
         },
         "gideon romanRegular12": {
-          "file": "fonts/GideonRoman-Regular.ttf",
-          "size": 12
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 12
         },
         "gideon romanRegular48": {
-          "file": "fonts/GideonRoman-Regular.ttf",
-          "size": 48
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 48
         },
         "gideon romanRegular18": {
             "file": "fonts/GideonRoman-Regular.ttf",
             "size": 18
         },
         "menuTitle": {
-            "file":     "fonts/GRECOromanLubedWrestling.ttf",
-            "size":     50
+            "file": "fonts/GRECOromanLubedWrestling.ttf",
+            "size": 50
         },
         "menuLabel": {
-            "file":     "fonts/Roboto-Bold.ttf",
-            "size":     42
+            "file": "fonts/Roboto-Bold.ttf",
+            "size": 42
         },
         "bossDescriptionLabel": {
-            "file":     "fonts/GRECOromanLubedWrestling.ttf",
-            "size":     12
+            "file": "fonts/GRECOromanLubedWrestling.ttf",
+            "size": 12
         },
         "gamePin": {
-            "file":     "fonts/GRECOromanLubedWrestling.ttf",
-            "size":     48
+            "file": "fonts/GRECOromanLubedWrestling.ttf",
+            "size": 48
         },
         "gamePinShadow": {
-            "file":     "fonts/GRECOromanLubedWrestling.ttf",
-            "size":     48,
-            "padding":  4
+            "file": "fonts/GRECOromanLubedWrestling.ttf",
+            "size": 48,
+            "padding": 4
         }
     },
     "jsons": {
@@ -482,113 +582,115 @@
     },
     "sounds": {
         "select": {
-            "type":     "sample",
-            "file":     "sounds/select.wav",
-            "stream":   false,
-            "volume":   0.6
+            "type": "sample",
+            "file": "sounds/select.wav",
+            "stream": false,
+            "volume": 0.6
         },
         "deselect": {
-            "type":     "sample",
-            "file":     "sounds/deselect.wav",
-            "stream":   false,
-            "volume":   0.5
+            "type": "sample",
+            "file": "sounds/deselect.wav",
+            "stream": false,
+            "volume": 0.5
         },
         "whoosh": {
-            "type":     "sample",
-            "file":     "sounds/whoosh.wav",
-            "stream":   false,
-            "volume":   0.4
+            "type": "sample",
+            "file": "sounds/whoosh.wav",
+            "stream": false,
+            "volume": 0.4
         },
         "attack": {
-            "type":     "sample",
-            "file":     "sounds/attack.wav",
-            "stream":   false,
-            "volume":   0.5
+            "type": "sample",
+            "file": "sounds/attack.wav",
+            "stream": false,
+            "volume": 0.5
         },
         "attack_slash": {
-            "type":     "sample",
-            "file":     "sounds/attack_slash.wav",
-            "stream":   false,
-            "volume":   0.75
+            "type": "sample",
+            "file": "sounds/attack_slash.wav",
+            "stream": false,
+            "volume": 0.75
         },
         "attack_thud": {
-            "type":     "sample",
-            "file":     "sounds/attack_thud.wav",
-            "stream":   false,
-            "volume":   0.75
+            "type": "sample",
+            "file": "sounds/attack_thud.wav",
+            "stream": false,
+            "volume": 0.75
         },
         "attack_thrust": {
-            "type":     "sample",
-            "file":     "sounds/attack_thrust.wav",
-            "stream":   false,
-            "volume":   0.75
+            "type": "sample",
+            "file": "sounds/attack_thrust.wav",
+            "stream": false,
+            "volume": 0.75
         },
         "battle": {
-            "type":     "sample",
-            "file":     "sounds/battle.ogg",
-            "stream":   true,
-            "volume":   0.4
+            "type": "sample",
+            "file": "sounds/battle.ogg",
+            "stream": true,
+            "volume": 0.4
         },
         "support": {
-            "type":     "sample",
-            "file":     "sounds/support.wav",
-            "stream":   false,
-            "volume":   0.4
+            "type": "sample",
+            "file": "sounds/support.wav",
+            "stream": false,
+            "volume": 0.4
         },
         "lobby": {
-            "type":     "sample",
-            "file":     "sounds/lobby.ogg",
-            "stream":   true,
-            "volume":   0.4
+            "type": "sample",
+            "file": "sounds/lobby.ogg",
+            "stream": true,
+            "volume": 0.4
         },
         "enemy_hurt": {
-            "type":     "sample",
-            "file":     "sounds/enemy_hurt.wav",
-            "stream":   false,
-            "volume":   0.4
+            "type": "sample",
+            "file": "sounds/enemy_hurt.wav",
+            "stream": false,
+            "volume": 0.4
         },
         "player_heal": {
-            "type":     "sample",
-            "file":     "sounds/player_heal.wav",
-            "stream":   false,
-            "volume":   1.0
+            "type": "sample",
+            "file": "sounds/player_heal.wav",
+            "stream": false,
+            "volume": 1.0
         },
         "player_hurt": {
-            "type":     "sample",
-            "file":     "sounds/player_hurt.wav",
-            "stream":   false,
-            "volume":   0.45
+            "type": "sample",
+            "file": "sounds/player_hurt.wav",
+            "stream": false,
+            "volume": 0.45
         },
         "player_hurt_deep": {
-            "type":     "sample",
-            "file":     "sounds/player_hurt_deep.wav",
-            "stream":   false,
-            "volume":   0.45
+            "type": "sample",
+            "file": "sounds/player_hurt_deep.wav",
+            "stream": false,
+            "volume": 0.45
         },
         "popup_ding": {
-            "type":     "sample",
-            "file":     "sounds/popup_ding.wav",
-            "stream":   false,
-            "volume":   0.45
+            "type": "sample",
+            "file": "sounds/popup_ding.wav",
+            "stream": false,
+            "volume": 0.45
         }
     },
     "widgets": {
-        "scene":       "json/scenes/gameScene.json",
-        "gameArea":   "widgets/gameArea.json",
-        "inventory":   "widgets/inventory.json",
+        "scene": "json/scenes/gameScene.json",
+        "gameArea": "widgets/gameArea.json",
+        "inventory": "widgets/inventory.json",
         "playerSlot": "widgets/playerSlot.json",
-        "ability":     "widgets/ability.json",
+        "ability": "widgets/ability.json",
         "client": "json/scenes/clientScene.json",
         "textfield": "widgets/elements/textfield.json",
         "hostSetup": "json/scenes/hostSetupScene.json",
         "bossCard": "widgets/elements/bossCard.json",
-        "menuScene":   "json/scenes/menuScene.json",
+        "menuScene": "json/scenes/menuScene.json",
         "lobbyScene": "json/scenes/lobbyScene.json",
         "houseSelectScene": "json/scenes/houseSelectionScene.json",
         "bossSelectScene": "json/scenes/bossSelectionScene.json",
-        "heroCard" : "widgets/houseSelect/heroCard.json",
-        "teamHouseIcon" : "widgets/houseSelect/teamHouseIcon.json",
-        "playerHouseIcon" : "widgets/houseSelect/playerHouseIcon.json",
+        "winLoseScene": "json/scenes/winLoseScene.json",
+        "preGameEntryScene": "json/scenes/preGameEntryScene.json",
+        "heroCard": "widgets/houseSelect/heroCard.json",
+        "teamHouseIcon": "widgets/houseSelect/teamHouseIcon.json",
+        "playerHouseIcon": "widgets/houseSelect/playerHouseIcon.json",
         "buttonRegular": "widgets/elements/buttonReg.json",
         "buttonMedium": "widgets/elements/buttonMedium.json",
         "buttonSmall": "widgets/elements/buttonSmall.json",
@@ -600,7 +702,9 @@
         "gameScene": {
             "type": "Widget",
             "comment": "Root node of the gameplay scene",
-            "format": { "type": "Anchored" },
+            "format": {
+                "type": "Anchored"
+            },
             "data": {
                 "key": "scene",
                 "variables": {}
@@ -613,25 +717,31 @@
         "clientScene": {
             "type": "Widget",
             "comment": "Root node of the client network scene",
-            "format": { "type": "Anchored" },
+            "format": {
+                "type": "Anchored"
+            },
             "data": {
                 "key": "client",
                 "variables": {}
             }
         },
         "hostSetupScene": {
-          "type": "Widget",
-          "comment": "Root node of the host setup network scene",
-          "format": { "type": "Anchored" },
-          "data": {
-            "key": "hostSetup",
-            "variables": {}
-          }
+            "type": "Widget",
+            "comment": "Root node of the host setup network scene",
+            "format": {
+                "type": "Anchored"
+            },
+            "data": {
+                "key": "hostSetup",
+                "variables": {}
+            }
         },
         "lobbyScene": {
             "type": "Widget",
             "comment": "Root node of the lobby scene",
-            "format": { "type": "Anchored" },
+            "format": {
+                "type": "Anchored"
+            },
             "data": {
                 "key": "lobbyScene",
                 "variables": {}
@@ -640,7 +750,9 @@
         "menuScene": {
             "type": "Widget",
             "comment": "Root node of the main menu scene",
-            "format": { "type": "Anchored" },
+            "format": {
+                "type": "Anchored"
+            },
             "data": {
                 "key": "menuScene",
                 "variables": {}
@@ -649,7 +761,9 @@
         "houseSelectScene": {
             "type": "Widget",
             "comment": "Root node of the house select scene",
-            "format": { "type": "Anchored"},
+            "format": {
+                "type": "Anchored"
+            },
             "data": {
                 "key": "houseSelectScene",
                 "variables": {}
@@ -658,7 +772,9 @@
         "bossSelectScene": {
             "type": "Widget",
             "comment": "Root node of the boss select scene",
-            "format": { "type": "Anchored"},
+            "format": {
+                "type": "Anchored"
+            },
             "data": {
                 "key": "bossSelectScene",
                 "variables": {}
@@ -670,6 +786,28 @@
             "format": { "type": "Anchored"},
             "data": {
                 "key": "settingsScene",
+                "variables": {}
+            }
+        },
+        "winLoseScene": {
+            "type": "Widget",
+            "comment": "Root node of the win/lose select scene",
+            "format": {
+                "type": "Anchored"
+            },
+            "data": {
+                "key": "winLoseScene",
+                "variables": {}
+            }
+        },
+        "preGameEntryScene": {
+            "type": "Widget",
+            "comment": "Root node of the pre-game entry scene",
+            "format": {
+                "type": "Anchored"
+            },
+            "data": {
+                "key": "preGameEntryScene",
                 "variables": {}
             }
         }

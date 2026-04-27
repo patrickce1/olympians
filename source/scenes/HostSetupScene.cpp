@@ -301,7 +301,6 @@ void HostSetupScene::update(float timestep) {
 bool HostSetupScene::consumeSettings() {
     bool val = _pendingSettings;
     _pendingSettings = false;
-    _backButton->deactivate();
     return val;
 };
 

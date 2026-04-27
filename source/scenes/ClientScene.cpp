@@ -344,7 +344,6 @@ void ClientScene::update(float timestep) {
 bool ClientScene::consumeSettings() {
     bool val = _pendingSettings;
     _pendingSettings = false;
-    _backButton->deactivate();
     return val;
 };
 

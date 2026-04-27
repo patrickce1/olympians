@@ -1737,16 +1737,16 @@
                             "visible": true
                         },
                         "children": {
-                            "emptyHeroCard": {
+                            "zeus": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "zeusPoster",
+                                        "heroName": "-ZEUS-",
+                                        "heroStats": "statsZeus"
                                     }
                                 },
                                 "layout": {
@@ -1759,16 +1759,16 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard1": {
+                            "aphrodite": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "aphroditePoster",
+                                        "heroName": "-APHRODITE-",
+                                        "heroStats": "statsAphrodite"
                                     }
                                 },
                                 "layout": {
@@ -1790,7 +1790,8 @@
                                         "glow" : false,
                                         "heroPoster": "hadesPoster",
                                         "heroName": "-HADES-",
-                                        "heroStats": "statsHades"
+                                        "heroStats": "statsHades",
+                                        "rare": "item_helm"
                                     }
                                 },
                                 "layout": {
@@ -1812,7 +1813,8 @@
                                         "glow" : false,
                                         "heroPoster": "demeterPoster",
                                         "heroName": "-DEMETER-",
-                                        "heroStats": "statsDemeter"
+                                        "heroStats": "statsDemeter",
+                                        "rare": "item_cornucopia"
                                     }
                                 },
                                 "layout": {
@@ -1834,7 +1836,8 @@
                                         "glow" : true,
                                         "heroPoster": "athenaPoster",
                                         "heroName": "-ATHENA-",
-                                        "heroStats": "statsAthena"
+                                        "heroStats": "statsAthena",
+                                        "rare": "item_aegis"
                                     }
                                 },
                                 "layout": {
@@ -1856,7 +1859,9 @@
                                         "glow" : false,
                                         "heroPoster": "poseidonPoster",
                                         "heroName": "-POSEIDON-",
-                                        "heroStats": "statsPoseidon"
+                                        "heroStats": "statsPoseidon",
+                                        "rare": "item_trident",
+                                        "divine": "item_poseidon_tide"
                                     }
                                 },
                                 "layout": {
@@ -1878,7 +1883,8 @@
                                         "glow" : false,
                                         "heroPoster": "aresPoster",
                                         "heroName": "-ARES-",
-                                        "heroStats": "statsAres"
+                                        "heroStats": "statsAres",
+                                        "rare": "item_spear"
                                     }
                                 },
                                 "layout": {
@@ -1900,7 +1906,8 @@
                                         "glow" : false,
                                         "heroPoster": "hephaestusPoster",
                                         "heroName": "-HEPHAESTUS-",
-                                        "heroStats": "statsHephaestus"
+                                        "heroStats": "statsHephaestus",
+                                        "rare": "item_mallet"
                                     }
                                 },
                                 "layout": {
@@ -1913,16 +1920,16 @@
                                     ]
                                 }
                             },
-                            "emptyHeroCard8": {
+                            "hermes": {
                                 "type": "Widget",
                                 "format": { "type": "Anchored" },
                                 "data": {
                                     "key": "heroCard",
                                     "variables": {
                                         "glow" : false,
-                                        "heroPoster": "heroPoster",
-                                        "heroName": "-HERO-",
-                                        "heroStats": "emptyStats"
+                                        "heroPoster": "hermesPoster",
+                                        "heroName": "-HERMES-",
+                                        "heroStats": "statsHermes"
                                     }
                                 },
                                 "layout": {
@@ -2222,7 +2229,6 @@
                         "data": {
                             "key": "playerHouseIcon",
                             "variables": {
-                                "houseImage" : "teamSelectIconEmpty",
                                 "glow" : false
                             }
                         },
