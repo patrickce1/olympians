@@ -24,8 +24,8 @@
         "item_helm": {
             "file": "textures/items/helm_r.png"
         },
-        "item_cornucopia": {
-            "file": "textures/items/cornucopia_r.png"
+        "item_wheat": {
+            "file": "textures/items/wheat_r.png"
         },
         "item_mallet": {
             "file": "textures/items/mallet_r.png"
@@ -36,11 +36,50 @@
         "item_spear": {
             "file": "textures/items/spear_r.png"
         },
+        "item_wings": {
+            "file": "textures/items/wings_r.png"
+        },
+        "item_potion": {
+            "file": "textures/items/potion_r.png"
+        },
         "item_poseidon_tide": {
-            "file": "textures/items/poseidons_tide_d.png"
+            "file": "textures/items/poseidon_tide_d.png"
         },
         "item_zeus_thunderstorm": {
             "file": "textures/items/zeus_thunderstorm_d.png"
+        },
+        "item_hades_resurrection": {
+            "file": "textures/items/hades_resurrection_d.png"
+        },
+        "item_demeter_abundance": {
+            "file": "textures/items/demeter_abundance_d.png"
+        },
+        "item_aphrodite_beauty": {
+            "file": "textures/items/aphrodite_beauty_d.png"
+        },
+        "item_athena_educate": {
+            "file": "textures/items/athena_educate_d.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "item_ares_rage": {
+            "file": "textures/items/ares_rage_d.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "item_hermes_treasure": {
+            "file": "textures/items/hermes_treasure_d.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS":    "clamp",
+            "wrapT":    "clamp"
+        },
+        "item_hephaestus_forge": {
+            "file": "textures/items/hephaestus_forge_d.png"
         }
     }
 }
