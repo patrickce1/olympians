@@ -305,11 +305,11 @@
                                 "data": {
                                     "anchor": [
                                         0,
-                                        1
+                                        0.5
                                     ],
                                     "size": [
-                                        62.000003814697266,
-                                        14.000000953674316
+                                        559,
+                                        77
                                     ],
                                     "position": [
                                         16,
@@ -334,7 +334,7 @@
                                 "children": {},
                                 "layout": {
                                     "x_anchor": "left",
-                                    "y_anchor": "top",
+                                    "y_anchor": "center",
                                     "absolute": false,
                                     "x_offset": 0.17,
                                     "y_offset": 0
@@ -374,7 +374,7 @@
                             "playerNameBG": {
                                 "type": "Image",
                                 "data": {
-                                    "texture": "playerNameBG",
+                                    "texture": "playerUsernameBG",
                                     "anchor": [
                                         0,
                                         1
@@ -451,7 +451,7 @@
                     "x_anchor": "left",
                     "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": 0.17,
+                    "x_offset": 0.11,
                     "y_offset": 0.11
                 }
             },

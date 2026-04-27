@@ -46,12 +46,13 @@
                 "type": "Label",
                 "data": {
                     "anchor": [0.5, 0.5],
-                    "font": "gideon romanRegular20",
+                    "font": "mainFont",
                     "text": "",
                     "padding"  : [20, 10, 20, 10],
                     "halign": "left",
                     "valign": "middle",
-                    "foreground": "#AF8B5Bff"
+                    "foreground": "#AF8B5Bff",
+                    "scale": 0.3125
                     
                 },
                 "layout": {
@@ -66,7 +67,7 @@
                 "type"   : "TextField",
                 "data": {
                     "anchor"   : [0.5, 0.5],
-                    "font"     : "gideon romanRegular20",
+                    "font"     : "mainFont",
                     "text"     : "Text",
                     "padding"  : [20, 10, 20, 10],
                     "halign"   : "left",
@@ -74,7 +75,8 @@
                     "foreground": "#ffd9a9ff",
                     "cursor": true,
                     "cursorcolor" : "#FFE5C3ff",
-                    "cursorwidth" : 1
+                    "cursorwidth" : 1,
+                    "scale": 0.3125
                 },
                 "layout" : {
                     "x_anchor" : "fill",

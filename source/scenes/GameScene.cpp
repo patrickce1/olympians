@@ -256,6 +256,7 @@ bool GameScene::initSceneGraph() {
     }
     
     if (_inventory) {
+        _inventory->setContentWidth(dimen.width);
         auto invBG = _inventory->getChildByName<cugl::scene2::NinePatch>("background");
         invBG->setContentWidth(dimen.width);
         

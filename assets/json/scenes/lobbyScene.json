@@ -990,8 +990,8 @@
                                 0.5
                             ],
                             "size": [
-                                142,
-                                24
+                                454.4,
+                                76.8
                             ],
                             "position": [
                                 96,
@@ -999,7 +999,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular20",
+                            "font": "mainFont",
                             "text": "Your Game Pin:",
                             "foreground": "#c38e49ff",
                             "background": "#00000000",
@@ -1010,7 +1010,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "true center"
+                            "halign": "true center",
+                            "scale": 0.3125
                         },
                         "children": {},
                         "layout": {

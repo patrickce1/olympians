@@ -447,7 +447,7 @@
         "healthFillRed": {
             "file": "textures/gameScene/healthFillRed.png"
         },
-        "playerNameBG": {
+        "playerUsernameBG": {
             "file": "textures/gameScene/playerNameBG.png"
         },
         "playerHouseBG": {
@@ -518,10 +518,6 @@
         },
         "sans": {
             "file": "fonts/Roboto-Bold.ttf",
-            "size": 20
-        },
-        "gideon romanRegular20": {
-            "file": "fonts/GideonRoman-Regular.ttf",
             "size": 20
         },
         "gideon romanRegular24": {

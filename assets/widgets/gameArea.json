@@ -179,45 +179,6 @@
                             "x_offset": 0.02,
                             "y_offset": 0.19
                         }
-                    },
-                    "label": {
-                        "type": "Label",
-                        "data": {
-                            "anchor": [
-                                0,
-                                0.5
-                            ],
-                            "size": [
-                                71,
-                                24
-                            ],
-                            "position": [
-                                74.0810546875,
-                                0
-                            ],
-                            "angle": 0,
-                            "visible": false,
-                            "font": "gideon romanRegular20",
-                            "text": "100/100",
-                            "foreground": "#ffffffff",
-                            "background": "#00000000",
-                            "padding": [
-                                0,
-                                0,
-                                0,
-                                0
-                            ],
-                            "valign": "top",
-                            "halign": "center"
-                        },
-                        "children": {},
-                        "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "middle",
-                            "absolute": false,
-                            "x_offset": 0.35,
-                            "y_offset": 0
-                        }
                     }
                 },
                 "layout": {
