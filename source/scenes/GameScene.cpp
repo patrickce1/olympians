@@ -532,33 +532,26 @@ void GameScene::dispose() {
 void GameScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
     const int totalSlots = (int)_gameState.getPlayers().size();
 
     for (int i = 0; i < totalSlots; i++) {
-        if (_network->checkRealPlayer(i)) {
-            // Real player slot — reconstruct with name and house from network
-            _gameState.setRealPlayer(
-                i,
-                networkedPlayers[i].username,
-                networkedPlayers[i].houseID
-            );
+        auto pair = slotToPlayer.find(i);
+        if (pair != slotToPlayer.end()) {
+            _gameState.setRealPlayer(i, pair->second.username, pair->second.houseID);
         } else {
-            // AI slot — use demoteToAI() to preserve isAI() == true.
-            // setRealPlayer() produces a plain Player which breaks AI behavior
-            // since updateEnemyAndAI() casts to PlayerAI* to tick the AI.
             _gameState.demoteToAI(i, _network->getAIHouse(i));
         }
     }
 
     // Log every slot so we can verify AI slots are actually PlayerAI at game start
     for (int i = 0; i < totalSlots; i++) {
-        Player* p = _gameState.getPlayerBySlot(i);
+        Player* player = _gameState.getPlayerBySlot(i);
         CULog("GameScene::updateNetworkOrder — slot %d: name='%s' house='%s' isAI=%s",
               i,
-              p->getPlayerName().c_str(),
-              p->getHouseName().c_str(),
-              p->isAI() ? "true" : "false");
+              player->getPlayerName().c_str(),
+              player->getHouseName().c_str(),
+              player->isAI() ? "true" : "false");
     }
 
     setLocalPlayer(_network->getLocalPlayerNumber());
@@ -877,9 +870,9 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
 
     // For real players, verify they're still in the networked players list
     if (!target->isAI()) {
-        const auto& networkedPlayers = _network->getNetworkedPlayers();
         int targetSlot = target->getPlayerNumber();
-        if (targetSlot >= (int)networkedPlayers.size()) {
+        const auto& slotToPlayer = _network->getNetworkedPlayers();
+        if (slotToPlayer.find(targetSlot) == slotToPlayer.end()) {
             CULog("Cannot pass to player %d: player slot out of range", targetSlot);
             return false;
         }
@@ -926,9 +919,9 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
 
     // For real players, verify they're still in the networked players list
     if (!target->isAI()) {
-        const auto& networkedPlayers = _network->getNetworkedPlayers();
         int targetSlot = target->getPlayerNumber();
-        if (targetSlot >= (int)networkedPlayers.size()) {
+        const auto& slotToPlayer = _network->getNetworkedPlayers();
+        if (slotToPlayer.find(targetSlot) == slotToPlayer.end()) {
             CULog("Cannot pass to player %d: player slot out of range", targetSlot);
             return false;
         }
@@ -1843,6 +1836,7 @@ void GameScene::handleNetworkUpdates(float dt) {
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        refreshTeammateNameLabels();
     }
     
     // Play sounds for LOCAL player and enemy health changes after all updates
@@ -2428,6 +2422,10 @@ void GameScene::updateDropZoneVisibility(){
  */
 void GameScene::update(float dt, InputController& input) {
     if (!_active) return;
+    
+    if (_network->isHost()) {
+        _network->broadcastHostsCurrentScene(1);
+    }
 
     handleResetButton(input);
     handlePlayerInput(input);
@@ -3041,21 +3039,16 @@ void GameScene::setDebugMode(bool enabled){
  */
 void GameScene::detectDroppedPeers() {
     std::unordered_map<int, std::string> activeNetworkIDs;
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
 
     for (const auto& player : _gameState.getPlayers()) {
-        // Skip AI slots — they have no network peer to check.
         if (player->isAI()) continue;
-
         int slot = player->getPlayerNumber();
-
-        // Skip our own slot — we are still here by definition.
         if (slot == _network->getLocalPlayerNumber()) continue;
 
-        // networkID lives at the same index as slot in _onlinePlayers,
-        // since lobby order and slot order are kept in sync.
-        if (slot < (int)networkedPlayers.size()) {
-            activeNetworkIDs[slot] = networkedPlayers[slot].networkID;
+        auto pair = slotToPlayer.find(slot);
+        if (pair != slotToPlayer.end()) {
+            activeNetworkIDs[slot] = pair->second.networkID;
         }
     }
 }
@@ -3095,7 +3088,7 @@ void GameScene::demoteSlotToAI(int slot) {
 }
 
 /**
- * HOST + CLIENTS. Updates the left and right teammate name labels to
+ * HOST and CLIENTS refresh. Updates the left and right teammate name labels to
  * reflect the current AI/human state of each neighbour.
  */
 void GameScene::refreshTeammateNameLabels() {
@@ -3141,6 +3134,12 @@ void GameScene::handleDisconnectedPlayers() {
         // via broadcastGameState / networkUpdate.
         if (_network->isHost()) {
             demoteSlotToAI(slot);
+        } else {
+            // Capture the house before demoting — GameState still has it here.
+            std::string house = "";
+            Player* player = _gameState.getPlayerBySlot(slot);
+            if (player) house = player->getHouseName();
+            _gameState.demoteToAI(slot, house);
         }
 
         // Mark this slot as handled so we don't re-demote it next frame.
