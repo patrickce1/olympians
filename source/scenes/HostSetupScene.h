@@ -115,9 +115,6 @@ protected:
     /** Loads enemy definitions from JSON for boss selection. */
     EnemyLoader _enemyLoader;
     
-    /** The initial position of the boss carousel. */
-    cugl::Vec2 _baseCarouselPosition;
-
 public:
 #pragma mark -
 #pragma mark Constructors

@@ -232,7 +232,7 @@ void HostSetupScene::setActive(bool value) {
             _currentIndex = 1;
             _isAnimating = false;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
-            float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
+            float startX = getTargetXForIndex(_currentIndex);
             _bossSelectionCardContainer->setPosition(Vec2(startX, pos.y));
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);
