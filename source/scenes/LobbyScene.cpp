@@ -84,6 +84,9 @@ void LobbyScene::setupUI() {
 
     _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("lobbyScene.back"));
+    
+    _itemsButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("lobbyScene.itemsTab"));
 
     _gameId = std::dynamic_pointer_cast<scene2::Label>(
         _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
@@ -231,6 +234,7 @@ void LobbyScene::dispose() {
         _bossImage = nullptr;
         _bossLobbyButton = nullptr;
         _playerInfoContainer = nullptr;
+        _itemsButton = nullptr;
         _active = false;
     }
     _network = nullptr;
@@ -254,6 +258,7 @@ void LobbyScene::setActive(bool value) {
             _enterGame->deactivate();
             _backButton->activate();
             _bossLobbyButton->activate();
+            _itemsButton->activate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->activate();
             }
@@ -271,6 +276,7 @@ void LobbyScene::setActive(bool value) {
             _backButton->deactivate();
             _enterGame->deactivate();
             _bossLobbyButton->deactivate();
+            _itemsButton->deactivate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->deactivate();
                 icon->setDown(false);
@@ -529,6 +535,32 @@ void LobbyScene::update(float timestep) {
     } else {
         _localPlayerIconIndicator->setVisible(true);
         _localPlayerIconIndicator->setColor(Color4(255,255,255,255));
+    }
+}
+
+/**
+ * Enables or disables all interactive input controls.
+ *
+ * Called with false when a join attempt starts so the player cannot spam
+ * the button, and called with true when the scene resets to IDLE.
+ *
+ * @param enabled  Whether the controls should accept input.
+ */
+void LobbyScene::setInputEnabled(bool enabled) {
+    if (enabled) {
+        _backButton->activate();
+        _bossLobbyButton->activate();
+        _itemsButton->activate();
+        for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+            icon->activate();
+        }
+    } else {
+        _backButton->deactivate();
+        _bossLobbyButton->deactivate();
+        _itemsButton->deactivate();
+        for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+            icon->deactivate();
+        }
     }
 }
 

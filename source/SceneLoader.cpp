@@ -225,187 +225,196 @@ void SceneLoader::onResize()
  * Scene loader's main job during update is to detect if a switch between scenes is necessary.
  * Otherwise, it should maintain the current scene.
  */
-void SceneLoader::update(float dt)
-{
-
-    switch (_currentScene)
-    {
-    case State::LOAD:
-        _loadingScene->update(dt);
-
-        if (_loadingScene->isPending())
-        {
-            CULog("Assets finished loading. Initializing MenuScene...");
+void SceneLoader::update(float dt) {
+    // Settings overlay always gets updated when active
+    if (_settingsScene.isActive()) {
+        _settingsScene.update(dt);
+        if (_settingsScene.consumeClose()) {
+            _settingsScene.setActive(false);
+            _paused = false;
+            switch (_currentScene) {
+               case State::HOSTSETUP:
+                   _hostSetupScene.setInputEnabled(true);
+                   break;
+               case State::CLIENT:
+                   _clientScene.setInputEnabled(true);
+                   break;
+               case State::LOBBY:
+                   _lobbyScene.setInputEnabled(true);
+                   break;
+               default:
+                   break;
+           }
+        }
+        return;
+    }
+    
+    switch (_currentScene) {
+        case State::LOAD:
+            _loadingScene->update(dt);
+            if (_loadingScene->isPending())
+            {
+                CULog("Assets finished loading. Initializing MenuScene...");
 
             // NETWORK
             _network->init(_assets); // assets loaded, load network controller
 
             // Initialize and start audio controller
-            if (_audio.init(_assets))
-            {
+            if (_audio.init(_assets)){
                 _audio.startAudioEngine();
                 _audio.playMusic("lobby");
-            }
-            else
-            {
+            } else{
                 CULog("Warning: Failed to initialize audio controller");
             }
 
-            if (_menuScene.init(_assets))
-            {
+            if (_menuScene.init(_assets)){
                 _menuScene.setSpriteBatch(_batch);
                 _menuScene.setActive(true);
                 _loadingScene->setActive(false);
                 _currentScene = State::MENU;
-            }
-            else
-            {
+            } else{
                 CULog("Failed to initialize MenuScene");
             }
 
-            if (_hostSetupScene.init(_assets, _network))
-            {
+            if (_hostSetupScene.init(_assets, _network)){
                 _hostSetupScene.setSpriteBatch(_batch);
-            }
-            else
-            {
+            } else{
                 CULog("Failed to initialize HostSetupScene");
             }
 
-            if (_clientScene.init(_assets, _network))
-            {
+            if (_clientScene.init(_assets, _network)){
                 _clientScene.setSpriteBatch(_batch);
-            }
-            else
-            {
+            } else{
                 CULog("Failed to initialize ClientScene");
             }
 
-            if (_gameScene.init(_assets, _network, &_audio))
-            {
+            if (_gameScene.init(_assets, _network, &_audio)){
                 _gameScene.setSpriteBatch(_batch);
-            }
-            else
-            {
+            } else{
                 CULog("Failed to initialize GameScene");
             }
 
-            if (_lobbyScene.init(_assets, _network, &_gameScene.getGameState(), &_gameScene.getItemController()))
-            {
+            if (_lobbyScene.init(_assets, _network, &_gameScene.getGameState(), &_gameScene.getItemController())){
                 _lobbyScene.setSpriteBatch(_batch);
-            }
-            else
-            {
+            } else{
                 CULog("Failed to initialize LobbyScene");
             }
 
-            if (_houseSelectScene.init(_assets, _network, &_gameScene.getGameState()))
-            {
+            if (_houseSelectScene.init(_assets, _network, &_gameScene.getGameState())){
                 _houseSelectScene.setSpriteBatch(_batch);
-            }
-            else
-            {
+            } else{
                 CULog("Failed to initialize HouseSelectScene");
             }
 
-            if (_bossSelectScene.init(_assets, _network))
-            {
+            if (_bossSelectScene.init(_assets, _network)){
                 _bossSelectScene.setSpriteBatch(_batch);
-            }
-            else
-            {
+            } else{
                 CULog("Failed to initialize BossSelectScene");
             }
 
-            if (_winLoseScene.init(_assets, _network))
-            {
+            if (_winLoseScene.init(_assets, _network)){
                 _winLoseScene.setSpriteBatch(_batch);
-            }
-            else
-            {
+            } else{
                 CULog("Failed to initialize BossSelectScene");
             }
 
-            if (_preGameEntryScene.init(_assets, _network, &_gameScene.getGameState()))
-            {
+            if (_preGameEntryScene.init(_assets, _network, &_gameScene.getGameState())){
                 _preGameEntryScene.setSpriteBatch(_batch);
-            }
-            else
-            {
+            } else{
                 CULog("Failed to initialize PreGameEntryScene");
+            }
+            
+            // Init the settings overlay once, after all assets are ready
+            if (_settingsScene.init(_assets)){
+                _settingsScene.setSpriteBatch(_batch);
+                
+                _settingsScene.setOnMusicVolumeChange([this](float value) {
+                    _audio.setMusicVolumeMultiplier(value);
+                });
+
+                _settingsScene.setOnSFXVolumeChange([this](float value) {
+                    _audio.setSFXVolumeMultiplier(value);
+                });
             }
         }
         break;
     case State::MENU:
         _menuScene.update(dt);
-        switch (_menuScene.consumeAction())
-        {
-        case MenuScene::Action::START_GAME:
-            CULog("Transitioning to HostSetupScene...");
-            _hostSetupScene.setActive(true);
-            _menuScene.setActive(false);
-            _currentScene = State::HOSTSETUP;
-            break;
-        case MenuScene::Action::OPEN_SETTINGS:
-            CULog("SettingsScene placeholder pressed");
-            break;
-        case MenuScene::Action::NONE:
-        default:
-            break;
+        switch (_menuScene.consumeAction()) {
+            case MenuScene::Action::START_GAME:
+                CULog("Transitioning to HostSetupScene...");
+                _hostSetupScene.setActive(true);
+                _menuScene.setActive(false);
+                _currentScene = State::HOSTSETUP;
+                break;
+            case MenuScene::Action::OPEN_SETTINGS:
+                CULog("SettingsScene placeholder pressed");
+                _paused = true;
+                _settingsScene.setActive(true);
+                break;
+            case MenuScene::Action::NONE:
+            default:
+                break;
         }
         break;
     case State::CLIENT:
         _clientScene.update(dt);
-        switch (_clientScene.getStatus())
-        {
-        case ClientScene::Status::START:
-            CULog("Transitioning to LobbyScene...");
-            _audio.playMusic("lobby");
-            _lobbyScene.setActive(true);
-            _clientScene.setActive(false);
-            _currentScene = State::LOBBY;
-            break;
-        case ClientScene::Status::HOST:
-            CULog("Transitioning to HostSetupScene...");
-            _hostSetupScene.setActive(true);
-            _clientScene.setActive(false);
-            _currentScene = State::HOSTSETUP;
-            break;
-        case ClientScene::Status::ABORT:
-            CULog("Transitioning to MenuScene...");
-            _menuScene.setActive(true);
-            _clientScene.setActive(false);
-            _currentScene = State::MENU;
-            break;
-        default:
-            break;
+        if (_clientScene.shouldOpenSettings()) {
+            _clientScene.setInputEnabled(false);
+            _settingsScene.setActive(true);
+        }
+        switch (_clientScene.getStatus()){
+            case ClientScene::Status::START:
+                CULog("Transitioning to LobbyScene...");
+                _audio.playMusic("lobby");
+                _lobbyScene.setActive(true);
+                _clientScene.setActive(false);
+                _currentScene = State::LOBBY;
+                break;
+            case ClientScene::Status::HOST:
+                CULog("Transitioning to HostSetupScene...");
+                _hostSetupScene.setActive(true);
+                _clientScene.setActive(false);
+                _currentScene = State::HOSTSETUP;
+                break;
+            case ClientScene::Status::ABORT:
+                CULog("Transitioning to MenuScene...");
+                _menuScene.setActive(true);
+                _clientScene.setActive(false);
+                _currentScene = State::MENU;
+                break;
+            default:
+                break;
         }
         break;
     case State::HOSTSETUP:
         _hostSetupScene.update(dt);
-        switch (_hostSetupScene.getStatus())
-        {
-        case HostSetupScene::Status::START:
-            CULog("Transitioning to LobbyScene...");
-            _audio.playMusic("lobby");
-            _lobbyScene.setActive(true);
-            _hostSetupScene.setActive(false);
-            _currentScene = State::LOBBY;
-            break;
-        case HostSetupScene::Status::CLIENT:
-            CULog("Transitioning to ClientScene...");
-            _clientScene.setActive(true);
-            _hostSetupScene.setActive(false);
-            _currentScene = State::CLIENT;
-            break;
-        case HostSetupScene::Status::ABORT:
-            CULog("Transitioning to MenuScene...");
-            _menuScene.setActive(true);
-            _hostSetupScene.setActive(false);
-            _currentScene = State::MENU;
-            break;
-        default:
-            break;
+        if (_hostSetupScene.shouldOpenSettings()) {
+            _hostSetupScene.setInputEnabled(false);
+            _settingsScene.setActive(true);
+        }
+        switch (_hostSetupScene.getStatus()) {
+            case HostSetupScene::Status::START:
+                CULog("Transitioning to LobbyScene...");
+                _audio.playMusic("lobby");
+                _lobbyScene.setActive(true);
+                _hostSetupScene.setActive(false);
+                _currentScene = State::LOBBY;
+                break;
+            case HostSetupScene::Status::CLIENT:
+                CULog("Transitioning to ClientScene...");
+                _clientScene.setActive(true);
+                _hostSetupScene.setActive(false);
+                _currentScene = State::CLIENT;
+                break;
+            case HostSetupScene::Status::ABORT:
+                CULog("Transitioning to MenuScene...");
+                _menuScene.setActive(true);
+                _hostSetupScene.setActive(false);
+                _currentScene = State::MENU;
+                break;
+            default:
+                break;
         }
         break;
     case State::LOBBY:
@@ -722,6 +731,9 @@ void SceneLoader::draw()
     case State::PREGAMEENTRY:
         _preGameEntryScene.render();
         break;
+    }
+    if (_settingsScene.isActive()) {
+        _settingsScene.render();
     }
 }
 

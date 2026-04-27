@@ -46,6 +46,9 @@ protected:
     /** The back button for the menu scene */
     std::shared_ptr<cugl::scene2::Button> _backButton;
     
+    /** The settings button to display settings menu */
+    std::shared_ptr<cugl::scene2::Button> _itemsButton;
+    
     /** The game id label */
     std::shared_ptr<cugl::scene2::Label> _gameId;
     
@@ -214,6 +217,12 @@ public:
      */
     void update(float timestep) override;
     
+    /**
+     * Enables or disables all interactive input controls.
+     * @param enabled  Whether controls should accept input.
+     */
+    void setInputEnabled(bool enabled);
+
     /**
      * Sets a disconnect banner message to show when this scene next activates.
      * Called by SceneLoader before setActive(true) when a player disconnected

@@ -49,6 +49,9 @@ protected:
     /** The join game (client scene) button for the host setup scene */
     std::shared_ptr<cugl::scene2::Button> _joinButton;
     
+    /** The settings button to display settings menu */
+    std::shared_ptr<cugl::scene2::Button> _settingsButton;
+    
     /** The player label (for updating) */
     std::shared_ptr<cugl::scene2::TextField> _hostName;
     
@@ -93,7 +96,10 @@ protected:
     
     /** Loads enemy definitions from JSON for boss selection. */
     EnemyLoader _enemyLoader;
-    
+
+    /** Set to true when the user taps the settings button */
+    bool _pendingSettings = false;
+
     /** The initial position of the boss carousel. */
     cugl::Vec2 _baseCarouselPosition;
 
@@ -187,6 +193,17 @@ public:
     void update(float timestep) override;
     
     /**
+     * Returns true if the user has requested to open settings, then resets the flag.
+     */
+    bool shouldOpenSettings();
+    
+    /**
+     * Enables or disables all interactive input controls.
+     * @param enabled  Whether controls should accept input.
+     */
+    void setInputEnabled(bool enabled);
+
+    /**
      * Shows the "Host disconnected" error popup.
      *
      * Called by SceneLoader immediately after activating HostSetupScene when
@@ -195,7 +212,7 @@ public:
      * player on a clean, interactive HostSetupScene to host or join a fresh session.
      */
     void showHostDisconnectedError();
-    
+
 private:
     /**
      * Updates the text in the given button.
