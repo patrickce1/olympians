@@ -176,6 +176,9 @@ public:
     /** Returns the state definition for the current state */
     const EnemyLoader::StateDef* getCurrentStateDef() const;
 
+    /** Returns true when the current state is in the attack animation phase. */
+    bool isInAttackAnimationPhase() const;
+
     /** Returns how long until the enemy can start a new attack */
     float getAttackLockoutRemaining() const { return _attackLockout; }
     

@@ -207,6 +207,15 @@ const EnemyLoader::StateDef* Enemy::getCurrentStateDef() const {
     return &cur->second;
 }
 
+/** Returns true when the current state is in the post-buildup attack animation phase. */
+bool Enemy::isInAttackAnimationPhase() const {
+    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+    return stateDef &&
+           stateDef->frameCount > 0 &&
+           stateDef->buildupFrameCount < stateDef->frameCount &&
+           _stateTime >= (stateDef->buildupFrameCount * stateDef->frameDuration);
+}
+
 /**
  * Checks if the enemy is currently in an attack phase (post-buildup) for its current animation.
  * Returns true if we've elapsed past the buildup phase duration.
@@ -455,16 +464,9 @@ void Enemy::applyStun(float duration) {
         return;
     }
 
-    // Check if stun is applied during attack animation; ignore stun if true
-    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
-    const bool isInAttackPhase =
-        stateDef &&
-        stateDef->frameCount > 0 &&
-        stateDef->buildupFrameCount < stateDef->frameCount &&
-        _stateTime >= (stateDef->buildupFrameCount * stateDef->frameDuration);
-
-    if (isInAttackPhase) {
+    if (isInAttackAnimationPhase()) {
         if (_debug) {
+            const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
             CULog("Enemy stun ignored during attack phase: enemy='%s' state='%s'",
                   _enemyId.c_str(),
                   stateDef->name.c_str());
