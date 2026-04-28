@@ -104,6 +104,7 @@ static void broadcastSupportEffects(NetworkController& network,
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Vulnerable:
+            case ItemDef::EffectType::Upgrade:
                 break;
         }
     }
@@ -146,6 +147,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
                 effectMsg.applyToAllSides = effect.applyToAllSides;
                 enemyEffects.push_back(effectMsg);
                 break;
+            case ItemDef::EffectType::Upgrade:
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
                 break;
