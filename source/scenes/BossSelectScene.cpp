@@ -330,4 +330,3 @@ bool BossSelectScene::loadBosses() {
     }
     return true;
 }
-
