@@ -7,6 +7,7 @@
 #include <vector>
 #include "../EnemyLoader.h"
 #include "../NetworkController.h"
+#include "../InputController.h"
 
 /**
  * This class provides the interface to make the boss select scene.
@@ -33,6 +34,9 @@ protected:
 
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
+    
+    /** The Input controller shared across all scenes*/
+    InputController* _input;
     
     /** The back button for the boss select scene */
     std::shared_ptr<cugl::scene2::Button> _backButton;
@@ -129,7 +133,7 @@ public:
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, InputController* input);
     
     /**
      * Retrieves and stores references to the BossSelectScene UI elements.
@@ -210,17 +214,6 @@ private:
     void endCarouselSwipe(const cugl::TouchEvent& event);
 
     /**
-     * Returns the absolute target x-position for the given card index.
-     *
-     * This anchor mapping is used by both drag clamping and snap targets.
-     *
-     * @param index  The card index in the carousel.
-     *
-     * @return the absolute x-position anchor for that index.
-     */
-    float getTargetXForIndex(int index) const;
-
-    /**
      * Snaps the carousel to a valid card based on drag displacement.
      *
      * Uses a thresholded one-step commit model to reduce accidental changes.
@@ -256,6 +249,53 @@ private:
     
     /** Loads boss definitions from the enemies JSON to use in selection. */
     bool loadBosses();
+    
+    /**
+    * Starts a mouse gesture for the boss carousel.
+    *
+    * Captures the active mouse, pointer start position, and carousel
+    * start position for drag-relative movement.
+    *
+    * @param event  The mouse begin event.
+    */
+   void beginCarouselSwipeMouse(const cugl::MouseEvent& event);
+
+   /**
+    * Updates carousel position while an active mouse is in progress.
+    *
+    * Applies drag resistance and clamps movement to first/last card bounds.
+    *
+    * @param event  The mouse motion event.
+    */
+   void updateCarouselSwipeMouse(const cugl::MouseEvent& event);
+
+   /**
+    * Ends the active mouse gesture and snaps to a valid selection.
+    *
+    * If drag distance passes the commit threshold, advances one card in
+    * swipe direction; otherwise returns to the current card.
+    *
+    * @param event  The mouse end event.
+    */
+   void endCarouselSwipeMouse(const cugl::MouseEvent& event);
+
+    /**
+     * Returns the absolute target x-position for the given card index.
+     *
+     * This anchor mapping is used by both drag clamping and snap targets.
+     *
+     * @param index  The card index in the carousel.
+     *
+     * @return the absolute x-position anchor for that index.
+     */
+
+    float getTargetXForIndex(int index) const;
+
+    /**
+     * Snaps the carousel to a valid card based on drag displacement.
+     *
+     * Uses a thresholded one-step commit model to reduce accidental changes.
+     */
 };
 
 #endif /* __BOSS_SELECT_SCENE_H__ */

@@ -37,7 +37,8 @@ using namespace std;
  *
  * @return true if the scene was successfully initialized; false otherwise
  */
-bool BossSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool BossSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController,
+                           InputController* input) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -48,6 +49,7 @@ bool BossSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, co
     // Start up asset manager, network controller, and enemy loader
     _assets = assets;
     _network = networkController;
+    _input = input;
     loadBosses();
     
     Size dimen = getSize();
@@ -172,25 +174,40 @@ void BossSelectScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
         auto touch = Input::get<Touchscreen>();
-        
+        auto mouse = Input::get<Mouse>();
         if (value) {
             _status = WAIT;
             _activeTouch = -1;
             _isTouchDragging = false;
             
-            _touchKey = touch->acquireKey(); //Get the key for the touch.
-            //Add all listeners.
-            //Detect touch
-            touch->addBeginListener(_touchKey, [this](const TouchEvent& event, bool focus){
-                this->beginCarouselSwipe(event);
-            });
-            //Allow for the smooth movement
-            touch->addMotionListener(_touchKey, [this](const TouchEvent& event, const Vec2& prev, bool focus){
-                this->updateCarouselSwipe(event);
-            });
-            touch->addEndListener(_touchKey, [this](const TouchEvent& event, bool focus){
-                this->endCarouselSwipe(event);
-            });
+            if (touch && _input){
+                touch->addBeginListener(_input->getTouchKey(), [this](const TouchEvent& event, bool focus){
+                    this->beginCarouselSwipe(event);
+                });
+                //Allow for the smooth movement
+                touch->addMotionListener(_input->getTouchKey(), [this](const TouchEvent& event, const Vec2& prev, bool focus){
+                    this->updateCarouselSwipe(event);
+                });
+                touch->addEndListener(_input->getTouchKey(), [this](const TouchEvent& event, bool focus){
+                    this->endCarouselSwipe(event);
+                });
+            }
+            
+            if (mouse && _input){
+                    mouse->setPointerAwareness(Mouse::PointerAwareness::ALWAYS);
+
+                    mouse->addPressListener(_input->getMouseKey(), [this](const MouseEvent& event, Uint8 clicks, bool focus){
+                        this->beginCarouselSwipeMouse(event);
+                    });
+                    // Register callback for when the mouse is being dragged
+                    mouse->addDragListener(_input->getMouseKey(), [this](const MouseEvent& event, const Vec2& previous, bool focus) {
+                        this->updateCarouselSwipeMouse(event);
+                    });
+                    // Register callback for when the mouse is released
+                    mouse->addReleaseListener(_input->getMouseKey(), [this](const MouseEvent& event, Uint8 clicks, bool focus) {
+                        this->endCarouselSwipeMouse(event);
+                    });
+                        }
             _isAnimating = false;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
             float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
@@ -203,11 +220,19 @@ void BossSelectScene::setActive(bool value) {
             _backButton->activate();
             configureLockButton();
         } else {
-            //Dispose of the listeners.
-            touch->removeBeginListener(_touchKey);
-            touch->removeMotionListener(_touchKey);
-            touch->removeEndListener(_touchKey);
+            if (touch && _input){
+                //Dispose of the listeners.
+                touch->removeBeginListener(_input->getTouchKey());
+                touch->removeMotionListener(_input->getTouchKey());
+                touch->removeEndListener(_input->getTouchKey());
+            }
             
+            if (mouse && _input){
+                //Dispose of the listeners.
+                mouse->removePressListener(_input->getMouseKey());
+                mouse->removeDragListener(_input->getMouseKey());
+                mouse->removeReleaseListener(_input->getMouseKey());
+            }
             _leftButton->deactivate();
             _rightButton->deactivate();
             _backButton->deactivate();
@@ -288,6 +313,39 @@ void BossSelectScene::endCarouselSwipe(const cugl::TouchEvent& event) {
     _isTouchDragging = false;
     _activeTouch = -1;
 }
+
+void BossSelectScene::beginCarouselSwipeMouse(const cugl::MouseEvent& event) {
+    if (_isAnimating || !_bossSelectionCardContainer) {
+        return;
+    }
+    _touchStartPos = event.position;
+    _touchStartContainerPos = _bossSelectionCardContainer->getPosition();
+    _isTouchDragging = true;
+}
+
+
+void BossSelectScene::updateCarouselSwipeMouse(const cugl::MouseEvent& event) {
+    if (!_isTouchDragging || _isAnimating || !_bossSelectionCardContainer) {
+        return;
+    }
+    const float rawDx = event.position.x - _touchStartPos.x;
+    const float dx = rawDx * SWIPE_DRAG_RESISTANCE;
+    const int lastIndex = (int)_bossCards.size() - 1;
+    if (lastIndex < 0) return;
+
+    float newX = _touchStartContainerPos.x + dx;
+    Vec2 pos = _bossSelectionCardContainer->getPosition();
+    _bossSelectionCardContainer->setPosition(Vec2(newX, pos.y));
+}
+
+
+void BossSelectScene::endCarouselSwipeMouse(const cugl::MouseEvent& event) {
+    if (_isTouchDragging) {
+        snapToNearestIndex();
+    }
+    _isTouchDragging = false;
+}
+
 
 /**
  * The method called to update the scene.

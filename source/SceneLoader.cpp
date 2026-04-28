@@ -306,7 +306,7 @@ void SceneLoader::update(float dt)
                 CULog("Failed to initialize HouseSelectScene");
             }
 
-            if (_bossSelectScene.init(_assets, _network))
+            if (_bossSelectScene.init(_assets, _network,&_input))
             {
                 _bossSelectScene.setSpriteBatch(_batch);
             }
