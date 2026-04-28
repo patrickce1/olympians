@@ -200,8 +200,9 @@ public:
                 if (!stateDef.animationKey.empty() && _animationRegistry.count(stateDef.animationKey) > 0) {
                     const auto& animMeta = _animationRegistry.at(stateDef.animationKey);
                     stateDef.buildupFrameCount = animMeta.buildupFrameCount;
-                    stateDef.frameDuration = animMeta.frameDuration;
-                    // Intro-then-loop animations never reach the last frame, so use buildUpTime
+                    stateDef.frameDuration     = animMeta.frameDuration;
+                    // Intro-then-loop animations never reach the final frame, so set frameCount
+                    // to 0 to make Enemy::readyToFire() use buildUpTime instead of frame count.
                     stateDef.frameCount = (animMeta.loopStartFrame >= 0) ? 0 : animMeta.frameCount;
                 }
 
@@ -212,23 +213,25 @@ public:
                     def.ai.defenseLikelihood = aiObj->getFloat("defenseLikelihood", 0.05f);
                 }
                 
-                auto parseEvents = [](const std::shared_ptr<cugl::JsonValue>& arr, std::vector<EventDef>& out) {
+                // Shared parser for both entryEvents and events arrays
+                auto parseEventArray = [](const std::shared_ptr<cugl::JsonValue>& arr, std::vector<EventDef>& out) {
                     if (!arr || !arr->isArray()) return;
                     for (int j = 0; j < arr->size(); j++) {
                         auto eventJson = arr->get(j);
                         if (!eventJson) continue;
                         EventDef eventDef;
-                        eventDef.type = parseEventType(eventJson->getString("type", ""));
+                        eventDef.type   = parseEventType(eventJson->getString("type", ""));
+                        // "target" is a relative player-index offset; only meaningful for DAMAGE and SIDE_MODIFIER
                         if (eventDef.type == EventType::DAMAGE || eventDef.type == EventType::SIDE_MODIFIER) {
                             eventDef.target = eventJson->getInt("target", 0);
                         }
-                        eventDef.amount = eventJson->getFloat("amount", 0.0f);
+                        eventDef.amount   = eventJson->getFloat("amount", 0.0f);
                         eventDef.duration = eventJson->getFloat("duration", 0.0f);
                         out.push_back(eventDef);
                     }
                 };
-                parseEvents(stateJson->get("entryEvents"), stateDef.entryEvents);
-                parseEvents(stateJson->get("events"), stateDef.events);
+                parseEventArray(stateJson->get("entryEvents"), stateDef.entryEvents);
+                parseEventArray(stateJson->get("events"),      stateDef.events);
 
                 def.states[stateDef.state] = stateDef;
             }

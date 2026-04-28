@@ -184,12 +184,17 @@ public:
     
     /** Returns the remaining stun duration in seconds. */
     float getStunDuration() const { return _stunDuration; }
+
     /**
      * Applies or refreshes a stun without changing the enemy's current state.
-     *
+     * Will NOT apply if the enemy is in the attack phase of an animation.
      * @param duration  The stun time to apply, in seconds.
      */
     void applyStun(float duration);
+
+    /** Returns true when the current state is in the attack animation phase. */
+    bool isInAttackAnimationPhase() const;
+
     /**
      * Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state.
      *
@@ -341,15 +346,6 @@ public:
     
     /** Exposes all state definitions so EnemyController can query states by tag. */
     const std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef>& getStates() const { return _states; }
-
-    /**
-     * Checks if the enemy is currently in an attack phase (post-buildup) for its current animation.
-     * Used to prevent state changes (like retargeting) during the attack wind-up and execution.
-     * 
-     * @param animationRegistry  Map of animation IDs to animation metadata entries
-     * @return true if in attack phase, false if in buildup phase or no animation data
-     */
-    bool isInAttackPhase(const std::unordered_map<std::string, class AnimationEntry>& animationRegistry) const;
 
     /** Returns true if successfully enters requested state. False and idle otherwise.
      *

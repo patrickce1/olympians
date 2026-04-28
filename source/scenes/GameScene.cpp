@@ -1272,34 +1272,39 @@ int GameScene::calculateAttackFrame(float stateTime, float buildupDuration, int 
 
 /**
  * Calculates which animation frame should be displayed based on state time and animation phase.
- * Handles both buildup/attack animations and simple looping animations.
  *
- * @param stateTime The time elapsed in the current state (seconds)
- * @return The frame index within the animation row (0-indexed)
+ * Three modes, determined by the animation entry:
+ *   - Intro-then-loop: plays frames 0..loopStartFrame once, then loops loopStartFrame+1..loopEndFrame
+ *   - Buildup/attack:  loops buildup frames during wind-up, then plays attack frames once
+ *   - Simple loop:     cycles all frames continuously
+ *
+ * @param stateTime  Elapsed time in the current state (seconds)
+ * @return           Frame index within the animation row (0-indexed)
  */
 int GameScene::calculateAnimationFrame(float stateTime) const {
-    // Intro-then-loop mode: play frames 0..loopStartFrame once, then loop the rest
+    // Intro-then-loop: one-shot intro, then a fixed range of frames repeats indefinitely.
+    // Used for states that hold a pose (e.g. defense shield) after an initial wind-up.
     if (_currentAnimationEntry.loopStartFrame >= 0) {
         int introFrameCount = _currentAnimationEntry.loopStartFrame + 1;
         float introDuration = introFrameCount * _currentAnimationEntry.frameDuration;
-        int loopFrameCount = _currentAnimationEntry.frameCount - introFrameCount;
 
         if (stateTime < introDuration) {
             int frame = (int)(stateTime / _currentAnimationEntry.frameDuration);
             return std::min(frame, introFrameCount - 1);
-        } else {
-            int loopEnd = (_currentAnimationEntry.loopEndFrame >= introFrameCount)
-                ? _currentAnimationEntry.loopEndFrame
-                : _currentAnimationEntry.frameCount - 1;
-            loopFrameCount = loopEnd - introFrameCount + 1;
-            if (loopFrameCount > 0) {
-                float timeInLoop = stateTime - introDuration;
-                int frameInLoop = (int)(timeInLoop / _currentAnimationEntry.frameDuration) % loopFrameCount;
-                return introFrameCount + frameInLoop;
-            } else {
-                return _currentAnimationEntry.frameCount - 1;
-            }
         }
+
+        // Determine the inclusive end of the loop range
+        int loopEnd = (_currentAnimationEntry.loopEndFrame >= introFrameCount)
+            ? _currentAnimationEntry.loopEndFrame
+            : _currentAnimationEntry.frameCount - 1;
+        int loopFrameCount = loopEnd - introFrameCount + 1;
+
+        if (loopFrameCount > 0) {
+            float timeInLoop = stateTime - introDuration;
+            int frameInLoop = (int)(timeInLoop / _currentAnimationEntry.frameDuration) % loopFrameCount;
+            return introFrameCount + frameInLoop;
+        }
+        return _currentAnimationEntry.frameCount - 1;
     }
 
     int buildupFrames = _currentAnimationEntry.buildupFrameCount;

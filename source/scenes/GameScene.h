@@ -134,11 +134,13 @@ struct AnimationEntry {
     int frameRows;                   /**< Number of rows in the sprite sheet */
     
     // Attack phase configuration
-    int buildupFrameCount = 0;       /**< Number of frames in buildup phase that loop. 0 = no buildup */
-    int damageFrame = -1;            /**< Absolute frame index when damage is dealt (-1 = no auto-damage) */
-    int loopStartFrame = -1;         /**< If >= 0: play frames 0..loopStartFrame once, then loop the rest (-1 = disabled) */
-    int loopEndFrame = -1;           /**< Last frame of the loop range (inclusive). -1 = loop through end of animation */
-    
+    int buildupFrameCount = 0;       /**< Frames that loop during buildup. 0 = no buildup phase */
+    int damageFrame = -1;            /**< Frame index when damage fires (-1 = no damage trigger) */
+
+    // Intro-then-loop configuration (mutually exclusive with buildup/attack)
+    int loopStartFrame = -1;         /**< Last frame of the one-shot intro; loop begins at loopStartFrame+1 (-1 = disabled) */
+    int loopEndFrame = -1;           /**< Inclusive last frame of the loop range (-1 = loop to end of animation) */
+
     // Position and scale customization
     float positionX = 196.5f;        /**< Screen X position for this animation */
     float positionY = 120.0f;        /**< Screen Y position for this animation */
