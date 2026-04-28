@@ -156,10 +156,10 @@
             ]
         },
         {
-            "id": "cornucopia",
-            "name": "Cornucopia",
+            "id": "wheat",
+            "name": "Wheat",
             "description": " ",
-            "icon": "item_cornucopia",
+            "icon": "item_wheat",
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "demeter",
@@ -231,6 +231,39 @@
             }
         },
         {
+            "id": "wings",
+            "name": "Winged Sandals",
+            "description": " ",
+            "icon": "item_wings",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "hermes",
+            "baseValue": 0.0,
+            "effects": []
+        },
+        {
+            "id": "potion",
+            "name": "Love Potion",
+            "description": " ",
+            "icon": "item_potion",
+            "type": "attack",
+            "rarity": "rare",
+            "houseAffinity": "aphrodite",
+            "baseValue": 0.0,
+            "effects": []
+        },
+        {
+            "id": "wheat",
+            "name": "Wheat",
+            "description": " ",
+            "icon": "item_wheat",
+            "type": "support",
+            "rarity": "rare",
+            "houseAffinity": "demeter",
+            "baseValue": 25.0,
+            "effects": []
+        },
+        {
             "id": "thunderstorm",
             "name": "Thunderstorm",
             "description": " ",
@@ -277,7 +310,81 @@
             "type": "attack",
             "rarity": "special",
             "houseAffinity": "none",
-            "baseValue": 200.0,
+            "baseValue": 30.0,
+            "id": "resurrection",
+            "name": "Resurrection",
+            "description": " ",
+            "icon": "item_hades_resurrection",
+            "type": "support",
+            "rarity": "divine",
+            "houseAffinity": "hades",
+            "baseValue": 0.0,
+            "effects": []
+        },
+        {
+            "id": "abundance",
+            "name": "Abundance",
+            "description": " ",
+            "icon": "item_demeter_abundance",
+            "type": "support",
+            "rarity": "divine",
+            "houseAffinity": "demeter",
+            "baseValue": 2.0,
+            "effects": []
+        },
+        {
+            "id": "forge",
+            "name": "Forge",
+            "description": " ",
+            "icon": "item_hephaestus_forge",
+            "type": "support",
+            "rarity": "attack",
+            "houseAffinity": "hephaestus",
+            "baseValue": 0.0,
+            "effects": []
+        },
+        {
+            "id": "educate",
+            "name": "Educate",
+            "description": " ",
+            "icon": "item_athena_educate",
+            "type": "support",
+            "rarity": "divine",
+            "houseAffinity": "athena",
+            "baseValue": 2.0,
+            "effects": []
+        },
+        {
+            "id": "rage",
+            "name": "Rage",
+            "description": " ",
+            "icon": "item_ares_rage",
+            "type": "attack",
+            "rarity": "divine",
+            "houseAffinity": "demeter",
+            "baseValue": 4.0,
+            "effects": []
+        },
+        {
+            "id": "treasure",
+            "name": "Treasure",
+            "description": " ",
+            "icon": "item_hermes_treasure",
+            "type": "support",
+            "rarity": "divine",
+            "houseAffinity": "hermes",
+            "baseValue": 0.0,
+            "effects": []
+        },
+        {
+            "id": "beauty",
+            "name": "Beauty",
+            "description": " ",
+            "icon": "item_aphrodite_beauty",
+            "type": "attack",
+            "rarity": "divine",
+            "houseAffinity": "aphrodite",
+            "baseValue": 2.0,
             "effects": []
         }
     ],

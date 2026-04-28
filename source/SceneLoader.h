@@ -8,6 +8,9 @@
 #include "scenes/LobbyScene.h"
 #include "scenes/HouseSelectScene.h"
 #include "scenes/BossSelectScene.h"
+#include "scenes/SettingsScene.h"
+#include "scenes/WinLoseScene.h"
+#include "scenes/PreGameEntryScene.h"
 #include "InputController.h"
 #include "AudioController.h"
 #include "tests/PlayerTests.h"
@@ -21,11 +24,13 @@
 /**
  * Scene loader class responsible for loading assets and managing scene transitions
  */
-class SceneLoader : public cugl::Application {
+class SceneLoader : public cugl::Application
+{
 protected:
     /* This enum keeps track of which scene/mode we are in right now
      * Will have to be expanded as we add more scenes*/
-    enum class State {
+    enum class State
+    {
         LOAD,
         HOSTSETUP,
         CLIENT,
@@ -33,20 +38,29 @@ protected:
         MENU,
         HOUSESELECT,
         BOSSSELECT,
+        WINLOSE,
+        PREGAMEENTRY,
         GAME
     };
+    
+    /**
+     * Whether the current scene is paused because settings is open.
+     * Used to gate update() calls on the underlying scene.
+     */
+    bool _paused = false;
 
+    /** The current scene */
     State _currentScene;
 
     /** The loaders to (synchronously) load in assets */
     std::shared_ptr<cugl::AssetManager> _assets;
 
     /** A 3152 style SpriteBatch to render the scene MOST LIKELY NEEDS CHANGING, I THINK WE'RE NOT SUPPOSED TO USE THIS METHOD? */
-    std::shared_ptr<cugl::graphics::SpriteBatch>  _batch;
+    std::shared_ptr<cugl::graphics::SpriteBatch> _batch;
 
     /** A logger for debugging, can be removed if we feel like this is not necessary */
     std::shared_ptr<cugl::Logger> _logger;
-    
+
     /*Input controller. Used to extract input data*/
     InputController _input;
 
@@ -65,8 +79,8 @@ protected:
 
     /*The scene where the game takes place*/
     GameScene _gameScene;
-    
-    /*The scene players get when they hit "join game". 
+
+    /*The scene players get when they hit "join game".
      *Allows players to join a room and set their username*/
     ClientScene _clientScene;
 
@@ -76,13 +90,23 @@ protected:
 
     /*The scene where all joined players are displayed, with the boss in the middle*/
     LobbyScene _lobbyScene;
-    
+
     /*The scene where the player choose what house they want to represent*/
     HouseSelectScene _houseSelectScene;
-    
+
     /*The scene where the host changes what boss they want to play with and where other player can view all the different bosses */
     BossSelectScene _bossSelectScene;
-    //more scenes to come...
+    
+    /*The persistent settings overlay, shown on top of any active scene*/
+    SettingsScene _settingsScene;
+
+    /*The scene where the players learn whether they won or lost */
+    WinLoseScene _winLoseScene;
+
+    /*The scene where the players see the final choice of house and wait to enter the game scene. */
+    PreGameEntryScene _preGameEntryScene;
+
+    // more scenes to come...
 
 public:
     /**
@@ -170,7 +194,6 @@ public:
 
     /*Individual update method for game scene*/
     void updateGameScene(float dt);
-
 };
 
 #endif /* __SCENE_LOADER_H__ */

@@ -257,14 +257,15 @@ std::string NetworkController::getRoom() {
 void NetworkController::disconnect() {
     _network->close();
     _network = nullptr;
-    _onlinePlayers.clear();
-    _gameStarted = false;
+    _uuidToSlot.clear();
+    _slotToPlayer.clear();
     _gameWon = false;
     _gameLost = false;
     _sessionTerminated = false;
     _disconnectedSlots.clear();
     _enemy = "";
     _aIHouses.clear();
+    _hostsCurrentScene = -1;
 }
 
 /**
@@ -373,60 +374,60 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			passes.push_back(passMsg);
 			break;
 		}
-		case MessageType::GAME_START: {
-			_gameStarted = true;
-			break;
-		}
-		case MessageType::PLAYER_JOIN: {
-			std::string playerName = _deserializer.readString();
-			CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
+        case MessageType::PLAYER_JOIN: {
+            std::string playerName = _deserializer.readString();
+            CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
 
-			// check if player is already registered
-			bool alreadyRegistered = false;
-			for (NetworkedPlayer player : _onlinePlayers) {
-				if (player.networkID == senderID) {
-					alreadyRegistered = true;
-					break;
-				}
-			}
+            if (_uuidToSlot.find(senderID) == _uuidToSlot.end()) {
+                // Find the lowest numbered slot not occupied by a real player.
+                int slot = -1;
+                for (int i = 0; i < 4; i++) {
+                    if (_slotToPlayer.find(i) == _slotToPlayer.end()) {
+                        slot = i;
+                        break;
+                    }
+                }
+                if (slot == -1) break; // lobby full
 
-			if (!alreadyRegistered) {
-				NetworkedPlayer newPlayer;
-				newPlayer.networkID = senderID;
-				newPlayer.username = playerName;
-				_onlinePlayers.push_back(newPlayer);
-				broadcastLobbyState();
-			}
+                // Remove any AI house assignment for this slot since it's
+                // now occupied by a real player.
+                _aIHouses.erase(slot);
 
-			break;
-		}
+                _uuidToSlot[senderID] = slot;
+                NetworkedPlayer newPlayer;
+                newPlayer.networkID = senderID;
+                newPlayer.username = playerName;
+                _slotToPlayer[slot] = newPlayer;
+                broadcastLobbyState();
+            }
+            break;
+        }
         case MessageType::LOBBY_UPDATE: {
             std::vector<std::string> playerData = _deserializer.readStringVector();
-            _onlinePlayers.clear();
+            _uuidToSlot.clear();
+            _slotToPlayer.clear();
             _aIHouses.clear();
-            CULog("CLIENT received lobby update with %d entries", (int)playerData.size());
 
             int i = 0;
-
-            // AI houses at the front
-            int aiCount = std::stoi(playerData[i++]);
-            for (int j = 0; j < aiCount; j++) {
-                int slot = std::stoi(playerData[i]);
-                _aIHouses[slot] = playerData[i + 1];
-                i += 2;
-            }
-
-            // Real players — everything up to the last entry
             while (i < (int)playerData.size() - 1) {
-                NetworkedPlayer newPlayer;
-                newPlayer.networkID = playerData[i];
-                newPlayer.username  = playerData[i + 1];
-                newPlayer.houseID   = playerData[i + 2];
-                _onlinePlayers.push_back(newPlayer);
-                i += 3;
+                std::string type = playerData[i];
+                int slot = std::stoi(playerData[i + 1]);
+
+                if (type == "player") {
+                    NetworkedPlayer newPlayer;
+                    newPlayer.networkID = playerData[i + 2];
+                    newPlayer.username  = playerData[i + 3];
+                    newPlayer.houseID   = playerData[i + 4];
+                    _uuidToSlot[newPlayer.networkID] = slot;
+                    _slotToPlayer[slot] = newPlayer;
+                    i += 5;
+                } else {
+                    // AI slot
+                    _aIHouses[slot] = playerData[i + 2];
+                    i += 3;
+                }
             }
 
-            // Enemy is always last
             _enemy = playerData.back();
             break;
         }
@@ -452,9 +453,9 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 		}
         case MessageType::SELECT_HOUSE: {
             std::string houseID = _deserializer.readString();
-            int index = getPlayerNumberByID(senderID);
-            if (index != -1) {
-                _onlinePlayers[index].houseID = houseID;
+            auto pair = _uuidToSlot.find(senderID);
+            if (pair != _uuidToSlot.end()) {
+                _slotToPlayer[pair->second].houseID = houseID;
                 broadcastLobbyState();
             }
             break;
@@ -463,6 +464,14 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             int slot = _deserializer.readSint32();
             CULog("NetworkController: received PLAYER_DISCONNECT for slot %d", slot);
             _disconnectedSlots.push_back(slot);
+
+            // Remove from maps so updateNetworkOrder() on clients correctly
+            // detects the disconnect via the missing slot rather than stale data.
+            auto pairToRemove = _slotToPlayer.find(slot);
+            if (pairToRemove != _slotToPlayer.end()) {
+                _uuidToSlot.erase(pairToRemove->second.networkID);
+                _slotToPlayer.erase(pairToRemove);
+            }
             break;
         }
         case MessageType::SESSION_TERMINATED: {
@@ -487,6 +496,10 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
         }
         case MessageType::GAIA_SPAWN: {
             gaiaSpawns++;
+            break;
+        }
+        case MessageType::HOSTS_CURRENT_SCENE: {
+            _hostsCurrentScene = _deserializer.readSint32();
             break;
         }
 	}
@@ -522,7 +535,7 @@ void NetworkController::clearQueues() {
     gaiaSpawns = 0;
 	_gameWon = false;
 	_gameLost = false;
-	_gameStarted = false;
+    _hostsCurrentScene = -1;
     _sessionTerminated = false;
     _disconnectedSlots.clear();
 }
@@ -632,12 +645,7 @@ void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float m
  * @return          true if the player is a real networked player, false if AI.
  */
 bool NetworkController::checkRealPlayer(int playerID) {
-    if (playerID >= _onlinePlayers.size() ) {
-        return false;
-    }
-    else {
-        return true;
-    }
+    return _slotToPlayer.find(playerID) != _slotToPlayer.end();
 }
 
 /**
@@ -655,36 +663,14 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
 	_serializer.writeSint32(passDirection);
 	
 	CULog("Sending broadcasting message to player %d", playerID);
-	if (checkRealPlayer(playerID)) {
-		CULog("This was a real player");
-		std::string playerNetworkID = _onlinePlayers[playerID].networkID;
-		_network->sendTo(playerNetworkID, _serializer.serialize());
-	}
-	else {
-		CULog("This was not a real player");
-		_network->sendToHost(_serializer.serialize());
-	}
+    if (checkRealPlayer(playerID)) {
+        std::string playerNetworkID = _slotToPlayer.at(playerID).networkID;
+        _network->sendTo(playerNetworkID, _serializer.serialize());
+    } else {
+        _network->sendToHost(_serializer.serialize());
+    }
+	
 	_serializer.reset();
-}
-
-/**
- * Broadcasts a game start message to all connected clients.
- * Should only be called by the host when the game is ready to begin.
- */
-void NetworkController::broadcastGameStart(){
-	_serializer.writeSint32(MessageType::GAME_START);
-	_network->broadcast(_serializer.serialize());
-	_serializer.reset();
-    _gameStarted = true;
-}
-
-/**
- * Returns whether the host has broadcast a game start message.
- *
- * @return  true if the game has started, false otherwise.
- */
-bool NetworkController::checkGameStarted() {
-	return _gameStarted;
 }
 
 /**
@@ -747,17 +733,23 @@ void NetworkController::broadcastLostGame() {
 void NetworkController::broadcastLobbyState() {
     std::vector<std::string> serializablePlayers;
 
-    // AI count first — unambiguous anchor for the receiver
-    serializablePlayers.push_back(std::to_string(_aIHouses.size()));
-    for (const auto& pair : _aIHouses) {
-        serializablePlayers.push_back(std::to_string(pair.first));
-        serializablePlayers.push_back(pair.second);
-    }
-
-    for (NetworkedPlayer player : _onlinePlayers) {
-        serializablePlayers.push_back(player.networkID);
-        serializablePlayers.push_back(player.username);
-        serializablePlayers.push_back(player.houseID);
+    for (int i = 0; i < 4; i++) {
+        auto pair = _slotToPlayer.find(i);
+        if (pair != _slotToPlayer.end()) {
+            // Real player at this slot
+            serializablePlayers.push_back("player");
+            serializablePlayers.push_back(std::to_string(i));
+            serializablePlayers.push_back(pair->second.networkID);
+            serializablePlayers.push_back(pair->second.username);
+            serializablePlayers.push_back(pair->second.houseID);
+        } else {
+            // AI at this slot — look up house from _aIHouses
+            auto aIPair = _aIHouses.find(i);
+            std::string aiHouse = (aIPair != _aIHouses.end()) ? aIPair->second : "";
+            serializablePlayers.push_back("ai");
+            serializablePlayers.push_back(std::to_string(i));
+            serializablePlayers.push_back(aiHouse);
+        }
     }
 
     serializablePlayers.push_back(_enemy);
@@ -789,23 +781,17 @@ void NetworkController::broadcastSelectedHouse(const std::string& house) {
  *
  * @param name  The display name to assign to the local player.
  */
-void NetworkController::setPlayerName(const std::string& name) { 
-	_playerName = name; 
-	if (_onlinePlayers.empty()) {
-		NetworkedPlayer newPlayer;
-		newPlayer.username = name;
-		newPlayer.networkID = _network->getUUID();
-		_onlinePlayers.push_back(newPlayer);
-	}
-}
-
-/**
- * Returns the current list of networked players in lobby order.
- *
- * @return  A copy of the online players list.
- */
-const std::vector<NetworkedPlayer> NetworkController::getNetworkedPlayers() {
-	return _onlinePlayers;
+void NetworkController::setPlayerName(const std::string& name) {
+    _playerName = name;
+    if (_uuidToSlot.empty()) {
+        int slot = 0;
+        std::string uuid = _network->getUUID();
+        _uuidToSlot[uuid] = slot;
+        NetworkedPlayer newPlayer;
+        newPlayer.username = name;
+        newPlayer.networkID = uuid;
+        _slotToPlayer[slot] = newPlayer;
+    }
 }
 
 /**
@@ -817,13 +803,9 @@ const std::vector<NetworkedPlayer> NetworkController::getNetworkedPlayers() {
  */
 int NetworkController::getLocalPlayerNumber() {
     if (!_network) return -1;
-	std::string localID = _network->getUUID();
-	for (int i = 0; i < _onlinePlayers.size(); i++) {
-		if (_onlinePlayers[i].networkID == localID) {
-			return i;
-		}
-	}
-	return -1; // not found
+    std::string localID = _network->getUUID();
+    auto pair = _uuidToSlot.find(localID);
+    return pair != _uuidToSlot.end() ? pair->second : -1;
 }
 
 /**
@@ -834,12 +816,8 @@ int NetworkController::getLocalPlayerNumber() {
  * @return  The player's index, or -1 if not found.
  */
 int NetworkController::getPlayerNumberByID(const std::string& networkID) {
-    for (int i = 0; i < _onlinePlayers.size(); i++) {
-        if (_onlinePlayers[i].networkID == networkID) {
-            return i;
-        }
-    }
-    return -1; // not found
+    auto pair = _uuidToSlot.find(networkID);
+    return pair != _uuidToSlot.end() ? pair->second : -1;
 }
 
 /**
@@ -851,24 +829,15 @@ void NetworkController::registerDisconnectCallback() {
     if (!_network) return;
 
     _network->onDisconnect([this](const std::string& peerID) {
-        CULog("NetworkController: peer %s disconnected", peerID.c_str());
-        
-        // Find which slot this networkID maps to.
-        for (int i = 0; i < (int)_onlinePlayers.size(); i++) {
-            if (_onlinePlayers[i].networkID == peerID) {
-                CULog("NetworkController: slot %d disconnected", i);
-                _disconnectedSlots.push_back(i);
-                
-                // Remove from _onlinePlayers so future lookups are accurate.
-                _onlinePlayers.erase(_onlinePlayers.begin() + i);
-                
-                // Notify all remaining clients if we are the host.
-                if (isHost()) {
-                    broadcastPlayerDisconnected(i);
-                    broadcastLobbyState();
-                }
-
-                break;
+        auto pair = _uuidToSlot.find(peerID);
+        if (pair != _uuidToSlot.end()) {
+            int slot = pair->second;
+            _disconnectedSlots.push_back(slot);
+            _uuidToSlot.erase(pair);
+            _slotToPlayer.erase(slot);
+            if (isHost()) {
+                broadcastPlayerDisconnected(slot);
+                broadcastLobbyState();
             }
         }
     });
@@ -902,35 +871,30 @@ void NetworkController::broadcastPlayerDisconnected(int slotIndex) {
  *                 Must match a valid entry in the HouseLoader.
  */
 void NetworkController::setLocalHouse(const std::string& houseID) {
-    if (!_onlinePlayers.empty()) {
-        _onlinePlayers[0].houseID = houseID;
+    std::string uuid = _network->getUUID();
+    auto pair = _uuidToSlot.find(uuid);
+    if (pair != _uuidToSlot.end()) {
+        _slotToPlayer[pair->second].houseID = houseID;
         broadcastLobbyState();
     }
 }
-
 /**
  * Returns true if every real player has selected a house AND every AI slot
  * has a house assigned by the host. The start button only activates when
  * this returns true, enforcing that no slot enters the game without a house.
  */
 bool NetworkController::allPlayersSelectedHouse() const {
-    if (_onlinePlayers.empty()) return false;
-
-    // All real players must have a house
-    for (const NetworkedPlayer& player : _onlinePlayers) {
-        if (player.houseID.empty()) return false;
+    if (_slotToPlayer.empty()) return false;
+    for (const auto& pair : _slotToPlayer) {
+        if (pair.second.houseID.empty()) return false;
     }
-
-    // All AI slots must have a house — any slot index not in _onlinePlayers is AI
     int totalSlots = 4;
-    int realCount = (int)_onlinePlayers.size();
     for (int i = 0; i < totalSlots; i++) {
-        if (i >= realCount) {
-            auto aIHouse = _aIHouses.find(i);
-            if (aIHouse == _aIHouses.end() || aIHouse->second.empty()) return false;
+        if (_slotToPlayer.find(i) == _slotToPlayer.end()) {
+            auto aiHouse = _aIHouses.find(i);
+            if (aiHouse == _aIHouses.end() || aiHouse->second.empty()) return false;
         }
     }
-
     return true;
 }
 
@@ -972,9 +936,9 @@ bool NetworkController::isHouseTaken(const std::string& houseID) const {
     std::string localID = _network ? _network->getUUID() : "";
 
     // Check real players (excluding self)
-    for (const NetworkedPlayer& player : _onlinePlayers) {
-        if (player.networkID == localID) continue;
-        if (player.houseID == houseID) return true;
+    for (const auto& pair : _slotToPlayer) {
+        if (pair.second.networkID == localID) continue;
+        if (pair.second.houseID == houseID) return true; // isHouseTaken
     }
 
     // Check AI slot assignments
@@ -996,11 +960,9 @@ std::vector<std::string> NetworkController::getTakenHouses() const {
     std::vector<std::string> taken;
 
     // Real players (excluding self)
-    for (const NetworkedPlayer& player : _onlinePlayers) {
-        if (player.networkID == localID) continue;
-        if (!player.houseID.empty()) {
-            taken.push_back(player.houseID);
-        }
+    for (const auto& pair : _slotToPlayer) {
+        if (pair.second.networkID == localID) continue;
+        if (!pair.second.houseID.empty()) taken.push_back(pair.second.houseID); // getTakenHouses
     }
 
     // AI slots
@@ -1015,7 +977,7 @@ std::vector<std::string> NetworkController::getTakenHouses() const {
 
 /**
  * Broadcasts the host's house selection for an AI slot to all clients.
- * Clients will update that slot's houseID in their local _onlinePlayers
+ * Clients will update that slot's houseID in their local _uiudToSlot
  * list upon receiving this message.
  *
  * @param slotIndex  The 0-based AI slot index being configured.
@@ -1065,4 +1027,18 @@ bool NetworkController::wasHostDisconnected() const {
             || state == NetcodeConnection::State::FAILED;
     }
     return false;
+}
+
+/**
+ * Broadcasts the host's current scene state to all clients.
+ * Called every frame by the host so clients can mirror scene transitions
+ * even if they missed the original transition signal.
+ *
+ * @param sceneState  0 = PreGameEntryScene, 1 = GameScene
+ */
+void NetworkController::broadcastHostsCurrentScene(int sceneState) {
+    _serializer.writeSint32(MessageType::HOSTS_CURRENT_SCENE);
+    _serializer.writeSint32(sceneState);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }

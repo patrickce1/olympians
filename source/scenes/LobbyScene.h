@@ -26,7 +26,8 @@ public:
         WAIT,
         SELECT,
         BOSSSELECT,
-        START,
+        PRE_GAME_START,        // host is in PreGameEntryScene
+        GAME_START,            // host is already in GameScene
         ABORT,
         HOST_LEFT,
         HOST_DISCONNECTED
@@ -44,6 +45,9 @@ protected:
     
     /** The back button for the menu scene */
     std::shared_ptr<cugl::scene2::Button> _backButton;
+    
+    /** The settings button to display settings menu */
+    std::shared_ptr<cugl::scene2::Button> _itemsButton;
     
     /** The game id label */
     std::shared_ptr<cugl::scene2::Label> _gameId;
@@ -92,6 +96,17 @@ protected:
     
     /** Needed to init AI players when assigning missing houses at game start. */
     ItemController* _itemController = nullptr;
+    
+    /** Message to display as a disconnect banner when the lobby re-activates.
+     *  Set by SceneLoader when returning from PreGameEntryScene after a
+     *  mid-countdown disconnect. Cleared after display. */
+    std::string _disconnectBanner;
+    
+    /** Timer for auto-dismissing the disconnect banner popup. */
+    float _errorTimer = 0.0f;
+
+    /** Pointer to the error/banner popup node. */
+    std::shared_ptr<cugl::scene2::SceneNode> _errorPopup;
 
 public:
 #pragma mark -
@@ -201,6 +216,32 @@ public:
      * @param timestep  The amount of time (in seconds) since the last frame
      */
     void update(float timestep) override;
+    
+    /**
+     * Enables or disables all interactive input controls.
+     * @param enabled  Whether controls should accept input.
+     */
+    void setInputEnabled(bool enabled);
+
+    /**
+     * Sets a disconnect banner message to show when this scene next activates.
+     * Called by SceneLoader before setActive(true) when a player disconnected
+     * in PreGameEntryScene.
+     *
+     * @param message  The "[Name] disconnected" string to display.
+     */
+    void setDisconnectBanner(const std::string& message) {
+        _disconnectBanner = message;
+    }
+    
+    /**
+     * Shows a temporary disconnect notification using the error popup node.
+     * Auto-dismisses after ERROR_DISPLAY_TIME seconds via the existing
+     * _errorTimer mechanism in update().
+     *
+     *@param message  The "[Name] disconnected" string to display.
+     */
+    void showDisconnectBanner(const std::string& message);
 
 private:
     /**

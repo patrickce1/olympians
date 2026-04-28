@@ -11,6 +11,8 @@ using namespace std;
 #define SCENE_HEIGHT  852
 /** Player Icon Blink Timer */
 #define BLINK_TIMER  0.5f
+/** Error display time for disconnect error */
+#define ERROR_DISPLAY_TIME  2.0f
 
 /**
  * Initializes the controller contents, and starts the game
@@ -82,6 +84,9 @@ void LobbyScene::setupUI() {
 
     _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("lobbyScene.back"));
+    
+    _itemsButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("lobbyScene.itemsTab"));
 
     _gameId = std::dynamic_pointer_cast<scene2::Label>(
         _assets->get<scene2::SceneNode>("lobbyScene.header.gameID"));
@@ -109,6 +114,18 @@ void LobbyScene::setupUI() {
     }
     
     _localPlayerIconIndicator = _assets->get<scene2::SceneNode>("lobbyScene.tableArea.playerCard3.glowBorder");
+    
+    _errorPopup = _assets->get<scene2::SceneNode>("lobbyScene.errorPopup");
+    if (_errorPopup) {
+        auto overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(
+            _errorPopup->getChildByName("overlayBG"));
+        if (overlay) {
+            overlay->setContentSize(getSize());
+            overlay->setAnchor(Vec2::ANCHOR_CENTER);
+            overlay->setPosition(getSize() / 2);
+        }
+        _errorPopup->setVisible(false);
+    }
 }
 
 /**
@@ -141,8 +158,7 @@ void LobbyScene::setupListeners() {
         //Confirm all players have house according to network.
         if (!_network->allPlayersSelectedHouse()) return;
 
-        _network->broadcastGameStart();
-        _status = Status::START;
+        _status = Status::PRE_GAME_START;
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
@@ -218,6 +234,7 @@ void LobbyScene::dispose() {
         _bossImage = nullptr;
         _bossLobbyButton = nullptr;
         _playerInfoContainer = nullptr;
+        _itemsButton = nullptr;
         _active = false;
     }
     _network = nullptr;
@@ -241,8 +258,15 @@ void LobbyScene::setActive(bool value) {
             _enterGame->deactivate();
             _backButton->activate();
             _bossLobbyButton->activate();
+            _itemsButton->activate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->activate();
+            }
+            
+            // Show a disconnect banner if one was queued by SceneLoader
+            if (!_disconnectBanner.empty()) {
+                showDisconnectBanner(_disconnectBanner);
+                _disconnectBanner = "";
             }
         } else {
             if (_pendingDisconnect) {
@@ -252,6 +276,7 @@ void LobbyScene::setActive(bool value) {
             _backButton->deactivate();
             _enterGame->deactivate();
             _bossLobbyButton->deactivate();
+            _itemsButton->deactivate();
             for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
                 icon->deactivate();
                 icon->setDown(false);
@@ -343,21 +368,21 @@ std::vector<Player*> LobbyScene::remapPlayersForDisplay() {
 void LobbyScene::updateNetworkOrder() {
     if (!_network || _network->checkConnection() != NetworkController::CONNECTED) return;
 
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
+    const auto& disconnectedSlots = _network->getDisconnectedSlots();
     const int totalSlots = (int)_gameState->getPlayers().size();
 
     for (int i = 0; i < totalSlots; i++) {
-        if (_network->checkRealPlayer(i)) {
-            // Real player slot — if it previously had an AI house, clear it first
-            if (_network->isHost() && !_network->getAIHouse(i).empty()) {
-                _gameState->setRealPlayer(i, networkedPlayers[i].username, "");
-                _network->clearAIHouse(i);
+        auto pair = slotToPlayer.find(i);
+        if (pair != slotToPlayer.end()) {
+            // Real player slot — check if they just disconnected
+            if (std::find(disconnectedSlots.begin(), disconnectedSlots.end(), i) != disconnectedSlots.end()) {
+                _gameState->demoteToAI(i, _network->getAIHouse(i));
+            } else {
+                _gameState->setRealPlayer(i, pair->second.username, pair->second.houseID);
             }
-            _gameState->setRealPlayer(i, networkedPlayers[i].username, networkedPlayers[i].houseID);
         } else {
-            // AI slot — always use demoteToAI() to preserve isAI() == true.
-            // House is synced from the host's authoritative _aIHouses map,
-            // which is kept in sync across all clients via LOBBY_UPDATE.
+            // AI slot — sync house assignment
             _gameState->demoteToAI(i, _network->getAIHouse(i));
         }
     }
@@ -368,14 +393,13 @@ void LobbyScene::updateNetworkOrder() {
  house select screen.
  */
 void LobbyScene::updateLocalPlayerSelectedHouse() {
-    const auto& networkedPlayers = _network->getNetworkedPlayers();
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
     
-    // check if local player has selected house
     int localIndex = _network->getLocalPlayerNumber();
 
-    if (localIndex < networkedPlayers.size()) {
-        const auto& player = networkedPlayers[localIndex];
-        _hasSelectedHouse = (!player.houseID.empty());
+    auto pair = slotToPlayer.find(localIndex);
+    if (pair != slotToPlayer.end()) {
+        _hasSelectedHouse = !pair->second.houseID.empty();
     } else {
         _hasSelectedHouse = false;
     }
@@ -414,6 +438,20 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void LobbyScene::update(float timestep) {
+    // Disconnect Error Pop Up Logic
+    if (_errorPopup && _errorPopup->isVisible()) {
+        _errorTimer += timestep;
+        if (_errorTimer >= ERROR_DISPLAY_TIME) {
+            _errorPopup->setVisible(false);
+            _errorTimer = 0.0f;
+        }
+    }
+    
+    //Host is in lobbyScene
+    if (_network->isHost()) {
+        _network->broadcastHostsCurrentScene(2);
+    }
+    
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
         std::string roomNum = _network->getRoom();
@@ -434,8 +472,15 @@ void LobbyScene::update(float timestep) {
 
     _network->getNetworkUpdates();
     if (!_network->isHost()) {
-        if (_network->checkGameStarted()) {
-            _status = START;
+        
+        // The host is in preGameScene
+        if (_network->getHostsCurrentScene() == 0) {
+            _status = Status::PRE_GAME_START;
+        }
+        
+        // The host is in GameScene
+        if (_network->getHostsCurrentScene() == 1) {
+            _status = Status::GAME_START;
         }
         
         // Host voluntarily left — they broadcast SESSION_TERMINATED before disconnecting.
@@ -493,3 +538,44 @@ void LobbyScene::update(float timestep) {
     }
 }
 
+/**
+ * Enables or disables all interactive input controls.
+ *
+ * Called with false when a join attempt starts so the player cannot spam
+ * the button, and called with true when the scene resets to IDLE.
+ *
+ * @param enabled  Whether the controls should accept input.
+ */
+void LobbyScene::setInputEnabled(bool enabled) {
+    if (enabled) {
+        _backButton->activate();
+        _bossLobbyButton->activate();
+        _itemsButton->activate();
+        for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+            icon->activate();
+        }
+    } else {
+        _backButton->deactivate();
+        _bossLobbyButton->deactivate();
+        _itemsButton->deactivate();
+        for (std::shared_ptr<cugl::scene2::Button> icon : _playerImages){
+            icon->deactivate();
+        }
+    }
+}
+
+/**
+ * Shows a temporary disconnect notification using the error popup node.
+ * Auto-dismisses after ERROR_DISPLAY_TIME seconds via the existing
+ * _errorTimer mechanism in update().
+ *
+ *@param message  The "[Name] disconnected" string to display.
+ */
+void LobbyScene::showDisconnectBanner(const std::string& message) {
+    if (!_errorPopup) return;
+    auto label = std::dynamic_pointer_cast<scene2::Label>(
+        _errorPopup->getChildByName("errorLabel"));
+    if (label) label->setText(message);
+    _errorPopup->setVisible(true);
+    _errorTimer = 0.0f;
+}
