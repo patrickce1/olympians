@@ -127,26 +127,40 @@ struct ItemUseAnimation {
  * Contains metadata needed to render and advance animation frames.
  */
 struct AnimationEntry {
-    std::string id;                  /**< Animation identifier (e.g., "cyclops_idle_animation") */
-    std::string texture;             /**< Texture asset key (e.g., "gameScene/cyclops/cyclops_idle_animation") */
-    int frameCount;                  /**< Number of frames per animation row */
-    float frameDuration;             /**< Duration in seconds per frame */
-    int frameRows;                   /**< Number of rows in the sprite sheet */
-    
+    /** Animation identifier (e.g., "cyclops_idle_animation") */
+    std::string id;
+    /** Texture asset key (e.g., "gameScene/cyclops/cyclops_idle_animation") */
+    std::string texture;
+    /** Number of frames per animation row */
+    int frameCount;
+    /** Duration in seconds per frame */
+    float frameDuration;
+    /** Number of rows in the sprite sheet */
+    int frameRows;
+
     // Attack phase configuration
-    int buildupFrameCount = 0;       /**< Frames that loop during buildup. 0 = no buildup phase */
-    int damageFrame = -1;            /**< Frame index when damage fires (-1 = no damage trigger) */
+    /** Frames that loop during buildup. 0 = no buildup phase */
+    int buildupFrameCount = 0;
+    /** Frame index when damage fires (-1 = no damage trigger) */
+    int damageFrame = -1;
 
     // Intro-then-loop configuration (mutually exclusive with buildup/attack)
-    int loopStartFrame = -1;         /**< Last frame of the one-shot intro; loop begins at loopStartFrame+1 (-1 = disabled) */
-    int loopEndFrame = -1;           /**< Inclusive last frame of the loop range (-1 = loop to end of animation) */
+    /** Last frame of the one-shot intro; loop begins at loopStartFrame+1 (-1 = disabled) */
+    int loopStartFrame = -1;
+    /** Inclusive last frame of the loop range (-1 = loop to end of animation) */
+    int loopEndFrame = -1;
 
     // Position and scale customization
-    float positionX = 196.5f;        /**< Screen X position for this animation */
-    float positionY = 120.0f;        /**< Screen Y position for this animation */
-    float scale = 0.92f;             /**< Scale multiplier for this animation */
-    float offsetX = 0.0f;            /**< X offset from base position */
-    float offsetY = 0.0f;            /**< Y offset from base position */
+    /** Screen X position for this animation */
+    float positionX = 196.5f;
+    /** Screen Y position for this animation */
+    float positionY = 120.0f;
+    /** Scale multiplier for this animation */
+    float scale = 0.92f;
+    /** X offset from base position */
+    float offsetX = 0.0f;
+    /** Y offset from base position */
+    float offsetY = 0.0f;
 };
 
 /**
