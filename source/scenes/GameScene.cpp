@@ -3718,7 +3718,7 @@ void GameScene::createFloatingPopup(
  * 
  */
 void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cugl::Vec2& position) {
-    auto font = _assets->get<cugl::graphics::Font>("gamePin");
+    auto font = _assets->get<cugl::graphics::Font>("floatingNumbers");
     if (!font) return;
 
     if (data.playSound && _audio) _audio->playSoundUnique("popup_ding");

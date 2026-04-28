@@ -1037,8 +1037,8 @@
                                 0.5
                             ],
                             "size": [
-                                150,
-                                56
+                                300,
+                                112
                             ],
                             "position": [
                                 96,
@@ -1057,7 +1057,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "true center"
+                            "halign": "true center",
+                            "scale": 0.5
                         },
                         "children": {},
                         "layout": {

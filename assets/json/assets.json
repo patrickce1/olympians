@@ -580,12 +580,16 @@
         },
         "gamePin": {
             "file": "fonts/GRECOromanLubedWrestling.ttf",
-            "size": 48
+            "size": 96
         },
         "gamePinShadow": {
             "file": "fonts/GRECOromanLubedWrestling.ttf",
             "size": 48,
             "padding": 4
+        },
+        "floatingNumbers": {
+            "file": "fonts/GRECOromanLubedWrestling.ttf",
+            "size": 48
         }
     },
     "jsons": {
