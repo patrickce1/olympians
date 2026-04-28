@@ -546,6 +546,15 @@
         "poseidonBox": {
             "file": "textures/preGameEntryScene/poseidonBox.png"
         },
+        "aphroditeBox": {
+            "file": "textures/preGameEntryScene/aphroditeBox.png"
+        },
+        "hermesBox": {
+            "file": "textures/preGameEntryScene/hermesBox.png"
+        },
+        "zeusBox": {
+            "file": "textures/preGameEntryScene/zeusBox.png"
+        },
         "playerNameBG": {
             "file": "textures/preGameEntryScene/playerNameBG.png"
         },
