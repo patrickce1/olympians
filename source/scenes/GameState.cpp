@@ -534,3 +534,31 @@ void GameState::demoteToAI(int slot, const std::string& house) {
         _localPlayer = _players[slot].get();
     }
 }
+
+/**
+ * Swaps two player slots in the local player array.
+ * Called on the host after NetworkController::swapSlots() to keep
+ * _players in sync with the updated network slot assignments.
+ * Re-wires neighbour pointers for the affected slots after the swap.
+ *
+ * @param slotA  First 0-based slot index.
+ * @param slotB  Second 0-based slot index.
+ */
+void GameState::swapPlayers(int slotA, int slotB) {
+    int total = (int)_players.size();
+    if (slotA == slotB || slotA < 0 || slotB < 0
+        || slotA >= total || slotB >= total) return;
+
+    std::swap(_players[slotA], _players[slotB]);
+
+    // Update id map so getPlayerById() resolves correctly after the swap
+    _playerIdMap[slotA] = _players[slotA].get();
+    _playerIdMap[slotB] = _players[slotB].get();
+
+    // Re-wire full circular neighbour ring — same pattern as setRealPlayer(),
+    // demoteToAI(), and assignMissingHousesForAI()
+    for (int i = 0; i < total; i++) {
+        _players[i]->setLeftPlayer (_players[(i - 1 + total) % total].get());
+        _players[i]->setRightPlayer(_players[(i + 1)         % total].get());
+    }
+}
