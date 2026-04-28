@@ -208,22 +208,22 @@ public:
     /*Returns all the networking messages about item passing we recieved after calling getNetworkUpdate()*/
     const std::vector<PassMessage>& getPassUpdates() const { return passes; }
 
-    /*Returns all the networking messages about healing we recieved after calling getNetworkUpdate()*/
+    /** Returns all the networking messages about healing we received after calling getNetworkUpdate() */
     const std::vector<HealMessage>& getHealUpdates() const { return heals; }
 
-    /*Returns all the networking messages about players healing the boss we recieved after called getNetworkUpdate().*/
+    /** Returns all the networking messages about players healing the boss we received after called getNetworkUpdate(). */
     const std::vector<BossHealMessage>& getBossHealUpdates() const { return bossHeals; }
 
-    /*Returns all support effect messages received after calling getNetworkUpdate().*/
+    /** Returns all support effect messages received after calling getNetworkUpdate(). */
     const std::vector<SupportEffectMessage>& getSupportEffectUpdates() const { return supportEffects; }
 
-    /*Returns all enemy effect messages received after calling getNetworkUpdate().*/
+    /** Returns all enemy effect messages received after calling getNetworkUpdate(). */
     const std::vector<EnemyEffectMessage>& getEnemyEffectUpdates() const { return enemyEffects; }
 
-    /**Returns the number of Gaia item spawn messages we recieved after calling getNetworkUpdate()*/
+    /** Returns the number of Gaia item spawn messages we received after calling getNetworkUpdate() */
     int getNumGaiaSpawns() const { return gaiaSpawns; }
 
-    /*Returns the most recent version of the authoritative game state*/
+    /** Returns the most recent version of the authoritative game state. */
     GameStateMessage getStateUpdate() { return _latestGameState; }
 
     /*Tells us if the host sent a message saying the game was lost*/
@@ -396,7 +396,7 @@ public:
 
 
 protected:
-    //This enum is used internally by this class to figure out how to decode the data recieved over the network
+    // This enum is used internally by this class to figure out how to decode the data received over the network
     
     //These enum types are made explicit because we send the enums over as integers, and we don't want to take any
     //chances for different compilers deciding to assign different numbers to these
@@ -446,7 +446,7 @@ private:
     std::vector<SupportEffectMessage> supportEffects;
     std::vector<EnemyEffectMessage> enemyEffects;
 
-    /** Integer that keeps track of how many messages a client recieved to spawn in Gaia rocks*/
+    /** Integer that keeps track of how many messages a client received to spawn in Gaia rocks */
     int gaiaSpawns;
 
     GameStateMessage _latestGameState;
