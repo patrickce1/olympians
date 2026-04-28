@@ -208,32 +208,18 @@ const EnemyLoader::StateDef* Enemy::getCurrentStateDef() const {
 }
 
 /**
- * Checks if the enemy is currently in an attack phase (post-buildup) for its current animation.
- * Returns true if we've elapsed past the buildup phase duration.
- * 
- * @param animationRegistry  Map of animation IDs to animation metadata entries
- * @return true if in attack phase, false if in buildup phase or animation has no attack phase
+ * Returns true when the enemy has passed the buildup phase and is actively executing
+ * its attack animation (i.e. the frames after the wind-up loop).
+ * Used to block stuns and retargets from interrupting an in-progress strike.
+ *
+ * @return true if currently in the attack phase of an animated state, false otherwise
  */
-bool Enemy::isInAttackPhase(const std::unordered_map<std::string, class AnimationEntry>& animationRegistry) const {
+bool Enemy::isInAttackAnimationPhase() const {
     const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
-    if (!stateDef || stateDef->animationKey.empty()) {
-        return false;  // No animation metadata
-    }
-    
-    // Look up animation in registry
-    auto registryEntry = animationRegistry.find(stateDef->animationKey);
-    if (registryEntry == animationRegistry.end()) {
-        return false;  // Animation not found in registry
-    }
-    
-    const auto& animEntry = registryEntry->second;
-    
-    // Calculate buildup duration in seconds
-    float buildupDuration = animEntry.buildupFrameCount * animEntry.frameDuration;
-    
-    // In attack phase if we've elapsed past the buildup phase
-    // (If buildupFrameCount == frameCount, this will never be true since animation completes before it)
-    return _stateTime >= buildupDuration;
+    return stateDef &&
+           stateDef->frameCount > 0 &&
+           stateDef->buildupFrameCount < stateDef->frameCount &&
+           _stateTime >= stateDef->buildUpTime;
 }
 
 /** Returns true if successfully enters requested state. False and idle otherwise.
@@ -258,15 +244,30 @@ void Enemy::setRetargetLikelihood(float v) {
     _retargetLikelihood = v;
 }
 
-/** Immediately enters the state and resets timers. */
+/**
+ * Transitions to the given state, resetting timers and queuing entry events.
+ * No-ops if the enemy is already in that state (timers continue accumulating).
+ * Entry events (e.g. applying side modifiers at the start of defense) are queued
+ * here so they fire on the same frame the state begins.
+ *
+ * @param state  The state to enter
+ */
 void Enemy::enterState(EnemyLoader::State state) {
-    // Only reset stateTime if actually changing states
-    // If staying in the same state (like IDLE -> IDLE), keep accumulating time
-    if (_currentState != state) {
-        _stateTime = 0.0f;
-        _eventsFiredThisState = false;
-    }
+    if (_currentState == state) return;
+
+    _stateTime = 0.0f;
+    _eventsFiredThisState = false;
     _currentState = state;
+
+    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+    if (!stateDef) return;
+
+    for (const auto& eventDef : stateDef->entryEvents) {
+        FiredEvent firedEvent;
+        firedEvent.def = eventDef;
+        firedEvent.state = state;
+        _firedEvents.push_back(firedEvent);
+    }
 }
 
 /** Forces the enemy into idle and clears progress on the interrupted state. */
@@ -424,6 +425,7 @@ void Enemy::update(float dt) {
      * @param amount  The time to advance, in seconds.
      */
 void Enemy::advanceStateTime(float amount) {
+    if (isStunned() || isLoved()) return;
     _stateTime += amount;
     _attackLockout = std::max(0.0f, _attackLockout - amount);
 }
@@ -444,11 +446,22 @@ void Enemy::updateHealth(float delta) {
 
 /**
  * Applies or refreshes a stun without changing the enemy's current state.
+ * Does not apply if is already in an attack phase of an animation 
  *
  * @param duration  The stun time to apply, in seconds.
  */
 void Enemy::applyStun(float duration) {
     if (duration <= 0.0f) {
+        return;
+    }
+
+    if (isInAttackAnimationPhase()) {
+        if (_debug) {
+            const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+            CULog("Enemy stun ignored during attack phase: enemy='%s' state='%s'",
+                  _enemyId.c_str(),
+                  stateDef->name.c_str());
+        }
         return;
     }
 

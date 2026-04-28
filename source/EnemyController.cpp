@@ -55,7 +55,7 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
     }
 
     // Don't retarget if currently in attack phase (prevent interruptions during active attacks)
-    if (_animationRegistry && enemy->isInAttackPhase(*_animationRegistry)) {
+    if (enemy->isInAttackAnimationPhase()) {
         if (_debug) CULog("[EnemyController] Target: Player[%d] (Retained: in attack phase)", enemy->getTargetIndex());
         return;
     }
@@ -113,10 +113,23 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
     enemy->setTargetIndex(candidates[pick]);
 }
 
-/** Checks whether the enemy has just entered idle on this frame. */
+/**
+ * Detects a transition into IDLE and schedules a deferred retarget.
+ * The enemy holds its current facing direction for IDLE_RETARGET_DELAY seconds
+ * before turning to face its next target, giving a brief "settling" pause.
+ * Cancels any pending retarget if the enemy leaves IDLE before the timer fires.
+ *
+ * @param prevState  The state the enemy was in on the previous frame
+ * @param curState   The state the enemy is in on the current frame
+ * @param enemy      The enemy being updated
+ * @param players    All player instances (unused here, passed for consistency)
+ */
 void EnemyController::handleIdleEntryIfNeeded(EnemyLoader::State prevState, EnemyLoader::State curState, const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
     if (curState == EnemyLoader::State::IDLE && prevState != EnemyLoader::State::IDLE) {
-        maybeRetargetOnIdleEntry(enemy, players);
+        _pendingRetarget = true;
+        _retargetTimer = IDLE_RETARGET_DELAY;
+    } else if (curState != EnemyLoader::State::IDLE) {
+        _pendingRetarget = false;
     }
 }
 
@@ -136,10 +149,17 @@ EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<
     return selectedAttack;
 }
 
+/**
+ * Forces the enemy into IDLE and schedules a deferred retarget.
+ *
+ * @param enemy    The enemy to idle
+ * @param players  All player instances (forwarded to retarget logic when timer fires)
+ */
 void EnemyController::enterIdle(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players) {
     if (_debug) CULog("[EnemyController] State: '%s' (Idle)", enemy->getId().c_str());
     enemy->requestState(EnemyLoader::State::IDLE);
-    maybeRetargetOnIdleEntry(enemy, players);
+    _pendingRetarget = true;
+    _retargetTimer = IDLE_RETARGET_DELAY;
 }
 
 /** Main update loop for enemy controller. Handles state changes and attack events. */
@@ -158,6 +178,15 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
     if (cur != prev) { if (_debug) CULog("[EnemyController] State: '%s' -> '%s'", enemy->getStates().at(prev).name.c_str(), enemy->getStates().at(cur).name.c_str()); }
 
     handleIdleEntryIfNeeded(prev, cur, enemy, players);
+
+    // Tick the deferred retarget timer; fire once it expires
+    if (_pendingRetarget && cur == EnemyLoader::State::IDLE) {
+        _retargetTimer -= dt;
+        if (_retargetTimer <= 0.0f) {
+            _pendingRetarget = false;
+            maybeRetargetOnIdleEntry(enemy, players);
+        }
+    }
 
     // If idle and not locked out, pick an attack by tag and start it
     if (cur == EnemyLoader::State::IDLE && enemy->canStartNonIdleState() && anyPlayersAlive(players)) {
