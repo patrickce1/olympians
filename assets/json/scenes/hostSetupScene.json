@@ -80,8 +80,8 @@
                                 1
                             ],
                             "size": [
-                                100,
-                                19
+                                400,
+                                76
                             ],
                             "position": [
                                 170,
@@ -89,7 +89,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular16",
+                            "font": "mainFont",
                             "text": "START GAME",
                             "foreground": "#ffd9a9ff",
                             "background": "#00000000",
@@ -100,7 +100,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "center"
+                            "halign": "center",
+                            "scale": 0.25
                         },
                         "children": {},
                         "layout": {
@@ -1339,8 +1340,8 @@
                                 1
                             ],
                             "size": [
-                                171,
-                                29
+                                456,
+                                77.3
                             ],
                             "position": [
                                 56,
@@ -1348,7 +1349,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular24",
+                            "font": "mainFont",
                             "text": "SELECT QUEST",
                             "foreground": "#ffd9a9ff",
                             "background": "#00000000",
@@ -1359,7 +1360,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "center"
+                            "halign": "center",
+                            "scale": 0.375
                         },
                         "children": {},
                         "layout": {
@@ -1518,8 +1520,8 @@
                                 1
                             ],
                             "size": [
-                                103,
-                                24
+                                329.6,
+                                76.8
                             ],
                             "position": [
                                 0,
@@ -1527,7 +1529,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular20",
+                            "font": "mainFont",
                             "text": "Host Game",
                             "foreground": "#f6b561ff",
                             "background": "#00000000",
@@ -1538,7 +1540,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "left"
+                            "halign": "left",
+                            "scale": 0.3125
                         },
                         "children": {},
                         "layout": {
@@ -1589,8 +1592,8 @@
                                 1
                             ],
                             "size": [
-                                97,
-                                24
+                                310.4,
+                                76.8
                             ],
                             "position": [
                                 0,
@@ -1598,7 +1601,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular20",
+                            "font": "mainFont",
                             "text": "Join Game",
                             "foreground": "#f6b561ff",
                             "background": "#00000000",
@@ -1609,7 +1612,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "left"
+                            "halign": "left",
+                            "scale": 0.3125
                         },
                         "children": {},
                         "layout": {
@@ -1737,16 +1741,17 @@
                         "type": "Label",
                         "data": {
                             "anchor": [0.5, 0.5],
-                            "size": [250, 105],
+                            "size": [889.68, 373.67],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular18",
+                            "font": "mainFont",
                             "text": "",
                             "foreground": "#FFD59Fff",
                             "background": "#00000000",
                             "padding": [0, 0, 0, 0],
                             "valign": "middle",
                             "halign": "center",
+                            "scale": 0.281,
                             "wrap": true
                         },
                         "layout": {

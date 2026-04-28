@@ -215,11 +215,17 @@ protected:
     /** The node representing the attack interaction area (the red zone). */
     std::shared_ptr<cugl::scene2::PolygonNode> _attackArea;
     
-    /** The node representing the left support interaction area (the blue zone on the left). */
+    /** The node representing the left support interaction area (the green zone on the left). */
     std::shared_ptr<cugl::scene2::SceneNode> _supportLeftArea;
     
-    /** The node representing the right support interaction area (the blue zone on the right). */
+    /** The node representing the right support interaction area (the green zone on the right). */
     std::shared_ptr<cugl::scene2::SceneNode> _supportRightArea;
+    
+    /** The node representing the left pass interaction area (the blue zone on the inventory left). */
+    std::shared_ptr<cugl::scene2::SceneNode> _passLeftArea;
+    
+    /** The node representing the right pass interaction area (the blue zone on the inventory right). */
+    std::shared_ptr<cugl::scene2::SceneNode> _passRightArea;
 
     /** The node representing the boss character in the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
@@ -272,11 +278,20 @@ protected:
     /** The boss health bar text showing amount of health left */
     std::shared_ptr<cugl::scene2::Label> _bossHealthBarText;
     
+    /** The name of boss on top of boss health bar */
+    std::shared_ptr<cugl::scene2::Label> _bossName;
+    
     /** The player's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBar;
     
     /** The player's health bar text showing amount of health left */
     std::shared_ptr<cugl::scene2::Label> _playerHealthBarText;
+    
+    /** The player's name label showing username */
+    std::shared_ptr<cugl::scene2::Label> _playerName;
+    
+    /** The player's name label showing house name  */
+    std::shared_ptr<cugl::scene2::Label> _playerHouseName;
     
     /** UI slot used to display player's avatar in inventory. */
     std::shared_ptr<cugl::scene2::PolygonNode> _localPlayerSlot;
@@ -286,6 +301,12 @@ protected:
 
     /** Right teammate username label */
     std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
+    
+    /** Left teammate's health bar*/
+    std::shared_ptr<cugl::scene2::ProgressBar> _leftPHealthBar;
+    
+    /** Right teammate's health bar*/
+    std::shared_ptr<cugl::scene2::ProgressBar> _rightPHealthBar;
     
     /** Slots already demoted to Easy AI this session; prevents re-demoting each frame. */
     std::unordered_set<int> _slotsDemotedToAI;
@@ -699,6 +720,18 @@ public:
     void updateEnemyAndAI(float dt);
     
     /**
+     * Updates the enemy health bar’s color based on its current status effects.
+     *
+     * This method is called every frame and adjusts the bar’s color from its
+     * default (red) to reflect conditions such as stun, charm (“loved”), or
+     * other active effects. The `dt` parameter allows for smooth color
+     * transitions if needed.
+     *
+     * @param dt The time elapsed since the last frame (in seconds).
+     */
+    void updateEnemyHealthBarEffect(float dt);
+    
+    /**
      * Updates enemy idle animation and directional facing based on target.
      * Each frame: recalculates direction from local player index + enemy target index,
      * advances sprite frame based on elapsed time, and updates the sprite node display.
@@ -827,7 +860,7 @@ public:
      *
      * @param dt Delta time in seconds
      */
-    void updatePlayerAndEnemyHealthUI(float dt);
+    void updateAllPlayersAndEnemyHealthUI(float dt);
     
     /**
      * Updates the player and teammate UI icons to reflect their current health.

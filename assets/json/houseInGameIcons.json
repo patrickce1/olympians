@@ -53,6 +53,33 @@
         },
         "hephaestusDeath": {
             "file": "textures/gameScene/houseIcons/hephaestus/hephaestusDeath.png"
+        },
+        "hermesRegular": {
+            "file": "textures/gameScene/houseIcons/hermes/hermesRegular.png"
+        },
+        "hermesMidHealth": {
+            "file": "textures/gameScene/houseIcons/hermes/hermesMidHealth.png"
+        },
+        "hermesDeath": {
+            "file": "textures/gameScene/houseIcons/hermes/hermesDeath.png"
+        },
+        "zeusRegular": {
+            "file": "textures/gameScene/houseIcons/zeus/zeusRegular.png"
+        },
+        "zeusMidHealth": {
+            "file": "textures/gameScene/houseIcons/zeus/zeusMidHealth.png"
+        },
+        "zeusDeath": {
+            "file": "textures/gameScene/houseIcons/zeus/zeusDeath.png"
+        },
+        "aphroditeRegular": {
+            "file": "textures/gameScene/houseIcons/aphrodite/aphroditeRegular.png"
+        },
+        "aphroditeMidHealth": {
+            "file": "textures/gameScene/houseIcons/aphrodite/aphroditeMidHealth.png"
+        },
+        "aphroditeDeath": {
+            "file": "textures/gameScene/houseIcons/aphrodite/aphroditeDeath.png"
         }
     }
 }

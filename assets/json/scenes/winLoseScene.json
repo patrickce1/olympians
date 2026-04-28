@@ -80,8 +80,8 @@
                                 1
                             ],
                             "size": [
-                                129,
-                                19
+                                516,
+                                76
                             ],
                             "position": [
                                 106.00009155273438,
@@ -89,7 +89,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular16",
+                            "font": "mainFont",
                             "text": "BACK TO LOBBY",
                             "foreground": "#ffd9a9ff",
                             "background": "#00000000",
@@ -100,7 +100,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "center"
+                            "halign": "center",
+                            "scale": 0.25
                         },
                         "children": {},
                         "layout": {
