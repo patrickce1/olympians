@@ -298,6 +298,12 @@ protected:
     /** Right teammate username label */
     std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
     
+    /** Left teammate's health bar*/
+    std::shared_ptr<cugl::scene2::ProgressBar> _leftPHealthBar;
+    
+    /** Right teammate's health bar*/
+    std::shared_ptr<cugl::scene2::ProgressBar> _rightPHealthBar;
+    
     /** Slots already demoted to Easy AI this session; prevents re-demoting each frame. */
     std::unordered_set<int> _slotsDemotedToAI;
     
@@ -838,7 +844,7 @@ public:
      *
      * @param dt Delta time in seconds
      */
-    void updatePlayerAndEnemyHealthUI(float dt);
+    void updateAllPlayersAndEnemyHealthUI(float dt);
     
     /**
      * Updates the player and teammate UI icons to reflect their current health.

@@ -242,6 +242,12 @@ bool GameScene::initSceneGraph() {
         _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
              _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.username"));
         
+        _leftPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.fill"));
+        
+        _rightPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.fill"));
+        
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
         
@@ -506,6 +512,8 @@ void GameScene::dispose() {
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
         _playerHealthBar = nullptr;
+        _leftPHealthBar = nullptr;
+        _rightPHealthBar = nullptr;
         _playerName = nullptr;
         _bossName = nullptr;
         _playerHouseName = nullptr;
@@ -1480,9 +1488,9 @@ void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
 }
 
 /**
- * Updates the progress bar with the current ratios of player and enemy health.
+ * Updates the progress bar with the current ratios of all players and enemy health.
  */
-void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
+void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
     
@@ -1490,6 +1498,14 @@ void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
     
     auto player = _gameState.getLocalPlayer();
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
+    
+    auto leftPlayer = player->getLeftPlayer();
+    _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+    
+    auto rightPlayer = player->getRightPlayer();
+    _rightPHealthBar->setProgress(
+        1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth())
+    );
 }
 
 /**
@@ -2492,7 +2508,7 @@ void GameScene::update(float dt, InputController& input) {
     syncItemWidgetsToBodies();
 
     _network->clearQueues();
-    updatePlayerAndEnemyHealthUI(dt);
+    updateAllPlayersAndEnemyHealthUI(dt);
     updatePlayerAndTeammateIcons(dt);
 }
 

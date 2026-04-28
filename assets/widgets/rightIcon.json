@@ -173,6 +173,91 @@
                     "x_offset": 0.6,
                     "y_offset": 0.19
                 }
+            },
+            "rightHealth": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        1,
+                        1
+                    ],
+                    "size": [
+                        117,
+                        5
+                    ],
+                    "angle": 0,
+                    "position": [
+                        4,
+                        1
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "teamRightFrame": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "teamRightFrame",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                117,
+                                5
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "fill": {
+                        "type": "Progress",
+                        "data": {
+                            "texture": "teamRightFill",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                117,
+                                5
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.94
+                }
             }
         }
     }

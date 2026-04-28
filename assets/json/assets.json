@@ -459,6 +459,18 @@
         "playerHouseBG": {
           "file": "textures/gameScene/playerHouseBG.png"
         },
+        "teamLeftFill": {
+          "file": "textures/gameScene/teamLeftFill.png"
+        },
+        "teamLeftFrame": {
+          "file": "textures/gameScene/teamLeftFrame.png"
+        },
+        "teamRightFill": {
+          "file": "textures/gameScene/teamRightFrame.png"
+        },
+        "teamRightFrame": {
+          "file": "textures/gameScene/teamRightFill.png"
+        },
         "winSign": {
             "file": "textures/winLoseScene/winSign.png"
         },
