@@ -127,6 +127,15 @@
         "textfieldBG": {
             "file": "textures/elements/textfieldBG.png"
         },
+        "barSlider": {
+            "file": "textures/elements/barSlider.png"
+        },
+        "selectorStar": {
+            "file": "textures/elements/selectorStar.png"
+        },
+        "dialBox": {
+            "file": "textures/elements/dialBox.png"
+        },
         "cloudBottom": {
             "file": "textures/clientCloud.png"
         },
@@ -414,6 +423,15 @@
         "loadingCircle": {
             "file": "textures/elements/loadingCircle.png"
         },
+        "book": {
+            "file": "textures/elements/book.png"
+        },
+        "settings": {
+            "file": "textures/elements/settings.png"
+        },
+        "sideIconBG": {
+            "file": "textures/elements/sideIconBG.png"
+        },
         "backArrow": {
             "file": "textures/backArrow.png"
         },
@@ -502,6 +520,10 @@
         "gideon romanRegular20": {
             "file": "fonts/GideonRoman-Regular.ttf",
             "size": 20
+        },
+        "gideon romanRegular30": {
+            "file": "fonts/GideonRoman-Regular.ttf",
+            "size": 30
         },
         "gideon romanRegular24": {
             "file": "fonts/GideonRoman-Regular.ttf",
@@ -673,7 +695,8 @@
         "buttonMedium": "widgets/elements/buttonMedium.json",
         "buttonSmall": "widgets/elements/buttonSmall.json",
         "textfield": "widgets/elements/textfield.json",
-        "keypad": "widgets/elements/keypad.json"
+        "keypad": "widgets/elements/keypad.json",
+        "settingsScene": "json/scenes/settingsScene.json"
     },
     "scene2s": {
         "gameScene": {
@@ -754,6 +777,15 @@
             },
             "data": {
                 "key": "bossSelectScene",
+                "variables": {}
+            }
+        },
+        "settingsScene": {
+            "type": "Widget",
+            "comment": "Root node of the settings scene",
+            "format": { "type": "Anchored"},
+            "data": {
+                "key": "settingsScene",
                 "variables": {}
             }
         },

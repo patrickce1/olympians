@@ -88,6 +88,9 @@ void HostSetupScene::setupUI() {
     
     _joinButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("hostSetupScene.join"));
+    
+    _settingsButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("hostSetupScene.settingsTab"));
 
     _hostName = std::dynamic_pointer_cast<scene2::TextField>(
         _assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
@@ -171,6 +174,10 @@ void HostSetupScene::setupListeners() {
     _rightButton->addListener([this](const std::string& name, bool down){
         if (!down) slideTo(_currentIndex + 1);
     });
+    
+    _settingsButton->addListener([this](const std::string& name, bool down) {
+        if (!down) _pendingSettings = true;
+    });
 }
 
 /**
@@ -186,6 +193,7 @@ void HostSetupScene::dispose() {
         _bossCards.clear();
         _leftButton = nullptr;
         _rightButton = nullptr;
+        _settingsButton = nullptr;
         _bossSelectionCardContainer = nullptr;
         _active = false;
     }
@@ -220,6 +228,7 @@ void HostSetupScene::setActive(bool value) {
             _hostName->activate();
             _backButton->activate();
             _joinButton->activate();
+            _settingsButton->activate();
         } else {
             _startGame->deactivate();
             _leftButton->deactivate();
@@ -227,6 +236,7 @@ void HostSetupScene::setActive(bool value) {
             _backButton->deactivate();
             _hostName->deactivate();
             _joinButton->deactivate();
+            _settingsButton->deactivate();
             
             // If any were pressed, reset them
             _startGame->setDown(false);
@@ -234,6 +244,7 @@ void HostSetupScene::setActive(bool value) {
             _leftButton->setDown(false);
             _rightButton->setDown(false);
             _joinButton->setDown(false);
+            _settingsButton->setDown(false);
         }
     }
 }
@@ -283,6 +294,15 @@ void HostSetupScene::update(float timestep) {
         }
     }
 }
+
+/**
+ * Returns true if the user has requested to open settings, then resets the flag.
+ */
+bool HostSetupScene::shouldOpenSettings() {
+    bool ifPendingSettings = _pendingSettings;
+    _pendingSettings = false;
+    return ifPendingSettings;
+};
 
 /**
  * Reconfigures the start button for this scene
@@ -370,6 +390,34 @@ bool HostSetupScene::loadBosses() {
         return false;
     }
     return true;
+}
+
+/**
+ * Enables or disables all interactive input controls.
+ *
+ * Called with false when a join attempt starts so the player cannot spam
+ * the button, and called with true when the scene resets to IDLE.
+ *
+ * @param enabled  Whether the controls should accept input.
+ */
+void HostSetupScene::setInputEnabled(bool enabled) {
+    if (enabled) {
+        _startGame->activate();
+        _leftButton->activate();
+        _rightButton->activate();
+        _hostName->activate();
+        _backButton->activate();
+        _joinButton->activate();
+        _settingsButton->activate();
+    } else {
+        _startGame->deactivate();
+        _leftButton->deactivate();
+        _rightButton->deactivate();
+        _hostName->deactivate();
+        _backButton->deactivate();
+        _joinButton->deactivate();
+        _settingsButton->deactivate();
+    }
 }
 
 /**
