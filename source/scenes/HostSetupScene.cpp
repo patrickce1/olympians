@@ -210,7 +210,7 @@ void HostSetupScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
         auto touch = Input::get<Touchscreen>();
-        
+        auto mouse = Input::get<Mouse>();
         if (value) {
             _status = WAIT;
             _activeTouch = -1;
@@ -230,6 +230,23 @@ void HostSetupScene::setActive(bool value) {
                     this->endCarouselSwipe(event);
                 });
             }
+            
+            if (mouse && _input){
+                mouse->setPointerAwareness(Mouse::PointerAwareness::ALWAYS);
+
+                mouse->addPressListener(_input->getMouseKey(), [this](const MouseEvent& event, Uint8 clicks, bool focus){
+                    this->beginCarouselSwipeMouse(event);
+                });
+                // Register callback for when the mouse is being dragged
+                mouse->addDragListener(_input->getMouseKey(), [this](const MouseEvent& event, const Vec2& previous, bool focus) {
+                    this->updateCarouselSwipeMouse(event);
+                });
+                // Register callback for when the mouse is released
+                mouse->addReleaseListener(_input->getMouseKey(), [this](const MouseEvent& event, Uint8 clicks, bool focus) {
+                    this->endCarouselSwipeMouse(event);
+                });
+            }
+            
             _isAnimating = false;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
             float startX = getTargetXForIndex(_currentIndex);
@@ -248,6 +265,11 @@ void HostSetupScene::setActive(bool value) {
                 touch->removeBeginListener(_input->getTouchKey());
                 touch->removeMotionListener(_input->getTouchKey());
                 touch->removeEndListener(_input->getTouchKey());
+            }
+            if (mouse && _input){
+                mouse->removePressListener(_input->getMouseKey());
+                mouse->removeDragListener(_input->getMouseKey());
+                mouse->removeReleaseListener(_input->getMouseKey());
             }
             
             _startGame->deactivate();
@@ -332,6 +354,37 @@ void HostSetupScene::endCarouselSwipe(const cugl::TouchEvent& event) {
     //End the touch
     _isTouchDragging = false;
     _activeTouch = -1;
+}
+
+
+void HostSetupScene::beginCarouselSwipeMouse(const cugl::MouseEvent& event) {
+    if (_isAnimating || !_bossSelectionCardContainer) {
+        return;
+    }
+    _touchStartPos = event.position;
+    _touchStartContainerPos = _bossSelectionCardContainer->getPosition();
+    _isTouchDragging = true;
+}
+
+void HostSetupScene::updateCarouselSwipeMouse(const cugl::MouseEvent& event) {
+    if (!_isTouchDragging || _isAnimating || !_bossSelectionCardContainer) {
+        return;
+    }
+    const float rawDx = event.position.x - _touchStartPos.x;
+    const float dx = rawDx * SWIPE_DRAG_RESISTANCE;
+    const int lastIndex = (int)_bossCards.size() - 1;
+    if (lastIndex < 0) return;
+
+    float newX = _touchStartContainerPos.x + dx;
+    Vec2 pos = _bossSelectionCardContainer->getPosition();
+    _bossSelectionCardContainer->setPosition(Vec2(newX, pos.y));
+}
+
+void HostSetupScene::endCarouselSwipeMouse(const cugl::MouseEvent& event) {
+    if (_isTouchDragging) {
+        snapToNearestIndex();
+    }
+    _isTouchDragging = false;
 }
 
 /**

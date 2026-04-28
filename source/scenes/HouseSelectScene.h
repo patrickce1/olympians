@@ -313,6 +313,35 @@ public:
      * @return            The carousel index to slide to on activation.
      */
     int getInitialCarouselIndex(int targetSlot);
+    
+    /**
+    * Starts a mouse gesture for the boss carousel.
+    *
+    * Captures the active mouse, pointer start position, and carousel
+    * start position for drag-relative movement.
+    *
+    * @param event  The mouse begin event.
+    */
+   void beginCarouselSwipeMouse(const cugl::MouseEvent& event);
+
+   /**
+    * Updates carousel position while an active mouse is in progress.
+    *
+    * Applies drag resistance and clamps movement to first/last card bounds.
+    *
+    * @param event  The mouse motion event.
+    */
+   void updateCarouselSwipeMouse(const cugl::MouseEvent& event);
+
+   /**
+    * Ends the active mouse gesture and snaps to a valid selection.
+    *
+    * If drag distance passes the commit threshold, advances one card in
+    * swipe direction; otherwise returns to the current card.
+    *
+    * @param event  The mouse end event.
+    */
+   void endCarouselSwipeMouse(const cugl::MouseEvent& event);
 
 private:
     /**
@@ -441,35 +470,6 @@ private:
     */
    void endCarouselSwipe(const cugl::TouchEvent& event);
 
-    /**
-    * Starts a mouse gesture for the boss carousel.
-    *
-    * Captures the active mouse, pointer start position, and carousel
-    * start position for drag-relative movement.
-    *
-    * @param event  The mouse begin event.
-    */
-   void beginCarouselSwipeMouse(const cugl::MouseEvent& event);
-
-   /**
-    * Updates carousel position while an active mouse is in progress.
-    *
-    * Applies drag resistance and clamps movement to first/last card bounds.
-    *
-    * @param event  The mouse motion event.
-    */
-   void updateCarouselSwipeMouse(const cugl::MouseEvent& event);
-
-   /**
-    * Ends the active mouse gesture and snaps to a valid selection.
-    *
-    * If drag distance passes the commit threshold, advances one card in
-    * swipe direction; otherwise returns to the current card.
-    *
-    * @param event  The mouse end event.
-    */
-   void endCarouselSwipeMouse(const cugl::MouseEvent& event);
-
    /**
     * Returns the absolute target x-position for the given card index.
     *
@@ -479,6 +479,7 @@ private:
     *
     * @return the absolute x-position anchor for that index.
     */
+    
    float getTargetXForIndex(int index) const;
 
    /**

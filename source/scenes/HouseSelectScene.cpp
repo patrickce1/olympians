@@ -253,25 +253,17 @@ void HouseSelectScene::setActive(bool value) {
                 mouse->setPointerAwareness(Mouse::PointerAwareness::ALWAYS);
 
                 mouse->addPressListener(_input->getMouseKey(), [this](const MouseEvent& event, Uint8 clicks, bool focus){
-                    CULog("Mouse pressed at %f %f", event.position.x, event.position.y);
                     this->beginCarouselSwipeMouse(event);
                 });
                 // Register callback for when the mouse is being dragged
                 mouse->addDragListener(_input->getMouseKey(), [this](const MouseEvent& event, const Vec2& previous, bool focus) {
-                    CULog("Mouse dragged at %f %f", event.position.x, event.position.y);
-
                     this->updateCarouselSwipeMouse(event);
                 });
                 // Register callback for when the mouse is released
                 mouse->addReleaseListener(_input->getMouseKey(), [this](const MouseEvent& event, Uint8 clicks, bool focus) {
-                    CULog("Mouse released at %f %f", event.position.x, event.position.y);
-
                     this->endCarouselSwipeMouse(event);
                 });
             }
-            
-            
-            
 
             if (_pendingReset) {
                 _pendingReset = false;
