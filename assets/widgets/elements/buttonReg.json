@@ -56,8 +56,8 @@
                         0.5
                     ],
                     "size": [
-                        125,
-                        24
+                        454.4,
+                        76.8
                     ],
                     "position": [
                         150,
@@ -65,7 +65,7 @@
                     ],
                     "angle": 0,
                     "visible": true,
-                    "font": "gideon romanRegular20",
+                    "font": "mainFont",
                     "text": "START GAME",
                     "foreground": "#ffd9a9ff",
                     "background": "#00000000",
@@ -76,7 +76,8 @@
                         0
                     ],
                     "valign": "top",
-                    "halign": "center"
+                    "halign": "center",
+                    "scale": 0.3125
                 },
                 "children": {},
                 "layout": {

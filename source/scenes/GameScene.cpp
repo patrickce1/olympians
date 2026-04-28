@@ -230,23 +230,23 @@ bool GameScene::initSceneGraph() {
         _gameArea->setContentWidth(dimen.width);
         
         // Left and right teammate icon
-        _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("leftIcon")
-                                                                         ->getChild(0));
+        _leftPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.playerIcon.player"));
         
-        _rightPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_gameArea->getChildByName("rightIcon")
-                                                                          ->getChild(0));
+        _rightPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.playerIcon.player"));
         
         _leftPlayerName = std::dynamic_pointer_cast<scene2::Label>(
-             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftName.username"));
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.username"));
         
         _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
-             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightName.username"));
+             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.username"));
         
-        _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
-               _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.healthFill"));
+        _leftPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.fill"));
         
-        _bossHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
-               _assets->get<scene2::SceneNode>("gameScene.gameArea.enemyHealth.label"));
+        _rightPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.fill"));
         
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
@@ -262,16 +262,30 @@ bool GameScene::initSceneGraph() {
     }
     
     if (_inventory) {
+        _inventory->setContentWidth(dimen.width);
         auto invBG = _inventory->getChildByName<cugl::scene2::NinePatch>("background");
         invBG->setContentWidth(dimen.width);
         
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
         
-        _playerHealthBarText = std::dynamic_pointer_cast<scene2::Label>(
-            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.label"));
+        _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
         
-        _localPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(_assets->get<scene2::SceneNode>("gameScene.inventory.playerLiveIcon.playerImage"));
+        _bossName = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.bossName.label"));
+        
+        _playerName = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.player.playerInfo.playerName.label"));
+        
+        _playerHouseName = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.player.playerInfo.playerHouse.label"));
+        
+        _localPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.player.playerIcon.player"));
+        
+        _passLeftArea = _inventory->getChildByName("passZoneLeft");
+        _passRightArea = _inventory->getChildByName("passZoneRight");
     }
     
     addChild(_scene);
@@ -400,6 +414,10 @@ void GameScene::initBackgroundAndBossImage() {
     
     auto bossImage = std::dynamic_pointer_cast<scene2::PolygonNode>( _gameArea->getChildByName("bossIdle"));
     bossImage->setTexture(_assets->get<cugl::graphics::Texture>(boss));
+    
+    std::string name = boss;
+    for (char &character : name) character = toupper(character);
+    _bossName->setText(name);
 }
 
 /**
@@ -489,11 +507,16 @@ void GameScene::dispose() {
         _leftPlayerName = nullptr;
         _supportLeftArea = nullptr;
         _supportRightArea = nullptr;
+        _passLeftArea = nullptr;
+        _passRightArea = nullptr;
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
-        _bossHealthBarText = nullptr;
-        _playerHealthBarText = nullptr;
         _playerHealthBar = nullptr;
+        _leftPHealthBar = nullptr;
+        _rightPHealthBar = nullptr;
+        _playerName = nullptr;
+        _bossName = nullptr;
+        _playerHouseName = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
         _enemyAnimationSpriteNodes.clear();
@@ -555,6 +578,11 @@ void GameScene::updateNetworkOrder() {
     }
 
     setLocalPlayer(_network->getLocalPlayerNumber());
+    _playerName->setText(_gameState.getLocalPlayer()->getPlayerName());
+    
+    std::string name = _gameState.getLocalPlayer()->getHouseName();
+    for (char &character : name) character = toupper(character);
+    _playerHouseName->setText(name);
 
     _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
     _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
@@ -1065,6 +1093,29 @@ void GameScene::updateEnemyAndAI(float dt) {
 }
 
 /**
+ * Updates the enemy health bar’s color based on its current status effects.
+ *
+ * This method is called every frame and adjusts the bar’s color from its
+ * default (red) to reflect conditions such as stun, charm (“loved”), or
+ * other active effects. The `dt` parameter allows for smooth color
+ * transitions if needed.
+ *
+ * @param dt The time elapsed since the last frame (in seconds).
+ */
+void GameScene::updateEnemyHealthBarEffect(float dt) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy || !enemy->isAlive()) return;
+    
+    if (enemy->isStunned()){
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillYellow"));
+    } else if (enemy->isLoved()) {
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillPink"));
+    } else {
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillRed"));
+    }
+}
+
+/**
  * Hides the enemy animation sprite and shows the static fallback sprite.
  * 
  * Sets visibility on both the animation sprite node and the container,
@@ -1460,18 +1511,24 @@ void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
 }
 
 /**
- * Updates the progress bar with the current ratios of player and enemy health.
+ * Updates the progress bar with the current ratios of all players and enemy health.
  */
-void GameScene::updatePlayerAndEnemyHealthUI(float dt) {
+void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
     
     _bossHealthBar->setProgress(enemy->getCurrentHealth()/enemy->getMaxHealth());
-    _bossHealthBarText->setText(std::to_string((int)enemy->getCurrentHealth()) + "/" + std::to_string((int)enemy->getMaxHealth()));
     
     auto player = _gameState.getLocalPlayer();
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
-    _playerHealthBarText->setText(std::to_string((int)player->getCurrentHealth()) + "/" + std::to_string((int)player->getMaxHealth()));
+    
+    auto leftPlayer = player->getLeftPlayer();
+    _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+    
+    auto rightPlayer = player->getRightPlayer();
+    _rightPHealthBar->setProgress(
+        1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth())
+    );
 }
 
 /**
@@ -1494,7 +1551,6 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
     };
 
     applyTexture(_localPlayerSlot, localPlayer);
-    _localPlayerSlot->setScale(0.415f);
     applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
     updateTeammateBlink(_leftPlayerSlot, localPlayer->getLeftPlayer(),
@@ -2399,6 +2455,8 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
 void GameScene::updateDropZoneVisibility(){
     if (_draggedItemId != 0) {
         
+        _passLeftArea->setVisible(true);
+        _passRightArea->setVisible(true);
         // Render attack/support zones based on item type
         auto itemDef = getHeldItemDef(_draggedItemId);
         
@@ -2416,6 +2474,8 @@ void GameScene::updateDropZoneVisibility(){
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
+        _passLeftArea->setVisible(false);
+        _passRightArea->setVisible(false);
     }
 }
 
@@ -2471,7 +2531,7 @@ void GameScene::update(float dt, InputController& input) {
     syncItemWidgetsToBodies();
 
     _network->clearQueues();
-    updatePlayerAndEnemyHealthUI(dt);
+    updateAllPlayersAndEnemyHealthUI(dt);
     updatePlayerAndTeammateIcons(dt);
 }
 
@@ -3658,7 +3718,7 @@ void GameScene::createFloatingPopup(
  * 
  */
 void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cugl::Vec2& position) {
-    auto font = _assets->get<cugl::graphics::Font>("gamePin");
+    auto font = _assets->get<cugl::graphics::Font>("floatingNumbers");
     if (!font) return;
 
     if (data.playSound && _audio) _audio->playSoundUnique("popup_ding");

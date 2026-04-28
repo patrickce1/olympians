@@ -229,7 +229,7 @@ void SceneLoader::update(float dt) {
     // Settings overlay always gets updated when active
     if (_settingsScene.isActive()) {
         _settingsScene.update(dt);
-        if (_settingsScene.consumeClose()) {
+        if (_settingsScene.shouldClose()) {
             _settingsScene.setActive(false);
             _paused = false;
             switch (_currentScene) {
