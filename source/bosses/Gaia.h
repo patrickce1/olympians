@@ -41,7 +41,7 @@ public:
 	void update(float dt) override;
 
 	/** This method tells us if Gaia's timer for spawning a rock is done
-	  * If the method returns true, whatever player Gaia is facing should recieve the rock into their hand
+	  * If this method returns true, whatever player Gaia is facing should receive a rock in their inventory
 	  * Calling this method also resets the timer associated with the spawning
 	  */
 	bool spawnRockForPlayer();
