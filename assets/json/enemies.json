@@ -142,7 +142,7 @@
                 "attack_3": {
                     "name": "boulder toss",
                     "animationKey": "cyclops_boulder_animation",
-                    "buildUpTime": 7.0,
+                    "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
                         {
