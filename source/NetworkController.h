@@ -111,11 +111,12 @@ public:
     void broadcastDamage(float damageAmount, int playerIndex);
 
     /**
-      * Sends a message about the boss being healed by a player
-      * For now, intended to only be used 
-      * 
-      * @param healAmount is the amount of health healed
-      */
+     * Sends a boss heal message to the host.
+     * Called by clients when a Gaia rock item is used, which heals
+     * the boss instead of dealing damage. 
+     *
+     * @param healAmount  The amount of health to restore to the boss.
+     */
     void broadcastBossHeal(float healAmount);
 
     /**
@@ -132,11 +133,11 @@ public:
     void broadcastHeal(float healAmount, int playerID);
 
     /**
-     * Sends a Gaia spawn message to the player at the given slot.
-     * If the target is a real player, sends directly to their network UUID.
-     * Otherwise, does nothing because host is expected to locally handle spawning in the hands of AI player
+     * Sends a Gaia rock spawn message directly to the target player.
+     * Called by the host when Gaia's rock spawn targets a real (non-AI) player,
+     * telling that client to add a Gaia rock to their local inventory.
      *
-     * @param playerID  The 0-based index of the player to send the Gaia spawn to.
+     * @param playerID  The 0-based slot index of the player to receive the rock.
      */
      void broadcastGaiaSpawn(int playerID);
 
@@ -393,9 +394,6 @@ public:
      */
     int getHostsCurrentScene() const { return _hostsCurrentScene; }
 
-    /**
-     * Broadcast a message to player at 
-    */
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network

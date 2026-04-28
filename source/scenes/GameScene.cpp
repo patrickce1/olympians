@@ -762,7 +762,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
 
     if (!_network->isHost()) {
-        //TODO if we add an animation for gaia's rock we will have to change it
+        //If we add an animation for gaia's rock we will have to move this to handleAnimatedAttack
         if (def->getId() == "gaia_rock") {
             _network->broadcastBossHeal(resolvedMagnitude);
         }
@@ -776,6 +776,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
     }
 
+    //Since Gaia's rock heals unlike other attacks, we need a custom popup for it
     if (def->getId() == "gaia_rock") {
         handleGaiaRockPopup(dropPos, resolvedMagnitude);
         return true;
@@ -1943,7 +1944,7 @@ void GameScene::handleItemSpawn(float dt) {
     // Always spawn items for the local human player.
     _itemController.update(dt, _gameState.getLocalPlayer());
 
-    //handle gaia spawning, the method checks if the enemy is actually gaia
+    //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
     handleGaiaSpawn();
 
     // Only the host spawns items for AI players, since the host is the
@@ -3421,7 +3422,6 @@ void GameScene::updateItemUseAnimations(float dt) {
 
                     // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
-                        //TODO custom healing effect
                         _network->broadcastDamage(activeAnim.damageAmount, playerNum);
                         broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
                     }
@@ -3601,6 +3601,12 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
     };
 }
 
+/**
+  * Spawns a floating popup showing the heal amount when Gaia's rock is used on the boss.
+  *
+  * @param dropPos    The screen-space position where the popup should appear.
+  * @param healAmount The amount of health restored to the boss.
+  */
 void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
     char healText[32];
     std::snprintf(healText, sizeof(healText), "+%.1f", healAmount);

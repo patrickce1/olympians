@@ -1,6 +1,6 @@
 #include "Gaia.h"
 
-/** Override version of Enemy's init method, where custom data can be initialized
+/** Override version of Enemy's init method, where Gaia's custom data can be initialized
   * @param enemyID represents the name/id of the boss we are trying to get the data for
   * @param jsonPath is the path to the enemies.json file
   */
@@ -12,10 +12,10 @@ bool Gaia::init(const std::string& enemyId, const std::string& jsonPath) {
 	return success;
 }
 
-/** Initializes the cyclops with animation metadata from AssetManager.
+/** Initializes Gaia with animation metadata from AssetManager.
   * This version uses smart caching to load animation registry only when needed.
   * Prefers this method when assets are available to ensure proper animation setup.
-  * This also initializes all custom data that the cyclops uses
+  * This also initializes all custom data that Gaia uses
   *
   * @param enemyId The unique ID of the enemy to load (e.g., "cyclops")
   * @param jsonPath Path to enemies.json configuration file
@@ -32,9 +32,8 @@ bool Gaia::init(const std::string& enemyId, const std::string& jsonPath, const s
 
 /** Override of the enemy update method for custom logic
   * @param dt is the time that passed from the last time update was called
-  *
-  * The boss attacks immidately upon the defense thesholds being triggered
-  * Certain defense thresholds being met also makes the boss more frantic, switching states more often
+  * 
+  * Gaia upticks her _currentSpawnTime during update
   */
 void Gaia::update(float dt) {
 	_currentSpawnTime += dt;
@@ -42,8 +41,8 @@ void Gaia::update(float dt) {
 }
 
 /** This method tells us if Gaia's timer for spawning a rock is done
-  * The idea is that if the boolean is true, whatever player Gaia is facing will recieve the rock into their hand
-  * Resets the timer associated with the spawning
+  * If the method returns true, whatever player Gaia is facing should recieve the rock into their hand
+  * Calling this method also resets the timer associated with the spawning
   */
 bool Gaia::spawnRockForPlayer() {
 	if (_currentSpawnTime >= _spawnCooldownConstant) {

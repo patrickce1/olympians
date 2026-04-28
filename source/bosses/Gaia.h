@@ -3,7 +3,7 @@
 #include "../Enemy.h"
 #include <cugl/cugl.h>
 
-/* This class represents the Cyclops and allows the implementation of any custom behavior associated with this boss */
+/* This class represents Gaia and allows the implementation of any custom behavior associated with this boss */
 class Gaia : public Enemy {
 private:
 	/** Cooldown that keeps track of how long we wait until we spawn a new rock. */
@@ -15,35 +15,34 @@ private:
 public:
 	Gaia() {}
 
-	/** Override version of Enemy's init method, where custom data can be initialized
-	 * @param enemyID represents the name/id of the boss we are trying to get the data for
-	 * @param jsonPath is the path to the enemies.json file
-	 */
+	/** Override version of Enemy's init method, where Gaia's custom data can be initialized
+	  * @param enemyID represents the name/id of the boss we are trying to get the data for
+	  * @param jsonPath is the path to the enemies.json file
+	  */
 	bool init(const std::string& enemyId, const std::string& jsonPath) override;
 
-	/** Initializes the cyclops with animation metadata from AssetManager.
-	 * This version uses smart caching to load animation registry only when needed.
-	 * Prefers this method when assets are available to ensure proper animation setup.
-	 * This also initializes all custom data that the cyclops uses
-	 *
-	 * @param enemyId The unique ID of the enemy to load (e.g., "cyclops")
-	 * @param jsonPath Path to enemies.json configuration file
-	 * @param assets AssetManager containing enemyAnimations.json and other asset definitions
-	 * @return true if initialization succeeds, false on error
-	 */
+	/** Initializes Gaia with animation metadata from AssetManager.
+	  * This version uses smart caching to load animation registry only when needed.
+	  * Prefers this method when assets are available to ensure proper animation setup.
+	  * This also initializes all custom data that Gaia uses
+	  *
+	  * @param enemyId The unique ID of the enemy to load (e.g., "cyclops")
+	  * @param jsonPath Path to enemies.json configuration file
+	  * @param assets AssetManager containing enemyAnimations.json and other asset definitions
+	  * @return true if initialization succeeds, false on error
+	  */
 	bool init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) override;
 
 	/** Override of the enemy update method for custom logic
-	 * @param dt is the time that passed from the last time update was called
-	 *
-	 * The boss attacks immidately upon the defense thesholds being triggered
-	 * Certain defense thresholds being met also makes the boss more frantic, switching states more often
-	 */
+	  * @param dt is the time that passed from the last time update was called
+	  *
+	  * Gaia upticks her _currentSpawnTime during update
+	  */
 	void update(float dt) override;
 
 	/** This method tells us if Gaia's timer for spawning a rock is done
-	  * The idea is that if the boolean is true, whatever player Gaia is facing will recieve the rock into their hand
-	  * Resets the timer associated with the spawning
+	  * If the method returns true, whatever player Gaia is facing should recieve the rock into their hand
+	  * Calling this method also resets the timer associated with the spawning
 	  */
 	bool spawnRockForPlayer();
 };

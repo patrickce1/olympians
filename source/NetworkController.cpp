@@ -557,11 +557,12 @@ void NetworkController::broadcastDamage(float damageAmount, int playerIndex) {
 
 
 /**
-  * Sends a message about the boss being healed by a player
-  * For now, intended to only be used
-  *
-  * @param healAmount is the amount of health healed
-  */
+ * Sends a boss heal message to the host.
+ * Called by clients when a Gaia rock item is used, which heals
+ * the boss instead of dealing damage.
+ *
+ * @param healAmount  The amount of health to restore to the boss.
+ */
 void NetworkController::broadcastBossHeal(float healAmount) {
     _serializer.writeSint32(MessageType::BOSS_HEAL);
     _serializer.writeFloat(healAmount);
@@ -584,7 +585,13 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
 	_serializer.reset();
 }
 
-
+/**
+ * Sends a Gaia rock spawn message directly to the target player.
+ * Called by the host when Gaia's rock spawn targets a real (non-AI) player,
+ * telling that client to add a Gaia rock to their local inventory.
+ *
+ * @param playerID  The 0-based slot index of the player to receive the rock.
+ */
 void NetworkController::broadcastGaiaSpawn(int playerID) {
     _serializer.writeSint32(MessageType::GAIA_SPAWN);
 
