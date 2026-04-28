@@ -1145,6 +1145,15 @@ public:
         const std::vector<FloatingPopupData>& popups
     );
 
+    /**
+     * Spawns a floating popup showing the heal amount when Gaia's rock is used on the boss.
+     *
+     * @param dropPos    The screen-space position where the popup should appear.
+     * @param healAmount The amount of health restored to the boss.
+     */
+    void handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount);
+
+
     /** Checks if an item is currently playing an animation.
      * Used to prevent respawning items that are mid-animation.
      *

@@ -245,8 +245,8 @@
             "maxHealth": 10000.0,
             "spritesheetPath": "textures/gaia.png",
             "ai": {
-                "retargetLikelihood": 0.5,
-                "defenseLikelihood": 1.0
+                "retargetLikelihood": 0.9,
+                "defenseLikelihood": 0.5
             },
             "customData": {
                 "spawnCooldownConstant": 5.0

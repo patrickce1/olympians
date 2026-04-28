@@ -8,6 +8,7 @@ bool Gaia::init(const std::string& enemyId, const std::string& jsonPath) {
 	bool success = Enemy::init(enemyId, jsonPath);
 	_spawnCooldownConstant = _customData->getFloat("spawnCooldownConstant", 1.0f);
 	_currentSpawnTime = 0.0f;
+	_targetIndex = 0;
 	return success;
 }
 
@@ -25,6 +26,7 @@ bool Gaia::init(const std::string& enemyId, const std::string& jsonPath, const s
 	bool success = Enemy::init(enemyId, jsonPath, assets);
 	_spawnCooldownConstant = _customData->getFloat("spawnCooldownConstant", 1.0f);
 	_currentSpawnTime = 0.0f;
+	_targetIndex = 0;
 	return success;
 }
 

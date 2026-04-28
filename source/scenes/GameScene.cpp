@@ -676,10 +676,8 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
         }
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Attack && def->getId() == "gaia_rock") {
-            float resolvedHeal = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
-            enemy->updateHealth(resolvedHeal);
-        } else if (def && def->getType() == ItemDef::Type::Attack) {
+
+        if (def && def->getType() == ItemDef::Type::Attack) {
             // Play the item use sound if defined, otherwise play the attack sound
             const std::string& itemUseSound = def->getItemUseSound();
             if (!itemUseSound.empty()) {
@@ -783,6 +781,11 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique("enemy_hurt");
         CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+    }
+
+    if (def->getId() == "gaia_rock") {
+        handleGaiaRockPopup(dropPos, resolvedMagnitude);
+        return true;
     }
 
     const float baseValue      = def->getBaseValue();
@@ -3592,6 +3595,19 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
         {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
         {finalText, valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
     };
+}
+
+void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
+    char healText[32];
+    std::snprintf(healText, sizeof(healText), "+%.1f", healAmount);
+    createFloatingPopup(dropPos, { {
+        healText, 26.0f,
+        cugl::Color4(80, 220, 255, 255),
+        cugl::Color4::BLACK,
+        0.0f, 0.5f,
+        cugl::Vec2::ZERO,
+        true
+    } });
 }
 
 /**
