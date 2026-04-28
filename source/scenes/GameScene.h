@@ -716,6 +716,18 @@ public:
     void updateEnemyAndAI(float dt);
     
     /**
+     * Updates the enemy health bar’s color based on its current status effects.
+     *
+     * This method is called every frame and adjusts the bar’s color from its
+     * default (red) to reflect conditions such as stun, charm (“loved”), or
+     * other active effects. The `dt` parameter allows for smooth color
+     * transitions if needed.
+     *
+     * @param dt The time elapsed since the last frame (in seconds).
+     */
+    void updateEnemyHealthBarEffect(float dt);
+    
+    /**
      * Updates enemy idle animation and directional facing based on target.
      * Each frame: recalculates direction from local player index + enemy target index,
      * advances sprite frame based on elapsed time, and updates the sprite node display.

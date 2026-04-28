@@ -1093,6 +1093,29 @@ void GameScene::updateEnemyAndAI(float dt) {
 }
 
 /**
+ * Updates the enemy health bar’s color based on its current status effects.
+ *
+ * This method is called every frame and adjusts the bar’s color from its
+ * default (red) to reflect conditions such as stun, charm (“loved”), or
+ * other active effects. The `dt` parameter allows for smooth color
+ * transitions if needed.
+ *
+ * @param dt The time elapsed since the last frame (in seconds).
+ */
+void GameScene::updateEnemyHealthBarEffect(float dt) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy || !enemy->isAlive()) return;
+    
+    if (enemy->isStunned()){
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillYellow"));
+    } else if (enemy->isLoved()) {
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillPink"));
+    } else {
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillRed"));
+    }
+}
+
+/**
  * Hides the enemy animation sprite and shows the static fallback sprite.
  * 
  * Sets visibility on both the animation sprite node and the container,

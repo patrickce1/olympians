@@ -453,6 +453,12 @@
         "healthFillRed": {
             "file": "textures/gameScene/healthFillRed.png"
         },
+        "healthFillYellow": {
+            "file": "textures/gameScene/healthFillYellow.png"
+        },
+        "healthFillPink": {
+            "file": "textures/gameScene/healthFillPink.png"
+        },
         "playerUsernameBG": {
             "file": "textures/gameScene/playerNameBG.png"
         },
