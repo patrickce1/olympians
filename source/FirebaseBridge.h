@@ -1,6 +1,3 @@
-#ifndef FirebaseBridge_h
-#define FirebaseBridge_h
-
 /**
  * Initializes the Firebase application.
  *
