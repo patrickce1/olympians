@@ -589,8 +589,7 @@ void NetworkController::broadcastGaiaSpawn(int playerID) {
     _serializer.writeSint32(MessageType::GAIA_SPAWN);
 
     if (checkRealPlayer(playerID)) {
-        std::string playerNetworkID = _onlinePlayers[playerID].networkID;
-        _network->sendTo(playerNetworkID, _serializer.serialize());
+        _network->sendTo(_slotToPlayer.at(playerID).networkID, _serializer.serialize());
     }
 
     _serializer.reset();
