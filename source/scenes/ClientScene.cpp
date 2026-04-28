@@ -118,6 +118,9 @@ void ClientScene::setupUI() {
         _spinner = _loading->getChildByName("spinner");
         _loading->setVisible(false);
     }
+    
+    _settingsButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("clientScene.settingsTab"));
 }
 
 /**
@@ -190,6 +193,10 @@ void ClientScene::setupListeners() {
             _hostButton->setDown(false);
         }
     });
+    
+    _settingsButton->addListener([this](const std::string& name, bool down) {
+        if (!down) _pendingSettings = true;
+    });
 }
 
 /**
@@ -208,6 +215,7 @@ void ClientScene::dispose() {
         _keypadButtons.clear();
         _loading = nullptr;
         _spinner = nullptr;
+        _settingsButton = nullptr;
     }
     _network = nullptr;
 }
@@ -252,6 +260,7 @@ void ClientScene::setActive(bool value, bool preserveGameId) {
             _backButton->activate();
             _hostButton->activate();
             _playerName->activate();
+            _settingsButton->activate();
             for (auto& button : _keypadButtons) {
                 button->activate();
             }
@@ -260,10 +269,12 @@ void ClientScene::setActive(bool value, bool preserveGameId) {
             _enterGame->deactivate();
             _backButton->deactivate();
             _hostButton->deactivate();
+            _settingsButton->deactivate();
             // If any were pressed, reset them
             _enterGame->setDown(false);
             _backButton->setDown(false);
             _hostButton->setDown(false);
+            _settingsButton->setDown(false);
             for (auto& button : _keypadButtons) {
                 button->deactivate();
                 button->setDown(false);
@@ -327,6 +338,15 @@ void ClientScene::update(float timestep) {
     }
 }
 
+/**
+ * Returns true if the user has requested to open settings, then resets the flag.
+ */
+bool ClientScene::shouldOpenSettings() {
+    bool ifPendingSettings = _pendingSettings;
+    _pendingSettings = false;
+    return ifPendingSettings;
+};
+
 // ---------------------------------------------------------------------------
 #pragma mark - Private Helpers
 // ---------------------------------------------------------------------------
@@ -345,14 +365,16 @@ void ClientScene::setInputEnabled(bool enabled) {
         _backButton->activate();
         _hostButton->activate();
         _playerName->activate();
+        _settingsButton->activate();
         for (auto& btn : _keypadButtons) btn->activate();
         _enterGame->setDown(false);
     } else {
         _enterGame->deactivate();
         _hostButton->deactivate();
         _playerName->deactivate();
+        _settingsButton->deactivate();
+        _backButton->deactivate();
         for (auto& btn : _keypadButtons) btn->deactivate();
-        // Keep _backButton active so the user can cancel the join attempt.
     }
 }
 

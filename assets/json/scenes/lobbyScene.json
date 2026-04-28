@@ -1079,6 +1079,84 @@
                     "y_offset": -0.08
                 }
             },
+            "itemsTab": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        1,
+                        1
+                    ],
+                    "size": [
+                        47,
+                        64
+                    ],
+                    "angle": 0,
+                    "position": [
+                        350,
+                        598
+                    ],
+                    "upnode": "sideIconBG",
+                    "visible": true
+                },
+                "children": {
+                    "sideIconBG": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "sideIconBG",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                47,
+                                64
+                            ],
+                            "angle": 0,
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "book": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "book",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                27,
+                                22
+                            ],
+                            "angle": 0,
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0.1,
+                            "y_offset": 0.05
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.1
+                }
+            },
             "back": {
                 "type": "Button",
                 "format": {
