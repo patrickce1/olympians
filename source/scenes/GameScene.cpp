@@ -794,7 +794,6 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
-    local->recordItemUse(*def);
 
     const auto& animConfig = def->getItemUseAnimation();
     CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
