@@ -416,7 +416,7 @@ void GameScene::initBackgroundAndBossImage() {
     bossImage->setTexture(_assets->get<cugl::graphics::Texture>(boss));
     
     std::string name = boss;
-    for (char &character : name) character = toupper(c);
+    for (char &character : name) character = toupper(character);
     _bossName->setText(name);
 }
 
@@ -581,7 +581,7 @@ void GameScene::updateNetworkOrder() {
     _playerName->setText(_gameState.getLocalPlayer()->getPlayerName());
     
     std::string name = _gameState.getLocalPlayer()->getHouseName();
-    for (char &character : name) character = toupper(c);
+    for (char &character : name) character = toupper(character);
     _playerHouseName->setText(name);
 
     _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
