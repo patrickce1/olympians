@@ -413,51 +413,80 @@ private:
     bool hasLocalPlayerSelectedHouse() const;
     
     /**
-        * Starts a swipe gesture for the boss carousel.
-        *
-        * Captures the active touch ID, pointer start position, and carousel
-        * start position for drag-relative movement.
-        *
-        * @param event  The touch begin event.
-        */
-       void beginCarouselSwipe(const cugl::TouchEvent& event);
+    * Starts a swipe gesture for the boss carousel.
+    *
+    * Captures the active touch ID, pointer start position, and carousel
+    * start position for drag-relative movement.
+    *
+    * @param event  The touch begin event.
+    */
+   void beginCarouselSwipe(const cugl::TouchEvent& event);
 
-       /**
-        * Updates carousel position while an active swipe is in progress.
-        *
-        * Applies drag resistance and clamps movement to first/last card bounds.
-        *
-        * @param event  The touch motion event.
-        */
-       void updateCarouselSwipe(const cugl::TouchEvent& event);
+   /**
+    * Updates carousel position while an active swipe is in progress.
+    *
+    * Applies drag resistance and clamps movement to first/last card bounds.
+    *
+    * @param event  The touch motion event.
+    */
+   void updateCarouselSwipe(const cugl::TouchEvent& event);
 
-       /**
-        * Ends the active swipe gesture and snaps to a valid selection.
-        *
-        * If drag distance passes the commit threshold, advances one card in
-        * swipe direction; otherwise returns to the current card.
-        *
-        * @param event  The touch end event.
-        */
-       void endCarouselSwipe(const cugl::TouchEvent& event);
+   /**
+    * Ends the active swipe gesture and snaps to a valid selection.
+    *
+    * If drag distance passes the commit threshold, advances one card in
+    * swipe direction; otherwise returns to the current card.
+    *
+    * @param event  The touch end event.
+    */
+   void endCarouselSwipe(const cugl::TouchEvent& event);
 
-       /**
-        * Returns the absolute target x-position for the given card index.
-        *
-        * This anchor mapping is used by both drag clamping and snap targets.
-        *
-        * @param index  The card index in the carousel.
-        *
-        * @return the absolute x-position anchor for that index.
-        */
-       float getTargetXForIndex(int index) const;
+    /**
+    * Starts a mouse gesture for the boss carousel.
+    *
+    * Captures the active mouse, pointer start position, and carousel
+    * start position for drag-relative movement.
+    *
+    * @param event  The mouse begin event.
+    */
+   void beginCarouselSwipeMouse(const cugl::MouseEvent& event);
 
-       /**
-        * Snaps the carousel to a valid card based on drag displacement.
-        *
-        * Uses a thresholded one-step commit model to reduce accidental changes.
-        */
-       void snapToNearestIndex();
+   /**
+    * Updates carousel position while an active mouse is in progress.
+    *
+    * Applies drag resistance and clamps movement to first/last card bounds.
+    *
+    * @param event  The mouse motion event.
+    */
+   void updateCarouselSwipeMouse(const cugl::MouseEvent& event);
+
+   /**
+    * Ends the active mouse gesture and snaps to a valid selection.
+    *
+    * If drag distance passes the commit threshold, advances one card in
+    * swipe direction; otherwise returns to the current card.
+    *
+    * @param event  The mouse end event.
+    */
+   void endCarouselSwipeMouse(const cugl::MouseEvent& event);
+
+   /**
+    * Returns the absolute target x-position for the given card index.
+    *
+    * This anchor mapping is used by both drag clamping and snap targets.
+    *
+    * @param index  The card index in the carousel.
+    *
+    * @return the absolute x-position anchor for that index.
+    */
+   float getTargetXForIndex(int index) const;
+
+   /**
+    * Snaps the carousel to a valid card based on drag displacement.
+    *
+    * Uses a thresholded one-step commit model to reduce accidental changes.
+    */
+   void snapToNearestIndex();
     
 };
 

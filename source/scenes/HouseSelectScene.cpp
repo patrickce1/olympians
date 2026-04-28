@@ -227,7 +227,7 @@ void HouseSelectScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
         auto touch = Input::get<Touchscreen>();
-        
+        auto mouse = Input::get<Mouse>();
         if (value) {
             _status = WAITING;
             _activeTouch = -1;
@@ -248,6 +248,29 @@ void HouseSelectScene::setActive(bool value) {
                     this->endCarouselSwipe(event);
                 });
             }
+            
+            if (mouse && _input){
+                mouse->setPointerAwareness(Mouse::PointerAwareness::ALWAYS);
+
+                mouse->addPressListener(_input->getMouseKey(), [this](const MouseEvent& event, Uint8 clicks, bool focus){
+                    CULog("Mouse pressed at %f %f", event.position.x, event.position.y);
+                    this->beginCarouselSwipeMouse(event);
+                });
+                // Register callback for when the mouse is being dragged
+                mouse->addDragListener(_input->getMouseKey(), [this](const MouseEvent& event, const Vec2& previous, bool focus) {
+                    CULog("Mouse dragged at %f %f", event.position.x, event.position.y);
+
+                    this->updateCarouselSwipeMouse(event);
+                });
+                // Register callback for when the mouse is released
+                mouse->addReleaseListener(_input->getMouseKey(), [this](const MouseEvent& event, Uint8 clicks, bool focus) {
+                    CULog("Mouse released at %f %f", event.position.x, event.position.y);
+
+                    this->endCarouselSwipeMouse(event);
+                });
+            }
+            
+            
             
 
             if (_pendingReset) {
@@ -287,6 +310,12 @@ void HouseSelectScene::setActive(bool value) {
                 touch->removeMotionListener(_input->getTouchKey());
                 touch->removeEndListener(_input->getTouchKey());
                 // Save current state before deactivating
+            }
+            
+            if (mouse && _input){
+                mouse->removePressListener(_input->getMouseKey());
+                mouse->removeDragListener(_input->getMouseKey());
+                mouse->removeReleaseListener(_input->getMouseKey());
             }
             SlotState& state = _slotStates[_targetSlot];
             state.carouselIndex = _currentIndex;
@@ -372,7 +401,35 @@ void HouseSelectScene::endCarouselSwipe(const cugl::TouchEvent& event) {
     _activeTouch = -1;
 }
 
+void HouseSelectScene::beginCarouselSwipeMouse(const cugl::MouseEvent& event) {
+    if (_isAnimating || !_houseSelectionCardContainer) {
+        return;
+    }
+    _touchStartPos = event.position;
+    _touchStartContainerPos = _houseSelectionCardContainer->getPosition();
+    _isTouchDragging = true;
+}
 
+void HouseSelectScene::updateCarouselSwipeMouse(const cugl::MouseEvent& event) {
+    if (!_isTouchDragging || _isAnimating || !_houseSelectionCardContainer) {
+        return;
+    }
+    const float rawDx = event.position.x - _touchStartPos.x;
+    const float dx = rawDx * SWIPE_DRAG_RESISTANCE;
+    const int lastIndex = (int)_houseCards.size() - 1;
+    if (lastIndex < 0) return;
+
+    float newX = _touchStartContainerPos.x + dx;
+    Vec2 pos = _houseSelectionCardContainer->getPosition();
+    _houseSelectionCardContainer->setPosition(Vec2(newX, pos.y));
+}
+
+void HouseSelectScene::endCarouselSwipeMouse(const cugl::MouseEvent& event) {
+    if (_isTouchDragging) {
+        snapToNearestIndex();
+    }
+    _isTouchDragging = false;
+}
 
 /**
  * Updates the text in the given button.
