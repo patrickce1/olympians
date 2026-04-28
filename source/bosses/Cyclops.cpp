@@ -90,8 +90,8 @@ void Cyclops::takeDamage(float damage, int playerIndex) {
 				// Less than one buildup loop remains — restart wind-up from the beginning
 				Enemy::setStateTime(0.0f);
 			} else {
-				float skip = std::min(_stateTime + _boulderTossReductionAmount, safeZoneEnd) - _stateTime;
-				Enemy::advanceStateTime(skip);
+				float timeToAdvance = std::min(_stateTime + _boulderTossReductionAmount, safeZoneEnd) - _stateTime;
+				Enemy::advanceStateTime(timeToAdvance);
 			}
 		}
 		if (_debug) CULog("[Cyclops]: Hit during boulder toss — retargeting to player %d", playerIndex);

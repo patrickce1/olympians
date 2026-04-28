@@ -63,6 +63,7 @@ private:
     /** Debug boolean. Set to false to prevent debug statements */
     bool _debug = true;
 
+    /** Random number generator for decision making. */
     cugl::Random _rng;
 
     /** Seconds to wait in idle before turning to face the new target. */
