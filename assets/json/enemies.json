@@ -172,12 +172,12 @@
 			            {
                             "type": "SIDE_MODIFIER",
                             "target": 2,
-                            "amount": 0.5
+                            "amount": 1.0
                         },
 			            {
                             "type": "SIDE_MODIFIER",
                             "target": 3,
-                            "amount": 1.0
+                            "amount": 0.5
                         }
 		            ],
                     "events": [],
