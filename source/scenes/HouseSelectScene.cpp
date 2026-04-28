@@ -36,7 +36,7 @@ using namespace std;
  * @return true if the scene was successfully initialized; false otherwise
  */
 bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
-                            const std::shared_ptr<NetworkController>& networkController,
+                            const std::shared_ptr<NetworkController>& networkController, InputController* input,
                             GameState* gameState) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
@@ -48,6 +48,7 @@ bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
     _gameState = gameState;
     _assets = assets;
     _network = networkController;
+    _input = input;
     loadHouses();
     
     Size dimen = getSize();
@@ -231,21 +232,22 @@ void HouseSelectScene::setActive(bool value) {
             _status = WAITING;
             _activeTouch = -1;
             _isTouchDragging = false;
-                        
-            _touchKey = touch->acquireKey(); //Get the key for the touch.
-            //Add all listeners.
-            //Detect touch
-            touch->addBeginListener(_touchKey, [this](const TouchEvent& event, bool focus){
-                this->beginCarouselSwipe(event);
-            });
-            //Allow for the smooth movement
-            touch->addMotionListener(_touchKey, [this](const TouchEvent& event, const Vec2& prev, bool focus){
-                this->updateCarouselSwipe(event);
-            });
-            touch->addEndListener(_touchKey, [this](const TouchEvent& event, bool focus){
-                this->endCarouselSwipe(event);
-            });
-                        
+            CULog("HEOOOOOEOE CONTROLLER TOUCHSCREEN");
+            CULog("touch: %p, _input: %p", touch, _input);
+
+            if (touch && _input){
+                //Detect touch
+                touch->addBeginListener(_input->getTouchKey(), [this](const TouchEvent& event, bool focus){
+                    this->beginCarouselSwipe(event);
+                });
+                //Allow for the smooth movement
+                touch->addMotionListener(_input->getTouchKey(), [this](const TouchEvent& event, const Vec2& prev, bool focus){
+                    this->updateCarouselSwipe(event);
+                });
+                touch->addEndListener(_input->getTouchKey(), [this](const TouchEvent& event, bool focus){
+                    this->endCarouselSwipe(event);
+                });
+            }
             
 
             if (_pendingReset) {
@@ -279,11 +281,13 @@ void HouseSelectScene::setActive(bool value) {
             _rightButton->activate();
             _backButton->activate();
         } else {
-            //Dispose of the listeners.
-            touch->removeBeginListener(_touchKey);
-            touch->removeMotionListener(_touchKey);
-            touch->removeEndListener(_touchKey);
-            // Save current state before deactivating
+            if (touch && _input){
+                //Dispose of the listeners.
+                touch->removeBeginListener(_input->getTouchKey());
+                touch->removeMotionListener(_input->getTouchKey());
+                touch->removeEndListener(_input->getTouchKey());
+                // Save current state before deactivating
+            }
             SlotState& state = _slotStates[_targetSlot];
             state.carouselIndex = _currentIndex;
             state.locked        = _locked;

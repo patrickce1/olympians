@@ -34,7 +34,7 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, InputController* inputController) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -45,6 +45,7 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, con
     // Start up asset manager, network controller, and enemy loader
     _assets = assets;
     _network = networkController;
+    _input = inputController;
     loadBosses();
     
     Size dimen = getSize();
@@ -215,20 +216,20 @@ void HostSetupScene::setActive(bool value) {
             _activeTouch = -1;
              _isTouchDragging = false;
              
-             _touchKey = touch->acquireKey(); //Get the key for the touch.
              //Add all listeners.
              //Detect touch
-             touch->addBeginListener(_touchKey, [this](const TouchEvent& event, bool focus){
-                 this->beginCarouselSwipe(event);
-             });
-             //Allow for the smooth movement
-             touch->addMotionListener(_touchKey, [this](const TouchEvent& event, const Vec2& prev, bool focus){
-                 this->updateCarouselSwipe(event);
-             });
-             touch->addEndListener(_touchKey, [this](const TouchEvent& event, bool focus){
-                 this->endCarouselSwipe(event);
-             });
-             
+            if (touch && _input){
+                touch->addBeginListener(_input->getTouchKey(), [this](const TouchEvent& event, bool focus){
+                    this->beginCarouselSwipe(event);
+                });
+                //Allow for the smooth movement
+                touch->addMotionListener(_input->getTouchKey(), [this](const TouchEvent& event, const Vec2& prev, bool focus){
+                    this->updateCarouselSwipe(event);
+                });
+                touch->addEndListener(_input->getTouchKey(), [this](const TouchEvent& event, bool focus){
+                    this->endCarouselSwipe(event);
+                });
+            }
             _isAnimating = false;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
             float startX = getTargetXForIndex(_currentIndex);
@@ -243,10 +244,11 @@ void HostSetupScene::setActive(bool value) {
             _backButton->activate();
             _joinButton->activate();
         } else {
-            //Dispose of the listeners.
-            touch->removeBeginListener(_touchKey);
-            touch->removeMotionListener(_touchKey);
-            touch->removeEndListener(_touchKey);
+            if (touch && _input){                //Dispose of the listeners.
+                touch->removeBeginListener(_input->getTouchKey());
+                touch->removeMotionListener(_input->getTouchKey());
+                touch->removeEndListener(_input->getTouchKey());
+            }
             
             _startGame->deactivate();
             _leftButton->deactivate();

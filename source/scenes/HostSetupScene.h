@@ -7,6 +7,8 @@
 #include <vector>
 #include "../EnemyLoader.h"
 #include "../NetworkController.h"
+#include "../InputController.h"
+
 
 /**
  * This class provides the interface to make a new game.
@@ -17,9 +19,6 @@
  */
 class HostSetupScene : public cugl::scene2::Scene2 {
 private:
-     /** Key for the touchscreen listener. */
-     Uint32 _touchKey;
-     
      /** Active touch ID for swiping. */
      Sint64 _activeTouch;
      
@@ -60,6 +59,9 @@ protected:
 
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
+    
+    /** The Input controller shared across all scenes*/
+    InputController* _input;
 
     /** The menu button for starting a game */
     std::shared_ptr<cugl::scene2::Button> _startGame;
@@ -154,7 +156,7 @@ public:
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, InputController* inputController);
     
     /**
      * Retrieves and stores references to the host setup UI elements.

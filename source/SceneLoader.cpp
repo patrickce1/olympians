@@ -227,7 +227,7 @@ void SceneLoader::onResize()
  */
 void SceneLoader::update(float dt)
 {
-
+    
     switch (_currentScene)
     {
     case State::LOAD:
@@ -263,7 +263,7 @@ void SceneLoader::update(float dt)
                 CULog("Failed to initialize MenuScene");
             }
 
-            if (_hostSetupScene.init(_assets, _network))
+            if (_hostSetupScene.init(_assets, _network,&_input))
             {
                 _hostSetupScene.setSpriteBatch(_batch);
             }
@@ -299,7 +299,7 @@ void SceneLoader::update(float dt)
                 CULog("Failed to initialize LobbyScene");
             }
 
-            if (_houseSelectScene.init(_assets, _network, &_gameScene.getGameState()))
+            if (_houseSelectScene.init(_assets, _network,&_input, &_gameScene.getGameState()))
             {
                 _houseSelectScene.setSpriteBatch(_batch);
             }

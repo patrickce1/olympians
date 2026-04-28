@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include "../InputController.h"
 
 /**
  * This class provides the interface to make the house select scene.
@@ -47,6 +48,9 @@ protected:
     
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
+    
+    /** The input controller to be shared across scenes*/
+    InputController* _input;
 
     /** The button for locking/unlocking chosen house */
     std::shared_ptr<cugl::scene2::Button> _lockButton;
@@ -152,8 +156,6 @@ protected:
     std::unordered_map<int, SlotState> _slotStates;
     
 private:
-    /** Key for the touchscreen listener. */
-    Uint32 _touchKey;
     
     /** Active touch ID for swiping. */
     Sint64 _activeTouch;
@@ -214,7 +216,7 @@ public:
      * @return true if the scene was successfully initialized; false otherwise
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets,
-                                const std::shared_ptr<NetworkController>& networkController,
+                                const std::shared_ptr<NetworkController>& networkController, InputController* inputController,
                                 GameState* gameState);
     
     /**

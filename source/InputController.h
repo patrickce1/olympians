@@ -219,6 +219,11 @@ public:
         _action = Action::NONE;
         _touchEnded = false;
     }
+    
+    /**
+     * Returns the _touchListenerKey
+     */
+    Uint32 getTouchKey() { return _touchListenerKey; }
 
 private:
 
