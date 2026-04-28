@@ -62,7 +62,7 @@ protected:
     std::string _username;
 
     /** Set to true when the user has requested to close the overlay.
-     *  SceneLoader polls this each frame via consumeClose() rather than
+     *  SceneLoader polls this each frame via shouldClose() rather than
      *  reacting inside the listener, which avoids mid-frame setActive crashes.
      */
     bool _pendingClose = false;
@@ -179,10 +179,10 @@ public:
      * Returns true if the user has pressed back or save, then resets the flag.
      * Call this from SceneLoader::update() after _settingsScene.update().
      */
-    bool consumeClose() {
-        bool val = _pendingClose;
+    bool shouldClose() {
+        bool isPendingClose = _pendingClose;
         _pendingClose = false;
-        return val;
+        return isPendingClose;
     }
     
     /**

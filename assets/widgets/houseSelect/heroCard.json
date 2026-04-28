@@ -134,8 +134,8 @@
                                 0.5
                             ],
                             "size": [
-                                145,
-                                24
+                                464,
+                                76.8
                             ],
                             "position": [
                                 53,
@@ -143,7 +143,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular20",
+                            "font": "mainFont",
                             "text": "-ATHENA-",
                             "foreground": "#553a19ff",
                             "background": "#00000000",
@@ -154,7 +154,8 @@
                                 0
                             ],
                             "valign": "middle",
-                            "halign": "center"
+                            "halign": "center",
+                            "scale": 0.3125
                         },
                         "children": {},
                         "layout": {
