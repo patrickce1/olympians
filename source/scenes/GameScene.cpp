@@ -734,11 +734,8 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
                                       const std::shared_ptr<const ItemDef>& def,
                                       Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
-    const float resolvedMagnitude = local->resolveItemMagnitude(*def, _itemController.getDatabase());
+    const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
-        return false;
-    }
-    if (!removeItemFromInventory(local, item.getId())) {
         return false;
     }
     local->recordItemUse(*def);
