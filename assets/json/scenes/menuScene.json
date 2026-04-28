@@ -54,8 +54,8 @@
                     0.5
                 ],
                 "size": [
-                    340,
-                    80
+                    680,
+                    160
                 ],
                 "angle": 0,
                 "visible": true,
@@ -70,7 +70,8 @@
                     0
                 ],
                 "valign": "middle",
-                "halign": "center"
+                "halign": "center",
+                "scale": 0.5
             },
             "children": {},
             "layout": {
@@ -89,8 +90,8 @@
                     0.5
                 ],
                 "size": [
-                    340,
-                    80
+                    680,
+                    160
                 ],
                 "position": [
                     170,
@@ -111,7 +112,8 @@
                     0
                 ],
                 "valign": "middle",
-                "halign": "center"
+                "halign": "center",
+                "scale": 0.5
             },
             "children": {},
             "layout": {

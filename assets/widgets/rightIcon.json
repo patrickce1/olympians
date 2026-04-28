@@ -1,0 +1,264 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                1,
+                0
+            ],
+            "size": [
+                126,
+                102
+            ],
+            "angle": 0,
+            "position": [
+                272,
+                464
+            ],
+            "visible": true
+        },
+        "children": {
+            "playerIcon": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        78,
+                        74
+                    ],
+                    "angle": 0,
+                    "position": [
+                        48,
+                        28
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "backFrame": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "backFrame",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                78,
+                                72
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                2
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0.01
+                        }
+                    },
+                    "player": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "athenaDeath",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                140,
+                                140
+                            ],
+                            "angle": 0,
+                            "position": [
+                                4,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.03
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.38,
+                    "y_offset": 0.27
+                }
+            },
+            "rightNameBG": {
+                "type": "Image",
+                "data": {
+                    "texture": "rightNameBG",
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        126,
+                        43
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "username": {
+                "type": "Label",
+                "data": {
+                    "anchor": [
+                        0.5,
+                        0.5
+                    ],
+                    "size": [
+                        437.06,
+                        69.29
+                    ],
+                    "position": [
+                        35,
+                        12.999999046325684
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "font": "mainFont",
+                    "text": "USERNAME",
+                    "foreground": "#000000ff",
+                    "background": "#00000000",
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "valign": "top",
+                    "halign": "right",
+                    "scale": 0.188
+                },
+                "children": {},
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.6,
+                    "y_offset": 0.19
+                }
+            },
+            "rightHealth": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        1,
+                        1
+                    ],
+                    "size": [
+                        117,
+                        5
+                    ],
+                    "angle": 0,
+                    "position": [
+                        4,
+                        1
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "teamRightFrame": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "teamRightFrame",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                117,
+                                5
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "fill": {
+                        "type": "Progress",
+                        "data": {
+                            "texture": "teamRightFill",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                117,
+                                5
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.94
+                }
+            }
+        }
+    }
+}

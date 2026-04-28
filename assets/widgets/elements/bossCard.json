@@ -81,8 +81,8 @@
                         1
                     ],
                     "size": [
-                        179,
-                        56
+                        716,
+                        224
                     ],
                     "angle": 0,
                     "visible": true,
@@ -98,6 +98,7 @@
                     ],
                     "valign": "top",
                     "halign": "center",
+                    "scale": 0.25,
                     "wrap" : true
                 },
                 "children": {},
@@ -224,8 +225,8 @@
                                 1
                             ],
                             "size": [
-                                134.39999389648438,
-                                22
+                                478.29,
+                                78.29
                             ],
                             "position": [
                                 0,
@@ -233,7 +234,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular18",
+                            "font": "mainFont",
                             "text": "-BOSS-",
                             "foreground": "#000000ff",
                             "background": "#00000000",
@@ -244,7 +245,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "center"
+                            "halign": "center",
+                            "scale": 0.281
                         },
                         "children": {},
                         "layout": {

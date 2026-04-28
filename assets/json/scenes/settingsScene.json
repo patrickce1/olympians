@@ -96,8 +96,8 @@
                                 1
                             ],
                             "size": [
-                                116,
-                                19
+                                464,
+                                76
                             ],
                             "position": [
                                 112.00009155273438,
@@ -105,7 +105,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular16",
+                            "font": "mainFont",
                             "text": "SAVE SETTINGS",
                             "foreground": "#ffd9a9ff",
                             "background": "#00000000",
@@ -116,7 +116,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "center"
+                            "halign": "center",
+                            "scale": 0.25
                         },
                         "children": {},
                         "layout": {
@@ -169,8 +170,8 @@
                                 0.5
                             ],
                             "size": [
-                                152,
-                                24
+                                486.4,
+                                76.8
                             ],
                             "position": [
                                 76,
@@ -178,7 +179,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular20",
+                            "font": "mainFont",
                             "text": "VIBRATIONS",
                             "foreground": "#f6b561ff",
                             "background": "#00000000",
@@ -189,7 +190,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "left"
+                            "halign": "left",
+                            "scale": 0.3125
                         },
                         "children": {},
                         "layout": {
@@ -333,8 +335,8 @@
                                 0.5
                             ],
                             "size": [
-                                152,
-                                24
+                                486.4,
+                                76.8
                             ],
                             "position": [
                                 76,
@@ -342,7 +344,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular20",
+                            "font": "mainFont",
                             "text": "HAPTICS",
                             "foreground": "#f6b561ff",
                             "background": "#00000000",
@@ -353,7 +355,8 @@
                                 0
                             ],
                             "valign": "top",
-                            "halign": "left"
+                            "halign": "left",
+                            "scale": 0.3125
                         },
                         "children": {},
                         "layout": {
@@ -562,8 +565,8 @@
                         1
                     ],
                     "size": [
-                        66,
-                        24
+                        211.2,
+                        76.8
                     ],
                     "position": [
                         164,
@@ -571,7 +574,7 @@
                     ],
                     "angle": 0,
                     "visible": true,
-                    "font": "gideon romanRegular20",
+                    "font": "mainFont",
                     "text": "MUSIC",
                     "foreground": "#f6b561ff",
                     "background": "#00000000",
@@ -582,7 +585,8 @@
                         0
                     ],
                     "valign": "top",
-                    "halign": "left"
+                    "halign": "left",
+                    "scale": 0.3125
                 },
                 "children": {},
                 "layout": {
@@ -691,8 +695,8 @@
                         1
                     ],
                     "size": [
-                        114,
-                        24
+                        364.8,
+                        76.8
                     ],
                     "position": [
                         137,
@@ -700,7 +704,7 @@
                     ],
                     "angle": 0,
                     "visible": true,
-                    "font": "gideon romanRegular20",
+                    "font": "mainFont",
                     "text": "AUDIO/SFX",
                     "foreground": "#f6b561ff",
                     "background": "#00000000",
@@ -711,7 +715,8 @@
                         0
                     ],
                     "valign": "top",
-                    "halign": "left"
+                    "halign": "left",
+                    "scale": 0.3125
                 },
                 "children": {},
                 "layout": {
@@ -746,8 +751,8 @@
                         1
                     ],
                     "size": [
-                        112,
-                        24
+                        358.4,
+                        76.8
                     ],
                     "position": [
                         141,
@@ -755,7 +760,7 @@
                     ],
                     "angle": 0,
                     "visible": true,
-                    "font": "gideon romanRegular20",
+                    "font": "mainFont",
                     "text": "USERNAME",
                     "foreground": "#f6b561ff",
                     "background": "#00000000",
@@ -766,7 +771,8 @@
                         0
                     ],
                     "valign": "top",
-                    "halign": "left"
+                    "halign": "left",
+                    "scale": 0.3125
                 },
                 "children": {},
                 "layout": {
@@ -834,8 +840,8 @@
                                 1
                             ],
                             "size": [
-                                139,
-                                36
+                                296.07,
+                                76.69
                             ],
                             "position": [
                                 72,
@@ -843,7 +849,7 @@
                             ],
                             "angle": 0,
                             "visible": true,
-                            "font": "gideon romanRegular30",
+                            "font": "mainFont",
                             "text": "SETTINGS",
                             "foreground": "#ffd9a9ff",
                             "background": "#00000000",
@@ -854,7 +860,8 @@
                                 0
                             ],
                             "valign": "middle",
-                            "halign": "left"
+                            "halign": "left",
+                            "scale": 0.47
                         },
                         "children": {},
                         "layout": {

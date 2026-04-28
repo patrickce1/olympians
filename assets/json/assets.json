@@ -94,10 +94,10 @@
         "inventoryBackground": {
             "file": "textures/gameScene/inventoryBackground1.png"
         },
-        "playerHealthFrame": {
+        "healthBarFrame": {
             "file": "textures/gameScene/healthBarFrame.png"
         },
-        "playerHealthFill": {
+        "healthBarFill": {
             "file": "textures/gameScene/healthBarFill.png"
         },
         "playerImage": {
@@ -438,6 +438,15 @@
         "menuBG": {
             "file": "textures/menuBG.png"
         },
+        "leftNameBG": {
+            "file": "textures/gameScene/leftNameBG.png"
+        },
+        "rightNameBG": {
+            "file": "textures/gameScene/rightNameBG.png"
+        },
+        "backFrame": {
+            "file": "textures/gameScene/backFrame.png"
+        },
         "attackZone": {
             "file": "textures/gameScene/attackZoneBG.png"
         },
@@ -449,6 +458,42 @@
         },
         "supportZoneR": {
             "file": "textures/gameScene/supportRZoneBG.png"
+        },
+        "passZoneLeft": {
+            "file": "textures/gameScene/passZoneLeft.png"
+        },
+        "passZoneRight": {
+            "file": "textures/gameScene/passZoneRight.png"
+        },
+        "bossNameBG": {
+            "file": "textures/gameScene/bossNameBG.png"
+        },
+        "healthFillRed": {
+            "file": "textures/gameScene/healthFillRed.png"
+        },
+        "healthFillYellow": {
+            "file": "textures/gameScene/healthFillYellow.png"
+        },
+        "healthFillPink": {
+            "file": "textures/gameScene/healthFillPink.png"
+        },
+        "playerUsernameBG": {
+            "file": "textures/gameScene/playerNameBG.png"
+        },
+        "playerHouseBG": {
+          "file": "textures/gameScene/playerHouseBG.png"
+        },
+        "teamLeftFill": {
+          "file": "textures/gameScene/teamLeftFill.png"
+        },
+        "teamLeftFrame": {
+          "file": "textures/gameScene/teamLeftFrame.png"
+        },
+        "teamRightFill": {
+          "file": "textures/gameScene/teamRightFrame.png"
+        },
+        "teamRightFrame": {
+          "file": "textures/gameScene/teamRightFill.png"
         },
         "winSign": {
             "file": "textures/winLoseScene/winSign.png"
@@ -501,6 +546,15 @@
         "poseidonBox": {
             "file": "textures/preGameEntryScene/poseidonBox.png"
         },
+        "aphroditeBox": {
+            "file": "textures/preGameEntryScene/aphroditeBox.png"
+        },
+        "hermesBox": {
+            "file": "textures/preGameEntryScene/hermesBox.png"
+        },
+        "zeusBox": {
+            "file": "textures/preGameEntryScene/zeusBox.png"
+        },
         "playerNameBG": {
             "file": "textures/preGameEntryScene/playerNameBG.png"
         },
@@ -517,45 +571,13 @@
             "file": "fonts/Roboto-Bold.ttf",
             "size": 20
         },
-        "gideon romanRegular20": {
+        "mainFont": {
             "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 20
-        },
-        "gideon romanRegular30": {
-            "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 30
-        },
-        "gideon romanRegular24": {
-            "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 24
-        },
-        "gideon romanRegular16": {
-            "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 16
-        },
-        "gideon romanRegular8": {
-            "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 8
-        },
-        "gideon romanRegular10": {
-            "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 10
-        },
-        "gideon romanRegular12": {
-            "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 12
-        },
-        "gideon romanRegular48": {
-            "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 48
-        },
-        "gideon romanRegular18": {
-            "file": "fonts/GideonRoman-Regular.ttf",
-            "size": 18
+            "size": 64
         },
         "menuTitle": {
             "file": "fonts/GRECOromanLubedWrestling.ttf",
-            "size": 50
+            "size": 100
         },
         "menuLabel": {
             "file": "fonts/Roboto-Bold.ttf",
@@ -563,16 +585,20 @@
         },
         "bossDescriptionLabel": {
             "file": "fonts/GRECOromanLubedWrestling.ttf",
-            "size": 12
+            "size": 48
         },
         "gamePin": {
             "file": "fonts/GRECOromanLubedWrestling.ttf",
-            "size": 48
+            "size": 96
         },
         "gamePinShadow": {
             "file": "fonts/GRECOromanLubedWrestling.ttf",
             "size": 48,
             "padding": 4
+        },
+        "floatingNumbers": {
+            "file": "fonts/GRECOromanLubedWrestling.ttf",
+            "size": 48
         }
     },
     "jsons": {
@@ -674,10 +700,11 @@
     },
     "widgets": {
         "scene": "json/scenes/gameScene.json",
-        "gameArea": "widgets/gameArea.json",
         "inventory": "widgets/inventory.json",
         "playerSlot": "widgets/playerSlot.json",
-        "ability": "widgets/ability.json",
+        "leftIcon": "widgets/leftIcon.json",
+        "rightIcon": "widgets/rightIcon.json",
+        "ability":     "widgets/ability.json",
         "client": "json/scenes/clientScene.json",
         "textfield": "widgets/elements/textfield.json",
         "hostSetup": "json/scenes/hostSetupScene.json",
