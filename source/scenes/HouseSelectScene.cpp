@@ -391,6 +391,16 @@ void HouseSelectScene::endCarouselSwipe(const cugl::TouchEvent& event) {
     _activeTouch = -1;
 }
 
+/**
+ * Begins tracking a mouse drag gesture for carousel movement.
+ *
+ * Records the starting position and container origin so that
+ * subsequent drag events can compute a relative offset. The gesture
+ * is ignored while a snap animation is in progress or the container
+ * is absent.
+ *
+ * @param event  The mouse press event containing the cursor position.
+ */
 void HouseSelectScene::beginCarouselSwipeMouse(const cugl::MouseEvent& event) {
     if (_isAnimating || !_houseSelectionCardContainer) {
         return;
@@ -400,6 +410,16 @@ void HouseSelectScene::beginCarouselSwipeMouse(const cugl::MouseEvent& event) {
     _isTouchDragging = true;
 }
 
+/**
+ * Updates the carousel x-position during an active mouse drag.
+ *
+ * Computes the horizontal offset from the drag origin, applies a
+ * damping factor to reduce slipperiness, and repositions the card
+ * container accordingly. Does nothing if no drag is active or a
+ * snap animation is running.
+ *
+ * @param event  The mouse drag event containing the current cursor position.
+ */
 void HouseSelectScene::updateCarouselSwipeMouse(const cugl::MouseEvent& event) {
     if (!_isTouchDragging || _isAnimating || !_houseSelectionCardContainer) {
         return;
@@ -414,6 +434,14 @@ void HouseSelectScene::updateCarouselSwipeMouse(const cugl::MouseEvent& event) {
     _houseSelectionCardContainer->setPosition(Vec2(newX, pos.y));
 }
 
+/**
+ * Finishes mouse drag tracking and resolves to a snapped card index.
+ *
+ * If a drag was active, delegates to snapToNearestIndex() to
+ * animate the container to the closest valid card position.
+ *
+ * @param event  The mouse release event containing the final cursor position.
+ */
 void HouseSelectScene::endCarouselSwipeMouse(const cugl::MouseEvent& event) {
     if (_isTouchDragging) {
         snapToNearestIndex();
