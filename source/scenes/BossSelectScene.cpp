@@ -96,7 +96,6 @@ void BossSelectScene::setupUI() {
         for (int i = 0; i < numCards; i++) {
             _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
         }
-//        _carouselBaseIndex = _currentIndex;
         _baseCarouselPosition = _bossSelectionCardContainer->getPosition();
     }
     
