@@ -441,6 +441,12 @@
         "supportZoneR": {
             "file": "textures/gameScene/supportRZoneBG.png"
         },
+        "passZoneLeft": {
+            "file": "textures/gameScene/passZoneLeft.png"
+        },
+        "passZoneRight": {
+            "file": "textures/gameScene/passZoneRight.png"
+        },
         "bossNameBG": {
             "file": "textures/gameScene/bossNameBG.png"
         },

@@ -270,13 +270,16 @@ bool GameScene::initSceneGraph() {
                _assets->get<scene2::SceneNode>("gameScene.inventory.bossName.label"));
         
         _playerName = std::dynamic_pointer_cast<scene2::Label>(
-               _assets->get<scene2::SceneNode>("gameScene.inventory.playerInfo.playerName.label"));
+               _assets->get<scene2::SceneNode>("gameScene.inventory.player.playerInfo.playerName.label"));
         
         _playerHouseName = std::dynamic_pointer_cast<scene2::Label>(
-               _assets->get<scene2::SceneNode>("gameScene.inventory.playerInfo.playerHouse.label"));
+               _assets->get<scene2::SceneNode>("gameScene.inventory.player.playerInfo.playerHouse.label"));
         
         _localPlayerSlot = std::dynamic_pointer_cast<scene2::PolygonNode>(
-               _assets->get<scene2::SceneNode>("gameScene.inventory.playerIcon.player"));
+               _assets->get<scene2::SceneNode>("gameScene.inventory.player.playerIcon.player"));
+        
+        _passLeftArea = _inventory->getChildByName("passZoneLeft");
+        _passRightArea = _inventory->getChildByName("passZoneRight");
     }
     
     addChild(_scene);
@@ -498,6 +501,8 @@ void GameScene::dispose() {
         _leftPlayerName = nullptr;
         _supportLeftArea = nullptr;
         _supportRightArea = nullptr;
+        _passLeftArea = nullptr;
+        _passRightArea = nullptr;
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
         _playerHealthBar = nullptr;
@@ -2411,6 +2416,8 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
 void GameScene::updateDropZoneVisibility(){
     if (_draggedItemId != 0) {
         
+        _passLeftArea->setVisible(true);
+        _passRightArea->setVisible(true);
         // Render attack/support zones based on item type
         auto itemDef = getHeldItemDef(_draggedItemId);
         
@@ -2428,6 +2435,8 @@ void GameScene::updateDropZoneVisibility(){
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
+        _passLeftArea->setVisible(false);
+        _passRightArea->setVisible(false);
     }
 }
 

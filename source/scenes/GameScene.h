@@ -211,11 +211,17 @@ protected:
     /** The node representing the attack interaction area (the red zone). */
     std::shared_ptr<cugl::scene2::PolygonNode> _attackArea;
     
-    /** The node representing the left support interaction area (the blue zone on the left). */
+    /** The node representing the left support interaction area (the green zone on the left). */
     std::shared_ptr<cugl::scene2::SceneNode> _supportLeftArea;
     
-    /** The node representing the right support interaction area (the blue zone on the right). */
+    /** The node representing the right support interaction area (the green zone on the right). */
     std::shared_ptr<cugl::scene2::SceneNode> _supportRightArea;
+    
+    /** The node representing the left pass interaction area (the blue zone on the inventory left). */
+    std::shared_ptr<cugl::scene2::SceneNode> _passLeftArea;
+    
+    /** The node representing the right pass interaction area (the blue zone on the inventory right). */
+    std::shared_ptr<cugl::scene2::SceneNode> _passRightArea;
 
     /** The node representing the boss character in the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
