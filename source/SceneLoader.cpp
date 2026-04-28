@@ -1,6 +1,5 @@
 // Implementation of SceneLoader
 #include "SceneLoader.h"
-#include "FirebaseBridge.h"
 
 // This keeps us from having to write cugl:: all the time
 using namespace cugl;
