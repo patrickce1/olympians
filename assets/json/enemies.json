@@ -61,7 +61,7 @@
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
                 "retargetLikelihood": 0.75,
-                "defenseLikelihood": 0.15
+                "defenseLikelihood": 0.25
             },
             "customData": {
                 "frantic1Threshold": 0.75,
