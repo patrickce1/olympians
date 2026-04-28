@@ -311,6 +311,9 @@
             "rarity": "special",
             "houseAffinity": "none",
             "baseValue": 30.0,
+            "effects": []
+        },
+        {
             "id": "resurrection",
             "name": "Resurrection",
             "description": " ",

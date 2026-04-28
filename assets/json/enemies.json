@@ -317,12 +317,12 @@
 			            {
                             "type": "SIDE_MODIFIER",
                             "target": 1,
-                            "amount": 0.8
+                            "amount": 0.2
                         },
 			            {
                             "type": "SIDE_MODIFIER",
                             "target": 3,
-                            "amount": 0.8
+                            "amount": 0.2
                         }
                     ],
                     "nextState": "idle"
