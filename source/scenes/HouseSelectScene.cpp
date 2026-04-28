@@ -232,8 +232,6 @@ void HouseSelectScene::setActive(bool value) {
             _status = WAITING;
             _activeTouch = -1;
             _isTouchDragging = false;
-            CULog("HEOOOOOEOE CONTROLLER TOUCHSCREEN");
-            CULog("touch: %p, _input: %p", touch, _input);
 
             if (touch && _input){
                 //Detect touch
