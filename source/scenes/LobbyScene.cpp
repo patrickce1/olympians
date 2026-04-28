@@ -183,25 +183,17 @@ void LobbyScene::setupListeners() {
             _status = Status::BOSSSELECT;
         }
     });
-
-    for (int i = 0; i < (int)_playerImages.size(); i++) {
-        _playerImages[i]->addListener([this, i](const std::string& name, bool down) {
-            bool isLocalSlot = (i == (int)_playerImages.size() - 1);
-
-            // Local slot: always a tap, drag is never possible here.
-            // Act on press so it feels immediately responsive.
-            if (isLocalSlot) {
-                if (!down) return;
-                _pendingSlotToBeOpened = -1;
-                _status = Status::SELECT;
-                return;
-            }
-
-            // Non-local slots: all tap and drag logic is handled by
-            // handleLobbyDragInitiation() and handleLobbyDragRelease()
-            // using raw InputController state and the hold-frame counter.
-        });
-    }
+    
+    // Wire the local slot (index 3) for all players.
+    // For non-hosts this is the only interaction they have.
+    // For the host, the press system handles everything including this slot,
+    // so the listener is a no-op for hosts to avoid double-firing.
+    _playerImages[3]->addListener([this](const std::string& name, bool down) {
+        if (!down) return;
+        if (_network->isHost()) return; // host handled entirely by press system
+        _pendingSlotToBeOpened = -1;
+        _status = Status::SELECT;
+    });
 }
 
 /**
@@ -601,13 +593,6 @@ void LobbyScene::handleLobbySlotPressBegin(InputController& input) {
 
             if (!cardBounds.contains(containerLocal)) continue;
 
-            bool isLocalSlot = (i == (int)_playerCards.size() - 1);
-            if (isLocalSlot) {
-                CULog("[PressBegin] hit local slot (slot %d) — ignoring", i);
-                return;
-            }
-
-            CULog("[PressBegin] hit non-local slot %d — tracking started", i);
             _dragSourceDisplaySlot = i;
             _draggedCard           = _playerImages[i];
             _dragCardOriginPos     = _playerCards[i]->getPosition(); // playerCard pos in tableArea space
@@ -702,16 +687,25 @@ void LobbyScene::handleLobbySlotPressRelease(InputController& input) {
 
     if (_dragHoldFrames < LOBBY_DRAG_HOLD_FRAMES) {
         // --- Tap path ---
-        int gameSlot = (localIndex + 1 + _dragSourceDisplaySlot) % totalSlots;
-        bool isReal  = _network->checkRealPlayer(gameSlot);
-        CULog("[PressRelease] TAP on display slot %d => game slot %d, isReal=%d",
-              _dragSourceDisplaySlot, gameSlot, isReal);
-        if (!isReal) {
-            CULog("[PressRelease] AI slot — opening house select for game slot %d", gameSlot);
-            _pendingSlotToBeOpened = gameSlot;
+        bool isLocalSlot = (_dragSourceDisplaySlot == (int)_playerCards.size() - 1);
+
+        if (isLocalSlot) {
+            // Tapped own slot — open own house select
+            CULog("[PressRelease] TAP on local slot — opening own house select");
+            _pendingSlotToBeOpened = -1;
             _status = Status::SELECT;
         } else {
-            CULog("[PressRelease] real player slot — no-op");
+            int gameSlot = (localIndex + 1 + _dragSourceDisplaySlot) % totalSlots;
+            bool isReal  = _network->checkRealPlayer(gameSlot);
+            CULog("[PressRelease] TAP on display slot %d => game slot %d, isReal=%d",
+                  _dragSourceDisplaySlot, gameSlot, isReal);
+            if (!isReal) {
+                CULog("[PressRelease] AI slot — opening house select for game slot %d", gameSlot);
+                _pendingSlotToBeOpened = gameSlot;
+                _status = Status::SELECT;
+            } else {
+                CULog("[PressRelease] real player slot — no-op");
+            }
         }
     } else {
         // --- Drag path ---
