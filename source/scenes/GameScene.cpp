@@ -1382,18 +1382,47 @@ int GameScene::calculateAttackFrame(float stateTime, float buildupDuration, int 
 
 /**
  * Calculates which animation frame should be displayed based on state time and animation phase.
- * Handles both buildup/attack animations and simple looping animations.
  *
- * @param stateTime The time elapsed in the current state (seconds)
- * @return The frame index within the animation row (0-indexed)
+ * Three modes, determined by the animation entry:
+ *   - Intro-then-loop: plays frames 0..loopStartFrame once, then loops loopStartFrame+1..loopEndFrame
+ *   - Buildup/attack:  loops buildup frames during wind-up, then plays attack frames once
+ *   - Simple loop:     cycles all frames continuously
+ *
+ * @param stateTime  Elapsed time in the current state (seconds)
+ * @return           Frame index within the animation row (0-indexed)
  */
 int GameScene::calculateAnimationFrame(float stateTime) const {
+    // Intro-then-loop: one-shot intro, then a fixed range of frames repeats indefinitely.
+    // Used for states that hold a pose (e.g. defense shield) after an initial wind-up.
+    if (_currentAnimationEntry.loopStartFrame >= 0) {
+        int introFrameCount = _currentAnimationEntry.loopStartFrame + 1;
+        float introDuration = introFrameCount * _currentAnimationEntry.frameDuration;
+
+        if (stateTime < introDuration) {
+            int frame = (int)(stateTime / _currentAnimationEntry.frameDuration);
+            return std::min(frame, introFrameCount - 1);
+        }
+
+        // Determine the inclusive end of the loop range
+        int loopEnd = (_currentAnimationEntry.loopEndFrame >= introFrameCount)
+            ? _currentAnimationEntry.loopEndFrame
+            : _currentAnimationEntry.frameCount - 1;
+        int loopFrameCount = loopEnd - introFrameCount + 1;
+
+        if (loopFrameCount > 0) {
+            float timeInLoop = stateTime - introDuration;
+            int frameInLoop = (int)(timeInLoop / _currentAnimationEntry.frameDuration) % loopFrameCount;
+            return introFrameCount + frameInLoop;
+        }
+        return _currentAnimationEntry.frameCount - 1;
+    }
+
     int buildupFrames = _currentAnimationEntry.buildupFrameCount;
-    
+
     // Ensure buildupFrameCount is valid
     if (buildupFrames < 0) buildupFrames = _currentAnimationEntry.frameCount;
     if (buildupFrames > _currentAnimationEntry.frameCount) buildupFrames = _currentAnimationEntry.frameCount;
-    
+
     // Check if this animation has distinct buildup and attack phases
     if (buildupFrames < _currentAnimationEntry.frameCount) {
         // Buildup/Attack animation: buildup loops for buildUpTime, then attack plays through
@@ -1487,6 +1516,11 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
  * @return true if attack animation is complete, false otherwise
  */
 bool GameScene::isEnemyAttackAnimationComplete() const {
+    // Intro-then-loop animations loop forever — never complete
+    if (_currentAnimationEntry.loopStartFrame >= 0) {
+        return false;
+    }
+
     // Must have buildup < frameCount to be an attack animation
     if (_currentAnimationEntry.buildupFrameCount >= _currentAnimationEntry.frameCount) {
         return false;  // Not an attack animation (it's a looping animation)
@@ -3558,6 +3592,8 @@ void GameScene::loadAnimationRegistry() {
         // Default buildupFrameCount to frameCount (no attack phase) if not specified
         anim.buildupFrameCount = entry->getInt("buildupFrameCount", anim.frameCount);
         anim.damageFrame = entry->getInt("damageFrame", -1);
+        anim.loopStartFrame = entry->getInt("loopStartFrame", -1);
+        anim.loopEndFrame = entry->getInt("loopEndFrame", -1);
         
         // Parse position and scale customization (optional, with defaults)
         anim.positionX = entry->getFloat("positionX", 196.5f);
