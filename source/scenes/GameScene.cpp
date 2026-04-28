@@ -215,7 +215,7 @@ static float computeUpgradeMultiplier(const Player& player, const ItemDef& def) 
     float upgradeMultiplier = 1.0f;
     for (const ItemDef::Effect& effect : def.getEffects()) {
         if (effect.type == ItemDef::EffectType::Upgrade) {
-            upgradeMultiplier *= std::pow(effect.multiplier, static_cast<float>(player.getMalletUseCount()));
+            upgradeMultiplier *= std::pow(effect.multiplier, static_cast<float>(player.getMalletUseCount()) - 1);
         }
     }
     return upgradeMultiplier;
