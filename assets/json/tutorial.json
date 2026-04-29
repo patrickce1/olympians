@@ -4,19 +4,19 @@
       "type": "show_message",
       "text": "Tutorial: Boss Attacks and Passing",
       "bossActive": false,
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "boss_attack",
       "text": "Circe is attacking!",
       "bossTarget": 0,
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "show_message",
       "text": "You can't heal yourself, your teammates must heal you!",
       "bossActive": false,
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "spawn_item",
@@ -31,38 +31,38 @@
     {
       "type": "show_message",
       "text": "Nice, your teammate healed you!",
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "show_message",
       "text": "Tutorial: Healing Teammates, Boss Direction, and Item Drops",
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "boss_attack",
       "text": "Circe turns toward your other teammate.",
       "bossTarget": 1,
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "show_message",
       "text": "Circe hits your teammate. They drop below 50% health!",
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "show_message",
       "text": "Notice the teammate icon is red. They are below 50%.",
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "show_message",
       "text": "When their icon is gray, they're dead and need special items to revive.",
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "show_message",
       "text": "Items enter your inventory periodically and can be heals or attacks.",
-      "delay": 3.0
+      "delay": 6.0
     },
     { "type": "delay", "delay": 0.6 },
     {
@@ -78,24 +78,23 @@
     {
       "type": "show_message",
       "text": "Great! Your teammate is at full health.",
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "show_message",
       "text": "Tutorial: Shielding and Damage",
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "boss_defend",
-      "bossTarget": 1,
+      "bossTarget": 2,
       "text": "Circe put up a shield on her front. Your teammate's attacks will be less effective.",
-      "delay": 3.0
     },
     { "type": "delay", "delay": 0.8 },
     {
       "type": "show_message",
       "text": "Your teammate just passed you their sword. Passing attacks while shielded is smart.",
-      "delay": 3.0
+      "delay": 6.0
     },
     {
       "type": "spawn_item",
@@ -121,7 +120,7 @@
       "type": "show_message",
       "text": "That covers shields, heals, passing, and boss direction. Defeat Circe.",
       "bossActive": true,
-      "delay": 3.0
+      "delay": 6.0
     },
     { "type": "end" }
   ]

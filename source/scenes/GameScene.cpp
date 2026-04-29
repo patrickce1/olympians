@@ -537,6 +537,7 @@ void GameScene::setBossActive(bool active) {
     // Keep boss visuals unchanged; toggle whether it may attack.
     _bossCanAttack = active;
     _enemyController.setAttacksEnabled(active);
+    CULog("GameScene::setBossActive -> %s", active ? "TRUE" : "FALSE");
 }
 
 bool GameScene::canBossAttack() {
