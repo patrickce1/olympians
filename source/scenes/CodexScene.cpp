@@ -275,6 +275,17 @@ void CodexScene::showDetailPanel(const CodexItem& item) {
     _categoryLabel->setText(item.category);
     _effectLabel->setText(item.effectLabel);
     _descriptionLabel->setText(item.description);
+    
+    if (item.category == "ATTACK") {
+        _categoryLabel->setForeground(cugl::Color4("#AC0000ff"));
+        _effectLabel->setForeground(cugl::Color4("#AC0000ff"));
+    } else if (item.category == "SUPPORT") {
+        _categoryLabel->setForeground(cugl::Color4("#047D04ff"));
+        _effectLabel->setForeground(cugl::Color4("#047D04ff"));
+    } else {
+        _categoryLabel->setForeground(cugl::Color4("#2000ACff"));
+        _effectLabel->setForeground(cugl::Color4("#2000ACff"));
+    }
 
     auto texture = _assets->get<cugl::graphics::Texture>("itemLarge");
     _itemLarge->setTexture(texture);
