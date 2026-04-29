@@ -100,8 +100,11 @@ struct ItemUseAnimation {
     /** Base item value before multipliers, for popup display. */
     float baseValue = 0.0f;
 
-    /** Combined house/affinity multiplier (damageAmount / baseValue), for popup display. */
-    float totalMultiplier = 1.0f;
+    /** House-role and affinity multiplier, excluding any upgrade streak bonus, for popup display. */
+    float houseAffinityMultiplier = 1.0f;
+
+    /** Upgrade streak multiplier applied by effects such as the mallet, for popup display. */
+    float upgradeMultiplier = 1.0f;
     
     /** Reserved for future use: originally stored itemId for deferred calculation (now pre-calculated). */
     ItemInstance::ItemId itemId = 0;
@@ -111,6 +114,9 @@ struct ItemUseAnimation {
 
     /** Enemy effects to send alongside deferred damage when a non-host client resolves the hit. */
     std::vector<EnemyEffectMessage> enemyEffects;
+
+    /** Definition ID of the consumed attack item, used for host-authoritative damage resolution. */
+    std::string itemDefID;
 
     /** Elapsed time in seconds since animation started. Used to calculate current frame. */
     float elapsedTime = 0.0f;
@@ -1285,10 +1291,11 @@ public:
      *   base damage (grey) → house multiplier (yellow) → final damage (color-coded)
      *
      * Produces a 5-entry sequence when a meaningful side multiplier is present:
-     *   base → house mult → pre-enemy damage → side mult → final damage
+     *   base → upgrade mult? → house mult? → pre-enemy damage → side mult? → final damage
      *
      * @param baseValue          Item's raw base damage.
-     * @param totalMultiplier    Combined house/affinity multiplier.
+     * @param houseAffinityMultiplier House-role and affinity multiplier.
+     * @param upgradeMultiplier  Upgrade streak multiplier, if any.
      * @param sideMultiplier     Enemy side multiplier for the attacking player.
      * @param preSideDamage      Damage after house multiplier, before side multiplier.
      * @param finalDamage        Damage after all multipliers applied.
@@ -1297,7 +1304,7 @@ public:
      * @return Ordered list of FloatingPopupData for the sequence.
      */
     std::vector<FloatingPopupData> buildAttackDamagePopups(
-        float baseValue, float totalMultiplier, float sideMultiplier,
+        float baseValue, float houseAffinityMultiplier, float upgradeMultiplier, float sideMultiplier,
         float preSideDamage, float finalDamage,
         float valueFontSize, float multiplierFontSize
     ) const;

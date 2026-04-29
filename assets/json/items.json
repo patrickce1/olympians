@@ -174,7 +174,12 @@
             "rarity": "rare",
             "houseAffinity": "hephaestus",
             "baseValue": 10.0,
-            "effects": [],
+            "effects": [
+                {
+                    "type": "upgrade",
+                    "multiplier": 1.5
+                }
+            ],
             "itemUseSound": "attack_thud",
             "itemUseAnimation": {
                 "spriteSheetId": "mallet_animation",

@@ -105,10 +105,11 @@ public:
      * Sends an attack message to the host with the given damage value.
      * Called by non-host clients when the local player attacks the boss.
      *
-     * @param damage    The amount of damage dealt to the boss.
-     * @param playerIndex Which player is dealing damage to the boss
+     * @param damageAmount The locally resolved damage amount to report for this attack.
+     * @param playerIndex The attacking player's slot index.
+     * @param itemDefID The definition ID of the attack item so the host can recompute authoritative damage.
     */
-    void broadcastDamage(float damageAmount, int playerIndex);
+    void broadcastDamage(float damageAmount, int playerIndex, const std::string& itemDefID);
 
     /**
      * Sends a message to the corresponding player that an item with the given definition has been passed to them.
