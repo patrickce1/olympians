@@ -81,9 +81,9 @@
       "description": "Hades' helm of shadow grants complete invincibility, absorbing the next single hit no matter how powerful."
     },
     {
-      "id": "bouquet",
+      "id": "wheat",
       "name": "Bouquet of Wheat",
-      "image_large": "bouquet_large",
+      "image_large": "wheat_large",
       "rarity": "Rare",
       "house": "Demeter",
       "category": "Support",
@@ -121,9 +121,9 @@
       "description": "Ares's war spear pokes forward dealing burst damage, leaving the struck side of the boss extra vulnerable."
     },
     {
-      "id": "sandals",
+      "id": "wings",
       "name": "Winged Sandals",
-      "image_large": "sandals_large",
+      "image_large": "wings_large",
       "rarity": "Rare",
       "house": "Hermes",
       "category": "Utility",
@@ -131,9 +131,9 @@
       "description": "Hermes's sandals slow the boss's attacks and make them more vulnerable to damage during the slow."
     },
     {
-      "id": "love_potion",
+      "id": "potion",
       "name": "Love Potion",
-      "image_large": "love_potion_large",
+      "image_large": "potion_large",
       "rarity": "Rare",
       "house": "Aphrodite",
       "category": "Utility",
@@ -191,9 +191,9 @@
       "description": "Hades reaches beyond death to revive all fallen allies and grant every teammate ongoing healing."
     },
     {
-      "id": "sparky_anvil",
-      "name": "Sparky Anvil",
-      "image_large": "sparky_anvil_large",
+      "id": "forge",
+      "name": "Forge",
+      "image_large": "forge_large",
       "rarity": "Divine",
       "house": "Hephaestus",
       "category": "Utility",
@@ -221,9 +221,9 @@
       "description": "Aphrodite amplifies every player's strongest category, granting the whole team a massive buff across all categories."
     },
     {
-      "id": "item_frenzy",
+      "id": "treasure",
       "name": "Item Frenzy",
-      "image_large": "item_frenzy_large",
+      "image_large": "treasure_large",
       "rarity": "Divine",
       "house": "Hermes",
       "category": "Utility",

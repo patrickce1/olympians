@@ -1,6 +1,7 @@
 {
     "variables": {
-        "item": ["children","item","data", "texture"]
+        "item": ["children","item","data", "texture"],
+        "visible": ["children","item","data", "visible"]
     },
     "contents": {
         "type": "Node",
