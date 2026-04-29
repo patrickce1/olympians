@@ -2946,6 +2946,44 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     startItemSliding(id, spawnVelocity, slideOrigin);
 }
 
+/** Helper function to spawn an item from a given side within the tutorial.
+ *
+ * @param defId       The ID of the item to spawn
+ * @param passDirection   The side to spawn the item from. 0 = new, 1 = pass from left, 2 = pass from right.
+ */
+void GameScene::spawnTutorialItem(const std::string& defId, int passDirection) {
+    Player* localPlayer = _gameState.getLocalPlayer();
+    if (!localPlayer){
+        CULog("spawnTutorialItem: no local player");
+        return;
+    }
+    
+    // Create the item and add to local player.
+    ItemInstance::ItemId itemId = _itemController.giveItemByID(localPlayer, defId);
+    if (itemId == 0){
+        CULog("spawnTutorialItem: failed to create item for defId '%s'", defId.c_str());
+                return;
+    }
+    const auto& inv = localPlayer->getInventory();
+    for (const ItemInstance& item : inv){
+        if (item.getId() == itemId){
+            //spawn pos not yet determined
+            cugl::Vec2 spawnPos;
+            if (passDirection != 0){
+                spawnPos = getPassSpawnPosition(passDirection);
+                _spawnItemFromPosition(item, spawnPos, ItemInstance::SlideOriginType::SLIDE_FROM_PASS);
+            }
+            else {
+                cugl::Size screenSize = getSize();
+                spawnPos = cugl::Vec2(screenSize.width * 0.5f, -50.0f);
+                _spawnItemFromPosition(item, spawnPos, ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN);
+            }
+            CULog("spawnTutorialItem: spawned item id=%llu defId=%s passDir=%d", (unsigned long long)item.getId(), defId.c_str(), passDirection);
+            return;
+        }
+    }
+}
+
 /** Synchronises on-screen item widgets with the local player's current inventory. */
 void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();

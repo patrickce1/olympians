@@ -165,3 +165,54 @@ void TutorialController::dismissMessage() {
     _index++;
     advanceStep();
 }
+
+#pragma mark - State Queries
+
+bool TutorialController::isCurrentMessageDismissible() const {
+    //Don't use if inactive or out of bounds.
+    if (!_active || _index < 0 || _index >= (int)_steps.size()) return false;
+    
+    //Dismissible (by tap) steps had a defined delay of 0.0 and were of type SHOW_MESSAGE
+    const TutorialStep& step = _steps[_index];
+    return step.type == StepType::SHOW_MESSAGE && step.delay == 0.0f;
+}
+
+bool TutorialController::isCurrentStepShowMessage() const {
+    if (!_active || _index < 0 || _index >= (int)_steps.size()) return false;
+    return _steps[_index].type == StepType::SHOW_MESSAGE;
+}
+
+bool TutorialController::isWaitingForActionMatch(InputController::Action action) const {
+    
+    if (!_active || !_waitingForAction) return false;
+    
+    if (_index < 0 || _index >= (int)_steps.size()) return false;
+    
+    const TutorialStep& step = _steps[_index];
+    return step.action == InputController::Action::NONE || step.action == action;
+}
+
+#pragma mark - Step Execution
+
+void TutorialController::advanceStep() {
+    while (_active && _index < 0 && _index < (int)_steps.size()) {
+        const TutorialStep& step = _steps[_index];
+        
+        if (executeStep(step)) return;
+        _index++;
+    }
+    _active = false;
+}
+
+bool TutorialController::executeStep(const TutorialStep& step) {
+    // Reset per-step state.
+    _waitingForAction = false;
+    _timer = 0.0f;
+
+    switch (step.type){
+        case StepType::SPAWN_ITEM:
+            if (_gameScene) _gameScene->spawnTutorialItem(step.defId, step.passDirection);
+            return false;
+    }
+    return false;
+}

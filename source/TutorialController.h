@@ -162,6 +162,12 @@ private:
     //increments the step index and prepares the next instruction
     void advanceStep();
     
+    /**
+     Returns true if this step is blocking (timer, action, tap). Returns false if the step is immediate and the loop should advance.
+      */
+     bool executeStep(const TutorialStep& step);
+     
+    
     //Loads the steps defined by the asset into the _steps vector.
     void parseSteps(const std::shared_ptr<cugl::JsonValue>& json);
     

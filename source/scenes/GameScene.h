@@ -1404,6 +1404,12 @@ public:
      */
     void _spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spawnPos, ItemInstance::SlideOriginType slideOrigin);
 
+    /**
+        * Helper function to spawn an item within the tutorial
+        * @param defID       The id of the item to spawn
+        * @param passDirection the nature in which the item should spawn. (0 = Spawn, 1 = Passed from left, 2 = Passed from right).
+        */
+    void spawnTutorialItem(const std::string& defId, int passDirection);
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
 
