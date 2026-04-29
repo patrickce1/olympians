@@ -656,8 +656,6 @@ void GameScene::setActive(bool value) {
         if (value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
-            // DEBUG: give local player a shield to test damage absorption and sound
-            if (auto* local = _gameState.getLocalPlayer()) local->applyShield(20.0f, 999.0f);
             updateNetworkOrder();
             
             // Re-initialize AI players after updateNetworkOrder() rebuilds
