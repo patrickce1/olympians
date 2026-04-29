@@ -559,6 +559,6 @@ void GameState::swapPlayers(int slotA, int slotB) {
     // demoteToAI(), and assignMissingHousesForAI()
     for (int i = 0; i < total; i++) {
         _players[i]->setLeftPlayer (_players[(i - 1 + total) % total].get());
-        _players[i]->setRightPlayer(_players[(i + 1)         % total].get());
+        _players[i]->setRightPlayer(_players[(i + 1) % total].get());
     }
 }
