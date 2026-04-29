@@ -105,10 +105,11 @@ public:
      * Sends an attack message to the host with the given damage value.
      * Called by non-host clients when the local player attacks the boss.
      *
-     * @param damage    The amount of damage dealt to the boss.
-     * @param playerIndex Which player is dealing damage to the boss
+     * @param damageAmount The locally resolved damage amount to report for this attack.
+     * @param playerIndex The attacking player's slot index.
+     * @param itemDefID The definition ID of the attack item so the host can recompute authoritative damage.
     */
-    void broadcastDamage(float damageAmount, int playerIndex);
+    void broadcastDamage(float damageAmount, int playerIndex, const std::string& itemDefID);
 
     /**
      * Sends a boss heal message to the host.
@@ -393,6 +394,19 @@ public:
      * @return  0 = PreGameEntryScene, 1 = GameScene, 2 = LobbyScene -1 = unknown (not yet received)
      */
     int getHostsCurrentScene() const { return _hostsCurrentScene; }
+    
+    /**
+     * HOST ONLY. Swaps the game slots of two players (real or AI) and
+     * broadcasts the updated lobby state to all clients.
+     *
+     * The swap is applied to _uuidToSlot, _slotToPlayer, and _aIHouses
+     * as appropriate, then broadcastLobbyState() is called so all clients
+     * receive an authoritative LOBBY_UPDATE.
+     *
+     * @param slotA  First 0-based slot index to swap.
+     * @param slotB  Second 0-based slot index to swap.
+     */
+    void swapSlots(int slotA, int slotB);
 
 
 protected:
@@ -417,8 +431,9 @@ protected:
         AI_HOUSE_SELECT = 13,
         PLAYER_SUPPORT_EFFECT = 14,
         ENEMY_EFFECT = 15,
-        BOSS_HEAL = 16,
-        GAIA_SPAWN = 17
+        SWAP_SLOTS = 16,
+        BOSS_HEAL = 17,
+        GAIA_SPAWN = 18
     };
 
     /** Our network connection */

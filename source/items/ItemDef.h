@@ -71,7 +71,8 @@ public:
         Barrier,
         Stun,
         Love,
-        Vulnerable
+        Vulnerable,
+        Upgrade
     };
 
     /**

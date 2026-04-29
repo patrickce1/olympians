@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include "../items/ItemDatabase.h"
 #include "../Player.h"
 #include "../Enemy.h"
 #include "../HouseLoader.h"
@@ -277,6 +278,17 @@ public:
      * @param house  The house ID to assign to the new AI, or "" for none.
      */
     void demoteToAI(int slot, const std::string& house = "");
+    
+    /**
+     * Swaps two player slots in the local player array.
+     * Called on the host after NetworkController::swapSlots() to keep
+     * _players in sync with the updated network slot assignments.
+     * Re-wires neighbour pointers for the affected slots after the swap.
+     *
+     * @param slotA  First 0-based slot index.
+     * @param slotB  Second 0-based slot index.
+     */
+    void swapPlayers(int slotA, int slotB);
 
 private:
 
@@ -311,6 +323,9 @@ private:
 
     /** Loads house definitions from JSON for player construction. */
     HouseLoader _houseLoader;
+
+    /** Item database used by the host to resolve authoritative attack magnitudes. */
+    const ItemDatabase* _itemDatabase = nullptr;
 };
 
 #endif /* __GAME_STATE_H__ */

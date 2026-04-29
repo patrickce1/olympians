@@ -49,6 +49,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
         out = ItemDef::EffectType::Vulnerable;
         return true;
     }
+    if (value == "upgrade") {
+        out = ItemDef::EffectType::Upgrade;
+        return true;
+    }
     return false;
 }
 

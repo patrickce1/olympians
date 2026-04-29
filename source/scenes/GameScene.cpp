@@ -104,6 +104,7 @@ static void broadcastSupportEffects(NetworkController& network,
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Vulnerable:
+            case ItemDef::EffectType::Upgrade:
                 break;
         }
     }
@@ -146,6 +147,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
                 effectMsg.applyToAllSides = effect.applyToAllSides;
                 enemyEffects.push_back(effectMsg);
                 break;
+            case ItemDef::EffectType::Upgrade:
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
                 break;
@@ -167,6 +169,58 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
             effectMsg.playerIndex,
             effectMsg.applyToAllSides);
     }
+}
+
+/**
+ * Returns the player's house-role and affinity multiplier for the given attack item.
+ *
+ * This excludes any item-specific upgrade streak bonus so the popup sequence can
+ * render the mallet-style upgrade separately from house-derived multipliers.
+ *
+ * @param player The player using the attack item.
+ * @param def The item definition being resolved.
+ * @param database The item database containing house-role and affinity tuning.
+ * @return The combined house-role and affinity multiplier, excluding upgrade streak effects.
+ */
+static float computeHouseAffinityMultiplier(const Player& player, const ItemDef& def, const ItemDatabase& database) {
+    float houseRoleMultiplier = 0.0f;
+    float affinityBonus = 1.0f;
+
+    const auto* houseMultipliers = database.getHouseMultipliers(player.getHouseName());
+    if (houseMultipliers) {
+        if (def.getType() == ItemDef::Type::Attack) {
+            houseRoleMultiplier = houseMultipliers->attack;
+        } else {
+            houseRoleMultiplier = houseMultipliers->support;
+        }
+
+        const bool affinityEligible =
+            (def.getRarity() == ItemDef::Rarity::Rare || def.getRarity() == ItemDef::Rarity::Divine);
+        const bool affinityMatch =
+            (def.getHouseAffinity() == ItemDef::houseFromString(player.getHouseName(), ItemDef::House::None));
+        if (affinityEligible && affinityMatch) {
+            affinityBonus = houseMultipliers->affinityBonus;
+        }
+    }
+
+    return (1.0f + houseRoleMultiplier) * affinityBonus;
+}
+
+/**
+ * Returns the attack item's upgrade streak multiplier for popup display.
+ *
+ * @param player The player using the attack item.
+ * @param def The item definition being resolved.
+ * @return The product of all upgrade streak multipliers currently affecting this item.
+ */
+static float computeUpgradeMultiplier(const Player& player, const ItemDef& def) {
+    float upgradeMultiplier = 1.0f;
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        if (effect.type == ItemDef::EffectType::Upgrade) {
+            upgradeMultiplier *= std::pow(effect.multiplier, static_cast<float>(player.getMalletUseCount()));
+        }
+    }
+    return upgradeMultiplier;
 }
 
 /**
@@ -735,7 +789,10 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
                                       const std::shared_ptr<const ItemDef>& def,
                                       Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
-    // Calculate damage upfront for the animation
+    const float baseValue = def->getBaseValue();
+    const float houseAffinityMultiplier =
+        computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
+    const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
@@ -747,8 +804,6 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
 
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
     const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
-    const float baseValue      = def->getBaseValue();
-    const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
     const std::vector<EnemyEffectMessage> enemyEffects =
         (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber())
                               : std::vector<EnemyEffectMessage>{};
@@ -757,8 +812,10 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     if (!_activeItemUseAnimations.empty()) {
         _activeItemUseAnimations.back().popupPosition    = dropPos;
         _activeItemUseAnimations.back().baseValue        = baseValue;
-        _activeItemUseAnimations.back().totalMultiplier  = totalMultiplier;
+        _activeItemUseAnimations.back().houseAffinityMultiplier = houseAffinityMultiplier;
+        _activeItemUseAnimations.back().upgradeMultiplier = upgradeMultiplier;
         _activeItemUseAnimations.back().enemyEffects     = enemyEffects;
+        _activeItemUseAnimations.back().itemDefID        = def->getId();
     }
 
     return true;
@@ -780,6 +837,10 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
                                        const std::shared_ptr<const ItemDef>& def,
                                        Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
+    const float baseValue = def->getBaseValue();
+    const float houseAffinityMultiplier =
+        computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
+    const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
 
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
@@ -795,7 +856,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
             _network->broadcastBossHeal(resolvedMagnitude);
         }
         else {
-            _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
+            _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
         }
         broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber()));
     }
@@ -815,7 +876,8 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
     const float finalDamage     = resolvedMagnitude * sideMultiplier;
     createFloatingPopup(dropPos, buildAttackDamagePopups(
-        baseValue, totalMultiplier, sideMultiplier, resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+        baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
+        resolvedMagnitude, finalDamage, 26.0f, 17.0f));
 
     return true;
 }
@@ -1336,18 +1398,47 @@ int GameScene::calculateAttackFrame(float stateTime, float buildupDuration, int 
 
 /**
  * Calculates which animation frame should be displayed based on state time and animation phase.
- * Handles both buildup/attack animations and simple looping animations.
  *
- * @param stateTime The time elapsed in the current state (seconds)
- * @return The frame index within the animation row (0-indexed)
+ * Three modes, determined by the animation entry:
+ *   - Intro-then-loop: plays frames 0..loopStartFrame once, then loops loopStartFrame+1..loopEndFrame
+ *   - Buildup/attack:  loops buildup frames during wind-up, then plays attack frames once
+ *   - Simple loop:     cycles all frames continuously
+ *
+ * @param stateTime  Elapsed time in the current state (seconds)
+ * @return           Frame index within the animation row (0-indexed)
  */
 int GameScene::calculateAnimationFrame(float stateTime) const {
+    // Intro-then-loop: one-shot intro, then a fixed range of frames repeats indefinitely.
+    // Used for states that hold a pose (e.g. defense shield) after an initial wind-up.
+    if (_currentAnimationEntry.loopStartFrame >= 0) {
+        int introFrameCount = _currentAnimationEntry.loopStartFrame + 1;
+        float introDuration = introFrameCount * _currentAnimationEntry.frameDuration;
+
+        if (stateTime < introDuration) {
+            int frame = (int)(stateTime / _currentAnimationEntry.frameDuration);
+            return std::min(frame, introFrameCount - 1);
+        }
+
+        // Determine the inclusive end of the loop range
+        int loopEnd = (_currentAnimationEntry.loopEndFrame >= introFrameCount)
+            ? _currentAnimationEntry.loopEndFrame
+            : _currentAnimationEntry.frameCount - 1;
+        int loopFrameCount = loopEnd - introFrameCount + 1;
+
+        if (loopFrameCount > 0) {
+            float timeInLoop = stateTime - introDuration;
+            int frameInLoop = (int)(timeInLoop / _currentAnimationEntry.frameDuration) % loopFrameCount;
+            return introFrameCount + frameInLoop;
+        }
+        return _currentAnimationEntry.frameCount - 1;
+    }
+
     int buildupFrames = _currentAnimationEntry.buildupFrameCount;
-    
+
     // Ensure buildupFrameCount is valid
     if (buildupFrames < 0) buildupFrames = _currentAnimationEntry.frameCount;
     if (buildupFrames > _currentAnimationEntry.frameCount) buildupFrames = _currentAnimationEntry.frameCount;
-    
+
     // Check if this animation has distinct buildup and attack phases
     if (buildupFrames < _currentAnimationEntry.frameCount) {
         // Buildup/Attack animation: buildup loops for buildUpTime, then attack plays through
@@ -1441,6 +1532,11 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
  * @return true if attack animation is complete, false otherwise
  */
 bool GameScene::isEnemyAttackAnimationComplete() const {
+    // Intro-then-loop animations loop forever — never complete
+    if (_currentAnimationEntry.loopStartFrame >= 0) {
+        return false;
+    }
+
     // Must have buildup < frameCount to be an attack animation
     if (_currentAnimationEntry.buildupFrameCount >= _currentAnimationEntry.frameCount) {
         return false;  // Not an attack animation (it's a looping animation)
@@ -3477,12 +3573,13 @@ void GameScene::updateItemUseAnimations(float dt) {
                     // Apply pre-calculated damage and show the popup sequence.
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
                     createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
-                        activeAnim.baseValue, activeAnim.totalMultiplier, sideMultiplier,
+                        activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
+                        activeAnim.upgradeMultiplier, sideMultiplier,
                         activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
 
                     // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
-                        _network->broadcastDamage(activeAnim.damageAmount, playerNum);
+                        _network->broadcastDamage(activeAnim.damageAmount, playerNum, activeAnim.itemDefID);
                         broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
                     }
                 }
@@ -3544,6 +3641,8 @@ void GameScene::loadAnimationRegistry() {
         // Default buildupFrameCount to frameCount (no attack phase) if not specified
         anim.buildupFrameCount = entry->getInt("buildupFrameCount", anim.frameCount);
         anim.damageFrame = entry->getInt("damageFrame", -1);
+        anim.loopStartFrame = entry->getInt("loopStartFrame", -1);
+        anim.loopEndFrame = entry->getInt("loopEndFrame", -1);
         
         // Parse position and scale customization (optional, with defaults)
         anim.positionX = entry->getFloat("positionX", 196.5f);
@@ -3611,7 +3710,8 @@ cugl::Vec2 GameScene::resolveItemDropPosition(ItemInstance::ItemId itemId) const
  * See header for full parameter and sequence documentation.
  * 
  * @param baseValue The original damage value from the item definition
- * @param totalMultiplier The combined multiplier from house role and affinity bonuses
+ * @param houseAffinityMultiplier The combined house-role and affinity multiplier
+ * @param upgradeMultiplier The upgrade streak multiplier, if any
  * @param sideMultiplier The enemy's side multiplier for the attacking player
  * @param preSideDamage The damage after applying house multipliers but before side multiplier
  * @param finalDamage The final damage after applying all multipliers
@@ -3620,45 +3720,111 @@ cugl::Vec2 GameScene::resolveItemDropPosition(ItemInstance::ItemId itemId) const
  * @return A vector of FloatingPopupData structs defining the popup sequence
  */
 std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
-    float baseValue, float totalMultiplier, float sideMultiplier,
+    float baseValue, float houseAffinityMultiplier, float upgradeMultiplier, float sideMultiplier,
     float preSideDamage, float finalDamage,
     float valueFontSize, float multiplierFontSize) const
 {
+    const bool hasUpgradeMult = (std::abs(upgradeMultiplier - 1.0f) > 0.01f);
+    const bool hasHouseMult = (std::abs(houseAffinityMultiplier - 1.0f) > 0.01f);
     const bool hasSideMult = (std::abs(sideMultiplier - 1.0f) > 0.01f);
 
     // Format each value as a fixed one-decimal string.
-    char baseText[32], houseText[32], preText[32], sideText[32], finalText[32];
+    char baseText[32], upgradeText[32], houseText[32], preText[32], sideText[32], finalText[32];
     std::snprintf(baseText,  sizeof(baseText),  "-%.1f", baseValue);
-    std::snprintf(houseText, sizeof(houseText), "%.1fx", totalMultiplier);
+    std::snprintf(upgradeText, sizeof(upgradeText), "%.1fx", upgradeMultiplier);
+    std::snprintf(houseText, sizeof(houseText), "%.1fx", houseAffinityMultiplier);
     std::snprintf(preText,   sizeof(preText),   "-%.1f", preSideDamage);
     std::snprintf(sideText,  sizeof(sideText),  "%.1fx", sideMultiplier);
     std::snprintf(finalText, sizeof(finalText), "-%.1f", finalDamage);
 
     // Log-scale the multiplier font size so larger multipliers get proportionally bigger text.
-    const float houseLog    = 0.2f * std::log(std::max(1.0f, totalMultiplier));
+    const float upgradeLog  = 0.2f * std::log(std::max(1.0f, upgradeMultiplier));
+    const float houseLog    = 0.2f * std::log(std::max(1.0f, houseAffinityMultiplier));
     const float sideLog     = 0.2f * std::log(std::max(1.0f, sideMultiplier));
-    const float combinedLog = 0.2f * std::log(std::max(1.0f, totalMultiplier * sideMultiplier));
+    const float combinedLog = 0.2f * std::log(std::max(1.0f, houseAffinityMultiplier * upgradeMultiplier * sideMultiplier));
 
     // Green for a bonus side, blue for a penalty side.
     const cugl::Color4 sideColor = (sideMultiplier >= 1.0f)
         ? cugl::Color4(150, 220,  80, 255)
         : cugl::Color4(120, 160, 255, 255);
 
-    // If the enemy has a side multiplier on the local player's side
-    if (hasSideMult) {
-        return {
-            {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
-            {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
-            {preText,   valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        cugl::Color4::BLACK, 0.3f,  0.15f, cugl::Vec2::ZERO,         true},
-            {sideText,  multiplierFontSize * (1.0f + sideLog),          sideColor,                        cugl::Color4::BLACK, 0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
-            {finalText, valueFontSize      * (1.0f + combinedLog),      damageColor(finalDamage),          cugl::Color4::BLACK, 0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
-        };
+    std::vector<FloatingPopupData> popups;
+    popups.push_back({
+        baseText,
+        valueFontSize,
+        cugl::Color4(160, 160, 160, 255),
+        cugl::Color4::BLACK,
+        0.0f,
+        0.2f,
+        cugl::Vec2::ZERO,
+        true
+    });
+
+    float nextDelay = 0.05f;
+    if (hasUpgradeMult) {
+        popups.push_back({
+            upgradeText,
+            multiplierFontSize * (2.0f + upgradeLog),
+            cugl::Color4(255, 110,  60, 255),
+            cugl::Color4::BLACK,
+            nextDelay,
+            0.25f,
+            cugl::Vec2(-24.0f, 15.0f),
+            false
+        });
+        nextDelay += 0.1f;
     }
-    return {
-        {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-        {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-        {finalText, valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
-    };
+
+    if (hasHouseMult) {
+        popups.push_back({
+            houseText,
+            multiplierFontSize * (1.0f + houseLog),
+            cugl::Color4(244, 186,  51, 255),
+            cugl::Color4::BLACK,
+            nextDelay,
+            0.25f,
+            cugl::Vec2(20.0f, 15.0f),
+            false
+        });
+        nextDelay += 0.1f;
+    }
+
+    const float preDamageLog = std::max(upgradeLog, houseLog);
+    popups.push_back({
+        preText,
+        valueFontSize * (1.0f + preDamageLog),
+        damageColor(preSideDamage),
+        cugl::Color4::BLACK,
+        nextDelay + (hasSideMult ? 0.05f : 0.0f),
+        hasSideMult ? 0.15f : 0.5f,
+        cugl::Vec2::ZERO,
+        true
+    });
+
+    if (hasSideMult) {
+        popups.push_back({
+            sideText,
+            multiplierFontSize * (1.0f + sideLog),
+            sideColor,
+            cugl::Color4::BLACK,
+            nextDelay + 0.1f,
+            0.2f,
+            cugl::Vec2(20.0f, 15.0f),
+            false
+        });
+        popups.push_back({
+            finalText,
+            valueFontSize * (1.0f + combinedLog),
+            damageColor(finalDamage),
+            cugl::Color4::BLACK,
+            nextDelay + 0.3f,
+            0.5f,
+            cugl::Vec2::ZERO,
+            true
+        });
+    }
+
+    return popups;
 }
 
 /**

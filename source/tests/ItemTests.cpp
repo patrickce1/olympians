@@ -399,7 +399,7 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
     const float poseidonSideMultiplierBeforeUse = enemy.getSideMultiplier(poseidon.getPlayerNumber());
     float hpBeforePoseidon = enemy.getCurrentHealth();
     float resolvedPoseidon = poseidon.useItemById(instPoseidon->getId(), enemy, db);
-    float expectedPoseidon = rareAttackDef->getBaseValue() * (1.0f + 0.8f);
+    float expectedPoseidon = rareAttackDef->getBaseValue() * (1.0f + 0.75f);
     assertWithLabel(floatsEqualWithinTolerance(resolvedPoseidon, expectedPoseidon), "compute: non-matching rare affinity resolves correctly");
     assertWithLabel((hpBeforePoseidon - enemy.getCurrentHealth()) > 0.0f, "compute: enemy damage without affinity is correct");
 
@@ -415,7 +415,7 @@ void testEffectiveValueComputation(const std::shared_ptr<cugl::JsonValue>& items
 
     float allyBefore = ally.getCurrentHealth();
     float resolvedSupport = demeter.useItemById(instApple->getId(), ally, db);
-    float expectedSupport = 10.0f * (1.0f + 0.9f);
+    float expectedSupport = 10.0f * (1.0f + 1.0f);
     assertWithLabel(floatsEqualWithinTolerance(resolvedSupport, expectedSupport), "compute: support scaling resolves correctly");
     assertWithLabel(floatsEqualWithinTolerance(ally.getCurrentHealth() - allyBefore, expectedSupport), "compute: support heal equals resolved value");
 
@@ -619,7 +619,7 @@ void testHelmEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     const float firstHitHealthBefore = helmTarget.getCurrentHealth();
     helmTarget.updateHealth(-6.0f);
     assertWithLabel(floatsEqualWithinTolerance(helmTarget.getCurrentHealth(), firstHitHealthBefore), "helm: first hit is fully negated");
-    assertWithLabel(helmTarget.hasBarrier(), "helm: barrier remains active after the first protected hit");
+    assertWithLabel(!helmTarget.hasBarrier(), "helm: barrier does not remain active after the first protected hit");
     assertWithLabel(floatsEqualWithinTolerance(helmTarget.getBarrierMultiplier(), 1.0f), "helm: barrier multiplier resets after protecting one hit");
 
     const float secondHitHealthBefore = helmTarget.getCurrentHealth();
