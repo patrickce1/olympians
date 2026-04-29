@@ -143,7 +143,7 @@
                     "x_anchor": "center",
                     "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": -0.01,
+                    "x_offset": 0,
                     "y_offset": 0
                 }
             },
@@ -154,7 +154,7 @@
                 },
                 "data": {
                     "anchor": [
-                        0,
+                        0.5,
                         1
                     ],
                     "size": [
@@ -331,10 +331,10 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "left",
+                    "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.17,
+                    "x_offset": 0,
                     "y_offset": -0.27
                 }
             },
@@ -413,31 +413,56 @@
                     "y_offset": 0.08
                 }
             },
-            "backArrow": {
-                "type": "Image",
+            "back": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
                 "data": {
-                    "texture": "backArrow",
                     "anchor": [
                         0,
                         1
                     ],
                     "size": [
-                        44.5,
-                        37
+                        42,
+                        42
                     ],
                     "angle": 0,
                     "position": [
-                        22,
-                        783
+                        28,
+                        788
                     ],
-                    "visible": true
+                    "visible": true,
+                    "upnode": "back"
                 },
-                "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "top",
-                    "absolute": false,
-                    "x_offset": 0.06,
-                    "y_offset": -0.04
+                "children": {
+                    "back": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "backArrow",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                43,
+                                36
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
                 }
             }
         }

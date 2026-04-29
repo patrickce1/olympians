@@ -4,7 +4,7 @@
         "type": "Node",
         "format": {
             "type": "Float",
-            "x_alignment": "left",
+            "x_alignment": "center",
             "y_alignment": "top"
         },
         "data": {

@@ -30,8 +30,8 @@
                 "data": {
                     "texture": "slotBG",
                     "anchor": [
-                        0,
-                        1
+                        0.5,
+                        0.5
                     ],
                     "size": [
                         60,
@@ -45,11 +45,11 @@
                     "visible": true
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "top",
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
                     "absolute": false,
-                    "x_offset": 0.12,
-                    "y_offset": -0.12
+                    "x_offset": 0,
+                    "y_offset": 0
                 }
             },
             "item": {
@@ -57,8 +57,8 @@
                 "data": {
                     "texture": "nectar_n",
                     "anchor": [
-                        0,
-                        1
+                        0.5,
+                        0.5
                     ],
                     "size": [
                         80,
@@ -72,8 +72,8 @@
                     "visible": true
                 },
                 "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "top",
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0,
                     "y_offset": 0
