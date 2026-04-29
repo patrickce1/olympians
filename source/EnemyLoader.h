@@ -44,9 +44,12 @@ public:
         std::vector<EventDef> entryEvents;  // fired immediately when entering this state
         std::vector<EventDef> events;       // fired when the state completes
         std::string animationKey;           // Key to lookup animation in enemyAnimations.json
-        int buildupFrameCount = 0;          // Number of buildup frames in animation
-        int frameCount = 0;                 // Total frames in animation
+        int loopStartFrame = -1;            // First frame of loop range (-1 = no loop, play linearly)
+        int loopEndFrame = -1;              // Last frame of loop range
+        int frameCount = 0;                 // 0 for looping states, actual count for linear-play states
         float frameDuration = 0.0f;         // Duration per frame in seconds
+        int damageFrame = -1;               // Frame index when events fire (-1 = fire at loop end or last frame)
+        int outroFrameCount = 0;            // Frames after loopEndFrame that play before state exits
     };
 
     struct AIConfig {
@@ -72,10 +75,11 @@ private:
     
     /** Animation metadata for calculating state durations */
     struct AnimationMetadata {
-        int buildupFrameCount = 0;
         int frameCount = 0;
         float frameDuration = 0.0f;
-        int loopStartFrame = -1;
+        int loopStartFrame = -1;  // First frame of loop range (-1 = no loop, play linearly)
+        int loopEndFrame = -1;
+        int damageFrame = -1;
     };
     std::unordered_map<std::string, AnimationMetadata> _animationRegistry;
 
@@ -140,8 +144,9 @@ public:
             AnimationMetadata meta;
             meta.frameCount = entry->getInt("frameCount", 0);
             meta.frameDuration = entry->getFloat("frameDuration", 0.1f);
-            meta.buildupFrameCount = entry->getInt("buildupFrameCount", meta.frameCount);
             meta.loopStartFrame = entry->getInt("loopStartFrame", -1);
+            meta.loopEndFrame = entry->getInt("loopEndFrame", -1);
+            meta.damageFrame = entry->getInt("damageFrame", -1);
             
             std::string id = entry->getString("id", "");
             if (!id.empty()) {
@@ -199,11 +204,18 @@ public:
                 // Populate animation metadata from registry if available
                 if (!stateDef.animationKey.empty() && _animationRegistry.count(stateDef.animationKey) > 0) {
                     const auto& animMeta = _animationRegistry.at(stateDef.animationKey);
-                    stateDef.buildupFrameCount = animMeta.buildupFrameCount;
-                    stateDef.frameDuration     = animMeta.frameDuration;
-                    // Intro-then-loop animations never reach the final frame, so set frameCount
-                    // to 0 to make Enemy::readyToFire() use buildUpTime instead of frame count.
-                    stateDef.frameCount = (animMeta.loopStartFrame >= 0) ? 0 : animMeta.frameCount;
+                    stateDef.frameDuration  = animMeta.frameDuration;
+                    stateDef.damageFrame    = animMeta.damageFrame;
+                    stateDef.loopStartFrame = animMeta.loopStartFrame;
+                    stateDef.loopEndFrame   = animMeta.loopEndFrame;
+                    if (animMeta.loopStartFrame >= 0) {
+                        // Looping states: frameCount=0 so readyToFire() uses buildUpTime
+                        stateDef.frameCount = 0;
+                        int loopEnd = (animMeta.loopEndFrame >= 0) ? animMeta.loopEndFrame : animMeta.frameCount - 1;
+                        stateDef.outroFrameCount = std::max(0, animMeta.frameCount - loopEnd - 1);
+                    } else {
+                        stateDef.frameCount = animMeta.frameCount;
+                    }
                 }
 
                 auto aiObj = entry->get("ai");

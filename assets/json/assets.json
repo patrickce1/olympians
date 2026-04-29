@@ -673,6 +673,30 @@
             "stream": false,
             "volume": 0.4
         },
+        "cyclops_boulder": {
+            "type": "sample",
+            "file": "sounds/cyclops_boulder.wav",
+            "stream": false,
+            "volume": 0.35
+        },
+        "cyclops_club": {
+            "type": "sample",
+            "file": "sounds/cyclops_club.wav",
+            "stream": false,
+            "volume": 0.45
+        },
+        "cyclops_scream": {
+            "type": "sample",
+            "file": "sounds/cyclops_scream.wav",
+            "stream": false,
+            "volume": 0.5
+        },
+        "shield_block": {
+            "type": "sample",
+            "file": "sounds/shield_block.wav",
+            "stream": false,
+            "volume": 0.7
+        },
         "player_heal": {
             "type": "sample",
             "file": "sounds/player_heal.wav",

@@ -134,48 +134,39 @@ struct ItemUseAnimation {
  * Contains metadata needed to render and advance animation frames.
  */
 struct AnimationEntry {
-    std::string id;                  /**< Animation identifier (e.g., "cyclops_idle_animation") */
-    std::string texture;             /**< Texture asset key (e.g., "gameScene/cyclops/cyclops_idle_animation") */
-    int frameCount;                  /**< Number of frames per animation row */
-    float frameDuration;             /**< Duration in seconds per frame */
-    int frameRows;                   /**< Number of rows in the sprite sheet */
-    
-    // Attack phase configuration
-    int buildupFrameCount = 0;       /**< Frames that loop during buildup. 0 = no buildup phase */
-    int damageFrame = -1;            /**< Frame index when damage fires (-1 = no damage trigger) */
+    std::string id;             /** Animation identifier (e.g., "cyclops_idle_animation") */
+    std::string texture;        /** Texture asset key */
+    int frameCount;             /** Total number of frames in the animation */  
+    float frameDuration;        /** Duration of each frame in seconds */
+    int frameRows;              /** Number of rows in the sprite sheet */
 
-    // Intro-then-loop configuration (mutually exclusive with buildup/attack)
-    int loopStartFrame = -1;         /**< Last frame of the one-shot intro; loop begins at loopStartFrame+1 (-1 = disabled) */
-    int loopEndFrame = -1;           /**< Inclusive last frame of the loop range (-1 = loop to end of animation) */
+
+    // Loop configuration
+    int loopStartFrame = -1;    /** First frame of the loop range. Frames before this are a one-shot intro (-1 = no loop, play linearly) */
+    int loopEndFrame = -1;      /** Last frame of the loop range. Frames after this are a one-shot outro (-1 = loop until end) */
+    int damageFrame = -1;       /** Frame index when damage events fire (-1 = fire at loop end or last frame) */
+    std::string sound;          /** Sound key to play when damageFrame is reached (empty = no sound) */
 
     // Position and scale customization
-    float positionX = 196.5f;        /**< Screen X position for this animation */
-    float positionY = 120.0f;        /**< Screen Y position for this animation */
-    float scale = 0.92f;             /**< Scale multiplier for this animation */
-    float offsetX = 0.0f;            /**< X offset from base position */
-    float offsetY = 0.0f;            /**< Y offset from base position */
+    float positionX = 196.5f;   /** Screen X position for this animation */
+    float positionY = 120.0f;   /** Screen Y position for this animation */
+    float scale = 0.92f;        /** Scale multiplier for this animation */
+    float offsetX = 0.0f;       /** X offset from base position */
+    float offsetY = 0.0f;       /** Y offset from base position */
 };
 /**
  * Data for a single popup in a sequence.
  * General-purpose for any game event: damage, heals, buffs, status effects, health popups, etc.
  */
 struct FloatingPopupData {
-    /** Text content to display. */
-    std::string text;
-    /** Font size for this popup. Scaled relative to FLOATING_POPUP_BASE_FONT_SIZE. */
-    float fontSize = 32.0f;
-    /** Foreground (fill) color of the text. */
-    cugl::Color4 color = cugl::Color4::WHITE;
-    /** Outline (stroke) color drawn behind the text. Defaults to black. */
-    cugl::Color4 strokeColor = cugl::Color4::BLACK;
-    /** Seconds to wait after createFloatingPopup() is called before this popup spawns. */
-    float delaySeconds = 0.0f;
-    /** Seconds the popup holds at full opacity before fading out. */
-    float displayDuration = 2.0f;
-    /** Additional offset applied on top of the base screen position. */
-    cugl::Vec2 positionOffset = cugl::Vec2::ZERO;
-    /** If true, plays the popup_ding sound when this popup spawns. */
-    bool playSound = true;
+    std::string text;                               /** The text to display in the popup. */
+    float fontSize = 32.0f;                         /** Font size for this popup. Scaled relative to FLOATING_POPUP_BASE_FONT_SIZE. */
+    cugl::Color4 color = cugl::Color4::WHITE;       /** Foreground (fill) color of the text. */
+    cugl::Color4 strokeColor = cugl::Color4::BLACK; /** Outline (stroke) color drawn behind the text. Defaults to black. */
+    float delaySeconds = 0.0f;                      /** Seconds to wait after createFloatingPopup() is called before this popup spawns. */
+    float displayDuration = 2.0f;                   /** Seconds the popup holds at full opacity before fading out. */
+    cugl::Vec2 positionOffset = cugl::Vec2::ZERO;   /** Additional offset applied on top of the base screen position. */
+    bool playSound = true;                          /** If true, plays the popup_ding sound when this popup spawns. */
 };
 
 /**
@@ -787,35 +778,15 @@ public:
     void updateEnemyAnimationFrame(float dt, int localPlayerIndex);
 
     /**
-     * Calculates which animation frame should be displayed based on state time and animation phase.
-     * Handles both buildup/attack animations and simple looping animations.
+     * Calculates which animation frame to display based on state time and animation phase.
+     * Handles three phases: optional intro (plays once), loop (cycles for buildUpTime), optional outro (plays once).
+     * Animations with loopStartFrame < 0 play all frames linearly once.
      *
-     * @param stateTime The time elapsed in the current state (seconds)
+     * @param stateTime   Elapsed time in the current state (seconds)
+     * @param buildUpTime How long the loop phase runs before transitioning to outro (-1 = loop forever)
      * @return The frame index within the animation row (0-indexed)
      */
-    int calculateAnimationFrame(float stateTime) const;
-
-    /**
-     * Calculates the frame index during the buildup phase of an animation.
-     * Buildup frames loop until the buildup duration elapses.
-     *
-     * @param stateTime The time elapsed in the current state (seconds)
-     * @param buildupDuration The total duration of the buildup phase (seconds)
-     * @param buildupFrames Number of frames in the buildup phase
-     * @return The looping frame index within the buildup frames
-     */
-    int calculateBuildupFrame(float stateTime, float buildupDuration, int buildupFrames) const;
-
-    /**
-     * Calculates the frame index during the attack phase of an animation.
-     * Attack frames play sequentially without looping, clamped to the final frame.
-     *
-     * @param stateTime The time elapsed in the current state (seconds)
-     * @param buildupDuration The total duration of the buildup phase (seconds)
-     * @param buildupFrames Number of frames in the buildup phase
-     * @return The attack phase frame index (clamped to last attack frame)
-     */
-    int calculateAttackFrame(float stateTime, float buildupDuration, int buildupFrames) const;
+    int calculateAnimationFrame(float stateTime, float buildUpTime = -1.0f) const;
 
     /**
      * Ensures the frame index is within valid bounds.

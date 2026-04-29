@@ -1156,6 +1156,11 @@ void GameScene::updateEnemyAndAI(float dt) {
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
+    // Play shield block sound if local player's shield absorbed damage this update
+    if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
+        _audio->playSoundUnique("shield_block");
+    }
+
     // Update AI players - this is when they attack the boss AND heal teammates
     for (auto& player : _gameState.getPlayers()) {
         if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
@@ -1360,43 +1365,6 @@ int GameScene::validateFrameIndex(int frameInRow) const {
 }
 
 /**
- * Calculates the frame index during the buildup phase of an animation.
- * Buildup frames loop until the buildup duration elapses.
- *
- * @param stateTime The time elapsed in the current state (seconds)
- * @param buildupDuration The total duration of the buildup phase (seconds)
- * @param buildupFrames Number of frames in the buildup phase
- * @return The looping frame index within the buildup frames
- */
-int GameScene::calculateBuildupFrame(float stateTime, float buildupDuration, int buildupFrames) const {
-    float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
-    return (int)(frameFloat) % buildupFrames;
-}
-
-/**
- * Calculates the frame index during the attack phase of an animation.
- * Attack frames play sequentially without looping, clamped to the final frame.
- *
- * @param stateTime The time elapsed in the current state (seconds)
- * @param buildupDuration The total duration of the buildup phase (seconds)
- * @param buildupFrames Number of frames in the buildup phase
- * @return The attack phase frame index (clamped to last attack frame)
- */
-int GameScene::calculateAttackFrame(float stateTime, float buildupDuration, int buildupFrames) const {
-    float timeSinceAttackStart = stateTime - buildupDuration;
-    float frameFloat = timeSinceAttackStart / _currentAnimationEntry.frameDuration;
-    int framesIntoAttack = (int)(frameFloat);
-    int totalAttackFrames = _currentAnimationEntry.frameCount - buildupFrames;
-    
-    // Clamp to last attack frame (no looping)
-    if (framesIntoAttack >= totalAttackFrames) {
-        framesIntoAttack = totalAttackFrames - 1;
-    }
-    
-    return buildupFrames + framesIntoAttack;
-}
-
-/**
  * Calculates which animation frame should be displayed based on state time and animation phase.
  *
  * Three modes, determined by the animation entry:
@@ -1405,57 +1373,44 @@ int GameScene::calculateAttackFrame(float stateTime, float buildupDuration, int 
  *   - Simple loop:     cycles all frames continuously
  *
  * @param stateTime  Elapsed time in the current state (seconds)
+ * @param buildUpTime Duration of buildup phase for attack animations (seconds), or -1 if not applicable
  * @return           Frame index within the animation row (0-indexed)
  */
-int GameScene::calculateAnimationFrame(float stateTime) const {
-    // Intro-then-loop: one-shot intro, then a fixed range of frames repeats indefinitely.
-    // Used for states that hold a pose (e.g. defense shield) after an initial wind-up.
-    if (_currentAnimationEntry.loopStartFrame >= 0) {
-        int introFrameCount = _currentAnimationEntry.loopStartFrame + 1;
-        float introDuration = introFrameCount * _currentAnimationEntry.frameDuration;
+int GameScene::calculateAnimationFrame(float stateTime, float buildUpTime) const {
+    float frameDur = _currentAnimationEntry.frameDuration;
+    int frameCount = _currentAnimationEntry.frameCount;
+    int loopStart = _currentAnimationEntry.loopStartFrame;
+    int loopEnd = _currentAnimationEntry.loopEndFrame;
 
+    if (loopStart >= 0) {
+        // Intro phase: frames 0..loopStart-1 play once
+        float introDuration = loopStart * frameDur;
         if (stateTime < introDuration) {
-            int frame = (int)(stateTime / _currentAnimationEntry.frameDuration);
-            return std::min(frame, introFrameCount - 1);
+            return std::min((int)(stateTime / frameDur), loopStart - 1);
         }
 
-        // Determine the inclusive end of the loop range
-        int loopEnd = (_currentAnimationEntry.loopEndFrame >= introFrameCount)
-            ? _currentAnimationEntry.loopEndFrame
-            : _currentAnimationEntry.frameCount - 1;
-        int loopFrameCount = loopEnd - introFrameCount + 1;
+        // Loop phase: frames loopStart..loopEnd cycle until buildUpTime
+        int loopFrameCount = loopEnd - loopStart + 1;
+        bool loopDone = (buildUpTime > 0.0f && stateTime >= buildUpTime);
 
-        if (loopFrameCount > 0) {
+        if (!loopDone && loopFrameCount > 0) {
             float timeInLoop = stateTime - introDuration;
-            int frameInLoop = (int)(timeInLoop / _currentAnimationEntry.frameDuration) % loopFrameCount;
-            return introFrameCount + frameInLoop;
+            int frameInLoop = (int)(timeInLoop / frameDur) % loopFrameCount;
+            return loopStart + frameInLoop;
         }
-        return _currentAnimationEntry.frameCount - 1;
+
+        // Outro phase: frames loopEnd+1..frameCount-1 play once before state exits
+        int outroStart = loopEnd + 1;
+        if (outroStart < frameCount) {
+            float outroBase = std::max(buildUpTime, introDuration);
+            int outroFrame = std::max(0, (int)((stateTime - outroBase) / frameDur));
+            return std::min(outroStart + outroFrame, frameCount - 1);
+        }
+        return frameCount - 1;
     }
 
-    int buildupFrames = _currentAnimationEntry.buildupFrameCount;
-
-    // Ensure buildupFrameCount is valid
-    if (buildupFrames < 0) buildupFrames = _currentAnimationEntry.frameCount;
-    if (buildupFrames > _currentAnimationEntry.frameCount) buildupFrames = _currentAnimationEntry.frameCount;
-
-    // Check if this animation has distinct buildup and attack phases
-    if (buildupFrames < _currentAnimationEntry.frameCount) {
-        // Buildup/Attack animation: buildup loops for buildUpTime, then attack plays through
-        auto enemy = _gameState.getEnemy();
-        const auto* stateDef = enemy ? enemy->getCurrentStateDef() : nullptr;
-        float buildupDuration = stateDef ? stateDef->buildUpTime : (buildupFrames * _currentAnimationEntry.frameDuration);
-        
-        if (stateTime < buildupDuration) {
-            return calculateBuildupFrame(stateTime, buildupDuration, buildupFrames);
-        } else {
-            return calculateAttackFrame(stateTime, buildupDuration, buildupFrames);
-        }
-    } else {
-        // Simple looping animation - no attack phase, just loop all frames
-        float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
-        return (int)(frameFloat) % _currentAnimationEntry.frameCount;
-    }
+    // No loop: play all frames linearly once (e.g. scream)
+    return std::min((int)(stateTime / frameDur), frameCount - 1);
 }
 
 /**
@@ -1497,14 +1452,19 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
     
     // Calculate which animation frame should be displayed based on state time
     float stateTime = enemy->getStateTime();
-    int frameInRow = calculateAnimationFrame(stateTime);
+    const auto* curStateDef = enemy->getCurrentStateDef();
+    float buildUpTime = curStateDef ? curStateDef->buildUpTime : -1.0f;
+    int frameInRow = calculateAnimationFrame(stateTime, buildUpTime);
     frameInRow = validateFrameIndex(frameInRow);
     
     // Check if damage should trigger at this frame
-    if (_currentAnimationEntry.damageFrame >= 0 && 
-        frameInRow >= _currentAnimationEntry.damageFrame && 
+    if (_currentAnimationEntry.damageFrame >= 0 &&
+        frameInRow >= _currentAnimationEntry.damageFrame &&
         !_enemyAttackDamageDealtThisState) {
         _enemyAttackDamageDealtThisState = true;
+        if (!_currentAnimationEntry.sound.empty() && _audio) {
+            _audio->playSoundUnique(_currentAnimationEntry.sound);
+        }
     }
     
     // Calculate the linear frame index for the sprite sheet
@@ -1532,27 +1492,9 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
  * @return true if attack animation is complete, false otherwise
  */
 bool GameScene::isEnemyAttackAnimationComplete() const {
-    // Intro-then-loop animations loop forever — never complete
-    if (_currentAnimationEntry.loopStartFrame >= 0) {
-        return false;
-    }
-
-    // Must have buildup < frameCount to be an attack animation
-    if (_currentAnimationEntry.buildupFrameCount >= _currentAnimationEntry.frameCount) {
-        return false;  // Not an attack animation (it's a looping animation)
-    }
-    
     auto enemy = _gameState.getEnemy();
     if (!enemy) return false;
-    
-    // Calculate total attack animation duration
-    float buildupDuration = _currentAnimationEntry.buildupFrameCount * _currentAnimationEntry.frameDuration;
-    int attackFrameCount = _currentAnimationEntry.frameCount - _currentAnimationEntry.buildupFrameCount;
-    float attackDuration = attackFrameCount * _currentAnimationEntry.frameDuration;
-    float totalDuration = buildupDuration + attackDuration;
-    
-    // Attack is complete if the enemy's state time has exceeded total animation duration
-    return enemy->getStateTime() >= totalDuration;
+    return enemy->isStateComplete();
 }
 
 /**
@@ -3638,12 +3580,11 @@ void GameScene::loadAnimationRegistry() {
         anim.frameRows = entry->getInt("frameRows", 1);
         
         // Parse attack phase configuration (optional)
-        // Default buildupFrameCount to frameCount (no attack phase) if not specified
-        anim.buildupFrameCount = entry->getInt("buildupFrameCount", anim.frameCount);
         anim.damageFrame = entry->getInt("damageFrame", -1);
         anim.loopStartFrame = entry->getInt("loopStartFrame", -1);
         anim.loopEndFrame = entry->getInt("loopEndFrame", -1);
-        
+        anim.sound = entry->getString("sound", "");
+
         // Parse position and scale customization (optional, with defaults)
         anim.positionX = entry->getFloat("positionX", 196.5f);
         anim.positionY = entry->getFloat("positionY", 120.0f);

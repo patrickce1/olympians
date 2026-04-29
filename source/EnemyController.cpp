@@ -145,7 +145,6 @@ EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<
 
     int idx = (int)(_rng.getUint32() % (Uint32)attacks.size());
     EnemyLoader::State selectedAttack = attacks[idx];
-    if (_debug) CULog("[EnemyController] State: '%s' (Attack)", enemy->getStates().at(selectedAttack).name.c_str());
     return selectedAttack;
 }
 
