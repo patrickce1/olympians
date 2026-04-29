@@ -170,6 +170,9 @@ private:
     
     //Translates a string into the matching ZoneType
     ZoneType parseZoneType(const std::string& str) const;
+    
+    //Translates a string into the matching Action
+    InputController::Action parseAction(const std::string& str) const;
 };
 
 #endif /* __TUTORIAL_CONTROLLER_H__ */
