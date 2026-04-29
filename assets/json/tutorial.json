@@ -89,6 +89,7 @@
       "type": "boss_defend",
       "bossTarget": 2,
       "text": "Circe put up a shield on her front. Your teammate's attacks will be less effective.",
+      "delay": 6.0
     },
     { "type": "delay", "delay": 0.8 },
     {

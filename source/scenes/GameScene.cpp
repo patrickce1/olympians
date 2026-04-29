@@ -2646,26 +2646,50 @@ void GameScene::updateDropZoneVisibility(){
     // zones visible regardless of drag state.
     if (!_tutorialHighlightZone.empty() && _tutorialHighlightZone != "none") {
         if (_tutorialHighlightZone == "left_support") {
+            _passLeftArea->setVisible(false);
+            _passRightArea->setVisible(false);
             _supportLeftArea->setVisible(true);
             _supportRightArea->setVisible(false);
             _attackArea->setVisible(false);
             return;
         } else if (_tutorialHighlightZone == "right_support") {
+            _passLeftArea->setVisible(false);
+            _passRightArea->setVisible(false);
             _supportLeftArea->setVisible(false);
             _supportRightArea->setVisible(true);
             _attackArea->setVisible(false);
             return;
         } else if (_tutorialHighlightZone == "attack") {
+            _passLeftArea->setVisible(false);
+            _passRightArea->setVisible(false);
             _supportLeftArea->setVisible(false);
             _supportRightArea->setVisible(false);
             _attackArea->setVisible(true);
             return;
+        } else if (_tutorialHighlightZone == "pass_left") {
+            _passLeftArea->setVisible(true);
+            _passRightArea->setVisible(false);
+            _supportLeftArea->setVisible(false);
+            _supportRightArea->setVisible(false);
+            _attackArea->setVisible(false);
+            return;
+        } else if (_tutorialHighlightZone == "pass_right") {
+            _passLeftArea->setVisible(false);
+            _passRightArea->setVisible(true);
+            _supportLeftArea->setVisible(false);
+            _supportRightArea->setVisible(false);
+            _attackArea->setVisible(false);
+            return;
+        
         } else if (_tutorialHighlightZone == "none") {
             // fall through to normal handling
         }
     }
 
     if (_draggedItemId != 0) {
+        
+        _passLeftArea->setVisible(true);
+        _passRightArea->setVisible(true);
         
         // Render attack/support zones based on item type
         auto itemDef = getHeldItemDef(_draggedItemId);
@@ -2692,6 +2716,8 @@ void GameScene::updateDropZoneVisibility(){
             }
         }
     } else {
+        _passLeftArea->setVisible(false);
+        _passRightArea->setVisible(false);
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
