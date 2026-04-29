@@ -570,6 +570,9 @@
         "codexBG": {
             "file": "textures/codexScene/codexBG.png"
         },
+        "slotBG": {
+            "file": "textures/codexScene/slotBG.png"
+        },
         "buttonUp": {
             "file": "textures/codexScene/buttonUp.png"
         },
@@ -737,6 +740,8 @@
         "leftIcon": "widgets/leftIcon.json",
         "rightIcon": "widgets/rightIcon.json",
         "ability":     "widgets/ability.json",
+        "codexGrid": "widgets/codexGrid.json",
+        "codexSlot":     "widgets/codexSlot.json",
         "client": "json/scenes/clientScene.json",
         "textfield": "widgets/elements/textfield.json",
         "hostSetup": "json/scenes/hostSetupScene.json",

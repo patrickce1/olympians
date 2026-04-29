@@ -1,0 +1,83 @@
+{
+    "variables": {
+        "item": ["children","item","data", "texture"]
+    },
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0,
+                0
+            ],
+            "size": [
+                80.8,
+                80
+            ],
+            "angle": 0,
+            "position": [
+                88.8,
+                450
+            ],
+            "visible": true
+        },
+        "children": {
+            "background": {
+                "type": "Image",
+                "data": {
+                    "texture": "slotBG",
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        60,
+                        60
+                    ],
+                    "angle": 0,
+                    "position": [
+                        10,
+                        10
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.12,
+                    "y_offset": -0.12
+                }
+            },
+            "item": {
+                "type": "Image",
+                "data": {
+                    "texture": "nectar_n",
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        80,
+                        80
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            }
+        }
+    }
+}
