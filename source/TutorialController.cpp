@@ -222,6 +222,11 @@ bool TutorialController::executeStep(const TutorialStep& step) {
             if (_gameScene) _gameScene->spawnTutorialItem(step.defId, step.passDirection);
             return false;
             
+        case StepType::WAIT_FOR_ACTION:
+            _waitingForAction = true;
+            if (_gameScene && !step.text.empty()) _gameScene->showDialogue(step.text);
+            return true;
+            
         case StepType::END:
             if (_gameScene) _gameScene->hideDialogue();
             _active = false;

@@ -1773,6 +1773,7 @@ void GameScene::handlePlayerInput(InputController& input) {
 
     if (finalAction != InputController::Action::NONE) {
         if (handlePlayerActions(finalAction, _draggedItemId)) {
+            
             // 2. Item was successfully used (action succeeded)
             // 3. Trigger glow effect on the activated zone
             _glowAction = finalAction;
@@ -1787,6 +1788,9 @@ void GameScene::handlePlayerInput(InputController& input) {
                     spawnConsumedItemAnimation(_draggedIcon, consumedDef);
                 }
                 _draggedIcon->setVisible(false);
+            }
+            if (_isTutorial){
+                _tutorialController.onAction(finalAction);
             }
         } else {
             // Item action failed - slide the item back
