@@ -43,6 +43,7 @@ bool TutorialController::loadFromFile(const std::string& path) {
 }
 
 void TutorialController::start() {
+    
     if (_steps.empty()) return;
     _active = true;
     _index = 0;
@@ -115,6 +116,8 @@ void TutorialController::parseSteps(const std::shared_ptr<JsonValue>& json) {
 void TutorialController::update(float dt) {
     if (!_active || _index < 0 || _index >= (int)_steps.size()) return;
     
+    CULog("Tutorial: index=%d type=%d waiting=%d timer=%.2f",
+            _index, (int)_steps[_index].type, _waitingForAction ? 1 : 0, _timer);
     // wait_for_action steps never auto-advance — only onAction() can advance them.
     if (_waitingForAction) {
         
@@ -195,7 +198,7 @@ bool TutorialController::isWaitingForActionMatch(InputController::Action action)
 #pragma mark - Step Execution
 
 void TutorialController::advanceStep() {
-    while (_active && _index < 0 && _index < (int)_steps.size()) {
+    while (_active && _index >= 0 && _index < (int)_steps.size()) {
         const TutorialStep& step = _steps[_index];
         
         if (executeStep(step)) return;
@@ -210,9 +213,18 @@ bool TutorialController::executeStep(const TutorialStep& step) {
     _timer = 0.0f;
 
     switch (step.type){
+        case StepType::SHOW_MESSAGE:
+        //            if (_gameScene && !step.text.empty()) _gameScene->showDialogue(step.text);
+                    if (step.delay > 0.0f) _timer = step.delay;
+                    return true;
+        
         case StepType::SPAWN_ITEM:
             if (_gameScene) _gameScene->spawnTutorialItem(step.defId, step.passDirection);
             return false;
+            
+        case StepType::END:
+            _active = false;
+            return true;
     }
     return false;
 }

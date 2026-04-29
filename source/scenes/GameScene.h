@@ -12,6 +12,7 @@
 #include "../Enemy.h"
 #include "../EnemyLoader.h"
 #include "../EnemyController.h"
+#include "../TutorialController.h"
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 
@@ -492,6 +493,9 @@ protected:
     /** Drives enemy behaviour and resolves enemy attacks against players. */
     EnemyController _enemyController;
 
+   /** Defines the tutorial actions*/
+   TutorialController _tutorialController;
+
 #pragma mark - World State
 
     /**
@@ -509,6 +513,9 @@ protected:
     bool _host;
 
     Status _status;
+    
+#pragma mark - Tutorial
+    bool _isTutorial;
 
 public:
 #pragma mark - Constructors

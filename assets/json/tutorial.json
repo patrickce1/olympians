@@ -1,0 +1,6 @@
+{
+  "steps": [
+    { "type": "spawn_item", "defId": "apple", "passDirection": 0 },
+    { "type": "end" }
+  ]
+}

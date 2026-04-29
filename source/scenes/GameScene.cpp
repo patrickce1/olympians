@@ -481,6 +481,16 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     _status = Status::PLAYING;
     setDebugMode(false);
     
+    _isTutorial = (_gameState.getEnemy()->getId() == "cyclops");
+    CULog("GameScene: boss is: %s", _gameState.getEnemy()->getId().c_str());
+
+    if (_isTutorial){
+        CULog("GameScene: tutorial mode active");
+        _tutorialController.init(this, _assets);
+        _tutorialController.loadFromFile("json/tutorial.json");
+        CULog("GameScene: tutorial controller initialized with %d steps", _tutorialController.getIndex());
+    }
+    
     // Set player icon textures immediately (normally done in update, but we need them visible on first render)
     updatePlayerAndTeammateIcons(0.0f);
     
@@ -616,6 +626,10 @@ void GameScene::setActive(bool value) {
             // Hide animation sprite on scene reset
             if (_currentVisibleAnimationSprite) {
                 _currentVisibleAnimationSprite->setVisible(false);
+            }
+            if (_isTutorial && !_tutorialController.isActive()){
+                _tutorialController.start();
+                CULog("GameScene: tutorial started, isActive=%d", _tutorialController.isActive() ? 1 : 0);
             }
         }
     }
@@ -2524,6 +2538,10 @@ void GameScene::update(float dt, InputController& input) {
     
     if (_network->isHost()) {
         _network->broadcastHostsCurrentScene(1);
+    }
+    
+    if (_tutorialController.isActive()){
+            _tutorialController.update(dt);
     }
 
     handleResetButton(input);
