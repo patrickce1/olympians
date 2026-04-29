@@ -267,6 +267,17 @@ public:
      * @param house  The house ID to assign to the new AI, or "" for none.
      */
     void demoteToAI(int slot, const std::string& house = "");
+    
+    /**
+     * Swaps two player slots in the local player array.
+     * Called on the host after NetworkController::swapSlots() to keep
+     * _players in sync with the updated network slot assignments.
+     * Re-wires neighbour pointers for the affected slots after the swap.
+     *
+     * @param slotA  First 0-based slot index.
+     * @param slotB  Second 0-based slot index.
+     */
+    void swapPlayers(int slotA, int slotB);
 
 private:
 

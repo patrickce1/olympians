@@ -1016,3 +1016,71 @@ void NetworkController::broadcastHostsCurrentScene(int sceneState) {
     _network->broadcast(_serializer.serialize());
     _serializer.reset();
 }
+
+/**
+ * HOST ONLY. Swaps the game slots of two players (real or AI) and
+ * broadcasts the updated lobby state to all clients.
+ *
+ * Handles all four cases:
+ *   real  <-> real  : swap _slotToPlayer entries + update _uuidToSlot for both
+ *   real  <-> AI    : move _slotToPlayer entry, move _aIHouses entry, update _uuidToSlot
+ *   AI    <-> real  : symmetric to above
+ *   AI    <-> AI    : swap _aIHouses entries only
+ *
+ * After updating both maps, calls broadcastLobbyState() so every client
+ * receives a fresh LOBBY_UPDATE reflecting the new arrangement.
+ *
+ * @param slotA  First 0-based slot index.
+ * @param slotB  Second 0-based slot index.
+ */
+void NetworkController::swapSlots(int slotA, int slotB) {
+    if (slotA == slotB) return;
+
+    bool aIsReal = (_slotToPlayer.find(slotA) != _slotToPlayer.end());
+    bool bIsReal = (_slotToPlayer.find(slotB) != _slotToPlayer.end());
+
+    if (aIsReal && bIsReal) {
+        // Both real: swap player records and update UUID->slot mapping
+        NetworkedPlayer playerA = _slotToPlayer[slotA];
+        NetworkedPlayer playerB = _slotToPlayer[slotB];
+        _slotToPlayer[slotA] = playerB;
+        _slotToPlayer[slotB] = playerA;
+        if (!playerA.networkID.empty()) _uuidToSlot[playerA.networkID] = slotB;
+        if (!playerB.networkID.empty()) _uuidToSlot[playerB.networkID] = slotA;
+
+    } else if (aIsReal && !bIsReal) {
+        // A is real, B is AI
+        NetworkedPlayer playerA = _slotToPlayer[slotA];
+        std::string aiHouseB = getAIHouse(slotB);
+
+        _slotToPlayer.erase(slotA);
+        _slotToPlayer[slotB] = playerA;
+        if (!playerA.networkID.empty()) _uuidToSlot[playerA.networkID] = slotB;
+
+        _aIHouses.erase(slotB);
+        if (!aiHouseB.empty()) _aIHouses[slotA] = aiHouseB;
+
+    } else if (!aIsReal && bIsReal) {
+        // A is AI, B is real — symmetric
+        NetworkedPlayer playerB = _slotToPlayer[slotB];
+        std::string aiHouseA = getAIHouse(slotA);
+
+        _slotToPlayer.erase(slotB);
+        _slotToPlayer[slotA] = playerB;
+        if (!playerB.networkID.empty()) _uuidToSlot[playerB.networkID] = slotA;
+
+        _aIHouses.erase(slotA);
+        if (!aiHouseA.empty()) _aIHouses[slotB] = aiHouseA;
+
+    } else {
+        // Both AI: swap house assignments only
+        std::string aiHouseA = getAIHouse(slotA);
+        std::string aiHouseB = getAIHouse(slotB);
+        _aIHouses.erase(slotA);
+        _aIHouses.erase(slotB);
+        if (!aiHouseA.empty()) _aIHouses[slotB] = aiHouseA;
+        if (!aiHouseB.empty()) _aIHouses[slotA] = aiHouseB;
+    }
+
+    broadcastLobbyState();
+}

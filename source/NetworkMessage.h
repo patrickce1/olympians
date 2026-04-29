@@ -198,6 +198,17 @@ struct SetHouseMessage {
     std::string houseID;
 };
 
+/**
+ * Message sent by the host to swap two players' game slots.
+ * slotA and slotB are 0-based indices into the player array.
+ * Broadcast to all clients; clients update their local lobby state
+ * via the LOBBY_UPDATE that the host sends immediately after.
+ */
+struct SwapSlotsMessage {
+    int slotA;
+    int slotB;
+};
+
 /*
 * Represents a player as seen over the network.
 * Carries information used for identifying the player.

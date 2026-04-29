@@ -13,6 +13,10 @@ using namespace std;
 #define BLINK_TIMER  0.5f
 /** Error display time for disconnect error */
 #define ERROR_DISPLAY_TIME  2.0f
+/** How much larger the dragged player card appears while being held. */
+constexpr float LOBBY_DRAG_PICKUP_SCALE = 1.12f;
+/** Number of frames a press must be held before it is treated as a drag. */
+constexpr int LOBBY_DRAG_HOLD_FRAMES = 6;
 
 /**
  * Initializes the controller contents, and starts the game
@@ -108,6 +112,7 @@ void LobbyScene::setupUI() {
                 card->getChildByName("playerIcon")
             );
 
+            _playerCards.push_back(card);
             _playerSlots.push_back(label);
             _playerImages.push_back(image);
         }
@@ -155,7 +160,7 @@ void LobbyScene::setupListeners() {
             }
         }
 
-        //Confirm all players have house according to network.
+        // Confirm all players have house according to network.
         if (!_network->allPlayersSelectedHouse()) return;
 
         _status = Status::PRE_GAME_START;
@@ -178,46 +183,17 @@ void LobbyScene::setupListeners() {
             _status = Status::BOSSSELECT;
         }
     });
-
-    // Each display slot i corresponds to a game slot resolved via remapPlayersForDisplay().
-    // Display slot 3 (last) is always the local player.
-    for (int i = 0; i < (int)_playerImages.size(); i++) {
-        _playerImages[i]->addListener([this, i](const std::string& name, bool down) {
-            if (!down) return;
-
-            // Resolve which game slot this display slot maps to
-            int localIndex = _network->getLocalPlayerNumber();
-            const auto& players = _gameState->getPlayers();
-            int totalSlots = (int)players.size();
-
-            // remapPlayersForDisplay walks (localIndex+1) % total ... (localIndex+totalSlots) % total
-            // display slot i => game slot (localIndex + 1 + i) % totalSlots
-            int gameSlot = (localIndex + 1 + i) % totalSlots;
-
-            // Display slot 3 is the local player's own slot (i == _playerImages.size()-1)
-            bool isLocalSlot = (i == (int)_playerImages.size() - 1);
-
-            if (isLocalSlot) {
-                // Always allow the local player to open their own house select
-                _pendingSlotToBeOpened = -1;
-                _status = Status::SELECT;
-                return;
-            }
-
-            bool isReal = _network->checkRealPlayer(gameSlot);
-            if (!isReal) {
-                // AI slot — only the host may open it
-                if (_network->isHost()) {
-                    _pendingSlotToBeOpened = gameSlot;
-                    _status = Status::SELECT;
-                }
-                // non-host: no-op, no feedback
-            } else {
-                // Another real player's slot — blocked for everyone
-                // no-op, no feedback
-            }
-        });
-    }
+    
+    // Wire the local slot (index 3) for all players.
+    // For non-hosts this is the only interaction they have.
+    // For the host, the press system handles everything including this slot,
+    // so the listener is a no-op for hosts to avoid double-firing.
+    _playerImages[3]->addListener([this](const std::string& name, bool down) {
+        if (!down) return;
+        if (_network->isHost()) return; // host handled entirely by press system
+        _pendingSlotToBeOpened = -1;
+        _status = Status::SELECT;
+    });
 }
 
 /**
@@ -436,8 +412,9 @@ void LobbyScene::updateLobbyBossImage(std::string enemyID) {
  * We need to update this method to constantly talk to the server
  *
  * @param timestep  The amount of time (in seconds) since the last frame
+ * @param input         The input controller instance
  */
-void LobbyScene::update(float timestep) {
+void LobbyScene::update(float timestep, InputController& input) {
     // Disconnect Error Pop Up Logic
     if (_errorPopup && _errorPopup->isVisible()) {
         _errorTimer += timestep;
@@ -510,6 +487,11 @@ void LobbyScene::update(float timestep) {
         _enterGame->deactivate();
     }
     
+    // Press logic
+    handleLobbySlotPressBegin(input);
+    handleLobbySlotPressTracking(input);
+    handleLobbySlotPressRelease(input);
+    
     // Remap for display only — network order is unchanged
     updateNetworkOrder();
     std::vector<Player*> displayOrder = remapPlayersForDisplay();
@@ -578,4 +560,206 @@ void LobbyScene::showDisconnectBanner(const std::string& message) {
     if (label) label->setText(message);
     _errorPopup->setVisible(true);
     _errorTimer = 0.0f;
+}
+
+/**
+ * HOST ONLY. Handles the beginning of a touch on a non-local player slot.
+ * On the first frame of contact, records which slot is being pressed and
+ * captures offset data for potential drag use. Increments _dragHoldFrames
+ * each subsequent frame while the touch is held. Once _dragHoldFrames
+ * reaches LOBBY_DRAG_HOLD_FRAMES, commits to drag mode by scaling up the
+ * card and reparenting it to the top of _playerInfoContainer so it renders
+ * above all other cards. Below that threshold the press is resolved as a
+ * tap in handleLobbySlotPressRelease().
+ * No-op if the host is touching their own local slot (bottom slot).
+ *
+ * @param input  The input controller for this frame.
+ */
+void LobbyScene::handleLobbySlotPressBegin(InputController& input) {
+    if (!_network->isHost()) return;
+    if (!input.isTouching() && !input.isMouseDown()) return;
+
+    if (_dragSourceDisplaySlot == -1) {
+        // Hit-test against playerCard bounds in tableArea's local space.
+        // _playerCards[i]->getBoundingBox() returns bounds in tableArea space.
+        // worldToNodeCoords on tableArea converts the world-space touch to the same space.
+        Vec2 worldPos      = screenToWorldCoords(input.getTouchStart());
+        Vec2 containerLocal = _playerInfoContainer->worldToNodeCoords(worldPos);
+        for (int i = 0; i < (int)_playerCards.size(); i++) {
+            cugl::Rect cardBounds = _playerCards[i]->getBoundingBox();
+            CULog("[PressBegin] slot %d cardBounds origin=(%.1f,%.1f) size=(%.1f,%.1f)",
+                  i, cardBounds.origin.x, cardBounds.origin.y,
+                  cardBounds.size.width, cardBounds.size.height);
+
+            if (!cardBounds.contains(containerLocal)) continue;
+
+            _dragSourceDisplaySlot = i;
+            _draggedCard           = _playerImages[i];
+            _dragCardOriginPos     = _playerCards[i]->getPosition(); // playerCard pos in tableArea space
+            Vec2 cardContainerLocal = containerLocal; // already in tableArea space
+            _dragCardOffset         = _playerCards[i]->getPosition() - cardContainerLocal;
+            _dragHoldFrames         = 0;
+            return;
+        }
+
+        CULog("[PressBegin] touch did not hit any slot");
+        return;
+    }
+
+    // Subsequent frames — increment hold counter
+    _dragHoldFrames++;
+    CULog("[PressBegin] holding slot %d, frame %d / %d",
+          _dragSourceDisplaySlot, _dragHoldFrames, LOBBY_DRAG_HOLD_FRAMES);
+
+    if (_dragHoldFrames == LOBBY_DRAG_HOLD_FRAMES) {
+        CULog("[PressBegin] threshold reached — committing to drag mode");
+        _draggedCard->setScale(LOBBY_DRAG_PICKUP_SCALE);
+        // Reparent the playerCard node (parent of playerIcon), not playerIcon itself.
+        // _draggedCard's parent is playerCard; playerCard's parent is _playerInfoContainer.
+        auto cardNode = _playerCards[_dragSourceDisplaySlot];
+        if (_playerInfoContainer) {
+            _playerInfoContainer->removeChild(cardNode);
+            _playerInfoContainer->addChild(cardNode);
+        }
+    }
+}
+
+/**
+ * HOST ONLY. Moves the pressed player card to follow the current touch
+ * position each frame once the hold threshold has been reached and the
+ * interaction is committed as a drag. No-op during the tap-detection
+ * window (_dragHoldFrames < LOBBY_DRAG_HOLD_FRAMES) so the card does
+ * not move on a brief tap. Uses getDragPos() and the captured
+ * _dragCardOffset so the card stays under the exact contact point.
+ * No-op if no press is in progress or the touch has ended.
+ *
+ * @param input  The input controller for this frame.
+ */
+void LobbyScene::handleLobbySlotPressTracking(InputController& input) {
+    if (!_draggedCard) return;
+    if (_dragHoldFrames < LOBBY_DRAG_HOLD_FRAMES) return;
+    if (!input.isTouching() && !input.isMouseDown()) return;
+
+    Vec2 worldPos       = screenToWorldCoords(input.getDragPos());
+    Vec2 containerLocal = _playerInfoContainer->worldToNodeCoords(worldPos);
+    
+    // Move the playerCard node, not the playerIcon inside it
+    auto cardNode = _playerCards[_dragSourceDisplaySlot];
+    cardNode->setPosition(containerLocal + _dragCardOffset);
+
+    CULog("[PressTracking] dragging slot %d to containerLocal=(%.1f, %.1f)",
+          _dragSourceDisplaySlot, containerLocal.x, containerLocal.y);
+}
+
+/**
+ * HOST ONLY. Resolves a touch release as either a tap or a drag based
+ * on _dragHoldFrames relative to LOBBY_DRAG_HOLD_FRAMES.
+ *
+ * Tap (below threshold): if the pressed slot is an AI slot, opens house
+ * select for that slot. If it is a real player slot, does nothing.
+ *
+ * Drag (at or above threshold): hit-tests the release position against
+ * all player card slots. A release on a different slot swaps the two game
+ * slots via NetworkController and GameState. A release on the same slot or
+ * dead space cancels the drag with no state change; the display
+ * self-corrects on the next frame since it is fully recomputed from
+ * GameState each frame.
+ *
+ * Always restores the card's position and scale and clears all press
+ * state before returning to prevent a single-frame visual glitch.
+ *
+ * @param input  The input controller for this frame.
+ */
+void LobbyScene::handleLobbySlotPressRelease(InputController& input) {
+    if (!input.touchEnded()) return;
+
+    CULog("[PressRelease] touchEnded=true, _dragSourceDisplaySlot=%d, holdFrames=%d",
+          _dragSourceDisplaySlot, _dragHoldFrames);
+
+    if (_dragSourceDisplaySlot == -1) {
+        CULog("[PressRelease] no slot was being tracked — ignoring");
+        return;
+    }
+
+    int localIndex = _network->getLocalPlayerNumber();
+    const auto& players = _gameState->getPlayers();
+    int totalSlots = (int)players.size();
+
+    if (_dragHoldFrames < LOBBY_DRAG_HOLD_FRAMES) {
+        // --- Tap path ---
+        bool isLocalSlot = (_dragSourceDisplaySlot == (int)_playerCards.size() - 1);
+
+        if (isLocalSlot) {
+            // Tapped own slot — open own house select
+            CULog("[PressRelease] TAP on local slot — opening own house select");
+            _pendingSlotToBeOpened = -1;
+            _status = Status::SELECT;
+        } else {
+            int gameSlot = (localIndex + 1 + _dragSourceDisplaySlot) % totalSlots;
+            bool isReal  = _network->checkRealPlayer(gameSlot);
+            CULog("[PressRelease] TAP on display slot %d => game slot %d, isReal=%d",
+                  _dragSourceDisplaySlot, gameSlot, isReal);
+            if (!isReal) {
+                CULog("[PressRelease] AI slot — opening house select for game slot %d", gameSlot);
+                _pendingSlotToBeOpened = gameSlot;
+                _status = Status::SELECT;
+            } else {
+                CULog("[PressRelease] real player slot — no-op");
+            }
+        }
+    } else {
+        // --- Drag path ---
+        // Hit-test release against playerCard bounds in tableArea local space,
+        // matching the same space used in handleLobbySlotPressBegin.
+        Vec2 worldPos       = screenToWorldCoords(input.getReleasePosition());
+        Vec2 containerLocal = _playerInfoContainer->worldToNodeCoords(worldPos);
+        CULog("[PressRelease] DRAG released at containerLocal=(%.1f, %.1f)",
+              containerLocal.x, containerLocal.y);
+
+        int targetDisplaySlot = -1;
+        for (int i = 0; i < (int)_playerCards.size(); i++) {
+            // Skip the source slot — its card has moved so its bounds are unreliable
+            if (i == _dragSourceDisplaySlot) continue;
+
+            cugl::Rect cardBounds = _playerCards[i]->getBoundingBox();
+            CULog("[PressRelease] checking slot %d cardBounds origin=(%.1f,%.1f) size=(%.1f,%.1f)",
+                  i, cardBounds.origin.x, cardBounds.origin.y,
+                  cardBounds.size.width, cardBounds.size.height);
+            if (cardBounds.contains(containerLocal)) {
+                targetDisplaySlot = i;
+                break;
+            }
+        }
+
+        bool isValidDrop = (targetDisplaySlot != -1);
+        CULog("[PressRelease] targetDisplaySlot=%d isValidDrop=%d", targetDisplaySlot, isValidDrop);
+
+        if (isValidDrop) {
+            auto displayToGameSlot = [&](int displaySlot) -> int {
+                if (displaySlot == (int)_playerCards.size() - 1) return localIndex;
+                return (localIndex + 1 + displaySlot) % totalSlots;
+            };
+            int srcGameSlot = displayToGameSlot(_dragSourceDisplaySlot);
+            int dstGameSlot = displayToGameSlot(targetDisplaySlot);
+            CULog("[PressRelease] swapping game slots %d <-> %d", srcGameSlot, dstGameSlot);
+            _network->swapSlots(srcGameSlot, dstGameSlot);
+            _gameState->swapPlayers(srcGameSlot, dstGameSlot);
+        } else {
+            CULog("[PressRelease] invalid drop — no swap");
+        }
+    }
+
+    // In the cleanup block at the bottom of handleLobbySlotPressRelease:
+    if (_draggedCard) {
+        // Restore the playerCard node's position, not just the icon inside it
+        _playerCards[_dragSourceDisplaySlot]->setPosition(_dragCardOriginPos);
+        _draggedCard->setScale(1.0f);
+    }
+
+    _draggedCard           = nullptr;
+    _dragCardOffset        = cugl::Vec2::ZERO;
+    _dragCardOriginPos     = cugl::Vec2::ZERO;
+    _dragSourceDisplaySlot = -1;
+    _dragHoldFrames        = 0;
+    CULog("[PressRelease] press state cleared");
 }
