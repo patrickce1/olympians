@@ -47,6 +47,8 @@ private:
     float _shieldHealth = 0.0f;
     /** The time left before the shield expires */
     float _shieldDuration = 0.0f;
+    /** Set to true when the shield absorbs incoming damage; cleared by GameScene after playing the block sound */
+    bool _shieldAbsorbedDamage = false;
     /** Runtime percentage-mitigation barrier state */
     bool _hasBarrier = false;
     /** The percentage damage that will be mitigated */
@@ -114,6 +116,9 @@ public:
 
     /** Returns whether a shield is currently armed on this player. */
     bool hasShield() const { return _hasShield; }
+
+    /** Returns true and clears the flag if the shield absorbed damage this hit. */
+    bool consumeShieldAbsorbedDamage() { bool b = _shieldAbsorbedDamage; _shieldAbsorbedDamage = false; return b; }
     
     /** Returns the current fixed mitigation value. */
     float getShieldHealth() const { return _shieldHealth; }

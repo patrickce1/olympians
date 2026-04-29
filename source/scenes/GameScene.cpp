@@ -602,6 +602,8 @@ void GameScene::setActive(bool value) {
         if (value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
+            // DEBUG: give local player a shield to test damage absorption and sound
+            if (auto* local = _gameState.getLocalPlayer()) local->applyShield(20.0f, 999.0f);
             updateNetworkOrder();
             
             // Re-initialize AI players after updateNetworkOrder() rebuilds
@@ -1081,6 +1083,11 @@ void GameScene::updateEnemyAndAI(float dt) {
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
+    // Play shield block sound if local player's shield absorbed damage this update
+    if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
+        _audio->playSoundUnique("shield_block");
+    }
+
     // Update AI players - this is when they attack the boss AND heal teammates
     for (auto& player : _gameState.getPlayers()) {
         if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
@@ -1386,10 +1393,13 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
     frameInRow = validateFrameIndex(frameInRow);
     
     // Check if damage should trigger at this frame
-    if (_currentAnimationEntry.damageFrame >= 0 && 
-        frameInRow >= _currentAnimationEntry.damageFrame && 
+    if (_currentAnimationEntry.damageFrame >= 0 &&
+        frameInRow >= _currentAnimationEntry.damageFrame &&
         !_enemyAttackDamageDealtThisState) {
         _enemyAttackDamageDealtThisState = true;
+        if (!_currentAnimationEntry.sound.empty() && _audio) {
+            _audio->playSoundUnique(_currentAnimationEntry.sound);
+        }
     }
     
     // Calculate the linear frame index for the sprite sheet
@@ -3474,7 +3484,8 @@ void GameScene::loadAnimationRegistry() {
         anim.damageFrame = entry->getInt("damageFrame", -1);
         anim.loopStartFrame = entry->getInt("loopStartFrame", -1);
         anim.loopEndFrame = entry->getInt("loopEndFrame", -1);
-        
+        anim.sound = entry->getString("sound", "");
+
         // Parse position and scale customization (optional, with defaults)
         anim.positionX = entry->getFloat("positionX", 196.5f);
         anim.positionY = entry->getFloat("positionY", 120.0f);

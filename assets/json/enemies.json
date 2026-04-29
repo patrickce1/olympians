@@ -60,7 +60,7 @@
             "maxHealth": 10000.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
-                "retargetLikelihood": 0.75,
+                "retargetLikelihood": 0.5,
                 "defenseLikelihood": 0.25
             },
             "customData": {

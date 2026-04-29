@@ -145,6 +145,8 @@ struct AnimationEntry {
     int loopEndFrame = -1;
     /** Frame index when damage events fire (-1 = fire at loop end or last frame) */
     int damageFrame = -1;
+    /** Sound key to play when damageFrame is reached (empty = no sound) */
+    std::string sound;
 
     // Position and scale customization
     /** Screen X position for this animation */
