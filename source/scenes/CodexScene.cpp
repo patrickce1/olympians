@@ -315,8 +315,22 @@ void CodexScene::update(float timestep) {
         _categoryLabel->setText(item.category);
         _effectLabel->setText(item.effectLabel);
         _descriptionLabel->setText(item.description);
-        // ... color and texture setup ...
         
+        if (item.category == "ATTACK") {
+            _categoryLabel->setForeground(cugl::Color4("#AC0000ff"));
+            _effectLabel->setForeground(cugl::Color4("#AC0000ff"));
+        } else if (item.category == "SUPPORT") {
+            _categoryLabel->setForeground(cugl::Color4("#047D04ff"));
+            _effectLabel->setForeground(cugl::Color4("#047D04ff"));
+        } else {
+            _categoryLabel->setForeground(cugl::Color4("#2000ACff"));
+            _effectLabel->setForeground(cugl::Color4("#2000ACff"));
+        }
+        
+        auto texture = _assets->get<cugl::graphics::Texture>(item.imageLarge);
+        _itemLarge->setTexture(texture);
+        _itemLarge->setScale(0.5f);
+    
         _darkOverlay->setVisible(true);
         _itemLarge->setVisible(true);
         _detailPanel->setVisible(true);
@@ -373,7 +387,11 @@ void CodexScene::hideDetailPanel() {
 void CodexScene::updateButtonVisibility() {
     // _currentRow is the topmost visible row (0-indexed)
     int firstVisible = _currentRow * 3;       // first button index in view
-    int lastVisible  = firstVisible + (6 * 3); // 5 rows * 3 columns
+    int lastVisible  = firstVisible + (6 * 3) ; // 6 rows * 3 columns
+    
+    
+    CULog("currentRow: %d, firstVisible: %d, lastVisible: %d, total: %lu",
+          _currentRow, firstVisible, lastVisible, _itemNodes.size());
 
     for (int i = 0; i < _itemNodes.size(); i++) {
         bool inView = (i >= firstVisible && i < lastVisible);

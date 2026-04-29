@@ -80,6 +80,75 @@
         },
         "item_hephaestus_forge": {
             "file": "textures/items/hephaestus_forge_d.png"
+        },
+        "sword_large": {
+            "file": "textures/codexScene/large/sword_large.png"
+        },
+        "apple_large": {
+            "file": "textures/codexScene/large/apple_large.png"
+        },
+        "nectar_large": {
+            "file": "textures/codexScene/large/nectar_large.png"
+        },
+        "arrow_large": {
+            "file": "textures/codexScene/large/arrow_large.png"
+        },
+        "shield_large": {
+            "file": "textures/codexScene/large/shield_large.png"
+        },
+        "lightning_large": {
+            "file": "textures/codexScene/large/lightning_large.png"
+        },
+        "trident_large": {
+            "file": "textures/codexScene/large/trident_large.png"
+        },
+        "helm_large": {
+            "file": "textures/codexScene/large/helm_large.png"
+        },
+        "wheat_large": {
+            "file": "textures/codexScene/large/wheat_large.png"
+        },
+        "mallet_large": {
+            "file": "textures/codexScene/large/mallet_large.png"
+        },
+        "aegis_large": {
+            "file": "textures/codexScene/large/aegis_large.png"
+        },
+        "spear_large": {
+            "file": "textures/codexScene/large/spear_large.png"
+        },
+        "wings_large": {
+            "file": "textures/codexScene/large/wings_large.png"
+        },
+        "potion_large": {
+            "file": "textures/codexScene/large/potion_large.png"
+        },
+        "tide_large": {
+            "file": "textures/codexScene/large/tide_large.png"
+        },
+        "thunderstorm_large": {
+            "file": "textures/codexScene/large/thunderstorm_large.png"
+        },
+        "resurrection_large": {
+            "file": "textures/codexScene/large/resurrection_large.png"
+        },
+        "cornucopia_large": {
+            "file": "textures/codexScene/large/cornucopia_large.png"
+        },
+        "charm_large": {
+            "file": "textures/codexScene/large/charm_large.png"
+        },
+        "educate_large": {
+            "file": "textures/codexScene/large/educate_large.png"
+        },
+        "rage_large": {
+            "file": "textures/codexScene/large/rage_large.png"
+        },
+        "treasure_large": {
+            "file": "textures/codexScene/large/treasure_large.png"
+        },
+        "forge_large": {
+            "file": "textures/codexScene/large/forge_large.png"
         }
     }
 }
