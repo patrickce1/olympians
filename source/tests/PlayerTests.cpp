@@ -490,6 +490,34 @@ static void testSupportScaling(const HouseLoader& loader,
     assertWithLabel(floatsEqualWithinTolerance(ally->getCurrentHealth() - hpBefore, expectedApplied), "scalingSupport: heal amount is correct");
 }
 
+/** Verifies that mallet damage compounds by 1.5x per successive use for each player independently. */
+static void testMalletUpgradeScaling(const HouseLoader& loader,
+                                     const ItemDatabase& db,
+                                     Enemy& enemy) {
+    auto firstPlayer = std::make_shared<Player>("hephaestus", 1, "Hephaestus P1", loader);
+    auto secondPlayer = std::make_shared<Player>("hephaestus", 2, "Hephaestus P2", loader);
+
+    auto malletDef = db.getDef("mallet");
+    assertWithLabel(malletDef != nullptr, "mallet upgrade: mallet def exists");
+    if (!malletDef) return;
+
+    firstPlayer->addItem(makeItem("mallet"));
+    const float firstResolved = firstPlayer->useItemById(firstPlayer->getInventory()[0].getId(), enemy, db);
+    const float expectedFirst = 10.0f * (1.0f + 0.55f) * 1.5f;
+    assertWithLabel(floatsEqualWithinTolerance(firstResolved, expectedFirst), "mallet upgrade: first use keeps base value before other multipliers");
+    assertWithLabel(firstPlayer->getMalletUseCount() == 1, "mallet upgrade: first use increments streak");
+
+    firstPlayer->addItem(makeItem("mallet"));
+    const float secondResolved = firstPlayer->useItemById(firstPlayer->getInventory()[0].getId(), enemy, db);
+    const float expectedSecond = 15.0f * (1.0f + 0.55f) * 1.5f;
+    assertWithLabel(floatsEqualWithinTolerance(secondResolved, expectedSecond), "mallet upgrade: second use gains one upgrade step before other multipliers");
+    assertWithLabel(firstPlayer->getMalletUseCount() == 2, "mallet upgrade: second use increments streak");
+
+    secondPlayer->addItem(makeItem("mallet"));
+    const float otherResolved = secondPlayer->useItemById(secondPlayer->getInventory()[0].getId(), enemy, db);
+    assertWithLabel(floatsEqualWithinTolerance(otherResolved, expectedFirst), "mallet upgrade: each player tracks an independent streak");
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 5 — AI behavior
 // ─────────────────────────────────────────────────────────────────────────────
@@ -661,6 +689,7 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     testUseSupportItemHealsAlly    (loader, houseId, db);
     testUseAttackItemOnAllyIsNoop  (loader, houseId, db, attackDefId);
     testUseSupportItemOnEnemyIsNoop(loader, houseId, db, enemy, supportDefId);
+    testMalletUpgradeScaling       (loader, db, enemy);
 
     CULog("── Section 5: AI behavior ───────────────");
     testAIIdleWithEmptyInventory(loader, houseId, db, enemy, aiConfigPath);

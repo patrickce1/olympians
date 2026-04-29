@@ -1,6 +1,7 @@
 // Player.cpp
 #include "Player.h"
 #include <algorithm>
+#include <cmath>
 #include "items/EffectSystem.h"
 
 /**
@@ -67,6 +68,7 @@ void Player::updateHealth(float delta) {
 
         if (_hasShield && _shieldDuration > 0.0f) {
             const float absorbedAmount = std::min(incomingDamage, _shieldHealth);
+            if (absorbedAmount > 0.0f) _shieldAbsorbedDamage = true;
             float tempDamage = incomingDamage;
             incomingDamage = std::max(0.0f, incomingDamage - _shieldHealth);
             
@@ -235,12 +237,56 @@ static float computeResolvedItemMagnitude(const Player& player,
         }
     }
 
-    float resolvedMagnitude = def.getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
+    float itemMultiplier = 1.0f;
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        if (effect.type == ItemDef::EffectType::Upgrade) {
+            itemMultiplier *= std::pow(effect.multiplier, static_cast<float>(player.getMalletUseCount()));
+        }
+    }
+
+    float resolvedMagnitude = def.getBaseValue() * itemMultiplier * (1.0f + houseRoleMultiplier) * affinityBonus;
     if (resolvedMagnitude <= 0.0f) {
         resolvedMagnitude = 0.0f;
     }
 
     return resolvedMagnitude;
+}
+
+/**
+ * Returns whether consuming the given item should advance the player's upgrade streak.
+ *
+ * @param def The item definition being checked for streak-advancing effects.
+ * @return True if the item carries an upgrade effect that should advance the streak.
+ */
+static bool itemConsumesUpgradeStreak(const ItemDef& def) {
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        if (effect.type == ItemDef::EffectType::Upgrade) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Computes the resolved magnitude for this player's use of the given item.
+ *
+ * @param def The item definition being resolved.
+ * @param db The item database that provides multiplier metadata.
+ * @return The resolved magnitude after house, affinity, and upgrade modifiers are applied.
+ */
+float Player::resolveItemMagnitude(const ItemDef& def, const ItemDatabase& db) const {
+    return computeResolvedItemMagnitude(*this, def, db);
+}
+
+/**
+ * Records any round-scoped item-use state changes caused by consuming an item.
+ *
+ * @param def The item definition that was just consumed.
+ */
+void Player::recordItemUse(const ItemDef& def) {
+    if (itemConsumesUpgradeStreak(def)) {
+        _malletUseCount += 1;
+    }
 }
 
 /**
@@ -288,7 +334,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
             return -1.0f;
         }
 
-        const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
+        const float resolvedMagnitude = resolveItemMagnitude(*def, db);
         float returnedMagnitude = 0.0f;
         if (def->getType() == ItemDef::Type::Support) {
             target.updateHealth(resolvedMagnitude);
@@ -302,6 +348,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
             }
         }
 
+        recordItemUse(*def);
         _inventory.erase(item);
         return returnedMagnitude;
     }
@@ -333,7 +380,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             return -1.0f;
         }
 
-        const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
+        const float resolvedMagnitude = resolveItemMagnitude(*def, db);
         float returnedMagnitude = 0.0f;
         if (def->getType() == ItemDef::Type::Attack) {
             target.takeDamage(resolvedMagnitude, getPlayerNumber());
@@ -347,6 +394,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             }
         }
 
+        recordItemUse(*def);
         _inventory.erase(item);
         return returnedMagnitude;
     }

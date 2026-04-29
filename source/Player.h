@@ -9,6 +9,7 @@
 #include "items/ItemInstance.h"
 #include "items/ItemDatabase.h"
 #include "Enemy.h"
+#include <algorithm>
 #include <type_traits>
 
 /**
@@ -47,12 +48,16 @@ private:
     float _shieldHealth = 0.0f;
     /** The time left before the shield expires */
     float _shieldDuration = 0.0f;
+    /** Set to true when the shield absorbs incoming damage; cleared by GameScene after playing the block sound */
+    bool _shieldAbsorbedDamage = false;
     /** Runtime percentage-mitigation barrier state */
     bool _hasBarrier = false;
     /** The percentage damage that will be mitigated */
     float _barrierMultiplier = 1.0f;
     /** The time left before the barrier expires */
     float _barrierDuration = 0.0f;
+    /** Number of prior mallet uses recorded for this player this round. */
+    int _malletUseCount = 0;
 
 public:
     /**
@@ -114,6 +119,9 @@ public:
 
     /** Returns whether a shield is currently armed on this player. */
     bool hasShield() const { return _hasShield; }
+
+    /** Returns true and clears the flag if the shield absorbed damage this hit. */
+    bool consumeShieldAbsorbedDamage() { bool didAbsorb = _shieldAbsorbedDamage; _shieldAbsorbedDamage = false; return didAbsorb; }
     
     /** Returns the current fixed mitigation value. */
     float getShieldHealth() const { return _shieldHealth; }
@@ -129,6 +137,13 @@ public:
     
     /** Returns the remaining barrier duration. */
     float getBarrierDuration() const { return _barrierDuration; }
+
+    /**
+     * Returns the number of prior mallet uses recorded for this player this round.
+     *
+     * @return The number of completed mallet uses tracked for this player in the current round.
+     */
+    int getMalletUseCount() const { return _malletUseCount; }
 
     /*Setter for current health*/
     void setCurrentHealth(float health) { _currentHealth = health; }
@@ -217,6 +232,32 @@ public:
 
     /** Clears runtime-only combat effects. */
     void clearRuntimeEffects();
+
+    /** Clears round-scoped item-use state. */
+    void clearItemUseState() { _malletUseCount = 0; }
+
+    /**
+     * Overwrites the authoritative mallet use count replicated from the host.
+     *
+     * @param useCount The host-replicated number of completed mallet uses for this player.
+     */
+    void setMalletUseCount(int useCount) { _malletUseCount = std::max(0, useCount); }
+
+    /**
+     * Computes the final magnitude of an item use after house, affinity, and item-specific bonuses.
+     *
+     * @param def The item definition being resolved.
+     * @param db The item database that provides multiplier metadata.
+     * @return The resolved magnitude for this player and item.
+     */
+    float resolveItemMagnitude(const ItemDef& def, const ItemDatabase& db) const;
+
+    /**
+     * Records any round-scoped state advance caused by consuming the given item.
+     *
+     * @param def The item definition that was just consumed.
+     */
+    void recordItemUse(const ItemDef& def);
 
     /**
      * Adds an item to the player's inventory.

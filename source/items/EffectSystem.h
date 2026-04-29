@@ -94,6 +94,7 @@ public:
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Vulnerable:
+            case ItemDef::EffectType::Upgrade:
                 break;
         }
 
@@ -123,6 +124,7 @@ public:
                 return applyVulnerableToEnemy(effect, target, playerIndex);
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
+            case ItemDef::EffectType::Upgrade:
                 break;
         }
 

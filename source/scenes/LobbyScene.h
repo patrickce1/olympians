@@ -4,6 +4,7 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
+#include "../InputController.h"
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 
@@ -108,6 +109,46 @@ protected:
 
     /** Pointer to the error/banner popup node. */
     std::shared_ptr<cugl::scene2::SceneNode> _errorPopup;
+    
+    #pragma mark - Press State
+
+    /** The player card container nodes, used for world-space hit testing. */
+    std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _playerCards;
+    
+    /** Display slot index the host is currently pressing, or -1 if none. */
+    int _dragSourceDisplaySlot = -1;
+
+    /**
+     * The player icon button node currently being pressed by the host, or
+     * nullptr. Reparented to the top of _playerInfoContainer once
+     * _dragHoldFrames reaches LOBBY_DRAG_HOLD_FRAMES so it renders above
+     * all other cards during a drag interaction.
+     */
+    std::shared_ptr<cugl::scene2::Button> _draggedCard = nullptr;
+
+    /**
+     * Offset from the pressed card's origin to the touch-down point.
+     * Applied each frame in handleLobbySlotPressTracking() so the card
+     * appears held at the exact spot the finger contacted it, not snapped
+     * to centre. Captured once in handleLobbySlotPressBegin().
+     */
+    cugl::Vec2 _dragCardOffset = cugl::Vec2::ZERO;
+
+    /**
+     * The world-space position of the pressed card before interaction began.
+     * Used to restore the card's position when the interaction completes or
+     * is cancelled, before the next updateLobbyPlayerIcons() call rewrites it.
+     */
+    cugl::Vec2 _dragCardOriginPos = cugl::Vec2::ZERO;
+
+    /**
+     * Number of frames the host has been holding down on a non-local slot.
+     * Incremented each frame in handleLobbySlotPressBegin() while isTouching()
+     * is true over a valid slot. Once it reaches LOBBY_DRAG_HOLD_FRAMES the
+     * press is committed as a drag; below that threshold on release it is
+     * treated as a tap.
+     */
+    int _dragHoldFrames = 0;
 
 public:
 #pragma mark -
@@ -215,8 +256,9 @@ public:
      * We need to update this method to constantly talk to the server
      *
      * @param timestep  The amount of time (in seconds) since the last frame
+     * @param input         The input controller instance
      */
-    void update(float timestep) override;
+    void update(float timestep, InputController& input);
     
     /**
      * Enables or disables all interactive input controls.
@@ -307,6 +349,55 @@ private:
      * @param players  The display-ordered list of players to read house names from.
      */
     void updateLobbyPlayerIcons(std::vector<Player*> players);
+    
+    /**
+     * HOST ONLY. Handles the beginning of a touch on a non-local player slot.
+     * On the first frame of contact, records which slot is being pressed and
+     * captures offset data for potential drag use. Increments _dragHoldFrames
+     * each subsequent frame while the touch is held. Once _dragHoldFrames
+     * reaches LOBBY_DRAG_HOLD_FRAMES, commits to drag mode by scaling up the
+     * card and reparenting it to the top of _playerInfoContainer so it renders
+     * above all other cards. Below that threshold the press is resolved as a
+     * tap in handleLobbySlotPressRelease().
+     * No-op if the host is touching their own local slot (bottom slot).
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleLobbySlotPressBegin(InputController& input);
+
+    /**
+     * HOST ONLY. Moves the pressed player card to follow the current touch
+     * position each frame once the hold threshold has been reached and the
+     * interaction is committed as a drag. No-op during the tap-detection
+     * window (_dragHoldFrames < LOBBY_DRAG_HOLD_FRAMES)
+     * so the card does not move on a brief tap. Uses getDragPos() and the captured
+     * _dragCardOffset so the card stays under the exact contact point.
+     * No-op if no press is in progress or the touch has ended.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleLobbySlotPressTracking(InputController& input);
+
+    /**
+     * HOST ONLY. Resolves a touch release as either a tap or a drag based
+     * on _dragHoldFrames relative to LOBBY_DRAG_HOLD_FRAMES.
+     *
+     * Tap (below threshold): if the pressed slot is an AI slot, opens house
+     * select for that slot. If it is a real player slot, does nothing.
+     *
+     * Drag (at or above threshold): hit-tests the release position against
+     * all icon slots. A release on a different slot swaps the two game slots
+     * via NetworkController and GameState. A release on the same slot or
+     * dead space cancels the drag with no state change; the display
+     * self-corrects on the next frame since it is fully recomputed from
+     * GameState each frame.
+     *
+     * Always restores the card's position and scale and clears all press
+     * state before returning to prevent a single-frame visual glitch.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleLobbySlotPressRelease(InputController& input);
 };
 
 #endif /* __LOBBY_SCENE_H__ */

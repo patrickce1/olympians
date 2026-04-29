@@ -218,6 +218,7 @@ bool GameState::initAI(ItemController& itemController) {
  * @return true if all resources loaded and initialised successfully.
  */
 bool GameState::init(ItemController& itemController, const std::shared_ptr<cugl::AssetManager>& assets) {
+    _itemDatabase = &itemController.getDatabase();
     if (!initHouses())                      return false;
     initPlayers();
     if (!initEnemyWithAssets(assets))       return false;
@@ -232,6 +233,7 @@ void GameState::dispose() {
     for (auto& player : _players) {
         player->clearInventory();
         player->clearRuntimeEffects();
+        player->clearItemUseState();
     }
     _players.clear();
     _playerIdMap.clear();
@@ -247,6 +249,7 @@ void GameState::reset() {
     for (auto& player : _players) {
         player->clearInventory();
         player->clearRuntimeEffects();
+        player->clearItemUseState();
         player->setCurrentHealth(player->getMaxHealth());
     }
     _enemy->setCurrentHealth(_enemy->getMaxHealth());
@@ -314,8 +317,19 @@ Player* GameState::getPlayerBySlot(int slot) const {
 
 /* Goes through the list of attack messages in attacks and applies the damage specified to the boss*/
 void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
-    for (AttackMessage attack : attacks) {
-        _enemy->takeDamage(attack.damage, attack.damageDirection);
+    for (const AttackMessage& attack : attacks) {
+        float authoritativeDamage = attack.damage;
+
+        if (_itemDatabase) {
+            Player* attackingPlayer = getPlayerBySlot(attack.damageDirection);
+            std::shared_ptr<ItemDef> def = _itemDatabase->getDef(attack.itemDefID);
+            if (attackingPlayer && def && def->getType() == ItemDef::Type::Attack) {
+                authoritativeDamage = attackingPlayer->resolveItemMagnitude(*def, *_itemDatabase);
+                attackingPlayer->recordItemUse(*def);
+            }
+        }
+
+        _enemy->takeDamage(authoritativeDamage, attack.damageDirection);
     }
 }
 
@@ -427,6 +441,7 @@ void GameState::networkUpdate(GameStateMessage newState) {
         _players[i]->setCurrentHealth(healths[i]);
         _players[i]->syncRuntimeEffects(runtimeEffects[i][0], runtimeEffects[i][1],
                                         runtimeEffects[i][2], runtimeEffects[i][3]);
+        _players[i]->setMalletUseCount(newState.playerMalletUseCounts[i]);
     }
 }
 
@@ -532,5 +547,33 @@ void GameState::demoteToAI(int slot, const std::string& house) {
     }
     if (replacedLocalPlayer) {
         _localPlayer = _players[slot].get();
+    }
+}
+
+/**
+ * Swaps two player slots in the local player array.
+ * Called on the host after NetworkController::swapSlots() to keep
+ * _players in sync with the updated network slot assignments.
+ * Re-wires neighbour pointers for the affected slots after the swap.
+ *
+ * @param slotA  First 0-based slot index.
+ * @param slotB  Second 0-based slot index.
+ */
+void GameState::swapPlayers(int slotA, int slotB) {
+    int total = (int)_players.size();
+    if (slotA == slotB || slotA < 0 || slotB < 0
+        || slotA >= total || slotB >= total) return;
+
+    std::swap(_players[slotA], _players[slotB]);
+
+    // Update id map so getPlayerById() resolves correctly after the swap
+    _playerIdMap[slotA] = _players[slotA].get();
+    _playerIdMap[slotB] = _players[slotB].get();
+
+    // Re-wire full circular neighbour ring — same pattern as setRealPlayer(),
+    // demoteToAI(), and assignMissingHousesForAI()
+    for (int i = 0; i < total; i++) {
+        _players[i]->setLeftPlayer (_players[(i - 1 + total) % total].get());
+        _players[i]->setRightPlayer(_players[(i + 1) % total].get());
     }
 }

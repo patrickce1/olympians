@@ -425,7 +425,7 @@ void SceneLoader::update(float dt) {
         }
         break;
     case State::LOBBY:
-        _lobbyScene.update(dt);
+        _lobbyScene.update(dt, _input);
         switch (_lobbyScene.getStatus())
         {
         case LobbyScene::Status::PRE_GAME_START:

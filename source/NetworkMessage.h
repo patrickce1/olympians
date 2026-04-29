@@ -25,6 +25,7 @@ struct JoinMessage {
 struct AttackMessage {
     float damage;
     int damageDirection;
+    std::string itemDefID;
 };
 
 /* Message sent by the client to the host to indicate healing.
@@ -142,6 +143,9 @@ struct GameStateMessage {
     /** Active authoritative vulnerable multiplier for each relative boss side. */
     std::array<float, kMaxPlayers> bossVulnerableMultipliers = {1.0f, 1.0f, 1.0f, 1.0f};
 
+    /** Authoritative number of prior mallet uses recorded for each player this round. */
+    std::array<int32_t, kMaxPlayers> playerMalletUseCounts = {0, 0, 0, 0};
+
     // player health
     union {
         struct {
@@ -192,6 +196,17 @@ struct GameStateMessage {
 */
 struct SetHouseMessage {
     std::string houseID;
+};
+
+/**
+ * Message sent by the host to swap two players' game slots.
+ * slotA and slotB are 0-based indices into the player array.
+ * Broadcast to all clients; clients update their local lobby state
+ * via the LOBBY_UPDATE that the host sends immediately after.
+ */
+struct SwapSlotsMessage {
+    int slotA;
+    int slotB;
 };
 
 /*

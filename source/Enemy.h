@@ -195,6 +195,9 @@ public:
     /** Returns true when the current state is in the attack animation phase. */
     bool isInAttackAnimationPhase() const;
 
+    /** Returns true when the current state has fully completed (loop + outro) and should transition. */
+    bool isStateComplete() const;
+
     /**
      * Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state.
      *
