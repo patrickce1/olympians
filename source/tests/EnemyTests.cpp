@@ -382,7 +382,7 @@ static void testCyclopsDefensiveMove(const std::string& enemiesJsonPath,
     expect(std::abs(actualDamage0 - 0.0f) < 0.01f,
         "cyclops passive: direction 0 takes no damage");
 
-    // Direction 3 (behind player) should be 0.5x — half damage
+    // Direction 3 (side) should be 0.5x — half damage
     float mult3 = enemy->getSideMultiplier(3);
     expect(std::abs(mult3 - 0.5f) < 0.01f, "cyclops passive: direction 3 has 0.5x multiplier");
 
@@ -392,7 +392,7 @@ static void testCyclopsDefensiveMove(const std::string& enemiesJsonPath,
     expect(std::abs(actualDamage3 - (rawDamage * 0.5f)) < 0.01f,
         "cyclops passive: direction 3 takes half damage");
 
-    // Direction 2 (side) should be 1x — normal damage
+    // Direction 2 (behind) should be 1x — normal damage
     float mult2 = enemy->getSideMultiplier(2);
     expect(std::abs(mult2 - 1.0f) < 0.01f, "cyclops passive: direction 2 has 1x multiplier");
 
