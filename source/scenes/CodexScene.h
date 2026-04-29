@@ -59,7 +59,7 @@ protected:
     std::shared_ptr<cugl::scene2::Button> _scrollUp;
     
     std::vector<CodexItem> _items;
-    int _selectedIndex;          // which item is currently selected (-1 = none)
+    int _selectedIndex = -1;          // which item is currently selected (-1 = none)
     
     /** The item codex list */
     std::vector<std::shared_ptr<cugl::scene2::Button>> _itemNodes;
@@ -76,12 +76,20 @@ protected:
     std::shared_ptr<cugl::scene2::Label> _categoryLabel;
     std::shared_ptr<cugl::scene2::Label> _effectLabel;
     std::shared_ptr<cugl::scene2::Label> _descriptionLabel;
+    
+    std::vector<unsigned int> _itemListenerKeys;
 
 
-    float _gridOffset = 0.0f;
-    float _maxOffset = 0.0f;
-    float _rowHeight = 200.0f;   // adjust to your grid spacing
-    float _pageHeight = 600.0f;  // visible area
+    float _rowHeight = 80.0f;   // adjust to your grid spacing
+    float _pageHeight = 530.0f;  // visible area
+    int _currentRow = 0;
+    int _maxRow = 0;
+    bool _isScrolling = false;
+    
+    bool _pendingShowDetail = false;
+    int  _pendingDetailIndex = -1;
+    
+    bool _pendingHideDetail = false;
     
     /** The current status */
     Status _status;
@@ -179,9 +187,11 @@ private:
     
     void showDetailPanel(const CodexItem& item);
     
-    void scroll(int direction);
+    void scroll(int newRow);
     
     void hideDetailPanel();
+    
+    void updateButtonVisibility();
 
 };
 

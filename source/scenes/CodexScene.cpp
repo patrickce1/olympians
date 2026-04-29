@@ -73,15 +73,19 @@ void CodexScene::initItemButtons() {
             CULog("Could not find grid button for item: %s", _items[i].id.c_str());
             continue;
         }
-        
-        button->addListener([this, i](const std::string& name, bool down) {
-            if (down) {
+        _itemNodes.push_back(button);
+    }
+    
+    for (int i = 0; i < _items.size(); i++) {
+        auto key = _itemNodes[i]->addListener([this, i](const std::string& name, bool down) {
+            if (!down || !_active) return;
+            if (down && _selectedIndex == -1) {
                 _selectedIndex = i;
                 showDetailPanel(_items[i]);
             }
             
         });
-        button->activate();
+        _itemListenerKeys.push_back(key);
     }
 }
 
@@ -127,10 +131,10 @@ void CodexScene::setupUI() {
         _assets->get<scene2::SceneNode>("codexScene.back"));
     
     _scrollUp = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("codexScene.items.scrollup"));
+        _assets->get<scene2::SceneNode>("codexScene.items.scrolldown"));
     
     _scrollDown = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("codexScene.items.scrolldown"));
+        _assets->get<scene2::SceneNode>("codexScene.items.scrollup"));
     
     _codexGrid = _assets->get<scene2::SceneNode>("codexScene.items.codex");
     
@@ -168,24 +172,31 @@ void CodexScene::setupUI() {
 void CodexScene::setupListeners() {
     
     _backButton->addListener([this](const std::string& name, bool down) {
+        if (!down || !_active) return;
         if (down) {
-            _status = Status::ABORT;
+            if (_status == Status::INFO) {
+                _pendingHideDetail = true;
+            } else {
+                _status = Status::ABORT;
+            }
         }
     });
     
     int numRows = (int)std::ceil(_items.size() / 3.0f);
-    _maxOffset = std::max(0.0f, (numRows * _rowHeight) - _pageHeight);
-    _gridOffset = 0.0f;
+    int visibleRows = (int)std::ceil(_pageHeight / _rowHeight);
 
-    _scrollUp->setVisible(false);
-    _scrollDown->setVisible(_maxOffset > 0);
+    _maxRow = std::max(0, numRows - visibleRows);
+
+    _currentRow = 0;
 
     _scrollUp->addListener([this](const std::string& name, bool down) {
-        if (down) scroll(-1);
+        if (!down || !_active) return;
+        if (down && _selectedIndex == -1) scroll(_currentRow-1);
     });
 
     _scrollDown->addListener([this](const std::string& name, bool down) {
-        if (down) scroll(1);
+        if (!down || !_active) return;
+        if (down && _selectedIndex == -1) scroll(_currentRow+1);
     });
 }
 
@@ -195,6 +206,12 @@ void CodexScene::setupListeners() {
 void CodexScene::dispose() {
     if (_active) {
         removeAllChildren();
+        for (int i = 0; i < _itemNodes.size(); i++) {
+            _itemNodes[i]->removeListener(_itemListenerKeys[i]);
+        }
+        _backButton->clearListeners();
+        _scrollUp->clearListeners();
+        _scrollDown->clearListeners();
         _backButton = nullptr;
         _scrollUp = nullptr;
         _scrollDown = nullptr;
@@ -232,27 +249,24 @@ void CodexScene::setActive(bool value) {
         if (value) {
             _status = WAIT;
             
-//            _leftButton->activate();
-//            _rightButton->activate();
+            updateButtonVisibility();
             _scrollUp->activate();
             _scrollDown->activate();
             _backButton->activate();
             
         } else {
-//            _leftButton->deactivate();
-//            _rightButton->deactivate();
+            for (auto button : _itemNodes) {
+                button->deactivate();
+                button->setDown(false);
+            }
             _scrollUp->deactivate();
             _scrollDown->deactivate();
             _backButton->deactivate();
-//            _lockButton->deactivate();
             
 //            // If any were pressed, reset them
             _backButton->setDown(false);
             _scrollUp->setDown(false);
             _scrollDown->setDown(false);
-//            _leftButton->setDown(false);
-//            _rightButton->setDown(false);
-//            _lockButton->setDown(false);
         }
     }
 }
@@ -285,57 +299,100 @@ void CodexScene::update(float timestep) {
         _status = Status::PRE_GAMESCENE_START;
         return;
     }
+    
+    if (_pendingShowDetail) {
+        _pendingShowDetail = false;
+        _status = Status::INFO;
+        
+        updateButtonVisibility();
+        _scrollUp->deactivate();
+        _scrollDown->deactivate();
+        
+        const CodexItem& item = _items[_pendingDetailIndex];
+        _nameLabel->setText(item.name);
+        _rarityLabel->setText(item.rarity);
+        _categoryLabel->setText(item.category);
+        _effectLabel->setText(item.effectLabel);
+        _descriptionLabel->setText(item.description);
+        // ... color and texture setup ...
+        
+        _darkOverlay->setVisible(true);
+        _itemLarge->setVisible(true);
+        _detailPanel->setVisible(true);
+    }
+    
+    hideDetailPanel();
 }
 
 /**
  
  */
 void CodexScene::showDetailPanel(const CodexItem& item) {
-    _status = Status::INFO;
-    
-    _nameLabel->setText(item.name);
-    _rarityLabel->setText(item.rarity);
-    _categoryLabel->setText(item.category);
-    _effectLabel->setText(item.effectLabel);
-    _descriptionLabel->setText(item.description);
-    
-    if (item.category == "ATTACK") {
-        _categoryLabel->setForeground(cugl::Color4("#AC0000ff"));
-        _effectLabel->setForeground(cugl::Color4("#AC0000ff"));
-    } else if (item.category == "SUPPORT") {
-        _categoryLabel->setForeground(cugl::Color4("#047D04ff"));
-        _effectLabel->setForeground(cugl::Color4("#047D04ff"));
-    } else {
-        _categoryLabel->setForeground(cugl::Color4("#2000ACff"));
-        _effectLabel->setForeground(cugl::Color4("#2000ACff"));
-    }
-
-    auto texture = _assets->get<cugl::graphics::Texture>("itemLarge");
-    _itemLarge->setTexture(texture);
-
-    _darkOverlay->setVisible(true);
-    _itemLarge->setVisible(true);
-    _detailPanel->setVisible(true);
+    _pendingShowDetail = true;
+    _pendingDetailIndex = _selectedIndex;
 }
 
-void CodexScene::scroll(int direction) {
-    _gridOffset = std::clamp(
-        _gridOffset + direction * _rowHeight,
-        0.0f,
-        _maxOffset
-    );
+void CodexScene::scroll(int newRow) {
+    if (_isScrolling) return;
+        if (newRow < 0 || newRow > _maxRow) return;
 
-    Vec2 pos = _codexGrid->getPosition();
-    _codexGrid->setPosition(pos.x, -_gridOffset);
+        _isScrolling = true;
 
-    _scrollUp->setVisible(_gridOffset > 0);
-    _scrollDown->setVisible(_gridOffset < _maxOffset);
+        float shiftAmount = _rowHeight;
+
+        int delta = newRow - _currentRow;
+
+        Vec2 currentPos = _codexGrid->getPosition();
+        float targetY = currentPos.y - (delta * shiftAmount);
+
+        // apply movement
+        _codexGrid->setPosition(currentPos.x, targetY);
+
+        _currentRow = newRow;
+
+        // update scroll UI
+        _scrollUp->setVisible(_currentRow > 0);
+        _scrollDown->setVisible(_currentRow < _maxRow);
+
+        updateButtonVisibility();
+        _isScrolling = false;
 }
 
 void CodexScene::hideDetailPanel() {
-    _darkOverlay->setVisible(false);
-    _itemLarge->setVisible(false);
-    _detailPanel->setVisible(false);
+    if (_pendingHideDetail) {
+        _pendingHideDetail = false;
+        
+        _darkOverlay->setVisible(false);
+        _itemLarge->setVisible(false);
+        _detailPanel->setVisible(false);
+        _selectedIndex = -1;
+        
+        _status = Status::WAIT;
+        
+        updateButtonVisibility();
+        _scrollUp->activate();
+        _scrollDown->activate();
+    }
+}
 
-    _status = Status::WAIT;
+void CodexScene::updateButtonVisibility() {
+    // Get the visible Y range in the codexGrid's local space
+    // _itemsNode is the clipping container, so get its bounds in grid-local coords
+    Vec2 gridPos = _codexGrid->getPosition();
+    float pageBottom = -gridPos.y;
+    float pageTop = pageBottom + _pageHeight;
+
+    for (int i = 0; i < _itemNodes.size(); i++) {
+        Vec2 buttonPos = _itemNodes[i]->getPosition();
+        float buttonTop = buttonPos.y + _itemNodes[i]->getHeight();
+        float buttonBottom = buttonPos.y;
+
+        bool inView = (buttonTop > pageBottom) && (buttonBottom < pageTop);
+
+        if (inView) {
+            _itemNodes[i]->activate();
+        } else {
+            _itemNodes[i]->deactivate();
+        }
+    }
 }
