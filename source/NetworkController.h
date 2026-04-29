@@ -369,6 +369,19 @@ public:
      * @return  0 = PreGameEntryScene, 1 = GameScene, 2 = LobbyScene -1 = unknown (not yet received)
      */
     int getHostsCurrentScene() const { return _hostsCurrentScene; }
+    
+    /**
+     * HOST ONLY. Swaps the game slots of two players (real or AI) and
+     * broadcasts the updated lobby state to all clients.
+     *
+     * The swap is applied to _uuidToSlot, _slotToPlayer, and _aIHouses
+     * as appropriate, then broadcastLobbyState() is called so all clients
+     * receive an authoritative LOBBY_UPDATE.
+     *
+     * @param slotA  First 0-based slot index to swap.
+     * @param slotB  Second 0-based slot index to swap.
+     */
+    void swapSlots(int slotA, int slotB);
 
 protected:
     //This enum is used internally by this class to figure out how to decode the data recieved over the network
@@ -391,7 +404,8 @@ protected:
         BOSS_SELECT = 12,
         AI_HOUSE_SELECT = 13,
         PLAYER_SUPPORT_EFFECT = 14,
-        ENEMY_EFFECT = 15
+        ENEMY_EFFECT = 15,
+        SWAP_SLOTS = 16
     };
 
     /** Our network connection */
