@@ -6,6 +6,7 @@
 #include <sstream>
 #include <vector>
 #include "../NetworkController.h"
+#include "../InputController.h"
 
 
 struct CodexItem {
@@ -81,10 +82,10 @@ protected:
 
 
     float _rowHeight = 80.0f;   // adjust to your grid spacing
-    float _pageHeight = 530.0f;  // visible area
     int _currentRow = 0;
     int _maxRow = 0;
-    bool _isScrolling = false;
+
+    bool _isScrolling;
     
     bool _pendingShowDetail = false;
     int  _pendingDetailIndex = -1;

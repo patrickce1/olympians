@@ -181,23 +181,24 @@ void CodexScene::setupListeners() {
             }
         }
     });
-    
-    int numRows = (int)std::ceil(_items.size() / 3.0f);
-    int visibleRows = (int)std::ceil(_pageHeight / _rowHeight);
 
-    _maxRow = std::max(0, numRows - visibleRows);
-
+    int numRows     = (int)std::ceil(_items.size() / 3.0f);
+    int visibleRows = 6;
+    _maxRow  = std::max(0, numRows - visibleRows);
     _currentRow = 0;
-
-    _scrollUp->addListener([this](const std::string& name, bool down) {
-        if (!down || !_active) return;
-        if (down && _selectedIndex == -1) scroll(_currentRow-1);
-    });
 
     _scrollDown->addListener([this](const std::string& name, bool down) {
         if (!down || !_active) return;
-        if (down && _selectedIndex == -1) scroll(_currentRow+1);
+        if (_selectedIndex == -1) scroll(_currentRow + 1);
     });
+
+    _scrollUp->addListener([this](const std::string& name, bool down) {
+        if (!down || !_active) return;
+        if (_selectedIndex == -1) scroll(_currentRow - 1);
+    });
+
+    _scrollUp->setVisible(false);
+    _scrollDown->setVisible(_maxRow > 0);
 }
 
 /**
@@ -249,9 +250,7 @@ void CodexScene::setActive(bool value) {
         if (value) {
             _status = WAIT;
             
-            for (auto button : _itemNodes) {
-                button->activate();
-            }
+            updateButtonVisibility();
             _scrollUp->activate();
             _scrollDown->activate();
             _backButton->activate();
@@ -340,22 +339,17 @@ void CodexScene::scroll(int newRow) {
 
         _isScrolling = true;
 
-        float shiftAmount = _rowHeight;
-
         int delta = newRow - _currentRow;
-
         Vec2 currentPos = _codexGrid->getPosition();
-        float targetY = currentPos.y - (delta * shiftAmount);
-
-        // apply movement
-        _codexGrid->setPosition(currentPos.x, targetY);
+        _codexGrid->setPosition(currentPos.x, currentPos.y + (delta * _rowHeight));
 
         _currentRow = newRow;
 
-        // update scroll UI
+        // hide up arrow if at top, hide down arrow if at bottom
         _scrollUp->setVisible(_currentRow > 0);
         _scrollDown->setVisible(_currentRow < _maxRow);
 
+        updateButtonVisibility();
         _isScrolling = false;
 }
 
@@ -370,8 +364,23 @@ void CodexScene::hideDetailPanel() {
         
         _status = Status::WAIT;
         
-        for (auto button : _itemNodes) button->activate();
+        updateButtonVisibility();
         _scrollUp->activate();
         _scrollDown->activate();
+    }
+}
+
+void CodexScene::updateButtonVisibility() {
+    // _currentRow is the topmost visible row (0-indexed)
+    int firstVisible = _currentRow * 3;       // first button index in view
+    int lastVisible  = firstVisible + (6 * 3); // 5 rows * 3 columns
+
+    for (int i = 0; i < _itemNodes.size(); i++) {
+        bool inView = (i >= firstVisible && i < lastVisible);
+        if (inView) {
+            _itemNodes[i]->activate();
+        } else {
+            _itemNodes[i]->deactivate();
+        }
     }
 }
