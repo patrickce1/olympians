@@ -90,7 +90,7 @@ public:
         /** Flat damage reduction used by shield effects. */
         float mitigation = 0.0f;
         /** Flat healing amount used by regen effects. */
-        float amount = 0.0f;
+        float regenAmount = 0.0f;
         /** Duration in seconds for timed effects. */
         float duration = 0.0f;
         /** Whether an item effect should apply to all four boss sides. */

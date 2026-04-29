@@ -153,6 +153,9 @@ void Player::applyBarrier(float multiplier, float duration) {
 /**
  * Applies a timed heal-over-time effect to this player.
  *
+ * Current `regenDuration` and `regenAmountRemaining` are completely
+ * overridden when this function is called when this player already has active regen.
+ *
  * @param amount    The total healing to apply over the full duration.
  * @param duration  How long the regen lasts.
  */

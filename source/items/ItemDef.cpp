@@ -160,7 +160,7 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
     }
 
     out.mitigation = 0.0f;
-    out.amount = 0.0f;
+    out.regenAmount = 0.0f;
     if (json->has("mitigation") && json->get("mitigation")->isNumber()) {
         out.mitigation = std::max(0.0f, json->getFloat("mitigation"));
     } else if (json->has("amount") && json->get("amount")->isNumber()) {
@@ -168,7 +168,7 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
     }
 
     if (json->has("amount") && json->get("amount")->isNumber()) {
-        out.amount = std::max(0.0f, json->getFloat("amount"));
+        out.regenAmount = std::max(0.0f, json->getFloat("amount"));
     }
 
     out.duration = 0.0f;
