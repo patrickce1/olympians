@@ -141,26 +141,6 @@
       "description": "Aphrodite's brew forces the boss to reset to idle, leaving them dazed and taking damage over time."
     },
     {
-      "id": "rage",
-      "name": "ARES' RAGE",
-      "image_large": "rage_large",
-      "rarity": "Divine",
-      "house": "Ares",
-      "category": "ATTACK",
-      "effect_label": "Damage: -60HP + Full Vulnerability 6s",
-      "description": "Ares ignites the battlefield in a massive explosion, dealing heavy damage and leaving the boss fully vulnerable."
-    },
-    {
-      "id": "educate",
-      "name": "ATHENA'S EDUCATE",
-      "image_large": "educate_large",
-      "rarity": "Divine",
-      "house": "Athena",
-      "category": "UTILITY",
-      "effect_label": "House Override: All Items",
-      "description": "Athena's wisdom transcends all boundaries, allowing item effects to apply regardless of house alignment."
-    },
-    {
       "id": "thunderstorm",
       "name": "ZEUS' THUNDERSTORM",
       "image_large": "thunderstorm_large",
@@ -191,16 +171,6 @@
       "description": "Hades reaches beyond death to revive all fallen allies and grant every teammate ongoing healing."
     },
     {
-      "id": "forge",
-      "name": "HEPHAESTUS' FORGE",
-      "image_large": "forge_large",
-      "rarity": "Divine",
-      "house": "Hephaestus",
-      "category": "UTILITY",
-      "effect_label": "Upgrade: Common→Rare + 10% Rare→Divine",
-      "description": "Hephaestus's legendary forge upgrades all common items to rare, with a chance of elevating rare items to divine."
-    },
-    {
       "id": "cornucopia",
       "name": "DEMETER'S ABUNDANCE",
       "image_large": "cornucopia_large",
@@ -217,8 +187,28 @@
       "rarity": "Divine",
       "house": "Aphrodite",
       "category": "UTILITY",
-      "effect_label": "Team Buff: +100% All Categories / 10s",
+      "effect_label": "Team Buff: +100% / 10s",
       "description": "Aphrodite amplifies every player's strongest category, granting the whole team a massive buff across all categories."
+    },
+    {
+      "id": "educate",
+      "name": "ATHENA'S EDUCATE",
+      "image_large": "educate_large",
+      "rarity": "Divine",
+      "house": "Athena",
+      "category": "UTILITY",
+      "effect_label": "House Override: All Items",
+      "description": "Athena's wisdom transcends all boundaries, allowing item effects to apply regardless of house alignment."
+    },
+    {
+      "id": "rage",
+      "name": "ARES' RAGE",
+      "image_large": "rage_large",
+      "rarity": "Divine",
+      "house": "Ares",
+      "category": "ATTACK",
+      "effect_label": "Damage: -60HP + Full Vulnerability 6s",
+      "description": "Ares ignites the battlefield in a massive explosion, dealing heavy damage and leaving the boss fully vulnerable."
     },
     {
       "id": "treasure",
@@ -229,6 +219,16 @@
       "category": "UTILITY",
       "effect_label": "Clear Inventory + Open Divine Chest",
       "description": "Hermes clears everyone's inventory and opens a divine chest, unleashing a frenzy of powerful random items."
+    },
+    {
+      "id": "forge",
+      "name": "HEPHAESTUS' FORGE",
+      "image_large": "forge_large",
+      "rarity": "Divine",
+      "house": "Hephaestus",
+      "category": "UTILITY",
+      "effect_label": "Upgrade: Common→Rare + 10% Rare→Divine",
+      "description": "Hephaestus's legendary forge upgrades all common items to rare, with a chance of elevating rare items to divine."
     }
   ]
 }

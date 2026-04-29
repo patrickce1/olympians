@@ -76,14 +76,13 @@ void CodexScene::initItemButtons() {
         _itemNodes.push_back(button);
     }
     
-    for (int i = 0; i < _items.size(); i++) {
+    for (int i = 0; i < _itemNodes.size(); i++) {
         auto key = _itemNodes[i]->addListener([this, i](const std::string& name, bool down) {
             if (!down || !_active) return;
-            if (down && _selectedIndex == -1) {
+            if (_selectedIndex == -1) {
                 _selectedIndex = i;
                 showDetailPanel(_items[i]);
             }
-            
         });
         _itemListenerKeys.push_back(key);
     }
@@ -157,7 +156,6 @@ void CodexScene::setupUI() {
     
     _descriptionLabel = std::dynamic_pointer_cast<scene2::Label>(
         _assets->get<scene2::SceneNode>("codexScene.scroll.description"));
-    
     
     // overlay content
     _darkOverlay = _assets->get<scene2::SceneNode>("codexScene.darkOverlay");
@@ -327,6 +325,22 @@ void CodexScene::update(float timestep) {
             _effectLabel->setForeground(cugl::Color4("#2000ACff"));
         }
         
+        // Adjust rarity label padding based on effect label length
+        size_t effectLen = item.effectLabel.length();
+        auto typeNode = _effectLabel->getParent(); // "type" node
+        float totalWidth = 294.0f; // info node total width
+        float rarityWidth = 70.0f; // rarity node width + padding
+
+        // Clamp type width between rarity's leftover and full available space
+        float desiredWidth = std::min((float)effectLen * 8.0f, totalWidth - rarityWidth);
+        desiredWidth = std::max(desiredWidth, 80.0f); // minimum width
+
+        typeNode->setContentSize(Size(desiredWidth, typeNode->getContentSize().height));
+        typeNode->doLayout();
+
+        // Trigger info node to re-layout and re-center
+        typeNode->getParent()->doLayout();
+        
         auto texture = _assets->get<cugl::graphics::Texture>(item.imageLarge);
         _itemLarge->setTexture(texture);
         _itemLarge->setScale(0.5f);
@@ -349,22 +363,27 @@ void CodexScene::showDetailPanel(const CodexItem& item) {
 
 void CodexScene::scroll(int newRow) {
     if (_isScrolling) return;
-        if (newRow < 0 || newRow > _maxRow) return;
+    if (newRow < 0 || newRow > _maxRow) return;
 
-        _isScrolling = true;
+    _isScrolling = true;
 
-        int delta = newRow - _currentRow;
-        Vec2 currentPos = _codexGrid->getPosition();
-        _codexGrid->setPosition(currentPos.x, currentPos.y + (delta * _rowHeight));
+    // Deactivate ALL buttons before moving
+    for (auto button : _itemNodes) {
+        button->deactivate();
+    }
 
-        _currentRow = newRow;
+    int delta = newRow - _currentRow;
+    Vec2 currentPos = _codexGrid->getPosition();
+    _codexGrid->setPosition(currentPos.x, currentPos.y + (delta * _rowHeight));
+    _currentRow = newRow;
 
-        // hide up arrow if at top, hide down arrow if at bottom
-        _scrollUp->setVisible(_currentRow > 0);
-        _scrollDown->setVisible(_currentRow < _maxRow);
+    // Now reactivate — hit regions will be computed at new positions
+    updateButtonVisibility();
 
-        updateButtonVisibility();
-        _isScrolling = false;
+    _scrollUp->setVisible(_currentRow > 0);
+    _scrollDown->setVisible(_currentRow < _maxRow);
+
+    _isScrolling = false;
 }
 
 void CodexScene::hideDetailPanel() {
@@ -385,13 +404,8 @@ void CodexScene::hideDetailPanel() {
 }
 
 void CodexScene::updateButtonVisibility() {
-    // _currentRow is the topmost visible row (0-indexed)
-    int firstVisible = _currentRow * 3;       // first button index in view
-    int lastVisible  = firstVisible + (6 * 3) ; // 6 rows * 3 columns
-    
-    
-    CULog("currentRow: %d, firstVisible: %d, lastVisible: %d, total: %lu",
-          _currentRow, firstVisible, lastVisible, _itemNodes.size());
+    int firstVisible = _currentRow * 3;
+    int lastVisible  = firstVisible + (6 * 3);
 
     for (int i = 0; i < _itemNodes.size(); i++) {
         bool inView = (i >= firstVisible && i < lastVisible);
