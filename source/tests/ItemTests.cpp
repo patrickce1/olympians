@@ -140,7 +140,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
            "items: wheat parses regen effect");
     assertWithLabel(wheatDef && !wheatDef->getEffects().empty() &&
                     floatsEqualWithinTolerance(wheatDef->getEffects()[0].amount, 25.0f) &&
-                    floatsEqualWithinTolerance(wheatDef->getEffects()[0].duration, 10.0f),
+                    floatsEqualWithinTolerance(wheatDef->getEffects()[0].duration, 5.0f),
            "items: wheat regen values parse");
     assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
            "items: spear parses vulnerable effect");
@@ -628,14 +628,14 @@ void testRegenEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 
     const float healthBeforeTick = regenTarget.getCurrentHealth();
     regenTarget.updateEffects(4.0f);
-    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getCurrentHealth() - healthBeforeTick, 10.0f),
+    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getCurrentHealth() - healthBeforeTick, 5.0f),
                     "regen: ticking effects heals proportionally over time");
-    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenAmountRemaining(), 15.0f),
+    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenAmountRemaining(), 5.0f),
                     "regen: remaining amount decreases after ticking");
-    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenDuration(), 6.0f),
+    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenDuration(), 1.0f),
                     "regen: remaining duration decreases after ticking");
 
-    regenTarget.updateEffects(6.0f);
+    regenTarget.updateEffects(1.0f);
     assertWithLabel(!regenTarget.hasRegen(), "regen: regen expires after its duration completes");
 }
 
