@@ -249,7 +249,9 @@ void CodexScene::setActive(bool value) {
         if (value) {
             _status = WAIT;
             
-            updateButtonVisibility();
+            for (auto button : _itemNodes) {
+                button->activate();
+            }
             _scrollUp->activate();
             _scrollDown->activate();
             _backButton->activate();
@@ -304,7 +306,7 @@ void CodexScene::update(float timestep) {
         _pendingShowDetail = false;
         _status = Status::INFO;
         
-        updateButtonVisibility();
+        for (auto button : _itemNodes) button->deactivate();
         _scrollUp->deactivate();
         _scrollDown->deactivate();
         
@@ -354,7 +356,6 @@ void CodexScene::scroll(int newRow) {
         _scrollUp->setVisible(_currentRow > 0);
         _scrollDown->setVisible(_currentRow < _maxRow);
 
-        updateButtonVisibility();
         _isScrolling = false;
 }
 
@@ -369,30 +370,8 @@ void CodexScene::hideDetailPanel() {
         
         _status = Status::WAIT;
         
-        updateButtonVisibility();
+        for (auto button : _itemNodes) button->activate();
         _scrollUp->activate();
         _scrollDown->activate();
-    }
-}
-
-void CodexScene::updateButtonVisibility() {
-    // Get the visible Y range in the codexGrid's local space
-    // _itemsNode is the clipping container, so get its bounds in grid-local coords
-    Vec2 gridPos = _codexGrid->getPosition();
-    float pageBottom = -gridPos.y;
-    float pageTop = pageBottom + _pageHeight;
-
-    for (int i = 0; i < _itemNodes.size(); i++) {
-        Vec2 buttonPos = _itemNodes[i]->getPosition();
-        float buttonTop = buttonPos.y + _itemNodes[i]->getHeight();
-        float buttonBottom = buttonPos.y;
-
-        bool inView = (buttonTop > pageBottom) && (buttonBottom < pageTop);
-
-        if (inView) {
-            _itemNodes[i]->activate();
-        } else {
-            _itemNodes[i]->deactivate();
-        }
     }
 }
