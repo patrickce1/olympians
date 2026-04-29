@@ -44,17 +44,72 @@ bool CodexScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const s
     Size dimen = getSize();
     
     // Acquire the scene built by the asset loader and resize it the scene
-    std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("codexScene");
-    scene->setContentSize(dimen);
-    scene->doLayout(); // Repositions the HUD
+    _scene = _assets->get<scene2::SceneNode>("codexScene");
+    _scene->setContentSize(dimen);
+    _scene->doLayout(); // Repositions the HUD
 
-//    setupUI();
+    setupUI();
 //    setupListeners();
+    loadItemCodex();
+    initItemButtons();
     
     _status = Status::WAIT;
     
-    addChild(scene);
+    addChild(_scene);
     setActive(false);
+    return true;
+}
+
+/**
+ 
+ */
+void CodexScene::initItemButtons() {
+    for (int i = 0; i < _items.size(); i++) {
+        auto button = std::dynamic_pointer_cast<cugl::scene2::Button>(
+            _codexGrid->getChildByName(_items[i].id)
+        );
+        
+        if (button == nullptr) {
+            CULog("Could not find grid button for item: %s", _items[i].id.c_str());
+            continue;
+        }
+        
+        button->addListener([this, i](const std::string& name, bool down) {
+            if (down) {
+                _selectedIndex = i;
+                showDetailPanel(_items[i]);
+            }
+            
+        });
+        button->activate();
+    }
+}
+
+/**
+ 
+ */
+bool CodexScene::loadItemCodex() {
+    // Load the JSON asset
+    std::shared_ptr<cugl::JsonValue> json = _assets->get<cugl::JsonValue>("itemCodex");
+    if (json == nullptr) return false;
+
+    std::shared_ptr<cugl::JsonValue> itemArray = json->get("items");
+    
+    for (int i = 0; i < itemArray->size(); i++) {
+        std::shared_ptr<cugl::JsonValue> entry = itemArray->get(i);
+        
+        CodexItem item;
+        item.id          = entry->getString("id");
+        item.name        = entry->getString("name");
+        item.imageLarge  = entry->getString("image_large");
+        item.rarity      = entry->getString("rarity");
+        item.house       = entry->getString("house");
+        item.category    = entry->getString("category");
+        item.effectLabel = entry->getString("effect_label");
+        item.description = entry->getString("description");
+        
+        _items.push_back(item);
+    }
     return true;
 }
 
@@ -68,36 +123,43 @@ bool CodexScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const s
  */
 void CodexScene::setupUI() {
 
-//    _backButton = std::dynamic_pointer_cast<scene2::Button>(
-//        _assets->get<scene2::SceneNode>("bossSelectScene.back"));
-//    
-//    _lockButton = std::dynamic_pointer_cast<scene2::Button>(
-//        _assets->get<scene2::SceneNode>("bossSelectScene.lock"));
-//
-//    _leftButton = std::dynamic_pointer_cast<scene2::Button>(
-//        _assets->get<scene2::SceneNode>("bossSelectScene.bossCarousel.directionButtons.leftScroll"));
-//
-//    _rightButton = std::dynamic_pointer_cast<scene2::Button>(
-//        _assets->get<scene2::SceneNode>("bossSelectScene.bossCarousel.directionButtons.rightScroll"));
-//
-//    _bossSelectionCardContainer = _assets->get<scene2::SceneNode>("bossSelectScene.bossCarousel.bossCardContainer");
-//
-//    if (_bossSelectionCardContainer) {
-//        auto numCards = _bossSelectionCardContainer->getChildCount();
-//        for (int i = 0; i < numCards; i++) {
-//            _bossCards.push_back(_bossSelectionCardContainer->getChild(i));
-//        }
-//        _baseCarouselPosition = _bossSelectionCardContainer->getPosition();
-//    }
-//    
-//    auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("bossSelectScene.bossSelectionCarouselIcons");
-//    
-//    if (bossCarouselDotsContainer) {
-//        auto numDots = bossCarouselDotsContainer->getChildCount();
-//        for (int i = 0; i < numDots; i++) {
-//            _bossCarouselDotIndicators.push_back(bossCarouselDotsContainer->getChild(i));
-//        }
-//    }
+    _backButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("codexScene.back"));
+    
+    _scrollUp = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("codexScene.items.scrollup"));
+    
+    _scrollDown = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("codexScene.items.scrolldown"));
+    
+    _codexGrid = _assets->get<scene2::SceneNode>("codexScene.items.codex");
+    
+    _itemsNode = _assets->get<scene2::SceneNode>("codexScene.items");
+    
+    // Scroll panel
+    _detailPanel = _assets->get<scene2::SceneNode>("codexScene.scroll");
+    
+    _nameLabel = std::dynamic_pointer_cast<scene2::Label>(
+        _assets->get<scene2::SceneNode>("codexScene.scroll.itemName"));
+    
+    _rarityLabel = std::dynamic_pointer_cast<scene2::Label>(
+        _assets->get<scene2::SceneNode>("codexScene.scroll.info.rarity.label"));
+    
+    _categoryLabel = std::dynamic_pointer_cast<scene2::Label>(
+        _assets->get<scene2::SceneNode>("codexScene.scroll.info.type.header"));
+    
+    _effectLabel = std::dynamic_pointer_cast<scene2::Label>(
+        _assets->get<scene2::SceneNode>("codexScene.scroll.info.type.description"));
+    
+    _descriptionLabel = std::dynamic_pointer_cast<scene2::Label>(
+        _assets->get<scene2::SceneNode>("codexScene.scroll.description"));
+    
+    
+    // overlay content
+    _darkOverlay = _assets->get<scene2::SceneNode>("codexScene.darkOverlay");
+    
+    _itemLarge = std::dynamic_pointer_cast<scene2::PolygonNode>(
+            _assets->get<scene2::SceneNode>("codexScene.itemLarge"));
 }
 
 /**
@@ -105,29 +167,11 @@ void CodexScene::setupUI() {
  */
 void CodexScene::setupListeners() {
     
-//    _backButton->addListener([this](const std::string& name, bool down) {
-//        if (down) {
-//            _status = Status::ABORT;
-//        }
-//    });
-//    
-//    _lockButton->addListener([this](const std::string& name, bool down) {
-//        if (down) {
-//            EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
-//            _network->setEnemy(selectedBoss.id);
-//            _network->broadcastBossSelection(selectedBoss.id);
-//            
-//            _status = Status::ABORT;
-//        }
-//    });
-//
-//    _leftButton->addListener([this](const std::string& name, bool down){
-//        if (!down) slideTo(_currentIndex - 1);
-//    });
-//
-//    _rightButton->addListener([this](const std::string& name, bool down){
-//        if (!down) slideTo(_currentIndex + 1);
-//    });
+    _backButton->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::ABORT;
+        }
+    });
 }
 
 /**
@@ -135,13 +179,25 @@ void CodexScene::setupListeners() {
  */
 void CodexScene::dispose() {
     if (_active) {
-//        removeAllChildren();
-//        _backButton = nullptr;
-//        _lockButton = nullptr;
-//        _bossCards.clear();
-//        _leftButton = nullptr;
-//        _rightButton = nullptr;
-//        _bossSelectionCardContainer = nullptr;
+        removeAllChildren();
+        _backButton = nullptr;
+        _scrollUp = nullptr;
+        _scrollDown = nullptr;
+        _codexGrid = nullptr;
+        _itemNodes.clear();
+        _itemLarge = nullptr;
+        _detailPanel = nullptr;
+        _darkOverlay = nullptr;
+        _itemsNode = nullptr;
+        // ---- Detail Panel Labels ----
+        _nameLabel = nullptr;
+        _rarityLabel = nullptr;
+        _categoryLabel = nullptr;
+        _effectLabel = nullptr;
+        _descriptionLabel = nullptr;
+
+        _scene = nullptr;
+        _items.clear();
         _active = false;
     }
     _network = nullptr;
@@ -210,4 +266,20 @@ void CodexScene::update(float timestep) {
     }
 }
 
+/**
+ 
+ */
+void CodexScene::showDetailPanel(const CodexItem& item) {
+    _nameLabel->setText(item.name);
+    _rarityLabel->setText(item.rarity);
+    _categoryLabel->setText(item.category);
+    _effectLabel->setText(item.effectLabel);
+    _descriptionLabel->setText(item.description);
 
+    auto texture = _assets->get<cugl::graphics::Texture>("itemLarge");
+    _itemLarge->setTexture(texture);
+
+    _darkOverlay->setVisible(true);
+    _itemLarge->setVisible(true);
+    _detailPanel->setVisible(true);
+}

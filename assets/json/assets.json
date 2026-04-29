@@ -579,6 +579,9 @@
         "buttonDown": {
             "file": "textures/codexScene/buttonDown.png"
         },
+        "codexFrame": {
+            "file": "textures/codexScene/codexFrame.png"
+        },
         "bottomFade": {
             "file": "textures/codexScene/bottomFade.png"
         }
@@ -642,7 +645,8 @@
     "jsons": {
         "server": "json/server.json",
         "gameSceneConfig": "json/gameSceneConfig.json",
-        "enemyAnimations": "json/enemyAnimations.json"
+        "enemyAnimations": "json/enemyAnimations.json",
+        "itemCodex": "json/itemCodex.json"
     },
     "sounds": {
         "select": {

@@ -47,20 +47,42 @@ protected:
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
     
+    std::shared_ptr<cugl::scene2::SceneNode> _scene;
+    
     /** The back button for the item codex scene */
     std::shared_ptr<cugl::scene2::Button> _backButton;
     
     /** The scroll down button in the scene */
-    std::shared_ptr<cugl::scene2::Button> _scrollDownButton;
+    std::shared_ptr<cugl::scene2::Button> _scrollDown;
     
     /** The scroll up button in the scene */
-    std::shared_ptr<cugl::scene2::Button> _scrollUpButton;
+    std::shared_ptr<cugl::scene2::Button> _scrollUp;
     
     std::vector<CodexItem> _items;
+    int _selectedIndex;          // which item is currently selected (-1 = none)
     
     /** The item codex list */
     std::vector<std::shared_ptr<cugl::scene2::Button>> _itemNodes;
     
+    std::shared_ptr<cugl::scene2::SceneNode> _itemsNode;     // the viewport node
+    std::shared_ptr<cugl::scene2::SceneNode> _codexGrid;     // the scrollable grid widget
+    std::shared_ptr<cugl::scene2::SceneNode> _detailPanel;   // the scroll/detail widget
+    std::shared_ptr<cugl::scene2::SceneNode> _darkOverlay;   // dark overlay when item selected
+    std::shared_ptr<cugl::scene2::PolygonNode> _itemLarge;   // large item image display
+    
+    // ---- Detail Panel Labels ----
+    std::shared_ptr<cugl::scene2::Label> _nameLabel;
+    std::shared_ptr<cugl::scene2::Label> _rarityLabel;
+    std::shared_ptr<cugl::scene2::Label> _categoryLabel;
+    std::shared_ptr<cugl::scene2::Label> _effectLabel;
+    std::shared_ptr<cugl::scene2::Label> _descriptionLabel;
+
+
+    float _gridOffset = 0.0f;
+    float _pageHeight = 530.0f;
+    float _rowHeight;            // height of one grid row (90.0f)
+    float _maxOffset;            // maximum scroll distance
+
     /** The current status */
     Status _status;
     
@@ -149,8 +171,13 @@ public:
      */
     void update(float timestep) override;
     
-
 private:
+    
+    bool loadItemCodex();
+        
+    void initItemButtons();
+    
+    void showDetailPanel(const CodexItem& item);
 
 };
 

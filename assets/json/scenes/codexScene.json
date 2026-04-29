@@ -22,104 +22,6 @@
             "visible": true
         },
         "children": {
-            "header": {
-                "type": "Node",
-                "format": {
-                    "type": "Anchored"
-                },
-                "data": {
-                    "anchor": [
-                        0.5,
-                        1
-                    ],
-                    "size": [
-                        308,
-                        29
-                    ],
-                    "angle": 0,
-                    "position": [
-                        41,
-                        728
-                    ],
-                    "visible": true
-                },
-                "children": {
-                    "brackets": {
-                        "type": "Image",
-                        "data": {
-                            "texture": "brackets",
-                            "anchor": [
-                                0.5,
-                                0.5
-                            ],
-                            "size": [
-                                308,
-                                20
-                            ],
-                            "angle": 0,
-                            "position": [
-                                0,
-                                4
-                            ],
-                            "visible": true
-                        },
-                        "layout": {
-                            "x_anchor": "center",
-                            "y_anchor": "middle",
-                            "absolute": false,
-                            "x_offset": 0,
-                            "y_offset": -0.02
-                        }
-                    },
-                    "ITEM CODEX": {
-                        "type": "Label",
-                        "data": {
-                            "anchor": [
-                                0.5,
-                                1
-                            ],
-                            "size": [
-                                408.96,
-                                76.68
-                            ],
-                            "position": [
-                                58,
-                                -7
-                            ],
-                            "angle": 0,
-                            "visible": true,
-                            "font": "mainFont",
-                            "text": "ITEM CODEX",
-                            "foreground": "#ffd9a9ff",
-                            "background": "#00000000",
-                            "padding": [
-                                0,
-                                0,
-                                0,
-                                0
-                            ],
-                            "valign": "middle",
-                            "halign": "left",
-                            "scale": 0.47
-                        },
-                        "children": {},
-                        "layout": {
-                            "x_anchor": "center",
-                            "y_anchor": "top",
-                            "absolute": false,
-                            "x_offset": 0,
-                            "y_offset": 0
-                        }
-                    }
-                },
-                "layout": {
-                    "x_anchor": "center",
-                    "y_anchor": "top",
-                    "absolute": false,
-                    "x_offset": 0,
-                    "y_offset": -0.11
-                }
-            },
             "codexBG": {
                 "type": "Image",
                 "data": {
@@ -336,6 +238,131 @@
                     "absolute": false,
                     "x_offset": 0,
                     "y_offset": -0.27
+                }
+            },
+            "codexFrame": {
+                "type": "Image",
+                "data": {
+                    "texture": "codexFrame",
+                    "anchor": [
+                        0.5,
+                        0.5
+                    ],
+                    "size": [
+                        393,
+                        852
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "header": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        308,
+                        29
+                    ],
+                    "angle": 0,
+                    "position": [
+                        41,
+                        728
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "brackets": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "brackets",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                308,
+                                20
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                4
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.02
+                        }
+                    },
+                    "ITEM CODEX": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                1
+                            ],
+                            "size": [
+                                408.96,
+                                76.68
+                            ],
+                            "position": [
+                                58,
+                                -7
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "ITEM CODEX",
+                            "foreground": "#ffd9a9ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "middle",
+                            "halign": "left",
+                            "scale": 0.47
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.11
                 }
             },
             "darkOverlay": {

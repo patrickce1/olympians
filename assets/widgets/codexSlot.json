@@ -4,7 +4,7 @@
         "visible": ["children","item","data", "visible"]
     },
     "contents": {
-        "type": "Node",
+        "type": "Button",
         "format": {
             "type": "Anchored"
         },
@@ -22,6 +22,7 @@
                 88.8,
                 450
             ],
+            "upnode": "background",
             "visible": true
         },
         "children": {
