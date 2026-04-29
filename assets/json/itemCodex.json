@@ -1,0 +1,234 @@
+{
+  "items": [
+    {
+      "id": "apple",
+      "name": "Apple",
+      "image_large": "apple_large",
+      "rarity": "Common",
+      "house": "None",
+      "category": "Support",
+      "effect_label": "Heal: +10HP",
+      "description": "A crisp red apple that restores a small amount of health."
+    },
+    {
+      "id": "nectar",
+      "name": "Nectar",
+      "image_large": "nectar_large",
+      "rarity": "Common",
+      "house": "None",
+      "category": "Support",
+      "effect_label": "Heal: +15HP",
+      "description": "A sweet divine drink that restores a moderate amount of health."
+    },
+    {
+      "id": "sword",
+      "name": "Sword",
+      "image_large": "sword_large",
+      "rarity": "Common",
+      "house": "None",
+      "category": "Attack",
+      "effect_label": "Damage: -20HP",
+      "description": "A well-forged blade that deals a reliable amount of damage to the boss."
+    },
+    {
+      "id": "arrow",
+      "name": "Bow & Arrow",
+      "image_large": "arrow_large",
+      "rarity": "Common",
+      "house": "None",
+      "category": "Attack",
+      "effect_label": "Damage: -23HP",
+      "description": "A swift ranged shot that deals slightly more damage than a sword from a distance."
+    },
+    {
+      "id": "shield",
+      "name": "Shield",
+      "image_large": "shield_large",
+      "rarity": "Common",
+      "house": "None",
+      "category": "Utility",
+      "effect_label": "Shield: 20HP / 5s",
+      "description": "A sturdy shield that absorbs incoming damage for a short time before shattering."
+    },
+    {
+      "id": "lightning",
+      "name": "Lightning Bolt",
+      "image_large": "lightning_large",
+      "rarity": "Rare",
+      "house": "Zeus",
+      "category": "Attack",
+      "effect_label": "Damage: -27HP + Stun 2s",
+      "description": "Zeus's bolt strikes vertically down the screen, dealing damage and briefly freezing the boss in place."
+    },
+    {
+      "id": "trident",
+      "name": "Trident",
+      "image_large": "trident_large",
+      "rarity": "Rare",
+      "house": "Poseidon",
+      "category": "Attack",
+      "effect_label": "Damage: -27HP + Vulnerability 2s",
+      "description": "Poseidon's spear lunges forward in a burst, leaving the boss more vulnerable for a short window."
+    },
+    {
+      "id": "helm",
+      "name": "Helm of Darkness",
+      "image_large": "helm_large",
+      "rarity": "Rare",
+      "house": "Hades",
+      "category": "Utility",
+      "effect_label": "Invincibility: 1 Hit",
+      "description": "Hades' helm of shadow grants complete invincibility, absorbing the next single hit no matter how powerful."
+    },
+    {
+      "id": "bouquet",
+      "name": "Bouquet of Wheat",
+      "image_large": "bouquet_large",
+      "rarity": "Rare",
+      "house": "Demeter",
+      "category": "Support",
+      "effect_label": "Heal: +25HP",
+      "description": "Demeter's harvest gift restores a large amount of health, well above a standard heal."
+    },
+    {
+      "id": "mallet",
+      "name": "Mallet",
+      "image_large": "mallet_large",
+      "rarity": "Rare",
+      "house": "Hephaestus",
+      "category": "Attack",
+      "effect_label": "Damage: 10HP + 50% per use",
+      "description": "Hephaestus's forge hammer crashes down in a vertical slash. Grows more powerful with every use."
+    },
+    {
+      "id": "aegis",
+      "name": "Aegis",
+      "image_large": "aegis_large",
+      "rarity": "Rare",
+      "house": "Athena",
+      "category": "Utility",
+      "effect_label": "Damage Reduction: 50% / 10s",
+      "description": "Athena's divine shield bearing the face of Medusa. Significantly reduces incoming damage for a sustained duration."
+    },
+    {
+      "id": "spear",
+      "name": "Spear",
+      "image_large": "spear_large",
+      "rarity": "Rare",
+      "house": "Ares",
+      "category": "Attack",
+      "effect_label": "Damage: -27HP + Side Vulnerability 5s",
+      "description": "Ares's war spear pokes forward dealing burst damage, leaving the struck side of the boss extra vulnerable."
+    },
+    {
+      "id": "sandals",
+      "name": "Winged Sandals",
+      "image_large": "sandals_large",
+      "rarity": "Rare",
+      "house": "Hermes",
+      "category": "Utility",
+      "effect_label": "Slow: 50% / 5s + Vulnerable 40%",
+      "description": "Hermes's sandals slow the boss's attacks and make them more vulnerable to damage during the slow."
+    },
+    {
+      "id": "love_potion",
+      "name": "Love Potion",
+      "image_large": "love_potion_large",
+      "rarity": "Rare",
+      "house": "Aphrodite",
+      "category": "Utility",
+      "effect_label": "Idle: 5s + DOT: 5HP/s",
+      "description": "Aphrodite's brew forces the boss to reset to idle, leaving them dazed and taking damage over time."
+    },
+    {
+      "id": "rage",
+      "name": "Rage",
+      "image_large": "rage_large",
+      "rarity": "Divine",
+      "house": "Ares",
+      "category": "Attack",
+      "effect_label": "Damage: -60HP + Full Vulnerability 6s",
+      "description": "Ares ignites the battlefield in a massive explosion, dealing heavy damage and leaving the boss fully vulnerable."
+    },
+    {
+      "id": "educate",
+      "name": "Educate",
+      "image_large": "educate_large",
+      "rarity": "Divine",
+      "house": "Athena",
+      "category": "Utility",
+      "effect_label": "House Override: All Items",
+      "description": "Athena's wisdom transcends all boundaries, allowing item effects to apply regardless of house alignment."
+    },
+    {
+      "id": "thunderstorm",
+      "name": "Thunderstorm",
+      "image_large": "thunderstorm_large",
+      "rarity": "Divine",
+      "house": "Zeus",
+      "category": "Attack",
+      "effect_label": "Damage: 10-20-40-80HP (Interval)",
+      "description": "Zeus summons a storm cloud that rains lightning in escalating strikes, each hit more devastating than the last."
+    },
+    {
+      "id": "tide",
+      "name": "Tide",
+      "image_large": "tide_large",
+      "rarity": "Divine",
+      "house": "Poseidon",
+      "category": "Attack",
+      "effect_label": "Lifesteal: All Teammates / 5s",
+      "description": "Poseidon floods the arena in layered waves. Outgoing attack damage heals all teammates for the same amount."
+    },
+    {
+      "id": "resurrection",
+      "name": "Resurrection",
+      "image_large": "resurrection_large",
+      "rarity": "Divine",
+      "house": "Hades",
+      "category": "Support",
+      "effect_label": "Revive: 25HP + Regen 5HP/s / 5s",
+      "description": "Hades reaches beyond death to revive all fallen allies and grant every teammate ongoing healing."
+    },
+    {
+      "id": "sparky_anvil",
+      "name": "Sparky Anvil",
+      "image_large": "sparky_anvil_large",
+      "rarity": "Divine",
+      "house": "Hephaestus",
+      "category": "Utility",
+      "effect_label": "Upgrade: Common→Rare + 10% Rare→Divine",
+      "description": "Hephaestus's legendary forge upgrades all common items to rare, with a chance of elevating rare items to divine."
+    },
+    {
+      "id": "cornucopia",
+      "name": "Cornucopia",
+      "image_large": "cornucopia_large",
+      "rarity": "Divine",
+      "house": "Demeter",
+      "category": "Support",
+      "effect_label": "Team Heal: +50HP / 7s",
+      "description": "Demeter's horn of endless plenty sustains all teammates with a generous heal over time."
+    },
+    {
+      "id": "charm",
+      "name": "Charm",
+      "image_large": "charm_large",
+      "rarity": "Divine",
+      "house": "Aphrodite",
+      "category": "Utility",
+      "effect_label": "Team Buff: +100% All Categories / 10s",
+      "description": "Aphrodite amplifies every player's strongest category, granting the whole team a massive buff across all categories."
+    },
+    {
+      "id": "item_frenzy",
+      "name": "Item Frenzy",
+      "image_large": "item_frenzy_large",
+      "rarity": "Divine",
+      "house": "Hermes",
+      "category": "Utility",
+      "effect_label": "Clear Inventory + Open Divine Chest",
+      "description": "Hermes clears everyone's inventory and opens a divine chest, unleashing a frenzy of powerful random items."
+    }
+  ]
+}
