@@ -1006,6 +1006,24 @@ public:
     void updateSlidingItems(float dt);
     
     /**
+     * Represents the animation to slide the dialogue in from the side of the screen in the tutorial only.
+     */
+    void slideDialogueIn();
+    /**
+     * Represents the animation to slide the dialogue out to the side of the screen in the tutorial only.
+     */
+    void slideDialogueOut();
+    /**
+     * Shows the dialogue box with the specified message..
+     */
+    void showDialogue(const std::string& message);
+    /**
+     * Retracts the dialogue box.
+     */
+    void hideDialogue();
+        
+    
+    /**
      * Updates friction deceleration for a sliding item and its body position.
      * Called each frame to slow down items based on ITEM_SLIDE_FRICTION_DECELERATION.
      *
