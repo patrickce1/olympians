@@ -1,9 +1,128 @@
 {
   "steps": [
-      { "type": "spawn_item", "defId": "apple", "passDirection": 0 },
-      { "type": "wait_for_action", "action": "PASS_LEFT", "text": "But you have some wheat in your hand. Pass it to your teammate!", "bossTarget": 0 },
-      { "type": "show_message", "text": "Circe is attacking!", "delay": 3.0, "bossActive": false, "bossTarget": 0},
-      { "type": "show_message", "action": "PASS_LEFT", "text": "You can't heal yourself, your teammates must heal you!", "delay": 3.0, "bossTarget": 0 },
+    {
+      "type": "show_message",
+      "text": "Tutorial: Boss Attacks and Passing",
+      "bossActive": false,
+      "delay": 3.0
+    },
+    {
+      "type": "boss_attack",
+      "text": "Circe is attacking!",
+      "bossTarget": 0,
+      "delay": 3.0
+    },
+    {
+      "type": "show_message",
+      "text": "You can't heal yourself, your teammates must heal you!",
+      "bossActive": false,
+      "delay": 3.0
+    },
+    {
+      "type": "spawn_item",
+      "defId": "wheat",
+      "passDirection": 0
+    },
+    {
+      "type": "wait_for_action",
+      "action": "PASS_LEFT",
+      "text": "But you have some wheat in your hand. Pass it to your teammate!"
+    },
+    {
+      "type": "show_message",
+      "text": "Nice, your teammate healed you!",
+      "delay": 3.0
+    },
+    {
+      "type": "show_message",
+      "text": "Tutorial: Healing Teammates, Boss Direction, and Item Drops",
+      "delay": 3.0
+    },
+    {
+      "type": "boss_attack",
+      "text": "Circe turns toward your other teammate.",
+      "bossTarget": 1,
+      "delay": 3.0
+    },
+    {
+      "type": "show_message",
+      "text": "Circe hits your teammate. They drop below 50% health!",
+      "delay": 3.0
+    },
+    {
+      "type": "show_message",
+      "text": "Notice the teammate icon is red. They are below 50%.",
+      "delay": 3.0
+    },
+    {
+      "type": "show_message",
+      "text": "When their icon is gray, they're dead and need special items to revive.",
+      "delay": 3.0
+    },
+    {
+      "type": "show_message",
+      "text": "Items enter your inventory periodically and can be heals or attacks.",
+      "delay": 3.0
+    },
+    { "type": "delay", "delay": 0.6 },
+    {
+      "type": "spawn_item",
+      "defId": "nectar",
+      "passDirection": 0
+    },
+    {
+      "type": "wait_for_action",
+      "action": "DROP_ALLY_RIGHT",
+      "text": "Drag the heal to your right teammate to heal them."
+    },
+    {
+      "type": "show_message",
+      "text": "Great! Your teammate is at full health.",
+      "delay": 3.0
+    },
+    {
+      "type": "show_message",
+      "text": "Tutorial: Shielding and Damage",
+      "delay": 3.0
+    },
+    {
+      "type": "boss_defend",
+      "bossTarget": 1,
+      "text": "Circe put up a shield on her front. Your teammate's attacks will be less effective.",
+      "delay": 3.0
+    },
+    { "type": "delay", "delay": 0.8 },
+    {
+      "type": "show_message",
+      "text": "Your teammate just passed you their sword. Passing attacks while shielded is smart.",
+      "delay": 3.0
+    },
+    {
+      "type": "spawn_item",
+      "defId": "sword",
+      "passDirection": 2
+    },
+    {
+      "type": "wait_for_action",
+      "action": "DROP_BOSS",
+      "text": "Use the attack item on the boss now."
+    },
+    {
+      "type": "spawn_item",
+      "defId": "shield",
+      "passDirection": 1
+    },
+    {
+      "type": "wait_for_action",
+      "action": "DROP_ALLY_LEFT",
+      "text": "Drag the shield to your left teammate to give them protection."
+    },
+    {
+      "type": "show_message",
+      "text": "That covers shields, heals, passing, and boss direction. Defeat Circe.",
+      "bossActive": true,
+      "delay": 3.0
+    },
     { "type": "end" }
   ]
 }
