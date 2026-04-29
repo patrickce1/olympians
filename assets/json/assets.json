@@ -560,7 +560,23 @@
         },
         "houseNameBG": {
             "file": "textures/preGameEntryScene/houseNameBG.png"
+        },
+        "itemLarge": {
+            "file": "textures/codexScene/itemLarge.png"
+        },
+        "scrollBG": {
+            "file": "textures/codexScene/scrollBG.png"
+        },
+        "codexBG": {
+            "file": "textures/codexScene/codexBG.png"
+        },
+        "buttonUp": {
+            "file": "textures/codexScene/buttonUp.png"
+        },
+        "buttonDown": {
+            "file": "textures/codexScene/buttonDown.png"
         }
+        
     },
     "fonts": {
         "felt": {
@@ -599,6 +615,22 @@
         "floatingNumbers": {
             "file": "fonts/GRECOromanLubedWrestling.ttf",
             "size": 48
+        },
+        "papyrus letBold16": {
+            "file": "fonts/Papyrus LET Bold.ttf",
+            "size": 16
+        },
+        "papyrusRegular15": {
+            "file": "fonts/papyrus.ttf",
+            "size": 15
+        },
+        "papyrusRegular13": {
+            "file": "fonts/papyrus.ttf",
+            "size": 13
+        },
+        "papyrus letBold20": {
+            "file": "fonts/Papyrus LET Bold.ttf",
+            "size": 20
         }
     },
     "jsons": {
@@ -715,6 +747,7 @@
         "bossSelectScene": "json/scenes/bossSelectionScene.json",
         "winLoseScene": "json/scenes/winLoseScene.json",
         "preGameEntryScene": "json/scenes/preGameEntryScene.json",
+        "codexScene": "json/scenes/codexScene.json",
         "heroCard": "widgets/houseSelect/heroCard.json",
         "teamHouseIcon": "widgets/houseSelect/teamHouseIcon.json",
         "playerHouseIcon": "widgets/houseSelect/playerHouseIcon.json",
@@ -835,6 +868,17 @@
             },
             "data": {
                 "key": "preGameEntryScene",
+                "variables": {}
+            }
+        },
+        "codexScene": {
+            "type": "Widget",
+            "comment": "Root node of the codex scene",
+            "format": {
+                "type": "Anchored"
+            },
+            "data": {
+                "key": "codexScene",
                 "variables": {}
             }
         }
