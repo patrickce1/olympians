@@ -110,3 +110,58 @@ void TutorialController::parseSteps(const std::shared_ptr<JsonValue>& json) {
         _steps.push_back(step);
     }
 }
+
+#pragma mark - Update
+void TutorialController::update(float dt) {
+    if (!_active || _index < 0 || _index >= (int)_steps.size()) return;
+    
+    // wait_for_action steps never auto-advance — only onAction() can advance them.
+    if (_waitingForAction) {
+        
+        return;
+    }
+    
+    //Wait until the time defined is up
+    if (_timer > 0.0f) {
+        _timer = std::max(0.0f, _timer - dt);
+        if (_timer <= 0.0f) {
+            _index++;
+            advanceStep();
+        }
+    }
+}
+
+#pragma mark - Input
+void TutorialController::onAction(InputController::Action action) {
+    if (!_active || !_waitingForAction) return;
+    const TutorialStep& step = _steps[_index];
+
+    // Empty action means any action advances.
+    if (step.action == InputController::Action::NONE || step.action == action) {
+        CULog("Tutorial: action matched, advancing");
+        _waitingForAction = false;
+        _index++;
+        advanceStep();
+    } else {
+        CULog("Tutorial: wrong action, still waiting");
+    }
+}
+
+void TutorialController::dismissMessage() {
+    //Inactive controller
+    if (!_active) return;
+    
+    //Instruction out of bound
+    if (_index < 0 || _index >= (int)_steps.size()) return;
+    
+    const TutorialStep& step = _steps[_index];
+    
+    //Only Steps that are SHOW_MESSAGE should be dismissible.
+    if (step.type != StepType::SHOW_MESSAGE) return;
+    
+    //Only steps that had delays of 0.0 can be tapped to dismiss.
+    if (step.delay > 0.0f) return;
+    CULog("Tutorial: message dismissed by tap");
+    _index++;
+    advanceStep();
+}
