@@ -18,14 +18,14 @@ enum class StepType {
     DELAY,
     END,
     UNKNOWN
-}
+};
 
 enum class ZoneType {
     LEFT_SUPPORT,
     RIGHT_SUPPORT,
     ATTACK,
     NONE
-}
+};
 /**
  * The atomic step description parsed from a JSON.
  * Each field is optional aside from type, which defines what this step will do.

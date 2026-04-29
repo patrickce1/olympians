@@ -22,7 +22,6 @@ void TutorialController::dispose() {
     _active = false;
     _timer = 0.0f;
     _waitingForAction = false;
-    _lastStepWasMessage = false;
 }
 
 void TutorialController::loadInstructionsFromJson() {
@@ -49,7 +48,6 @@ void TutorialController::start() {
     _index = 0;
     _timer = 0.0f;
     _waitingForAction = false;
-    _lastStepWasMessage = false;
     CULog("Tutorial: started with %zu steps", _steps.size());
     advanceStep();
 }
@@ -62,7 +60,6 @@ void TutorialController::stop() {
 
 StepType TutorialController::parseStepType(const std::string& str) const {
     if (str == "show_message")    return StepType::SHOW_MESSAGE;
-    if (str == "highlight_zone")  return StepType::HIGHLIGHT_ZONE;
     if (str == "wait_for_action") return StepType::WAIT_FOR_ACTION;
     if (str == "spawn_item")      return StepType::SPAWN_ITEM;
     if (str == "boss_attack")     return StepType::BOSS_ATTACK;
