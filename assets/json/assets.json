@@ -578,6 +578,9 @@
         },
         "buttonDown": {
             "file": "textures/codexScene/buttonDown.png"
+        },
+        "bottomFade": {
+            "file": "textures/codexScene/bottomFade.png"
         }
         
     },
@@ -742,6 +745,7 @@
         "ability":     "widgets/ability.json",
         "codexGrid": "widgets/codexGrid.json",
         "codexSlot":     "widgets/codexSlot.json",
+        "codexScroll":     "widgets/codexScroll.json",
         "client": "json/scenes/clientScene.json",
         "textfield": "widgets/elements/textfield.json",
         "hostSetup": "json/scenes/hostSetupScene.json",

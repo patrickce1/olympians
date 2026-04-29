@@ -1,0 +1,404 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0.5,
+                0
+            ],
+            "size": [
+                497,
+                346
+            ],
+            "angle": 0,
+            "position": [
+                -52,
+                -51
+            ],
+            "visible": false
+        },
+        "children": {
+            "scrollBG": {
+                "type": "Image",
+                "data": {
+                    "texture": "scrollBG",
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        497,
+                        346
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "info": {
+                "type": "Node",
+                "format": {
+                    "type": "Float",
+                    "x_alignment": "center",
+                    "y_alignment": "middle",
+                    "orientation": "horizontal"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        294,
+                        44
+                    ],
+                    "angle": 0,
+                    "position": [
+                        102,
+                        159
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "rarity": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "center",
+                            "y_alignment": "top",
+                            "orientation": "vertical"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                67,
+                                44
+                            ],
+                            "angle": 0,
+                            "position": [
+                                33.5,
+                                22
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "header": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        63,
+                                        27
+                                    ],
+                                    "position": [
+                                        33.5,
+                                        13.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "papyrus letBold16",
+                                    "text": "RARITY",
+                                    "foreground": "#44300bff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "left"
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        -6,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            },
+                            "label": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        42,
+                                        23
+                                    ],
+                                    "position": [
+                                        33.5,
+                                        32.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "papyrusRegular15",
+                                    "text": "Divine",
+                                    "foreground": "#44300bff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "center"
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "priority": 0,
+                            "padding": [
+                                0,
+                                0,
+                                5,
+                                0
+                            ]
+                        }
+                    },
+                    "type": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "center",
+                            "y_alignment": "top",
+                            "orientation": "vertical"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                219,
+                                41
+                            ],
+                            "angle": 0,
+                            "position": [
+                                184.5,
+                                22
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "header": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        67,
+                                        27
+                                    ],
+                                    "position": [
+                                        109.5,
+                                        13.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "papyrus letBold16",
+                                    "text": "UTILITY",
+                                    "foreground": "#2000acff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "left"
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        -6,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            },
+                            "description": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        219,
+                                        20
+                                    ],
+                                    "position": [
+                                        109.5,
+                                        31
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "papyrusRegular13",
+                                    "text": "Team Buff: +100% / 10s",
+                                    "foreground": "#2000acff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "center",
+                                    "wrap" : true
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "priority": 1,
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ]
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.41
+                }
+            },
+            "description": {
+                "type": "Label",
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        268,
+                        80
+                    ],
+                    "position": [
+                        115,
+                        67.5
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "font": "papyrusRegular15",
+                    "text": "Aphrodite amplifies every player's strongest category, granting the whole team a massive buff across all categories.",
+                    "foreground": "#000000ff",
+                    "background": "#00000000",
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "valign": "top",
+                    "halign": "center",
+                    "wrap" : true
+                },
+                "children": {},
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.57
+                }
+            },
+            "itemName": {
+                "type": "Label",
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        237,
+                        34
+                    ],
+                    "position": [
+                        130,
+                        209
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "font": "papyrus letBold20",
+                    "text": "APHRODITE’S CHARM ",
+                    "foreground": "#44300bff",
+                    "background": "#00000000",
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "valign": "top",
+                    "halign": "center"
+                },
+                "children": {},
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.26,
+                    "y_offset": -0.3
+                }
+            }
+        }
+    }
+}
