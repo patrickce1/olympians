@@ -116,6 +116,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto appleDef = db.getDef("apple");
     auto shieldDef = db.getDef("shield");
     auto helmDef = db.getDef("helm");
+    auto wheatDef = db.getDef("wheat");
     auto spearDef = db.getDef("spear");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
            "items: lightning_bolt affinity parses as Zeus");
@@ -135,6 +136,12 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
                     floatsEqualWithinTolerance(helmDef->getEffects()[0].multiplier, 0.0f) &&
                     floatsEqualWithinTolerance(helmDef->getEffects()[0].duration, 1000.0f),
            "items: helm barrier values parse");
+    assertWithLabel(wheatDef && wheatDef->hasEffectType(ItemDef::EffectType::Regen),
+           "items: wheat parses regen effect");
+    assertWithLabel(wheatDef && !wheatDef->getEffects().empty() &&
+                    floatsEqualWithinTolerance(wheatDef->getEffects()[0].amount, 25.0f) &&
+                    floatsEqualWithinTolerance(wheatDef->getEffects()[0].duration, 10.0f),
+           "items: wheat regen values parse");
     assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
            "items: spear parses vulnerable effect");
     assertWithLabel(spearDef && !spearDef->getEffects().empty() && floatsEqualWithinTolerance(spearDef->getEffects()[0].multiplier, 2.0f),
@@ -577,6 +584,75 @@ void testBarrierEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
  * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
  * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
  */
+void testRegenEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                     const std::shared_ptr<cugl::JsonValue>& housesJson,
+                     const std::string& housesJsonPath,
+                     const std::string& enemiesJsonPath) {
+    (void)enemiesJsonPath;
+
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "regen: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "regen: house multipliers load succeeds");
+
+    auto wheatDef = db.getDef("wheat");
+    assertWithLabel(wheatDef != nullptr, "regen: wheat def exists");
+    if (!wheatDef || wheatDef->getEffects().empty()) return;
+
+    const ItemDef::Effect regenEffect = wheatDef->getEffects()[0];
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "regen: house loader init succeeds");
+
+    Player demeter("demeter", 10, "Demeter Tester", loader);
+    Player regenTarget("ares", 11, "Regen Target", loader);
+    regenTarget.updateHealth(-80.0f);
+
+    auto instWheat = ItemInstance::alloc("wheat", 1007);
+    assertWithLabel(instWheat != nullptr, "regen: create wheat instance");
+    if (!instWheat) return;
+    demeter.addItem(*instWheat);
+
+    const float healthBeforeUse = regenTarget.getCurrentHealth();
+    float resolvedHeal = demeter.useItemById(instWheat->getId(), regenTarget, db);
+    const float expectedImmediateHeal = wheatDef->getBaseValue() * (1.0f + 1.0f) * 1.5f;
+    assertWithLabel(floatsEqualWithinTolerance(resolvedHeal, expectedImmediateHeal),
+                    "regen: wheat item returns the expected resolved base heal");
+    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getCurrentHealth() - healthBeforeUse, expectedImmediateHeal),
+                    "regen: wheat still applies its base heal immediately");
+    assertWithLabel(regenTarget.hasRegen(), "regen: wheat applies a timed regen effect");
+    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenAmountRemaining(), regenEffect.amount),
+                    "regen: regen amount tracks remaining healing");
+    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenDuration(), regenEffect.duration),
+                    "regen: regen duration applies");
+
+    const float healthBeforeTick = regenTarget.getCurrentHealth();
+    regenTarget.updateEffects(4.0f);
+    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getCurrentHealth() - healthBeforeTick, 10.0f),
+                    "regen: ticking effects heals proportionally over time");
+    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenAmountRemaining(), 15.0f),
+                    "regen: remaining amount decreases after ticking");
+    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenDuration(), 6.0f),
+                    "regen: remaining duration decreases after ticking");
+
+    regenTarget.updateEffects(6.0f);
+    assertWithLabel(!regenTarget.hasRegen(), "regen: regen expires after its duration completes");
+}
+
+/**
+ * Tests the helm item effect on a player target.
+ *
+ * Verifies that:
+ * - Helm applies a barrier effect with zero damage multiplier
+ * - The configured long-duration barrier values are preserved on the target
+ * - The next incoming hit is fully negated
+ * - Later hits use the neutral multiplier after the first protected hit
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJson      Parsed JSON object containing house multipliers
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
 void testHelmEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
                     const std::shared_ptr<cugl::JsonValue>& housesJson,
                     const std::string& housesJsonPath,
@@ -950,6 +1026,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testEffectiveValueComputation(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testShieldEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testBarrierEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testRegenEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testHelmEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testShieldBarrierCoexistence(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testStunEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);

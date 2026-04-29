@@ -101,6 +101,12 @@ static void broadcastSupportEffects(NetworkController& network,
                     effect.duration,
                     targetPlayerID);
                 break;
+            case ItemDef::EffectType::Regen:
+                network.broadcastSupportEffect(SupportEffectType::Regen,
+                    effect.amount,
+                    effect.duration,
+                    targetPlayerID);
+                break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Vulnerable:
@@ -150,6 +156,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Upgrade:
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
+            case ItemDef::EffectType::Regen:
                 break;
         }
     }

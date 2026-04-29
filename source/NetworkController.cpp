@@ -34,6 +34,8 @@ void readPlayerRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage&
         effectState.shieldDuration = deserializer.readFloat();
         effectState.barrierMultiplier = deserializer.readFloat();
         effectState.barrierDuration = deserializer.readFloat();
+        effectState.regenAmountRemaining = deserializer.readFloat();
+        effectState.regenDuration = deserializer.readFloat();
     }
 
     for (int ii = 0; ii < kMaxPlayers; ++ii) {
@@ -64,10 +66,14 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
             serializer.writeFloat(player->getShieldDuration());
             serializer.writeFloat(player->getBarrierMultiplier());
             serializer.writeFloat(player->getBarrierDuration());
+            serializer.writeFloat(player->getRegenAmountRemaining());
+            serializer.writeFloat(player->getRegenDuration());
         } else {
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(1.0f);
+            serializer.writeFloat(0.0f);
+            serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
         }
     }

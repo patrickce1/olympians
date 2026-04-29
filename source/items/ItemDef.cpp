@@ -37,6 +37,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
         out = ItemDef::EffectType::Barrier;
         return true;
     }
+    if (value == "regen") {
+        out = ItemDef::EffectType::Regen;
+        return true;
+    }
     if (value == "stun") {
         out = ItemDef::EffectType::Stun;
         return true;
@@ -156,10 +160,15 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
     }
 
     out.mitigation = 0.0f;
+    out.amount = 0.0f;
     if (json->has("mitigation") && json->get("mitigation")->isNumber()) {
         out.mitigation = std::max(0.0f, json->getFloat("mitigation"));
     } else if (json->has("amount") && json->get("amount")->isNumber()) {
         out.mitigation = std::max(0.0f, json->getFloat("amount"));
+    }
+
+    if (json->has("amount") && json->get("amount")->isNumber()) {
+        out.amount = std::max(0.0f, json->getFloat("amount"));
     }
 
     out.duration = 0.0f;

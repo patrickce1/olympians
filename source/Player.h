@@ -56,6 +56,12 @@ private:
     float _barrierMultiplier = 1.0f;
     /** The time left before the barrier expires */
     float _barrierDuration = 0.0f;
+    /** Runtime heal-over-time state. */
+    bool _hasRegen = false;
+    /** The total healing still left to apply over the remaining regen duration. */
+    float _regenAmountRemaining = 0.0f;
+    /** The time left before the regen expires. */
+    float _regenDuration = 0.0f;
     /** Number of prior mallet uses recorded for this player this round. */
     int _malletUseCount = 0;
 
@@ -138,6 +144,15 @@ public:
     /** Returns the remaining barrier duration. */
     float getBarrierDuration() const { return _barrierDuration; }
 
+    /** Returns whether a regen effect is currently active on this player. */
+    bool hasRegen() const { return _hasRegen; }
+
+    /** Returns the total healing still left to apply for the active regen. */
+    float getRegenAmountRemaining() const { return _regenAmountRemaining; }
+
+    /** Returns the remaining regen duration. */
+    float getRegenDuration() const { return _regenDuration; }
+
     /**
      * Returns the number of prior mallet uses recorded for this player this round.
      *
@@ -155,15 +170,20 @@ public:
      * @param shieldDuration    The remaining shield duration in seconds.
      * @param barrierMultiplier The active barrier damage multiplier.
      * @param barrierDuration   The remaining barrier duration in seconds.
+     * @param regenAmountRemaining The remaining total healing to apply from regen.
+     * @param regenDuration   The remaining regen duration in seconds.
      */
     void syncRuntimeEffects(float shieldHealth, float shieldDuration, float barrierMultiplier,
-        float barrierDuration) {
+        float barrierDuration, float regenAmountRemaining, float regenDuration) {
         _hasShield = shieldDuration > 0.0f;
         _shieldHealth = _hasShield ? shieldHealth : 0.0f;
         _shieldDuration = _hasShield ? shieldDuration : 0.0f;
         _hasBarrier = barrierDuration > 0.0f;
         _barrierMultiplier = _hasBarrier ? barrierMultiplier : 1.0f;
         _barrierDuration = _hasBarrier ? barrierDuration : 0.0f;
+        _hasRegen = regenDuration > 0.0f && regenAmountRemaining > 0.0f;
+        _regenAmountRemaining = _hasRegen ? regenAmountRemaining : 0.0f;
+        _regenDuration = _hasRegen ? regenDuration : 0.0f;
     }
     
     /**
@@ -216,6 +236,14 @@ public:
      * @param duration      How long the barrier will stay up for
      */
     void applyBarrier(float multiplier, float duration);
+
+    /**
+     * Applies a timed heal-over-time effect to this player.
+     *
+     * @param amount    The total healing to apply over the full duration.
+     * @param duration  How long the regen lasts.
+     */
+    void applyRegen(float amount, float duration);
     
     /**
      * Advances this player's active runtime support effects by the elapsed frame time.
