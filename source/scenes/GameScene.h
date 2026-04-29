@@ -127,26 +127,36 @@ struct ItemUseAnimation {
  * Contains metadata needed to render and advance animation frames.
  */
 struct AnimationEntry {
-    std::string id;                  /**< Animation identifier (e.g., "cyclops_idle_animation") */
-    std::string texture;             /**< Texture asset key (e.g., "gameScene/cyclops/cyclops_idle_animation") */
-    int frameCount;                  /**< Number of frames per animation row */
-    float frameDuration;             /**< Duration in seconds per frame */
-    int frameRows;                   /**< Number of rows in the sprite sheet */
-    
-    // Attack phase configuration
-    int buildupFrameCount = 0;       /**< Frames that loop during buildup. 0 = no buildup phase */
-    int damageFrame = -1;            /**< Frame index when damage fires (-1 = no damage trigger) */
+    /** Animation identifier (e.g., "cyclops_idle_animation") */
+    std::string id;
+    /** Texture asset key */
+    std::string texture;
+    /** Total number of frames per animation row */
+    int frameCount;
+    /** Duration in seconds per frame */
+    float frameDuration;
+    /** Number of rows in the sprite sheet */
+    int frameRows;
 
-    // Intro-then-loop configuration (mutually exclusive with buildup/attack)
-    int loopStartFrame = -1;         /**< Last frame of the one-shot intro; loop begins at loopStartFrame+1 (-1 = disabled) */
-    int loopEndFrame = -1;           /**< Inclusive last frame of the loop range (-1 = loop to end of animation) */
+    // Loop configuration
+    /** First frame of the loop range. Frames before this are a one-shot intro (-1 = no loop, play linearly) */
+    int loopStartFrame = -1;
+    /** Last frame of the loop range. Frames after this are a one-shot outro */
+    int loopEndFrame = -1;
+    /** Frame index when damage events fire (-1 = fire at loop end or last frame) */
+    int damageFrame = -1;
 
     // Position and scale customization
-    float positionX = 196.5f;        /**< Screen X position for this animation */
-    float positionY = 120.0f;        /**< Screen Y position for this animation */
-    float scale = 0.92f;             /**< Scale multiplier for this animation */
-    float offsetX = 0.0f;            /**< X offset from base position */
-    float offsetY = 0.0f;            /**< Y offset from base position */
+    /** Screen X position for this animation */
+    float positionX = 196.5f;
+    /** Screen Y position for this animation */
+    float positionY = 120.0f;
+    /** Scale multiplier for this animation */
+    float scale = 0.92f;
+    /** X offset from base position */
+    float offsetX = 0.0f;
+    /** Y offset from base position */
+    float offsetY = 0.0f;
 };
 /**
  * Data for a single popup in a sequence.
@@ -780,35 +790,15 @@ public:
     void updateEnemyAnimationFrame(float dt, int localPlayerIndex);
 
     /**
-     * Calculates which animation frame should be displayed based on state time and animation phase.
-     * Handles both buildup/attack animations and simple looping animations.
+     * Calculates which animation frame to display based on state time and animation phase.
+     * Handles three phases: optional intro (plays once), loop (cycles for buildUpTime), optional outro (plays once).
+     * Animations with loopStartFrame < 0 play all frames linearly once.
      *
-     * @param stateTime The time elapsed in the current state (seconds)
+     * @param stateTime   Elapsed time in the current state (seconds)
+     * @param buildUpTime How long the loop phase runs before transitioning to outro (-1 = loop forever)
      * @return The frame index within the animation row (0-indexed)
      */
-    int calculateAnimationFrame(float stateTime) const;
-
-    /**
-     * Calculates the frame index during the buildup phase of an animation.
-     * Buildup frames loop until the buildup duration elapses.
-     *
-     * @param stateTime The time elapsed in the current state (seconds)
-     * @param buildupDuration The total duration of the buildup phase (seconds)
-     * @param buildupFrames Number of frames in the buildup phase
-     * @return The looping frame index within the buildup frames
-     */
-    int calculateBuildupFrame(float stateTime, float buildupDuration, int buildupFrames) const;
-
-    /**
-     * Calculates the frame index during the attack phase of an animation.
-     * Attack frames play sequentially without looping, clamped to the final frame.
-     *
-     * @param stateTime The time elapsed in the current state (seconds)
-     * @param buildupDuration The total duration of the buildup phase (seconds)
-     * @param buildupFrames Number of frames in the buildup phase
-     * @return The attack phase frame index (clamped to last attack frame)
-     */
-    int calculateAttackFrame(float stateTime, float buildupDuration, int buildupFrames) const;
+    int calculateAnimationFrame(float stateTime, float buildUpTime = -1.0f) const;
 
     /**
      * Ensures the frame index is within valid bounds.

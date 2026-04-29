@@ -73,7 +73,7 @@
                 "idle": {
                     "name": "idle",
                     "animationKey": "cyclops_idle_animation",
-                    "events": [
+                    "entryEvents": [
                         {
                             "type": "SIDE_MODIFIER",
                             "target": 0,
@@ -111,9 +111,9 @@
                     "nextState": "attack_2"
                 },
                 "attack_2": {
-                    "name": "stomp",
-                    "animationKey": "cyclops_slash_animation",
-                    "buildUpTime": 4.0,
+                    "name": "scream",
+                    "animationKey": "cyclops_scream_animation",
+                    "buildUpTime": 0.0,
                     "cooldownTime": 5.0,
                     "events": [
                         {
