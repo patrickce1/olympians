@@ -68,6 +68,7 @@ void Player::updateHealth(float delta) {
 
         if (_hasShield && _shieldDuration > 0.0f) {
             const float absorbedAmount = std::min(incomingDamage, _shieldHealth);
+            if (absorbedAmount > 0.0f) _shieldAbsorbedDamage = true;
             float tempDamage = incomingDamage;
             incomingDamage = std::max(0.0f, incomingDamage - _shieldHealth);
             
