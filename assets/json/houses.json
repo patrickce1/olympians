@@ -6,8 +6,8 @@
             "specialAbilities": ["bolt"],
             "spritesheetPath": "textures/zeus.png",
             "attack": 0.9,
-            "support": 0.2,
-            "utility": 0.4,
+            "support": 0.1,
+            "utility": 0.5,
             "affinityBonus": 1.5
         },
         {
@@ -15,9 +15,9 @@
             "maxHealth": 100.0,
             "specialAbilities": ["love"],
             "spritesheetPath": "textures/aphrodite.png",
-            "attack": 0.6,
-            "support": 0.6,
-            "utility": 0.8,
+            "attack": 0.3,
+            "support": 0.8,
+            "utility": 1.0,
             "affinityBonus": 1.5
         },
         {
@@ -26,8 +26,8 @@
             "specialAbilities": ["resurrect"],
             "spritesheetPath": "textures/hades.png",
             "attack": 0.7,
-            "support": 0.4,
-            "utility": 0.7,
+            "support": 0.3,
+            "utility": 0.8,
             "affinityBonus": 1.5
         },
         {
@@ -35,8 +35,8 @@
             "maxHealth": 100.0,
             "specialAbilities": ["harvest"],
             "spritesheetPath": "textures/demeter.png",
-            "attack": 0.3,
-            "support": 0.9,
+            "attack": 0.4,
+            "support": 1.0,
             "utility": 0.5,
             "affinityBonus": 1.5
         },
@@ -45,9 +45,9 @@
             "maxHealth": 100.0,
             "specialAbilities": ["aegis"],
             "spritesheetPath": "textures/athena.png",
-            "attack": 0.6,
-            "support": 0.6,
-            "utility": 0.8,
+            "attack": 0.65,
+            "support": 0.3,
+            "utility": 0.7,
             "affinityBonus": 1.5
         },
         {
@@ -55,9 +55,9 @@
             "maxHealth": 100.0,
             "specialAbilities": ["whirlpool"],
             "spritesheetPath": "textures/poseidon.png",
-            "attack": 0.8,
-            "support": 0.3,
-            "utility": 0.5,
+            "attack": 0.75,
+            "support": 0.7,
+            "utility": 0.2,
             "affinityBonus": 1.5
         },
         {
@@ -66,7 +66,7 @@
             "specialAbilities": ["armor"],
             "spritesheetPath": "textures/ares.png",
             "attack": 1.0,
-            "support": 0.1,
+            "support": 0.0,
             "utility": 0.4,
             "affinityBonus": 1.5
         },
@@ -75,9 +75,9 @@
             "maxHealth": 100.0,
             "specialAbilities": ["mallet"],
             "spritesheetPath": "textures/hephaestus.png",
-            "attack": 1.0,
-            "support": 0.1,
-            "utility": 0.4,
+            "attack": 0.55,
+            "support": 0.5,
+            "utility": 0.8,
             "affinityBonus": 1.5
         },
         {
@@ -85,9 +85,9 @@
             "maxHealth": 100.0,
             "specialAbilities": ["speed"],
             "spritesheetPath": "textures/hermes.png",
-            "attack": 1.0,
-            "support": 0.1,
-            "utility": 0.4,
+            "attack": 0.7,
+            "support": 0.3,
+            "utility": 0.9,
             "affinityBonus": 1.5
         }
     ]
