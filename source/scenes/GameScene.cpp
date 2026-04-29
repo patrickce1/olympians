@@ -871,8 +871,6 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         return true;
     }
 
-    const float baseValue      = def->getBaseValue();
-    const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
     const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
     const float finalDamage     = resolvedMagnitude * sideMultiplier;
     createFloatingPopup(dropPos, buildAttackDamagePopups(
