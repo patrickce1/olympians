@@ -224,11 +224,17 @@ bool TutorialController::executeStep(const TutorialStep& step) {
             
         case StepType::WAIT_FOR_ACTION:
             _waitingForAction = true;
-            if (_gameScene && !step.text.empty()) _gameScene->showDialogue(step.text);
+            if (_gameScene){
+                if (!step.text.empty()){
+                    _gameScene->showDialogue(step.text);
+                }
+                    applyZoneHighlight(step.action);
+            }
             return true;
             
         case StepType::END:
             if (_gameScene) _gameScene->hideDialogue();
+            _gameScene->setTutorialHighlight("none");
             _active = false;
             return true;
             
@@ -237,4 +243,36 @@ bool TutorialController::executeStep(const TutorialStep& step) {
             break;
     }
     return false;
+}
+
+void TutorialController::applyZoneHighlight(InputController::Action action) {
+    if (!_gameScene) {
+            CULog("Tutorial Error: _gameScene is NULL in applyZoneHighlight");
+            return;
+        }
+    CULog("Tutorial: applyZoneHighlight called with Action Enum ID: %d", (int)action);
+    
+    if (!_gameScene) return;
+    switch (action) {
+        case InputController::Action::PASS_LEFT:
+            _gameScene->setTutorialHighlight("pass_left");
+            break;
+        case InputController::Action::PASS_RIGHT:
+            _gameScene->setTutorialHighlight("pass_right");
+            break;
+        case InputController::Action::DROP_ALLY_LEFT:
+            _gameScene->setTutorialHighlight("left_support");
+            break;
+        case InputController::Action::DROP_ALLY_RIGHT:
+            _gameScene->setTutorialHighlight("right_support");
+            break;
+        case InputController::Action::DROP_BOSS:
+            _gameScene->setTutorialHighlight("attack");
+            break;
+        case InputController::Action::NONE:
+        case InputController::Action::DROP_INVALID:
+        default:
+            _gameScene->setTutorialHighlight("none");
+            break;
+    }
 }

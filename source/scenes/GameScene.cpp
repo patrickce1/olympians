@@ -154,6 +154,29 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
     return enemyEffects;
 }
 
+void GameScene::triggerBossAttack(int targetSlot) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return;
+
+    // 1. Optionally set the target if one was passed from the tutorial
+    if (targetSlot >= 0) {
+        enemy->setTargetIndex(targetSlot);
+    }
+
+    // 2. Force the enemy into an attack state
+    // You can hardcode ATTACK_1 for the tutorial or pick one
+    enemy->forceAttack(EnemyLoader::State::ATTACK_1);
+}
+
+void GameScene::triggerBossDefense() {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return;
+   
+    // 2. Force the enemy into an attack state
+    // You can hardcode ATTACK_1 for the tutorial or pick one
+    enemy->forceDefense(EnemyLoader::State::DEFENSE_MOVE);
+}
+
 /** Sends all collected enemy-facing effects of an attack item to the host.
  *
  * @param network    The network to send the enemy effects over.
@@ -643,6 +666,10 @@ void GameScene::setActive(bool value) {
                 _tutorialController.start();
                 CULog("GameScene: tutorial started, isActive=%d", _tutorialController.isActive() ? 1 : 0);
             }
+            if (_isTutorial){
+                clearTutorialHighlight();
+                setTutorialDisableSupportZones(false);
+            }
         }
     }
 }
@@ -667,6 +694,7 @@ void GameScene::reset() {
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
+    _tutorialHighlightZone.clear();
 
     // Clear any active animations before resetting
     clearItemUseAnimations();
@@ -2573,10 +2601,31 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
  * and toggles their visibility accordingly.
  */
 void GameScene::updateDropZoneVisibility(){
+    // If the tutorial has explicitly requested a highlight, keep those
+    // zones visible regardless of drag state.
+    if (!_tutorialHighlightZone.empty() && _tutorialHighlightZone != "none") {
+        if (_tutorialHighlightZone == "left_support") {
+            _supportLeftArea->setVisible(true);
+            _supportRightArea->setVisible(false);
+            _attackArea->setVisible(false);
+            return;
+        } else if (_tutorialHighlightZone == "right_support") {
+            _supportLeftArea->setVisible(false);
+            _supportRightArea->setVisible(true);
+            _attackArea->setVisible(false);
+            return;
+        } else if (_tutorialHighlightZone == "attack") {
+            _supportLeftArea->setVisible(false);
+            _supportRightArea->setVisible(false);
+            _attackArea->setVisible(true);
+            return;
+        } else if (_tutorialHighlightZone == "none") {
+            // fall through to normal handling
+        }
+    }
+
     if (_draggedItemId != 0) {
         
-        _passLeftArea->setVisible(true);
-        _passRightArea->setVisible(true);
         // Render attack/support zones based on item type
         auto itemDef = getHeldItemDef(_draggedItemId);
         
@@ -2585,17 +2634,26 @@ void GameScene::updateDropZoneVisibility(){
                 // Render attack zones when holding attack item
                 _attackArea->setVisible(true);
             } else {
-                // Render support zones when holding heal/support item
-                _supportLeftArea->setVisible(true);
-                _supportRightArea->setVisible(true);
+                // Render support zones when holding heal/support item.
+                // If the tutorial has requested to disable support zones
+                // we hide them here. Higher-level tutorial logic should
+                // also ensure support actions are rejected while the
+                // flag is set (so hiding is backed by input gating).
+                if (!_tutorialDisableSupportZones) {
+                    _supportLeftArea->setVisible(true);
+                    _supportRightArea->setVisible(true);
+                } else {
+                    // Fully hide visual affordances for support while the
+                    // tutorial expects a pass (prevents accidental use).
+                    _supportLeftArea->setVisible(false);
+                    _supportRightArea->setVisible(false);
+                }
             }
         }
     } else {
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
-        _passLeftArea->setVisible(false);
-        _passRightArea->setVisible(false);
     }
 }
 
@@ -3130,6 +3188,20 @@ void GameScene::syncInventoryWidgets() {
     for (ItemInstance::ItemId itemId : removedIds) {
         removeItemWidget(itemId);
     }
+}
+
+#pragma mark -
+#pragma mark Tutorial
+void GameScene::setTutorialHighlight(const std::string& zone) {
+    _tutorialHighlightZone = zone;
+}
+
+void GameScene::clearTutorialHighlight() {
+    _tutorialHighlightZone = "none";
+}
+
+void GameScene::setTutorialDisableSupportZones(bool disable) {
+    _tutorialDisableSupportZones = disable;
 }
 
 #pragma mark -

@@ -351,6 +351,30 @@ bool Enemy::readyToFire() const {
     return _currentAnimationFrame >= (stateDef->frameCount - 1);
 }
 
+/**
+ * Forces the enemy into a specific attack state immediately.
+ * Resets the attack lockout to ensure the state machine doesn't block the transition.
+ * * @param attackState The specific attack state to enter (e.g. ATTACK_1)
+ */
+void Enemy::forceAttack(EnemyLoader::State attackState) {
+    // Reset lockout so the attack can definitely start immediately
+    _attackLockout = 0.0f;
+    // Force the state
+    enterState(attackState);
+}
+
+/**
+ * Forces the enemy into  defense state immediately.
+ * Resets the attack lockout to ensure the state machine doesn't block the transition.
+ * * @param attackState The specific attack state to enter (e.g. DEFENSE_1)
+ */
+void Enemy::forceDefense(EnemyLoader::State defenseState) {
+    // Reset lockout so the defense can start immediately
+    _attackLockout = 0.0f;
+    // Force the state
+    enterState(defenseState);
+}
+
 /** Fires all events defined for the current state, adding them to the events buffer.
  * Called once per state when animation completes.
  */

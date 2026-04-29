@@ -273,7 +273,7 @@ protected:
     /** Zones used for inventory on screen. */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _inventoryZones;
     
-    /** IZones used for pass on screen. . */
+    /** Zones used for pass on screen. . */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _passZones;
 
     /** The reset button node. */
@@ -323,6 +323,11 @@ protected:
     
     /** The scene node representing the animated special effects to be populated in the scene based on the spritesheets. */
     std::shared_ptr<cugl::scene2::SceneNode> _specialEffectsLayer;
+    
+    /** The Current zone to highlight*/
+    std::string _tutorialHighlightZone = "none";
+    /** Whether support zones may be disabled*/
+    bool _tutorialDisableSupportZones = false;
 
 #pragma mark - Drag State
 
@@ -812,6 +817,9 @@ public:
      */
     void updateEnemyAnimationFrame(float dt, int localPlayerIndex);
 
+    void triggerBossAttack(int targetSlot);
+    void triggerBossDefense();
+    
     /**
      * Calculates which animation frame should be displayed based on state time and animation phase.
      * Handles both buildup/attack animations and simple looping animations.
@@ -1494,12 +1502,36 @@ public:
     
     /**
      * Updates the visibility of all drop zones based on the current interaction.
-     *
      * This function evaluates which drop zones should be visible at the current moment
      * (e.g., during drag-and-drop interactions or based on item/type compatibility)
      * and toggles their visibility accordingly.
      */
     void updateDropZoneVisibility();
+
+#pragma mark -
+#pragma mark Tutorial
+
+    /**
+     * This method ensures that only the specified zone is visible at any given time,
+     * effectively guiding the player's attention to a specific interaction area.
+     * @param zone The string identifier for the area to highlight.
+     * Accepted values: "attack", "left_support", "right_support", "pass_left", "pass_right".
+     */
+    void setTutorialHighlight(const std::string& zone);
+    
+    /**
+     * Deactivates all tutorial highlights.
+     * Resets the tutorial state to "none" and hides all highlight area nodes.
+     */
+    void clearTutorialHighlight();
+    
+    /**
+     * Toggles the visibility of the support zone highlights.
+     * Used during specific tutorial segments where support mechanics are either
+     * introduced or restricted.
+     * @param disable If true, hides support zones; if false, reveals them.
+     */
+    void setTutorialDisableSupportZones(bool disable);
 
     /**
      * Draws a green debug outline around the reset button's bounding box.

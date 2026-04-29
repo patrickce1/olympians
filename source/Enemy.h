@@ -195,6 +195,9 @@ public:
     /** Returns true when the current state is in the attack animation phase. */
     bool isInAttackAnimationPhase() const;
 
+    void forceAttack(EnemyLoader::State attackState);
+    void forceDefense(EnemyLoader::State defenseState);
+    
     /**
      * Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state.
      *

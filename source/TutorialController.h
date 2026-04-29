@@ -165,8 +165,9 @@ private:
     /**
      Returns true if this step is blocking (timer, action, tap). Returns false if the step is immediate and the loop should advance.
       */
-     bool executeStep(const TutorialStep& step);
+    bool executeStep(const TutorialStep& step);
      
+    void applyZoneHighlight(InputController::Action action);
     
     //Loads the steps defined by the asset into the _steps vector.
     void parseSteps(const std::shared_ptr<cugl::JsonValue>& json);
