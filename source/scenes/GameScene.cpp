@@ -1350,15 +1350,6 @@ int GameScene::validateFrameIndex(int frameInRow) const {
 }
 
 /**
- * Calculates the frame index during the buildup phase of an animation.
- * Buildup frames loop until the buildup duration elapses.
- *
- * @param stateTime The time elapsed in the current state (seconds)
- * @param buildupDuration The total duration of the buildup phase (seconds)
- * @param buildupFrames Number of frames in the buildup phase
- * @return The looping frame index within the buildup frames
- */
-/**
  * Calculates which animation frame should be displayed based on state time and animation phase.
  *
  * Three modes, determined by the animation entry:
@@ -1367,6 +1358,7 @@ int GameScene::validateFrameIndex(int frameInRow) const {
  *   - Simple loop:     cycles all frames continuously
  *
  * @param stateTime  Elapsed time in the current state (seconds)
+ * @param buildUpTime Duration of buildup phase for attack animations (seconds), or -1 if not applicable
  * @return           Frame index within the animation row (0-indexed)
  */
 int GameScene::calculateAnimationFrame(float stateTime, float buildUpTime) const {

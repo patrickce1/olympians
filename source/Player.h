@@ -121,7 +121,7 @@ public:
     bool hasShield() const { return _hasShield; }
 
     /** Returns true and clears the flag if the shield absorbed damage this hit. */
-    bool consumeShieldAbsorbedDamage() { bool b = _shieldAbsorbedDamage; _shieldAbsorbedDamage = false; return b; }
+    bool consumeShieldAbsorbedDamage() { bool didAbsorb = _shieldAbsorbedDamage; _shieldAbsorbedDamage = false; return didAbsorb; }
     
     /** Returns the current fixed mitigation value. */
     float getShieldHealth() const { return _shieldHealth; }

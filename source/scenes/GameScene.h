@@ -133,60 +133,39 @@ struct ItemUseAnimation {
  * Contains metadata needed to render and advance animation frames.
  */
 struct AnimationEntry {
-    /** Animation identifier (e.g., "cyclops_idle_animation") */
-    std::string id;
-    /** Texture asset key */
-    std::string texture;
-    /** Total number of frames per animation row */
-    int frameCount;
-    /** Duration in seconds per frame */
-    float frameDuration;
-    /** Number of rows in the sprite sheet */
-    int frameRows;
+    std::string id;             /** Animation identifier (e.g., "cyclops_idle_animation") */
+    std::string texture;        /** Texture asset key */
+    int frameCount;             /** Total number of frames in the animation */  
+    float frameDuration;        /** Duration of each frame in seconds */
+    int frameRows;              /** Number of rows in the sprite sheet */
+
 
     // Loop configuration
-    /** First frame of the loop range. Frames before this are a one-shot intro (-1 = no loop, play linearly) */
-    int loopStartFrame = -1;
-    /** Last frame of the loop range. Frames after this are a one-shot outro */
-    int loopEndFrame = -1;
-    /** Frame index when damage events fire (-1 = fire at loop end or last frame) */
-    int damageFrame = -1;
-    /** Sound key to play when damageFrame is reached (empty = no sound) */
-    std::string sound;
+    int loopStartFrame = -1;    /** First frame of the loop range. Frames before this are a one-shot intro (-1 = no loop, play linearly) */
+    int loopEndFrame = -1;      /** Last frame of the loop range. Frames after this are a one-shot outro (-1 = loop until end) */
+    int damageFrame = -1;       /** Frame index when damage events fire (-1 = fire at loop end or last frame) */
+    std::string sound;          /** Sound key to play when damageFrame is reached (empty = no sound) */
 
     // Position and scale customization
-    /** Screen X position for this animation */
-    float positionX = 196.5f;
-    /** Screen Y position for this animation */
-    float positionY = 120.0f;
-    /** Scale multiplier for this animation */
-    float scale = 0.92f;
-    /** X offset from base position */
-    float offsetX = 0.0f;
-    /** Y offset from base position */
-    float offsetY = 0.0f;
+    float positionX = 196.5f;   /** Screen X position for this animation */
+    float positionY = 120.0f;   /** Screen Y position for this animation */
+    float scale = 0.92f;        /** Scale multiplier for this animation */
+    float offsetX = 0.0f;       /** X offset from base position */
+    float offsetY = 0.0f;       /** Y offset from base position */
 };
 /**
  * Data for a single popup in a sequence.
  * General-purpose for any game event: damage, heals, buffs, status effects, health popups, etc.
  */
 struct FloatingPopupData {
-    /** Text content to display. */
-    std::string text;
-    /** Font size for this popup. Scaled relative to FLOATING_POPUP_BASE_FONT_SIZE. */
-    float fontSize = 32.0f;
-    /** Foreground (fill) color of the text. */
-    cugl::Color4 color = cugl::Color4::WHITE;
-    /** Outline (stroke) color drawn behind the text. Defaults to black. */
-    cugl::Color4 strokeColor = cugl::Color4::BLACK;
-    /** Seconds to wait after createFloatingPopup() is called before this popup spawns. */
-    float delaySeconds = 0.0f;
-    /** Seconds the popup holds at full opacity before fading out. */
-    float displayDuration = 2.0f;
-    /** Additional offset applied on top of the base screen position. */
-    cugl::Vec2 positionOffset = cugl::Vec2::ZERO;
-    /** If true, plays the popup_ding sound when this popup spawns. */
-    bool playSound = true;
+    std::string text;                               /** The text to display in the popup. */
+    float fontSize = 32.0f;                         /** Font size for this popup. Scaled relative to FLOATING_POPUP_BASE_FONT_SIZE. */
+    cugl::Color4 color = cugl::Color4::WHITE;       /** Foreground (fill) color of the text. */
+    cugl::Color4 strokeColor = cugl::Color4::BLACK; /** Outline (stroke) color drawn behind the text. Defaults to black. */
+    float delaySeconds = 0.0f;                      /** Seconds to wait after createFloatingPopup() is called before this popup spawns. */
+    float displayDuration = 2.0f;                   /** Seconds the popup holds at full opacity before fading out. */
+    cugl::Vec2 positionOffset = cugl::Vec2::ZERO;   /** Additional offset applied on top of the base screen position. */
+    bool playSound = true;                          /** If true, plays the popup_ding sound when this popup spawns. */
 };
 
 /**
