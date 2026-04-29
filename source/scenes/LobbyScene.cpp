@@ -178,6 +178,12 @@ void LobbyScene::setupListeners() {
             _status = Status::BOSSSELECT;
         }
     });
+    
+    _itemsButton->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::CODEX;
+        }
+    });
 
     // Each display slot i corresponds to a game slot resolved via remapPlayersForDisplay().
     // Display slot 3 (last) is always the local player.

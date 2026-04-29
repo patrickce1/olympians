@@ -167,6 +167,7 @@ void SceneLoader::onShutdown()
     _houseSelectScene.dispose();
     _bossSelectScene.dispose();
     _winLoseScene.dispose();
+    _codexScene.dispose();
     _preGameEntryScene.dispose();
     _loadingScene = nullptr;
     Logger::close("debug");
@@ -317,6 +318,12 @@ void SceneLoader::update(float dt) {
             } else{
                 CULog("Failed to initialize BossSelectScene");
             }
+            
+            if (_codexScene.init(_assets, _network)){
+                _codexScene.setSpriteBatch(_batch);
+            } else{
+                CULog("Failed to initialize CodexScene");
+            }
 
             if (_preGameEntryScene.init(_assets, _network, &_gameScene.getGameState())){
                 _preGameEntryScene.setSpriteBatch(_batch);
@@ -447,6 +454,12 @@ void SceneLoader::update(float dt) {
             _bossSelectScene.setActive(true);
             _lobbyScene.setActive(false);
             _currentScene = State::BOSSSELECT;
+            break;
+        case LobbyScene::Status::CODEX:
+            CULog("Transitioning to CodexScene...");
+            _codexScene.setActive(true);
+            _lobbyScene.setActive(false);
+            _currentScene = State::CODEX;
             break;
         case LobbyScene::Status::ABORT:
             _gameScene.resetGameState();
@@ -586,6 +599,40 @@ void SceneLoader::update(float dt) {
             break;
         }
         break;
+            
+    case State::CODEX:
+        _codexScene.update(dt);
+        switch (_codexScene.getStatus())
+        {
+        case CodexScene::Status::PRE_GAMESCENE_START:
+            CULog("Transitioning to PreGameScene from CodexScene...");
+            _audio.playMusic("battle");
+            _preGameEntryScene.setActive(true);
+            _codexScene.setActive(false);
+            _currentScene = State::PREGAMEENTRY;
+            break;
+        case CodexScene::Status::ABORT:
+            if (_network->checkConnection() != NetworkController::Status::CONNECTED)
+            {
+                _gameScene.resetGameState();
+                _houseSelectScene.setPendingReset(true);
+                _hostSetupScene.setActive(true);
+                _hostSetupScene.showHostDisconnectedError();
+                _codexScene.setActive(false);
+                _currentScene = State::HOSTSETUP;
+            }
+            else
+            {
+                _lobbyScene.setActive(true);
+                _codexScene.setActive(false);
+                _currentScene = State::LOBBY;
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+            
     case State::PREGAMEENTRY:
         _preGameEntryScene.update(dt);
         switch (_preGameEntryScene.getStatus())
@@ -727,6 +774,9 @@ void SceneLoader::draw()
         break;
     case State::WINLOSE:
         _winLoseScene.render();
+        break;
+    case State::CODEX:
+        _codexScene.render();
         break;
     case State::PREGAMEENTRY:
         _preGameEntryScene.render();
