@@ -218,12 +218,12 @@
                         },
                         "data": {
                             "anchor": [
-                                0,
-                                1
+                                0.5,
+                                0
                             ],
                             "size": [
-                                94.8,
-                                33.6
+                                95,
+                                34.5
                             ],
                             "angle": 0,
                             "position": [
@@ -240,7 +240,7 @@
                                     "texture": "buttonUp",
                                     "anchor": [
                                         0,
-                                        1
+                                        0
                                     ],
                                     "size": [
                                         95,
@@ -249,25 +249,25 @@
                                     "angle": 0,
                                     "position": [
                                         0,
-                                        -35.4
+                                        0
                                     ],
                                     "visible": true
                                 },
                                 "layout": {
                                     "x_anchor": "left",
-                                    "y_anchor": "top",
+                                    "y_anchor": "bottom",
                                     "absolute": false,
                                     "x_offset": 0,
-                                    "y_offset": -1.03
+                                    "y_offset": 0
                                 }
                             }
                         },
                         "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
+                            "x_anchor": "center",
+                            "y_anchor": "bottom",
                             "absolute": false,
-                            "x_offset": 0.32,
-                            "y_offset": -1
+                            "x_offset": 0,
+                            "y_offset": 0
                         }
                     },
                     "scrolldown": {
@@ -277,12 +277,12 @@
                         },
                         "data": {
                             "anchor": [
-                                0,
-                                1
+                                0.5,
+                                0
                             ],
                             "size": [
-                                94.8,
-                                33.6
+                                95,
+                                34.5
                             ],
                             "angle": 0,
                             "position": [
@@ -299,7 +299,7 @@
                                     "texture": "buttonDown",
                                     "anchor": [
                                         0,
-                                        1
+                                        0
                                     ],
                                     "size": [
                                         95,
@@ -314,19 +314,19 @@
                                 },
                                 "layout": {
                                     "x_anchor": "left",
-                                    "y_anchor": "top",
+                                    "y_anchor": "bottom",
                                     "absolute": false,
                                     "x_offset": 0,
-                                    "y_offset": -1.03
+                                    "y_offset": 0
                                 }
                             }
                         },
                         "layout": {
-                            "x_anchor": "left",
-                            "y_anchor": "top",
+                            "x_anchor": "center",
+                            "y_anchor": "bottom",
                             "absolute": false,
-                            "x_offset": 0.32,
-                            "y_offset": -1
+                            "x_offset": 0,
+                            "y_offset": 0
                         }
                     }
                 },
@@ -367,7 +367,7 @@
                     "x_anchor": "center",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": -0.03,
+                    "x_offset": 0,
                     "y_offset": 0
                 }
             },
