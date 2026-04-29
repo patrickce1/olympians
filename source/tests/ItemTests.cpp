@@ -920,6 +920,55 @@ void testTridentVulnerableAllSides(const std::shared_ptr<cugl::JsonValue>& items
     }
 }
 
+/**
+ * Tests that Gaia's rock heals the boss instead of dealing damage.
+ *
+ * Verifies that:
+ * - Gaia's rock item exists in the database
+ * - Using it returns a positive heal value
+ * - The boss gains health equal to the resolved heal amount
+ * - The item is consumed from the player's inventory after use
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
+void testGaiaRockHealsEnemy(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+    const std::string& housesJsonPath,
+    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "gaia_rock: item db load succeeds");
+
+    auto gaiaRockDef = db.getDef("gaia_rock");
+    assertWithLabel(gaiaRockDef != nullptr, "gaia_rock: gaia_rock def exists");
+    if (!gaiaRockDef) return;
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "gaia_rock: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "gaia_rock: enemy init succeeds");
+    if (!enemyOk) return;
+
+    // Damage the boss first so there is room to heal
+    enemy.setCurrentHealth(enemy.getMaxHealth() - 50.0f);
+
+    Player attacker("zeus", 0, "Zeus Tester", loader);
+    auto instRock = ItemInstance::alloc("gaia_rock", 2001);
+    assertWithLabel(instRock != nullptr, "gaia_rock: create gaia_rock instance");
+    if (!instRock) return;
+    attacker.addItem(*instRock);
+
+    const float enemyHealthBefore = enemy.getCurrentHealth();
+    const float resolvedHeal = attacker.useItemById(instRock->getId(), enemy, db);
+    assertWithLabel(resolvedHeal > 0.0f, "gaia_rock: useItemById returns a positive heal amount");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getCurrentHealth() - enemyHealthBefore, resolvedHeal),
+        "gaia_rock: enemy gains health equal to the resolved heal amount");
+    assertWithLabel(attacker.getInventory().empty(), "gaia_rock: item is consumed from inventory after use");
+}
+
 } // namespace
 
 void ItemTests::runAll(const std::string& itemsJsonPath,
@@ -956,6 +1005,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testLoveEffect(enemiesJsonPath);
     testVulnerableEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testTridentVulnerableAllSides(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testGaiaRockHealsEnemy(itemsJson, housesJsonPath, enemiesJsonPath);
     
     printSummary();
 }
