@@ -8,20 +8,28 @@
 #include "../NetworkController.h"
 #include "../InputController.h"
 
-
+/**
+ * Represents a single entry in the codex (item encyclopedia).
+ *
+ * Each item stores metadata such as its name, rarity, category,
+ * description, and associated visual assets.
+ */
 struct CodexItem {
-    std::string id;
-    std::string name;
-    std::string imageLarge;
-    std::string rarity;
-    std::string house;
-    std::string category;
-    std::string effectLabel;
-    std::string description;
+    std::string id;             /** Unique identifier for the item */
+    std::string name;           /** Display name of the item */
+    std::string imageLarge;     /** Key for large item image texture */
+    std::string rarity;         /** Rarity classification (e.g., Common, Rare) */
+    std::string house;          /** Associated house (if applicable) */
+    std::string category;       /** Functional category (e.g., ATTACK, SUPPORT) */
+    std::string effectLabel;    /** Short effect description or label */
+    std::string description;    /** Full lore/description text */
 };
 
 /**
- * This class provides the interface to make the item codex scene.
+ * This scene implements an in-game item encyclopedia (codex) UI.
+  * It allows the player to browse items in a grid layout, scroll
+  * through entries, and view detailed information in an animated
+  * detail panel overlay.
  */
 class CodexScene : public cugl::scene2::Scene2 {
 public:
@@ -48,48 +56,80 @@ protected:
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
     
+    /** Root scene node for the codex UI */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
     
-    /** The back button for the item codex scene */
+    /** Back button used to exit codex or close item detail view */
     std::shared_ptr<cugl::scene2::Button> _backButton;
     
-    /** The scroll down button in the scene */
+    /** Button used to scroll the grid downward */
     std::shared_ptr<cugl::scene2::Button> _scrollDown;
     
-    /** The scroll up button in the scene */
+    /** Button used to scroll the grid upward */
     std::shared_ptr<cugl::scene2::Button> _scrollUp;
     
+    /** All codex items loaded from data source */
     std::vector<CodexItem> _items;
-    int _selectedIndex = -1;          // which item is currently selected (-1 = none)
     
-    /** The item codex list */
+    /** Index of currently selected item (-1 if none selected) */
+    int _selectedIndex = -1;
+    
+    /** Interactive item buttons displayed in the grid */
     std::vector<std::shared_ptr<cugl::scene2::Button>> _itemNodes;
     
-    std::shared_ptr<cugl::scene2::SceneNode> _itemsNode;     // the viewport node
-    std::shared_ptr<cugl::scene2::SceneNode> _codexGrid;     // the scrollable grid widget
-    std::shared_ptr<cugl::scene2::SceneNode> _detailPanel;   // the scroll/detail widget
-    std::shared_ptr<cugl::scene2::SceneNode> _darkOverlay;   // dark overlay when item selected
+    /** Parent node containing the item grid viewport */
+    std::shared_ptr<cugl::scene2::SceneNode> _itemsNode;
+    
+    /** Scrollable grid container for codex items */
+    std::shared_ptr<cugl::scene2::SceneNode> _codexGrid;
+    
+    /** Detail panel shown when an item is selected */
+    std::shared_ptr<cugl::scene2::SceneNode> _detailPanel;
+    
+    /** Darkened background overlay for focus mode */
+    std::shared_ptr<cugl::scene2::SceneNode> _darkOverlay;
+    
+    /** Large preview image of selected item */
     std::shared_ptr<cugl::scene2::PolygonNode> _itemLarge;   // large item image display
     
     // ---- Detail Panel Labels ----
+    /** Displays item name */
     std::shared_ptr<cugl::scene2::Label> _nameLabel;
+    
+    /** Displays item rarity */
     std::shared_ptr<cugl::scene2::Label> _rarityLabel;
+    
+    /** Displays item category */
     std::shared_ptr<cugl::scene2::Label> _categoryLabel;
+
+    /** Displays item effect summary */
     std::shared_ptr<cugl::scene2::Label> _effectLabel;
+    
+    /** Displays full item description */
     std::shared_ptr<cugl::scene2::Label> _descriptionLabel;
     
+    /** Listener keys for item button callbacks */
     std::vector<unsigned int> _itemListenerKeys;
 
+    /** Height of a single grid row (used for scrolling calculations) */
+    float _rowHeight = 80.0f;
 
-    float _rowHeight = 80.0f;   // adjust to your grid spacing
+    /** Current scroll row index */
     int _currentRow = 0;
+    
+    /** Maximum scrollable row index */
     int _maxRow = 0;
 
+    /** Whether a scroll operation is currently in progress */
     bool _isScrolling;
     
+    /** Pending request to show item detail panel */
     bool _pendingShowDetail = false;
+    
+    /** Index of item pending detail display */
     int  _pendingDetailIndex = -1;
     
+    /** Pending request to hide the detail panel */
     bool _pendingHideDetail = false;
     
     /** The current status */
@@ -148,7 +188,8 @@ public:
     void setupUI();
     
     /**
-     * Attaches input listeners to the codex buttons.
+     * Attaches input listeners to UI elements such as item buttons
+     * and navigation controls.
      */
     void setupListeners();
     
@@ -182,16 +223,40 @@ public:
     
 private:
     
+    /**
+     * Loads codex item data from JSON asset files.
+     *
+     * @return true if loading succeeded
+     */
     bool loadItemCodex();
         
+    /**
+     * Initializes interactive item buttons for the grid.
+     */
     void initItemButtons();
     
+    /**
+     * Displays the detail panel for a selected item.
+     *
+     * @param item The codex item to display
+     */
     void showDetailPanel(const CodexItem& item);
     
+    /**
+     * Scrolls the codex grid to a specified row.
+     *
+     * @param newRow Target row index
+     */
     void scroll(int newRow);
     
+    /**
+     * Hides the currently open detail panel.
+     */
     void hideDetailPanel();
     
+    /**
+     * Updates which item buttons are visible based on scroll position.
+     */
     void updateButtonVisibility();
 
 };

@@ -61,7 +61,7 @@ bool CodexScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const s
 }
 
 /**
- 
+ * Initializes interactive item buttons for the grid.
  */
 void CodexScene::initItemButtons() {
     for (int i = 0; i < _items.size(); i++) {
@@ -89,7 +89,9 @@ void CodexScene::initItemButtons() {
 }
 
 /**
- 
+ * Loads codex item data from JSON asset files.
+ *
+ * @return true if loading succeeded
  */
 bool CodexScene::loadItemCodex() {
     // Load the JSON asset
@@ -354,13 +356,20 @@ void CodexScene::update(float timestep) {
 }
 
 /**
- 
+ * Displays the detail panel for a selected item.
+ *
+ * @param item The codex item to display
  */
 void CodexScene::showDetailPanel(const CodexItem& item) {
     _pendingShowDetail = true;
     _pendingDetailIndex = _selectedIndex;
 }
 
+/**
+ * Scrolls the codex grid to a specified row.
+ *
+ * @param newRow Target row index
+ */
 void CodexScene::scroll(int newRow) {
     if (_isScrolling) return;
     if (newRow < 0 || newRow > _maxRow) return;
@@ -386,6 +395,9 @@ void CodexScene::scroll(int newRow) {
     _isScrolling = false;
 }
 
+/**
+ * Hides the currently open detail panel.
+ */
 void CodexScene::hideDetailPanel() {
     if (_pendingHideDetail) {
         _pendingHideDetail = false;
@@ -403,6 +415,9 @@ void CodexScene::hideDetailPanel() {
     }
 }
 
+/**
+ * Updates which item buttons are visible based on scroll position.
+ */
 void CodexScene::updateButtonVisibility() {
     int firstVisible = _currentRow * 3;
     int lastVisible  = firstVisible + (6 * 3);
