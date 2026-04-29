@@ -3716,7 +3716,7 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
     if (hasUpgradeMult) {
         popups.push_back({
             upgradeText,
-            multiplierFontSize * (1.0f + upgradeLog),
+            multiplierFontSize * (2.0f + upgradeLog),
             cugl::Color4(255, 110,  60, 255),
             cugl::Color4::BLACK,
             nextDelay,
