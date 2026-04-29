@@ -49,9 +49,9 @@ bool CodexScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const s
     _scene->doLayout(); // Repositions the HUD
 
     setupUI();
-//    setupListeners();
     loadItemCodex();
     initItemButtons();
+    setupListeners();
     
     _status = Status::WAIT;
     
@@ -172,6 +172,21 @@ void CodexScene::setupListeners() {
             _status = Status::ABORT;
         }
     });
+    
+    int numRows = (int)std::ceil(_items.size() / 3.0f);
+    _maxOffset = std::max(0.0f, (numRows * _rowHeight) - _pageHeight);
+    _gridOffset = 0.0f;
+
+    _scrollUp->setVisible(false);
+    _scrollDown->setVisible(_maxOffset > 0);
+
+    _scrollUp->addListener([this](const std::string& name, bool down) {
+        if (down) scroll(-1);
+    });
+
+    _scrollDown->addListener([this](const std::string& name, bool down) {
+        if (down) scroll(1);
+    });
 }
 
 /**
@@ -189,7 +204,6 @@ void CodexScene::dispose() {
         _detailPanel = nullptr;
         _darkOverlay = nullptr;
         _itemsNode = nullptr;
-        // ---- Detail Panel Labels ----
         _nameLabel = nullptr;
         _rarityLabel = nullptr;
         _categoryLabel = nullptr;
@@ -220,15 +234,22 @@ void CodexScene::setActive(bool value) {
             
 //            _leftButton->activate();
 //            _rightButton->activate();
-//            _backButton->activate();
+            _scrollUp->activate();
+            _scrollDown->activate();
+            _backButton->activate();
+            
         } else {
 //            _leftButton->deactivate();
 //            _rightButton->deactivate();
-//            _backButton->deactivate();
+            _scrollUp->deactivate();
+            _scrollDown->deactivate();
+            _backButton->deactivate();
 //            _lockButton->deactivate();
             
 //            // If any were pressed, reset them
-//            _backButton->setDown(false);
+            _backButton->setDown(false);
+            _scrollUp->setDown(false);
+            _scrollDown->setDown(false);
 //            _leftButton->setDown(false);
 //            _rightButton->setDown(false);
 //            _lockButton->setDown(false);
@@ -270,6 +291,8 @@ void CodexScene::update(float timestep) {
  
  */
 void CodexScene::showDetailPanel(const CodexItem& item) {
+    _status = Status::INFO;
+    
     _nameLabel->setText(item.name);
     _rarityLabel->setText(item.rarity);
     _categoryLabel->setText(item.category);
@@ -293,4 +316,26 @@ void CodexScene::showDetailPanel(const CodexItem& item) {
     _darkOverlay->setVisible(true);
     _itemLarge->setVisible(true);
     _detailPanel->setVisible(true);
+}
+
+void CodexScene::scroll(int direction) {
+    _gridOffset = std::clamp(
+        _gridOffset + direction * _rowHeight,
+        0.0f,
+        _maxOffset
+    );
+
+    Vec2 pos = _codexGrid->getPosition();
+    _codexGrid->setPosition(pos.x, -_gridOffset);
+
+    _scrollUp->setVisible(_gridOffset > 0);
+    _scrollDown->setVisible(_gridOffset < _maxOffset);
+}
+
+void CodexScene::hideDetailPanel() {
+    _darkOverlay->setVisible(false);
+    _itemLarge->setVisible(false);
+    _detailPanel->setVisible(false);
+
+    _status = Status::WAIT;
 }

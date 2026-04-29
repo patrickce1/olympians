@@ -79,10 +79,10 @@ protected:
 
 
     float _gridOffset = 0.0f;
-    float _pageHeight = 530.0f;
-    float _rowHeight;            // height of one grid row (90.0f)
-    float _maxOffset;            // maximum scroll distance
-
+    float _maxOffset = 0.0f;
+    float _rowHeight = 200.0f;   // adjust to your grid spacing
+    float _pageHeight = 600.0f;  // visible area
+    
     /** The current status */
     Status _status;
     
@@ -178,6 +178,10 @@ private:
     void initItemButtons();
     
     void showDetailPanel(const CodexItem& item);
+    
+    void scroll(int direction);
+    
+    void hideDetailPanel();
 
 };
 
