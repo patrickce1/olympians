@@ -163,7 +163,7 @@
             },
             "data": {
               "anchor": [0, 0],
-              "size": [318, 168],
+              "size": [400, 200],
               "angle": 0,
               "visible": true
             },
@@ -173,7 +173,7 @@
                 "data": {
                   "texture": "dialogueBox",
                   "anchor": [0, 0],
-                  "size": [318, 168],
+                  "size": [400, 200],
                   "visible": true,
                   "angle": 0
                 },
@@ -186,31 +186,31 @@
                 }
               },
               "label": {
-                  "type": "Label",
-                  "data": {
-                      "anchor": [0.5, 0.5],
-                      "size": [464, 76.8],
-                      "position": [10, 0],
-                      "angle": 0,
-                      "visible": true,
-                      "font": "mainFont",
-                      "text": "hello",
-                      "foreground": "#ffffffff",
-                      "background": "#00000000",
-                      "padding": [0, 0, 0, 0],
-                      "valign": "middle",
-                      "halign": "left",
-                      "wrap": true,
-                      "scale": 0.3125
-                  },
-                  "children": {},
-                  "layout": {
-                      "x_anchor": "center",
-                      "y_anchor": "middle",
-                      "absolute": false,
-                      "x_offset": 0,
-                      "y_offset": 0
-                  }
+                "type": "Label",
+                "data": {
+                  "anchor": [0, 1],
+                  "size": [1500, 180],
+                  "position": [0, 1],
+                  "angle": 0,
+                  "visible": true,
+                  "font": "mainFont",
+                  "text": "",
+                  "foreground": "#ffffffff",
+                  "background": "#00000000",
+                  "padding": [30,0,0,0],
+                  "valign": "middle",
+                  "halign": "left",
+                  "wrap": true,
+                  "scale": 0.2
+                },
+                "children": {},
+                "layout": {
+                  "x_anchor": "left",
+                  "y_anchor": "middle",
+                  "absolute": false,
+                  "x_offset": 0,
+                  "y_offset": 0.025
+                }
               }
             },
             "layout": {

@@ -202,6 +202,13 @@ protected:
     /** Network controller. Responsible for sending networking messages and process messages sent
      * over the network. */
     std::shared_ptr<NetworkController> _network;
+    
+    /** The animation controller dedicated to the dialogue UI.
+        This timeline manages the playback of slide transitions for the dialogue box.
+        By using a dedicated timeline, dialogue animations can be updated or
+        interrupted independently of other game world animations.
+     */
+    std::shared_ptr<cugl::ActionTimeline> _timeline;
 
     /** Audio controller. Manages all audio playback (music and sound effects). */
     AudioController* _audio;
@@ -408,6 +415,25 @@ protected:
     /** Vector of pending floating popups that have been queued but not yet spawned. */
     std::vector<PendingFloatingPopup> _pendingFloatingPopups;
 
+#pragma mark - Tutorial Dialogue
+    /** The root node of the dialogue UI, used for animations and visibility */
+    std::shared_ptr<cugl::scene2::SceneNode> _dialogueBox;
+    
+    /** The label component inside the dialogue box that displays the actual text */
+    std::shared_ptr<cugl::scene2::Label> _dialogueLabel;
+    
+    /** The target on-screen position where the dialogue box rests when active */
+    cugl::Vec2 _dialogueBoxPos;
+    
+    /** Buffer to hold the next string to display while the box is performing its "slide out" transition */
+    std::string _pendingDialogueText = "";
+    
+    /** Timer to track the transition delay between sliding out old dialogue and sliding in the new message */
+    float _dialogueOutTimer = 0.0f;
+    
+    /** Flag indicating the dialogue box is currently offscreen and ready to perform the "slide in" animation */
+    bool _waitingToSlideIn = false;
+    
 #pragma mark - Glow Effect State
 
     /** The drop zone action whose region should currently glow. */

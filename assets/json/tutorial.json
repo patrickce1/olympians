@@ -1,5 +1,7 @@
 {
   "steps": [
+      { "type": "show_message", "text": "Circe is attacking!", "delay": 3.0, "bossActive": false, "bossTarget": 0},
+      { "type": "show_message", "action": "PASS_LEFT", "text": "You can't heal yourself, your teammates must heal you!", "delay": 30.0, "bossTarget": 0 },
     { "type": "spawn_item", "defId": "apple", "passDirection": 0 },
     { "type": "end" }
   ]

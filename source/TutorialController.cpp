@@ -214,17 +214,22 @@ bool TutorialController::executeStep(const TutorialStep& step) {
 
     switch (step.type){
         case StepType::SHOW_MESSAGE:
-        //            if (_gameScene && !step.text.empty()) _gameScene->showDialogue(step.text);
-                    if (step.delay > 0.0f) _timer = step.delay;
-                    return true;
+            if (_gameScene && !step.text.empty()) _gameScene->showDialogue(step.text);
+            if (step.delay > 0.0f) _timer = step.delay;
+            return true;
         
         case StepType::SPAWN_ITEM:
             if (_gameScene) _gameScene->spawnTutorialItem(step.defId, step.passDirection);
             return false;
             
         case StepType::END:
+            if (_gameScene) _gameScene->hideDialogue();
             _active = false;
             return true;
+            
+        default:
+            if (_gameScene) _gameScene->hideDialogue();
+            break;
     }
     return false;
 }

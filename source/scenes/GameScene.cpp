@@ -259,7 +259,17 @@ bool GameScene::initSceneGraph() {
         _scene->addChild(_specialEffectsLayer);
         _supportLeftArea = _gameArea->getChildByName("supportLeft");
         _supportRightArea = _gameArea->getChildByName("supportRight");
+        
+        _dialogueBox = _gameArea->getChildByName("dialogueBox");
+        if (_dialogueBox) {
+            _dialogueBoxPos = _dialogueBox->getPosition();
+            _dialogueBox->setPosition(_dialogueBoxPos - Vec2(350, 0));
+            _dialogueLabel = std::dynamic_pointer_cast<scene2::Label>(
+                _dialogueBox->getChildByName("label"));
+        }
     }
+    
+    
     
     if (_inventory) {
         _inventory->setContentWidth(dimen.width);
@@ -493,6 +503,8 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     
     // Set player icon textures immediately (normally done in update, but we need them visible on first render)
     updatePlayerAndTeammateIcons(0.0f);
+    
+    _timeline = ActionTimeline::alloc();
     
     setActive(false);
     return true;
@@ -2319,6 +2331,62 @@ void GameScene::updateSlidingItems(float dt) {
 }
 
 /**
+ * Animates the dialogue box sliding into its active position.
+ * This method uses the CUGL timeline to move the _dialogueBox from its current
+ * position to the predefined _dialogueBoxPos. It uses a CUBIC_OUT easing to
+ * create a smooth deceleration effect over 0.4 seconds.
+ */
+void GameScene::slideDialogueIn() {
+    if (_dialogueBox) {
+        _timeline->remove("dialogueBox");
+        auto moveIn = cugl::scene2::MoveTo::alloc(_dialogueBoxPos);
+        auto easing = EasingFactory::alloc(EasingFactory::Type::CUBIC_OUT);
+        _timeline->add("dialogueBox", moveIn->attach(_dialogueBox), 0.4f, easing);
+    }
+}
+
+/**
+ * Animates the dialogue box sliding out of view.
+ * This method calculates an offscreen position relative to the current
+ * _dialogueBoxPos (shifted 350 units to the left) and initiates a slide-out
+ * animation. It uses a CUBIC_IN easing for a smooth acceleration effect
+ * over 0.4 seconds.
+ */
+void GameScene::slideDialogueOut() {
+    if (_dialogueBox) {
+        _timeline->remove("dialogueBox");
+        Vec2 offscreen = _dialogueBoxPos - Vec2(350, 0);
+        auto moveOut = cugl::scene2::MoveTo::alloc(offscreen);
+        auto easing = EasingFactory::alloc(EasingFactory::Type::CUBIC_IN);
+        _timeline->add("dialogueBox", moveOut->attach(_dialogueBox), 0.4f, easing);
+    }
+}
+
+/**
+ * Initiates the sequence to display a new dialogue message.
+ * This method updates the pending text and triggers a "slide out, then slide in"
+ * sequence. It sets a timer to match the slide-out duration, allowing the
+ * update loop to swap the text and call slideDialogueIn() once the box is hidden.
+ * @param message The string text to display in the dialogue label.
+ */
+void GameScene::showDialogue(const std::string& message) {
+    if (_dialogueLabel) {
+            _pendingDialogueText = message;
+            _waitingToSlideIn = true;
+            _dialogueOutTimer = 0.4f; // match slide out duration
+            slideDialogueOut();
+        }
+}
+
+/**
+ * Triggers the animation to hide the dialogue box.
+ * This is a wrapper for slideDialogueOut() used to clear the UI of active dialogue.
+ */
+void GameScene::hideDialogue() {
+    slideDialogueOut();
+}
+
+/**
  * Updates snapback animations for dropped items returning to inventory.
  * Smoothly interpolates item positions back to their original inventory locations.
  * Supports multiple simultaneous snapbacks.
@@ -2585,6 +2653,16 @@ void GameScene::update(float dt, InputController& input) {
     _network->clearQueues();
     updateAllPlayersAndEnemyHealthUI(dt);
     updatePlayerAndTeammateIcons(dt);
+    
+    _timeline->update(dt);
+    if (_waitingToSlideIn) {
+        _dialogueOutTimer -= dt;
+        if (_dialogueOutTimer <= 0.0f) {
+            _waitingToSlideIn = false;
+            if (_dialogueLabel) _dialogueLabel->setText(_pendingDialogueText);
+            slideDialogueIn();
+        }
+    }
 }
 
 #pragma mark -
