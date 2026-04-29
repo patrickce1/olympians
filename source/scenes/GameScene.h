@@ -237,6 +237,9 @@ protected:
     /** The node representing the boss character in the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
 
+    /** Whether the boss is allowed to perform attacks; tutorial can toggle this. */
+    bool _bossCanAttack = false;
+    
     /** UI slot used to display left teammate's avatar. */
     std::shared_ptr<cugl::scene2::PolygonNode> _leftPlayerSlot;
     
@@ -1020,6 +1023,13 @@ public:
      * @param dt  Delta time in seconds.
      */
     void handleItemSpawn(float dt);
+    
+    /** Enable or disable boss activity (tutorial steps may toggle this). */
+    void setBossActive(bool active);
+    /** Query whether the boss is currently allowed to attack. */
+    bool canBossAttack();
+    /** Force the boss to target a specific player slot (0-3). */
+    void setBossTarget(int index);
     
     /**
      * Initializes a sliding item with the given velocity and origin type.

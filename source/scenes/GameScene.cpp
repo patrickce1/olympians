@@ -533,6 +533,28 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     return true;
 }
 
+void GameScene::setBossActive(bool active) {
+    // Keep boss visuals unchanged; toggle whether it may attack.
+    _bossCanAttack = active;
+    _enemyController.setAttacksEnabled(active);
+}
+
+bool GameScene::canBossAttack() {
+    // Keep boss visuals unchanged; toggle whether it may attack.
+    return _bossCanAttack;
+}
+
+void GameScene::setBossTarget(int index) {
+    // Clamp index into valid player range if possible
+    if (!_gameState.getEnemy()) return;
+    int n = (int)_gameState.getPlayers().size();
+    if (n <= 0) return;
+    int clamped = index;
+    if (clamped < 0) clamped = 0;
+    if (clamped >= n) clamped = n - 1;
+    _gameState.getEnemy()->setTargetIndex(clamped);
+}
+
 /**
  * Disposes of all (non-static) resources allocated to this mode.
  */
@@ -661,6 +683,9 @@ void GameScene::setActive(bool value) {
             // Hide animation sprite on scene reset
             if (_currentVisibleAnimationSprite) {
                 _currentVisibleAnimationSprite->setVisible(false);
+            }
+            if (!_tutorialController.isActive()) {
+                setBossActive(true);
             }
             if (_isTutorial && !_tutorialController.isActive()){
                 _tutorialController.start();
@@ -909,6 +934,11 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
+    CULog("handleSupportRight: itemId=%llu local=%s target=%s targetAlive=%d",
+            (unsigned long long)itemId,
+            local ? "valid" : "null",
+            target ? "valid" : "null",
+            target ? target->isAlive() : -1);
     if (!local || !target || !target->isAlive() || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
@@ -1084,7 +1114,6 @@ std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId it
     }
     return nullptr;
 }
-
 
 /**
  * Calls the appropriate handle action helper based on the input that we recieved
@@ -1801,7 +1830,8 @@ void GameScene::handlePlayerInput(InputController& input) {
 
     if (finalAction != InputController::Action::NONE) {
         if (handlePlayerActions(finalAction, _draggedItemId)) {
-            
+            CULog("GameScene: entered success block, finalAction=%d index=%d",
+            (int)finalAction, _tutorialController.getIndex());
             // 2. Item was successfully used (action succeeded)
             // 3. Trigger glow effect on the activated zone
             _glowAction = finalAction;
@@ -1817,6 +1847,8 @@ void GameScene::handlePlayerInput(InputController& input) {
                 }
                 _draggedIcon->setVisible(false);
             }
+            CULog("GameScene: drop succeeded, finalAction=%d isTutorial=%d", (int)finalAction, _isTutorial ? 1 : 0);
+
             if (_isTutorial){
                 _tutorialController.onAction(finalAction);
             }
@@ -2046,6 +2078,11 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
  * @param dt  Delta time in seconds.
  */
 void GameScene::handleItemSpawn(float dt) {
+    if (_tutorialController.isActive()) {
+        CULog("GameScene: handleItemSpawn suppressed while tutorial active (tutorial index=%d timer=%.2f waiting=%d)",
+              _tutorialController.getIndex(), _tutorialController.getTimer(), _tutorialController.isWaiting() ? 1 : 0);
+        return;
+    }
     // Always spawn items for the local human player.
     _itemController.update(dt, _gameState.getLocalPlayer());
 
@@ -2528,6 +2565,9 @@ void GameScene::processZoneInteractionsForSlidingItems() {
                         widgetIt->second->setVisible(false);
                     }
                 }
+                if (_isTutorial) {
+                        _tutorialController.onAction(action);
+                    }
                 markItemAsUsed(itemId);
                 itemsToRemove.insert(itemId);
             }

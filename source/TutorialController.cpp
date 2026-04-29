@@ -49,8 +49,15 @@ void TutorialController::start() {
     _index = 0;
     _timer = 0.0f;
     _waitingForAction = false;
+    
+    if (_gameScene) {
+        _gameScene->setBossActive(false);
+        CULog("Tutorial: Started. Initial Boss State set to FALSE");
+    }
     CULog("Tutorial: started with %zu steps", _steps.size());
     advanceStep();
+    
+    
 }
 
 void TutorialController::stop() {
@@ -116,6 +123,12 @@ void TutorialController::parseSteps(const std::shared_ptr<JsonValue>& json) {
 void TutorialController::update(float dt) {
     if (!_active || _index < 0 || _index >= (int)_steps.size()) return;
     
+    if (_gameScene) {
+        // Log the current boss active state from the GameScene
+        CULog("Tutorial: GameScene Boss Active State: %s",
+               _gameScene->canBossAttack() ? "TRUE" : "FALSE");
+    }
+    
     CULog("Tutorial: index=%d type=%d waiting=%d timer=%.2f",
             _index, (int)_steps[_index].type, _waitingForAction ? 1 : 0, _timer);
     // wait_for_action steps never auto-advance — only onAction() can advance them.
@@ -136,7 +149,11 @@ void TutorialController::update(float dt) {
 
 #pragma mark - Input
 void TutorialController::onAction(InputController::Action action) {
+    CULog("Tutorial: onAction called action=%d active=%d waiting=%d expected=%d",
+        (int)action, _active ? 1 : 0, _waitingForAction ? 1 : 0, (int)_steps[_index].action);
+
     if (!_active || !_waitingForAction) return;
+    
     const TutorialStep& step = _steps[_index];
 
     // Empty action means any action advances.
@@ -208,9 +225,17 @@ void TutorialController::advanceStep() {
 }
 
 bool TutorialController::executeStep(const TutorialStep& step) {
+    CULog("Tutorial: executeStep index=%d type=%d timer=%.2f", _index, (int)step.type, _timer);
+
     // Reset per-step state.
     _waitingForAction = false;
     _timer = 0.0f;
+    
+    // Apply the Boss State globally for the duration of this step
+        if (_gameScene && step.bossActive.has_value()) {
+            _gameScene->setBossActive(*step.bossActive);
+            CULog("Tutorial: Setting Boss Active to %s", step.bossActive ? "TRUE" : "FALSE");
+        }
 
     switch (step.type){
         case StepType::SHOW_MESSAGE:
@@ -228,10 +253,19 @@ bool TutorialController::executeStep(const TutorialStep& step) {
                 if (!step.text.empty()){
                     _gameScene->showDialogue(step.text);
                 }
-                    applyZoneHighlight(step.action);
             }
             return true;
-            
+        case StepType::BOSS_ATTACK:
+            if (_gameScene){
+                int targetIndex = step.bossTarget.value_or(0);
+                _gameScene->triggerBossAttack(targetIndex);
+            }
+            return false;
+        case StepType::BOSS_DEFEND:
+            if (_gameScene){
+                _gameScene->triggerBossDefense();
+            }
+            return false;
         case StepType::END:
             if (_gameScene) _gameScene->hideDialogue();
             _gameScene->setTutorialHighlight("none");
