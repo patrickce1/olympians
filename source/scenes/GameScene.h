@@ -1291,9 +1291,11 @@ public:
      *
      * @param baseValue     Item's raw base heal value.
      * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
+     * @param def           Item definition used to detect additional support effects such as regen.
      * @return Ordered list of FloatingPopupData for the sequence.
      */
-    std::vector<FloatingPopupData> buildHealPopups(float baseValue, float resolvedHeal) const;
+    std::vector<FloatingPopupData> buildHealPopups(float baseValue, float resolvedHeal,
+                                                   const std::shared_ptr<const ItemDef>& def) const;
 
     /**
      * Fires visual popups for any shield or barrier effects on a support item.
