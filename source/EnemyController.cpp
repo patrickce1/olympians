@@ -181,28 +181,28 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
 
     // Only allow attack/AI decisions if attacks are enabled
         // Tick the deferred retarget timer; fire once it expires
-        if (_pendingRetarget && cur == EnemyLoader::State::IDLE) {
-            _retargetTimer -= dt;
-            if (_retargetTimer <= 0.0f) {
-                _pendingRetarget = false;
-                maybeRetargetOnIdleEntry(enemy, players);
-            }
+    if (_pendingRetarget && cur == EnemyLoader::State::IDLE) {
+        _retargetTimer -= dt;
+        if (_retargetTimer <= 0.0f) {
+            _pendingRetarget = false;
+            maybeRetargetOnIdleEntry(enemy, players);
+        }
+    }
+    if (_attacksEnabled) {
         
-        if (_attacksEnabled) {
-            
-            // If idle and not locked out, pick an attack by tag and start it
-            if (cur == EnemyLoader::State::IDLE && enemy->canStartNonIdleState() && anyPlayersAlive(players)) {
-                if (shouldDefend(enemy)) {
-                    enemy->requestState(EnemyLoader::State::DEFENSE_MOVE);
-                }
-                else {
-                    EnemyLoader::State nextAttack = chooseNextAttackState(enemy);
-                    enemy->requestState(nextAttack);
-                    cur = enemy->getCurrentState();
-                }
+        // If idle and not locked out, pick an attack by tag and start it
+        if (cur == EnemyLoader::State::IDLE && enemy->canStartNonIdleState() && anyPlayersAlive(players)) {
+            if (shouldDefend(enemy)) {
+                enemy->requestState(EnemyLoader::State::DEFENSE_MOVE);
+            }
+            else {
+                EnemyLoader::State nextAttack = chooseNextAttackState(enemy);
+                enemy->requestState(nextAttack);
+                cur = enemy->getCurrentState();
             }
         }
     }
+
 }
 
 /** Resolves the fired events (if any) of the enemy on this frame. Removes the processed events from the buffer. */
