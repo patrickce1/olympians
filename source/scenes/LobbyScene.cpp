@@ -245,6 +245,12 @@ void LobbyScene::setActive(bool value) {
                 _disconnectBanner = "";
             }
         } else {
+            // Reset popup state on deactivate so it doesn't reappear
+            // if the scene is re-entered before the timer expired.
+            _errorTimer = 0.0f;
+            _disconnectBanner = "";
+            if (_errorPopup) _errorPopup->setVisible(false);
+            
             if (_pendingDisconnect) {
                 _network->disconnect();
                 _pendingDisconnect = false;
