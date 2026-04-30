@@ -122,13 +122,6 @@ void LobbyScene::setupUI() {
     
     _errorPopup = _assets->get<scene2::SceneNode>("lobbyScene.errorPopup");
     if (_errorPopup) {
-        auto overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(
-            _errorPopup->getChildByName("overlayBG"));
-        if (overlay) {
-            overlay->setContentSize(getSize());
-            overlay->setAnchor(Vec2::ANCHOR_CENTER);
-            overlay->setPosition(getSize() / 2);
-        }
         _errorPopup->setVisible(false);
     }
 }

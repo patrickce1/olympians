@@ -1238,6 +1238,16 @@
                     "overlayBG": {
                         "type": "Polygon",
                         "data": {
+                            "polygon": [
+                                641,
+                                852,
+                                0,
+                                852,
+                                0,
+                                0,
+                                641,
+                                0
+                            ],
                             "anchor": [
                                 0.5,
                                 0.5

@@ -101,20 +101,11 @@ void ClientScene::setupUI() {
     // Error popup node
     _errorPopup = _assets->get<scene2::SceneNode>("clientScene.errorPopup");
     if (_errorPopup) {
-        auto overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(_errorPopup->getChildByName("overlayBG"));
-        overlay->setContentSize(getSize());
-        overlay->setAnchor(Vec2::ANCHOR_CENTER);
-        overlay->setPosition(getSize()/2);
         _errorPopup->setVisible(false);
     }
     
     _loading = _assets->get<scene2::SceneNode>("clientScene.loadingOverlay");
     if (_loading) {
-        auto overlay = _loading->getChildByName("overlayBG");
-        overlay->setContentSize(getSize());
-        overlay->setAnchor(Vec2::ANCHOR_CENTER);
-        overlay->setPosition(getSize()/2);
-        
         _spinner = _loading->getChildByName("spinner");
         _loading->setVisible(false);
     }

@@ -113,10 +113,6 @@ void PreGameEntryScene::setupUI() {
     // Error popup node
     _errorPopup = _assets->get<scene2::SceneNode>("preGameEntryScene.errorPopup");
     if (_errorPopup) {
-        auto overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(_errorPopup->getChildByName("overlayBG"));
-        overlay->setContentSize(getSize());
-        overlay->setAnchor(Vec2::ANCHOR_CENTER);
-        overlay->setPosition(getSize()/2);
         _errorPopup->setVisible(false);
     }
 }
