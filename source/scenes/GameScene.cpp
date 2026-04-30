@@ -656,8 +656,6 @@ void GameScene::setActive(bool value) {
         if (value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
-            // DEBUG: force cyclops to always target the local player
-            _gameState.getEnemy()->setTargetIndex(_network->getLocalPlayerNumber());
             updateNetworkOrder();
             
             // Re-initialize AI players after updateNetworkOrder() rebuilds
