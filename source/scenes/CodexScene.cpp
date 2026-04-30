@@ -9,6 +9,8 @@ using namespace std;
 
 /** Regardless of logo, lock the height to this */
 #define SCENE_HEIGHT  852
+/** Max number of items per row */
+#define ITEMS_PER_ROW  3
 
 
 #pragma mark -
@@ -64,27 +66,52 @@ bool CodexScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const s
  * Initializes interactive item buttons for the grid.
  */
 void CodexScene::initItemButtons() {
-    for (int i = 0; i < _items.size(); i++) {
-        auto button = std::dynamic_pointer_cast<cugl::scene2::Button>(
-            _codexGrid->getChildByName(_items[i].id)
-        );
+    
+    int i = 0; // index into _items
+    int rowIndex = 0;
+    
+    while (i < _items.size()) {
+        std::vector<std::shared_ptr<scene2::Button>> row;
         
-        if (button == nullptr) {
-            CULog("Could not find grid button for item: %s", _items[i].id.c_str());
-            continue;
+        int itemsThisRow = ITEMS_PER_ROW;
+        
+        // special case: common is only 4 items
+        if (rowIndex == 1) {
+            itemsThisRow = 1;
         }
-        _itemNodes.push_back(button);
+        
+        for (int j = 0; j < itemsThisRow && i < _items.size(); j++, i++) {
+            auto button = std::dynamic_pointer_cast<cugl::scene2::Button>(
+                    _codexGrid->getChildByName(_items[i].id)
+            );
+            
+            if (button == nullptr) {
+                CULog("Could not find grid button for item: %s", _items[i].id.c_str());
+                continue;
+            }
+            
+            row.push_back(button);
+        }
+        
+        _itemNodes.push_back(row);
+        rowIndex++;
     }
     
-    for (int i = 0; i < _itemNodes.size(); i++) {
-        auto key = _itemNodes[i]->addListener([this, i](const std::string& name, bool down) {
-            if (!down || !_active) return;
-            if (_selectedIndex == -1) {
-                _selectedIndex = i;
-                showDetailPanel(_items[i]);
-            }
-        });
-        _itemListenerKeys.push_back(key);
+    // button specific listeners
+    int index = 0;
+    for (auto& row : _itemNodes) {
+        for (auto& button : row) {
+            auto key = button->addListener([this, index](const std::string& name, bool down) {
+                if (!down || !_active) return;
+                if (_selectedIndex == -1) {
+                    _selectedIndex = index;
+                    showDetailPanel(_items[index]);
+                }
+            });
+
+            _itemListenerKeys.push_back(key);
+            index++;
+        }
     }
 }
 
@@ -182,7 +209,7 @@ void CodexScene::setupListeners() {
         }
     });
 
-    int numRows     = (int)std::ceil(_items.size() / 3.0f);
+    int numRows = (int)_itemNodes.size();
     int visibleRows = 6;
     _maxRow  = std::max(0, numRows - visibleRows);
     _currentRow = 0;
@@ -207,9 +234,17 @@ void CodexScene::setupListeners() {
 void CodexScene::dispose() {
     if (_active) {
         removeAllChildren();
-        for (int i = 0; i < _itemNodes.size(); i++) {
-            _itemNodes[i]->removeListener(_itemListenerKeys[i]);
+        
+        int keyIndex = 0;
+        for (auto& row : _itemNodes) {
+            for (auto& button : row) {
+                if (button != nullptr && keyIndex < _itemListenerKeys.size()) {
+                    button->removeListener(_itemListenerKeys[keyIndex]);
+                }
+                keyIndex++;
+            }
         }
+        
         _backButton->clearListeners();
         _scrollUp->clearListeners();
         _scrollDown->clearListeners();
@@ -256,9 +291,11 @@ void CodexScene::setActive(bool value) {
             _backButton->activate();
             
         } else {
-            for (auto button : _itemNodes) {
-                button->deactivate();
-                button->setDown(false);
+            for (auto& row : _itemNodes) {
+                for (auto& button : row) {
+                    button->deactivate();
+                    button->setDown(false);
+                }
             }
             _scrollUp->deactivate();
             _scrollDown->deactivate();
@@ -305,7 +342,11 @@ void CodexScene::update(float timestep) {
         _pendingShowDetail = false;
         _status = Status::INFO;
         
-        for (auto button : _itemNodes) button->deactivate();
+        for (auto& row : _itemNodes) {
+            for (auto& button : row) {
+                button->deactivate();
+            }
+        }
         _scrollUp->deactivate();
         _scrollDown->deactivate();
         
@@ -377,10 +418,12 @@ void CodexScene::scroll(int newRow) {
     _isScrolling = true;
 
     // Deactivate ALL buttons before moving
-    for (auto button : _itemNodes) {
-        button->deactivate();
+    for (auto& row : _itemNodes) {
+        for (auto& button : row) {
+            button->deactivate();
+        }
     }
-
+    
     int delta = newRow - _currentRow;
     Vec2 currentPos = _codexGrid->getPosition();
     _codexGrid->setPosition(currentPos.x, currentPos.y + (delta * _rowHeight));
@@ -419,15 +462,17 @@ void CodexScene::hideDetailPanel() {
  * Updates which item buttons are visible based on scroll position.
  */
 void CodexScene::updateButtonVisibility() {
-    int firstVisible = _currentRow * 3;
-    int lastVisible  = firstVisible + (6 * 3);
+    const int VISIBLE_ROWS = 6;
 
-    for (int i = 0; i < _itemNodes.size(); i++) {
-        bool inView = (i >= firstVisible && i < lastVisible);
-        if (inView) {
-            _itemNodes[i]->activate();
-        } else {
-            _itemNodes[i]->deactivate();
+    for (int r = 0; r < _itemNodes.size(); r++) {
+        bool rowVisible = (r >= _currentRow && r < _currentRow + VISIBLE_ROWS);
+
+        for (auto& button : _itemNodes[r]) {
+            if (rowVisible) {
+                button->activate();
+            } else {
+                button->deactivate();
+            }
         }
     }
 }

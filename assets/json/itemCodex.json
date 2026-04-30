@@ -41,16 +41,6 @@
       "description": "A swift ranged shot that deals slightly more damage than a sword from a distance."
     },
     {
-      "id": "shield",
-      "name": "SHIELD",
-      "image_large": "shield_large",
-      "rarity": "Common",
-      "house": "None",
-      "category": "UTILITY",
-      "effect_label": "Shield: 20HP / 5s",
-      "description": "A sturdy shield that absorbs incoming damage for a short time before shattering."
-    },
-    {
       "id": "lightning",
       "name": "ZEUS' LIGHTNING",
       "image_large": "lightning_large",

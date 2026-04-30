@@ -100,13 +100,13 @@
                     ]
                 }
             },
-            "shield": {
+            "empty1": {
                 "type": "Widget",
                 "format": { "type": "Anchored" },
                 "data": {
                     "key": "codexSlot",
                     "variables": {
-                        "item" : "item_shield"
+                        "visible": false
                     }
                 },
                 "layout": {
@@ -119,7 +119,7 @@
                     ]
                 }
             },
-            "empty": {
+            "empty2": {
                 "type": "Widget",
                 "format": { "type": "Anchored" },
                 "data": {

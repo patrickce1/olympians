@@ -68,23 +68,6 @@
             }
         },
         {
-            "id": "shield",
-            "name": "Shield",
-            "description": "Help a brother out.",
-            "icon": "item_shield",
-            "type": "support",
-            "rarity": "common",
-            "houseAffinity": "none",
-            "baseValue": 0.0,
-            "effects": [
-                {
-                    "type": "shield",
-                    "mitigation": 20.0,
-                    "duration": 5.0
-                }
-            ]
-        },
-        {
             "id": "lightning_bolt",
             "name": "Lightning Bolt",
             "description": "A crackling bolt of lightning sent from the king of the gods himself.",

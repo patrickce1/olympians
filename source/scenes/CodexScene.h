@@ -75,7 +75,7 @@ protected:
     int _selectedIndex = -1;
     
     /** Interactive item buttons displayed in the grid */
-    std::vector<std::shared_ptr<cugl::scene2::Button>> _itemNodes;
+    std::vector<std::vector<std::shared_ptr<scene2::Button>>> _itemNodes;
     
     /** Parent node containing the item grid viewport */
     std::shared_ptr<cugl::scene2::SceneNode> _itemsNode;
