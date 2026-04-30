@@ -7,7 +7,7 @@
       "rarity": "Common",
       "house": "None",
       "category": "SUPPORT",
-      "effect_label": "Heal: +10HP",
+      "effect_label": "    Heal: +10HP    ",
       "description": "A crisp red apple that restores a small amount of health."
     },
     {
@@ -17,7 +17,7 @@
       "rarity": "Common",
       "house": "None",
       "category": "SUPPORT",
-      "effect_label": "Heal: +15HP",
+      "effect_label": "    Heal: +15HP    ",
       "description": "A sweet divine drink that restores a moderate amount of health."
     },
     {
@@ -27,7 +27,7 @@
       "rarity": "Common",
       "house": "None",
       "category": "ATTACK",
-      "effect_label": "Damage: -20HP",
+      "effect_label": "  Damage: -20HP  ",
       "description": "A well-forged blade that deals a reliable amount of damage to the boss."
     },
     {
@@ -37,7 +37,7 @@
       "rarity": "Common",
       "house": "None",
       "category": "ATTACK",
-      "effect_label": "Damage: -23HP",
+      "effect_label": "  Damage: -23HP  ",
       "description": "A swift ranged shot that deals slightly more damage than a sword from a distance."
     },
     {
@@ -47,7 +47,7 @@
       "rarity": "Common",
       "house": "None",
       "category": "UTILITY",
-      "effect_label": "Shield: 20HP / 5s",
+      "effect_label": " Shield: 20HP / 5s ",
       "description": "A sturdy shield that absorbs incoming damage for a short time before shattering."
     },
     {
@@ -87,7 +87,7 @@
       "rarity": "Rare",
       "house": "Demeter",
       "category": "SUPPORT",
-      "effect_label": "Heal: +25HP",
+      "effect_label": "   Heal: +25HP   ",
       "description": "Demeter's harvest gift restores a large amount of health, well above a standard heal."
     },
     {

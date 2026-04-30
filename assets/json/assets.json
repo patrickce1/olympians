@@ -625,21 +625,17 @@
             "file": "fonts/GRECOromanLubedWrestling.ttf",
             "size": 48
         },
-        "papyrus letBold16": {
+        "papyrusBold": {
             "file": "fonts/Papyrus LET Bold.ttf",
-            "size": 16
+            "size": 64
         },
-        "papyrusRegular15": {
+        "papyrusRegular": {
             "file": "fonts/papyrus.ttf",
-            "size": 15
+            "size": 60
         },
-        "papyrusRegular13": {
+        "papyrusRegular50": {
             "file": "fonts/papyrus.ttf",
-            "size": 13
-        },
-        "papyrus letBold20": {
-            "file": "fonts/Papyrus LET Bold.ttf",
-            "size": 20
+            "size": 50
         }
     },
     "jsons": {
