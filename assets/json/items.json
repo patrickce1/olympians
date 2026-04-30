@@ -164,7 +164,13 @@
             "rarity": "rare",
             "houseAffinity": "demeter",
             "baseValue": 25.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "regen",
+                    "amount": 25.0,
+                    "duration": 5.0
+                }
+            ]
         },
         {
             "id": "mallet",
@@ -255,17 +261,6 @@
             "rarity": "rare",
             "houseAffinity": "aphrodite",
             "baseValue": 0.0,
-            "effects": []
-        },
-        {
-            "id": "wheat",
-            "name": "Wheat",
-            "description": " ",
-            "icon": "item_wheat",
-            "type": "support",
-            "rarity": "rare",
-            "houseAffinity": "demeter",
-            "baseValue": 25.0,
             "effects": []
         },
         {
