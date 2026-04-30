@@ -43,8 +43,8 @@ private:
      * @param target  The player receiving the regen.
      */
     static float applyRegenToPlayer(const ItemDef::Effect& effect, Player& target) {
-        target.applyRegen(effect.amount, effect.duration);
-        return effect.amount;
+        target.applyRegen(effect.regenAmount, effect.duration);
+        return effect.regenAmount;
     }
 
     /**

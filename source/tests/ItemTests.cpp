@@ -139,7 +139,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     assertWithLabel(wheatDef && wheatDef->hasEffectType(ItemDef::EffectType::Regen),
            "items: wheat parses regen effect");
     assertWithLabel(wheatDef && !wheatDef->getEffects().empty() &&
-                    floatsEqualWithinTolerance(wheatDef->getEffects()[0].amount, 25.0f) &&
+                    floatsEqualWithinTolerance(wheatDef->getEffects()[0].regenAmount, 25.0f) &&
                     floatsEqualWithinTolerance(wheatDef->getEffects()[0].duration, 5.0f),
            "items: wheat regen values parse");
     assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
@@ -621,7 +621,7 @@ void testRegenEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     assertWithLabel(floatsEqualWithinTolerance(regenTarget.getCurrentHealth() - healthBeforeUse, expectedImmediateHeal),
                     "regen: wheat still applies its base heal immediately");
     assertWithLabel(regenTarget.hasRegen(), "regen: wheat applies a timed regen effect");
-    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenAmountRemaining(), regenEffect.amount),
+    assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenAmountRemaining(), regenEffect.regenAmount),
                     "regen: regen amount tracks remaining healing");
     assertWithLabel(floatsEqualWithinTolerance(regenTarget.getRegenDuration(), regenEffect.duration),
                     "regen: regen duration applies");

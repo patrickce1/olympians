@@ -103,7 +103,7 @@ static void broadcastSupportEffects(NetworkController& network,
                 break;
             case ItemDef::EffectType::Regen:
                 network.broadcastSupportEffect(SupportEffectType::Regen,
-                    effect.amount,
+                    effect.regenAmount,
                     effect.duration,
                     targetPlayerID);
                 break;
@@ -3744,8 +3744,8 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
     float regenAmount = 0.0f;
     if (def) {
         for (const auto& effect : def->getEffects()) {
-            if (effect.type == ItemDef::EffectType::Regen && effect.amount > 0.0f) {
-                regenAmount = effect.amount;
+            if (effect.type == ItemDef::EffectType::Regen && effect.regenAmount > 0.0f) {
+                regenAmount = effect.regenAmount;
                 break;
             }
         }
