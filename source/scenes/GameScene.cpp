@@ -1980,7 +1980,7 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
         if (playerHealthDelta < 0.0f && _audio) {
             std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
             _audio->playSoundUnique(soundKey);
-        } else if (playerHealthDelta >= 0.5f && _audio) {
+        } else if (playerHealthDelta >= 1.0f && _audio) {
             _audio->playSoundUnique("player_heal");
         }
     }
