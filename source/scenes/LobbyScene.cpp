@@ -16,7 +16,7 @@ using namespace std;
 /** How much larger the dragged player card appears while being held. */
 constexpr float LOBBY_DRAG_PICKUP_SCALE = 1.12f;
 /** Number of frames a press must be held before it is treated as a drag. */
-constexpr int LOBBY_DRAG_HOLD_FRAMES = 6;
+constexpr int LOBBY_DRAG_HOLD_FRAMES = 8;
 
 /**
  * Initializes the controller contents, and starts the game
@@ -245,12 +245,6 @@ void LobbyScene::setActive(bool value) {
                 _disconnectBanner = "";
             }
         } else {
-            // Reset popup state on deactivate so it doesn't reappear
-            // if the scene is re-entered before the timer expired.
-            _errorTimer = 0.0f;
-            _disconnectBanner = "";
-            if (_errorPopup) _errorPopup->setVisible(false);
-            
             if (_pendingDisconnect) {
                 _network->disconnect();
                 _pendingDisconnect = false;
