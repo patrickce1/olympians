@@ -2418,6 +2418,11 @@ void GameScene::processZoneInteractionsForSlidingItems() {
                 }
                 markItemAsUsed(itemId);
                 itemsToRemove.insert(itemId);
+            } else if (action == InputController::Action::DROP_ALLY_LEFT ||
+                       action == InputController::Action::DROP_ALLY_RIGHT) {
+                // Target ally is dead — snapback the item to inventory instead of leaving it in the zone
+                itemsToRemove.insert(itemId);
+                initiateSnapbackAnimation(itemId, itemPos);
             }
             break;
         }
@@ -2490,20 +2495,24 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
  */
 void GameScene::updateDropZoneVisibility(){
     if (_draggedItemId != 0) {
-        
+        Player* local = _gameState.getLocalPlayer();
+        bool localAlive = local && local->isAlive();
+
         _passLeftArea->setVisible(true);
         _passRightArea->setVisible(true);
-        // Render attack/support zones based on item type
-        auto itemDef = getHeldItemDef(_draggedItemId);
-        
-        if (itemDef) {
-            if (itemDef->getType() == ItemDef::Type::Attack) {
-                // Render attack zones when holding attack item
-                _attackArea->setVisible(true);
-            } else {
-                // Render support zones when holding heal/support item
-                _supportLeftArea->setVisible(true);
-                _supportRightArea->setVisible(true);
+
+        if (localAlive) {
+            auto itemDef = getHeldItemDef(_draggedItemId);
+            if (itemDef) {
+                if (itemDef->getType() == ItemDef::Type::Attack) {
+                    _attackArea->setVisible(true);
+                } else {
+                    // Only show each support zone if that ally is alive
+                    Player* leftAlly  = local->getLeftPlayer();
+                    Player* rightAlly = local->getRightPlayer();
+                    _supportLeftArea->setVisible(leftAlly  && leftAlly->isAlive());
+                    _supportRightArea->setVisible(rightAlly && rightAlly->isAlive());
+                }
             }
         }
     } else {
