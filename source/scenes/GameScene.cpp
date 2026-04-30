@@ -1976,10 +1976,11 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
     
     // Only play sounds for non-AI local players
     if (player && !dynamic_cast<PlayerAI*>(player)) {
-        if (player->getCurrentHealth() < playerHealthBefore && _audio) {
+        const float playerHealthDelta = player->getCurrentHealth() - playerHealthBefore;
+        if (playerHealthDelta < 0.0f && _audio) {
             std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
             _audio->playSoundUnique(soundKey);
-        } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
+        } else if (playerHealthDelta >= 0.5f && _audio) {
             _audio->playSoundUnique("player_heal");
         }
     }
