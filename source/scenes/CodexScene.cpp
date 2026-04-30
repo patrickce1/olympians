@@ -75,9 +75,9 @@ void CodexScene::initItemButtons() {
         
         int itemsThisRow = ITEMS_PER_ROW;
         
-        // special case: common is only 4 items
+        // special case: common is only 5 items
         if (rowIndex == 1) {
-            itemsThisRow = 1;
+            itemsThisRow = 2;
         }
         
         for (int j = 0; j < itemsThisRow && i < _items.size(); j++, i++) {

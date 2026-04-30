@@ -100,13 +100,13 @@
                     ]
                 }
             },
-            "empty1": {
+            "shield": {
                 "type": "Widget",
                 "format": { "type": "Anchored" },
                 "data": {
                     "key": "codexSlot",
                     "variables": {
-                        "visible": false
+                        "item" : "item_shield"
                     }
                 },
                 "layout": {

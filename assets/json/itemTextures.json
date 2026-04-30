@@ -12,6 +12,9 @@
         "item_arrow": {
             "file": "textures/items/arrow_n.png"
         },
+        "item_shield": {
+            "file": "textures/items/shield_n.png"
+        },
         "item_lightning": {
             "file": "textures/items/lightning_r.png"
         },
@@ -89,6 +92,9 @@
         },
         "arrow_large": {
             "file": "textures/codexScene/large/arrow_large.png"
+        },
+        "shield_large": {
+            "file": "textures/codexScene/large/shield_large.png"
         },
         "lightning_large": {
             "file": "textures/codexScene/large/lightning_large.png"
