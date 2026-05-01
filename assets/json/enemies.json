@@ -115,6 +115,28 @@
                     "animationKey": "cyclops_scream_animation",
                     "buildUpTime": 0.0,
                     "cooldownTime": 5.0,
+                    "entryEvents": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 2.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 2.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 2.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 2.0
+                        }
+		            ],
                     "events": [
                         {
                             "type": "DAMAGE",
