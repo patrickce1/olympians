@@ -90,7 +90,7 @@ protected:
     std::shared_ptr<cugl::scene2::SceneNode> _darkOverlay;
     
     /** Large preview image of selected item */
-    std::shared_ptr<cugl::scene2::PolygonNode> _itemLarge;   // large item image display
+    std::shared_ptr<cugl::scene2::PolygonNode> _itemLarge;
     
     // ---- Detail Panel Labels ----
     /** Displays item name */
