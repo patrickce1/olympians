@@ -248,8 +248,20 @@
             "type": "attack",
             "rarity": "rare",
             "houseAffinity": "hermes",
-            "baseValue": 0.0,
-            "effects": []
+            "baseValue": 10.0,
+            "effects": [
+                {
+                    "type": "slow",
+                    "multiplier": 0.5,
+                    "duration": 5.0
+                },
+                {
+                    "type": "vulnerable",
+                    "multiplier": 1.4,
+                    "duration": 5.0,
+                    "applyToAllSides": true
+                }
+            ]
         },
         {
             "id": "potion",

@@ -118,6 +118,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto helmDef = db.getDef("helm");
     auto wheatDef = db.getDef("wheat");
     auto spearDef = db.getDef("spear");
+    auto wingsDef = db.getDef("wings");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
            "items: lightning_bolt affinity parses as Zeus");
     assertWithLabel(lightningBoltDef && lightningBoltDef->hasEffectType(ItemDef::EffectType::Stun),
@@ -146,6 +147,12 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
            "items: spear parses vulnerable effect");
     assertWithLabel(spearDef && !spearDef->getEffects().empty() && floatsEqualWithinTolerance(spearDef->getEffects()[0].multiplier, 2.0f),
            "items: spear vulnerable multiplier parses");
+    assertWithLabel(wingsDef && wingsDef->hasEffectType(ItemDef::EffectType::Slow),
+           "items: wings parses slow effect");
+    assertWithLabel(wingsDef && wingsDef->getEffects().size() >= 2 &&
+                    floatsEqualWithinTolerance(wingsDef->getEffects()[0].multiplier, 0.5f) &&
+                    floatsEqualWithinTolerance(wingsDef->getEffects()[0].duration, 5.0f),
+           "items: wings slow values parse");
 }
 
 /**
@@ -942,6 +949,81 @@ void testVulnerableEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 }
 
 /**
+ * Tests the slow attack effect on the enemy.
+ *
+ * Verifies that:
+ * - Slow attack items still apply their base damage
+ * - Slow scales only enemy state-time advancement
+ * - Slow duration expires in real time instead of slowed time
+ * - Other timers such as attack lockout continue advancing normally
+ *
+ * @param itemsJson       Parsed JSON object containing item definitions
+ * @param housesJson      Parsed JSON object containing house multipliers
+ * @param housesJsonPath  Asset path to houses JSON for HouseLoader initialization
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
+ */
+void testSlowEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                    const std::shared_ptr<cugl::JsonValue>& housesJson,
+                    const std::string& housesJsonPath,
+                    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "slow: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "slow: house multipliers load succeeds");
+
+    auto wingsDef = db.getDef("wings");
+    assertWithLabel(wingsDef != nullptr, "slow: wings def exists");
+    if (!wingsDef || wingsDef->getEffects().empty()) return;
+
+    const ItemDef::Effect slowEffect = wingsDef->getEffects()[0];
+    assertWithLabel(slowEffect.type == ItemDef::EffectType::Slow, "slow: wings slow effect is first");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "slow: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "slow: enemy init succeeds");
+    if (!enemyOk) return;
+
+    Player hermes("hermes", 2, "Hermes Tester", loader);
+    auto instWings = ItemInstance::alloc("wings", 3030);
+    assertWithLabel(instWings != nullptr, "slow: create wings instance");
+    if (!instWings) return;
+    hermes.addItem(*instWings);
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    enemy.setTargetIndex(0);
+    enemy.enterState(EnemyLoader::State::ATTACK_1);
+    enemy.setStateTime(1.0f);
+    const float enemyHealthBeforeUse = enemy.getCurrentHealth();
+    const float resolvedSlow = hermes.useItemById(instWings->getId(), enemy, db);
+    assertWithLabel(resolvedSlow > 0.0f, "slow: wings returns a positive base damage");
+    assertWithLabel((enemyHealthBeforeUse - enemy.getCurrentHealth()) > 0.0f,
+                    "slow: wings still applies its base damage");
+    assertWithLabel(enemy.isSlowed(), "slow: enemy is marked slowed");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getSlowMultiplier(), 0.5f), "slow: slow multiplier applies");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getSlowDuration(), 5.0f), "slow: slow duration applies");
+
+    enemy.update(1.0f);
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getStateTime(), 1.5f), "slow: state time advances at half speed while slowed");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getSlowDuration(), 4.0f), "slow: slow timer still counts down in real time");
+
+    enemy.enterState(EnemyLoader::State::ATTACK_3);
+    while (!enemy.isStateComplete()) {
+        enemy.update(0.5f);
+    }
+    enemy.update(0.5f);
+    const float attackLockoutBeforeAdvance = enemy.getAttackLockoutRemaining();
+    enemy.update(0.5f);
+    assertWithLabel(enemy.getAttackLockoutRemaining() < attackLockoutBeforeAdvance, "slow: attack lockout continues advancing normally");
+
+    enemy.update(3.0f);
+    assertWithLabel(!enemy.isSlowed(), "slow: slow expires after its real-time duration elapses");
+}
+
+/**
  * Verifies that trident applies vulnerability to all four boss sides.
  *
  * @param itemsJson        Parsed items fixture JSON.
@@ -1031,6 +1113,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testShieldBarrierCoexistence(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testStunEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testLoveEffect(enemiesJsonPath);
+    testSlowEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testVulnerableEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testTridentVulnerableAllSides(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     

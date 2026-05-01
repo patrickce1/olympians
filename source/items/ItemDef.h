@@ -71,6 +71,7 @@ public:
         Regen,
         Stun,
         Love,
+        Slow,
         Vulnerable,
         Upgrade
     };

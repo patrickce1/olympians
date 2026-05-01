@@ -109,6 +109,7 @@ static void broadcastSupportEffects(NetworkController& network,
                 break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
+            case ItemDef::EffectType::Slow:
             case ItemDef::EffectType::Vulnerable:
             case ItemDef::EffectType::Upgrade:
                 break;
@@ -145,6 +146,11 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Love:
                 effectMsg.effectType = EnemyEffectType::Love;
                 effectMsg.magnitude = resolvedMagnitude;
+                enemyEffects.push_back(effectMsg);
+                break;
+            case ItemDef::EffectType::Slow:
+                effectMsg.effectType = EnemyEffectType::Slow;
+                effectMsg.magnitude = effect.multiplier;
                 enemyEffects.push_back(effectMsg);
                 break;
             case ItemDef::EffectType::Vulnerable:
@@ -804,6 +810,12 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         return false;
     }
 
+    // Host snapshots are authoritative for slow timing, so non-host clients
+    // clear their speculative local slow until the host state arrives.
+    if (!_network->isHost() && def->hasEffectType(ItemDef::EffectType::Slow)) {
+        enemy->syncSlow(1.0f, 0.0f);
+    }
+
     const auto& animConfig = def->getItemUseAnimation();
     CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
           resolvedMagnitude);
@@ -851,6 +863,12 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
+    }
+
+    // Host snapshots are authoritative for slow timing, so non-host clients
+    // clear their speculative local slow until the host state arrives.
+    if (!_network->isHost() && def->hasEffectType(ItemDef::EffectType::Slow)) {
+        enemy->syncSlow(1.0f, 0.0f);
     }
 
     CULog("Player attacked enemy '%s' with item %llu (damage: %.1f, immediate)",
