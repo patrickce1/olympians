@@ -16,7 +16,7 @@ using namespace std;
 /** How much larger the dragged player card appears while being held. */
 constexpr float LOBBY_DRAG_PICKUP_SCALE = 1.12f;
 /** Number of frames a press must be held before it is treated as a drag. */
-constexpr int LOBBY_DRAG_HOLD_FRAMES = 6;
+constexpr int LOBBY_DRAG_HOLD_FRAMES = 8;
 
 /**
  * Initializes the controller contents, and starts the game

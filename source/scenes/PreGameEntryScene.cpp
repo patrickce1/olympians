@@ -184,6 +184,14 @@ void PreGameEntryScene::update(float timestep) {
     }
     _network->getNetworkUpdates();
     
+    // If host has returned to lobby, follow immediately.
+    // This catches the case where _disconnectedSlots was cleared before
+    // this client's PreGameEntryScene could detect the disconnect itself.
+    if (!_network->isHost() && _network->getHostsCurrentScene() == 2) {
+        _status = Status::PLAYER_DISCONNECTED;
+        return;
+    }
+    
     // Client disconnect
     updateNetworkOrder();
     if (_status == Status::PLAYER_DISCONNECTED) return;
