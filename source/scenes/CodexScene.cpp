@@ -66,7 +66,6 @@ bool CodexScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const s
  * Initializes interactive item buttons for the grid.
  */
 void CodexScene::initItemButtons() {
-    
     int i = 0; // index into _items
     int rowIndex = 0;
     
