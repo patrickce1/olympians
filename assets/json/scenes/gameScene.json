@@ -182,34 +182,33 @@
                   "y_anchor": "bottom",
                   "absolute": false,
                   "x_offset": 0,
-                  "y_offset": 0
+                  "y_offset": 0.2
                 }
               },
               "label": {
                 "type": "Label",
                 "data": {
-                  "anchor": [0, 1],
-                  "size": [1500, 180],
-                  "position": [0, 1],
+                  "anchor": [0,0.5],
+                  "size": [1000, 180],
                   "angle": 0,
                   "visible": true,
                   "font": "mainFont",
                   "text": "",
                   "foreground": "#ffffffff",
                   "background": "#00000000",
-                  "padding": [30,0,0,0],
+                  "padding": [0,0,0,0],
                   "valign": "middle",
                   "halign": "left",
                   "wrap": true,
-                  "scale": 0.2
+                  "scale": 0.3
                 },
                 "children": {},
                 "layout": {
                   "x_anchor": "left",
                   "y_anchor": "middle",
                   "absolute": false,
-                  "x_offset": 0,
-                  "y_offset": 0.025
+                  "x_offset": 0.02,
+                  "y_offset": 0.15
                 }
               }
             },
@@ -218,7 +217,7 @@
               "y_anchor": "bottom",
               "absolute": false,
               "x_offset": 0.0,
-              "y_offset": 0.05
+              "y_offset": 0.00
             }
           }
         },

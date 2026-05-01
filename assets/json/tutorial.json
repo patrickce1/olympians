@@ -56,12 +56,12 @@
     },
     {
       "type": "show_message",
-      "text": "When their icon is gray, they're dead and need special items to revive.",
+      "text": "A gray icon means they're dead and need special items to revive.",
       "delay": 6.0
     },
     {
       "type": "show_message",
-      "text": "Items enter your inventory periodically and can be heals or attacks.",
+      "text": "Items enter your inventory and can be heals or attacks.",
       "delay": 6.0
     },
     { "type": "delay", "delay": 0.6 },
@@ -88,13 +88,13 @@
     {
       "type": "boss_defend",
       "bossTarget": 2,
-      "text": "Circe put up a shield on her front. Your teammate's attacks will be less effective.",
+      "text": "Circe shields her front. Your teammate's attacks are less effective.",
       "delay": 6.0
     },
     { "type": "delay", "delay": 0.8 },
     {
       "type": "show_message",
-      "text": "Your teammate just passed you their sword. Passing attacks while shielded is smart.",
+      "text": "Your teammate just passed you their sword.",
       "delay": 6.0
     },
     {
