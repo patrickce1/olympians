@@ -42,8 +42,8 @@ void Gaia::update(float dt) {
 }
 
 /** This method tells us if Gaia's timer for spawning a rock is done
-  * If this method returns true, whatever player Gaia is facing should receive a rock in their inventory
   * Calling this method also resets the timer associated with the spawning
+  * @return true means whatever player Gaia is facing should receive a rock in their inventory
   */
 bool Gaia::spawnRockForPlayer() {
 	if (_currentSpawnTime >= _spawnCooldownConstant) {
