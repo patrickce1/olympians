@@ -382,7 +382,7 @@ public:
      * Clients use this to mirror the host's scene transitions, ensuring no
      * client gets left behind if they missed the original transition signal.
      *
-     * @param sceneState  0 = PreGameEntryScene, 1 = GameScene
+     * @param sceneState  0 = PreGameEntryScene, 1 = GameScene, 2 = LobbyScene -1 = unknown (not yet received)
      */
     void broadcastHostsCurrentScene(int sceneState);
 
@@ -391,7 +391,7 @@ public:
      * Used by clients to detect when the host has transitioned scenes
      * and advance accordingly.
      *
-     * @return  0 = PreGameEntryScene, 1 = GameScene, 2 = LobbyScene -1 = unknown (not yet received)
+     * @return  0 = PreGameEntryScene, 1 = GameScene, 2 = LobbyScene,  -1 = unknown (not yet received)
      */
     int getHostsCurrentScene() const { return _hostsCurrentScene; }
     
