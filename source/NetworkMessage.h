@@ -28,6 +28,11 @@ struct AttackMessage {
     std::string itemDefID;
 };
 
+/** Message send by the client to the host to indicate how much they healed the Boss for */
+struct BossHealMessage {
+    float healAmount;
+};
+
 /* Message sent by the client to the host to indicate healing.
 * The heal float value is how much health the target was healed by
 * The playerID is the order of the player in the circle to whom the heal is being applied to

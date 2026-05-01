@@ -87,9 +87,10 @@ ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
 ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
     value = normalizeToken(value);
 
-    if (value == "common") return Rarity::Common;
-    if (value == "rare")   return Rarity::Rare;
-    if (value == "divine") return Rarity::Divine;
+    if (value == "common")  return Rarity::Common;
+    if (value == "rare")    return Rarity::Rare;
+    if (value == "divine")  return Rarity::Divine;
+    if (value == "special") return Rarity::Special;
     return fallback;
 }
 
@@ -236,7 +237,7 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
     
     if (json->has("rarity") && json->get("rarity")->isString()) {
         const std::string rarityText = normalizeToken(json->get("rarity")->asString());
-        if (rarityText != "common" && rarityText != "rare" && rarityText != "divine") {
+        if (rarityText != "common" && rarityText != "rare" && rarityText != "divine" && rarityText != "special") {
             return false;
         }
         _rarity = rarityFromString(rarityText, Rarity::Common);
