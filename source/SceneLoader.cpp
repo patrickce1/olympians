@@ -319,9 +319,9 @@ void SceneLoader::update(float dt) {
                 CULog("Failed to initialize BossSelectScene");
             }
             
-            if (_codexScene.init(_assets, _network)){
+            if (_codexScene.init(_assets, _network)) {
                 _codexScene.setSpriteBatch(_batch);
-            } else{
+            } else {
                 CULog("Failed to initialize CodexScene");
             }
 
