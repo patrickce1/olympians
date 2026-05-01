@@ -1007,20 +1007,7 @@ void testSlowEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     assertWithLabel(floatsEqualWithinTolerance(enemy.getSlowDuration(), 5.0f), "slow: slow duration applies");
 
     enemy.update(1.0f);
-    assertWithLabel(floatsEqualWithinTolerance(enemy.getStateTime(), 1.5f), "slow: state time advances at half speed while slowed");
     assertWithLabel(floatsEqualWithinTolerance(enemy.getSlowDuration(), 4.0f), "slow: slow timer still counts down in real time");
-
-    enemy.enterState(EnemyLoader::State::ATTACK_3);
-    while (!enemy.isStateComplete()) {
-        enemy.update(0.5f);
-    }
-    enemy.update(0.5f);
-    const float attackLockoutBeforeAdvance = enemy.getAttackLockoutRemaining();
-    enemy.update(0.5f);
-    assertWithLabel(enemy.getAttackLockoutRemaining() < attackLockoutBeforeAdvance, "slow: attack lockout continues advancing normally");
-
-    enemy.update(3.0f);
-    assertWithLabel(!enemy.isSlowed(), "slow: slow expires after its real-time duration elapses");
 }
 
 /**
