@@ -265,7 +265,8 @@ bool TutorialController::executeStep(const TutorialStep& step) {
             return false;
         case StepType::BOSS_DEFEND:
             if (_gameScene){
-                _gameScene->triggerBossDefense();
+                int targetIndex = step.bossTarget.value_or(0);
+                _gameScene->triggerBossDefense(targetIndex);
                 if (!step.text.empty()){
                     _gameScene->showDialogue(step.text);
                 }
