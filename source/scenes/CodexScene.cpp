@@ -362,7 +362,7 @@ void CodexScene::update(float timestep) {
             _effectLabel->setForeground(cugl::Color4("#AC0000ff"));
         } else if (item.category == "SUPPORT") {
             _categoryLabel->setForeground(cugl::Color4("#047D04ff"));
-            _effectLabel->setForeground(cugl::Color4("#047D04ff"));
+            _effectLabel->setForeground(cugl::Color4("#164E18ff"));
         } else {
             _categoryLabel->setForeground(cugl::Color4("#2000ACff"));
             _effectLabel->setForeground(cugl::Color4("#2000ACff"));
