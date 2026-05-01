@@ -407,6 +407,11 @@ public:
      * @param slotB  Second 0-based slot index to swap.
      */
     void swapSlots(int slotA, int slotB);
+    
+    /** Sets the player's display name without registering a local slot.
+     *  Use before broadcastJoinedLobby() so the name is available for
+     *  the join message without prematurely inserting into _slotToPlayer. */
+    void setPlayerNameOnly(const std::string& name) { _playerName = name; }
 
 
 protected:

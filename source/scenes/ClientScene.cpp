@@ -19,6 +19,9 @@ using namespace std;
 /** Speed of the loading circle in Radians per second */
 #define LOADING_SPIN_SPEED  2.0f
 
+/** The wait time post-connection for polling lobby state*/
+#define POST_CONNECT_POLL_TIME  0.5f
+
 /**
  * Initializes the scene contents, and starts the game
  *
@@ -317,16 +320,48 @@ void ClientScene::update(float timestep) {
 
         if (connStatus == NetworkController::Status::CONNECTED) {
             _network->registerDisconnectCallback();
-            _network->setPlayerName(_playerName->getText());
-            _status = Status::START;  // go to lobby — validity checked there
+            _network->setPlayerNameOnly(_playerName->getText());
+            _network->broadcastJoinedLobby();
+            _joinTimer = 0.0f;
+            _status = Status::PENDING_LOBBY;
         } else if (_joinTimer >= JOIN_TIMEOUT) {
-            // Only fail on timeout — not on FAILED state
             CULog("ClientScene: join timed out");
             hideLoadingSpinner();
             _network->disconnect();
             showError("Could not connect.\nPlease check the code and try again.");
         } else {
             showLoadingSpinner();
+        }
+    }
+    
+    if (_status == Status::PENDING_LOBBY) {
+        _joinTimer += timestep;
+        
+        if (_loading && _loading->isVisible()) {
+            float angle = _spinner->getAngle();
+            _spinner->setAngle(angle + LOADING_SPIN_SPEED * timestep);
+        }
+        _network->getNetworkUpdates();
+        
+        if (_joinTimer >= POST_CONNECT_POLL_TIME) {
+            CULog("PENDING_LOBBY: getLocalPlayerNumber() = %d", _network->getLocalPlayerNumber());
+            int hostScene = _network->getHostsCurrentScene();
+            if (hostScene == 0 || hostScene == 1) {
+                _network->disconnect();
+                hideLoadingSpinner();
+                showError("Game in session.");
+                return;
+            }
+            
+            if (_network->getLocalPlayerNumber() == -1) {
+                _network->disconnect();
+                hideLoadingSpinner();
+                showError("Lobby is full.");
+                return;
+            }
+            
+            _network->setPlayerName(_playerName->getText());
+            _status = Status::START;
         }
     }
 
