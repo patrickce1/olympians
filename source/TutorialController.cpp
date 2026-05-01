@@ -266,8 +266,12 @@ bool TutorialController::executeStep(const TutorialStep& step) {
         case StepType::BOSS_DEFEND:
             if (_gameScene){
                 _gameScene->triggerBossDefense();
+                if (!step.text.empty()){
+                    _gameScene->showDialogue(step.text);
+                }
             }
-            return false;
+            if (step.delay > 0.0f) _timer = step.delay;
+                return true;
         case StepType::END:
             if (_gameScene) {
                 _gameScene->hideDialogue();

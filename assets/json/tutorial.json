@@ -88,8 +88,8 @@
     {
       "type": "boss_defend",
       "bossTarget": 2,
-      "text": "Circe shields her front. Your teammate's attacks are less effective.",
-      "delay": 6.0
+      "text": "Circe shields her front. Allies attacks are less effective.",
+      "delay": 5.0
     },
     { "type": "delay", "delay": 0.8 },
     {
