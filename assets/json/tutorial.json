@@ -115,13 +115,18 @@
     {
       "type": "wait_for_action",
       "action": "DROP_ALLY_LEFT",
-      "text": "Drag the shield to your left teammate to give them protection."
+      "text": "Drag the shield to give allies protection."
     },
     {
       "type": "show_message",
-      "text": "That covers shields, heals, passing, and boss direction. Defeat Circe.",
+      "text": "That covers shields, heals, passing, and boss direction.",
       "bossActive": true,
       "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "DEFEAT CIRCE",
+      "delay": 20.0
     },
     { "type": "end" }
   ]

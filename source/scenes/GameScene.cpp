@@ -286,9 +286,16 @@ bool GameScene::initSceneGraph() {
         _dialogueBox = _gameArea->getChildByName("dialogueBox");
         if (_dialogueBox) {
             _dialogueBoxPos = _dialogueBox->getPosition();
-            _dialogueBox->setPosition(_dialogueBoxPos - Vec2(350, 0));
             _dialogueLabel = std::dynamic_pointer_cast<scene2::Label>(
                 _dialogueBox->getChildByName("label"));
+            
+            _gameArea->removeChild(_dialogueBox);
+            //Save the location of the dialog box in the world space (using relatives from the json in the gamearea)
+            Vec2 worldPos = _gameArea->nodeToWorldCoords(_dialogueBoxPos);
+            Vec2 scenePos = _scene->worldToNodeCoords(worldPos);
+            _dialogueBoxPos = scenePos;
+            _dialogueBox->setPosition(scenePos - Vec2(350, 0));
+            _scene->addChild(_dialogueBox);
         }
     }
     
@@ -2441,6 +2448,8 @@ void GameScene::slideDialogueOut() {
  */
 void GameScene::showDialogue(const std::string& message) {
     if (_dialogueLabel) {
+            _dialogueBox->removeFromParent();
+            _scene->addChild(_dialogueBox);
             _pendingDialogueText = message;
             _waitingToSlideIn = true;
             _dialogueOutTimer = 0.4f; // match slide out duration
