@@ -158,22 +158,22 @@ void GameScene::triggerBossAttack(int targetSlot) {
     auto enemy = _gameState.getEnemy();
     if (!enemy) return;
 
-    // 1. Optionally set the target if one was passed from the tutorial
-    if (targetSlot >= 0) {
+    if (targetSlot >= 0 && targetSlot < _gameState.getPlayers().size()) {
         enemy->setTargetIndex(targetSlot);
     }
 
     // 2. Force the enemy into an attack state
-    // You can hardcode ATTACK_1 for the tutorial or pick one
     enemy->forceAttack(EnemyLoader::State::ATTACK_1);
 }
 
-void GameScene::triggerBossDefense() {
+void GameScene::triggerBossDefense(int targetSlot) {
     auto enemy = _gameState.getEnemy();
     if (!enemy) return;
    
-    // 2. Force the enemy into an attack state
-    // You can hardcode ATTACK_1 for the tutorial or pick one
+    if (targetSlot >= 0 && targetSlot < _gameState.getPlayers().size()) {
+        enemy->setTargetIndex(targetSlot);
+    }
+    // 2. Force the enemy into an defense state
     enemy->forceDefense(EnemyLoader::State::DEFENSE_MOVE);
 }
 

@@ -819,9 +819,24 @@ public:
      * @param localPlayerIndex  The local player's index (0-3) for direction calculation
      */
     void updateEnemyAnimationFrame(float dt, int localPlayerIndex);
-
+    
+    /**
+     * Forces the enemy into the first attack state, targeting a specific player slot.
+     * If a valid target slot is provided, the enemy will face that player before
+     * attacking.
+     *
+     * @param targetSlot The 0-based slot index of the player the enemy should face. If out of bounds, no change in direction.
+     */
     void triggerBossAttack(int targetSlot);
-    void triggerBossDefense();
+    
+    /**
+     * Forces the enemy into a defense state,  targeting a specific player slot.
+     * If a valid target slot is provided, the enemy will face that player before
+     * entering the defense move.
+     *
+     * @param targetSlot The 0-based slot index of the player the enemy should face. If out of bounds, no change in direction.
+     */
+    void triggerBossDefense(int targetSlot);
     
     /**
      * Calculates which animation frame should be displayed based on state time and animation phase.
