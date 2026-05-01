@@ -3,6 +3,7 @@
 /** Override version of Enemy's init method, where Gaia's custom data can be initialized
   * @param enemyID represents the name/id of the boss we are trying to get the data for
   * @param jsonPath is the path to the enemies.json file
+  * @return true if initialization succeeds, false on error
   */
 bool Gaia::init(const std::string& enemyId, const std::string& jsonPath) {
 	bool success = Enemy::init(enemyId, jsonPath);

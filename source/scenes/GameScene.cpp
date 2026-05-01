@@ -3791,7 +3791,7 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
   */
 void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
     char healText[32];
-    std::snprintf(healText, sizeof(healText), "+%.1f", healAmount);
+    CULog(healText, sizeof(healText), "+%.1f", healAmount);
     createFloatingPopup(dropPos, { {
         healText, 26.0f,
         cugl::Color4(80, 220, 255, 255),

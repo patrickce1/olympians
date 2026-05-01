@@ -354,7 +354,6 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
  */
 void GameState::bossHealUpdates(std::vector<BossHealMessage> bossHeals) {
     for (BossHealMessage bossHeal : bossHeals) {
-        CULog("I'm getting a heal message");
         _enemy->updateHealth(bossHeal.healAmount);
     }
 }

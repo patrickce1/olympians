@@ -18,6 +18,7 @@ public:
 	/** Override version of Enemy's init method, where Gaia's custom data can be initialized
 	  * @param enemyID represents the name/id of the boss we are trying to get the data for
 	  * @param jsonPath is the path to the enemies.json file
+	  * @return true if initialization succeeds, false on error
 	  */
 	bool init(const std::string& enemyId, const std::string& jsonPath) override;
 
@@ -41,8 +42,8 @@ public:
 	void update(float dt) override;
 
 	/** This method tells us if Gaia's timer for spawning a rock is done
-	  * If this method returns true, whatever player Gaia is facing should receive a rock in their inventory
 	  * Calling this method also resets the timer associated with the spawning
+	  * @return true means whatever player Gaia is facing should receive a rock in their inventory
 	  */
 	bool spawnRockForPlayer();
 };
