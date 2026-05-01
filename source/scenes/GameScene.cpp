@@ -701,7 +701,7 @@ void GameScene::setActive(bool value) {
             }
             if (_isTutorial){
                 clearTutorialHighlight();
-                setTutorialDisableSupportZones(false);
+                setTutorialDisableSupportZonesVisibility(false);
             }
         }
     }
@@ -1130,8 +1130,21 @@ std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId it
  *@param itemId  The id of the item being handled.
  */
 bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId) {
+    CULog("handlePlayerActions: action=%d isActive=%d isWaiting=%d isMatch=%d",
+          (int)action,
+          _tutorialController.isActive() ? 1 : 0,
+          _tutorialController.isWaiting() ? 1 : 0,
+          _tutorialController.isWaitingForActionMatch(action) ? 1 : 0);
     Player* local = _gameState.getLocalPlayer();
     if (!local) return false;
+
+    if (_tutorialController.isActive() && _tutorialController.isWaiting()) {
+        if (!_tutorialController.isWaitingForActionMatch(action)) {
+            return false;
+        }
+    }
+    
+    CULog("handlePlayerActions: passed gate, dispatching action=%d itemId=%llu", (int)action, (unsigned long long)itemId);
 
     switch (action) {
         case InputController::Action::DROP_BOSS:
@@ -2562,6 +2575,7 @@ void GameScene::processZoneInteractionsForSlidingItems() {
                 continue;
             }
             
+            
             // First time hitting a matching zone - trigger the action immediately
             if (handlePlayerActions(action, itemId)) {
                 const bool isUseAction =
@@ -2580,6 +2594,10 @@ void GameScene::processZoneInteractionsForSlidingItems() {
                     }
                 markItemAsUsed(itemId);
                 itemsToRemove.insert(itemId);
+            }
+            else{
+                item->setCanInteractWithZones(false);
+                initiateSnapbackAnimation(itemId, itemPos);
             }
             break;
         }
@@ -3268,16 +3286,31 @@ void GameScene::syncInventoryWidgets() {
 
 #pragma mark -
 #pragma mark Tutorial
+/** Sets the highlighted tutorial zone by name (e.g. "attack", "left_support", "pass_left").
+ *  Used to visually guide the player toward the correct drop zone during tutorial steps.
+ *
+ *  @param zone  The name of the zone to highlight.
+ */
 void GameScene::setTutorialHighlight(const std::string& zone) {
     _tutorialHighlightZone = zone;
 }
 
+/** Clears the active tutorial zone highlight, returning all zones to their default appearance. */
 void GameScene::clearTutorialHighlight() {
     _tutorialHighlightZone = "none";
 }
 
-void GameScene::setTutorialDisableSupportZones(bool disable) {
+/** Enables or disables the visibility of support zones during the tutorial.
+ *  Used to hide irrelevant zones when the tutorial only requires the attack zone.
+ *
+ *  @param disable  If true, support zones are hidden. If false, they are shown normally.
+ */
+void GameScene::setTutorialDisableSupportZonesVisibility(bool disable) {
     _tutorialDisableSupportZones = disable;
+}
+
+void GameScene::setTutorialAllowedDropZone(InputController::Action zone){
+    _allowedTutorialZone = zone;
 }
 
 #pragma mark -

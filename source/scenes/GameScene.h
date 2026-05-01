@@ -329,6 +329,10 @@ protected:
     
     /** The Current zone to highlight*/
     std::string _tutorialHighlightZone = "none";
+    
+    /** The Current zone that can be dropped on. Should match the above*/
+    InputController::Action _allowedTutorialZone = InputController::Action::NONE;
+
     /** Whether support zones may be disabled*/
     bool _tutorialDisableSupportZones = false;
 
@@ -1556,7 +1560,13 @@ public:
      * introduced or restricted.
      * @param disable If true, hides support zones; if false, reveals them.
      */
-    void setTutorialDisableSupportZones(bool disable);
+    void setTutorialDisableSupportZonesVisibility(bool disable);
+    
+    /**
+     * Sets a singular zone to be active.
+     * @param zone The input zone that should be active, treating all others as inactive..
+     */
+    void setTutorialAllowedDropZone(InputController::Action zone);
 
     /**
      * Draws a green debug outline around the reset button's bounding box.

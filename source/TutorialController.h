@@ -167,8 +167,20 @@ private:
       */
     bool executeStep(const TutorialStep& step);
      
+    /** Applies a visual highlight to the zone corresponding to the given action,
+     *  guiding the player toward the correct drop target during a wait_for_action step.
+     *
+     *  @param action  The expected player action, used to determine which zone to highlight.
+     */
     void applyZoneHighlight(InputController::Action action);
     
+    /** Restricts player input to the zone corresponding to the given action,
+     *  causing drops to any other zone to snapback as invalid during tutorial steps.
+     *
+     *  @param action  The only action that should be accepted. Pass NONE to lift all restrictions.
+     */
+    void applyActiveZone(InputController::Action action);
+
     //Loads the steps defined by the asset into the _steps vector.
     void parseSteps(const std::shared_ptr<cugl::JsonValue>& json);
     

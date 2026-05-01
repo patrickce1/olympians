@@ -159,7 +159,10 @@ void TutorialController::onAction(InputController::Action action) {
     // Empty action means any action advances.
     if (step.action == InputController::Action::NONE || step.action == action) {
         CULog("Tutorial: action matched, advancing");
-        if (_gameScene) _gameScene->clearTutorialHighlight();
+        if (_gameScene){
+            _gameScene->clearTutorialHighlight();
+            _gameScene->setTutorialAllowedDropZone(InputController::Action::NONE);
+        }
         _waitingForAction = false;
         _index++;
         advanceStep();
@@ -255,6 +258,7 @@ bool TutorialController::executeStep(const TutorialStep& step) {
                     _gameScene->showDialogue(step.text);
                 }
                 applyZoneHighlight(step.action);
+                _gameScene->setTutorialAllowedDropZone(step.action);
             }
             return true;
         case StepType::BOSS_ATTACK:
