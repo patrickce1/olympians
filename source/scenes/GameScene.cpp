@@ -1131,7 +1131,9 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
  */
 void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
+    
     if (!enemy || !enemy->isAlive()) return;
+    
 
     // Track player and enemy health before any updates to detect damage
     auto player = _gameState.getLocalPlayer();
