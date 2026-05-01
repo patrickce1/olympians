@@ -119,7 +119,7 @@
     },
     {
       "type": "show_message",
-      "text": "That covers shields, heals, passing, and boss direction. DEFEAT CIRCE",
+      "text": "That covers shields, heals, passing, and boss direction.",
       "delay": 6.0
     },
     {
