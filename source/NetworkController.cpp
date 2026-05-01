@@ -281,6 +281,7 @@ void NetworkController::disconnect() {
     _enemy = "";
     _aIHouses.clear();
     _hostsCurrentScene = -1;
+    _lobbyFull = false;
 }
 
 /**
@@ -403,7 +404,15 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
                         break;
                     }
                 }
-                if (slot == -1) break; // lobby full
+                
+                // Lobby Full
+                if (slot == -1) {
+                    _serializer.writeSint32(MessageType::LOBBY_FULL);
+                    _network->sendTo(senderID, _serializer.serialize());
+                    _serializer.reset();
+                    CULog("HOST: lobby full, rejected %s", senderID.c_str());
+                    break;
+                }
 
                 // Remove any AI house assignment for this slot since it's
                 // now occupied by a real player.
@@ -490,6 +499,11 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             }
             break;
         }
+        case MessageType::LOBBY_FULL: {
+            CULog("CLIENT: received LOBBY_FULL from host");
+            _lobbyFull = true;
+            break;
+        }
         case MessageType::SESSION_TERMINATED: {
             _sessionTerminated = true;
             break;
@@ -542,6 +556,7 @@ void NetworkController::clearQueues() {
     _hostsCurrentScene = -1;
     _sessionTerminated = false;
     _disconnectedSlots.clear();
+    _lobbyFull = false;
 }
 
 /**

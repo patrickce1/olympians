@@ -307,7 +307,7 @@ void ClientScene::update(float timestep) {
     
     if (_status == Status::JOINING) {
         _joinTimer += timestep;
-        
+
         if (_loading && _loading->isVisible()) {
             float angle = _spinner->getAngle();
             _spinner->setAngle(angle + LOADING_SPIN_SPEED * timestep);
@@ -318,9 +318,10 @@ void ClientScene::update(float timestep) {
         if (connStatus == NetworkController::Status::CONNECTED) {
             _network->registerDisconnectCallback();
             _network->setPlayerName(_playerName->getText());
-            _status = Status::START;  // go to lobby — validity checked there
+            _network->broadcastJoinedLobby();
+            // Move to CONNECTED to wait one frame for a possible LOBBY_FULL reply
+            _status = Status::CONNECTED;
         } else if (_joinTimer >= JOIN_TIMEOUT) {
-            // Only fail on timeout — not on FAILED state
             CULog("ClientScene: join timed out");
             hideLoadingSpinner();
             _network->disconnect();
@@ -328,6 +329,21 @@ void ClientScene::update(float timestep) {
         } else {
             showLoadingSpinner();
         }
+    }
+
+    if (_status == Status::CONNECTED) {
+        _network->getNetworkUpdates();
+
+        if (_network->wasLobbyFull()) {
+            _network->clearQueues();
+            hideLoadingSpinner();
+            _network->disconnect();
+            showError("Lobby is full.\nPlease try a different room.");
+        } else {
+            _status = Status::START;
+        }
+
+        _network->clearQueues();
     }
 
     if (_status == Status::ERROR_DISPLAY) {

@@ -232,6 +232,12 @@ public:
     /*Returns the list of networked players, carrying their network ID and username*/
     const std::unordered_map<int, NetworkedPlayer>& getNetworkedPlayers() const { return _slotToPlayer; }
     
+    /** Returns true if the host rejected this client because the lobby was full. CLIENT ONLY. */
+    bool wasLobbyFull() const { return _lobbyFull; }
+    
+    /** Clears the lobby-full flag. Call after handling the rejection. */
+    void clearLobbyFull() { _lobbyFull = false; }
+    
     /**
      * Returns true if the given houseID is already claimed by any player
      * other than the local player.
@@ -406,7 +412,8 @@ protected:
         AI_HOUSE_SELECT = 13,
         PLAYER_SUPPORT_EFFECT = 14,
         ENEMY_EFFECT = 15,
-        SWAP_SLOTS = 16
+        SWAP_SLOTS = 16,
+        LOBBY_FULL = 17
     };
 
     /** Our network connection */
@@ -463,6 +470,9 @@ private:
     
     /** Houses chosen by the host for AI slots, keyed by game slot index */
     std::unordered_map<int, std::string> _aIHouses;
+    
+    /** A flag representing whether the lbby is full or not **/
+    bool _lobbyFull = false;
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */

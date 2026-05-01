@@ -27,6 +27,9 @@ public:
 
         /** Client is connecting to the host */
         JOINING,
+        
+        /** Connected to host; waiting one frame to confirm lobby has space */
+        CONNECTED,
 
         /** Join attempt failed — error popup is displayed before resetting to IDLE */
         ERROR_DISPLAY,
