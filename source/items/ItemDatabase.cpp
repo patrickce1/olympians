@@ -34,7 +34,6 @@ static float clamp01(float value) {
 
 /** Clears items from buckets and reinitializes them; buckets contain items of the corresponding rarity */
 void ItemDatabase::clearBuckets() {
-    _allDefIds = Bucket();
     _bucketsByRarity.clear();
     _bucketsByRarity[ItemDef::Rarity::Common]    = Bucket();
     _bucketsByRarity[ItemDef::Rarity::Rare]      = Bucket();
@@ -82,9 +81,10 @@ void ItemDatabase::resetRarityWeights() {
     _rarityWeights[ItemDef::Rarity::Common]    = 0.45;
     _rarityWeights[ItemDef::Rarity::Rare]      = 0.40;
     _rarityWeights[ItemDef::Rarity::Divine]    = 0.15;
+    // Fallbacks already sum to 1.0, so normalization is a no-op for them
 }
 
-/** Load rarity weights from a JSON */
+/** Load rarity weights from a JSON and normalize so they sum to 1.0 */
 void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     resetRarityWeights();
 
@@ -97,21 +97,20 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     auto loadOne = [&](const char* key, ItemDef::Rarity rarity) {
         if (rarityWeightsJson->has(key) && rarityWeightsJson->get(key)->isNumber()) {
             double weight = rarityWeightsJson->get(key)->asDouble();
-            if (weight < 0.0) weight = 0.0;
-            _rarityWeights[rarity] = weight;
+            _rarityWeights[rarity] = (weight > 0.0) ? weight : 0.0;
         }
     };
 
-    loadOne("common",    ItemDef::Rarity::Common);
-    loadOne("rare",      ItemDef::Rarity::Rare);
-    loadOne("divine",    ItemDef::Rarity::Divine);
-}
+    loadOne("common", ItemDef::Rarity::Common);
+    loadOne("rare",   ItemDef::Rarity::Rare);
+    loadOne("divine", ItemDef::Rarity::Divine);
 
-/** Returns the probability weight of the given rarity */
-double ItemDatabase::rarityBaseWeight(ItemDef::Rarity r) const {
-    auto rarity = _rarityWeights.find(r);
-    if (rarity != _rarityWeights.end()) return rarity->second;
-    return 1.0;
+    // Normalize so weights sum to 1.0 — values can be any positive numbers in JSON
+    double total = 0.0;
+    for (const auto& kv : _rarityWeights) total += kv.second;
+    if (total > 0.0) {
+        for (auto& kv : _rarityWeights) kv.second /= total;
+    }
 }
 
 /** Add item with the given defId to the corresponding bucket with effectiveWeight
@@ -192,15 +191,10 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
         }
         _defs[defID] = itemDef;
 
-        // Rarity-driven spawn weights
-        double rarityWeight = rarityBaseWeight(itemDef->getRarity());
-
-        // Add to spawn buckets if spawnable
-        addToBucket(_allDefIds, defID, rarityWeight);
-        addToBucket(_bucketsByRarity[itemDef->getRarity()], defID, rarityWeight);
+        // Add to the per-rarity bucket weighted by the item's own weight field
+        addToBucket(_bucketsByRarity[itemDef->getRarity()], defID, (double)itemDef->getWeight());
     }
 
-    // Note: _defs may be non-empty even if _allDefs is empty (e.g. all weights 0)
     return !_defs.empty();
 }
 
@@ -288,9 +282,50 @@ const ItemDatabase::HouseMultipliers* ItemDatabase::getHouseMultipliers(const st
     return &multipliersIterator->second;
 }
 
-/** Rarity-driven weighted roll across all spawnable items */
+/**
+ * Two-phase weighted roll:
+ *   Phase 1 — pick a rarity tier using the normalized _rarityWeights.
+ *   Phase 2 — pick an item from that tier's bucket using per-item weights.
+ *
+ * Falls back to any non-empty tier if the selected tier has no items.
+ */
 std::string ItemDatabase::rollRandomDefId() {
-    return rollFromBucket(_allDefIds);
+    if (!_rngReady) {
+        const_cast<ItemDatabase*>(this)->setStartingPointWithTime();
+    }
+
+    static const ItemDef::Rarity rarityOrder[] = {
+        ItemDef::Rarity::Common,
+        ItemDef::Rarity::Rare,
+        ItemDef::Rarity::Divine
+    };
+
+    // Phase 1: pick a tier
+    double roll = _rng.getRightOpenDouble(0.0, 1.0);
+    double cumulative = 0.0;
+    ItemDef::Rarity selected = rarityOrder[0];
+    for (auto rarity : rarityOrder) {
+        auto it = _rarityWeights.find(rarity);
+        if (it == _rarityWeights.end()) continue;
+        cumulative += it->second;
+        selected = rarity;
+        if (roll < cumulative) break;
+    }
+
+    // Phase 2: pick an item from the selected tier
+    auto bucketIt = _bucketsByRarity.find(selected);
+    if (bucketIt != _bucketsByRarity.end() && !bucketIt->second.defIds.empty()) {
+        return rollFromBucket(bucketIt->second);
+    }
+
+    // Fallback: selected tier is empty — try other tiers in order
+    for (auto rarity : rarityOrder) {
+        auto fb = _bucketsByRarity.find(rarity);
+        if (fb != _bucketsByRarity.end() && !fb->second.defIds.empty()) {
+            return rollFromBucket(fb->second);
+        }
+    }
+    return "";
 }
 
 /** Weighted roll within a specific rarity bucket (probably not needed) */

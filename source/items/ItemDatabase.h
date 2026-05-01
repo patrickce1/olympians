@@ -50,14 +50,11 @@ private:
 
     /** Runtime per-house multipliers keyed by normalized house ID */
     std::unordered_map<std::string, HouseMultipliers> _houseMultipliers;
-    
-    /** Bucket to contain all defIds so that they may be rolled */
-    Bucket _allDefIds;
-    
-    /** The collection of buckets categorized by rarity */
+
+    /** Per-rarity item buckets; each bucket holds items weighted by their individual weight field */
     std::unordered_map<ItemDef::Rarity, Bucket, RarityHash> _bucketsByRarity;
-    
-    /** Data-driven rarity weights */
+
+    /** Normalized rarity tier weights (always sum to 1.0 after loading) */
     std::unordered_map<ItemDef::Rarity, double, RarityHash> _rarityWeights;
     
     /** Random value holder */
@@ -76,9 +73,6 @@ private:
     /** Load rarity weights from a JSON */
     void loadRarityWeights(const std::shared_ptr<cugl::JsonValue>& json);
     
-    /** Returns the probability weight of the given rarity */
-    double rarityBaseWeight(ItemDef::Rarity r) const;
-
     /** Add item with the given defId to the corresponding bucket with effectiveWeight
      *  Total = sum of effective weights of all the defIds addet to the bucket
      *  Prefix = cummulative sum array of effective weights of added defIds
