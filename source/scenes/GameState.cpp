@@ -153,6 +153,9 @@ static std::shared_ptr<Enemy> createEnemyByID(const std::string& enemyID) {
         // TODO: Create a custom Cerberus class in a future PR
         return std::make_shared<Enemy>();
     }
+    else if (enemyID == "gaia") {
+        return std::make_shared<Gaia>();
+    }
     // Fallback for unknown enemy types
     return std::make_shared<Enemy>();
 }
@@ -338,6 +341,20 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
     for (HealMessage heal : heals) {
         if (heal.playerID < 0 || heal.playerID >= (int)_players.size()) continue;
         _players[heal.playerID]->updateHealth(heal.heal);
+    }
+}
+
+/**
+ * Applies all queued boss heal messages to the enemy's current health.
+ * Called by the host each frame after processing incoming network messages.
+ * Currently used exclusively for Gaia's rock item, which heals the boss
+ * instead of dealing damage.
+ *
+ * @param bossHeals  The queued boss heal updates to apply this frame.
+ */
+void GameState::bossHealUpdates(std::vector<BossHealMessage> bossHeals) {
+    for (BossHealMessage bossHeal : bossHeals) {
+        _enemy->updateHealth(bossHeal.healAmount);
     }
 }
 

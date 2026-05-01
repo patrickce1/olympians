@@ -508,6 +508,16 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _aIHouses[slot] = houseID;
             break;
         }
+        case MessageType::BOSS_HEAL: {
+            BossHealMessage msg;
+            msg.healAmount = _deserializer.readFloat();
+            bossHeals.push_back(msg);
+            break;
+        }
+        case MessageType::GAIA_SPAWN: {
+            gaiaSpawns++;
+            break;
+        }
         case MessageType::HOSTS_CURRENT_SCENE: {
             _hostsCurrentScene = _deserializer.readSint32();
             break;
@@ -541,6 +551,8 @@ void NetworkController::clearQueues() {
 	supportEffects.clear();
 	enemyEffects.clear();
 	passes.clear();
+    bossHeals.clear();
+    gaiaSpawns = 0;
 	_gameWon = false;
 	_gameLost = false;
     _hostsCurrentScene = -1;
@@ -565,6 +577,21 @@ void NetworkController::broadcastDamage(float damageAmount, int playerIndex, con
 	_serializer.reset();
 }
 
+
+/**
+ * Sends a boss heal message to the host.
+ * Called by clients when a Gaia rock item is used, which heals
+ * the boss instead of dealing damage.
+ *
+ * @param healAmount  The amount of health to restore to the boss.
+ */
+void NetworkController::broadcastBossHeal(float healAmount) {
+    _serializer.writeSint32(MessageType::BOSS_HEAL);
+    _serializer.writeFloat(healAmount);
+    _network->sendToHost(_serializer.serialize());
+    _serializer.reset();
+}
+
 /**
  * Sends a heal message to the host targeting a specific player.
  * Called by non-host clients when the local player uses a support item.
@@ -578,6 +605,23 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
 	_serializer.writeSint32(playerID);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
+}
+
+/**
+ * Sends a Gaia rock spawn message directly to the target player.
+ * Called by the host when Gaia's rock spawn targets a real (non-AI) player,
+ * telling that client to add a Gaia rock to their local inventory.
+ *
+ * @param playerID  The 0-based slot index of the player to receive the rock.
+ */
+void NetworkController::broadcastGaiaSpawn(int playerID) {
+    _serializer.writeSint32(MessageType::GAIA_SPAWN);
+
+    if (checkRealPlayer(playerID)) {
+        _network->sendTo(_slotToPlayer.at(playerID).networkID, _serializer.serialize());
+    }
+
+    _serializer.reset();
 }
 
 /**

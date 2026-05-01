@@ -433,7 +433,10 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
 
         const float resolvedMagnitude = resolveItemMagnitude(*def, db);
         float returnedMagnitude = 0.0f;
-        if (def->getType() == ItemDef::Type::Attack) {
+        if (def->getId() == "gaia_rock") {
+            target.updateHealth(resolvedMagnitude);
+            returnedMagnitude = resolvedMagnitude;
+        } else if (def->getType() == ItemDef::Type::Attack) {
             target.takeDamage(resolvedMagnitude, getPlayerNumber());
             returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
