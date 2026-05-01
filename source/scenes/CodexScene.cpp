@@ -63,7 +63,9 @@ bool CodexScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const s
 }
 
 /**
- * Initializes interactive item buttons for the grid.
+ * Initializes interactive buttons for the in-game item in a grid. These buttons
+ * when clicked open up the respective detail panel explaining the use of
+ * the item.
  */
 void CodexScene::initItemButtons() {
     int i = 0; // index into _items
@@ -300,7 +302,7 @@ void CodexScene::setActive(bool value) {
             _scrollDown->deactivate();
             _backButton->deactivate();
             
-//            // If any were pressed, reset them
+            // If any were pressed, reset them
             _backButton->setDown(false);
             _scrollUp->setDown(false);
             _scrollDown->setDown(false);

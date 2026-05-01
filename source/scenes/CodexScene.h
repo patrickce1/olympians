@@ -231,7 +231,9 @@ private:
     bool loadItemCodex();
         
     /**
-     * Initializes interactive item buttons for the grid.
+     * Initializes interactive buttons for the in-game item in a grid. These buttons
+     * when clicked open up the respective detail panel explaining the use of
+     * the item.
      */
     void initItemButtons();
     
