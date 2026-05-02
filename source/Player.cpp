@@ -151,6 +151,33 @@ void Player::applyBarrier(float multiplier, float duration) {
 }
 
 /**
+ * Applies a timed heal-over-time effect to this player.
+ *
+ * Current `regenDuration` and `regenAmountRemaining` are completely
+ * overridden when this function is called when this player already has active regen.
+ *
+ * @param amount    The total healing to apply over the full duration.
+ * @param duration  How long the regen lasts.
+ */
+void Player::applyRegen(float amount, float duration) {
+    if (amount <= 0.0f || duration <= 0.0f) {
+        return;
+    }
+
+    _hasRegen = true;
+    _regenAmountRemaining = std::max(0.0f, amount);
+    _regenDuration = duration;
+
+    if (_debug) {
+        CULog("Regen applied: player='%s' house='%s' amount=%.3f duration=%.3f",
+            _playerName.c_str(),
+            _houseId.c_str(),
+            _regenAmountRemaining,
+            _regenDuration);
+    }
+}
+
+/**
  * Advances this player's active runtime support effects by the elapsed frame time.
  *
  * Both shield and barrier durations are reduced by `dt` and clamped to `0.0f` so
@@ -187,6 +214,27 @@ void Player::updateEffects(float dt) {
             }
         }
     }
+
+    if (_regenDuration > 0.0f && _regenAmountRemaining > 0.0f) {
+        const float appliedDt = std::min(dt, _regenDuration);
+        const float healPerSecond = _regenAmountRemaining / _regenDuration;
+        const float healAmount = healPerSecond * appliedDt;
+
+        updateHealth(healAmount);
+        _regenAmountRemaining = std::max(0.0f, _regenAmountRemaining - healAmount);
+        _regenDuration = std::max(0.0f, _regenDuration - appliedDt);
+
+        if (_regenDuration <= 0.0f || _regenAmountRemaining <= 0.0f) {
+            _hasRegen = false;
+            _regenAmountRemaining = 0.0f;
+            _regenDuration = 0.0f;
+            if (_debug) {
+                CULog("Regen expired: player='%s' house='%s'",
+                    _playerName.c_str(),
+                    _houseId.c_str());
+            }
+        }
+    }
 }
 
 /** Clears runtime-only combat effects. */
@@ -197,6 +245,9 @@ void Player::clearRuntimeEffects() {
     _hasBarrier = false;
     _barrierMultiplier = 1.0f;
     _barrierDuration = 0.0f;
+    _hasRegen = false;
+    _regenAmountRemaining = 0.0f;
+    _regenDuration = 0.0f;
 }
 
 /**
@@ -382,7 +433,10 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
 
         const float resolvedMagnitude = resolveItemMagnitude(*def, db);
         float returnedMagnitude = 0.0f;
-        if (def->getType() == ItemDef::Type::Attack) {
+        if (def->getId() == "gaia_rock") {
+            target.updateHealth(resolvedMagnitude);
+            returnedMagnitude = resolvedMagnitude;
+        } else if (def->getType() == ItemDef::Type::Attack) {
             target.takeDamage(resolvedMagnitude, getPlayerNumber());
             returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {

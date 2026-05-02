@@ -1,3 +1,5 @@
+#ifndef __CYCLOPS__
+#define __CYCLOPS__
 #include "../Enemy.h"
 #include <cugl/cugl.h>
 
@@ -66,3 +68,4 @@ public:
 	 */
 	void takeDamage(float damage, int playerIndex) override;
 };
+#endif // __CYCLOPS__

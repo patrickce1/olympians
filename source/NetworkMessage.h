@@ -28,6 +28,11 @@ struct AttackMessage {
     std::string itemDefID;
 };
 
+/** Message send by the client to the host to indicate how much they healed the Boss for */
+struct BossHealMessage {
+    float healAmount;
+};
+
 /* Message sent by the client to the host to indicate healing.
 * The heal float value is how much health the target was healed by
 * The playerID is the order of the player in the circle to whom the heal is being applied to
@@ -42,7 +47,8 @@ struct HealMessage {
 enum class SupportEffectType : int32_t {
     Heal = 0,
     Shield = 1,
-    Barrier = 2
+    Barrier = 2,
+    Regen = 3
 };
 
 /** Attack effect categories sent from clients to the host. */
@@ -106,6 +112,8 @@ struct PlayerRuntimeEffectState {
     float shieldDuration;
     float barrierMultiplier;
     float barrierDuration;
+    float regenAmountRemaining;
+    float regenDuration;
 };
 
 /** Message sent by the host to other players about the current state of the game
@@ -164,18 +172,26 @@ struct GameStateMessage {
             float player1ShieldDuration;
             float player1BarrierMultiplier;
             float player1BarrierDuration;
+            float player1RegenAmountRemaining;
+            float player1RegenDuration;
             float player2ShieldMitigation;
             float player2ShieldDuration;
             float player2BarrierMultiplier;
             float player2BarrierDuration;
+            float player2RegenAmountRemaining;
+            float player2RegenDuration;
             float player3ShieldMitigation;
             float player3ShieldDuration;
             float player3BarrierMultiplier;
             float player3BarrierDuration;
+            float player3RegenAmountRemaining;
+            float player3RegenDuration;
             float player4ShieldMitigation;
             float player4ShieldDuration;
             float player4BarrierMultiplier;
             float player4BarrierDuration;
+            float player4RegenAmountRemaining;
+            float player4RegenDuration;
         };
         PlayerRuntimeEffectState playerRuntimeEffects[kMaxPlayers];
     };
@@ -184,7 +200,7 @@ struct GameStateMessage {
     GameStateMessage() : bossHealth(0.0f), bossTarget(0), bossState(0), stateTime(0.0f) {
         std::fill_n(playerHP, kMaxPlayers, 0.0f);
         for (int ii = 0; ii < kMaxPlayers; ++ii) {
-            playerRuntimeEffects[ii] = { 0.0f, 0.0f, 1.0f, 0.0f };
+            playerRuntimeEffects[ii] = { 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f };
         }
     }
 

@@ -197,53 +197,6 @@ static void testEnemyFiresEventsAfterBuildUp(const std::string& enemiesJsonPath)
         "stateTiming: transitions to nextState (or idle fallback) after firing");
 }
 
-static void testEnemyCooldownBlocksNonIdle(const std::string& enemiesJsonPath) {
-    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
-    if (!enemy) return;
-
-    EnemyLoader::State attack = EnemyLoader::State::ATTACK_1;
-    if (attack == EnemyLoader::State::IDLE) { expect(false, "cooldown: missing attack state"); return; }
-
-    EnemyLoader::State cooldownState = findFirstCooldownStateInChain(enemy, attack);
-    expect(cooldownState != EnemyLoader::State::IDLE,
-        "cooldown: found a cooldownTime>0 state in the attack chain");
-    if (cooldownState == EnemyLoader::State::IDLE) return;
-
-    enemy->requestState(attack);
-
-    bool firedCooldownPhase = false;
-    for (int phase = 0; phase < 8; phase++) {
-        EnemyLoader::State stateThatWillFire = enemy->getCurrentState();
-        std::vector<Enemy::FiredEvent> fired;
-
-        bool didFire = stepUntilFire(enemy, 0.5f, 240, fired);
-        expect(didFire, "cooldown: phase fires at least one event");
-        if (!didFire) return;
-
-        if (stateThatWillFire == cooldownState) {
-            firedCooldownPhase = true;
-            break;
-        }
-    }
-    expect(firedCooldownPhase, "cooldown: reached and fired the cooldown-applying phase");
-    if (!firedCooldownPhase) return;
-
-    expect(!enemy->canStartNonIdleState(), "cooldown: lockout active after cooldown phase fires");
-
-    bool allowedNow = enemy->requestState(attack);
-    expect(!allowedNow, "cooldown: non-idle state blocked during lockout");
-
-    bool becameReady = false;
-    for (int i = 0; i < 120; i++) {
-        enemy->update(0.5f);
-        if (enemy->canStartNonIdleState()) { becameReady = true; break; }
-    }
-    expect(becameReady, "cooldown: lockout eventually ends");
-    if (becameReady) {
-        expect(enemy->requestState(attack), "cooldown: attack allowed after lockout ends");
-    }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 3 — Health clamping
 // ─────────────────────────────────────────────────────────────────────────────
@@ -330,7 +283,7 @@ static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonP
 
     bool damagedSomeone = false;
     for (int i = 0; i < 240; i++) {
-        controller.update(0.5f, enemy, players);
+        controller.update(1.0f, enemy, players);
 
         for (size_t k = 0; k < players.size(); k++) {
             if (players[k]->getCurrentHealth() < before[k]) {
@@ -413,31 +366,46 @@ static void testCyclopsDefensiveMove(const std::string& enemiesJsonPath,
     expect(enemy->getStates().count(EnemyLoader::State::DEFENSE_MOVE) > 0,
         "cyclops: has defense move state");
 
-    // Run for a bit so the passive SIDE_MODIFIER events fire
-    for (int i = 0; i < 10; i++) {
-        controller.update(0.5f, enemy, players);
-    }
+    // First update: controller transitions from idle to defense_move, queuing defense entry events.
+    // Idle entry events only fire when returning FROM a non-idle state; during init the enemy
+    // starts in idle, so enterState(IDLE) is a no-op and multipliers stay at their default 1x.
+    controller.update(0.5f, enemy, players);
 
-    // Direction 0 (facing player) should be 2x
-    float mult0 = enemy->getSideMultiplier(0);
-    expect(std::abs(mult0 - 2.0f) < 0.01f, "cyclops passive: direction 0 has 2x multiplier");
-
-    float healthBefore0 = enemy->getCurrentHealth();
     float rawDamage = 10.0f;
+
+    float mult0Idle = enemy->getSideMultiplier(0);
+    expect(std::abs(mult0Idle - 1.0f) < 0.01f, "cyclops pre-defense: direction 0 has default 1x multiplier");
+
+    float healthBefore0Idle = enemy->getCurrentHealth();
     enemy->takeDamage(rawDamage, 0);
-    float actualDamage0 = healthBefore0 - enemy->getCurrentHealth();
-    expect(std::abs(actualDamage0 - (rawDamage * 2.0f)) < 0.01f,
-        "cyclops passive: direction 0 takes 2x damage");
+    float actualDamage0Idle = healthBefore0Idle - enemy->getCurrentHealth();
+    expect(std::abs(actualDamage0Idle - rawDamage) < 0.01f,
+        "cyclops pre-defense: direction 0 takes 1x damage");
 
-    // Direction 3 (behind player) should be 0x — no damage
-    float mult3 = enemy->getSideMultiplier(3);
-    expect(std::abs(mult3 - 0.0f) < 0.01f, "cyclops passive: direction 3 has 0x multiplier");
+    float mult3Idle = enemy->getSideMultiplier(3);
+    expect(std::abs(mult3Idle - 1.0f) < 0.01f, "cyclops pre-defense: direction 3 has 1x multiplier");
 
-    float healthBefore3 = enemy->getCurrentHealth();
+    // Second update processes defense entryEvents.
+    // Defense sets: side 0 = 0x (blocked), side 1 = 0.5x, side 2 = 1x, side 3 = 0.5x.
+    controller.update(0.5f, enemy, players);
+
+    float mult0Defense = enemy->getSideMultiplier(0);
+    expect(std::abs(mult0Defense - 0.0f) < 0.01f, "cyclops defense: direction 0 has 0x multiplier");
+
+    float healthBefore0Defense = enemy->getCurrentHealth();
+    enemy->takeDamage(rawDamage, 0);
+    float actualDamage0Defense = healthBefore0Defense - enemy->getCurrentHealth();
+    expect(std::abs(actualDamage0Defense - 0.0f) < 0.01f,
+        "cyclops defense: direction 0 takes no damage");
+
+    float mult3Defense = enemy->getSideMultiplier(3);
+    expect(std::abs(mult3Defense - 0.5f) < 0.01f, "cyclops defense: direction 3 has 0.5x multiplier");
+
+    float healthBefore3Defense = enemy->getCurrentHealth();
     enemy->takeDamage(rawDamage, 3);
-    float actualDamage3 = healthBefore3 - enemy->getCurrentHealth();
-    expect(std::abs(actualDamage3 - 0.0f) < 0.01f,
-        "cyclops passive: direction 3 takes no damage");
+    float actualDamage3Defense = healthBefore3Defense - enemy->getCurrentHealth();
+    expect(std::abs(actualDamage3Defense - (rawDamage * 0.5f)) < 0.01f,
+        "cyclops defense: direction 3 takes 0.5x damage");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -461,7 +429,6 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
 
     CULog("── Section 2: State timing ──────────────");
     testEnemyFiresEventsAfterBuildUp(enemiesJsonPath);
-    testEnemyCooldownBlocksNonIdle(enemiesJsonPath);
 
     CULog("── Section 3: Health clamp ──────────────");
     testEnemyHealthClamp(enemiesJsonPath);

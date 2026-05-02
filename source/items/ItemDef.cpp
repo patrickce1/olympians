@@ -37,6 +37,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
         out = ItemDef::EffectType::Barrier;
         return true;
     }
+    if (value == "regen") {
+        out = ItemDef::EffectType::Regen;
+        return true;
+    }
     if (value == "stun") {
         out = ItemDef::EffectType::Stun;
         return true;
@@ -83,9 +87,10 @@ ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
 ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
     value = normalizeToken(value);
 
-    if (value == "common") return Rarity::Common;
-    if (value == "rare")   return Rarity::Rare;
-    if (value == "divine") return Rarity::Divine;
+    if (value == "common")  return Rarity::Common;
+    if (value == "rare")    return Rarity::Rare;
+    if (value == "divine")  return Rarity::Divine;
+    if (value == "special") return Rarity::Special;
     return fallback;
 }
 
@@ -156,10 +161,15 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
     }
 
     out.mitigation = 0.0f;
+    out.regenAmount = 0.0f;
     if (json->has("mitigation") && json->get("mitigation")->isNumber()) {
         out.mitigation = std::max(0.0f, json->getFloat("mitigation"));
     } else if (json->has("amount") && json->get("amount")->isNumber()) {
         out.mitigation = std::max(0.0f, json->getFloat("amount"));
+    }
+
+    if (json->has("amount") && json->get("amount")->isNumber()) {
+        out.regenAmount = std::max(0.0f, json->getFloat("amount"));
     }
 
     out.duration = 0.0f;
@@ -227,7 +237,7 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
     
     if (json->has("rarity") && json->get("rarity")->isString()) {
         const std::string rarityText = normalizeToken(json->get("rarity")->asString());
-        if (rarityText != "common" && rarityText != "rare" && rarityText != "divine") {
+        if (rarityText != "common" && rarityText != "rare" && rarityText != "divine" && rarityText != "special") {
             return false;
         }
         _rarity = rarityFromString(rarityText, Rarity::Common);

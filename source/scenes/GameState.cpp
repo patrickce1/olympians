@@ -153,6 +153,9 @@ static std::shared_ptr<Enemy> createEnemyByID(const std::string& enemyID) {
         // TODO: Create a custom Cerberus class in a future PR
         return std::make_shared<Enemy>();
     }
+    else if (enemyID == "gaia") {
+        return std::make_shared<Gaia>();
+    }
     // Fallback for unknown enemy types
     return std::make_shared<Enemy>();
 }
@@ -342,6 +345,20 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
 }
 
 /**
+ * Applies all queued boss heal messages to the enemy's current health.
+ * Called by the host each frame after processing incoming network messages.
+ * Currently used exclusively for Gaia's rock item, which heals the boss
+ * instead of dealing damage.
+ *
+ * @param bossHeals  The queued boss heal updates to apply this frame.
+ */
+void GameState::bossHealUpdates(std::vector<BossHealMessage> bossHeals) {
+    for (BossHealMessage bossHeal : bossHeals) {
+        _enemy->updateHealth(bossHeal.healAmount);
+    }
+}
+
+/**
  * Goes through the list of support effect messages and applies them to the specified player.
  *
  * @param supportEffects  The queued support-effect updates to apply this frame.
@@ -362,6 +379,9 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
                 break;
             case SupportEffectType::Barrier:
                 target->applyBarrier(effect.magnitude, effect.duration);
+                break;
+            case SupportEffectType::Regen:
+                target->applyRegen(effect.magnitude, effect.duration);
                 break;
         }
     }
@@ -426,21 +446,26 @@ void GameState::networkUpdate(GameStateMessage newState) {
         newState.player3HP,
         newState.player4HP
     };
-    std::vector<std::array<float, 4>> runtimeEffects = {
-        std::array<float, 4>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
-                             newState.player1BarrierMultiplier, newState.player1BarrierDuration},
-        std::array<float, 4>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
-                             newState.player2BarrierMultiplier, newState.player2BarrierDuration},
-        std::array<float, 4>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
-                             newState.player3BarrierMultiplier, newState.player3BarrierDuration},
-        std::array<float, 4>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
-                             newState.player4BarrierMultiplier, newState.player4BarrierDuration}
+    std::vector<std::array<float, 6>> runtimeEffects = {
+        std::array<float, 6>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
+                             newState.player1BarrierMultiplier, newState.player1BarrierDuration,
+                             newState.player1RegenAmountRemaining, newState.player1RegenDuration},
+        std::array<float, 6>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
+                             newState.player2BarrierMultiplier, newState.player2BarrierDuration,
+                             newState.player2RegenAmountRemaining, newState.player2RegenDuration},
+        std::array<float, 6>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
+                             newState.player3BarrierMultiplier, newState.player3BarrierDuration,
+                             newState.player3RegenAmountRemaining, newState.player3RegenDuration},
+        std::array<float, 6>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
+                             newState.player4BarrierMultiplier, newState.player4BarrierDuration,
+                             newState.player4RegenAmountRemaining, newState.player4RegenDuration}
     };
 
     for (int i = 0; i < _players.size(); i++) {
         _players[i]->setCurrentHealth(healths[i]);
         _players[i]->syncRuntimeEffects(runtimeEffects[i][0], runtimeEffects[i][1],
-                                        runtimeEffects[i][2], runtimeEffects[i][3]);
+                                        runtimeEffects[i][2], runtimeEffects[i][3],
+                                        runtimeEffects[i][4], runtimeEffects[i][5]);
         _players[i]->setMalletUseCount(newState.playerMalletUseCounts[i]);
     }
 }

@@ -71,10 +71,12 @@ void PlayerAI::update(float dt, Enemy& enemy, ItemController& items) {
 
     switch (_state) {
         case State::ATTACK:
+            if (!isAlive()) break;
             if (_debug) CULog("[PlayerAI '%s'] state → ATTACK", getPlayerName().c_str());
             actAttack(enemy, items);
             break;
         case State::SUPPORT:
+            if (!isAlive()) break;
             if (_debug) CULog("[PlayerAI '%s'] state → SUPPORT", getPlayerName().c_str());
             actSupport(items);
             break;

@@ -50,7 +50,8 @@ public:
     enum class Rarity : uint8_t {
         Common,
         Rare,
-        Divine
+        Divine,
+        Special
     };
     enum class House : uint8_t {
         Zeus,
@@ -68,6 +69,7 @@ public:
     enum class EffectType : uint8_t {
         Shield,
         Barrier,
+        Regen,
         Stun,
         Love,
         Vulnerable,
@@ -88,6 +90,8 @@ public:
         float multiplier = 1.0f;
         /** Flat damage reduction used by shield effects. */
         float mitigation = 0.0f;
+        /** Flat healing amount used by regen effects. */
+        float regenAmount = 0.0f;
         /** Duration in seconds for timed effects. */
         float duration = 0.0f;
         /** Whether an item effect should apply to all four boss sides. */

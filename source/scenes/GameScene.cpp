@@ -101,6 +101,12 @@ static void broadcastSupportEffects(NetworkController& network,
                     effect.duration,
                     targetPlayerID);
                 break;
+            case ItemDef::EffectType::Regen:
+                network.broadcastSupportEffect(SupportEffectType::Regen,
+                    effect.regenAmount,
+                    effect.duration,
+                    targetPlayerID);
+                break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Vulnerable:
@@ -150,6 +156,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Upgrade:
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
+            case ItemDef::EffectType::Regen:
                 break;
         }
     }
@@ -751,6 +758,7 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
         }
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
+
         if (def && def->getType() == ItemDef::Type::Attack) {
             // Play the item use sound if defined, otherwise play the attack sound
             const std::string& itemUseSound = def->getItemUseSound();
@@ -850,12 +858,24 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
 
     if (!_network->isHost()) {
-        _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
+        //If we add an animation for gaia's rock we will have to move this to handleAnimatedAttack
+        if (def->getId() == "gaia_rock") {
+            _network->broadcastBossHeal(resolvedMagnitude);
+        }
+        else {
+            _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
+        }
         broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber()));
     }
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique("enemy_hurt");
         CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+    }
+
+    //Since Gaia's rock heals unlike other attacks, we need a custom popup for it
+    if (def->getId() == "gaia_rock") {
+        handleGaiaRockPopup(dropPos, resolvedMagnitude);
+        return true;
     }
 
     const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
@@ -901,7 +921,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def));
         return true;
     }
     return false;
@@ -940,7 +960,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def));
         return true;
     }
     return false;
@@ -1912,8 +1932,10 @@ void GameScene::handleNetworkUpdates(float dt) {
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
+        _gameState.bossHealUpdates(_network->getBossHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
+        _gameState.bossHealUpdates(_network->getBossHealUpdates());
 
         for (auto& player : _gameState.getPlayers()) {
             if (player) {
@@ -1968,10 +1990,11 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
     
     // Only play sounds for non-AI local players
     if (player && !dynamic_cast<PlayerAI*>(player)) {
-        if (player->getCurrentHealth() < playerHealthBefore && _audio) {
+        const float playerHealthDelta = player->getCurrentHealth() - playerHealthBefore;
+        if (playerHealthDelta < 0.0f && _audio) {
             std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
             _audio->playSoundUnique(soundKey);
-        } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
+        } else if (playerHealthDelta >= 1.0f && _audio) {
             _audio->playSoundUnique("player_heal");
         }
     }
@@ -1979,6 +2002,34 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
     if (enemy->getCurrentHealth() < enemyHealthBefore && _audio) {
         _audio->playSoundUnique("enemy_hurt");
     }
+}
+
+/** Custom method called inside of handleItemSpawn that is used specifically for the Gaia boss
+  * If gaia is supposed to spawn a rock in a player's inventory, the host sends the appropriate message to the players
+  * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well
+  */
+void GameScene::handleGaiaSpawn() {
+    if (!(_gameState.getEnemy()->getId() == "gaia")) { return; }
+
+    shared_ptr<Gaia> gaia = std::dynamic_pointer_cast<Gaia>(_gameState.getEnemy());
+
+    if (_network->isHost() && gaia->spawnRockForPlayer()) {
+        int target = gaia->getTargetIndex();
+        if (_gameState.getPlayerById(target)->isAI()) {
+            _itemController.giveItemByID(_gameState.getPlayerById(target), "gaia_rock");
+        }
+        else {
+            _network->broadcastGaiaSpawn(target);
+        }
+    }
+    else {
+        //if we're a client check for any recieved messages over the network about it
+        for (int i = 0; i < _network->getNumGaiaSpawns(); i++) {
+            _itemController.giveItemByID(_gameState.getLocalPlayer(), "gaia_rock");
+        }
+    }
+    
+    return;
 }
 
 /**
@@ -1991,6 +2042,9 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
 void GameScene::handleItemSpawn(float dt) {
     // Always spawn items for the local human player.
     _itemController.update(dt, _gameState.getLocalPlayer());
+
+    //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
+    handleGaiaSpawn();
 
     // Only the host spawns items for AI players, since the host is the
     // authoritative source for all AI state and broadcasts it to clients.
@@ -2417,6 +2471,11 @@ void GameScene::processZoneInteractionsForSlidingItems() {
                 }
                 markItemAsUsed(itemId);
                 itemsToRemove.insert(itemId);
+            } else if (action == InputController::Action::DROP_ALLY_LEFT ||
+                       action == InputController::Action::DROP_ALLY_RIGHT) {
+                // Target ally is dead — snapback the item to inventory instead of leaving it in the zone
+                itemsToRemove.insert(itemId);
+                initiateSnapbackAnimation(itemId, itemPos);
             }
             break;
         }
@@ -2489,20 +2548,24 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
  */
 void GameScene::updateDropZoneVisibility(){
     if (_draggedItemId != 0) {
-        
+        Player* local = _gameState.getLocalPlayer();
+        bool localAlive = local && local->isAlive();
+
         _passLeftArea->setVisible(true);
         _passRightArea->setVisible(true);
-        // Render attack/support zones based on item type
-        auto itemDef = getHeldItemDef(_draggedItemId);
-        
-        if (itemDef) {
-            if (itemDef->getType() == ItemDef::Type::Attack) {
-                // Render attack zones when holding attack item
-                _attackArea->setVisible(true);
-            } else {
-                // Render support zones when holding heal/support item
-                _supportLeftArea->setVisible(true);
-                _supportRightArea->setVisible(true);
+
+        if (localAlive) {
+            auto itemDef = getHeldItemDef(_draggedItemId);
+            if (itemDef) {
+                if (itemDef->getType() == ItemDef::Type::Attack) {
+                    _attackArea->setVisible(true);
+                } else {
+                    // Only show each support zone if that ally is alive
+                    Player* leftAlly  = local->getLeftPlayer();
+                    Player* rightAlly = local->getRightPlayer();
+                    _supportLeftArea->setVisible(leftAlly  && leftAlly->isAlive());
+                    _supportRightArea->setVisible(rightAlly && rightAlly->isAlive());
+                }
             }
         }
     } else {
@@ -3720,6 +3783,25 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
 }
 
 /**
+  * Spawns a floating popup showing the heal amount when Gaia's rock is used on the boss.
+  *
+  * @param dropPos    The screen-space position where the popup should appear.
+  * @param healAmount The amount of health restored to the boss.
+  */
+void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
+    char healText[32];
+    std::snprintf(healText, sizeof(healText), "+%.1f", healAmount);
+    createFloatingPopup(dropPos, { {
+        healText, 26.0f,
+        cugl::Color4(80, 220, 255, 255),
+        cugl::Color4::BLACK,
+        0.0f, 0.5f,
+        cugl::Vec2::ZERO,
+        true
+    } });
+}
+
+/**
  * Builds the ordered popup sequence for a heal support item use.
  * See header for the full sequence description.
  *
@@ -3727,29 +3809,51 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
  * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
  * @return Ordered list of FloatingPopupData for the sequence (1 or 3 entries).
  */
-std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal) const {
+std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal,
+                                                         const std::shared_ptr<const ItemDef>& def) const {
     // Back-calculate the house multiplier from the resolved heal so we can show it in the sequence.
     const float totalMultiplier = (baseValue > 0.0f) ? resolvedHeal / baseValue : 1.0f;
     const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
 
-    char baseText[32], houseText[32], finalText[32];
+    float regenAmount = 0.0f;
+    if (def) {
+        for (const auto& effect : def->getEffects()) {
+            if (effect.type == ItemDef::EffectType::Regen && effect.regenAmount > 0.0f) {
+                regenAmount = effect.regenAmount;
+                break;
+            }
+        }
+    }
+
+    char baseText[32], houseText[32], finalText[32], regenText[32];
     std::snprintf(baseText,  sizeof(baseText),  "+%.1f", baseValue);
-    std::snprintf(houseText,  sizeof(houseText),  "%.1fx", totalMultiplier);
+    std::snprintf(houseText, sizeof(houseText), "%.1fx", totalMultiplier);
     std::snprintf(finalText, sizeof(finalText), "+%.1f", resolvedHeal);
+    std::snprintf(regenText, sizeof(regenText), "[%.1f]", regenAmount);
 
     const cugl::Color4 healGreen(80, 220, 80, 255);
+    std::vector<FloatingPopupData> popups;
 
     // Only show the full sequence when the multiplier actually changed something.
     if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
-        return {
-            {baseText,  26.0f,                    cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-            {houseText, 17.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-            {finalText, 26.0f*(1.0f+houseLog),    healGreen,                        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+        popups = {
+            {baseText,  26.0f,                 cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+            {houseText, 17.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+            {finalText, 26.0f*(1.0f+houseLog), healGreen,                        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
         };
+        if (regenAmount > 0.0f) {
+            popups.push_back({regenText, 22.0f, healGreen, cugl::Color4::BLACK, 0.35f, 0.5f, cugl::Vec2(0.0f, -28.0f), false});
+        }
+        return popups;
     }
-    return {
+
+    popups = {
         {finalText, 26.0f, healGreen, cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true},
     };
+    if (regenAmount > 0.0f) {
+        popups.push_back({regenText, 22.0f, healGreen, cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, -28.0f), false});
+    }
+    return popups;
 }
 
 /**
