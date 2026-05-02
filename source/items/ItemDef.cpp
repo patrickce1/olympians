@@ -22,7 +22,7 @@ static std::string normalizeToken(std::string token) {
 /**
  * Parses a normalized JSON effect token into an ItemDef::EffectType.
  *
- * Supports shield, barrier, stun, love, and vulnerable effect strings.
+ * Supports shield, barrier, stun, love, slow, and vulnerable effect strings.
  *
  * @param value  The normalized effect token from JSON.
  * @param out    Receives the parsed enum value on success.
@@ -47,6 +47,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
     }
     if (value == "love") {
         out = ItemDef::EffectType::Love;
+        return true;
+    }
+    if (value == "slow") {
+        out = ItemDef::EffectType::Slow;
         return true;
     }
     if (value == "vulnerable") {

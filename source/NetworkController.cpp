@@ -98,6 +98,8 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
 void readEnemyRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& stateMsg) {
     stateMsg.bossStunDuration = deserializer.readFloat();
     stateMsg.bossLoveDuration = deserializer.readFloat();
+    stateMsg.bossSlowDuration = deserializer.readFloat();
+    stateMsg.bossSlowMultiplier = deserializer.readFloat();
     for (int side = 0; side < Enemy::NUM_PLAYERS; side++) {
         stateMsg.bossVulnerableDurations[side] = deserializer.readFloat();
         stateMsg.bossVulnerableMultipliers[side] = deserializer.readFloat();
@@ -117,6 +119,8 @@ void readEnemyRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& 
 void writeEnemyRuntimeState(NetcodeSerializer& serializer, const shared_ptr<Enemy>& enemy) {
     serializer.writeFloat(enemy->getStunDuration());
     serializer.writeFloat(enemy->getLoveDuration());
+    serializer.writeFloat(enemy->getSlowDuration());
+    serializer.writeFloat(enemy->getSlowMultiplier());
     for (int side = 0; side < Enemy::NUM_PLAYERS; side++) {
         serializer.writeFloat(enemy->getVulnerableDurationForSide(side));
         serializer.writeFloat(enemy->getVulnerableMultiplierForSide(side));
