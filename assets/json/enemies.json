@@ -7,7 +7,7 @@
             "spritesheetPath": "textures/circe.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 1.0
+                "defenseLikelihood": 0.25
             },
             "customData": {
             },
