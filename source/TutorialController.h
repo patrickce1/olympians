@@ -29,7 +29,6 @@ enum class StepType {
 struct TutorialStep {
     StepType type = StepType::UNKNOWN;
     std::string text;
-    ZoneType zone = ZoneType::NONE;
     InputController::Action action;
     std::string defId;
     float delay;
@@ -182,9 +181,6 @@ private:
     
     //Translates a string into the matching StepType
     StepType parseStepType(const std::string& str) const;
-    
-    //Translates a string into the matching ZoneType
-    ZoneType parseZoneType(const std::string& str) const;
     
     //Translates a string into the matching Action
     InputController::Action parseAction(const std::string& str) const;
