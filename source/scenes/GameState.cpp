@@ -403,6 +403,9 @@ void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects)
             case EnemyEffectType::Love:
                 _enemy->applyLove(effect.duration);
                 break;
+            case EnemyEffectType::Slow:
+                _enemy->applySlow(effect.magnitude, effect.duration);
+                break;
             case EnemyEffectType::Vulnerable:
                 if (effect.applyToAllSides) {
                     _enemy->applyVulnerableToAllSides(effect.magnitude, effect.duration);
@@ -437,6 +440,7 @@ void GameState::networkUpdate(GameStateMessage newState) {
     // sync authoritative enemy runtime effects
     _enemy->syncStunDuration(newState.bossStunDuration);
     _enemy->syncLoveDuration(newState.bossLoveDuration);
+    _enemy->syncSlow(newState.bossSlowMultiplier, newState.bossSlowDuration);
     _enemy->syncVulnerable(newState.bossVulnerableMultipliers, newState.bossVulnerableDurations);
 
     // update player health and authoritative timed support effects

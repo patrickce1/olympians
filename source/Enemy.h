@@ -87,6 +87,12 @@ protected:
     
     /** Remaining love time in seconds. While positive, enemy attacks and retargeting are disabled. */
     float _loveDuration = 0.0f;
+
+    /** Remaining slow time in seconds. While positive, enemy state-time advancement is scaled. */
+    float _slowDuration = 0.0f;
+
+    /** Active multiplier applied to enemy state-time advancement while slowed. */
+    float _slowMultiplier = 1.0f;
     
     /** Remaining vulnerable time for each relative side in seconds. */
     std::array<float, NUM_PLAYERS> _vulnerableDurations{};
@@ -240,6 +246,31 @@ public:
      * @param duration  The authoritative remaining love time, in seconds.
      */
     void syncLoveDuration(float duration);
+
+    /** Returns whether the enemy is currently slowed. */
+    bool isSlowed() const { return _slowDuration > 0.0f; }
+
+    /** Returns the remaining slow duration in seconds. */
+    float getSlowDuration() const { return _slowDuration; }
+
+    /** Returns the active slow multiplier applied to state-time advancement. */
+    float getSlowMultiplier() const { return isSlowed() ? _slowMultiplier : 1.0f; }
+
+    /**
+     * Applies or refreshes a slow, scaling only state-time advancement for the duration.
+     *
+     * @param multiplier The state-time scale to apply while slowed.
+     * @param duration   The slow time to apply, in seconds.
+     */
+    void applySlow(float multiplier, float duration);
+
+    /**
+     * Overwrites local slow state from the host snapshot so remote clients mirror the authoritative state.
+     *
+     * @param multiplier The authoritative state-time scale while slowed.
+     * @param duration   The authoritative remaining slow time, in seconds.
+     */
+    void syncSlow(float multiplier, float duration);
     
     /**
      * Returns whether any relative side of the enemy is currently vulnerable.
