@@ -11,6 +11,7 @@
 #include "scenes/SettingsScene.h"
 #include "scenes/WinLoseScene.h"
 #include "scenes/PreGameEntryScene.h"
+#include "scenes/CodexScene.h"
 #include "InputController.h"
 #include "AudioController.h"
 #include "tests/PlayerTests.h"
@@ -39,6 +40,7 @@ protected:
         HOUSESELECT,
         BOSSSELECT,
         WINLOSE,
+        CODEX,
         PREGAMEENTRY,
         GAME
     };
@@ -102,6 +104,9 @@ protected:
 
     /*The scene where the players learn whether they won or lost */
     WinLoseScene _winLoseScene;
+    
+    /*The scene where the players learn more about the items */
+    CodexScene _codexScene;
 
     /*The scene where the players see the final choice of house and wait to enter the game scene. */
     PreGameEntryScene _preGameEntryScene;

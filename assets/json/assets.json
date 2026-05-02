@@ -563,7 +563,32 @@
         },
         "houseNameBG": {
             "file": "textures/preGameEntryScene/houseNameBG.png"
+        },
+        "itemLarge": {
+            "file": "textures/codexScene/itemLarge.png"
+        },
+        "scrollBG": {
+            "file": "textures/codexScene/scrollBG.png"
+        },
+        "codexBG": {
+            "file": "textures/codexScene/codexBG.png"
+        },
+        "slotBG": {
+            "file": "textures/codexScene/slotBG.png"
+        },
+        "buttonUp": {
+            "file": "textures/codexScene/buttonUp.png"
+        },
+        "buttonDown": {
+            "file": "textures/codexScene/buttonDown.png"
+        },
+        "codexFrame": {
+            "file": "textures/codexScene/codexFrame.png"
+        },
+        "bottomFade": {
+            "file": "textures/codexScene/bottomFade.png"
         }
+        
     },
     "fonts": {
         "felt": {
@@ -602,12 +627,25 @@
         "floatingNumbers": {
             "file": "fonts/GRECOromanLubedWrestling.ttf",
             "size": 48
+        },
+        "papyrusBold": {
+            "file": "fonts/Papyrus LET Bold.ttf",
+            "size": 64
+        },
+        "papyrusRegular": {
+            "file": "fonts/papyrus.ttf",
+            "size": 60
+        },
+        "papyrusRegular50": {
+            "file": "fonts/papyrus.ttf",
+            "size": 50
         }
     },
     "jsons": {
         "server": "json/server.json",
         "gameSceneConfig": "json/gameSceneConfig.json",
-        "enemyAnimations": "json/enemyAnimations.json"
+        "enemyAnimations": "json/enemyAnimations.json",
+        "itemCodex": "json/itemCodex.json"
     },
     "sounds": {
         "select": {
@@ -732,6 +770,9 @@
         "leftIcon": "widgets/leftIcon.json",
         "rightIcon": "widgets/rightIcon.json",
         "ability":     "widgets/ability.json",
+        "codexGrid": "widgets/codexGrid.json",
+        "codexSlot":     "widgets/codexSlot.json",
+        "codexScroll":     "widgets/codexScroll.json",
         "client": "json/scenes/clientScene.json",
         "textfield": "widgets/elements/textfield.json",
         "hostSetup": "json/scenes/hostSetupScene.json",
@@ -742,6 +783,7 @@
         "bossSelectScene": "json/scenes/bossSelectionScene.json",
         "winLoseScene": "json/scenes/winLoseScene.json",
         "preGameEntryScene": "json/scenes/preGameEntryScene.json",
+        "codexScene": "json/scenes/codexScene.json",
         "heroCard": "widgets/houseSelect/heroCard.json",
         "teamHouseIcon": "widgets/houseSelect/teamHouseIcon.json",
         "playerHouseIcon": "widgets/houseSelect/playerHouseIcon.json",
@@ -862,6 +904,17 @@
             },
             "data": {
                 "key": "preGameEntryScene",
+                "variables": {}
+            }
+        },
+        "codexScene": {
+            "type": "Widget",
+            "comment": "Root node of the codex scene",
+            "format": {
+                "type": "Anchored"
+            },
+            "data": {
+                "key": "codexScene",
                 "variables": {}
             }
         }
