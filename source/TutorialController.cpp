@@ -78,13 +78,6 @@ StepType TutorialController::parseStepType(const std::string& str) const {
     return StepType::UNKNOWN;
 }
 
-ZoneType TutorialController::parseZoneType(const std::string& str) const {
-    if (str == "left_support")  return ZoneType::LEFT_SUPPORT;
-    if (str == "right_support") return ZoneType::RIGHT_SUPPORT;
-    if (str == "attack")        return ZoneType::ATTACK;
-    return ZoneType::NONE;
-}
-
 InputController::Action TutorialController::parseAction(const std::string& str) const {
     if (str == "DROP_BOSS")       return InputController::Action::DROP_BOSS;
     if (str == "DROP_ALLY_LEFT")  return InputController::Action::DROP_ALLY_LEFT;
@@ -107,7 +100,6 @@ void TutorialController::parseSteps(const std::shared_ptr<JsonValue>& json) {
         TutorialStep step;
         if (val->has("type"))          step.type          = parseStepType(val->getString("type"));
         if (val->has("text"))          step.text          = val->getString("text");
-        if (val->has("zone"))          step.zone          = parseZoneType(val->getString("zone"));
         if (val->has("action"))        step.action        = parseAction(val->getString("action"));
         if (val->has("defId"))         step.defId         = val->getString("defId");
         if (val->has("delay"))         step.delay         = val->getFloat("delay");

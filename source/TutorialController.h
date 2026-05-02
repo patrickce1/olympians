@@ -8,7 +8,9 @@
 
 class GameScene;
 
-
+/**
+ The type of step within the tutorial.
+ */
 enum class StepType {
     SHOW_MESSAGE,
     WAIT_FOR_ACTION,
@@ -20,12 +22,6 @@ enum class StepType {
     UNKNOWN
 };
 
-enum class ZoneType {
-    LEFT_SUPPORT,
-    RIGHT_SUPPORT,
-    ATTACK,
-    NONE
-};
 /**
  * The atomic step description parsed from a JSON.
  * Each field is optional aside from type, which defines what this step will do.
