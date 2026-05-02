@@ -122,13 +122,6 @@ void LobbyScene::setupUI() {
     
     _errorPopup = _assets->get<scene2::SceneNode>("lobbyScene.errorPopup");
     if (_errorPopup) {
-        auto overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(
-            _errorPopup->getChildByName("overlayBG"));
-        if (overlay) {
-            overlay->setContentSize(getSize());
-            overlay->setAnchor(Vec2::ANCHOR_CENTER);
-            overlay->setPosition(getSize() / 2);
-        }
         _errorPopup->setVisible(false);
     }
 }
@@ -183,7 +176,13 @@ void LobbyScene::setupListeners() {
             _status = Status::BOSSSELECT;
         }
     });
-    
+
+    _itemsButton->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _status = Status::CODEX;
+        }
+    });
+
     // Wire the local slot (index 3) for all players.
     // For non-hosts this is the only interaction they have.
     // For the host, the press system handles everything including this slot,
