@@ -7,7 +7,7 @@
       "rarity": "Common",
       "house": "None",
       "category": "SUPPORT",
-      "effect_label": "    Heal: +10HP    ",
+      "effect_label": "    Heal: 10HP    ",
       "description": "A crisp red apple that restores a small amount of health."
     },
     {
@@ -17,7 +17,7 @@
       "rarity": "Common",
       "house": "None",
       "category": "SUPPORT",
-      "effect_label": "    Heal: +15HP    ",
+      "effect_label": "    Heal: 15HP    ",
       "description": "A sweet divine drink that restores a moderate amount of health."
     },
     {
@@ -27,7 +27,7 @@
       "rarity": "Common",
       "house": "None",
       "category": "ATTACK",
-      "effect_label": "  Damage: -20HP  ",
+      "effect_label": "  Damage: 20HP  ",
       "description": "A well-forged blade that deals a reliable amount of damage to the boss."
     },
     {
@@ -37,7 +37,7 @@
       "rarity": "Common",
       "house": "None",
       "category": "ATTACK",
-      "effect_label": "  Damage: -23HP  ",
+      "effect_label": "  Damage: 23HP  ",
       "description": "A swift ranged shot that deals slightly more damage than a sword from a distance."
     },
     {
@@ -57,7 +57,7 @@
       "rarity": "Rare",
       "house": "Zeus",
       "category": "ATTACK",
-      "effect_label": "Damage: -27HP + Stun 2s",
+      "effect_label": "Damage: 27HP + Stun 2s",
       "description": "Zeus's bolt strikes vertically down the screen, dealing damage and briefly freezing the boss in place."
     },
     {
@@ -67,7 +67,7 @@
       "rarity": "Rare",
       "house": "Poseidon",
       "category": "ATTACK",
-      "effect_label": "Damage: -27HP + Vulnerability 2s",
+      "effect_label": "Damage: 27HP + Vulnerability 2s",
       "description": "Poseidon's spear lunges forward in a burst, leaving the boss more vulnerable for a short window."
     },
     {
@@ -117,7 +117,7 @@
       "rarity": "Rare",
       "house": "Ares",
       "category": "ATTACK",
-      "effect_label": "Damage: -27HP + Side Vulnerability 5s",
+      "effect_label": "Damage: 27HP + Side Vulnerability/ 5s",
       "description": "Ares's war spear pokes forward dealing burst damage, leaving the struck side of the boss extra vulnerable."
     },
     {
@@ -177,7 +177,7 @@
       "rarity": "Divine",
       "house": "Demeter",
       "category": "SUPPORT",
-      "effect_label": "Team Heal: +50HP / 7s",
+      "effect_label": "Team Heal: 50HP / 7s",
       "description": "Demeter's horn of endless plenty sustains all teammates with a generous heal over time."
     },
     {
@@ -187,7 +187,7 @@
       "rarity": "Divine",
       "house": "Aphrodite",
       "category": "UTILITY",
-      "effect_label": "Team Buff: +100% / 10s",
+      "effect_label": "Team Buff: 100% / 10s",
       "description": "Aphrodite amplifies every player's strongest category, granting the whole team a massive buff across all categories."
     },
     {
@@ -207,7 +207,7 @@
       "rarity": "Divine",
       "house": "Ares",
       "category": "ATTACK",
-      "effect_label": "Damage: -60HP + Full Vulnerability 6s",
+      "effect_label": "Damage: 60HP + Full Vulnerability / 6s",
       "description": "Ares ignites the battlefield in a massive explosion, dealing heavy damage and leaving the boss fully vulnerable."
     },
     {
@@ -217,7 +217,7 @@
       "rarity": "Divine",
       "house": "Hermes",
       "category": "UTILITY",
-      "effect_label": "Clear Inventory + Open Divine Chest",
+      "effect_label": "Clear Inventory + Item Frenzy",
       "description": "Hermes clears everyone's inventory and opens a divine chest, unleashing a frenzy of powerful random items."
     },
     {
@@ -227,7 +227,7 @@
       "rarity": "Divine",
       "house": "Hephaestus",
       "category": "UTILITY",
-      "effect_label": "Upgrade: Common→Rare + 10% Rare→Divine",
+      "effect_label": "Upgrade Item Rarity",
       "description": "Hephaestus's legendary forge upgrades all common items to rare, with a chance of elevating rare items to divine."
     }
   ]
