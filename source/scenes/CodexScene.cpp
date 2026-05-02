@@ -160,10 +160,10 @@ void CodexScene::setupUI() {
         _assets->get<scene2::SceneNode>("codexScene.back"));
     
     _scrollUp = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("codexScene.items.scrolldown"));
+        _assets->get<scene2::SceneNode>("codexScene.items.scrollup"));
     
     _scrollDown = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("codexScene.items.scrollup"));
+        _assets->get<scene2::SceneNode>("codexScene.items.scrolldown"));
     
     _codexGrid = _assets->get<scene2::SceneNode>("codexScene.items.codex");
     
@@ -188,7 +188,8 @@ void CodexScene::setupUI() {
         _assets->get<scene2::SceneNode>("codexScene.scroll.description"));
     
     // overlay content
-    _darkOverlay = _assets->get<scene2::SceneNode>("codexScene.darkOverlay");
+    _darkOverlay = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("codexScene.darkOverlay"));
     
     _itemLarge = std::dynamic_pointer_cast<scene2::PolygonNode>(
             _assets->get<scene2::SceneNode>("codexScene.itemLarge"));
@@ -227,6 +228,15 @@ void CodexScene::setupListeners() {
 
     _scrollUp->setVisible(false);
     _scrollDown->setVisible(_maxRow > 0);
+    
+    _darkOverlay->addListener([this](const std::string& name, bool down) {
+        if (!down || !_active) return;
+        if (down) {
+            if (_status == Status::INFO) {
+                _pendingHideDetail = true;
+            }
+        }
+    });
 }
 
 /**
@@ -235,7 +245,6 @@ void CodexScene::setupListeners() {
 void CodexScene::dispose() {
     if (_active) {
         removeAllChildren();
-        
         int keyIndex = 0;
         for (auto& row : _itemNodes) {
             for (auto& button : row) {
@@ -245,10 +254,10 @@ void CodexScene::dispose() {
                 keyIndex++;
             }
         }
-        
         _backButton->clearListeners();
         _scrollUp->clearListeners();
         _scrollDown->clearListeners();
+        _darkOverlay->clearListeners();
         _backButton = nullptr;
         _scrollUp = nullptr;
         _scrollDown = nullptr;
@@ -290,6 +299,7 @@ void CodexScene::setActive(bool value) {
             _scrollUp->activate();
             _scrollDown->activate();
             _backButton->activate();
+            _darkOverlay->activate();
             
         } else {
             for (auto& row : _itemNodes) {
@@ -301,11 +311,13 @@ void CodexScene::setActive(bool value) {
             _scrollUp->deactivate();
             _scrollDown->deactivate();
             _backButton->deactivate();
+            _darkOverlay->deactivate();
             
             // If any were pressed, reset them
             _backButton->setDown(false);
             _scrollUp->setDown(false);
             _scrollDown->setDown(false);
+            _darkOverlay->setDown(false);
         }
     }
 }

@@ -87,7 +87,7 @@ protected:
     std::shared_ptr<cugl::scene2::SceneNode> _detailPanel;
     
     /** Darkened background overlay for focus mode */
-    std::shared_ptr<cugl::scene2::SceneNode> _darkOverlay;
+    std::shared_ptr<cugl::scene2::Button> _darkOverlay;
     
     /** Large preview image of selected item */
     std::shared_ptr<cugl::scene2::PolygonNode> _itemLarge;

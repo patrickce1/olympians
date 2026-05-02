@@ -366,19 +366,9 @@
                 }
             },
             "darkOverlay": {
-                "type": "Solid",
+                "type": "Button",
                 "data": {
-                    "polygon": [
-                        641,
-                        850,
-                        0,
-                        850,
-                        0,
-                        0,
-                        641,
-                        0
-                    ],
-                    "color": "#00000099",
+                    "size": [641, 641],
                     "anchor": [
                         0.5,
                         1
@@ -388,7 +378,39 @@
                         2
                     ],
                     "visible": false,
+                    "upnode": "background",
                     "angle": 0
+                },
+                "children": {
+                    "background" : {
+                        "type": "Solid",
+                        "data": {
+                            "polygon": [
+                                641,
+                                850,
+                                0,
+                                850,
+                                0,
+                                0,
+                                641,
+                                0
+                            ],
+                            "color": "#00000099",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "visible": true,
+                            "angle": 0
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    }
                 },
                 "layout": {
                     "x_anchor": "center",
