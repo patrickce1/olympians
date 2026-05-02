@@ -604,8 +604,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     _status = Status::PLAYING;
     setDebugMode(false);
     
-    _isTutorial = (_gameState.getEnemy()->getId() == "cyclops");
-    CULog("GameScene: boss is: %s", _gameState.getEnemy()->getId().c_str());
+    _isTutorial = (_gameState.getEnemy()->getId() == "circe");
 
     if (_isTutorial){
         CULog("GameScene: tutorial mode active");
