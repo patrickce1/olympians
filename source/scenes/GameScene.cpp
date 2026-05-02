@@ -154,6 +154,17 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
     return enemyEffects;
 }
 
+/**
+ * Triggers a boss attack targeting a specific player slot.
+ *
+ * Validates the given slot index against the current player list before
+ * assigning it as the enemy's target. Then forces the enemy into ATTACK_1,
+ * bypassing normal AI state transitions.
+ *
+ * @param targetSlot  Index into the player list indicating which player
+ * the boss should attack. Out-of-range values are ignored
+ * and the enemy's current target remains unchanged.
+ */
 void GameScene::triggerBossAttack(int targetSlot) {
     auto enemy = _gameState.getEnemy();
     if (!enemy) return;
@@ -166,6 +177,17 @@ void GameScene::triggerBossAttack(int targetSlot) {
     enemy->forceAttack(EnemyLoader::State::ATTACK_1);
 }
 
+/**
+ * Triggers a boss defense move targeting a specific player slot.
+ *
+ * Validates the given slot index against the current player list before
+ * assigning it as the enemy's target. Then forces the enemy into DEFENSE_MOVE,
+ * bypassing normal AI state transitions.
+ *
+ * @param targetSlot  Index into the player list indicating which player
+ * the boss should react to. Out-of-range values are ignored
+ * and the enemy's current target remains unchanged.
+ */
 void GameScene::triggerBossDefense(int targetSlot) {
     auto enemy = _gameState.getEnemy();
     if (!enemy) return;
@@ -540,18 +562,40 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     return true;
 }
 
+/**
+ * Enables or disables the boss's ability to attack.
+ *
+ * Does not affect boss visuals or position — only gates whether the boss
+ * may initiate attacks. Also propagates the flag to the enemy controller.
+ *
+ * @param active  true to allow the boss to attack; false to suppress attacks.
+ */
 void GameScene::setBossActive(bool active) {
     // Keep boss visuals unchanged; toggle whether it may attack.
     _bossCanAttack = active;
     _enemyController.setAttacksEnabled(active);
-    CULog("GameScene::setBossActive -> %s", active ? "TRUE" : "FALSE");
 }
 
+/**
+ * Returns whether the boss is currently permitted to attack.
+ *
+ * @return true if the boss can attack; false otherwise.
+ */
 bool GameScene::canBossAttack() {
     // Keep boss visuals unchanged; toggle whether it may attack.
     return _bossCanAttack;
 }
 
+/**
+ * Sets the boss's target to the player at the given index, clamped to the
+ * valid player range.
+ *
+ * If no enemy exists or the player list is empty, this is a no-op. Otherwise,
+ * the index is clamped to [0, n-1] before being assigned, so out-of-range
+ * values always resolve to the nearest valid player slot.
+ *
+ * @param index  Desired target player index. Clamped if out of range.
+ */
 void GameScene::setBossTarget(int index) {
     // Clamp index into valid player range if possible
     if (!_gameState.getEnemy()) return;
@@ -942,11 +986,6 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
-    CULog("handleSupportRight: itemId=%llu local=%s target=%s targetAlive=%d",
-            (unsigned long long)itemId,
-            local ? "valid" : "null",
-            target ? "valid" : "null",
-            target ? target->isAlive() : -1);
     if (!local || !target || !target->isAlive() || itemId == 0) return false;
 
     for (const ItemInstance& item : local->getInventory()) {
@@ -1130,11 +1169,6 @@ std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId it
  *@param itemId  The id of the item being handled.
  */
 bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId) {
-    CULog("handlePlayerActions: action=%d isActive=%d isWaiting=%d isMatch=%d",
-          (int)action,
-          _tutorialController.isActive() ? 1 : 0,
-          _tutorialController.isWaiting() ? 1 : 0,
-          _tutorialController.isWaitingForActionMatch(action) ? 1 : 0);
     Player* local = _gameState.getLocalPlayer();
     if (!local) return false;
 
@@ -1143,8 +1177,6 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
             return false;
         }
     }
-    
-    CULog("handlePlayerActions: passed gate, dispatching action=%d itemId=%llu", (int)action, (unsigned long long)itemId);
 
     switch (action) {
         case InputController::Action::DROP_BOSS:
@@ -2728,15 +2760,11 @@ void GameScene::updateDropZoneVisibility(){
             } else {
                 // Render support zones when holding heal/support item.
                 // If the tutorial has requested to disable support zones
-                // we hide them here. Higher-level tutorial logic should
-                // also ensure support actions are rejected while the
-                // flag is set (so hiding is backed by input gating).
+                // we hide them here.
                 if (!_tutorialDisableSupportZones) {
                     _supportLeftArea->setVisible(true);
                     _supportRightArea->setVisible(true);
                 } else {
-                    // Fully hide visual affordances for support while the
-                    // tutorial expects a pass (prevents accidental use).
                     _supportLeftArea->setVisible(false);
                     _supportRightArea->setVisible(false);
                 }
@@ -2810,6 +2838,7 @@ void GameScene::update(float dt, InputController& input) {
     updateAllPlayersAndEnemyHealthUI(dt);
     updatePlayerAndTeammateIcons(dt);
     
+    //Update the dialogue controller
     _timeline->update(dt);
     if (_waitingToSlideIn) {
         _dialogueOutTimer -= dt;
@@ -3309,6 +3338,10 @@ void GameScene::setTutorialDisableSupportZonesVisibility(bool disable) {
     _tutorialDisableSupportZones = disable;
 }
 
+/**
+ *  Sets the zone that should be activated during the tutorial.
+ *  @param zone  The zone that should be activated in the tutorial
+ */
 void GameScene::setTutorialAllowedDropZone(InputController::Action zone){
     _allowedTutorialZone = zone;
 }

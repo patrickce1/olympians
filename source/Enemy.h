@@ -195,7 +195,20 @@ public:
     /** Returns true when the current state is in the attack animation phase. */
     bool isInAttackAnimationPhase() const;
 
+    /**
+     * Forces the enemy into the specified attack state, bypassing normal AI
+     * state transitions. Intended for tutorial triggers.
+     *
+     * @param attackState  The attack state to transition into (e.g. ATTACK_1).
+     */
     void forceAttack(EnemyLoader::State attackState);
+
+    /**
+     * Forces the enemy into the specified defense state, bypassing normal AI
+     * state transitions. Intended for tutorial triggers.
+     *
+     * @param defenseState  The defense state to transition into (e.g. DEFENSE_MOVE).
+     */
     void forceDefense(EnemyLoader::State defenseState);
     
     /**
