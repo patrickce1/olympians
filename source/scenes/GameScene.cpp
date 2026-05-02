@@ -101,9 +101,16 @@ static void broadcastSupportEffects(NetworkController& network,
                     effect.duration,
                     targetPlayerID);
                 break;
+            case ItemDef::EffectType::Regen:
+                network.broadcastSupportEffect(SupportEffectType::Regen,
+                    effect.regenAmount,
+                    effect.duration,
+                    targetPlayerID);
+                break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Vulnerable:
+            case ItemDef::EffectType::Upgrade:
                 break;
         }
     }
@@ -146,8 +153,10 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
                 effectMsg.applyToAllSides = effect.applyToAllSides;
                 enemyEffects.push_back(effectMsg);
                 break;
+            case ItemDef::EffectType::Upgrade:
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
+            case ItemDef::EffectType::Regen:
                 break;
         }
     }
@@ -212,6 +221,58 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
             effectMsg.playerIndex,
             effectMsg.applyToAllSides);
     }
+}
+
+/**
+ * Returns the player's house-role and affinity multiplier for the given attack item.
+ *
+ * This excludes any item-specific upgrade streak bonus so the popup sequence can
+ * render the mallet-style upgrade separately from house-derived multipliers.
+ *
+ * @param player The player using the attack item.
+ * @param def The item definition being resolved.
+ * @param database The item database containing house-role and affinity tuning.
+ * @return The combined house-role and affinity multiplier, excluding upgrade streak effects.
+ */
+static float computeHouseAffinityMultiplier(const Player& player, const ItemDef& def, const ItemDatabase& database) {
+    float houseRoleMultiplier = 0.0f;
+    float affinityBonus = 1.0f;
+
+    const auto* houseMultipliers = database.getHouseMultipliers(player.getHouseName());
+    if (houseMultipliers) {
+        if (def.getType() == ItemDef::Type::Attack) {
+            houseRoleMultiplier = houseMultipliers->attack;
+        } else {
+            houseRoleMultiplier = houseMultipliers->support;
+        }
+
+        const bool affinityEligible =
+            (def.getRarity() == ItemDef::Rarity::Rare || def.getRarity() == ItemDef::Rarity::Divine);
+        const bool affinityMatch =
+            (def.getHouseAffinity() == ItemDef::houseFromString(player.getHouseName(), ItemDef::House::None));
+        if (affinityEligible && affinityMatch) {
+            affinityBonus = houseMultipliers->affinityBonus;
+        }
+    }
+
+    return (1.0f + houseRoleMultiplier) * affinityBonus;
+}
+
+/**
+ * Returns the attack item's upgrade streak multiplier for popup display.
+ *
+ * @param player The player using the attack item.
+ * @param def The item definition being resolved.
+ * @return The product of all upgrade streak multipliers currently affecting this item.
+ */
+static float computeUpgradeMultiplier(const Player& player, const ItemDef& def) {
+    float upgradeMultiplier = 1.0f;
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        if (effect.type == ItemDef::EffectType::Upgrade) {
+            upgradeMultiplier *= std::pow(effect.multiplier, static_cast<float>(player.getMalletUseCount()));
+        }
+    }
+    return upgradeMultiplier;
 }
 
 /**
@@ -828,6 +889,7 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
         }
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
+
         if (def && def->getType() == ItemDef::Type::Attack) {
             // Play the item use sound if defined, otherwise play the attack sound
             const std::string& itemUseSound = def->getItemUseSound();
@@ -865,7 +927,10 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
                                       const std::shared_ptr<const ItemDef>& def,
                                       Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
-    // Calculate damage upfront for the animation
+    const float baseValue = def->getBaseValue();
+    const float houseAffinityMultiplier =
+        computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
+    const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
@@ -877,8 +942,6 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
 
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
     const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
-    const float baseValue      = def->getBaseValue();
-    const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
     const std::vector<EnemyEffectMessage> enemyEffects =
         (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber())
                               : std::vector<EnemyEffectMessage>{};
@@ -887,8 +950,10 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     if (!_activeItemUseAnimations.empty()) {
         _activeItemUseAnimations.back().popupPosition    = dropPos;
         _activeItemUseAnimations.back().baseValue        = baseValue;
-        _activeItemUseAnimations.back().totalMultiplier  = totalMultiplier;
+        _activeItemUseAnimations.back().houseAffinityMultiplier = houseAffinityMultiplier;
+        _activeItemUseAnimations.back().upgradeMultiplier = upgradeMultiplier;
         _activeItemUseAnimations.back().enemyEffects     = enemyEffects;
+        _activeItemUseAnimations.back().itemDefID        = def->getId();
     }
 
     return true;
@@ -910,6 +975,10 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
                                        const std::shared_ptr<const ItemDef>& def,
                                        Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
+    const float baseValue = def->getBaseValue();
+    const float houseAffinityMultiplier =
+        computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
+    const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
 
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
@@ -920,7 +989,13 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
 
     if (!_network->isHost()) {
-        _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber());
+        //If we add an animation for gaia's rock we will have to move this to handleAnimatedAttack
+        if (def->getId() == "gaia_rock") {
+            _network->broadcastBossHeal(resolvedMagnitude);
+        }
+        else {
+            _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
+        }
         broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber()));
     }
     if (_network->isHost() && _audio) {
@@ -928,12 +1003,17 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
     }
 
-    const float baseValue      = def->getBaseValue();
-    const float totalMultiplier = (baseValue > 0.0f) ? resolvedMagnitude / baseValue : 1.0f;
+    //Since Gaia's rock heals unlike other attacks, we need a custom popup for it
+    if (def->getId() == "gaia_rock") {
+        handleGaiaRockPopup(dropPos, resolvedMagnitude);
+        return true;
+    }
+
     const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
     const float finalDamage     = resolvedMagnitude * sideMultiplier;
     createFloatingPopup(dropPos, buildAttackDamagePopups(
-        baseValue, totalMultiplier, sideMultiplier, resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+        baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
+        resolvedMagnitude, finalDamage, 26.0f, 17.0f));
 
     return true;
 }
@@ -972,7 +1052,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def));
         return true;
     }
     return false;
@@ -1011,7 +1091,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def));
         return true;
     }
     return false;
@@ -1217,6 +1297,11 @@ void GameScene::updateEnemyAndAI(float dt) {
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
+    // Play shield block sound if local player's shield absorbed damage this update
+    if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
+        _audio->playSoundUnique("shield_block");
+    }
+
     // Update AI players - this is when they attack the boss AND heal teammates
     for (auto& player : _gameState.getPlayers()) {
         if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
@@ -1421,43 +1506,6 @@ int GameScene::validateFrameIndex(int frameInRow) const {
 }
 
 /**
- * Calculates the frame index during the buildup phase of an animation.
- * Buildup frames loop until the buildup duration elapses.
- *
- * @param stateTime The time elapsed in the current state (seconds)
- * @param buildupDuration The total duration of the buildup phase (seconds)
- * @param buildupFrames Number of frames in the buildup phase
- * @return The looping frame index within the buildup frames
- */
-int GameScene::calculateBuildupFrame(float stateTime, float buildupDuration, int buildupFrames) const {
-    float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
-    return (int)(frameFloat) % buildupFrames;
-}
-
-/**
- * Calculates the frame index during the attack phase of an animation.
- * Attack frames play sequentially without looping, clamped to the final frame.
- *
- * @param stateTime The time elapsed in the current state (seconds)
- * @param buildupDuration The total duration of the buildup phase (seconds)
- * @param buildupFrames Number of frames in the buildup phase
- * @return The attack phase frame index (clamped to last attack frame)
- */
-int GameScene::calculateAttackFrame(float stateTime, float buildupDuration, int buildupFrames) const {
-    float timeSinceAttackStart = stateTime - buildupDuration;
-    float frameFloat = timeSinceAttackStart / _currentAnimationEntry.frameDuration;
-    int framesIntoAttack = (int)(frameFloat);
-    int totalAttackFrames = _currentAnimationEntry.frameCount - buildupFrames;
-    
-    // Clamp to last attack frame (no looping)
-    if (framesIntoAttack >= totalAttackFrames) {
-        framesIntoAttack = totalAttackFrames - 1;
-    }
-    
-    return buildupFrames + framesIntoAttack;
-}
-
-/**
  * Calculates which animation frame should be displayed based on state time and animation phase.
  *
  * Three modes, determined by the animation entry:
@@ -1466,57 +1514,44 @@ int GameScene::calculateAttackFrame(float stateTime, float buildupDuration, int 
  *   - Simple loop:     cycles all frames continuously
  *
  * @param stateTime  Elapsed time in the current state (seconds)
+ * @param buildUpTime Duration of buildup phase for attack animations (seconds), or -1 if not applicable
  * @return           Frame index within the animation row (0-indexed)
  */
-int GameScene::calculateAnimationFrame(float stateTime) const {
-    // Intro-then-loop: one-shot intro, then a fixed range of frames repeats indefinitely.
-    // Used for states that hold a pose (e.g. defense shield) after an initial wind-up.
-    if (_currentAnimationEntry.loopStartFrame >= 0) {
-        int introFrameCount = _currentAnimationEntry.loopStartFrame + 1;
-        float introDuration = introFrameCount * _currentAnimationEntry.frameDuration;
+int GameScene::calculateAnimationFrame(float stateTime, float buildUpTime) const {
+    float frameDur = _currentAnimationEntry.frameDuration;
+    int frameCount = _currentAnimationEntry.frameCount;
+    int loopStart = _currentAnimationEntry.loopStartFrame;
+    int loopEnd = _currentAnimationEntry.loopEndFrame;
 
+    if (loopStart >= 0) {
+        // Intro phase: frames 0..loopStart-1 play once
+        float introDuration = loopStart * frameDur;
         if (stateTime < introDuration) {
-            int frame = (int)(stateTime / _currentAnimationEntry.frameDuration);
-            return std::min(frame, introFrameCount - 1);
+            return std::min((int)(stateTime / frameDur), loopStart - 1);
         }
 
-        // Determine the inclusive end of the loop range
-        int loopEnd = (_currentAnimationEntry.loopEndFrame >= introFrameCount)
-            ? _currentAnimationEntry.loopEndFrame
-            : _currentAnimationEntry.frameCount - 1;
-        int loopFrameCount = loopEnd - introFrameCount + 1;
+        // Loop phase: frames loopStart..loopEnd cycle until buildUpTime
+        int loopFrameCount = loopEnd - loopStart + 1;
+        bool loopDone = (buildUpTime > 0.0f && stateTime >= buildUpTime);
 
-        if (loopFrameCount > 0) {
+        if (!loopDone && loopFrameCount > 0) {
             float timeInLoop = stateTime - introDuration;
-            int frameInLoop = (int)(timeInLoop / _currentAnimationEntry.frameDuration) % loopFrameCount;
-            return introFrameCount + frameInLoop;
+            int frameInLoop = (int)(timeInLoop / frameDur) % loopFrameCount;
+            return loopStart + frameInLoop;
         }
-        return _currentAnimationEntry.frameCount - 1;
+
+        // Outro phase: frames loopEnd+1..frameCount-1 play once before state exits
+        int outroStart = loopEnd + 1;
+        if (outroStart < frameCount) {
+            float outroBase = std::max(buildUpTime, introDuration);
+            int outroFrame = std::max(0, (int)((stateTime - outroBase) / frameDur));
+            return std::min(outroStart + outroFrame, frameCount - 1);
+        }
+        return frameCount - 1;
     }
 
-    int buildupFrames = _currentAnimationEntry.buildupFrameCount;
-
-    // Ensure buildupFrameCount is valid
-    if (buildupFrames < 0) buildupFrames = _currentAnimationEntry.frameCount;
-    if (buildupFrames > _currentAnimationEntry.frameCount) buildupFrames = _currentAnimationEntry.frameCount;
-
-    // Check if this animation has distinct buildup and attack phases
-    if (buildupFrames < _currentAnimationEntry.frameCount) {
-        // Buildup/Attack animation: buildup loops for buildUpTime, then attack plays through
-        auto enemy = _gameState.getEnemy();
-        const auto* stateDef = enemy ? enemy->getCurrentStateDef() : nullptr;
-        float buildupDuration = stateDef ? stateDef->buildUpTime : (buildupFrames * _currentAnimationEntry.frameDuration);
-        
-        if (stateTime < buildupDuration) {
-            return calculateBuildupFrame(stateTime, buildupDuration, buildupFrames);
-        } else {
-            return calculateAttackFrame(stateTime, buildupDuration, buildupFrames);
-        }
-    } else {
-        // Simple looping animation - no attack phase, just loop all frames
-        float frameFloat = stateTime / _currentAnimationEntry.frameDuration;
-        return (int)(frameFloat) % _currentAnimationEntry.frameCount;
-    }
+    // No loop: play all frames linearly once (e.g. scream)
+    return std::min((int)(stateTime / frameDur), frameCount - 1);
 }
 
 /**
@@ -1558,14 +1593,19 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
     
     // Calculate which animation frame should be displayed based on state time
     float stateTime = enemy->getStateTime();
-    int frameInRow = calculateAnimationFrame(stateTime);
+    const auto* curStateDef = enemy->getCurrentStateDef();
+    float buildUpTime = curStateDef ? curStateDef->buildUpTime : -1.0f;
+    int frameInRow = calculateAnimationFrame(stateTime, buildUpTime);
     frameInRow = validateFrameIndex(frameInRow);
     
     // Check if damage should trigger at this frame
-    if (_currentAnimationEntry.damageFrame >= 0 && 
-        frameInRow >= _currentAnimationEntry.damageFrame && 
+    if (_currentAnimationEntry.damageFrame >= 0 &&
+        frameInRow >= _currentAnimationEntry.damageFrame &&
         !_enemyAttackDamageDealtThisState) {
         _enemyAttackDamageDealtThisState = true;
+        if (!_currentAnimationEntry.sound.empty() && _audio) {
+            _audio->playSoundUnique(_currentAnimationEntry.sound);
+        }
     }
     
     // Calculate the linear frame index for the sprite sheet
@@ -1593,27 +1633,9 @@ void GameScene::updateEnemyAnimationFrame(float dt, int localPlayerIndex) {
  * @return true if attack animation is complete, false otherwise
  */
 bool GameScene::isEnemyAttackAnimationComplete() const {
-    // Intro-then-loop animations loop forever — never complete
-    if (_currentAnimationEntry.loopStartFrame >= 0) {
-        return false;
-    }
-
-    // Must have buildup < frameCount to be an attack animation
-    if (_currentAnimationEntry.buildupFrameCount >= _currentAnimationEntry.frameCount) {
-        return false;  // Not an attack animation (it's a looping animation)
-    }
-    
     auto enemy = _gameState.getEnemy();
     if (!enemy) return false;
-    
-    // Calculate total attack animation duration
-    float buildupDuration = _currentAnimationEntry.buildupFrameCount * _currentAnimationEntry.frameDuration;
-    int attackFrameCount = _currentAnimationEntry.frameCount - _currentAnimationEntry.buildupFrameCount;
-    float attackDuration = attackFrameCount * _currentAnimationEntry.frameDuration;
-    float totalDuration = buildupDuration + attackDuration;
-    
-    // Attack is complete if the enemy's state time has exceeded total animation duration
-    return enemy->getStateTime() >= totalDuration;
+    return enemy->isStateComplete();
 }
 
 /**
@@ -2054,8 +2076,10 @@ void GameScene::handleNetworkUpdates(float dt) {
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
+        _gameState.bossHealUpdates(_network->getBossHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
+        _gameState.bossHealUpdates(_network->getBossHealUpdates());
 
         for (auto& player : _gameState.getPlayers()) {
             if (player) {
@@ -2110,10 +2134,11 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
     
     // Only play sounds for non-AI local players
     if (player && !dynamic_cast<PlayerAI*>(player)) {
-        if (player->getCurrentHealth() < playerHealthBefore && _audio) {
+        const float playerHealthDelta = player->getCurrentHealth() - playerHealthBefore;
+        if (playerHealthDelta < 0.0f && _audio) {
             std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
             _audio->playSoundUnique(soundKey);
-        } else if (player->getCurrentHealth() > playerHealthBefore && _audio) {
+        } else if (playerHealthDelta >= 1.0f && _audio) {
             _audio->playSoundUnique("player_heal");
         }
     }
@@ -2121,6 +2146,34 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
     if (enemy->getCurrentHealth() < enemyHealthBefore && _audio) {
         _audio->playSoundUnique("enemy_hurt");
     }
+}
+
+/** Custom method called inside of handleItemSpawn that is used specifically for the Gaia boss
+  * If gaia is supposed to spawn a rock in a player's inventory, the host sends the appropriate message to the players
+  * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well
+  */
+void GameScene::handleGaiaSpawn() {
+    if (!(_gameState.getEnemy()->getId() == "gaia")) { return; }
+
+    shared_ptr<Gaia> gaia = std::dynamic_pointer_cast<Gaia>(_gameState.getEnemy());
+
+    if (_network->isHost() && gaia->spawnRockForPlayer()) {
+        int target = gaia->getTargetIndex();
+        if (_gameState.getPlayerById(target)->isAI()) {
+            _itemController.giveItemByID(_gameState.getPlayerById(target), "gaia_rock");
+        }
+        else {
+            _network->broadcastGaiaSpawn(target);
+        }
+    }
+    else {
+        //if we're a client check for any recieved messages over the network about it
+        for (int i = 0; i < _network->getNumGaiaSpawns(); i++) {
+            _itemController.giveItemByID(_gameState.getLocalPlayer(), "gaia_rock");
+        }
+    }
+    
+    return;
 }
 
 /**
@@ -2138,6 +2191,9 @@ void GameScene::handleItemSpawn(float dt) {
     }
     // Always spawn items for the local human player.
     _itemController.update(dt, _gameState.getLocalPlayer());
+
+    //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
+    handleGaiaSpawn();
 
     // Only the host spawns items for AI players, since the host is the
     // authoritative source for all AI state and broadcasts it to clients.
@@ -2626,6 +2682,11 @@ void GameScene::processZoneInteractionsForSlidingItems() {
                     }
                 markItemAsUsed(itemId);
                 itemsToRemove.insert(itemId);
+            } else if (action == InputController::Action::DROP_ALLY_LEFT ||
+                       action == InputController::Action::DROP_ALLY_RIGHT) {
+                // Target ally is dead — snapback the item to inventory instead of leaving it in the zone
+                itemsToRemove.insert(itemId);
+                initiateSnapbackAnimation(itemId, itemPos);
             }
             else{
                 item->setCanInteractWithZones(false);
@@ -2746,27 +2807,23 @@ void GameScene::updateDropZoneVisibility(){
     }
 
     if (_draggedItemId != 0) {
-        
+        Player* local = _gameState.getLocalPlayer();
+        bool localAlive = local && local->isAlive();
+
         _passLeftArea->setVisible(true);
         _passRightArea->setVisible(true);
-        
-        // Render attack/support zones based on item type
-        auto itemDef = getHeldItemDef(_draggedItemId);
-        
-        if (itemDef) {
-            if (itemDef->getType() == ItemDef::Type::Attack) {
-                // Render attack zones when holding attack item
-                _attackArea->setVisible(true);
-            } else {
-                // Render support zones when holding heal/support item.
-                // If the tutorial has requested to disable support zones
-                // we hide them here.
-                if (!_tutorialDisableSupportZones) {
-                    _supportLeftArea->setVisible(true);
-                    _supportRightArea->setVisible(true);
+
+        if (localAlive) {
+            auto itemDef = getHeldItemDef(_draggedItemId);
+            if (itemDef) {
+                if (itemDef->getType() == ItemDef::Type::Attack) {
+                    _attackArea->setVisible(true);
                 } else {
-                    _supportLeftArea->setVisible(false);
-                    _supportRightArea->setVisible(false);
+                    // Only show each support zone if that ally is alive
+                    Player* leftAlly  = local->getLeftPlayer();
+                    Player* rightAlly = local->getRightPlayer();
+                    _supportLeftArea->setVisible(leftAlly  && leftAlly->isAlive() && !_tutorialDisableSupportZones);
+                    _supportRightArea->setVisible(rightAlly && rightAlly->isAlive() && !_tutorialDisableSupportZones);
                 }
             }
         }
@@ -3817,12 +3874,13 @@ void GameScene::updateItemUseAnimations(float dt) {
                     // Apply pre-calculated damage and show the popup sequence.
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
                     createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
-                        activeAnim.baseValue, activeAnim.totalMultiplier, sideMultiplier,
+                        activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
+                        activeAnim.upgradeMultiplier, sideMultiplier,
                         activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
 
                     // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
-                        _network->broadcastDamage(activeAnim.damageAmount, playerNum);
+                        _network->broadcastDamage(activeAnim.damageAmount, playerNum, activeAnim.itemDefID);
                         broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
                     }
                 }
@@ -3881,12 +3939,11 @@ void GameScene::loadAnimationRegistry() {
         anim.frameRows = entry->getInt("frameRows", 1);
         
         // Parse attack phase configuration (optional)
-        // Default buildupFrameCount to frameCount (no attack phase) if not specified
-        anim.buildupFrameCount = entry->getInt("buildupFrameCount", anim.frameCount);
         anim.damageFrame = entry->getInt("damageFrame", -1);
         anim.loopStartFrame = entry->getInt("loopStartFrame", -1);
         anim.loopEndFrame = entry->getInt("loopEndFrame", -1);
-        
+        anim.sound = entry->getString("sound", "");
+
         // Parse position and scale customization (optional, with defaults)
         anim.positionX = entry->getFloat("positionX", 196.5f);
         anim.positionY = entry->getFloat("positionY", 120.0f);
@@ -3953,7 +4010,8 @@ cugl::Vec2 GameScene::resolveItemDropPosition(ItemInstance::ItemId itemId) const
  * See header for full parameter and sequence documentation.
  * 
  * @param baseValue The original damage value from the item definition
- * @param totalMultiplier The combined multiplier from house role and affinity bonuses
+ * @param houseAffinityMultiplier The combined house-role and affinity multiplier
+ * @param upgradeMultiplier The upgrade streak multiplier, if any
  * @param sideMultiplier The enemy's side multiplier for the attacking player
  * @param preSideDamage The damage after applying house multipliers but before side multiplier
  * @param finalDamage The final damage after applying all multipliers
@@ -3962,45 +4020,130 @@ cugl::Vec2 GameScene::resolveItemDropPosition(ItemInstance::ItemId itemId) const
  * @return A vector of FloatingPopupData structs defining the popup sequence
  */
 std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
-    float baseValue, float totalMultiplier, float sideMultiplier,
+    float baseValue, float houseAffinityMultiplier, float upgradeMultiplier, float sideMultiplier,
     float preSideDamage, float finalDamage,
     float valueFontSize, float multiplierFontSize) const
 {
+    const bool hasUpgradeMult = (std::abs(upgradeMultiplier - 1.0f) > 0.01f);
+    const bool hasHouseMult = (std::abs(houseAffinityMultiplier - 1.0f) > 0.01f);
     const bool hasSideMult = (std::abs(sideMultiplier - 1.0f) > 0.01f);
 
     // Format each value as a fixed one-decimal string.
-    char baseText[32], houseText[32], preText[32], sideText[32], finalText[32];
+    char baseText[32], upgradeText[32], houseText[32], preText[32], sideText[32], finalText[32];
     std::snprintf(baseText,  sizeof(baseText),  "-%.1f", baseValue);
-    std::snprintf(houseText, sizeof(houseText), "%.1fx", totalMultiplier);
+    std::snprintf(upgradeText, sizeof(upgradeText), "%.1fx", upgradeMultiplier);
+    std::snprintf(houseText, sizeof(houseText), "%.1fx", houseAffinityMultiplier);
     std::snprintf(preText,   sizeof(preText),   "-%.1f", preSideDamage);
     std::snprintf(sideText,  sizeof(sideText),  "%.1fx", sideMultiplier);
     std::snprintf(finalText, sizeof(finalText), "-%.1f", finalDamage);
 
     // Log-scale the multiplier font size so larger multipliers get proportionally bigger text.
-    const float houseLog    = 0.2f * std::log(std::max(1.0f, totalMultiplier));
+    const float upgradeLog  = 0.2f * std::log(std::max(1.0f, upgradeMultiplier));
+    const float houseLog    = 0.2f * std::log(std::max(1.0f, houseAffinityMultiplier));
     const float sideLog     = 0.2f * std::log(std::max(1.0f, sideMultiplier));
-    const float combinedLog = 0.2f * std::log(std::max(1.0f, totalMultiplier * sideMultiplier));
+    const float combinedLog = 0.2f * std::log(std::max(1.0f, houseAffinityMultiplier * upgradeMultiplier * sideMultiplier));
 
     // Green for a bonus side, blue for a penalty side.
     const cugl::Color4 sideColor = (sideMultiplier >= 1.0f)
         ? cugl::Color4(150, 220,  80, 255)
         : cugl::Color4(120, 160, 255, 255);
 
-    // If the enemy has a side multiplier on the local player's side
-    if (hasSideMult) {
-        return {
-            {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.2f,  cugl::Vec2::ZERO,         true},
-            {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.25f, cugl::Vec2(20.0f, 15.0f), false},
-            {preText,   valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        cugl::Color4::BLACK, 0.3f,  0.15f, cugl::Vec2::ZERO,         true},
-            {sideText,  multiplierFontSize * (1.0f + sideLog),          sideColor,                        cugl::Color4::BLACK, 0.35f, 0.2f,  cugl::Vec2(20.0f, 15.0f), false},
-            {finalText, valueFontSize      * (1.0f + combinedLog),      damageColor(finalDamage),          cugl::Color4::BLACK, 0.55f, 0.5f,  cugl::Vec2::ZERO,         true},
-        };
+    std::vector<FloatingPopupData> popups;
+    popups.push_back({
+        baseText,
+        valueFontSize,
+        cugl::Color4(160, 160, 160, 255),
+        cugl::Color4::BLACK,
+        0.0f,
+        0.2f,
+        cugl::Vec2::ZERO,
+        true
+    });
+
+    float nextDelay = 0.05f;
+    if (hasUpgradeMult) {
+        popups.push_back({
+            upgradeText,
+            multiplierFontSize * (2.0f + upgradeLog),
+            cugl::Color4(255, 110,  60, 255),
+            cugl::Color4::BLACK,
+            nextDelay,
+            0.25f,
+            cugl::Vec2(-24.0f, 15.0f),
+            false
+        });
+        nextDelay += 0.1f;
     }
-    return {
-        {baseText,  valueFontSize,                                  cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-        {houseText, multiplierFontSize * (1.0f + houseLog),         cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-        {finalText, valueFontSize      * (1.0f + houseLog),         damageColor(preSideDamage),        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
-    };
+
+    if (hasHouseMult) {
+        popups.push_back({
+            houseText,
+            multiplierFontSize * (1.0f + houseLog),
+            cugl::Color4(244, 186,  51, 255),
+            cugl::Color4::BLACK,
+            nextDelay,
+            0.25f,
+            cugl::Vec2(20.0f, 15.0f),
+            false
+        });
+        nextDelay += 0.1f;
+    }
+
+    const float preDamageLog = std::max(upgradeLog, houseLog);
+    popups.push_back({
+        preText,
+        valueFontSize * (1.0f + preDamageLog),
+        damageColor(preSideDamage),
+        cugl::Color4::BLACK,
+        nextDelay + (hasSideMult ? 0.05f : 0.0f),
+        hasSideMult ? 0.15f : 0.5f,
+        cugl::Vec2::ZERO,
+        true
+    });
+
+    if (hasSideMult) {
+        popups.push_back({
+            sideText,
+            multiplierFontSize * (1.0f + sideLog),
+            sideColor,
+            cugl::Color4::BLACK,
+            nextDelay + 0.1f,
+            0.2f,
+            cugl::Vec2(20.0f, 15.0f),
+            false
+        });
+        popups.push_back({
+            finalText,
+            valueFontSize * (1.0f + combinedLog),
+            damageColor(finalDamage),
+            cugl::Color4::BLACK,
+            nextDelay + 0.3f,
+            0.5f,
+            cugl::Vec2::ZERO,
+            true
+        });
+    }
+
+    return popups;
+}
+
+/**
+  * Spawns a floating popup showing the heal amount when Gaia's rock is used on the boss.
+  *
+  * @param dropPos    The screen-space position where the popup should appear.
+  * @param healAmount The amount of health restored to the boss.
+  */
+void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
+    char healText[32];
+    std::snprintf(healText, sizeof(healText), "+%.1f", healAmount);
+    createFloatingPopup(dropPos, { {
+        healText, 26.0f,
+        cugl::Color4(80, 220, 255, 255),
+        cugl::Color4::BLACK,
+        0.0f, 0.5f,
+        cugl::Vec2::ZERO,
+        true
+    } });
 }
 
 /**
@@ -4011,29 +4154,51 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
  * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
  * @return Ordered list of FloatingPopupData for the sequence (1 or 3 entries).
  */
-std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal) const {
+std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal,
+                                                         const std::shared_ptr<const ItemDef>& def) const {
     // Back-calculate the house multiplier from the resolved heal so we can show it in the sequence.
     const float totalMultiplier = (baseValue > 0.0f) ? resolvedHeal / baseValue : 1.0f;
     const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
 
-    char baseText[32], houseText[32], finalText[32];
+    float regenAmount = 0.0f;
+    if (def) {
+        for (const auto& effect : def->getEffects()) {
+            if (effect.type == ItemDef::EffectType::Regen && effect.regenAmount > 0.0f) {
+                regenAmount = effect.regenAmount;
+                break;
+            }
+        }
+    }
+
+    char baseText[32], houseText[32], finalText[32], regenText[32];
     std::snprintf(baseText,  sizeof(baseText),  "+%.1f", baseValue);
-    std::snprintf(houseText,  sizeof(houseText),  "%.1fx", totalMultiplier);
+    std::snprintf(houseText, sizeof(houseText), "%.1fx", totalMultiplier);
     std::snprintf(finalText, sizeof(finalText), "+%.1f", resolvedHeal);
+    std::snprintf(regenText, sizeof(regenText), "[%.1f]", regenAmount);
 
     const cugl::Color4 healGreen(80, 220, 80, 255);
+    std::vector<FloatingPopupData> popups;
 
     // Only show the full sequence when the multiplier actually changed something.
     if (std::abs(totalMultiplier - 1.0f) > 0.01f) {
-        return {
-            {baseText,  26.0f,                    cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
-            {houseText, 17.0f*(1.0f+houseLog),    cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
-            {finalText, 26.0f*(1.0f+houseLog),    healGreen,                        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
+        popups = {
+            {baseText,  26.0f,                 cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,         true},
+            {houseText, 17.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
+            {finalText, 26.0f*(1.0f+houseLog), healGreen,                        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
         };
+        if (regenAmount > 0.0f) {
+            popups.push_back({regenText, 22.0f, healGreen, cugl::Color4::BLACK, 0.35f, 0.5f, cugl::Vec2(0.0f, -28.0f), false});
+        }
+        return popups;
     }
-    return {
+
+    popups = {
         {finalText, 26.0f, healGreen, cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true},
     };
+    if (regenAmount > 0.0f) {
+        popups.push_back({regenText, 22.0f, healGreen, cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, -28.0f), false});
+    }
+    return popups;
 }
 
 /**

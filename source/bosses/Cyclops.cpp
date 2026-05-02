@@ -79,16 +79,19 @@ void Cyclops::update(float dt) {
  */
 void Cyclops::takeDamage(float damage, int playerIndex) {
 	if (Enemy::getCurrentState() == EnemyLoader::State::ATTACK_3) {
-		Enemy::setTargetIndex(playerIndex);
+		if (!Enemy::isInAttackAnimationPhase()) {
+			Enemy::setTargetIndex(playerIndex);
+		}
 
 		const auto* stateDef = Enemy::getCurrentStateDef();
 		if (stateDef && _stateTime < stateDef->buildUpTime) {
-			float oneLoopDuration = stateDef->buildupFrameCount * stateDef->frameDuration;
+			int loopFrameCount    = stateDef->loopEndFrame - stateDef->loopStartFrame + 1;
+			float oneLoopDuration = loopFrameCount * stateDef->frameDuration;
 			float safeZoneEnd     = stateDef->buildUpTime - oneLoopDuration;
 
 			if (safeZoneEnd <= 0.0f || _stateTime >= safeZoneEnd) {
-				// Less than one buildup loop remains — restart wind-up from the beginning
-				Enemy::setStateTime(0.0f);
+				// Less than one buildup loop remains — restart loop from the first loop frame
+				Enemy::setStateTime(stateDef->loopStartFrame * stateDef->frameDuration);
 			} else {
 				float timeToAdvance = std::min(_stateTime + _boulderTossReductionAmount, safeZoneEnd) - _stateTime;
 				Enemy::advanceStateTime(timeToAdvance);

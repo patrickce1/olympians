@@ -1,6 +1,7 @@
 // Player.cpp
 #include "Player.h"
 #include <algorithm>
+#include <cmath>
 #include "items/EffectSystem.h"
 
 /**
@@ -67,6 +68,7 @@ void Player::updateHealth(float delta) {
 
         if (_hasShield && _shieldDuration > 0.0f) {
             const float absorbedAmount = std::min(incomingDamage, _shieldHealth);
+            if (absorbedAmount > 0.0f) _shieldAbsorbedDamage = true;
             float tempDamage = incomingDamage;
             incomingDamage = std::max(0.0f, incomingDamage - _shieldHealth);
             
@@ -149,6 +151,33 @@ void Player::applyBarrier(float multiplier, float duration) {
 }
 
 /**
+ * Applies a timed heal-over-time effect to this player.
+ *
+ * Current `regenDuration` and `regenAmountRemaining` are completely
+ * overridden when this function is called when this player already has active regen.
+ *
+ * @param amount    The total healing to apply over the full duration.
+ * @param duration  How long the regen lasts.
+ */
+void Player::applyRegen(float amount, float duration) {
+    if (amount <= 0.0f || duration <= 0.0f) {
+        return;
+    }
+
+    _hasRegen = true;
+    _regenAmountRemaining = std::max(0.0f, amount);
+    _regenDuration = duration;
+
+    if (_debug) {
+        CULog("Regen applied: player='%s' house='%s' amount=%.3f duration=%.3f",
+            _playerName.c_str(),
+            _houseId.c_str(),
+            _regenAmountRemaining,
+            _regenDuration);
+    }
+}
+
+/**
  * Advances this player's active runtime support effects by the elapsed frame time.
  *
  * Both shield and barrier durations are reduced by `dt` and clamped to `0.0f` so
@@ -185,6 +214,27 @@ void Player::updateEffects(float dt) {
             }
         }
     }
+
+    if (_regenDuration > 0.0f && _regenAmountRemaining > 0.0f) {
+        const float appliedDt = std::min(dt, _regenDuration);
+        const float healPerSecond = _regenAmountRemaining / _regenDuration;
+        const float healAmount = healPerSecond * appliedDt;
+
+        updateHealth(healAmount);
+        _regenAmountRemaining = std::max(0.0f, _regenAmountRemaining - healAmount);
+        _regenDuration = std::max(0.0f, _regenDuration - appliedDt);
+
+        if (_regenDuration <= 0.0f || _regenAmountRemaining <= 0.0f) {
+            _hasRegen = false;
+            _regenAmountRemaining = 0.0f;
+            _regenDuration = 0.0f;
+            if (_debug) {
+                CULog("Regen expired: player='%s' house='%s'",
+                    _playerName.c_str(),
+                    _houseId.c_str());
+            }
+        }
+    }
 }
 
 /** Clears runtime-only combat effects. */
@@ -195,6 +245,9 @@ void Player::clearRuntimeEffects() {
     _hasBarrier = false;
     _barrierMultiplier = 1.0f;
     _barrierDuration = 0.0f;
+    _hasRegen = false;
+    _regenAmountRemaining = 0.0f;
+    _regenDuration = 0.0f;
 }
 
 /**
@@ -235,12 +288,56 @@ static float computeResolvedItemMagnitude(const Player& player,
         }
     }
 
-    float resolvedMagnitude = def.getBaseValue() * (1.0f + houseRoleMultiplier) * affinityBonus;
+    float itemMultiplier = 1.0f;
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        if (effect.type == ItemDef::EffectType::Upgrade) {
+            itemMultiplier *= std::pow(effect.multiplier, static_cast<float>(player.getMalletUseCount()));
+        }
+    }
+
+    float resolvedMagnitude = def.getBaseValue() * itemMultiplier * (1.0f + houseRoleMultiplier) * affinityBonus;
     if (resolvedMagnitude <= 0.0f) {
         resolvedMagnitude = 0.0f;
     }
 
     return resolvedMagnitude;
+}
+
+/**
+ * Returns whether consuming the given item should advance the player's upgrade streak.
+ *
+ * @param def The item definition being checked for streak-advancing effects.
+ * @return True if the item carries an upgrade effect that should advance the streak.
+ */
+static bool itemConsumesUpgradeStreak(const ItemDef& def) {
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        if (effect.type == ItemDef::EffectType::Upgrade) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Computes the resolved magnitude for this player's use of the given item.
+ *
+ * @param def The item definition being resolved.
+ * @param db The item database that provides multiplier metadata.
+ * @return The resolved magnitude after house, affinity, and upgrade modifiers are applied.
+ */
+float Player::resolveItemMagnitude(const ItemDef& def, const ItemDatabase& db) const {
+    return computeResolvedItemMagnitude(*this, def, db);
+}
+
+/**
+ * Records any round-scoped item-use state changes caused by consuming an item.
+ *
+ * @param def The item definition that was just consumed.
+ */
+void Player::recordItemUse(const ItemDef& def) {
+    if (itemConsumesUpgradeStreak(def)) {
+        _malletUseCount += 1;
+    }
 }
 
 /**
@@ -288,7 +385,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
             return -1.0f;
         }
 
-        const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
+        const float resolvedMagnitude = resolveItemMagnitude(*def, db);
         float returnedMagnitude = 0.0f;
         if (def->getType() == ItemDef::Type::Support) {
             target.updateHealth(resolvedMagnitude);
@@ -302,6 +399,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
             }
         }
 
+        recordItemUse(*def);
         _inventory.erase(item);
         return returnedMagnitude;
     }
@@ -333,9 +431,12 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             return -1.0f;
         }
 
-        const float resolvedMagnitude = computeResolvedItemMagnitude(*this, *def, db);
+        const float resolvedMagnitude = resolveItemMagnitude(*def, db);
         float returnedMagnitude = 0.0f;
-        if (def->getType() == ItemDef::Type::Attack) {
+        if (def->getId() == "gaia_rock") {
+            target.updateHealth(resolvedMagnitude);
+            returnedMagnitude = resolvedMagnitude;
+        } else if (def->getType() == ItemDef::Type::Attack) {
             target.takeDamage(resolvedMagnitude, getPlayerNumber());
             returnedMagnitude = resolvedMagnitude;
             for (const ItemDef::Effect& effect : def->getEffects()) {
@@ -347,6 +448,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             }
         }
 
+        recordItemUse(*def);
         _inventory.erase(item);
         return returnedMagnitude;
     }

@@ -105,10 +105,20 @@ public:
      * Sends an attack message to the host with the given damage value.
      * Called by non-host clients when the local player attacks the boss.
      *
-     * @param damage    The amount of damage dealt to the boss.
-     * @param playerIndex Which player is dealing damage to the boss
+     * @param damageAmount The locally resolved damage amount to report for this attack.
+     * @param playerIndex The attacking player's slot index.
+     * @param itemDefID The definition ID of the attack item so the host can recompute authoritative damage.
     */
-    void broadcastDamage(float damageAmount, int playerIndex);
+    void broadcastDamage(float damageAmount, int playerIndex, const std::string& itemDefID);
+
+    /**
+     * Sends a boss heal message to the host.
+     * Called by clients when a Gaia rock item is used, which heals
+     * the boss instead of dealing damage. 
+     *
+     * @param healAmount  The amount of health to restore to the boss.
+     */
+    void broadcastBossHeal(float healAmount);
 
     /**
      * Sends a message to the corresponding player that an item with the given definition has been passed to them.
@@ -122,6 +132,15 @@ public:
 
     /** Sends a message to the host that the player located at playerID in the cicle got healed for healAmount. */
     void broadcastHeal(float healAmount, int playerID);
+
+    /**
+     * Sends a Gaia rock spawn message directly to the target player.
+     * Called by the host when Gaia's rock spawn targets a real (non-AI) player,
+     * telling that client to add a Gaia rock to their local inventory.
+     *
+     * @param playerID  The 0-based slot index of the player to receive the rock.
+     */
+     void broadcastGaiaSpawn(int playerID);
 
     /**
      * Sends a support effect application to the host for authoritative processing.
@@ -190,16 +209,22 @@ public:
     /*Returns all the networking messages about item passing we recieved after calling getNetworkUpdate()*/
     const std::vector<PassMessage>& getPassUpdates() const { return passes; }
 
-    /*Returns all the networking messages about healing we recieved after calling getNetworkUpdate()*/
+    /** Returns all the networking messages about healing we received after calling getNetworkUpdate() */
     const std::vector<HealMessage>& getHealUpdates() const { return heals; }
 
-    /*Returns all support effect messages received after calling getNetworkUpdate().*/
+    /** Returns all the networking messages about players healing the boss we received after called getNetworkUpdate(). */
+    const std::vector<BossHealMessage>& getBossHealUpdates() const { return bossHeals; }
+
+    /** Returns all support effect messages received after calling getNetworkUpdate(). */
     const std::vector<SupportEffectMessage>& getSupportEffectUpdates() const { return supportEffects; }
 
-    /*Returns all enemy effect messages received after calling getNetworkUpdate().*/
+    /** Returns all enemy effect messages received after calling getNetworkUpdate(). */
     const std::vector<EnemyEffectMessage>& getEnemyEffectUpdates() const { return enemyEffects; }
 
-    /*Returns the most recent version of the authoritative game state*/
+    /** Returns the number of Gaia item spawn messages we received after calling getNetworkUpdate() */
+    int getNumGaiaSpawns() const { return gaiaSpawns; }
+
+    /** Returns the most recent version of the authoritative game state. */
     GameStateMessage getStateUpdate() { return _latestGameState; }
 
     /*Tells us if the host sent a message saying the game was lost*/
@@ -357,7 +382,7 @@ public:
      * Clients use this to mirror the host's scene transitions, ensuring no
      * client gets left behind if they missed the original transition signal.
      *
-     * @param sceneState  0 = PreGameEntryScene, 1 = GameScene
+     * @param sceneState  0 = PreGameEntryScene, 1 = GameScene, 2 = LobbyScene -1 = unknown (not yet received)
      */
     void broadcastHostsCurrentScene(int sceneState);
 
@@ -366,12 +391,31 @@ public:
      * Used by clients to detect when the host has transitioned scenes
      * and advance accordingly.
      *
-     * @return  0 = PreGameEntryScene, 1 = GameScene, 2 = LobbyScene -1 = unknown (not yet received)
+     * @return  0 = PreGameEntryScene, 1 = GameScene, 2 = LobbyScene,  -1 = unknown (not yet received)
      */
     int getHostsCurrentScene() const { return _hostsCurrentScene; }
+    
+    /**
+     * HOST ONLY. Swaps the game slots of two players (real or AI) and
+     * broadcasts the updated lobby state to all clients.
+     *
+     * The swap is applied to _uuidToSlot, _slotToPlayer, and _aIHouses
+     * as appropriate, then broadcastLobbyState() is called so all clients
+     * receive an authoritative LOBBY_UPDATE.
+     *
+     * @param slotA  First 0-based slot index to swap.
+     * @param slotB  Second 0-based slot index to swap.
+     */
+    void swapSlots(int slotA, int slotB);
+    
+    /** Sets the player's display name without registering a local slot.
+     *  Use before broadcastJoinedLobby() so the name is available for
+     *  the join message without prematurely inserting into _slotToPlayer. */
+    void setPlayerNameOnly(const std::string& name) { _playerName = name; }
+
 
 protected:
-    //This enum is used internally by this class to figure out how to decode the data recieved over the network
+    // This enum is used internally by this class to figure out how to decode the data received over the network
     
     //These enum types are made explicit because we send the enums over as integers, and we don't want to take any
     //chances for different compilers deciding to assign different numbers to these
@@ -391,7 +435,10 @@ protected:
         BOSS_SELECT = 12,
         AI_HOUSE_SELECT = 13,
         PLAYER_SUPPORT_EFFECT = 14,
-        ENEMY_EFFECT = 15
+        ENEMY_EFFECT = 15,
+        SWAP_SLOTS = 16,
+        BOSS_HEAL = 17,
+        GAIA_SPAWN = 18
     };
 
     /** Our network connection */
@@ -413,10 +460,15 @@ protected:
 private:
     /** Lists that keep track of the updates sent by players to the host */
     std::vector<AttackMessage> attacks;
+    std::vector<BossHealMessage> bossHeals;
     std::vector<PassMessage> passes;
     std::vector<HealMessage> heals;
     std::vector<SupportEffectMessage> supportEffects;
     std::vector<EnemyEffectMessage> enemyEffects;
+
+    /** Integer that keeps track of how many messages a client received to spawn in Gaia rocks */
+    int gaiaSpawns;
+
     GameStateMessage _latestGameState;
     //win/loss booleans
     bool _gameWon;

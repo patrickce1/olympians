@@ -60,7 +60,7 @@
             "maxHealth": 10000.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
-                "retargetLikelihood": 0.75,
+                "retargetLikelihood": 0.5,
                 "defenseLikelihood": 0.25
             },
             "customData": {
@@ -73,7 +73,7 @@
                 "idle": {
                     "name": "idle",
                     "animationKey": "cyclops_idle_animation",
-                    "events": [
+                    "entryEvents": [
                         {
                             "type": "SIDE_MODIFIER",
                             "target": 0,
@@ -111,10 +111,32 @@
                     "nextState": "attack_2"
                 },
                 "attack_2": {
-                    "name": "stomp",
-                    "animationKey": "cyclops_slash_animation",
-                    "buildUpTime": 4.0,
+                    "name": "scream",
+                    "animationKey": "cyclops_scream_animation",
+                    "buildUpTime": 0.0,
                     "cooldownTime": 5.0,
+                    "entryEvents": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 2.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 2.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 2.0
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 2.0
+                        }
+		            ],
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -242,51 +264,87 @@
         {
             "id": "gaia",
             "name": "gaia",
-            "maxHealth": 100.0,
+            "maxHealth": 10000.0,
             "spritesheetPath": "textures/gaia.png",
             "ai": {
-                "retargetLikelihood": 0.5,
-                "defenseLikelihood": 1.0
+                "retargetLikelihood": 0.9,
+                "defenseLikelihood": 0.5
             },
             "customData": {
-                "eyeMultiplier": 1.0
+                "spawnCooldownConstant": 5.0
             },
             "states": {
                 "idle": {
                     "name": "idle"
                 },
                 "attack_1": {
-                    "name": "",
+                    "name": "Earth's Tremors",
                     "buildUpTime": 4.0,
                     "cooldownTime": 0.0,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 45.0
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "attack_2": {
-                    "name": "",
+                    "name": "Poisonous Hedge",
                     "buildUpTime": 3.0,
                     "cooldownTime": 1.0,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 45.0
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "attack_3": {
-                    "name": "",
+                    "name": "Shift the Ground",
                     "buildUpTime": 3.0,
                     "cooldownTime": 1.0,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 20.0
+                        },
+			            {
+                            "type": "DAMAGE",
+                            "target": 1,
+                            "amount": 20.0
+                        },
+			            {
+                            "type": "DAMAGE",
+                            "target": 2,
+                            "amount": 20.0
+                        },
+			            {
+                            "type": "DAMAGE",
+                            "target": 3,
+                            "amount": 20.0
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "defensive_move" : {
-                    "name": "test heal move",
+                    "name": "Wall of Stone",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
-                        {
-                            "type": "HEAL",
-                            "amount": 10.0
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 0.2
+                        },
+			            {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 0.2
                         }
                     ],
                     "nextState": "idle"

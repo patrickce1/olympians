@@ -37,6 +37,17 @@ private:
     }
 
     /**
+     * Applies a regen effect to a player and returns the total healing amount.
+     *
+     * @param effect  The serialized effect definition to apply.
+     * @param target  The player receiving the regen.
+     */
+    static float applyRegenToPlayer(const ItemDef::Effect& effect, Player& target) {
+        target.applyRegen(effect.regenAmount, effect.duration);
+        return effect.regenAmount;
+    }
+
+    /**
      * Applies a stun effect to an enemy and returns the stun duration.
      *
      * @param effect  The serialized effect definition to apply.
@@ -91,9 +102,12 @@ public:
                 return applyShieldToPlayer(effect, target);
             case ItemDef::EffectType::Barrier:
                 return applyBarrierToPlayer(effect, target);
+            case ItemDef::EffectType::Regen:
+                return applyRegenToPlayer(effect, target);
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Vulnerable:
+            case ItemDef::EffectType::Upgrade:
                 break;
         }
 
@@ -123,6 +137,8 @@ public:
                 return applyVulnerableToEnemy(effect, target, playerIndex);
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
+            case ItemDef::EffectType::Regen:
+            case ItemDef::EffectType::Upgrade:
                 break;
         }
 

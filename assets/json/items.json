@@ -2,7 +2,8 @@
     "rarityWeights": {
         "common": 0.45,
         "rare": 0.40,
-        "divine": 0.15
+        "divine": 0.15,
+        "special": 0.0
     },
     "items": [
         {
@@ -163,7 +164,13 @@
             "rarity": "rare",
             "houseAffinity": "demeter",
             "baseValue": 25.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "regen",
+                    "amount": 25.0,
+                    "duration": 5.0
+                }
+            ]
         },
         {
             "id": "mallet",
@@ -174,7 +181,12 @@
             "rarity": "rare",
             "houseAffinity": "hephaestus",
             "baseValue": 10.0,
-            "effects": [],
+            "effects": [
+                {
+                    "type": "upgrade",
+                    "multiplier": 1.5
+                }
+            ],
             "itemUseSound": "attack_thud",
             "itemUseAnimation": {
                 "spriteSheetId": "mallet_animation",
@@ -252,17 +264,6 @@
             "effects": []
         },
         {
-            "id": "wheat",
-            "name": "Wheat",
-            "description": " ",
-            "icon": "item_wheat",
-            "type": "support",
-            "rarity": "rare",
-            "houseAffinity": "demeter",
-            "baseValue": 25.0,
-            "effects": []
-        },
-        {
             "id": "thunderstorm",
             "name": "Thunderstorm",
             "description": " ",
@@ -300,6 +301,17 @@
                 "animationDuration": 0.747,
                 "damageResolutionFrame": 7
             }
+        },
+        {
+            "id": "gaia_rock",
+            "name": "Gaia's Rock",
+            "description": " ",
+            "icon": "item_gaia_rock",
+            "type": "attack",
+            "rarity": "special",
+            "houseAffinity": "none",
+            "baseValue": 30.0,
+            "effects": []
         },
         {
             "id": "resurrection",

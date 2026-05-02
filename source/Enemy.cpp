@@ -216,10 +216,20 @@ const EnemyLoader::StateDef* Enemy::getCurrentStateDef() const {
  */
 bool Enemy::isInAttackAnimationPhase() const {
     const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
-    return stateDef &&
-           stateDef->frameCount > 0 &&
-           stateDef->buildupFrameCount < stateDef->frameCount &&
-           _stateTime >= stateDef->buildUpTime;
+    if (!stateDef || stateDef->loopStartFrame < 0) return false;
+
+    if (stateDef->damageFrame < 0) {
+        // No damage frame: attack phase is simply past buildUpTime (in the outro)
+        return stateDef->buildUpTime > 0.0f && _stateTime >= stateDef->buildUpTime;
+    }
+
+    if (stateDef->damageFrame > stateDef->loopEndFrame) {
+        // Loop comes before damage: attack phase runs from loop end through end of animation
+        return _stateTime >= stateDef->buildUpTime;
+    }
+
+    // Damage comes before loop: attack phase runs from state entry until damage fires
+    return _currentAnimationFrame < stateDef->damageFrame;
 }
 
 /** Returns true if successfully enters requested state. False and idle otherwise.
@@ -328,26 +338,52 @@ void Enemy::tick(float dt) {
     }
 }
 
-/** Returns true when the animation has fully completed and events have not yet fired.
- * 
- * For animated states: Returns true when currentAnimationFrame reaches frameCount-1 (the last frame).
- * For non-animated states: Returns true when buildUpTime elapses.
- * 
- * Once true, determines when state should transition and events should fire.
- * 
- * @return true if animation/duration complete and events not yet fired
+/**
+ * Returns true when events should fire for the current state.
+ *
+ * For time-based states (frameCount == 0): fires when buildUpTime elapses.
+ * For frame-based states with a damageFrame: fires when that frame is reached.
+ * For frame-based states without a damageFrame: fires at the last frame.
+ *
+ * @return true if the event fire condition is met and events have not yet fired this state
  */
 bool Enemy::readyToFire() const {
     const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
     if (!stateDef) return false;
     if (_eventsFiredThisState) return false;
-    
+
+    // damageFrame overrides all — works for both looping and linear states
+    if (stateDef->damageFrame >= 0) {
+        return _currentAnimationFrame >= stateDef->damageFrame;
+    }
+
     if (stateDef->frameCount <= 0) {
-        // Non-animated states use buildUpTime
+        // Looping state: fire when loop ends. buildUpTime=0 means loop forever (e.g. idle).
+        if (stateDef->buildUpTime <= 0.0f) return false;
         return _stateTime >= stateDef->buildUpTime;
     }
-    
-    // Animated states: fire when reaching final frame (frameCount - 1, since 0-indexed)
+
+    return _currentAnimationFrame >= (stateDef->frameCount - 1);
+}
+
+/**
+ * Returns true when the current state has fully completed and should transition.
+ *
+ * For time-based states: completes when buildUpTime elapses (same as readyToFire).
+ * For frame-based states: completes when the last frame is reached, regardless of damageFrame.
+ *
+ * @return true if the state is complete and should transition to the next state
+ */
+bool Enemy::isStateComplete() const {
+    const EnemyLoader::StateDef* stateDef = getCurrentStateDef();
+    if (!stateDef) return false;
+
+    if (stateDef->frameCount <= 0) {
+        if (stateDef->buildUpTime <= 0.0f) return false;
+        float outroTime = stateDef->outroFrameCount * stateDef->frameDuration;
+        return _stateTime >= stateDef->buildUpTime + outroTime;
+    }
+
     return _currentAnimationFrame >= (stateDef->frameCount - 1);
 }
 
@@ -435,6 +471,9 @@ void Enemy::update(float dt) {
 
     if (readyToFire()) {
         fireEvents();
+    }
+
+    if (isStateComplete()) {
         applyCooldown();
         enterState(getNextStateOrIdle());
     }

@@ -195,6 +195,9 @@ public:
     /** Returns true when the current state is in the attack animation phase. */
     bool isInAttackAnimationPhase() const;
 
+    /** Returns true when the current state has fully completed (loop + outro) and should transition. */
+    bool isStateComplete() const;
+
     /**
      * Forces the enemy into the specified attack state, bypassing normal AI
      * state transitions. Intended for tutorial triggers.

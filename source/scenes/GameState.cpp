@@ -153,6 +153,9 @@ static std::shared_ptr<Enemy> createEnemyByID(const std::string& enemyID) {
         // TODO: Create a custom Cerberus class in a future PR
         return std::make_shared<Enemy>();
     }
+    else if (enemyID == "gaia") {
+        return std::make_shared<Gaia>();
+    }
     // Fallback for unknown enemy types
     return std::make_shared<Enemy>();
 }
@@ -218,6 +221,7 @@ bool GameState::initAI(ItemController& itemController) {
  * @return true if all resources loaded and initialised successfully.
  */
 bool GameState::init(ItemController& itemController, const std::shared_ptr<cugl::AssetManager>& assets) {
+    _itemDatabase = &itemController.getDatabase();
     if (!initHouses())                      return false;
     initPlayers();
     if (!initEnemyWithAssets(assets))       return false;
@@ -232,6 +236,7 @@ void GameState::dispose() {
     for (auto& player : _players) {
         player->clearInventory();
         player->clearRuntimeEffects();
+        player->clearItemUseState();
     }
     _players.clear();
     _playerIdMap.clear();
@@ -247,6 +252,7 @@ void GameState::reset() {
     for (auto& player : _players) {
         player->clearInventory();
         player->clearRuntimeEffects();
+        player->clearItemUseState();
         player->setCurrentHealth(player->getMaxHealth());
     }
     _enemy->setCurrentHealth(_enemy->getMaxHealth());
@@ -314,8 +320,19 @@ Player* GameState::getPlayerBySlot(int slot) const {
 
 /* Goes through the list of attack messages in attacks and applies the damage specified to the boss*/
 void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
-    for (AttackMessage attack : attacks) {
-        _enemy->takeDamage(attack.damage, attack.damageDirection);
+    for (const AttackMessage& attack : attacks) {
+        float authoritativeDamage = attack.damage;
+
+        if (_itemDatabase) {
+            Player* attackingPlayer = getPlayerBySlot(attack.damageDirection);
+            std::shared_ptr<ItemDef> def = _itemDatabase->getDef(attack.itemDefID);
+            if (attackingPlayer && def && def->getType() == ItemDef::Type::Attack) {
+                authoritativeDamage = attackingPlayer->resolveItemMagnitude(*def, *_itemDatabase);
+                attackingPlayer->recordItemUse(*def);
+            }
+        }
+
+        _enemy->takeDamage(authoritativeDamage, attack.damageDirection);
     }
 }
 
@@ -324,6 +341,20 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
     for (HealMessage heal : heals) {
         if (heal.playerID < 0 || heal.playerID >= (int)_players.size()) continue;
         _players[heal.playerID]->updateHealth(heal.heal);
+    }
+}
+
+/**
+ * Applies all queued boss heal messages to the enemy's current health.
+ * Called by the host each frame after processing incoming network messages.
+ * Currently used exclusively for Gaia's rock item, which heals the boss
+ * instead of dealing damage.
+ *
+ * @param bossHeals  The queued boss heal updates to apply this frame.
+ */
+void GameState::bossHealUpdates(std::vector<BossHealMessage> bossHeals) {
+    for (BossHealMessage bossHeal : bossHeals) {
+        _enemy->updateHealth(bossHeal.healAmount);
     }
 }
 
@@ -348,6 +379,9 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
                 break;
             case SupportEffectType::Barrier:
                 target->applyBarrier(effect.magnitude, effect.duration);
+                break;
+            case SupportEffectType::Regen:
+                target->applyRegen(effect.magnitude, effect.duration);
                 break;
         }
     }
@@ -412,21 +446,27 @@ void GameState::networkUpdate(GameStateMessage newState) {
         newState.player3HP,
         newState.player4HP
     };
-    std::vector<std::array<float, 4>> runtimeEffects = {
-        std::array<float, 4>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
-                             newState.player1BarrierMultiplier, newState.player1BarrierDuration},
-        std::array<float, 4>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
-                             newState.player2BarrierMultiplier, newState.player2BarrierDuration},
-        std::array<float, 4>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
-                             newState.player3BarrierMultiplier, newState.player3BarrierDuration},
-        std::array<float, 4>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
-                             newState.player4BarrierMultiplier, newState.player4BarrierDuration}
+    std::vector<std::array<float, 6>> runtimeEffects = {
+        std::array<float, 6>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
+                             newState.player1BarrierMultiplier, newState.player1BarrierDuration,
+                             newState.player1RegenAmountRemaining, newState.player1RegenDuration},
+        std::array<float, 6>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
+                             newState.player2BarrierMultiplier, newState.player2BarrierDuration,
+                             newState.player2RegenAmountRemaining, newState.player2RegenDuration},
+        std::array<float, 6>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
+                             newState.player3BarrierMultiplier, newState.player3BarrierDuration,
+                             newState.player3RegenAmountRemaining, newState.player3RegenDuration},
+        std::array<float, 6>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
+                             newState.player4BarrierMultiplier, newState.player4BarrierDuration,
+                             newState.player4RegenAmountRemaining, newState.player4RegenDuration}
     };
 
     for (int i = 0; i < _players.size(); i++) {
         _players[i]->setCurrentHealth(healths[i]);
         _players[i]->syncRuntimeEffects(runtimeEffects[i][0], runtimeEffects[i][1],
-                                        runtimeEffects[i][2], runtimeEffects[i][3]);
+                                        runtimeEffects[i][2], runtimeEffects[i][3],
+                                        runtimeEffects[i][4], runtimeEffects[i][5]);
+        _players[i]->setMalletUseCount(newState.playerMalletUseCounts[i]);
     }
 }
 
@@ -532,5 +572,33 @@ void GameState::demoteToAI(int slot, const std::string& house) {
     }
     if (replacedLocalPlayer) {
         _localPlayer = _players[slot].get();
+    }
+}
+
+/**
+ * Swaps two player slots in the local player array.
+ * Called on the host after NetworkController::swapSlots() to keep
+ * _players in sync with the updated network slot assignments.
+ * Re-wires neighbour pointers for the affected slots after the swap.
+ *
+ * @param slotA  First 0-based slot index.
+ * @param slotB  Second 0-based slot index.
+ */
+void GameState::swapPlayers(int slotA, int slotB) {
+    int total = (int)_players.size();
+    if (slotA == slotB || slotA < 0 || slotB < 0
+        || slotA >= total || slotB >= total) return;
+
+    std::swap(_players[slotA], _players[slotB]);
+
+    // Update id map so getPlayerById() resolves correctly after the swap
+    _playerIdMap[slotA] = _players[slotA].get();
+    _playerIdMap[slotB] = _players[slotB].get();
+
+    // Re-wire full circular neighbour ring — same pattern as setRealPlayer(),
+    // demoteToAI(), and assignMissingHousesForAI()
+    for (int i = 0; i < total; i++) {
+        _players[i]->setLeftPlayer (_players[(i - 1 + total) % total].get());
+        _players[i]->setRightPlayer(_players[(i + 1) % total].get());
     }
 }

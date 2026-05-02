@@ -60,10 +60,6 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
         return;
     }
     
-    float chance = enemy->getRetargetLikelihood();
-    if (chance <= 0.0f) return;
-    if (chance > 1.0f) chance = 1.0f;
-
     const int n = (int)players.size();
     if (n <= 0) {
         if (_debug) CULog("[EnemyController] Target: No players on idle entry");
@@ -82,7 +78,7 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
         return;
     }
 
-    // BASE CASE: If current target is dead or invalid, force it onto a living target (no probability)
+    // Always force retarget if current target is dead or invalid, regardless of retargetLikelihood
     bool curValid = (enemy->getTargetIndex() >= 0 && enemy->getTargetIndex() < n && players[enemy->getTargetIndex()]->isAlive());
     if (!curValid) {
         const int pick = (int)(_rng.getUint32() % (Uint32)living.size());
@@ -91,7 +87,11 @@ void EnemyController::maybeRetargetOnIdleEntry(const std::shared_ptr<Enemy> enem
         return;
     }
 
-    // Roll probability on whether to switch to a different target
+    // Roll probability on whether to switch from a living target to another
+    float chance = enemy->getRetargetLikelihood();
+    if (chance <= 0.0f) return;
+    if (chance > 1.0f) chance = 1.0f;
+
     float r = (float)_rng.getFloat(); // [0,1)
     if (r >= chance) {
         if (_debug) CULog("[EnemyController] Target: Player[%d] (Retained original target)", enemy->getTargetIndex());
@@ -145,7 +145,6 @@ EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<
 
     int idx = (int)(_rng.getUint32() % (Uint32)attacks.size());
     EnemyLoader::State selectedAttack = attacks[idx];
-    if (_debug) CULog("[EnemyController] State: '%s' (Attack)", enemy->getStates().at(selectedAttack).name.c_str());
     return selectedAttack;
 }
 

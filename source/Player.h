@@ -9,6 +9,7 @@
 #include "items/ItemInstance.h"
 #include "items/ItemDatabase.h"
 #include "Enemy.h"
+#include <algorithm>
 #include <type_traits>
 
 /**
@@ -47,12 +48,22 @@ private:
     float _shieldHealth = 0.0f;
     /** The time left before the shield expires */
     float _shieldDuration = 0.0f;
+    /** Set to true when the shield absorbs incoming damage; cleared by GameScene after playing the block sound */
+    bool _shieldAbsorbedDamage = false;
     /** Runtime percentage-mitigation barrier state */
     bool _hasBarrier = false;
     /** The percentage damage that will be mitigated */
     float _barrierMultiplier = 1.0f;
     /** The time left before the barrier expires */
     float _barrierDuration = 0.0f;
+    /** Runtime heal-over-time state. */
+    bool _hasRegen = false;
+    /** The total healing still left to apply over the remaining regen duration. */
+    float _regenAmountRemaining = 0.0f;
+    /** The time left before the regen expires. */
+    float _regenDuration = 0.0f;
+    /** Number of prior mallet uses recorded for this player this round. */
+    int _malletUseCount = 0;
 
 public:
     /**
@@ -114,6 +125,9 @@ public:
 
     /** Returns whether a shield is currently armed on this player. */
     bool hasShield() const { return _hasShield; }
+
+    /** Returns true and clears the flag if the shield absorbed damage this hit. */
+    bool consumeShieldAbsorbedDamage() { bool didAbsorb = _shieldAbsorbedDamage; _shieldAbsorbedDamage = false; return didAbsorb; }
     
     /** Returns the current fixed mitigation value. */
     float getShieldHealth() const { return _shieldHealth; }
@@ -130,6 +144,22 @@ public:
     /** Returns the remaining barrier duration. */
     float getBarrierDuration() const { return _barrierDuration; }
 
+    /** Returns whether a regen effect is currently active on this player. */
+    bool hasRegen() const { return _hasRegen; }
+
+    /** Returns the total healing still left to apply for the active regen. */
+    float getRegenAmountRemaining() const { return _regenAmountRemaining; }
+
+    /** Returns the remaining regen duration. */
+    float getRegenDuration() const { return _regenDuration; }
+
+    /**
+     * Returns the number of prior mallet uses recorded for this player this round.
+     *
+     * @return The number of completed mallet uses tracked for this player in the current round.
+     */
+    int getMalletUseCount() const { return _malletUseCount; }
+
     /*Setter for current health*/
     void setCurrentHealth(float health) { _currentHealth = health; }
 
@@ -140,15 +170,20 @@ public:
      * @param shieldDuration    The remaining shield duration in seconds.
      * @param barrierMultiplier The active barrier damage multiplier.
      * @param barrierDuration   The remaining barrier duration in seconds.
+     * @param regenAmountRemaining The remaining total healing to apply from regen.
+     * @param regenDuration   The remaining regen duration in seconds.
      */
     void syncRuntimeEffects(float shieldHealth, float shieldDuration, float barrierMultiplier,
-        float barrierDuration) {
+        float barrierDuration, float regenAmountRemaining, float regenDuration) {
         _hasShield = shieldDuration > 0.0f;
         _shieldHealth = _hasShield ? shieldHealth : 0.0f;
         _shieldDuration = _hasShield ? shieldDuration : 0.0f;
         _hasBarrier = barrierDuration > 0.0f;
         _barrierMultiplier = _hasBarrier ? barrierMultiplier : 1.0f;
         _barrierDuration = _hasBarrier ? barrierDuration : 0.0f;
+        _hasRegen = regenDuration > 0.0f && regenAmountRemaining > 0.0f;
+        _regenAmountRemaining = _hasRegen ? regenAmountRemaining : 0.0f;
+        _regenDuration = _hasRegen ? regenDuration : 0.0f;
     }
     
     /**
@@ -201,6 +236,17 @@ public:
      * @param duration      How long the barrier will stay up for
      */
     void applyBarrier(float multiplier, float duration);
+
+    /**
+     * Applies a timed heal-over-time effect to this player.
+     *
+     * Current `regenDuration` and `regenAmountRemaining` are completely
+     * overridden when this function is called when this player already has active regen.
+     *
+     * @param amount    The total healing to apply over the full duration.
+     * @param duration  How long the regen lasts.
+     */
+    void applyRegen(float amount, float duration);
     
     /**
      * Advances this player's active runtime support effects by the elapsed frame time.
@@ -217,6 +263,32 @@ public:
 
     /** Clears runtime-only combat effects. */
     void clearRuntimeEffects();
+
+    /** Clears round-scoped item-use state. */
+    void clearItemUseState() { _malletUseCount = 0; }
+
+    /**
+     * Overwrites the authoritative mallet use count replicated from the host.
+     *
+     * @param useCount The host-replicated number of completed mallet uses for this player.
+     */
+    void setMalletUseCount(int useCount) { _malletUseCount = std::max(0, useCount); }
+
+    /**
+     * Computes the final magnitude of an item use after house, affinity, and item-specific bonuses.
+     *
+     * @param def The item definition being resolved.
+     * @param db The item database that provides multiplier metadata.
+     * @return The resolved magnitude for this player and item.
+     */
+    float resolveItemMagnitude(const ItemDef& def, const ItemDatabase& db) const;
+
+    /**
+     * Records any round-scoped state advance caused by consuming the given item.
+     *
+     * @param def The item definition that was just consumed.
+     */
+    void recordItemUse(const ItemDef& def);
 
     /**
      * Adds an item to the player's inventory.

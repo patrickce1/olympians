@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include "../items/ItemDatabase.h"
 #include "../Player.h"
 #include "../Enemy.h"
 #include "../HouseLoader.h"
@@ -12,6 +13,7 @@
 #include "../playerAI/EasyPlayerAI.h"
 #include "../NetworkMessage.h"
 #include "../bosses/Cyclops.h"
+#include "../bosses/Gaia.h"
 
 /**
  * Pure data model for the game world.
@@ -162,6 +164,16 @@ public:
     void healUpdates(std::vector<HealMessage> heals);
 
     /**
+     * Applies all queued boss heal messages to the enemy's current health.
+     * Called by the host each frame after processing incoming network messages.
+     * Currently used exclusively for Gaia's rock item, which heals the boss
+     * instead of dealing damage.
+     *
+     * @param bossHeals  The queued boss heal updates to apply this frame.
+     */
+    void bossHealUpdates(std::vector<BossHealMessage> bossHeals);
+
+    /**
      * Applies support effect messages received from clients to the authoritative game state.
      *
      * @param supportEffects  The queued support-effect updates to apply this frame.
@@ -266,6 +278,17 @@ public:
      * @param house  The house ID to assign to the new AI, or "" for none.
      */
     void demoteToAI(int slot, const std::string& house = "");
+    
+    /**
+     * Swaps two player slots in the local player array.
+     * Called on the host after NetworkController::swapSlots() to keep
+     * _players in sync with the updated network slot assignments.
+     * Re-wires neighbour pointers for the affected slots after the swap.
+     *
+     * @param slotA  First 0-based slot index.
+     * @param slotB  Second 0-based slot index.
+     */
+    void swapPlayers(int slotA, int slotB);
 
 private:
 
@@ -300,6 +323,9 @@ private:
 
     /** Loads house definitions from JSON for player construction. */
     HouseLoader _houseLoader;
+
+    /** Item database used by the host to resolve authoritative attack magnitudes. */
+    const ItemDatabase* _itemDatabase = nullptr;
 };
 
 #endif /* __GAME_STATE_H__ */
