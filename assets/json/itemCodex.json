@@ -207,7 +207,7 @@
       "rarity": "Divine",
       "house": "Ares",
       "category": "ATTACK",
-      "effect_label": "Damage: 60HP + Full Vulnerability / 6s",
+      "effect_label": "Damage: 60HP + Vulnerability / 6s",
       "description": "Ares ignites the battlefield in a massive explosion, dealing heavy damage and leaving the boss fully vulnerable."
     },
     {
