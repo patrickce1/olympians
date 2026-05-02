@@ -2,7 +2,8 @@
     "rarityWeights": {
         "common": 0.45,
         "rare": 0.40,
-        "divine": 0.15
+        "divine": 0.15,
+        "special": 0.0
     },
     "items": [
         {
@@ -248,8 +249,20 @@
             "type": "attack",
             "rarity": "rare",
             "houseAffinity": "hermes",
-            "baseValue": 0.0,
-            "effects": []
+            "baseValue": 10.0,
+            "effects": [
+                {
+                    "type": "slow",
+                    "multiplier": 0.5,
+                    "duration": 5.0
+                },
+                {
+                    "type": "vulnerable",
+                    "multiplier": 1.4,
+                    "duration": 5.0,
+                    "applyToAllSides": true
+                }
+            ]
         },
         {
             "id": "potion",
@@ -300,6 +313,17 @@
                 "animationDuration": 0.747,
                 "damageResolutionFrame": 7
             }
+        },
+        {
+            "id": "gaia_rock",
+            "name": "Gaia's Rock",
+            "description": " ",
+            "icon": "item_gaia_rock",
+            "type": "attack",
+            "rarity": "special",
+            "houseAffinity": "none",
+            "baseValue": 30.0,
+            "effects": []
         },
         {
             "id": "resurrection",

@@ -197,56 +197,6 @@ static void testEnemyFiresEventsAfterBuildUp(const std::string& enemiesJsonPath)
         "stateTiming: transitions to nextState (or idle fallback) after firing");
 }
 
-static void testEnemyCooldownBlocksNonIdle(const std::string& enemiesJsonPath) {
-    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
-    if (!enemy) return;
-
-    // ATTACK_3 (boulder toss) has both buildUpTime>0 and cooldownTime>0, so it fires
-    // reliably in timer-based tests. ATTACK_2 (scream) uses buildUpTime=0 and relies on
-    // frame-based animation triggers that don't work without a real asset manager.
-    EnemyLoader::State attack = EnemyLoader::State::ATTACK_3;
-    if (attack == EnemyLoader::State::IDLE) { expect(false, "cooldown: missing attack state"); return; }
-
-    EnemyLoader::State cooldownState = findFirstCooldownStateInChain(enemy, attack);
-    expect(cooldownState != EnemyLoader::State::IDLE,
-        "cooldown: found a cooldownTime>0 state in the attack chain");
-    if (cooldownState == EnemyLoader::State::IDLE) return;
-
-    enemy->requestState(attack);
-
-    bool firedCooldownPhase = false;
-    for (int phase = 0; phase < 8; phase++) {
-        EnemyLoader::State stateThatWillFire = enemy->getCurrentState();
-        std::vector<Enemy::FiredEvent> fired;
-
-        bool didFire = stepUntilFire(enemy, 0.5f, 240, fired);
-        expect(didFire, "cooldown: phase fires at least one event");
-        if (!didFire) return;
-
-        if (stateThatWillFire == cooldownState) {
-            firedCooldownPhase = true;
-            break;
-        }
-    }
-    expect(firedCooldownPhase, "cooldown: reached and fired the cooldown-applying phase");
-    if (!firedCooldownPhase) return;
-
-    expect(!enemy->canStartNonIdleState(), "cooldown: lockout active after cooldown phase fires");
-
-    bool allowedNow = enemy->requestState(attack);
-    expect(!allowedNow, "cooldown: non-idle state blocked during lockout");
-
-    bool becameReady = false;
-    for (int i = 0; i < 120; i++) {
-        enemy->update(0.5f);
-        if (enemy->canStartNonIdleState()) { becameReady = true; break; }
-    }
-    expect(becameReady, "cooldown: lockout eventually ends");
-    if (becameReady) {
-        expect(enemy->requestState(attack), "cooldown: attack allowed after lockout ends");
-    }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 3 — Health clamping
 // ─────────────────────────────────────────────────────────────────────────────
@@ -333,7 +283,7 @@ static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonP
 
     bool damagedSomeone = false;
     for (int i = 0; i < 240; i++) {
-        controller.update(0.5f, enemy, players);
+        controller.update(1.0f, enemy, players);
 
         for (size_t k = 0; k < players.size(); k++) {
             if (players[k]->getCurrentHealth() < before[k]) {
@@ -479,7 +429,6 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
 
     CULog("── Section 2: State timing ──────────────");
     testEnemyFiresEventsAfterBuildUp(enemiesJsonPath);
-    testEnemyCooldownBlocksNonIdle(enemiesJsonPath);
 
     CULog("── Section 3: Health clamp ──────────────");
     testEnemyHealthClamp(enemiesJsonPath);

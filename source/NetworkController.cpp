@@ -98,6 +98,8 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
 void readEnemyRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& stateMsg) {
     stateMsg.bossStunDuration = deserializer.readFloat();
     stateMsg.bossLoveDuration = deserializer.readFloat();
+    stateMsg.bossSlowDuration = deserializer.readFloat();
+    stateMsg.bossSlowMultiplier = deserializer.readFloat();
     for (int side = 0; side < Enemy::NUM_PLAYERS; side++) {
         stateMsg.bossVulnerableDurations[side] = deserializer.readFloat();
         stateMsg.bossVulnerableMultipliers[side] = deserializer.readFloat();
@@ -117,6 +119,8 @@ void readEnemyRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& 
 void writeEnemyRuntimeState(NetcodeSerializer& serializer, const shared_ptr<Enemy>& enemy) {
     serializer.writeFloat(enemy->getStunDuration());
     serializer.writeFloat(enemy->getLoveDuration());
+    serializer.writeFloat(enemy->getSlowDuration());
+    serializer.writeFloat(enemy->getSlowMultiplier());
     for (int side = 0; side < Enemy::NUM_PLAYERS; side++) {
         serializer.writeFloat(enemy->getVulnerableDurationForSide(side));
         serializer.writeFloat(enemy->getVulnerableMultiplierForSide(side));
@@ -393,6 +397,13 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
         case MessageType::PLAYER_JOIN: {
             std::string playerName = _deserializer.readString();
             CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
+            
+            // Reject if the host has already started — don't assign a slot so that
+            // when the client disconnects it doesn't trigger broadcastPlayerDisconnected
+            // and kick everyone out of PreGameEntry or GameScene.
+            if (_hostsCurrentScene == 0 || _hostsCurrentScene == 1) {
+                break;
+            }
 
             if (_uuidToSlot.find(senderID) == _uuidToSlot.end()) {
                 // Find the lowest numbered slot not occupied by a real player.
@@ -504,6 +515,16 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _aIHouses[slot] = houseID;
             break;
         }
+        case MessageType::BOSS_HEAL: {
+            BossHealMessage msg;
+            msg.healAmount = _deserializer.readFloat();
+            bossHeals.push_back(msg);
+            break;
+        }
+        case MessageType::GAIA_SPAWN: {
+            gaiaSpawns++;
+            break;
+        }
         case MessageType::HOSTS_CURRENT_SCENE: {
             _hostsCurrentScene = _deserializer.readSint32();
             break;
@@ -537,6 +558,8 @@ void NetworkController::clearQueues() {
 	supportEffects.clear();
 	enemyEffects.clear();
 	passes.clear();
+    bossHeals.clear();
+    gaiaSpawns = 0;
 	_gameWon = false;
 	_gameLost = false;
     _hostsCurrentScene = -1;
@@ -561,6 +584,21 @@ void NetworkController::broadcastDamage(float damageAmount, int playerIndex, con
 	_serializer.reset();
 }
 
+
+/**
+ * Sends a boss heal message to the host.
+ * Called by clients when a Gaia rock item is used, which heals
+ * the boss instead of dealing damage.
+ *
+ * @param healAmount  The amount of health to restore to the boss.
+ */
+void NetworkController::broadcastBossHeal(float healAmount) {
+    _serializer.writeSint32(MessageType::BOSS_HEAL);
+    _serializer.writeFloat(healAmount);
+    _network->sendToHost(_serializer.serialize());
+    _serializer.reset();
+}
+
 /**
  * Sends a heal message to the host targeting a specific player.
  * Called by non-host clients when the local player uses a support item.
@@ -574,6 +612,23 @@ void NetworkController::broadcastHeal(float heal, int playerID) {
 	_serializer.writeSint32(playerID);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
+}
+
+/**
+ * Sends a Gaia rock spawn message directly to the target player.
+ * Called by the host when Gaia's rock spawn targets a real (non-AI) player,
+ * telling that client to add a Gaia rock to their local inventory.
+ *
+ * @param playerID  The 0-based slot index of the player to receive the rock.
+ */
+void NetworkController::broadcastGaiaSpawn(int playerID) {
+    _serializer.writeSint32(MessageType::GAIA_SPAWN);
+
+    if (checkRealPlayer(playerID)) {
+        _network->sendTo(_slotToPlayer.at(playerID).networkID, _serializer.serialize());
+    }
+
+    _serializer.reset();
 }
 
 /**

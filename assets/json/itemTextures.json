@@ -47,6 +47,9 @@
         },
         "item_zeus_thunderstorm": {
             "file": "textures/items/zeus_thunderstorm_d.png"
+        },  
+        "item_gaia_rock" : {
+            "file": "textures/items/gaia_rock.png"
         },
         "item_hades_resurrection": {
             "file": "textures/items/hades_resurrection_d.png"

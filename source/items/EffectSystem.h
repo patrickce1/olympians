@@ -72,6 +72,17 @@ private:
     }
 
     /**
+     * Applies a slow effect to an enemy and returns the slowdown multiplier.
+     *
+     * @param effect  The serialized effect definition to apply.
+     * @param target  The enemy receiving the slow.
+     */
+    static float applySlowToEnemy(const ItemDef::Effect& effect, Enemy& target) {
+        target.applySlow(effect.multiplier, effect.duration);
+        return effect.multiplier;
+    }
+
+    /**
      * Applies a vulnerable effect to an enemy and returns the resolved multiplier.
      *
      * @param effect       The serialized effect definition to apply.
@@ -106,6 +117,7 @@ public:
                 return applyRegenToPlayer(effect, target);
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
+            case ItemDef::EffectType::Slow:
             case ItemDef::EffectType::Vulnerable:
             case ItemDef::EffectType::Upgrade:
                 break;
@@ -133,6 +145,8 @@ public:
                 return applyStunToEnemy(effect, target);
             case ItemDef::EffectType::Love:
                 return applyLoveToEnemy(effect, target);
+            case ItemDef::EffectType::Slow:
+                return applySlowToEnemy(effect, target);
             case ItemDef::EffectType::Vulnerable:
                 return applyVulnerableToEnemy(effect, target, playerIndex);
             case ItemDef::EffectType::Shield:

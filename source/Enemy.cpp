@@ -135,6 +135,8 @@ bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
     // Clear any previous stun/love state when reinitializing the enemy instance.
     _stunDuration = 0.0f;
     _loveDuration = 0.0f;
+    _slowDuration = 0.0f;
+    _slowMultiplier = 1.0f;
 
     for (int i = 0; i < NUM_PLAYERS; i++) {
         _vulnerableDurations[i] = 0.0f;
@@ -299,6 +301,8 @@ void Enemy::tick(float dt) {
 
     const float previousStunDuration = _stunDuration;
     const float previousLoveDuration = _loveDuration;
+    const float previousSlowDuration = _slowDuration;
+    const float previousSlowMultiplier = _slowMultiplier;
 
     if (_stunDuration > 0.0f) {
         _stunDuration = std::max(0.0f, _stunDuration - dt);
@@ -314,10 +318,23 @@ void Enemy::tick(float dt) {
         }
     }
 
+    if (_slowDuration > 0.0f) {
+        _slowDuration = std::max(0.0f, _slowDuration - dt);
+        if (previousSlowDuration > 0.0f && _slowDuration <= 0.0f) {
+            _slowMultiplier = 1.0f;
+            if (_debug) {
+                CULog("Enemy slow expired: enemy='%s'", _enemyId.c_str());
+            }
+        }
+    }
+
     const float frozenDuration = std::max(previousStunDuration, previousLoveDuration);
     const float activeCombatDt = std::max(0.0f, dt - frozenDuration);
     if (activeCombatDt > 0.0f) {
-        _stateTime += activeCombatDt;
+        const float slowedCombatDt = std::max(0.0f, std::min(dt, previousSlowDuration) - frozenDuration);
+        const float normalCombatDt = std::max(0.0f, activeCombatDt - slowedCombatDt);
+        const float slowMultiplier = (previousSlowDuration > frozenDuration) ? previousSlowMultiplier : 1.0f;
+        _stateTime += (slowedCombatDt * slowMultiplier) + normalCombatDt;
         _attackLockout = std::max(0.0f, _attackLockout - activeCombatDt);
     }
 
@@ -580,6 +597,55 @@ void Enemy::syncLoveDuration(float duration) {
 }
 
 /**
+ * Applies or refreshes a slow, scaling only state-time advancement for the duration.
+ *
+ * @param multiplier The state-time scale to apply while slowed.
+ * @param duration   The slow time to apply, in seconds.
+ */
+void Enemy::applySlow(float multiplier, float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    multiplier = std::max(0.0f, multiplier);
+    const bool wasSlowed = isSlowed();
+    _slowDuration = std::max(_slowDuration, duration);
+    _slowMultiplier = wasSlowed ? std::min(_slowMultiplier, multiplier) : multiplier;
+
+    if (!_debug) return;
+
+    if (!wasSlowed) {
+        CULog("Enemy slow applied: enemy='%s' multiplier=%.3f duration=%.3f",
+              _enemyId.c_str(), _slowMultiplier, _slowDuration);
+    } else {
+        CULog("Enemy slow refreshed: enemy='%s' multiplier=%.3f duration=%.3f",
+              _enemyId.c_str(), _slowMultiplier, _slowDuration);
+    }
+}
+
+/**
+ * Overwrites local slow state from the host snapshot so remote clients mirror the authoritative state.
+ *
+ * @param multiplier The authoritative state-time scale while slowed.
+ * @param duration   The authoritative remaining slow time, in seconds.
+ */
+void Enemy::syncSlow(float multiplier, float duration) {
+    duration = std::max(0.0f, duration);
+    multiplier = std::max(0.0f, multiplier);
+    const bool wasSlowed = isSlowed();
+    const bool willBeSlowed = duration > 0.0f;
+    _slowDuration = duration;
+    _slowMultiplier = willBeSlowed ? multiplier : 1.0f;
+
+    if (!wasSlowed && willBeSlowed && _debug) {
+        CULog("Enemy slow applied: enemy='%s' multiplier=%.3f duration=%.3f",
+              _enemyId.c_str(), _slowMultiplier, _slowDuration);
+    } else if (wasSlowed && !willBeSlowed && _debug) {
+        CULog("Enemy slow ended: enemy='%s'", _enemyId.c_str());
+    }
+}
+
+/**
  * Returns whether any relative side of the enemy is currently vulnerable.
  *
  * @return true if at least one side has a positive vulnerable timer.
@@ -751,6 +817,8 @@ void Enemy::syncVulnerable(const std::array<float, NUM_PLAYERS>& multipliers,
 void Enemy::clearRuntimeEffects() {
     _stunDuration = 0.0f;
     _loveDuration = 0.0f;
+    _slowDuration = 0.0f;
+    _slowMultiplier = 1.0f;
 
     for (int side = 0; side < NUM_PLAYERS; side++) {
         _vulnerableDurations[side] = 0.0f;
