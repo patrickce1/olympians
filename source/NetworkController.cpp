@@ -393,6 +393,13 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
         case MessageType::PLAYER_JOIN: {
             std::string playerName = _deserializer.readString();
             CULog("HOST received join from %s with name %s", senderID.c_str(), playerName.c_str());
+            
+            // Reject if the host has already started — don't assign a slot so that
+            // when the client disconnects it doesn't trigger broadcastPlayerDisconnected
+            // and kick everyone out of PreGameEntry or GameScene.
+            if (_hostsCurrentScene == 0 || _hostsCurrentScene == 1) {
+                break;
+            }
 
             if (_uuidToSlot.find(senderID) == _uuidToSlot.end()) {
                 // Find the lowest numbered slot not occupied by a real player.

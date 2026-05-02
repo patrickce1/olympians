@@ -11,7 +11,7 @@ using namespace std;
 #define SCENE_HEIGHT  852
 
 /** How long (seconds) to wait for the connection before declaring failure */
-#define JOIN_TIMEOUT  3.0f
+#define JOIN_TIMEOUT  6.0f
 
 /** How long (seconds) to show the error popup before auto-dismissing */
 #define ERROR_DISPLAY_TIME  2.5f
