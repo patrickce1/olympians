@@ -842,7 +842,28 @@ void testStunEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
  *
  * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization
  */
-void testLoveEffect(const std::string& enemiesJsonPath) {
+void testLoveEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+                    const std::shared_ptr<cugl::JsonValue>& housesJson,
+                    const std::string& housesJsonPath,
+                    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "love: item db load succeeds");
+    assertWithLabel(db.loadHouseMultipliersFromJson(housesJson), "love: house multipliers load succeeds");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "love: house loader init succeeds");
+
+    auto potionDef = db.getDef("potion");
+    assertWithLabel(potionDef != nullptr, "love: potion def exists");
+    if (!potionDef || !housesOk) return;
+
+    Player aphrodite("aphrodite", 2, "Aphrodite Tester", loader);
+    auto instPotion = ItemInstance::alloc("potion", 1011);
+    assertWithLabel(instPotion != nullptr, "love: create potion instance");
+    if (!instPotion) return;
+    aphrodite.addItem(*instPotion);
+
     Enemy enemy;
     bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
     assertWithLabel(enemyOk, "love: enemy init succeeds");
@@ -856,15 +877,19 @@ void testLoveEffect(const std::string& enemiesJsonPath) {
     }
     enemy.setStateTime(0.75f);
     enemy.clearRuntimeEffects();
-    enemy.applyLove(3.0f);
-    assertWithLabel(enemy.isLoved(), "love: direct love marks enemy as loved");
+    enemy.setTargetIndex(0);
+    const float resolvedMagnitude = aphrodite.useItemById(instPotion->getId(), enemy, db);
+    assertWithLabel(resolvedMagnitude > 0.0f, "love: potion use resolves attack magnitude");
+    assertWithLabel(enemy.isLoved(), "love: potion marks enemy as loved");
     assertWithLabel(enemy.getCurrentState() == EnemyLoader::State::IDLE, "love: love forces enemy into idle");
-    assertWithLabel(floatsEqualWithinTolerance(enemy.getLoveDuration(), 3.0f), "love: love duration applies to enemy");
+    assertWithLabel(enemy.getTargetIndex() == aphrodite.getPlayerNumber(), "love: enemy turns to face potion user");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getLoveDuration(), 5.0f), "love: configured duration applies to enemy");
 
     enemy.update(1.0f);
     assertWithLabel(enemy.isLoved(), "love: enemy remains loved before duration expires");
+    assertWithLabel(enemy.getTargetIndex() == aphrodite.getPlayerNumber(), "love: enemy keeps facing loved target during duration");
 
-    enemy.update(2.1f);
+    enemy.update(4.1f);
     assertWithLabel(!enemy.isLoved(), "love: enemy love expires after duration elapses");
 }
 
@@ -1148,7 +1173,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testHelmEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testShieldBarrierCoexistence(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testStunEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
-    testLoveEffect(enemiesJsonPath);
+    testLoveEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testSlowEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testVulnerableEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testTridentVulnerableAllSides(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);

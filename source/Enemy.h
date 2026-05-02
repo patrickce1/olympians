@@ -218,11 +218,13 @@ public:
     float getLoveDuration() const { return _loveDuration; }
     
     /**
-     * Applies or refreshes a love, forcing the enemy idle and extending the remaining duration.
+     * Applies or refreshes a love, forcing the enemy idle, turning it toward the
+     * source player, and extending the remaining duration.
      *
-     * @param duration  The love time to apply, in seconds.
+     * @param duration     The love time to apply, in seconds.
+     * @param playerIndex  The slot index of the player who applied the love.
      */
-    void applyLove(float duration);
+    void applyLove(float duration, int playerIndex);
     
     /**
      * Overwrites local love time from the host snapshot so remote clients mirror the authoritative state.

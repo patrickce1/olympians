@@ -552,25 +552,31 @@ void Enemy::syncStunDuration(float duration) {
 }
 
 /**
- * Applies or refreshes a love, forcing the enemy idle and extending the remaining duration.
+ * Applies or refreshes a love, forcing the enemy idle, turning it toward the
+ * source player, and extending the remaining duration.
  *
- * @param duration  The love time to apply, in seconds.
+ * @param duration     The love time to apply, in seconds.
+ * @param playerIndex  The slot index of the player who applied the love.
  */
-void Enemy::applyLove(float duration) {
+void Enemy::applyLove(float duration, int playerIndex) {
     if (duration <= 0.0f) {
         return;
     }
 
+    const bool validPlayerIndex = playerIndex >= 0 && playerIndex < NUM_PLAYERS;
     const bool wasLoved = isLoved();
     _loveDuration = std::max(_loveDuration, duration);
+    if (validPlayerIndex) {
+        _targetIndex = playerIndex;
+    }
     forceIdle();
 
     if (!_debug) return;
     
     if (!wasLoved) {
-        CULog("Enemy love applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
+        CULog("Enemy love applied: enemy='%s' duration=%.3f target=%d", _enemyId.c_str(), _loveDuration, _targetIndex);
     } else {
-        CULog("Enemy love refreshed: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
+        CULog("Enemy love refreshed: enemy='%s' duration=%.3f target=%d", _enemyId.c_str(), _loveDuration, _targetIndex);
     }
 }
 
