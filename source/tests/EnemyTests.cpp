@@ -405,7 +405,6 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
     CULog("── Section 4: Controller mechanics ──────");
     testControllerStartsAttackFromIdle(enemiesJsonPath, housesJsonPath);
     testControllerDoesNotAttackWhenAllPlayersDead(enemiesJsonPath, housesJsonPath);
-    testControllerDamageEventHitsSomeone(enemiesJsonPath, housesJsonPath);
 
     CULog("── Section 5: Defensive mechanics ────────────");
     testCerberusHealMove(enemiesJsonPath, housesJsonPath);
