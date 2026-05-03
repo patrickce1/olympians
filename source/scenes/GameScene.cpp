@@ -764,14 +764,6 @@ void GameScene::updateNetworkOrder() {
     _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
 
     _gameState.setEnemy(_network->getEnemy(), _assets);
-    
-    _isTutorial = (_gameState.getEnemy()->getId() == "circe");
-
-    if (_isTutorial && !_tutorialController.isActive()) {
-        _tutorialController.init(this, _assets);
-        _tutorialController.loadFromFile("json/tutorial.json");
-    }
-
     initBackgroundAndBossImage();
 }
 
@@ -799,6 +791,11 @@ void GameScene::setActive(bool value) {
             // Hide animation sprite on scene reset
             if (_currentVisibleAnimationSprite) {
                 _currentVisibleAnimationSprite->setVisible(false);
+            }
+            _isTutorial = (_gameState.getEnemy()->getId() == "circe");
+            if (_isTutorial && !_tutorialController.isActive()) {
+                _tutorialController.init(this, _assets);
+                _tutorialController.loadFromFile("json/tutorial.json");
             }
             if (!_tutorialController.isActive()) {
                 setBossActive(true);
