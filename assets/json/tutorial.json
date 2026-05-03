@@ -77,7 +77,7 @@
     },
     {
       "type": "show_message",
-      "text": "Great! Your teammate is at full health.",
+      "text": "Great! Your teammate was healed.",
       "delay": 6.0
     },
     {
