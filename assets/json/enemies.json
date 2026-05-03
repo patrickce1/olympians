@@ -3,7 +3,7 @@
         {
             "id": "circe",
             "name": "circe",
-            "maxHealth": 5000.0,
+            "maxHealth": 500.0,
             "spritesheetPath": "textures/circe.png",
             "ai": {
                 "retargetLikelihood": 0.5,
@@ -23,7 +23,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 45.0
+                            "amount": 51.0
                         }
                     ],
                     "nextState": "idle"
