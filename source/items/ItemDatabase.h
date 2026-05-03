@@ -2,6 +2,7 @@
 #define __ITEM_DATABASE_H__
 #include <cugl/cugl.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -44,6 +45,13 @@ private:
             return static_cast<std::size_t>(r);
         }
     };
+
+    /** Struct to hash house enums stored in sets/maps */
+    struct HouseHash {
+        std::size_t operator()(ItemDef::House h) const noexcept {
+            return static_cast<std::size_t>(h);
+        }
+    };
     
     /** Collection of ItemDef defs based on their defIds */
     std::unordered_map<std::string, std::shared_ptr<ItemDef>> _defs;
@@ -56,7 +64,17 @@ private:
 
     /** Normalized rarity tier weights (always sum to 1.0 after loading) */
     std::unordered_map<ItemDef::Rarity, double, RarityHash> _rarityWeights;
-    
+
+    /** Set of player house enums currently in the game; empty means no filter is active */
+    std::unordered_set<ItemDef::House, HouseHash> _activeHouses;
+
+    /** Pre-filtered divine bucket containing only items whose houseAffinity is in _activeHouses
+     *  (or None). Rebuilt whenever setActiveHouses() is called. */
+    Bucket _filteredDivineBucket;
+
+    /** True once setActiveHouses() has been called with at least one valid house */
+    bool _hasActiveHouseFilter = false;
+
     /** Random value holder */
     cugl::Random _rng;
     
@@ -73,6 +91,10 @@ private:
     /** Load rarity weights from a JSON */
     void loadRarityWeights(const std::shared_ptr<cugl::JsonValue>& json);
     
+    /** Rebuilds _filteredDivineBucket from the divine rarity bucket, keeping only items
+     *  whose houseAffinity is in _activeHouses (or House::None). No-ops if no filter is set. */
+    void rebuildFilteredDivineBucket();
+
     /** Add item with the given defId to the corresponding bucket with effectiveWeight
      *  Total = sum of effective weights of all the defIds addet to the bucket
      *  Prefix = cummulative sum array of effective weights of added defIds
@@ -121,6 +143,16 @@ public:
     std::shared_ptr<ItemInstance> createInstance(const std::string& defId,
                                                      ItemInstance::ItemId id) const;
     
+    /**
+     * Restricts divine item rolls to items whose houseAffinity matches one of the given house IDs.
+     * Items with House::None affinity are always included. Call once after the player roster is
+     * known; the filter persists until clear() is called.
+     *
+     * @param houseIds  Player house ID strings (e.g. "zeus", "poseidon"). Unrecognized strings
+     *                  are silently ignored. Pass an empty vector to clear the filter.
+     */
+    void setActiveHouses(const std::vector<std::string>& houseIds);
+
     /** Rarity-driven weighted roll across all spawnable items */
     std::string rollRandomDefId();
     

@@ -45,6 +45,9 @@ void ItemDatabase::clear() {
     _defs.clear();
     _houseMultipliers.clear();
     clearBuckets();
+    _activeHouses.clear();
+    _filteredDivineBucket = Bucket();
+    _hasActiveHouseFilter = false;
 }
 
 /** Seed options; seed acts as the starting point for the RNG. The game's seed is generated at random, so it is unlikely
@@ -283,6 +286,43 @@ const ItemDatabase::HouseMultipliers* ItemDatabase::getHouseMultipliers(const st
 }
 
 /**
+ * Filters the divine bucket to items whose houseAffinity is in _activeHouses (or None).
+ * Called automatically by setActiveHouses().
+ */
+void ItemDatabase::rebuildFilteredDivineBucket() {
+    _filteredDivineBucket = Bucket();
+    if (!_hasActiveHouseFilter) return;
+
+    auto it = _bucketsByRarity.find(ItemDef::Rarity::Divine);
+    if (it == _bucketsByRarity.end()) return;
+
+    for (const auto& defId : it->second.defIds) {
+        auto def = getDef(defId);
+        if (!def) continue;
+        ItemDef::House affinity = def->getHouseAffinity();
+        if (affinity == ItemDef::House::None || _activeHouses.count(affinity) > 0) {
+            addToBucket(_filteredDivineBucket, defId, (double)def->getWeight());
+        }
+    }
+}
+
+/**
+ * Sets the active player houses used to filter divine item rolls.
+ * Rebuilds the filtered divine bucket immediately.
+ */
+void ItemDatabase::setActiveHouses(const std::vector<std::string>& houseIds) {
+    _activeHouses.clear();
+    for (const auto& id : houseIds) {
+        ItemDef::House h = ItemDef::houseFromString(id, ItemDef::House::None);
+        if (h != ItemDef::House::None) {
+            _activeHouses.insert(h);
+        }
+    }
+    _hasActiveHouseFilter = !_activeHouses.empty();
+    rebuildFilteredDivineBucket();
+}
+
+/**
  * Two-phase weighted roll:
  *   Phase 1 — pick a rarity tier using the normalized _rarityWeights.
  *   Phase 2 — pick an item from that tier's bucket using per-item weights.
@@ -312,10 +352,19 @@ std::string ItemDatabase::rollRandomDefId() {
         if (roll < cumulative) break;
     }
 
-    // Phase 2: pick an item from the selected tier
-    auto bucketIt = _bucketsByRarity.find(selected);
-    if (bucketIt != _bucketsByRarity.end() && !bucketIt->second.defIds.empty()) {
-        return rollFromBucket(bucketIt->second);
+    // Phase 2: pick an item from the selected tier.
+    // For divine, use the house-filtered bucket if a filter is active.
+    if (selected == ItemDef::Rarity::Divine && _hasActiveHouseFilter) {
+        if (!_filteredDivineBucket.defIds.empty()) {
+            return rollFromBucket(_filteredDivineBucket);
+        }
+        // Filter is active but no divine items match the active houses — skip divine entirely
+        // and fall through to the fallback below.
+    } else {
+        auto bucketIt = _bucketsByRarity.find(selected);
+        if (bucketIt != _bucketsByRarity.end() && !bucketIt->second.defIds.empty()) {
+            return rollFromBucket(bucketIt->second);
+        }
     }
 
     // Fallback: selected tier is empty — try other tiers in order

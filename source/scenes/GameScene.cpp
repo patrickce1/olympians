@@ -650,6 +650,14 @@ void GameScene::updateNetworkOrder() {
 
     _gameState.setEnemy(_network->getEnemy(), _assets);
 
+    // Tell the item controller which houses are in this game so only the matching
+    // divine items can spawn for the active roster.
+    std::vector<std::string> activeHouses;
+    for (const auto& player : _gameState.getPlayers()) {
+        activeHouses.push_back(player->getHouseName());
+    }
+    _itemController.setActiveHouses(activeHouses);
+
     initBackgroundAndBossImage();
 }
 
