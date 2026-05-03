@@ -50,7 +50,8 @@ public:
     enum class Rarity : uint8_t {
         Common,
         Rare,
-        Divine
+        Divine,
+        Special
     };
     enum class House : uint8_t {
         Zeus,
@@ -71,6 +72,7 @@ public:
         Regen,
         Stun,
         Love,
+        Slow,
         Vulnerable,
         Upgrade
     };

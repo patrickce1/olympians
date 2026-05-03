@@ -1,0 +1,85 @@
+{
+    "variables": {
+        "item": ["children","item","data", "texture"],
+        "visible": ["children","item","data", "visible"]
+    },
+    "contents": {
+        "type": "Button",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0,
+                0
+            ],
+            "size": [
+                80.8,
+                80
+            ],
+            "angle": 0,
+            "position": [
+                88.8,
+                450
+            ],
+            "upnode": "background",
+            "visible": true
+        },
+        "children": {
+            "background": {
+                "type": "Image",
+                "data": {
+                    "texture": "slotBG",
+                    "anchor": [
+                        0.5,
+                        0.5
+                    ],
+                    "size": [
+                        60,
+                        60
+                    ],
+                    "angle": 0,
+                    "position": [
+                        10,
+                        10
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "item": {
+                "type": "Image",
+                "data": {
+                    "texture": "nectar_n",
+                    "anchor": [
+                        0.5,
+                        0.5
+                    ],
+                    "size": [
+                        80,
+                        80
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            }
+        }
+    }
+}

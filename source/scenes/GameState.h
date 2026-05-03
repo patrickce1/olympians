@@ -13,6 +13,7 @@
 #include "../playerAI/EasyPlayerAI.h"
 #include "../NetworkMessage.h"
 #include "../bosses/Cyclops.h"
+#include "../bosses/Gaia.h"
 
 /**
  * Pure data model for the game world.
@@ -161,6 +162,16 @@ public:
 
     /** Updates the gameState object by handling all healing requests in the messages in `heals` */
     void healUpdates(std::vector<HealMessage> heals);
+
+    /**
+     * Applies all queued boss heal messages to the enemy's current health.
+     * Called by the host each frame after processing incoming network messages.
+     * Currently used exclusively for Gaia's rock item, which heals the boss
+     * instead of dealing damage.
+     *
+     * @param bossHeals  The queued boss heal updates to apply this frame.
+     */
+    void bossHealUpdates(std::vector<BossHealMessage> bossHeals);
 
     /**
      * Applies support effect messages received from clients to the authoritative game state.

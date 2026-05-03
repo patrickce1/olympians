@@ -109,6 +109,7 @@ static void broadcastSupportEffects(NetworkController& network,
                 break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
+            case ItemDef::EffectType::Slow:
             case ItemDef::EffectType::Vulnerable:
             case ItemDef::EffectType::Upgrade:
                 break;
@@ -145,6 +146,11 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Love:
                 effectMsg.effectType = EnemyEffectType::Love;
                 effectMsg.magnitude = resolvedMagnitude;
+                enemyEffects.push_back(effectMsg);
+                break;
+            case ItemDef::EffectType::Slow:
+                effectMsg.effectType = EnemyEffectType::Slow;
+                effectMsg.magnitude = effect.multiplier;
                 enemyEffects.push_back(effectMsg);
                 break;
             case ItemDef::EffectType::Vulnerable:
@@ -766,6 +772,7 @@ bool GameScene::handleAttack(ItemInstance::ItemId itemId) {
         }
 
         auto def = _itemController.getDatabase().getDef(item.getDefId());
+
         if (def && def->getType() == ItemDef::Type::Attack) {
             // Play the item use sound if defined, otherwise play the attack sound
             const std::string& itemUseSound = def->getItemUseSound();
@@ -810,6 +817,12 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
+    }
+
+    // Host snapshots are authoritative for slow timing, so non-host clients
+    // clear their speculative local slow until the host state arrives.
+    if (!_network->isHost() && def->hasEffectType(ItemDef::EffectType::Slow)) {
+        enemy->syncSlow(1.0f, 0.0f);
     }
 
     const auto& animConfig = def->getItemUseAnimation();
@@ -861,16 +874,34 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         return false;
     }
 
+    // Host snapshots are authoritative for slow timing, so non-host clients
+    // clear their speculative local slow until the host state arrives.
+    if (!_network->isHost() && def->hasEffectType(ItemDef::EffectType::Slow)) {
+        enemy->syncSlow(1.0f, 0.0f);
+    }
+
     CULog("Player attacked enemy '%s' with item %llu (damage: %.1f, immediate)",
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
 
     if (!_network->isHost()) {
-        _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
+        //If we add an animation for gaia's rock we will have to move this to handleAnimatedAttack
+        if (def->getId() == "gaia_rock") {
+            _network->broadcastBossHeal(resolvedMagnitude);
+        }
+        else {
+            _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
+        }
         broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber()));
     }
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique("enemy_hurt");
         CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+    }
+
+    //Since Gaia's rock heals unlike other attacks, we need a custom popup for it
+    if (def->getId() == "gaia_rock") {
+        handleGaiaRockPopup(dropPos, resolvedMagnitude);
+        return true;
     }
 
     const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
@@ -1147,7 +1178,6 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
 void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
-
     // Track player and enemy health before any updates to detect damage
     auto player = _gameState.getLocalPlayer();
     // Only track health if local player is not AI (AI players shouldn't hear their own hurt sounds)
@@ -1569,9 +1599,19 @@ void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     if (!enemy || !enemy->isAlive()) return;
     
     _bossHealthBar->setProgress(enemy->getCurrentHealth()/enemy->getMaxHealth());
+    if (_bossHealthBar->getProgress() <= 0) {
+        _bossHealthBar->setVisible(false);
+    } else {
+        _bossHealthBar->setVisible(true);
+    }
     
     auto player = _gameState.getLocalPlayer();
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
+    if (_playerHealthBar->getProgress() <= 0) {
+        _playerHealthBar->setVisible(false);
+    } else {
+        _playerHealthBar->setVisible(true);
+    }
     
     auto leftPlayer = player->getLeftPlayer();
     _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
@@ -1928,8 +1968,10 @@ void GameScene::handleNetworkUpdates(float dt) {
         // handle incoming attack/heal messages from clients
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
+        _gameState.bossHealUpdates(_network->getBossHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
+        _gameState.bossHealUpdates(_network->getBossHealUpdates());
 
         for (auto& player : _gameState.getPlayers()) {
             if (player) {
@@ -1998,6 +2040,34 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
     }
 }
 
+/** Custom method called inside of handleItemSpawn that is used specifically for the Gaia boss
+  * If gaia is supposed to spawn a rock in a player's inventory, the host sends the appropriate message to the players
+  * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well
+  */
+void GameScene::handleGaiaSpawn() {
+    if (!(_gameState.getEnemy()->getId() == "gaia")) { return; }
+
+    shared_ptr<Gaia> gaia = std::dynamic_pointer_cast<Gaia>(_gameState.getEnemy());
+
+    if (_network->isHost() && gaia->spawnRockForPlayer()) {
+        int target = gaia->getTargetIndex();
+        if (_gameState.getPlayerById(target)->isAI()) {
+            _itemController.giveItemByID(_gameState.getPlayerById(target), "gaia_rock");
+        }
+        else {
+            _network->broadcastGaiaSpawn(target);
+        }
+    }
+    else {
+        //if we're a client check for any recieved messages over the network about it
+        for (int i = 0; i < _network->getNumGaiaSpawns(); i++) {
+            _itemController.giveItemByID(_gameState.getLocalPlayer(), "gaia_rock");
+        }
+    }
+    
+    return;
+}
+
 /**
  * Spawns items for the local player every frame, and for all AI-controlled
  * players if this machine is the host. AI item spawning is host-only since
@@ -2008,6 +2078,9 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
 void GameScene::handleItemSpawn(float dt) {
     // Always spawn items for the local human player.
     _itemController.update(dt, _gameState.getLocalPlayer());
+
+    //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
+    handleGaiaSpawn();
 
     // Only the host spawns items for AI players, since the host is the
     // authoritative source for all AI state and broadcasts it to clients.
@@ -2567,6 +2640,7 @@ void GameScene::update(float dt, InputController& input) {
     handleItemSpawn(dt);
     updateEnemyAnimation(dt, _network->getLocalPlayerNumber());
     updateEnemyAndAI(dt);
+    updateEnemyHealthBarEffect(dt);
     updateDropZoneVisibility();
 
     // Update sliding items before physics world update
@@ -3743,6 +3817,25 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
     }
 
     return popups;
+}
+
+/**
+  * Spawns a floating popup showing the heal amount when Gaia's rock is used on the boss.
+  *
+  * @param dropPos    The screen-space position where the popup should appear.
+  * @param healAmount The amount of health restored to the boss.
+  */
+void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
+    char healText[32];
+    std::snprintf(healText, sizeof(healText), "+%.1f", healAmount);
+    createFloatingPopup(dropPos, { {
+        healText, 26.0f,
+        cugl::Color4(80, 220, 255, 255),
+        cugl::Color4::BLACK,
+        0.0f, 0.5f,
+        cugl::Vec2::ZERO,
+        true
+    } });
 }
 
 /**

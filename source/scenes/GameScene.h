@@ -14,6 +14,7 @@
 #include "../EnemyController.h"
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
+#include "../bosses/Gaia.h"
 
 
 /** Animation duration for floating popups to scale in, in seconds. */
@@ -947,6 +948,12 @@ public:
      * @return        A shared pointer to the item's definition, or nullptr.
      */
     std::shared_ptr<const ItemDef> getHeldItemDef(ItemInstance::ItemId itemId);
+
+    /** Custom method called inside of handleItemSpawn that is used specifically for the Gaia boss
+      * If gaia is supposed to spawn a rock in a player's inventory, the host sends the appropriate message to the players
+      * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well
+      */
+    void handleGaiaSpawn();
     
     /**
      * Spawns items for the local player every frame, and for all AI-controlled
@@ -1150,6 +1157,15 @@ public:
         const cugl::Vec2& screenPosition,
         const std::vector<FloatingPopupData>& popups
     );
+
+    /**
+     * Spawns a floating popup showing the heal amount when Gaia's rock is used on the boss.
+     *
+     * @param dropPos    The screen-space position where the popup should appear.
+     * @param healAmount The amount of health restored to the boss.
+     */
+    void handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount);
+
 
     /** Checks if an item is currently playing an animation.
      * Used to prevent respawning items that are mid-animation.

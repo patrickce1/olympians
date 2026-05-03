@@ -28,6 +28,11 @@ struct AttackMessage {
     std::string itemDefID;
 };
 
+/** Message send by the client to the host to indicate how much they healed the Boss for */
+struct BossHealMessage {
+    float healAmount;
+};
+
 /* Message sent by the client to the host to indicate healing.
 * The heal float value is how much health the target was healed by
 * The playerID is the order of the player in the circle to whom the heal is being applied to
@@ -52,8 +57,10 @@ enum class EnemyEffectType : int32_t {
     Stun = 0,
     /** Forces the enemy idle for a duration. */
     Love = 1,
+    /** Scales how quickly enemy state time advances for a duration. */
+    Slow = 2,
     /** Increases incoming damage to the enemy for a duration. */
-    Vulnerable = 2
+    Vulnerable = 3
 };
 
 /** Message sent by the client to indicate a support effect applied to a player.
@@ -139,6 +146,12 @@ struct GameStateMessage {
     
     /** Remaining authoritative love time for the boss, in seconds. */
     float bossLoveDuration = 0.0f;
+
+    /** Remaining authoritative slow time for the boss, in seconds. */
+    float bossSlowDuration = 0.0f;
+
+    /** Active authoritative state-time multiplier while slow is active. */
+    float bossSlowMultiplier = 1.0f;
     
     /** Remaining authoritative vulnerable time for each relative boss side, in seconds. */
     std::array<float, kMaxPlayers> bossVulnerableDurations = {0.0f, 0.0f, 0.0f, 0.0f};

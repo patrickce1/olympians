@@ -1,0 +1,485 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Float",
+            "x_alignment": "center",
+            "y_alignment": "top"
+        },
+        "data": {
+            "anchor": [
+                0.5,
+                1
+            ],
+            "size": [
+                258.4,
+                710
+            ],
+            "angle": 0,
+            "position": [
+                0,
+                0
+            ],
+            "visible": true
+        },
+        "children": {
+            "apple": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_apple"
+                    }
+                },
+                "layout": {
+                    "priority": 0,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "nectar": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_nectar"
+                    }
+                },
+                "layout": {
+                    "priority": 1,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "sword": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_sword"
+                    }
+                },
+                "layout": {
+                    "priority": 2,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "arrow": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_arrow"
+                    }
+                },
+                "layout": {
+                    "priority": 3,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "shield": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_shield"
+                    }
+                },
+                "layout": {
+                    "priority": 4,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "empty2": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "visible": false
+                    }
+                },
+                "layout": {
+                    "priority": 5,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "lightning": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_lightning"
+                    }
+                },
+                "layout": {
+                    "priority": 6,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "trident": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_trident"
+                    }
+                },
+                "layout": {
+                    "priority": 7,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "helm": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_helm"
+                    }
+                },
+                "layout": {
+                    "priority": 8,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "wheat": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_wheat"
+                    }
+                },
+                "layout": {
+                    "priority": 9,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "mallet": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_mallet"
+                    }
+                },
+                "layout": {
+                    "priority": 10,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "aegis": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_aegis"
+                    }
+                },
+                "layout": {
+                    "priority": 11,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "spear": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_spear"
+                    }
+                },
+                "layout": {
+                    "priority": 12,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "wings": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_wings"
+                    }
+                },
+                "layout": {
+                    "priority": 13,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "potion": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_potion"
+                    }
+                },
+                "layout": {
+                    "priority": 14,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "thunderstorm": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_zeus_thunderstorm"
+                    }
+                },
+                "layout": {
+                    "priority": 15,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "tide": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_poseidon_tide"
+                    }
+                },
+                "layout": {
+                    "priority": 16,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "resurrection": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_hades_resurrection"
+                    }
+                },
+                "layout": {
+                    "priority": 17,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "cornucopia": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_demeter_abundance"
+                    }
+                },
+                "layout": {
+                    "priority": 18,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "charm": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_aphrodite_beauty"
+                    }
+                },
+                "layout": {
+                    "priority": 19,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "educate": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_athena_educate"
+                    }
+                },
+                "layout": {
+                    "priority": 20,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "rage": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_ares_rage"
+                    }
+                },
+                "layout": {
+                    "priority": 21,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "treasure": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_hermes_treasure"
+                    }
+                },
+                "layout": {
+                    "priority": 22,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            },
+            "forge": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "codexSlot",
+                    "variables": {
+                        "item" : "item_hephaestus_forge"
+                    }
+                },
+                "layout": {
+                    "priority": 23,
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            }
+        }
+    }
+}

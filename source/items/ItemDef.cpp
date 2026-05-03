@@ -22,7 +22,7 @@ static std::string normalizeToken(std::string token) {
 /**
  * Parses a normalized JSON effect token into an ItemDef::EffectType.
  *
- * Supports shield, barrier, stun, love, and vulnerable effect strings.
+ * Supports shield, barrier, stun, love, slow, and vulnerable effect strings.
  *
  * @param value  The normalized effect token from JSON.
  * @param out    Receives the parsed enum value on success.
@@ -47,6 +47,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
     }
     if (value == "love") {
         out = ItemDef::EffectType::Love;
+        return true;
+    }
+    if (value == "slow") {
+        out = ItemDef::EffectType::Slow;
         return true;
     }
     if (value == "vulnerable") {
@@ -87,9 +91,10 @@ ItemDef::Type ItemDef::typeFromString(std::string value, Type fallback) {
 ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
     value = normalizeToken(value);
 
-    if (value == "common") return Rarity::Common;
-    if (value == "rare")   return Rarity::Rare;
-    if (value == "divine") return Rarity::Divine;
+    if (value == "common")  return Rarity::Common;
+    if (value == "rare")    return Rarity::Rare;
+    if (value == "divine")  return Rarity::Divine;
+    if (value == "special") return Rarity::Special;
     return fallback;
 }
 
@@ -236,7 +241,7 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
     
     if (json->has("rarity") && json->get("rarity")->isString()) {
         const std::string rarityText = normalizeToken(json->get("rarity")->asString());
-        if (rarityText != "common" && rarityText != "rare" && rarityText != "divine") {
+        if (rarityText != "common" && rarityText != "rare" && rarityText != "divine" && rarityText != "special") {
             return false;
         }
         _rarity = rarityFromString(rarityText, Rarity::Common);

@@ -113,10 +113,6 @@ void PreGameEntryScene::setupUI() {
     // Error popup node
     _errorPopup = _assets->get<scene2::SceneNode>("preGameEntryScene.errorPopup");
     if (_errorPopup) {
-        auto overlay = std::dynamic_pointer_cast<scene2::PolygonNode>(_errorPopup->getChildByName("overlayBG"));
-        overlay->setContentSize(getSize());
-        overlay->setAnchor(Vec2::ANCHOR_CENTER);
-        overlay->setPosition(getSize()/2);
         _errorPopup->setVisible(false);
     }
 }
@@ -187,6 +183,14 @@ void PreGameEntryScene::update(float timestep) {
         _network->broadcastHostsCurrentScene(0);
     }
     _network->getNetworkUpdates();
+    
+    // If host has returned to lobby, follow immediately.
+    // This catches the case where _disconnectedSlots was cleared before
+    // this client's PreGameEntryScene could detect the disconnect itself.
+    if (!_network->isHost() && _network->getHostsCurrentScene() == 2) {
+        _status = Status::PLAYER_DISCONNECTED;
+        return;
+    }
     
     // Client disconnect
     updateNetworkOrder();

@@ -153,6 +153,9 @@ static std::shared_ptr<Enemy> createEnemyByID(const std::string& enemyID) {
         // TODO: Create a custom Cerberus class in a future PR
         return std::make_shared<Enemy>();
     }
+    else if (enemyID == "gaia") {
+        return std::make_shared<Gaia>();
+    }
     // Fallback for unknown enemy types
     return std::make_shared<Enemy>();
 }
@@ -342,6 +345,20 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
 }
 
 /**
+ * Applies all queued boss heal messages to the enemy's current health.
+ * Called by the host each frame after processing incoming network messages.
+ * Currently used exclusively for Gaia's rock item, which heals the boss
+ * instead of dealing damage.
+ *
+ * @param bossHeals  The queued boss heal updates to apply this frame.
+ */
+void GameState::bossHealUpdates(std::vector<BossHealMessage> bossHeals) {
+    for (BossHealMessage bossHeal : bossHeals) {
+        _enemy->updateHealth(bossHeal.healAmount);
+    }
+}
+
+/**
  * Goes through the list of support effect messages and applies them to the specified player.
  *
  * @param supportEffects  The queued support-effect updates to apply this frame.
@@ -386,6 +403,9 @@ void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects)
             case EnemyEffectType::Love:
                 _enemy->applyLove(effect.duration);
                 break;
+            case EnemyEffectType::Slow:
+                _enemy->applySlow(effect.magnitude, effect.duration);
+                break;
             case EnemyEffectType::Vulnerable:
                 if (effect.applyToAllSides) {
                     _enemy->applyVulnerableToAllSides(effect.magnitude, effect.duration);
@@ -420,6 +440,7 @@ void GameState::networkUpdate(GameStateMessage newState) {
     // sync authoritative enemy runtime effects
     _enemy->syncStunDuration(newState.bossStunDuration);
     _enemy->syncLoveDuration(newState.bossLoveDuration);
+    _enemy->syncSlow(newState.bossSlowMultiplier, newState.bossSlowDuration);
     _enemy->syncVulnerable(newState.bossVulnerableMultipliers, newState.bossVulnerableDurations);
 
     // update player health and authoritative timed support effects
