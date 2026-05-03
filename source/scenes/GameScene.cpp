@@ -195,6 +195,15 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
  * @param database The item database containing house-role and affinity tuning.
  * @return The combined house-role and affinity multiplier, excluding upgrade streak effects.
  */
+static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
+    if (def.getHouseAffinity() == ItemDef::House::None) {
+        return true;
+    }
+
+    return def.getHouseAffinity() ==
+           ItemDef::houseFromString(player.getHouseName(), ItemDef::House::None);
+}
+
 static float computeHouseAffinityMultiplier(const Player& player, const ItemDef& def, const ItemDatabase& database) {
     float houseRoleMultiplier = 0.0f;
     float affinityBonus = 1.0f;
@@ -922,10 +931,11 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         if (!def || def->getType() != ItemDef::Type::Support) return false;
 
         const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
+        const bool shouldShowEffectPopup = canApplyItemEffects(*local, *def);
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -939,7 +949,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup));
         return true;
     }
     return false;
@@ -962,10 +972,11 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         if (!def || def->getType() != ItemDef::Type::Support) return false;
 
         const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
+        const bool shouldShowEffectPopup = canApplyItemEffects(*local, *def);
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -978,7 +989,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup));
         return true;
     }
     return false;
@@ -3829,7 +3840,8 @@ void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
  * @return Ordered list of FloatingPopupData for the sequence (1 or 3 entries).
  */
 std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal,
-                                                         const std::shared_ptr<const ItemDef>& def) const {
+                                                         const std::shared_ptr<const ItemDef>& def,
+                                                         bool shouldShowEffectPopup) const {
     // Back-calculate the house multiplier from the resolved heal so we can show it in the sequence.
     const float totalMultiplier = (baseValue > 0.0f) ? resolvedHeal / baseValue : 1.0f;
     const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
@@ -3860,7 +3872,7 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
             {houseText, 17.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
             {finalText, 26.0f*(1.0f+houseLog), healGreen,                        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
         };
-        if (regenAmount > 0.0f) {
+        if (shouldShowEffectPopup && regenAmount > 0.0f) {
             popups.push_back({regenText, 22.0f, healGreen, cugl::Color4::BLACK, 0.35f, 0.5f, cugl::Vec2(0.0f, -28.0f), false});
         }
         return popups;
@@ -3869,7 +3881,7 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
     popups = {
         {finalText, 26.0f, healGreen, cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true},
     };
-    if (regenAmount > 0.0f) {
+    if (shouldShowEffectPopup && regenAmount > 0.0f) {
         popups.push_back({regenText, 22.0f, healGreen, cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, -28.0f), false});
     }
     return popups;
@@ -3883,13 +3895,14 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
  * @param dropPos  Screen-space position where popups appear.
  */
 void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
-                                   const cugl::Vec2& dropPos) {
+                                   const cugl::Vec2& dropPos,
+                                   bool shouldShowEffectPopup) {
     for (const auto& effect : def->getEffects()) {
         if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
             char text[32];
             std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
             createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
-        } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier < 1.0f) {
+        } else if (shouldShowEffectPopup && effect.type == ItemDef::EffectType::Barrier && effect.multiplier < 1.0f) {
             char text[32];
             const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
             std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);

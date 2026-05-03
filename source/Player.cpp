@@ -354,7 +354,7 @@ float Player::resolveItemMagnitude(const ItemDef& def, const ItemDatabase& db) c
  * @param def The item definition that was just consumed.
  */
 void Player::recordItemUse(const ItemDef& def) {
-    if (itemConsumesUpgradeStreak(def)) {
+    if (itemConsumesUpgradeStreak(def) && canApplyItemEffects(*this, def)) {
         _malletUseCount += 1;
     }
 }
