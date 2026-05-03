@@ -413,6 +413,12 @@ public:
      *  the join message without prematurely inserting into _slotToPlayer. */
     void setPlayerNameOnly(const std::string& name) { _playerName = name; }
 
+    /** Takes the current player ordering and randomizes it to create a new one. It can create the same ordering as before */
+    void scramblePlayerOrder();
+
+    /** Broadcasts the current ordering of players */
+    void broadcastPlayerOrder();
+
 
 protected:
     // This enum is used internally by this class to figure out how to decode the data received over the network
@@ -438,7 +444,8 @@ protected:
         ENEMY_EFFECT = 15,
         SWAP_SLOTS = 16,
         BOSS_HEAL = 17,
-        GAIA_SPAWN = 18
+        GAIA_SPAWN = 18,
+        PLAYER_ORDER = 19
     };
 
     /** Our network connection */

@@ -358,6 +358,9 @@
                             "type": "DAMAGE",
                             "target": 3,
                             "amount": 20.0
+                        },
+                        {
+                            "type": "PLAYER_SCRAMBLE"
                         }
                     ],
                     "nextState": "idle"
