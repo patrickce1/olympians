@@ -18,12 +18,12 @@
                 "attack_1": {
                     "name": "attack_1",
                     "buildUpTime": 4.0,
-                    "cooldownTime": 4.0,
+                    "cooldownTime": 10.0,
                     "events": [
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 10.0
+                            "amount": 45.0
                         }
                     ],
                     "nextState": "idle"
