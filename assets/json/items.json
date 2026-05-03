@@ -1,7 +1,7 @@
 {
     "rarityWeights": {
         "common": 0.45,
-        "rare": 0.20,
+        "rare": 0.15,
         "divine": 0.0,
         "special": 0.0
     },
@@ -408,7 +408,7 @@
             "effects": []
         }
     ],
-    "itemInterval": 3.0,
+    "itemInterval": 2.5,
     "itemTimerStart": 1.5,
     "maxInventorySpawnItems": 5
 }
