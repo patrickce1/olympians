@@ -219,12 +219,12 @@
                                 "type": "Button",
                                 "data": {
                                     "anchor": [
-                                        0,
-                                        1
+                                        0.5,
+                                        0.5
                                     ],
                                     "size": [
-                                        228,
-                                        228
+                                        150,
+                                        150
                                     ],
                                     "angle": 0,
                                     "position": [
@@ -260,11 +260,11 @@
                                     }
                                 },
                                 "layout": {
-                                    "x_anchor": "left",
-                                    "y_anchor": "top",
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle",
                                     "absolute": false,
-                                    "x_offset": 0.06,
-                                    "y_offset": -0.06
+                                    "x_offset": 0,
+                                    "y_offset": 0
                                 }
                             }
                         },
@@ -337,8 +337,8 @@
                                         0.5
                                     ],
                                     "size": [
-                                        84.85,
-                                        84.85
+                                        80,
+                                        80
                                     ],
                                     "angle": 0,
                                     "position": [
@@ -354,8 +354,8 @@
                                         "data": {
                                             "texture": "playerIconBG",
                                             "anchor": [
-                                                0,
-                                                1
+                                                0.5,
+                                                0.5
                                             ],
                                             "size": [
                                                 85,
@@ -369,8 +369,8 @@
                                             "visible": true
                                         },
                                         "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
+                                            "x_anchor": "center",
+                                            "y_anchor": "middle",
                                             "absolute": false,
                                             "x_offset": 0,
                                             "y_offset": 0
@@ -497,8 +497,8 @@
                                         0.5
                                     ],
                                     "size": [
-                                        84.85,
-                                        84.85
+                                        80,
+                                        80
                                     ],
                                     "angle": 0,
                                     "position": [
@@ -514,8 +514,8 @@
                                         "data": {
                                             "texture": "playerIconBG",
                                             "anchor": [
-                                                0,
-                                                1
+                                                0.5,
+                                                0.5
                                             ],
                                             "size": [
                                                 85,
@@ -529,8 +529,8 @@
                                             "visible": true
                                         },
                                         "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
+                                            "x_anchor": "center",
+                                            "y_anchor": "middle",
                                             "absolute": false,
                                             "x_offset": 0,
                                             "y_offset": 0
@@ -703,8 +703,8 @@
                                         0.5
                                     ],
                                     "size": [
-                                        84.85,
-                                        84.85
+                                        80,
+                                        80
                                     ],
                                     "angle": 0,
                                     "position": [
@@ -720,8 +720,8 @@
                                         "data": {
                                             "texture": "playerIconBG",
                                             "anchor": [
-                                                0,
-                                                1
+                                                0.5,
+                                                0.5
                                             ],
                                             "size": [
                                                 85,
@@ -735,8 +735,8 @@
                                             "visible": true
                                         },
                                         "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
+                                            "x_anchor": "center",
+                                            "y_anchor": "middle",
                                             "absolute": false,
                                             "x_offset": 0,
                                             "y_offset": 0
@@ -825,8 +825,8 @@
                                         0.5
                                     ],
                                     "size": [
-                                        84.85,
-                                        84.85
+                                        80,
+                                        80
                                     ],
                                     "angle": 0,
                                     "position": [
@@ -842,8 +842,8 @@
                                         "data": {
                                             "texture": "playerIconBG",
                                             "anchor": [
-                                                0,
-                                                1
+                                                0.5,
+                                                0.5
                                             ],
                                             "size": [
                                                 85,
@@ -857,8 +857,8 @@
                                             "visible": true
                                         },
                                         "layout": {
-                                            "x_anchor": "left",
-                                            "y_anchor": "top",
+                                            "x_anchor": "center",
+                                            "y_anchor": "middle",
                                             "absolute": false,
                                             "x_offset": 0,
                                             "y_offset": 0
@@ -1238,6 +1238,16 @@
                     "overlayBG": {
                         "type": "Polygon",
                         "data": {
+                            "polygon": [
+                                641,
+                                852,
+                                0,
+                                852,
+                                0,
+                                0,
+                                641,
+                                0
+                            ],
                             "anchor": [
                                 0.5,
                                 0.5

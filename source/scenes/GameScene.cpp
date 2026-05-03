@@ -1170,7 +1170,6 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
 void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
-
     // Track player and enemy health before any updates to detect damage
     auto player = _gameState.getLocalPlayer();
     // Only track health if local player is not AI (AI players shouldn't hear their own hurt sounds)
@@ -1592,9 +1591,19 @@ void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     if (!enemy || !enemy->isAlive()) return;
     
     _bossHealthBar->setProgress(enemy->getCurrentHealth()/enemy->getMaxHealth());
+    if (_bossHealthBar->getProgress() <= 0) {
+        _bossHealthBar->setVisible(false);
+    } else {
+        _bossHealthBar->setVisible(true);
+    }
     
     auto player = _gameState.getLocalPlayer();
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
+    if (_playerHealthBar->getProgress() <= 0) {
+        _playerHealthBar->setVisible(false);
+    } else {
+        _playerHealthBar->setVisible(true);
+    }
     
     auto leftPlayer = player->getLeftPlayer();
     _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
@@ -2623,6 +2632,7 @@ void GameScene::update(float dt, InputController& input) {
     handleItemSpawn(dt);
     updateEnemyAnimation(dt, _network->getLocalPlayerNumber());
     updateEnemyAndAI(dt);
+    updateEnemyHealthBarEffect(dt);
     updateDropZoneVisibility();
 
     // Update sliding items before physics world update

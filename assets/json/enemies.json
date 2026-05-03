@@ -3,53 +3,84 @@
         {
             "id": "circe",
             "name": "circe",
-            "maxHealth": 100.0,
+            "maxHealth": 5000.0,
             "spritesheetPath": "textures/circe.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 1.0
+                "defenseLikelihood": 0.25
             },
             "customData": {
-                "eyeMultiplier": 1.0
             },
             "states": {
                 "idle": {
                     "name": "idle"
                 },
                 "attack_1": {
-                    "name": "",
+                    "name": "attack_1",
                     "buildUpTime": 4.0,
-                    "cooldownTime": 0.0,
+                    "cooldownTime": 4.0,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 10.0
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "attack_2": {
-                    "name": "",
-                    "buildUpTime": 3.0,
-                    "cooldownTime": 1.0,
+                    "name": "attack_2",
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 4.0,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 10.0
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "attack_3": {
-                    "name": "",
-                    "buildUpTime": 3.0,
-                    "cooldownTime": 1.0,
+                    "name": "attack_3",
+                    "buildUpTime": 4.0,
+                    "cooldownTime": 4.0,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 10.0
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "defensive_move" : {
-                    "name": "test heal move",
-                    "buildUpTime": 4.0,
+                    "name": "Magic Guard",
+                    "buildUpTime": 5.0,
                     "cooldownTime": 5.0,
-                    "events": [
+                    "entryEvents": [
                         {
-                            "type": "HEAL",
-                            "amount": 10.0
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 0.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 0.5
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 0.5
                         }
                     ],
+                    "events": [],
                     "nextState": "idle"
                 }
             }

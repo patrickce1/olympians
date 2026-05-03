@@ -74,7 +74,7 @@
             "description": "Help a brother out.",
             "icon": "item_shield",
             "type": "support",
-            "rarity": "common",
+            "rarity": "rare",
             "houseAffinity": "none",
             "baseValue": 0.0,
             "effects": [
