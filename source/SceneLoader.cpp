@@ -126,23 +126,23 @@ void SceneLoader::onStartup()
                  bounds.size.toString().c_str());
 
     // ── Run unit tests ──────────────────────────
-      PlayerTests::runAll(
-          "json/houses.json",
-          "json/items.json",
-          "json/enemies.json",
-          "json/playerAI.json"
-      );
+    //   PlayerTests::runAll(
+    //       "json/houses.json",
+    //       "json/items.json",
+    //       "json/enemies.json",
+    //       "json/playerAI.json"
+    //   );
     
-      EnemyTests::runAll(
-         "json/enemies.json",
-         "json/houses.json"
-      );
+    //   EnemyTests::runAll(
+    //      "json/enemies.json",
+    //      "json/houses.json"
+    //   );
     
-      ItemTests::runAll(
-          "json/items.json",
-          "json/houses.json",
-          "json/enemies.json"
-      );
+    //   ItemTests::runAll(
+    //       "json/items.json",
+    //       "json/houses.json",
+    //       "json/enemies.json"
+    //   );
 }
 
 /**

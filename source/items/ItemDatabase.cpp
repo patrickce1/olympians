@@ -112,9 +112,9 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
 
     // Normalize so weights sum to 1.0 — values can be any positive numbers in JSON
     double total = 0.0;
-    for (const auto& kv : _rarityWeights) total += kv.second;
+    for (const auto& rarityWeight : _rarityWeights) total += rarityWeight.second;
     if (total > 0.0) {
-        for (auto& kv : _rarityWeights) kv.second /= total;
+        for (auto& rarityWeight : _rarityWeights) rarityWeight.second /= total;
     }
 }
 
@@ -295,10 +295,10 @@ void ItemDatabase::rebuildFilteredDivineBucket() {
     _filteredDivineBucket = Bucket();
     if (!_hasActiveHouseFilter) return;
 
-    auto it = _bucketsByRarity.find(ItemDef::Rarity::Divine);
-    if (it == _bucketsByRarity.end()) return;
+    auto bucket = _bucketsByRarity.find(ItemDef::Rarity::Divine);
+    if (bucket == _bucketsByRarity.end()) return;
 
-    for (const auto& defId : it->second.defIds) {
+    for (const auto& defId : bucket->second.defIds) {
         auto def = getDef(defId);
         if (!def) continue;
         ItemDef::House affinity = def->getHouseAffinity();
@@ -315,9 +315,9 @@ void ItemDatabase::rebuildFilteredDivineBucket() {
 void ItemDatabase::setActiveHouses(const std::vector<std::string>& houseIds) {
     _activeHouses.clear();
     for (const auto& id : houseIds) {
-        ItemDef::House h = ItemDef::houseFromString(id, ItemDef::House::None);
-        if (h != ItemDef::House::None) {
-            _activeHouses.insert(h);
+        ItemDef::House house = ItemDef::houseFromString(id, ItemDef::House::None);
+        if (house != ItemDef::House::None) {
+            _activeHouses.insert(house);
         }
     }
     _hasActiveHouseFilter = !_activeHouses.empty();
@@ -347,9 +347,9 @@ std::string ItemDatabase::rollRandomDefId() {
     double cumulative = 0.0;
     ItemDef::Rarity selected = rarityOrder[0];
     for (auto rarity : rarityOrder) {
-        auto it = _rarityWeights.find(rarity);
-        if (it == _rarityWeights.end()) continue;
-        cumulative += it->second;
+        auto rarityWeight = _rarityWeights.find(rarity);
+        if (rarityWeight == _rarityWeights.end()) continue;
+        cumulative += rarityWeight->second;
         selected = rarity;
         if (roll < cumulative) break;
     }
@@ -371,9 +371,9 @@ std::string ItemDatabase::rollRandomDefId() {
 
     // Fallback: selected tier is empty — try other tiers in order
     for (auto rarity : rarityOrder) {
-        auto fb = _bucketsByRarity.find(rarity);
-        if (fb != _bucketsByRarity.end() && !fb->second.defIds.empty()) {
-            return rollFromBucket(fb->second);
+        auto bucket = _bucketsByRarity.find(rarity);
+        if (bucket != _bucketsByRarity.end() && !bucket->second.defIds.empty()) {
+            return rollFromBucket(bucket->second);
         }
     }
     return "";
