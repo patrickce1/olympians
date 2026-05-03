@@ -229,6 +229,32 @@
                     "y_offset": 0
                 }
             },
+            "tooltip": {
+                "type": "Solid",
+                "data": {
+                    "polygon": [
+                        203,
+                        93,
+                        0,
+                        93,
+                        0,
+                        0,
+                        203,
+                        0
+                    ],
+                    "color": "#d9d9d9",
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": false,
+                    "angle": 0
+                }
+            },
             "resetButton": {
                 "type": "Image",
                 "data": {

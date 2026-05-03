@@ -313,6 +313,24 @@ protected:
     
     /** The scene node representing the animated special effects to be populated in the scene based on the spritesheets. */
     std::shared_ptr<cugl::scene2::SceneNode> _specialEffectsLayer;
+    
+    /** The respective tooltip from the item being held down. */
+    std::shared_ptr<cugl::scene2::PolygonNode> _tooltipNode;
+    
+    /** The timer for holding an item to acrivate tooltip */
+    float _holdTimer = 0.0f;
+    
+    /** The amount of seconds before the tooltip appears */
+    float _holdThreshold = 0.6f;
+    
+    /** The world-coordinate pixels before the tooltip is dismissed */
+    float _tooltipMoveLimit = 12.0f;
+    
+    /** Whether the tooltip has been dismissed */
+    bool _tooltipDismissed = false;
+    
+    /** The world position when drag begins */
+    Vec2 _holdAnchorPos = Vec2::ZERO;
 
 #pragma mark - Drag State
 
@@ -931,6 +949,14 @@ public:
      * @param input  The active input controller.
      */
     void handleDragTracking(InputController& input);
+    
+    /**
+     * Handles tooltip visibility during drag: after holding long enough,
+     * shows the tooltip (once) and keeps it aligned with the dragged item.
+     *
+     * @param dt  Delta time in seconds.
+     */
+    void handleTooltipVisibility(float dt);
 
     /**
     * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory.
@@ -1439,6 +1465,12 @@ public:
      * and toggles their visibility accordingly.
      */
     void updateDropZoneVisibility();
+    
+    /**
+     * Repositions the tooltip node above the currently dragged icon.
+     * Must only be called while _draggedIcon and _tooltipNode are valid.
+     */
+    void updateTooltipPosition();
 
     /**
      * Draws a green debug outline around the reset button's bounding box.
