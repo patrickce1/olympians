@@ -83,10 +83,11 @@ static HealthState getHealthState(float current, float max) {
  * @param resolvedMagnitude   The resolved support magnitude calculated for this item use.
  * @param targetPlayerID     The 0-based slot index of the player receiving the effect.
  */
-static void broadcastSupportEffects(NetworkController& network,
-                                    const ItemDef& def,
-                                    float resolvedMagnitude,
-                                    int targetPlayerID) {
+static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int targetPlayerID, bool shouldApplyEffects) {
+    if (!shouldApplyEffects) {
+        return;
+    }
+
     for (const ItemDef::Effect& effect : def.getEffects()) {
         switch (effect.type) {
             case ItemDef::EffectType::Shield:
@@ -129,8 +130,12 @@ static void broadcastSupportEffects(NetworkController& network,
  * @param playerIndex    The index of the player applying the enemy effect.
  * @return   The collection of enemy effects to be applied this frame.
  */
-static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, float resolvedMagnitude, int playerIndex) {
+static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, float resolvedMagnitude, int playerIndex, bool shouldApplyEffects) {
     std::vector<EnemyEffectMessage> enemyEffects;
+    if (!shouldApplyEffects) {
+        return enemyEffects;
+    }
+
     for (const ItemDef::Effect& effect : def.getEffects()) {
         EnemyEffectMessage effectMsg;
         effectMsg.duration = effect.duration;
@@ -812,6 +817,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
                                       Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
     const float baseValue = def->getBaseValue();
+    const bool shouldApplyEffects = canApplyItemEffects(*local, *def);
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
@@ -833,7 +839,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
     const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
     const std::vector<EnemyEffectMessage> enemyEffects =
-        (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber())
+        (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects)
                               : std::vector<EnemyEffectMessage>{};
 
     startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
@@ -866,6 +872,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
                                        Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
     const float baseValue = def->getBaseValue();
+    const bool shouldApplyEffects = canApplyItemEffects(*local, *def);
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
@@ -892,7 +899,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         else {
             _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
         }
-        broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber()));
+        broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects));
     }
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique("enemy_hurt");
@@ -942,7 +949,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         if (!_network->isHost()) {
             _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
+            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
         }
             
         playSupportItemSound(def);
@@ -983,7 +990,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         if (!_network->isHost()) {
             _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
+            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
         }
         playSupportItemSound(def);
         CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
