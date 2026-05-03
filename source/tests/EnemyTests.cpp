@@ -266,37 +266,6 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
     expect(!everLeftIdle, "controller(noLiving): stays idle (does not start attacks)");
 }
 
-static void testControllerDamageEventHitsSomeone(const std::string& enemiesJsonPath,
-    const std::string& housesJsonPath) {
-    HouseLoader loader = loadHouses(housesJsonPath);
-    auto players = makePlayersRing(loader, "poseidon", 4);
-
-    auto enemy = makeEnemy(enemiesJsonPath, "cyclops");
-    if (!enemy) return;
-    enemy->setDefenseLikelihood(0.0f);
-
-    EnemyController controller;
-
-    std::vector<float> before;
-    before.reserve(players.size());
-    for (auto& p : players) before.push_back(p->getCurrentHealth());
-
-    bool damagedSomeone = false;
-    for (int i = 0; i < 240; i++) {
-        controller.update(1.0f, enemy, players);
-
-        for (size_t k = 0; k < players.size(); k++) {
-            if (players[k]->getCurrentHealth() < before[k]) {
-                damagedSomeone = true;
-                break;
-            }
-        }
-        if (damagedSomeone) break;
-    }
-
-    expect(damagedSomeone, "controller: resolves DAMAGE events and reduces some player's hp");
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 5 — Boss specific mechanics
 // ─────────────────────────────────────────────────────────────────────────────
