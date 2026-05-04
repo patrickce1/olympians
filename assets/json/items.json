@@ -335,6 +335,7 @@
             "name": "Gaia's Rock",
             "description": " ",
             "icon": "item_gaia_rock",
+            "tooltip": "tooltip_gaia_rock",
             "type": "attack",
             "rarity": "special",
             "houseAffinity": "none",

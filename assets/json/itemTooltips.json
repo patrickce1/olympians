@@ -68,6 +68,9 @@
         },
         "tooltip_hephaestus_forge": {
             "file": "textures/items/tooltips/forgeTip.png"
+        },
+        "tooltip_gaia_rock": {
+            "file": "textures/items/tooltips/rockTip.png"
         }
     }
 }
