@@ -223,6 +223,7 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
     _iconKey = (json->has("icon") && json->get("icon")->isString())
         ? json->get("icon")->asString()
         : ((json->has("iconKey") && json->get("iconKey")->isString()) ? json->get("iconKey")->asString() : "");
+    _tooltipKey = (json->has("tooltip") && json->get("tooltip")->isString()) ? json->get("tooltip")->asString() : "";
     
     // Parse optional itemUseSound
     _itemUseSound = (json->has("itemUseSound") && json->get("itemUseSound")->isString())

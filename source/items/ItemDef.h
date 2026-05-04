@@ -112,6 +112,9 @@ private:
     /* PLACEHOLDER FOR REPRESENTING ITEM TEXTURE/ICON */
     std::string _iconKey;
     
+    /* Texture for representing the tooltip */
+    std::string _tooltipKey;
+    
     /* Type of item (e.g. Attack, Support) */
     Type _type;
     
@@ -162,6 +165,8 @@ public:
     const std::string& getDescription() const { return _description; }
     /** Gets item icon key (used to look up texture in asset manager) */
     const std::string& getIconKey() const { return _iconKey; }
+    /** Gets item tooltip key (used to look up texture in asset manager) */
+    const std::string& getTooltipKey() const { return _tooltipKey; }
     /** Gets the base value of the item before multipliers are applied */
     const float getBaseValue() const { return _baseValue; }
 

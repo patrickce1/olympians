@@ -584,6 +584,9 @@
         },
         "bottomFade": {
             "file": "textures/codexScene/bottomFade.png"
+        },
+        "exampleTooltip": {
+            "file": "textures/items/tooltips/exampleTooltip.png"
         }
         
     },
