@@ -191,15 +191,11 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
 }
 
 /**
- * Returns the player's house-role and affinity multiplier for the given attack item.
+ * Returns whether an item effect should be applied based on the user's house.
  *
- * This excludes any item-specific upgrade streak bonus so the popup sequence can
- * render the mallet-style upgrade separately from house-derived multipliers.
- *
- * @param player The player using the attack item.
+ * @param player The player using the item.
  * @param def The item definition being resolved.
- * @param database The item database containing house-role and affinity tuning.
- * @return The combined house-role and affinity multiplier, excluding upgrade streak effects.
+ * @return Whether an item effect should be applied
  */
 static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
     if (def.getHouseAffinity() == ItemDef::House::None) {
@@ -210,6 +206,17 @@ static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
            ItemDef::houseFromString(player.getHouseName(), ItemDef::House::None);
 }
 
+/**
+ * Returns the player's house-role and affinity multiplier for the given attack item.
+ *
+ * This excludes any item-specific upgrade streak bonus so the popup sequence can
+ * render the mallet-style upgrade separately from house-derived multipliers.
+ *
+ * @param player The player using the attack item.
+ * @param def The item definition being resolved.
+ * @param database The item database containing house-role and affinity tuning.
+ * @return The combined house-role and affinity multiplier, excluding upgrade streak effects.
+ */
 static float computeHouseAffinityMultiplier(const Player& player, const ItemDef& def, const ItemDatabase& database) {
     float houseRoleMultiplier = 0.0f;
     float affinityBonus = 1.0f;
