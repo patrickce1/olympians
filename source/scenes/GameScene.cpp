@@ -19,9 +19,6 @@ using namespace std;
 
 /** Constant to define Box2D obstacle physics base unit */
 constexpr float ITEM_SPEED_UNITS = 1.0f;
-
-#pragma mark Sliding Item Physics Constants
-
 /** Deceleration rate for sliding items per second (units/sec²) */
 constexpr float ITEM_SLIDE_FRICTION_DECELERATION = 2500.0f;
 /** Velocity threshold below which a sliding item is considered to have settled (units/sec) */
@@ -42,6 +39,8 @@ constexpr float ITEM_SCALE_SPEED = 14.0f;
 constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
 //Defines how large the item is once it has been used. So it shrinks to this size.
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
+//Defines the gap between the item and its tooltip
+constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 
 #pragma mark HealthState
 
@@ -2662,15 +2661,13 @@ void GameScene::updateDropZoneVisibility(){
  * Must only be called while _draggedIcon and _tooltipNode are valid.
  */
 void GameScene::updateTooltipPosition() {
-    const float GAP = 6.0f;
-
     Size widgetSize = _draggedIcon->getContentSize();
 
     Vec2 widgetPos = _draggedIcon->getPosition();
 
     // Center tooltip horizontally over the widget, place it just above
     float x = widgetPos.x + (widgetSize.width  - _tooltipNode->getWidth()) * 0.5f;
-    float y = widgetPos.y +  widgetSize.height + GAP;
+    float y = widgetPos.y +  widgetSize.height + ITEM_TOOLTIP_GAP;
 
     _tooltipNode->setPosition(Vec2(x, y));
 }
