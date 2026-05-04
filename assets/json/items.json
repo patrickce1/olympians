@@ -287,7 +287,13 @@
             "houseAffinity": "aphrodite",
             "baseValue": 0.0,
             "weight": 11.0,
-            "effects": []
+            "baseValue": 10.0,
+            "effects": [
+                {
+                    "type": "love",
+                    "duration": 5.0
+                }
+            ]
         },
         {
             "id": "thunderstorm",

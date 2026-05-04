@@ -66,8 +66,8 @@ private:
      * @param effect  The serialized effect definition to apply.
      * @param target  The enemy receiving the love.
      */
-    static float applyLoveToEnemy(const ItemDef::Effect& effect, Enemy& target) {
-        target.applyLove(effect.duration);
+    static float applyLoveToEnemy(const ItemDef::Effect& effect, Enemy& target, int playerIndex) {
+        target.applyLove(effect.duration, playerIndex);
         return effect.duration;
     }
 
@@ -144,7 +144,7 @@ public:
             case ItemDef::EffectType::Stun:
                 return applyStunToEnemy(effect, target);
             case ItemDef::EffectType::Love:
-                return applyLoveToEnemy(effect, target);
+                return applyLoveToEnemy(effect, target, playerIndex);
             case ItemDef::EffectType::Slow:
                 return applySlowToEnemy(effect, target);
             case ItemDef::EffectType::Vulnerable:
