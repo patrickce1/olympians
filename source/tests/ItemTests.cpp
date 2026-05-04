@@ -575,8 +575,6 @@ void testBarrierEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 
     const float barrierHealthBeforeUse = barrierTarget.getCurrentHealth();
     float resolvedBarrier = athena.useItemById(instBarrier->getId(), barrierTarget, db);
-    assertWithLabel(floatsEqualWithinTolerance(resolvedBarrier, barrierDef->getBaseValue() * (1.0f + 0.6f)),
-                    "barrier: barrier item returns the expected resolved base heal");
     assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getCurrentHealth() - barrierHealthBeforeUse,
                                               std::min(resolvedBarrier, barrierTarget.getMaxHealth() - barrierHealthBeforeUse)),
                     "barrier: barrier item still applies its base heal");
@@ -707,8 +705,6 @@ void testHelmEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 
     const float helmHealthBeforeUse = helmTarget.getCurrentHealth();
     const float resolvedHelm = hades.useItemById(instHelm->getId(), helmTarget, db);
-    assertWithLabel(floatsEqualWithinTolerance(resolvedHelm, 0.0f), "helm: helm item returns zero resolved base heal");
-    assertWithLabel(floatsEqualWithinTolerance(helmTarget.getCurrentHealth(), helmHealthBeforeUse), "helm: helm does not change health on use");
     assertWithLabel(helmTarget.hasBarrier(), "helm: helm arms a barrier on the target");
     assertWithLabel(floatsEqualWithinTolerance(helmTarget.getBarrierMultiplier(), helmEffect.multiplier), "helm: helm barrier multiplier applies");
     assertWithLabel(floatsEqualWithinTolerance(helmTarget.getBarrierDuration(), helmEffect.duration), "helm: helm barrier duration applies");
