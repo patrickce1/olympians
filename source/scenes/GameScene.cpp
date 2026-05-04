@@ -1631,8 +1631,10 @@ void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
     if (_playerHealthBar->getProgress() <= 0) {
         _playerHealthBar->setVisible(false);
+        _gameArea->getChildByName("playerDeath")->setVisible(true);
     } else {
         _playerHealthBar->setVisible(true);
+        _gameArea->getChildByName("playerDeath")->setVisible(false);
     }
     
     auto leftPlayer = player->getLeftPlayer();
