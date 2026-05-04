@@ -261,8 +261,7 @@ public:
      * @param fallback The attack target to return if parsing fails.
      * @return The parsed attack target, or fallback if unrecognized.
      */
-    static AttackTarget attackTargetFromString(std::string value,
-                                               AttackTarget fallback = AttackTarget::Enemy);
+    static AttackTarget attackTargetFromString(std::string value, AttackTarget fallback = AttackTarget::Enemy);
 
     /**
      * Extract House enum from a string.
