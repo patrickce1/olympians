@@ -198,6 +198,7 @@ public:
     /**
      * Returns the spawn weight of this item relative to other items in the same rarity tier.
      * Used for within-tier weighted random selection. Default is 10 if not specified in JSON.
+     * @return the spawn weight of this item, where higher means more common within its rarity tier.
      */
     float getWeight() const { return _weight; }
 

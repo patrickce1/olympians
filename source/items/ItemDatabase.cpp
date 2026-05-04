@@ -88,7 +88,9 @@ void ItemDatabase::resetRarityWeights() {
     // Fallbacks already sum to 1.0, so normalization is a no-op for them
 }
 
-/** Load rarity weights from a JSON and normalize so they sum to 1.0 */
+/** Load rarity weights from a JSON and normalize so they sum to 1.0 
+ * @param json The JSON object containing rarityWeights configuration
+*/
 void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     resetRarityWeights();
 
@@ -311,6 +313,7 @@ void ItemDatabase::rebuildFilteredDivineBucket() {
 /**
  * Sets the active player houses used to filter divine item rolls.
  * Rebuilds the filtered divine bucket immediately.
+ * @param houseIds Vector of house ID strings to set as active; IDs are normalized for case-insensitive matching.
  */
 void ItemDatabase::setActiveHouses(const std::vector<std::string>& houseIds) {
     _activeHouses.clear();
