@@ -910,7 +910,18 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         return false;
     }
 
+    const auto& animConfig = def->getItemUseAnimation();
+    const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
+
     if (handleAllyTargetAttack(itemId, def, local, resolvedMagnitude, shouldApplyEffects)) {
+        startItemUseAnimation(animConfig, 0.0f, animPos, 0);
+        if (!_activeItemUseAnimations.empty()) {
+            _activeItemUseAnimations.back().popupPosition = dropPos;
+            _activeItemUseAnimations.back().baseValue = baseValue;
+            _activeItemUseAnimations.back().houseAffinityMultiplier = houseAffinityMultiplier;
+            _activeItemUseAnimations.back().upgradeMultiplier = upgradeMultiplier;
+            _activeItemUseAnimations.back().itemDefID = def->getId();
+        }
         return true;
     }
 
@@ -920,12 +931,10 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         enemy->syncSlow(1.0f, 0.0f);
     }
 
-    const auto& animConfig = def->getItemUseAnimation();
     CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
           resolvedMagnitude);
 
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
-    const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
     const std::vector<EnemyEffectMessage> enemyEffects =
         (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects)
                               : std::vector<EnemyEffectMessage>{};
