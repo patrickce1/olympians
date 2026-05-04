@@ -643,8 +643,7 @@ void NetworkController::broadcastGaiaSpawn(int playerID) {
  * @param secondaryMagnitude Optional secondary magnitude used by multi-stage effects such as resurrect.
  * @param applyToAllPlayers Whether the effect should be applied to every allied player slot instead of one target.
  */
-void NetworkController::broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID,
-                                               float secondaryMagnitude, bool applyToAllPlayers) {
+void NetworkController::broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID, float secondaryMagnitude, bool applyToAllPlayers) {
 	_serializer.writeSint32(MessageType::PLAYER_SUPPORT_EFFECT);
 	_serializer.writeSint32(playerID);
 	_serializer.writeSint32(static_cast<int>(effectType));

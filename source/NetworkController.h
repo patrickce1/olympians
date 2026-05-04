@@ -152,8 +152,7 @@ public:
      * @param secondaryMagnitude Optional secondary magnitude used by multi-stage effects such as resurrect.
      * @param applyToAllPlayers Whether the effect should be applied to every allied player slot instead of one target.
      */
-    void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID,
-                                float secondaryMagnitude = 0.0f, bool applyToAllPlayers = false);
+    void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID, float secondaryMagnitude = 0.0f, bool applyToAllPlayers = false);
     
     /**
      * Sends an enemy-affecting attack effect to the host for authoritative processing.
