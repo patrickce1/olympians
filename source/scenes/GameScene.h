@@ -1366,10 +1366,7 @@ public:
      * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
      * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
      */
-    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
-                                    const cugl::Vec2& dropPos,
-                                    bool shouldShowEffectPopup,
-                                    bool hasHealingPopup);
+    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos, bool shouldShowEffectPopup, bool hasHealingPopup);
 
     /**
      * Handles the shared ally-target branch for attack items and returns whether it fully resolved the item use.
