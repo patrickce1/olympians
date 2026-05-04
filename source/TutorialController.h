@@ -103,19 +103,26 @@ public:
     void start();
 
 #pragma mark - State
-
+    
     /** True if tutorial is currently running. */
     bool isActive() const { return _active; }
 
     /** Current step index (for debugging). */
     int getIndex() const { return _index; }
 
-    /** Current timer value (for debugging). */
-    float getTimer() const { return _timer; }
-
     /** True if waiting for player action (for debugging). */
     bool isWaiting() const { return _waitingForAction; }
 
+    /**
+     * Returns whether the given action would satisfy the current wait condition.
+     *
+     * @param action  The action to check against the current step's requirement.
+     *
+     * @return true if the tutorial is active, waiting for an action, and the
+     *         current step accepts NONE (any action) or matches the given action.
+     *         False otherwise.
+     */
+    bool isWaitingForActionMatch(InputController::Action action) const;
 #pragma mark - Update
     /**
      * Updates the tutorial state for the current frame.

@@ -181,6 +181,27 @@ void TutorialController::parseSteps(const std::shared_ptr<JsonValue>& json) {
     }
 }
 
+#pragma mark - State
+
+/**
+ * Returns whether the given action would satisfy the current wait condition.
+ *
+ * @param action  The action to check against the current step's requirement.
+ *
+ * @return true if the tutorial is active, waiting for an action, and the
+ *         current step accepts NONE (any action) or matches the given action.
+ *         False otherwise.
+ */
+bool TutorialController::isWaitingForActionMatch(InputController::Action action) const {
+    
+    if (!_active || !_waitingForAction) return false;
+    
+    if (_index < 0 || _index >= (int)_steps.size()) return false;
+    
+    const TutorialStep& step = _steps[_index];
+    return step.action == InputController::Action::NONE || step.action == action;
+}
+
 #pragma mark - Update
 
 /**
@@ -402,6 +423,7 @@ bool TutorialController::executeStep(const TutorialStep& step) {
  * Highlights the drop zone in the game scene corresponding to the given action.
  *
  * Maps each action to its associated highlight zone name:
+ *
  * Does nothing if the game scene is null.
  *
  * @param action  The action whose corresponding zone should be highlighted.

@@ -176,7 +176,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
  * assigning it as the enemy's target. Then forces the enemy into ATTACK_1,
  * bypassing normal AI state transitions.
  *
- * @param targetSlot Index in the player list indicating which player
+ * @param targetSlot Index into the player list indicating which player
  * the boss should attack. Out-of-range values are ignored
  * and the enemy's current target remains unchanged.
  */
@@ -199,7 +199,7 @@ void GameScene::triggerBossAttack(int targetSlot) {
  * assigning it as the enemy's target. Then forces the enemy into DEFENSE_MOVE,
  * bypassing normal AI state transitions.
  *
- * @param targetSlot Index in the player list indicating which player
+ * @param targetSlot Index into the player list indicating which player
  * the boss should react to. Out-of-range values are ignored
  * and the enemy's current target remains unchanged.
  */
@@ -1926,7 +1926,6 @@ void GameScene::handlePlayerInput(InputController& input) {
 
     if (finalAction != InputController::Action::NONE) {
         if (handlePlayerActions(finalAction, _draggedItemId)) {
-            (int)finalAction, _tutorialController.getIndex());
             // 2. Item was successfully used (action succeeded)
             // 3. Trigger glow effect on the activated zone
             _glowAction = finalAction;
@@ -2204,8 +2203,6 @@ void GameScene::handleGaiaSpawn() {
  */
 void GameScene::handleItemSpawn(float dt) {
     if (_tutorialController.isActive()) {
-        CULog("GameScene: handleItemSpawn suppressed while tutorial active (tutorial index=%d timer=%.2f waiting=%d)",
-              _tutorialController.getIndex(), _tutorialController.getTimer(), _tutorialController.isWaiting() ? 1 : 0);
         return;
     }
     // Always spawn items for the local human player.
