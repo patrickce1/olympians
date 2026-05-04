@@ -233,7 +233,7 @@
                 "type": "Image",
                 "data": {
                     "texture": "exampleTooltip",
-                    "size": [290,141],
+                    "size": [672,327],
                     "anchor": [
                         0,
                         0

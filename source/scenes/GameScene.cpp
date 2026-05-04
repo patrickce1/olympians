@@ -532,6 +532,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     _assets->loadDirectory("json/itemTextures.json");
     _assets->loadDirectory("json/itemAnimations.json");
     _assets->loadDirectory("json/houseInGameIcons.json");
+    _assets->loadDirectory("json/itemTooltips.json");
 
     // Load animation registry from the already-registered enemyAnimations JSON asset
     loadAnimationRegistry();
@@ -2344,11 +2345,12 @@ void GameScene::handleTooltipVisibility(float dt) {
         if (_holdTimer >= _holdThreshold) {
             if (!_tooltipNode->isVisible()) {
                 // First frame threshold crossed — swap texture for this item
-//                if (_draggedItemDef) {
-//                    const std::string tooltipKey = _draggedItemDef->getTooltipKey();
-//                    auto tex = _assets->get<cugl::graphics::Texture>(tooltipKey);
-//                    if (tex) _tooltipNode->setTexture(tex);
-//                }
+                if (_draggedItemDef) {
+                    const std::string tooltipKey = _draggedItemDef->getTooltipKey();
+                    auto tex = _assets->get<cugl::graphics::Texture>(tooltipKey);
+                    if (tex) _tooltipNode->setTexture(tex);
+                    _tooltipNode->setScale(0.4315);
+                }
                 _tooltipNode->setVisible(true);
             }
             // keep tooltip above the moving widget
