@@ -166,7 +166,7 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
 
     EnemyLoader::State prev = enemy->getCurrentState();
     
-    enemy->update(dt); // Always allow movement/animation
+    enemy->update(dt);
 
     auto events = enemy->takeFiredEvents();
     if (!events.empty()) {
@@ -179,7 +179,6 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
     handleIdleEntryIfNeeded(prev, cur, enemy, players);
 
     // Only allow attack/AI decisions if attacks are enabled
-        // Tick the deferred retarget timer; fire once it expires
     if (_pendingRetarget && cur == EnemyLoader::State::IDLE) {
         _retargetTimer -= dt;
         if (_retargetTimer <= 0.0f) {
@@ -188,7 +187,6 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
         }
     }
     if (_attacksEnabled) {
-        
         // If idle and not locked out, pick an attack by tag and start it
         if (cur == EnemyLoader::State::IDLE && enemy->canStartNonIdleState() && anyPlayersAlive(players)) {
             if (shouldDefend(enemy)) {

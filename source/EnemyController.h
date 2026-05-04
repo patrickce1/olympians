@@ -26,11 +26,9 @@ class EnemyController {
 public:
     EnemyController();
     
-    /** Enable or disable automatic attack selection. */
+    /** Enable or disable automatic attack selection. Tutorial Specific */
     void setAttacksEnabled(bool enabled) { _attacksEnabled = enabled; }
-    /** Returns whether attacks are enabled. */
-    bool getAttacksEnabled() { return _attacksEnabled;}
-
+    
     void enterIdle(const std::shared_ptr<Enemy>& enemy,
                    std::vector<std::shared_ptr<Player>>& players);
 

@@ -188,7 +188,6 @@ void GameScene::triggerBossAttack(int targetSlot) {
         enemy->setTargetIndex(targetSlot);
     }
 
-    // 2. Force the enemy into an attack state
     enemy->forceAttack(EnemyLoader::State::ATTACK_1);
 }
 
@@ -210,7 +209,7 @@ void GameScene::triggerBossDefense(int targetSlot) {
     if (targetSlot >= 0 && targetSlot < _gameState.getPlayers().size()) {
         enemy->setTargetIndex(targetSlot);
     }
-    // 2. Force the enemy into an defense state
+
     enemy->forceDefense(EnemyLoader::State::DEFENSE_MOVE);
 }
 
@@ -371,24 +370,22 @@ bool GameScene::initSceneGraph() {
         _scene->addChild(_specialEffectsLayer);
         _supportLeftArea = _gameArea->getChildByName("supportLeft");
         _supportRightArea = _gameArea->getChildByName("supportRight");
+        _tutorialDialogueBox = _gameArea->getChildByName("dialogueBox");
         
-        _dialogueBox = _gameArea->getChildByName("dialogueBox");
-        if (_dialogueBox) {
-            _dialogueBoxPos = _dialogueBox->getPosition();
-            _dialogueLabel = std::dynamic_pointer_cast<scene2::Label>(
-                _dialogueBox->getChildByName("label"));
+        if (_tutorialDialogueBox) {
+            _tutorialDialogueBoxPos = _tutorialDialogueBox->getPosition();
+            _tutorialDialogueLabel = std::dynamic_pointer_cast<scene2::Label>(
+                _tutorialDialogueBox->getChildByName("label"));
             
-            _gameArea->removeChild(_dialogueBox);
+            _gameArea->removeChild(_tutorialDialogueBox);
             //Save the location of the dialog box in the world space (using relatives from the json in the gamearea)
-            Vec2 worldPos = _gameArea->nodeToWorldCoords(_dialogueBoxPos);
+            Vec2 worldPos = _gameArea->nodeToWorldCoords(_tutorialDialogueBoxPos);
             Vec2 scenePos = _scene->worldToNodeCoords(worldPos);
-            _dialogueBoxPos = scenePos;
-            _dialogueBox->setPosition(scenePos - Vec2(350, 0));
-            _scene->addChild(_dialogueBox);
+            _tutorialDialogueBoxPos = scenePos;
+            _tutorialDialogueBox->setPosition(scenePos - Vec2(350, 0));
+            _scene->addChild(_tutorialDialogueBox);
         }
     }
-    
-    
     
     if (_inventory) {
         _inventory->setContentWidth(dimen.width);
@@ -613,8 +610,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     // Set player icon textures immediately (normally done in update, but we need them visible on first render)
     updatePlayerAndTeammateIcons(0.0f);
     
-    _timeline = ActionTimeline::alloc();
-    
+    _tutorialTimeline = ActionTimeline::alloc();
     setActive(false);
     return true;
 }
@@ -627,41 +623,10 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
  *
  * @param active  true to allow the boss to attack; false to suppress attacks.
  */
-void GameScene::setBossActive(bool active) {
+void GameScene::setTutorialBossActive(bool active) {
     // Keep boss visuals unchanged; toggle whether it may attack.
-    _bossCanAttack = active;
+    _tutorialBossCanAttack = active;
     _enemyController.setAttacksEnabled(active);
-}
-
-/**
- * Returns whether the boss is currently permitted to attack.
- *
- * @return true if the boss can attack; false otherwise.
- */
-bool GameScene::canBossAttack() {
-    // Keep boss visuals unchanged; toggle whether it may attack.
-    return _bossCanAttack;
-}
-
-/**
- * Sets the boss's target to the player at the given index, clamped to the
- * valid player range.
- *
- * If no enemy exists or the player list is empty, this is a no-op. Otherwise,
- * the index is clamped to [0, n-1] before being assigned, so out-of-range
- * values always resolve to the nearest valid player slot.
- *
- * @param index  Desired target player index. Clamped if out of range.
- */
-void GameScene::setBossTarget(int index) {
-    // Clamp index into valid player range if possible
-    if (!_gameState.getEnemy()) return;
-    int n = (int)_gameState.getPlayers().size();
-    if (n <= 0) return;
-    int clamped = index;
-    if (clamped < 0) clamped = 0;
-    if (clamped >= n) clamped = n - 1;
-    _gameState.getEnemy()->setTargetIndex(clamped);
 }
 
 /**
@@ -798,7 +763,7 @@ void GameScene::setActive(bool value) {
                 _tutorialController.loadFromFile("json/tutorial.json");
             }
             if (!_tutorialController.isActive()) {
-                setBossActive(true);
+                setTutorialBossActive(true);
             }
             if (_isTutorial && !_tutorialController.isActive()){
                 _tutorialController.start();
@@ -832,6 +797,8 @@ void GameScene::reset() {
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
+    
+    // Reset the tutorial highlight zone
     _tutorialHighlightZone.clear();
 
     // Clear any active animations before resetting
@@ -2526,33 +2493,33 @@ void GameScene::updateSlidingItems(float dt) {
 
 /**
  * Animates the dialogue box sliding into its active position.
- * This method uses the CUGL timeline to move the _dialogueBox from its current
- * position to the predefined _dialogueBoxPos. It uses a CUBIC_OUT easing to
+ * This method uses the CUGL timeline to move the _tutorialDialogueBox from its current
+ * position to the predefined _tutorialDialogueBoxPos. It uses a CUBIC_OUT easing to
  * create a smooth deceleration effect over 0.4 seconds.
  */
 void GameScene::slideDialogueIn() {
-    if (_dialogueBox) {
-        _timeline->remove("dialogueBox");
-        auto moveIn = cugl::scene2::MoveTo::alloc(_dialogueBoxPos);
+    if (_tutorialDialogueBox) {
+        _tutorialTimeline->remove("dialogueBox");
+        auto slideInAction = cugl::scene2::MoveTo::alloc(_tutorialDialogueBoxPos);
         auto easing = EasingFactory::alloc(EasingFactory::Type::CUBIC_OUT);
-        _timeline->add("dialogueBox", moveIn->attach(_dialogueBox), 0.4f, easing);
+        _tutorialTimeline->add("dialogueBox", slideInAction->attach(_tutorialDialogueBox), 0.4f, easing);
     }
 }
 
 /**
  * Animates the dialogue box sliding out of view.
  * This method calculates an offscreen position relative to the current
- * _dialogueBoxPos (shifted 350 units to the left) and initiates a slide-out
+ * _tutorialDialogueBoxPos (shifted 350 units to the left) and initiates a slide-out
  * animation. It uses a CUBIC_IN easing for a smooth acceleration effect
  * over 0.4 seconds.
  */
 void GameScene::slideDialogueOut() {
-    if (_dialogueBox) {
-        _timeline->remove("dialogueBox");
-        Vec2 offscreen = _dialogueBoxPos - Vec2(350, 0);
-        auto moveOut = cugl::scene2::MoveTo::alloc(offscreen);
+    if (_tutorialDialogueBox) {
+        _tutorialTimeline->remove("dialogueBox");
+        Vec2 offscreen = _tutorialDialogueBoxPos - Vec2(350, 0);
+        auto slideOutAction = cugl::scene2::MoveTo::alloc(offscreen);
         auto easing = EasingFactory::alloc(EasingFactory::Type::CUBIC_IN);
-        _timeline->add("dialogueBox", moveOut->attach(_dialogueBox), 0.4f, easing);
+        _tutorialTimeline->add("dialogueBox", slideOutAction->attach(_tutorialDialogueBox), 0.4f, easing);
     }
 }
 
@@ -2564,12 +2531,12 @@ void GameScene::slideDialogueOut() {
  * @param message The string text to display in the dialogue label.
  */
 void GameScene::showDialogue(const std::string& message) {
-    if (_dialogueLabel) {
-            _dialogueBox->removeFromParent();
-            _scene->addChild(_dialogueBox);
-            _pendingDialogueText = message;
-            _waitingToSlideIn = true;
-            _dialogueOutTimer = 0.4f; // match slide out duration
+    if (_tutorialDialogueLabel) {
+            _tutorialDialogueBox->removeFromParent();
+            _scene->addChild(_tutorialDialogueBox);
+            _tutorialPendingDialogueText = message;
+            _tutorialDialogueWaitingToSlideIn = true;
+            _tutorialDialogueOutTimer = 0.4f; // match slide out duration
             slideDialogueOut();
         }
 }
@@ -2677,7 +2644,6 @@ void GameScene::processZoneInteractionsForSlidingItems() {
             if (!isItemActionMatch(action, itemDef->getType())) {
                 continue;
             }
-            
             
             // First time hitting a matching zone - trigger the action immediately
             if (handlePlayerActions(action, itemId)) {
@@ -2815,9 +2781,8 @@ void GameScene::updateDropZoneVisibility(){
             _supportRightArea->setVisible(false);
             _attackArea->setVisible(false);
             return;
-        
         } else if (_tutorialHighlightZone == "none") {
-            // fall through to normal handling
+            return;
         }
     }
 
@@ -2912,12 +2877,12 @@ void GameScene::update(float dt, InputController& input) {
     updatePlayerAndTeammateIcons(dt);
     
     //Update the dialogue controller
-    _timeline->update(dt);
-    if (_waitingToSlideIn) {
-        _dialogueOutTimer -= dt;
-        if (_dialogueOutTimer <= 0.0f) {
-            _waitingToSlideIn = false;
-            if (_dialogueLabel) _dialogueLabel->setText(_pendingDialogueText);
+    _tutorialTimeline->update(dt);
+    if (_tutorialDialogueWaitingToSlideIn) {
+        _tutorialDialogueOutTimer -= dt;
+        if (_tutorialDialogueOutTimer <= 0.0f) {
+            _tutorialDialogueWaitingToSlideIn = false;
+            if (_tutorialDialogueLabel) _tutorialDialogueLabel->setText(_tutorialPendingDialogueText);
             slideDialogueIn();
         }
     }
@@ -3302,10 +3267,22 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     startItemSliding(id, spawnVelocity, slideOrigin);
 }
 
-/** Helper function to spawn an item from a given side within the tutorial.
+/**
+ * Spawns a tutorial item and animates it into the player's hand.
  *
- * @param defId       The ID of the item to spawn
- * @param passDirection   The side to spawn the item from. 0 = new, 1 = pass from left, 2 = pass from right.
+ * The item is created and added to the local player's inventory, then visually
+ * introduced into the scene from a specific origin:
+ * If passDirection is 0, the item spawns from a default off-screen position.
+ * If passDirection is 1, the item slides in from the left pass zone.
+ * If passDirection is 2, the item slides in from the right pass zone.
+ *
+ * This is primarily used by the tutorial system to simulate receiving or spawning items.
+ *
+ * @param defId          The definition ID of the item to create.
+ * @param passDirection  Determines the spawn origin:
+ *                       0 = direct spawn (off-screen),
+ *                       1 = slide in from left (pass),
+ *                       2 = slide in from right (pass).
  */
 void GameScene::spawnTutorialItem(const std::string& defId, int passDirection) {
     Player* localPlayer = _gameState.getLocalPlayer();

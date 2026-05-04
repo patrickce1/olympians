@@ -233,13 +233,27 @@ private:
      */
     void applyZoneHighlight(InputController::Action action);
     
-    /** Parses a JSON object into the internal tutorial step sequence. */
+    /**
+     * Parses a JSON object into the internal tutorial step sequence.
+     *
+     * @param json  The JSON value containing the list of tutorial steps.
+     */
     void parseSteps(const std::shared_ptr<cugl::JsonValue>& json);
 
-    /** Converts a string token to its corresponding StepType enum value. */
+    /**
+     * Converts a string token to its corresponding StepType enum value.
+     *
+     * @param str  The string token to convert.
+     * @return    The matching StepType, or a default if unrecognized.
+     */
     StepType parseStepType(const std::string& str) const;
 
-    /** Converts a string token to its corresponding InputController::Action enum value. */
+    /**
+     * Converts a string token to its corresponding InputController::Action enum value.
+     *
+     * @param str  The string token to convert.
+     * @return    The matching Action, or a default if unrecognized.
+     */
     InputController::Action parseAction(const std::string& str) const;
 };
 

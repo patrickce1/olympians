@@ -140,7 +140,7 @@
             "file": "textures/clientCloud.png"
         },
         "dialogueBox": {
-                    "file": "textures/gameScene/dialogue_box.png"
+                    "file": "textures/gameScene/dialogueBox.png"
                 },
         "cyclopsShowroom": {
             "file": "textures/houseSelect/cyclopsShowroom.png"

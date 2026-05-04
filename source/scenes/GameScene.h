@@ -206,7 +206,7 @@ protected:
         By using a dedicated timeline, dialogue animations can be updated or
         interrupted independently of other game world animations.
      */
-    std::shared_ptr<cugl::ActionTimeline> _timeline;
+    std::shared_ptr<cugl::ActionTimeline> _tutorialTimeline;
 
     /** Audio controller. Manages all audio playback (music and sound effects). */
     AudioController* _audio;
@@ -235,8 +235,8 @@ protected:
     /** The node representing the boss character in the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
 
-    /** Whether the boss is allowed to perform attacks; tutorial can toggle this. */
-    bool _bossCanAttack = false;
+    /** Whether the boss is allowed to perform attacks; Specific to the tutorial. */
+    bool _tutorialBossCanAttack = false;
     
     /** UI slot used to display left teammate's avatar. */
     std::shared_ptr<cugl::scene2::PolygonNode> _leftPlayerSlot;
@@ -426,23 +426,23 @@ protected:
     std::vector<PendingFloatingPopup> _pendingFloatingPopups;
 
 #pragma mark - Tutorial Dialogue
-    /** The root node of the dialogue UI, used for animations and visibility */
-    std::shared_ptr<cugl::scene2::SceneNode> _dialogueBox;
+    /** The root node of the dialogue UI, used for animations and visibility. Specific to tutorial */
+    std::shared_ptr<cugl::scene2::SceneNode> _tutorialDialogueBox;
     
-    /** The label component inside the dialogue box that displays the actual text */
-    std::shared_ptr<cugl::scene2::Label> _dialogueLabel;
+    /** The label component inside the dialogue box that displays the actual text. Specific to tutorial */
+    std::shared_ptr<cugl::scene2::Label> _tutorialDialogueLabel;
     
-    /** The target on-screen position where the dialogue box rests when active */
-    cugl::Vec2 _dialogueBoxPos;
+    /** The target on-screen position where the dialogue box rests when active. Specific to tutorial */
+    cugl::Vec2 _tutorialDialogueBoxPos;
     
-    /** Buffer to hold the next string to display while the box is performing its "slide out" transition */
-    std::string _pendingDialogueText = "";
+    /** Buffer to hold the next string to display while the box is performing its "slide out" transition. Specific to tutorial*/
+    std::string _tutorialPendingDialogueText = "";
     
-    /** Timer to track the transition delay between sliding out old dialogue and sliding in the new message */
-    float _dialogueOutTimer = 0.0f;
+    /** Timer to track the transition delay between sliding out old dialogue and sliding in the new message. Specific to tutorial */
+    float _tutorialDialogueOutTimer = 0.0f;
     
-    /** Flag indicating the dialogue box is currently offscreen and ready to perform the "slide in" animation */
-    bool _waitingToSlideIn = false;
+    /** Flag indicating the dialogue box is currently offscreen and ready to perform the "slide in" animation. Specific to tutorial*/
+    bool _tutorialDialogueWaitingToSlideIn = false;
     
 #pragma mark - Glow Effect State
 
@@ -551,6 +551,7 @@ protected:
     Status _status;
     
 #pragma mark - Tutorial
+    /**True is this is the tutorial. Currently Circe **/
     bool _isTutorial;
 
 public:
@@ -1021,18 +1022,17 @@ public:
     /**
      * Spawns items for the local player every frame, and for all AI-controlled
      * players if this machine is the host. AI item spawning is host-only since
-     * the host is the authoritative source for all AI state.
+     * the host is the authoritative source for all AI state. Should be off if playing Tutorial.
      *
      * @param dt  Delta time in seconds.
      */
     void handleItemSpawn(float dt);
     
-    /** Enable or disable boss activity (tutorial steps may toggle this). */
-    void setBossActive(bool active);
-    /** Query whether the boss is currently allowed to attack. */
-    bool canBossAttack();
-    /** Force the boss to target a specific player slot (0-3). */
-    void setBossTarget(int index);
+    /**
+     * Enable or disable boss activity. Tutorial Specific.
+     * @param active What the boss should be set to in terms of activity.
+     */
+    void setTutorialBossActive(bool active);
     
     /**
      * Initializes a sliding item with the given velocity and origin type.
@@ -1056,20 +1056,22 @@ public:
      * Represents the animation to slide the dialogue in from the side of the screen in the tutorial only.
      */
     void slideDialogueIn();
+    
     /**
      * Represents the animation to slide the dialogue out to the side of the screen in the tutorial only.
      */
     void slideDialogueOut();
+    
     /**
      * Shows the dialogue box with the specified message..
      */
     void showDialogue(const std::string& message);
+    
     /**
      * Retracts the dialogue box.
      */
     void hideDialogue();
         
-    
     /**
      * Updates friction deceleration for a sliding item and its body position.
      * Called each frame to slow down items based on ITEM_SLIDE_FRICTION_DECELERATION.

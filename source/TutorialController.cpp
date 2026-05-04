@@ -89,7 +89,7 @@ void TutorialController::start() {
     _waitingForAction = false;
     
     if (_gameScene) {
-        _gameScene->setBossActive(false);
+        _gameScene->setTutorialBossActive(false);
     }
     CULog("Tutorial: started with %zu steps", _steps.size());
     advanceStep();
@@ -216,12 +216,6 @@ bool TutorialController::isWaitingForActionMatch(InputController::Action action)
  */
 void TutorialController::update(float dt) {
     if (!_active || _index < 0 || _index >= (int)_steps.size()) return;
-    
-    if (_gameScene) {
-        // Log the current boss active state from the GameScene
-        CULog("Tutorial: GameScene Boss Active State: %s",
-               _gameScene->canBossAttack() ? "TRUE" : "FALSE");
-    }
     
     CULog("Tutorial: index=%d type=%d waiting=%d timer=%.2f",
             _index, (int)_steps[_index].type, _waitingForAction ? 1 : 0, _timer);
@@ -362,7 +356,7 @@ bool TutorialController::executeStep(const TutorialStep& step) {
     
     // Apply the Boss State globally for the duration of this step
         if (_gameScene && step.bossActive.has_value()) {
-            _gameScene->setBossActive(*step.bossActive);
+            _gameScene->setTutorialBossActive(*step.bossActive);
             CULog("Tutorial: Setting Boss Active to %s", step.bossActive ? "TRUE" : "FALSE");
         }
 
@@ -407,7 +401,7 @@ bool TutorialController::executeStep(const TutorialStep& step) {
                 _gameScene->hideDialogue();
                 _gameScene->setTutorialHighlight("none");
                 CULog("Tutorial: END step reached — re-enabling boss");
-                _gameScene->setBossActive(true);
+                _gameScene->setTutorialBossActive(true);
             }
             _active = false;
             return true;
