@@ -186,7 +186,7 @@
             "name": "Mallet",
             "description": " ",
             "icon": "item_mallet",
-            "tooltip": "exampleTooltip",
+            "tooltip": "tooltip_mallet",
             "type": "attack",
             "rarity": "rare",
             "houseAffinity": "hephaestus",
