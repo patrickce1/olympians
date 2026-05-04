@@ -117,6 +117,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto shieldDef = db.getDef("shield");
     auto helmDef = db.getDef("helm");
     auto wheatDef = db.getDef("wheat");
+    auto resurrectionDef = db.getDef("resurrection");
     auto spearDef = db.getDef("spear");
     auto wingsDef = db.getDef("wings");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
@@ -143,6 +144,14 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
                     floatsEqualWithinTolerance(wheatDef->getEffects()[0].regenAmount, 25.0f) &&
                     floatsEqualWithinTolerance(wheatDef->getEffects()[0].duration, 5.0f),
            "items: wheat regen values parse");
+    assertWithLabel(resurrectionDef && resurrectionDef->hasEffectType(ItemDef::EffectType::Resurrect),
+           "items: resurrection parses resurrect effect");
+    assertWithLabel(resurrectionDef && !resurrectionDef->getEffects().empty() &&
+                    resurrectionDef->getEffects()[0].targetAllAllies &&
+                    floatsEqualWithinTolerance(resurrectionDef->getEffects()[0].reviveHealth, 25.0f) &&
+                    floatsEqualWithinTolerance(resurrectionDef->getEffects()[0].regenAmount, 25.0f) &&
+                    floatsEqualWithinTolerance(resurrectionDef->getEffects()[0].duration, 5.0f),
+           "items: resurrection revive and regen values parse");
     assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
            "items: spear parses vulnerable effect");
     assertWithLabel(spearDef && !spearDef->getEffects().empty() && floatsEqualWithinTolerance(spearDef->getEffects()[0].multiplier, 2.0f),
@@ -1155,6 +1164,71 @@ void testGaiaRockHealsEnemy(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     assertWithLabel(attacker.getInventory().empty(), "gaia_rock: item is consumed from inventory after use");
 }
 
+/**
+ * Tests the resurrection attack effect on dead allies only.
+ */
+void testResurrectionEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+    const std::string& housesJsonPath,
+    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "resurrection: item db load succeeds");
+
+    auto resurrectionDef = db.getDef("resurrection");
+    assertWithLabel(resurrectionDef != nullptr, "resurrection: resurrection def exists");
+    if (!resurrectionDef || resurrectionDef->getEffects().empty()) return;
+
+    const ItemDef::Effect resurrectEffect = resurrectionDef->getEffects()[0];
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "resurrection: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "resurrection: enemy init succeeds");
+    if (!enemyOk) return;
+
+    Player hades("hades", 0, "Hades Tester", loader);
+    Player allyOne("ares", 1, "Dead Ally One", loader);
+    Player allyTwo("zeus", 2, "Living Ally", loader);
+    Player allyThree("demeter", 3, "Dead Ally Two", loader);
+
+    hades.setLeftPlayer(&allyThree);
+    hades.setRightPlayer(&allyOne);
+    allyOne.setLeftPlayer(&hades);
+    allyOne.setRightPlayer(&allyTwo);
+    allyTwo.setLeftPlayer(&allyOne);
+    allyTwo.setRightPlayer(&allyThree);
+    allyThree.setLeftPlayer(&allyTwo);
+    allyThree.setRightPlayer(&hades);
+
+    allyOne.updateHealth(-999999.0f);
+    allyThree.updateHealth(-999999.0f);
+    allyTwo.updateHealth(-15.0f);
+    const float livingHealthBefore = allyTwo.getCurrentHealth();
+    const float enemyHealthBefore = enemy.getCurrentHealth();
+
+    auto instResurrection = ItemInstance::alloc("resurrection", 2002);
+    assertWithLabel(instResurrection != nullptr, "resurrection: create resurrection instance");
+    if (!instResurrection) return;
+    hades.addItem(*instResurrection);
+
+    const float resolvedAmount = hades.useItemById(instResurrection->getId(), enemy, db);
+    assertWithLabel(floatsEqualWithinTolerance(resolvedAmount, 0.0f), "resurrection: item returns zero base damage");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getCurrentHealth(), enemyHealthBefore), "resurrection: enemy is not damaged");
+    assertWithLabel(allyOne.isAlive() && allyThree.isAlive(), "resurrection: dead allies are revived");
+    assertWithLabel(floatsEqualWithinTolerance(allyOne.getCurrentHealth(), resurrectEffect.reviveHealth) &&
+                    floatsEqualWithinTolerance(allyThree.getCurrentHealth(), resurrectEffect.reviveHealth),
+                    "resurrection: revived allies receive configured revive health");
+    assertWithLabel(floatsEqualWithinTolerance(allyTwo.getCurrentHealth(), livingHealthBefore),
+                    "resurrection: living allies are untouched");
+    assertWithLabel(allyOne.hasRegen() && allyThree.hasRegen(), "resurrection: revived allies receive regen");
+    assertWithLabel(floatsEqualWithinTolerance(allyOne.getRegenAmountRemaining(), resurrectEffect.regenAmount) &&
+                    floatsEqualWithinTolerance(allyThree.getRegenDuration(), resurrectEffect.duration),
+                    "resurrection: regen values come from JSON");
+    assertWithLabel(hades.getInventory().empty(), "resurrection: item is consumed from inventory after use");
+}
+
 } // namespace
 
 void ItemTests::runAll(const std::string& itemsJsonPath,
@@ -1194,6 +1268,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testVulnerableEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testTridentVulnerableAllSides(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testGaiaRockHealsEnemy(itemsJson, housesJsonPath, enemiesJsonPath);
+    testResurrectionEffect(itemsJson, housesJsonPath, enemiesJsonPath);
     
     printSummary();
 }

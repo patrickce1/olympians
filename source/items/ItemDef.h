@@ -70,6 +70,7 @@ public:
         Shield,
         Barrier,
         Regen,
+        Resurrect,
         Stun,
         Love,
         Slow,
@@ -93,10 +94,14 @@ public:
         float mitigation = 0.0f;
         /** Flat healing amount used by regen effects. */
         float regenAmount = 0.0f;
+        /** Flat health restored immediately when a resurrection revives a dead ally. */
+        float reviveHealth = 0.0f;
         /** Duration in seconds for timed effects. */
         float duration = 0.0f;
         /** Whether an item effect should apply to all four boss sides. */
         bool applyToAllSides = false;
+        /** Whether an item effect should target every allied player slot. */
+        bool targetAllAllies = false;
     };
 
 private:

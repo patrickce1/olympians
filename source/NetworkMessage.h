@@ -48,7 +48,8 @@ enum class SupportEffectType : int32_t {
     Heal = 0,
     Shield = 1,
     Barrier = 2,
-    Regen = 3
+    Regen = 3,
+    Resurrect = 4
 };
 
 /** Attack effect categories sent from clients to the host. */
@@ -74,6 +75,8 @@ struct SupportEffectMessage {
     SupportEffectType effectType;
     float magnitude;
     float duration;
+    float secondaryMagnitude = 0.0f;
+    bool applyToAllPlayers = false;
 };
 
 /** Message sent by the client to indicate an enemy-affecting item effect. */

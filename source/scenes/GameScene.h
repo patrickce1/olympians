@@ -405,6 +405,23 @@ protected:
     /** Vector of pending floating popups that have been queued but not yet spawned. */
     std::vector<PendingFloatingPopup> _pendingFloatingPopups;
 
+    /** Tracks a client-predicted resurrection until the authoritative host snapshot catches up. */
+    struct PendingResurrectionSync {
+        /** Party slots that were dead when the resurrection item was used locally. */
+        std::vector<int> playerSlots;
+        /** Health each revived slot should be restored to. */
+        float reviveHealth = 0.0f;
+        /** Total regen to arm on each revived slot. */
+        float regenAmount = 0.0f;
+        /** Regen duration to arm on each revived slot. */
+        float regenDuration = 0.0f;
+        /** Whether there is an active pending resurrection prediction. */
+        bool active = false;
+    };
+
+    /** Client-side predicted resurrection state waiting for host confirmation. */
+    PendingResurrectionSync _pendingResurrectionSync;
+
 #pragma mark - Glow Effect State
 
     /** The drop zone action whose region should currently glow. */
@@ -1328,6 +1345,14 @@ public:
     void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
                                     const cugl::Vec2& dropPos,
                                     bool shouldShowEffectPopup);
+
+    /**
+     * Reapplies a pending client-side resurrection after stale host snapshots, until host sync catches up.
+     *
+     * Used only on non-host clients after `GameState::networkUpdate()` so a just-used
+     * resurrection item is not visually reverted by an older authoritative snapshot.
+     */
+    void applyPendingResurrectionSync();
 
     /**
      * Plays the item's defined use sound, or the generic "support" sound if none is set.

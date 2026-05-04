@@ -365,6 +365,19 @@ void GameState::bossHealUpdates(std::vector<BossHealMessage> bossHeals) {
  */
 void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects) {
     for (const SupportEffectMessage& effect : supportEffects) {
+        if (effect.effectType == SupportEffectType::Resurrect && effect.applyToAllPlayers) {
+            for (const auto& player : _players) {
+                if (!player || player->isAlive()) {
+                    continue;
+                }
+                player->setCurrentHealth(effect.magnitude);
+                if (effect.secondaryMagnitude > 0.0f && effect.duration > 0.0f) {
+                    player->applyRegen(effect.secondaryMagnitude, effect.duration);
+                }
+            }
+            continue;
+        }
+
         if (effect.playerID < 0 || effect.playerID >= (int)_players.size()) continue;
 
         Player* target = _players[effect.playerID].get();
@@ -382,6 +395,8 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
                 break;
             case SupportEffectType::Regen:
                 target->applyRegen(effect.magnitude, effect.duration);
+                break;
+            case SupportEffectType::Resurrect:
                 break;
         }
     }

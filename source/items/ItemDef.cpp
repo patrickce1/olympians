@@ -41,6 +41,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
         out = ItemDef::EffectType::Regen;
         return true;
     }
+    if (value == "resurrect") {
+        out = ItemDef::EffectType::Resurrect;
+        return true;
+    }
     if (value == "stun") {
         out = ItemDef::EffectType::Stun;
         return true;
@@ -166,6 +170,7 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
 
     out.mitigation = 0.0f;
     out.regenAmount = 0.0f;
+    out.reviveHealth = 0.0f;
     if (json->has("mitigation") && json->get("mitigation")->isNumber()) {
         out.mitigation = std::max(0.0f, json->getFloat("mitigation"));
     } else if (json->has("amount") && json->get("amount")->isNumber()) {
@@ -174,6 +179,9 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
 
     if (json->has("amount") && json->get("amount")->isNumber()) {
         out.regenAmount = std::max(0.0f, json->getFloat("amount"));
+    }
+    if (json->has("reviveHealth") && json->get("reviveHealth")->isNumber()) {
+        out.reviveHealth = std::max(0.0f, json->getFloat("reviveHealth"));
     }
 
     out.duration = 0.0f;
@@ -184,6 +192,11 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
     out.applyToAllSides = false;
     if (json->has("applyToAllSides") && json->get("applyToAllSides")->isBool()) {
         out.applyToAllSides = json->getBool("applyToAllSides", false);
+    }
+
+    out.targetAllAllies = false;
+    if (json->has("target") && json->get("target")->isString()) {
+        out.targetAllAllies = normalizeToken(json->getString("target")) == "all_allies";
     }
 
     return true;

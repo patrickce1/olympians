@@ -109,6 +109,14 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                     effect.duration,
                     targetPlayerID);
                 break;
+            case ItemDef::EffectType::Resurrect:
+                network.broadcastSupportEffect(SupportEffectType::Resurrect,
+                    effect.reviveHealth,
+                    effect.duration,
+                    -1,
+                    effect.regenAmount,
+                    effect.targetAllAllies);
+                break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Slow:
@@ -118,6 +126,58 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
         }
     }
 }
+
+/**
+ * Returns the first resurrect effect defined on an item, if any.
+ *
+ * @param def The item definition to scan for a resurrect effect entry.
+ * @return A pointer to the first resurrect effect on the item, or `nullptr` if none exists.
+ */
+static const ItemDef::Effect* findResurrectEffect(const ItemDef& def) {
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        if (effect.type == ItemDef::EffectType::Resurrect) {
+            return &effect;
+        }
+    }
+    return nullptr;
+}
+
+/**
+ * Returns the party slots that are currently dead and reachable from the given source player.
+ *
+ * Traverses the local party ring using left/right player links and records only the
+ * player numbers of members who are dead at the time of the query.
+ *
+ * @param source The player whose connected party should be traversed.
+ * @return A vector of player slot indices for party members who are currently dead.
+ */
+static std::vector<int> collectDeadPartyPlayerSlots(Player& source) {
+    std::vector<Player*> party;
+    std::vector<int> deadSlots;
+    party.push_back(&source);
+    for (size_t index = 0; index < party.size() && party.size() < Enemy::NUM_PLAYERS; ++index) {
+        Player* player = party[index];
+        if (!player) {
+            continue;
+        }
+
+        if (!player->isAlive()) {
+            deadSlots.push_back(player->getPlayerNumber());
+        }
+
+        Player* neighbors[2] = { player->getLeftPlayer(), player->getRightPlayer() };
+        for (Player* neighbor : neighbors) {
+            if (!neighbor) {
+                continue;
+            }
+            if (std::find(party.begin(), party.end(), neighbor) == party.end()) {
+                party.push_back(neighbor);
+            }
+        }
+    }
+    return deadSlots;
+}
+
 
 /**
  * Collects the resolved enemy-facing effects of an attack item.
@@ -170,6 +230,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
             case ItemDef::EffectType::Regen:
+            case ItemDef::EffectType::Resurrect:
                 break;
         }
     }
@@ -617,6 +678,7 @@ void GameScene::dispose() {
         _consumedItemAnimations.clear();
         _activeFloatingPopups.clear();
         _pendingFloatingPopups.clear();
+        _pendingResurrectionSync = PendingResurrectionSync{};
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
             _itemPhysicsWorld->dispose();
@@ -728,6 +790,7 @@ void GameScene::reset() {
     _status = Status::PLAYING;
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
+    _pendingResurrectionSync = PendingResurrectionSync{};
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
@@ -830,9 +893,33 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
+    const ItemDef::Effect* resurrectEffect = findResurrectEffect(*def);
+    const std::vector<int> resurrectedSlots =
+        (resurrectEffect && shouldApplyEffects && resurrectEffect->targetAllAllies)
+            ? collectDeadPartyPlayerSlots(*local)
+            : std::vector<int>{};
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
+    }
+
+    if (resurrectEffect && shouldApplyEffects && resurrectEffect->targetAllAllies) {
+        if (!_network->isHost()) {
+            _pendingResurrectionSync.playerSlots = resurrectedSlots;
+            _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
+            _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
+            _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
+            _pendingResurrectionSync.active = !resurrectedSlots.empty();
+            _network->broadcastSupportEffect(SupportEffectType::Resurrect,
+                resurrectEffect->reviveHealth,
+                resurrectEffect->duration,
+                -1,
+                resurrectEffect->regenAmount,
+                true);
+        }
+
+        CULog("Player used resurrection item %llu", (unsigned long long)itemId);
+        return true;
     }
 
     // Host snapshots are authoritative for slow timing, so non-host clients
@@ -885,10 +972,34 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
+    const ItemDef::Effect* resurrectEffect = findResurrectEffect(*def);
+    const std::vector<int> resurrectedSlots =
+        (resurrectEffect && shouldApplyEffects && resurrectEffect->targetAllAllies)
+            ? collectDeadPartyPlayerSlots(*local)
+            : std::vector<int>{};
 
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
+    }
+
+    if (resurrectEffect && shouldApplyEffects && resurrectEffect->targetAllAllies) {
+        if (!_network->isHost()) {
+            _pendingResurrectionSync.playerSlots = resurrectedSlots;
+            _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
+            _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
+            _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
+            _pendingResurrectionSync.active = !resurrectedSlots.empty();
+            _network->broadcastSupportEffect(SupportEffectType::Resurrect,
+                resurrectEffect->reviveHealth,
+                resurrectEffect->duration,
+                -1,
+                resurrectEffect->regenAmount,
+                true);
+        }
+
+        CULog("Player used resurrection item %llu", (unsigned long long)itemId);
+        return true;
     }
 
     // Host snapshots are authoritative for slow timing, so non-host clients
@@ -921,11 +1032,13 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         return true;
     }
 
-    const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
-    const float finalDamage     = resolvedMagnitude * sideMultiplier;
-    createFloatingPopup(dropPos, buildAttackDamagePopups(
-        baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
-        resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+    if (baseValue > 0.0f) {
+        const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
+        const float finalDamage     = resolvedMagnitude * sideMultiplier;
+        createFloatingPopup(dropPos, buildAttackDamagePopups(
+            baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
+            resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+    }
 
     return true;
 }
@@ -2032,6 +2145,40 @@ void GameScene::handleNetworkUpdates(float dt) {
     }
 
     processNetworkedPasses(_network->getPassUpdates());
+}
+
+/**
+ * Reapplies a pending client-side resurrection after stale host snapshots, until host sync catches up.
+ *
+ * Each queued slot is checked against the latest replicated game state. Slots that are
+ * still dead are restored locally using the cached revive and regen values; once all
+ * tracked slots are alive in the authoritative snapshot, the pending cache is cleared.
+ */
+void GameScene::applyPendingResurrectionSync() {
+    if (!_pendingResurrectionSync.active) {
+        return;
+    }
+
+    bool waitingForHost = false;
+    for (int slot : _pendingResurrectionSync.playerSlots) {
+        Player* player = _gameState.getPlayerBySlot(slot);
+        if (!player) {
+            continue;
+        }
+        if (player->isAlive()) {
+            continue;
+        }
+
+        player->setCurrentHealth(_pendingResurrectionSync.reviveHealth);
+        if (_pendingResurrectionSync.regenAmount > 0.0f && _pendingResurrectionSync.regenDuration > 0.0f) {
+            player->applyRegen(_pendingResurrectionSync.regenAmount, _pendingResurrectionSync.regenDuration);
+        }
+        waitingForHost = true;
+    }
+
+    if (!waitingForHost) {
+        _pendingResurrectionSync = PendingResurrectionSync{};
+    }
 }
 
 /** 
@@ -3578,16 +3725,18 @@ void GameScene::updateItemUseAnimations(float dt) {
             if (activeAnim.damageAmount > 0.0f) {
                 auto enemy = _gameState.getEnemy();
                 if (enemy) {
-                    const int   playerNum      = _gameState.getLocalPlayer()->getPlayerNumber();
-                    const float sideMultiplier = enemy->getSideMultiplier(playerNum);
-                    const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
+                    const int playerNum = _gameState.getLocalPlayer()->getPlayerNumber();
 
                     // Apply pre-calculated damage and show the popup sequence.
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
-                    createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
-                        activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
-                        activeAnim.upgradeMultiplier, sideMultiplier,
-                        activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
+                    if (activeAnim.baseValue > 0.0f) {
+                        const float sideMultiplier = enemy->getSideMultiplier(playerNum);
+                        const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
+                        createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
+                            activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
+                            activeAnim.upgradeMultiplier, sideMultiplier,
+                            activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
+                    }
 
                     // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {

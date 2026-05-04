@@ -335,11 +335,19 @@
             "name": "Resurrection",
             "description": " ",
             "icon": "item_hades_resurrection",
-            "type": "support",
+            "type": "attack",
             "rarity": "divine",
             "houseAffinity": "hades",
             "baseValue": 0.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "resurrect",
+                    "target": "all_allies",
+                    "reviveHealth": 25.0,
+                    "amount": 25.0,
+                    "duration": 5.0
+                }
+            ]
         },
         {
             "id": "abundance",
