@@ -19,9 +19,6 @@ using namespace std;
 
 /** Constant to define Box2D obstacle physics base unit */
 constexpr float ITEM_SPEED_UNITS = 1.0f;
-
-#pragma mark Sliding Item Physics Constants
-
 /** Deceleration rate for sliding items per second (units/sec²) */
 constexpr float ITEM_SLIDE_FRICTION_DECELERATION = 2500.0f;
 /** Velocity threshold below which a sliding item is considered to have settled (units/sec) */
@@ -42,6 +39,8 @@ constexpr float ITEM_SCALE_SPEED = 14.0f;
 constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
 //Defines how large the item is once it has been used. So it shrinks to this size.
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
+//Defines the gap between the item and its tooltip
+constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 
 #pragma mark HealthState
 
@@ -378,6 +377,9 @@ bool GameScene::initSceneGraph() {
         _passRightArea = _inventory->getChildByName("passZoneRight");
     }
     
+    _tooltipNode = std::dynamic_pointer_cast<scene2::PolygonNode>(
+        _assets->get<scene2::SceneNode>("gameScene.tooltip"));
+    
     addChild(_scene);
     return true;
 }
@@ -552,6 +554,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     _assets->loadDirectory("json/itemTextures.json");
     _assets->loadDirectory("json/itemAnimations.json");
     _assets->loadDirectory("json/houseInGameIcons.json");
+    _assets->loadDirectory("json/itemTooltips.json");
 
     // Load animation registry from the already-registered enemyAnimations JSON asset
     loadAnimationRegistry();
@@ -1867,6 +1870,11 @@ void GameScene::handlePlayerInput(InputController& input) {
         _audio->playSoundUnique("deselect");
 
     }
+    
+    // Tooltip cleanup
+    _tooltipNode->setVisible(false);
+    _holdTimer        = 0.0f;
+    _holdAnchorPos    = Vec2::ZERO;
 
     _draggedIcon = nullptr;
     if (_draggedItemId != 0) {
@@ -1931,6 +1939,11 @@ void GameScene::handleDragInitiation(InputController& input) {
             _itemWidgetScaleTargets[id] = ITEM_PICKUP_SCALE;
             _dragOffset = widget->getPosition() - touchPosScreen;
 
+            // Reset tooltip
+            _holdTimer        = 0.0f;
+            _holdAnchorPos    = touchPosScreen;
+            _tooltipNode->setVisible(false);
+            
             // Bring item to front of render order when picked up
             if (_inventory) {
                 _inventory->removeChild(widget);
@@ -1960,6 +1973,16 @@ void GameScene::handleDragTracking(InputController& input) {
 
     Vec2 dragScene = screenToWorldCoords(input.getDragPos());
     Vec2 widgetPosition = dragScene + _dragOffset;
+    
+    // dismiss tooltip movement
+    if (_tooltipNode) {
+        if (dragScene.distance(_holdAnchorPos) > _tooltipMoveLimit) {
+            _holdAnchorPos = dragScene;
+            _holdTimer        = 0.0f;
+            _tooltipNode->setVisible(false);
+        }
+    }
+    
     auto body = _itemBodies.find(_draggedItemId);
     if (body != _itemBodies.end() && body->second) {
         _dragPreviousFrameItemBodyPos = body->second->getPosition(); // Store current position for velocity calculation
@@ -2347,6 +2370,32 @@ bool GameScene::handleSettledItem(ItemInstance* item, std::shared_ptr<cugl::phys
 }
 
 /**
+ * Handles tooltip visibility during drag: after holding long enough,
+ * shows the tooltip (once) and keeps it aligned with the dragged item.
+ *
+ * @param dt  Delta time in seconds.
+ */
+void GameScene::handleTooltipVisibility(float dt) {
+    if (_draggedIcon && _tooltipNode) {
+        _holdTimer += dt;
+        if (_holdTimer >= _holdThreshold) {
+            if (!_tooltipNode->isVisible()) {
+                // First frame threshold crossed — swap texture for this item
+                if (_draggedItemDef) {
+                    const std::string tooltipKey = _draggedItemDef->getTooltipKey();
+                    auto tex = _assets->get<cugl::graphics::Texture>(tooltipKey);
+                    if (tex) _tooltipNode->setTexture(tex);
+                    _tooltipNode->setScale(0.4315);
+                }
+                _tooltipNode->setVisible(true);
+            }
+            // keep tooltip above the moving widget
+            updateTooltipPosition();
+        }
+    }
+}
+
+/**
  * Checks if a settled item should be removed due to being off-screen.
  * Only applies to spawned and passed items; dropped items are exempted.
  *
@@ -2644,6 +2693,22 @@ void GameScene::updateDropZoneVisibility(){
     }
 }
 
+/**
+ * Repositions the tooltip node above the currently dragged icon.
+ * Must only be called while _draggedIcon and _tooltipNode are valid.
+ */
+void GameScene::updateTooltipPosition() {
+    Size widgetSize = _draggedIcon->getContentSize();
+
+    Vec2 widgetPos = _draggedIcon->getPosition();
+
+    // Center tooltip horizontally over the widget, place it just above
+    float x = widgetPos.x + (widgetSize.width  - _tooltipNode->getWidth()) * 0.5f;
+    float y = widgetPos.y +  widgetSize.height + ITEM_TOOLTIP_GAP;
+
+    _tooltipNode->setPosition(Vec2(x, y));
+}
+
 #pragma mark -
 #pragma mark Update
 
@@ -2684,6 +2749,7 @@ void GameScene::update(float dt, InputController& input) {
     updateDebugPointer(input);
     handleDragInitiation(input);
     handleDragTracking(input);
+    handleTooltipVisibility(dt);
 
     if (_itemPhysicsWorld) {
         _itemPhysicsWorld->update(dt);
