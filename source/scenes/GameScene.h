@@ -1323,6 +1323,7 @@ public:
      *
      * @param def      The item definition whose effects to scan.
      * @param dropPos  Screen-space position where popups appear.
+     * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
      */
     void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
                                     const cugl::Vec2& dropPos,

@@ -3919,10 +3919,9 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
  *
  * @param def      The item definition whose effects to scan.
  * @param dropPos  Screen-space position where popups appear.
+ * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
  */
-void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
-                                   const cugl::Vec2& dropPos,
-                                   bool shouldShowEffectPopup) {
+void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos, bool shouldShowEffectPopup) {
     for (const auto& effect : def->getEffects()) {
         if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
             char text[32];
