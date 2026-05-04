@@ -129,6 +129,7 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
  * @param def                The item definition describing the attack item's effects.
  * @param resolvedMagnitude  The resolved attack magnitude calculated for this item use.
  * @param playerIndex    The index of the player applying the enemy effect.
+ * @param shouldApplyEffects  Whether the effects should be applied or not.
  * @return   The collection of enemy effects to be applied this frame.
  */
 static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, float resolvedMagnitude, int playerIndex, bool shouldApplyEffects) {
