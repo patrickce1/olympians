@@ -495,6 +495,9 @@
         "teamRightFrame": {
           "file": "textures/gameScene/teamRightFill.png"
         },
+        "deathLabel": {
+          "file": "textures/gameScene/deathLabel.png"
+        },
         "winSign": {
             "file": "textures/winLoseScene/winSign.png"
         },
