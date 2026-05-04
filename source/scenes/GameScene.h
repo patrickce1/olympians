@@ -1372,6 +1372,22 @@ public:
                                     bool hasHealingPopup);
 
     /**
+     * Handles the shared ally-target branch for attack items and returns whether it fully resolved the item use.
+     *
+     * Applies any client-side pending resurrection cache needed to mask stale host snapshots,
+     * broadcasts ally-target support effects to the host on non-host clients, and early-outs
+     * the attack pipeline when the item is configured to target all allies instead of the enemy.
+     *
+     * @param itemId The item instance ID being used.
+     * @param def The item definition that controls attack target routing and effects.
+     * @param local The local player performing the attack.
+     * @param resolvedMagnitude The resolved attack magnitude returned by `useItemById`.
+     * @param shouldApplyEffects Whether the item's configured effects should be dispatched.
+     * @return True if the item targeted all allies and was fully handled here; false if enemy-target attack handling should continue.
+     */
+    bool handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::shared_ptr<const ItemDef>& def, Player* local, float resolvedMagnitude, bool shouldApplyEffects);
+
+    /**
      * Reapplies a pending client-side resurrection after stale host snapshots, until host sync catches up.
      *
      * Used only on non-host clients after `GameState::networkUpdate()` so a just-used

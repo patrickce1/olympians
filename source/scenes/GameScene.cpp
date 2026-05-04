@@ -905,30 +905,12 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
-    const bool targetsAllAllies = def->getAttackTarget() == ItemDef::AttackTarget::AllAllies;
-    const ItemDef::Effect* resurrectEffect = findEffect(*def, ItemDef::EffectType::Resurrect);
-    const std::vector<int> resurrectedSlots =
-        (targetsAllAllies && resurrectEffect && shouldApplyEffects)
-            ? collectDeadPartyPlayerSlots(*local)
-            : std::vector<int>{};
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
 
-    if (targetsAllAllies) {
-        if (!_network->isHost()) {
-            if (resurrectEffect && shouldApplyEffects) {
-                _pendingResurrectionSync.playerSlots = resurrectedSlots;
-                _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
-                _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
-                _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
-                _pendingResurrectionSync.active = !resurrectedSlots.empty();
-            }
-            broadcastSupportEffects(*_network, *def, resolvedMagnitude, -1, shouldApplyEffects, true);
-        }
-
-        CULog("Player used ally-target attack item %llu", (unsigned long long)itemId);
+    if (handleAllyTargetAttack(itemId, def, local, resolvedMagnitude, shouldApplyEffects)) {
         return true;
     }
 
@@ -982,31 +964,13 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
-    const bool targetsAllAllies = def->getAttackTarget() == ItemDef::AttackTarget::AllAllies;
-    const ItemDef::Effect* resurrectEffect = findEffect(*def, ItemDef::EffectType::Resurrect);
-    const std::vector<int> resurrectedSlots =
-        (targetsAllAllies && resurrectEffect && shouldApplyEffects)
-            ? collectDeadPartyPlayerSlots(*local)
-            : std::vector<int>{};
 
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
 
-    if (targetsAllAllies) {
-        if (!_network->isHost()) {
-            if (resurrectEffect && shouldApplyEffects) {
-                _pendingResurrectionSync.playerSlots = resurrectedSlots;
-                _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
-                _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
-                _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
-                _pendingResurrectionSync.active = !resurrectedSlots.empty();
-            }
-            broadcastSupportEffects(*_network, *def, resolvedMagnitude, -1, shouldApplyEffects, true);
-        }
-
-        CULog("Player used ally-target attack item %llu", (unsigned long long)itemId);
+    if (handleAllyTargetAttack(itemId, def, local, resolvedMagnitude, shouldApplyEffects)) {
         return true;
     }
 
@@ -1048,6 +1012,38 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
             resolvedMagnitude, finalDamage, 26.0f, 17.0f));
     }
 
+    return true;
+}
+
+/**
+ * Handles the shared ally-target branch for attack items and returns whether it fully resolved the item use.
+ *
+ * @param itemId The item instance ID being used.
+ * @param def The item definition that controls attack target routing and effects.
+ * @param local The local player performing the attack.
+ * @param resolvedMagnitude The resolved attack magnitude returned by `useItemById`.
+ * @param shouldApplyEffects Whether the item's configured effects should be dispatched.
+ * @return True if the item targeted all allies and was fully handled here; false if enemy-target attack handling should continue.
+ */
+bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::shared_ptr<const ItemDef>& def, Player* local, float resolvedMagnitude, bool shouldApplyEffects) {
+    if (def->getAttackTarget() != ItemDef::AttackTarget::AllAllies) {
+        return false;
+    }
+
+    if (!_network->isHost()) {
+        const ItemDef::Effect* resurrectEffect = findEffect(*def, ItemDef::EffectType::Resurrect);
+        if (resurrectEffect && shouldApplyEffects) {
+            const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(*local);
+            _pendingResurrectionSync.playerSlots = resurrectedSlots;
+            _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
+            _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
+            _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
+            _pendingResurrectionSync.active = !resurrectedSlots.empty();
+        }
+        broadcastSupportEffects(*_network, *def, resolvedMagnitude, -1, shouldApplyEffects, true);
+    }
+
+    CULog("Player used ally-target attack item %llu", (unsigned long long)itemId);
     return true;
 }
 
