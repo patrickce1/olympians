@@ -285,9 +285,8 @@
             "type": "attack",
             "rarity": "rare",
             "houseAffinity": "aphrodite",
-            "baseValue": 0.0,
-            "weight": 11.0,
             "baseValue": 10.0,
+            "weight": 11.0,
             "effects": [
                 {
                     "type": "love",
