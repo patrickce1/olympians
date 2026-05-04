@@ -374,6 +374,15 @@ void HouseSelectScene::slideTo(int newIndex) {
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
     
+    if (_currentIndex == 0) {
+        _leftButton->setVisible(false);
+    } else if (_currentIndex == _houseCards.size() - 1) {
+        _rightButton->setVisible(false);
+    } else {
+        _rightButton->setVisible(true);
+        _leftButton->setVisible(true);
+    }
+    
     for (int i = 0; i < _houseCards.size(); i++) {
         auto card = _houseCards[i];
         if (card) {
