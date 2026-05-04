@@ -84,8 +84,7 @@ static HealthState getHealthState(float current, float max) {
  * @param shouldApplyEffects  Whether the effect should be broadcasted or not
  * @param applyToAllPlayers Whether the effect should be applied to every allied player slot.
  */
-static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude,
-                                    int targetPlayerID, bool shouldApplyEffects, bool applyToAllPlayers = false) {
+static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int targetPlayerID, bool shouldApplyEffects, bool applyToAllPlayers = false) {
     if (!shouldApplyEffects) {
         return;
     }
