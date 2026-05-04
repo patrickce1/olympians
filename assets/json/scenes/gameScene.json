@@ -1,257 +1,274 @@
 {
-  "variables": {},
-  "contents": {
-    "type": "Node",
-    "data": {
-      "size": [393, 852],
-      "anchor": [0, 0]
-    },
-    "format": {
-      "type": "Anchored"
-    },
-    "children": {
-      "background": {
-        "type": "Solid",
-        "data": {
-          "polygon": [800, 852, 0, 852, 0, 0, 800, 0],
-          "color": "#251919",
-          "anchor": [0, 0],
-          "position": [0, 0],
-          "visible": true,
-          "angle": 0
-        },
-        "layout": {
-          "x_anchor": "middle",
-          "y_anchor": "center",
-          "absolute": false,
-          "x_offset": 0,
-          "y_offset": 0
-        }
-      },
-      "gameArea": {
+    "variables": {},
+    "contents": {
         "type": "Node",
-        "format": {
-          "type": "Anchored"
-        },
         "data": {
-          "anchor": [0, 0],
-          "size": [1, 598],
-          "angle": 0,
-          "position": [0, 254],
-          "visible": true
+            "size": [393, 852],
+            "anchor": [0, 0]
+        },
+        "format": {
+            "type": "Anchored"
         },
         "children": {
-          "background": {
-            "type": "Image",
-            "data": {
-              "texture": "cyclopsBackground",
-              "anchor": [0.5, 0],
-              "size": [680, 652],
-              "angle": 0,
-              "position": [0, -53.64],
-              "visible": true
+            "background": {
+                "type": "Solid",
+                "data": {
+                    "polygon": [
+                        800,
+                        852,
+                        0,
+                        852,
+                        0,
+                        0,
+                        800,
+                        0
+                    ],
+                    "color": "#251919",
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true,
+                    "angle": 0
+                },
+                "layout": {
+                    "x_anchor": "middle",
+                    "y_anchor": "center",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
             },
-            "layout": {
-              "x_anchor": "center",
-              "y_anchor": "bottom",
-              "absolute": false,
-              "x_offset": 0,
-              "y_offset": -0.09
-            }
-          },
-          "bossIdle": {
-            "type": "Image",
-            "data": {
-              "texture": "cyclops",
-              "anchor": [0.5, 0],
-              "size": [393, 598],
-              "angle": 0,
-              "position": [0, 0],
-              "visible": true
+            "gameArea": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "size": [
+                        1, 598
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        254
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "background": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "cyclopsBackground",
+                            "anchor": [
+                                0.5,
+                                0
+                            ],
+                            "size": [
+                                680,
+                                652
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                -53.64
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.09
+                        }
+                    },
+                    "bossIdle": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "cyclops",
+                            "anchor": [
+                                0.5,
+                                0
+                            ],
+                            "size": [
+                                393, 598
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "bossAnimationSpace": {
+                        "type": "Node",
+                        "format": { "type": "Anchored" },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0
+                            ],
+                            "size": [
+                                393, 598
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": false
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "dialogueBox": {
+                        "type": "Widget",
+                        "data": {
+                            "key": "dialogueBox",
+                            "variables": {}
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.0,
+                            "y_offset": 0.00
+                        }
+                    },
+                    "leftIcon": {
+                        "type": "Widget",
+                        "data": {
+                            "key": "leftIcon",
+                            "variables": {
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0.78
+                        }
+                    },
+                    "rightIcon": {
+                        "type": "Widget",
+                        "data": {
+                            "key": "rightIcon",
+                            "variables": {
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "right",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0.78
+                        }
+                    },
+                    "supportLeft": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "supportZoneL",
+                            "anchor": [0, 0],
+                            "size": [90, 510],
+                            "visible": false
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0.09
+                        }
+                    },
+                    "supportRight": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "supportZoneR",
+                            "anchor": [1, 0],
+                            "size": [90, 510],
+                            "visible": false
+                        },
+                        "layout": {
+                            "x_anchor": "right",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0.09
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0.3
+                }
             },
-            "layout": {
-              "x_anchor": "center",
-              "y_anchor": "bottom",
-              "absolute": false,
-              "x_offset": 0,
-              "y_offset": 0
-            }
-          },
-          "bossAnimationSpace": {
-            "type": "Node",
-            "format": { "type": "Anchored" },
-            "data": {
-              "anchor": [0.5, 0],
-              "size": [393, 598],
-              "angle": 0,
-              "position": [0, 0],
-              "visible": false
+            "inventory": {
+                "type": "Widget",
+                "data": {
+                    "key": "inventory",
+                    "variables": {}
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
             },
-            "children": {},
-            "layout": {
-              "x_anchor": "center",
-              "y_anchor": "bottom",
-              "absolute": false,
-              "x_offset": 0,
-              "y_offset": 0
-            }
-          },
-          "leftIcon": {
-            "type": "Widget",
-            "data": {
-              "key": "leftIcon",
-              "variables": {}
-            },
-            "layout": {
-              "x_anchor": "left",
-              "y_anchor": "bottom",
-              "absolute": false,
-              "x_offset": 0,
-              "y_offset": 0.78
-            }
-          },
-          "rightIcon": {
-            "type": "Widget",
-            "data": {
-              "key": "rightIcon",
-              "variables": {}
-            },
-            "layout": {
-              "x_anchor": "right",
-              "y_anchor": "bottom",
-              "absolute": false,
-              "x_offset": 0,
-              "y_offset": 0.78
-            }
-          },
-          "supportLeft": {
-            "type": "Image",
-            "data": {
-              "texture": "supportZoneL",
-              "anchor": [0, 0],
-              "size": [90, 510],
-              "visible": false
-            },
-            "layout": {
-              "x_anchor": "left",
-              "y_anchor": "bottom",
-              "absolute": false,
-              "x_offset": 0,
-              "y_offset": 0.09
-            }
-          },
-          "supportRight": {
-            "type": "Image",
-            "data": {
-              "texture": "supportZoneR",
-              "anchor": [1, 0],
-              "size": [90, 510],
-              "visible": false
-            },
-            "layout": {
-              "x_anchor": "right",
-              "y_anchor": "bottom",
-              "absolute": false,
-              "x_offset": 0,
-              "y_offset": 0.09
-            }
-          },
-          "dialogueBox": {
-            "type": "Node",
-            "format": {
-              "type": "Anchored"
-            },
-            "data": {
-              "anchor": [0, 0],
-              "size": [400, 200],
-              "angle": 0,
-              "visible": true
-            },
-            "children": {
-              "bg": {
+            "tooltip": {
                 "type": "Image",
                 "data": {
-                  "texture": "dialogueBox",
-                  "anchor": [0, 0],
-                  "size": [400, 200],
-                  "visible": true,
-                  "angle": 0
-                },
-                "layout": {
-                  "x_anchor": "left",
-                  "y_anchor": "bottom",
-                  "absolute": false,
-                  "x_offset": 0,
-                  "y_offset": 0.2
+                    "texture": "exampleTooltip",
+                    "size": [672,327],
+                    "anchor": [
+                        0,
+                        0
+                    ],
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": false,
+                    "angle": 0
                 }
-              },
-              "label": {
-                "type": "Label",
-                "data": {
-                  "anchor": [0,0.5],
-                  "size": [1000, 180],
-                  "angle": 0,
-                  "visible": true,
-                  "font": "mainFont",
-                  "text": "",
-                  "foreground": "#ffffffff",
-                  "background": "#00000000",
-                  "padding": [0,0,0,0],
-                  "valign": "middle",
-                  "halign": "left",
-                  "wrap": true,
-                  "scale": 0.3
-                },
-                "children": {},
-                "layout": {
-                  "x_anchor": "left",
-                  "y_anchor": "middle",
-                  "absolute": false,
-                  "x_offset": 0.02,
-                  "y_offset": 0.14
-                }
-              }
             },
-            "layout": {
-              "x_anchor": "left",
-              "y_anchor": "bottom",
-              "absolute": false,
-              "x_offset": 0.0,
-              "y_offset": 0.00
+            "resetButton": {
+                "type": "Image",
+                "data": {
+                    "texture": "debugReset",
+                    "anchor": [0.5, 0.5],
+                    "size": [40, 40],
+                    "position": [200, 780]
+                }
             }
-          }
-        },
-        "layout": {
-          "x_anchor": "left",
-          "y_anchor": "bottom",
-          "absolute": false,
-          "x_offset": 0,
-          "y_offset": 0.3
         }
-      },
-      "inventory": {
-        "type": "Widget",
-        "data": {
-          "key": "inventory",
-          "variables": {}
-        },
-        "layout": {
-          "x_anchor": "left",
-          "y_anchor": "bottom",
-          "absolute": false,
-          "x_offset": 0,
-          "y_offset": 0
-        }
-      },
-      "resetButton": {
-        "type": "Image",
-        "data": {
-          "texture": "debugReset",
-          "anchor": [0.5, 0.5],
-          "size": [40, 40],
-          "position": [200, 780]
-        }
-      }
     }
-  }
 }

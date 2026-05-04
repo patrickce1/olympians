@@ -769,6 +769,7 @@
         "playerSlot": "widgets/playerSlot.json",
         "leftIcon": "widgets/leftIcon.json",
         "rightIcon": "widgets/rightIcon.json",
+        "dialogueBox": "widgets/dialogueBox.json",
         "ability":     "widgets/ability.json",
         "codexGrid": "widgets/codexGrid.json",
         "codexSlot":     "widgets/codexSlot.json",
