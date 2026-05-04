@@ -461,8 +461,9 @@ protected:
     /** Sets the cooldown timer based on the current state of the enemy. */
     void applyCooldown();
     
-    /** Forces the enemy back to idle immediately, clearing the current state's progress. */
-    void forceIdle();
+    /** Forces the enemy back to idle immediately, clearing the current state's progress.
+     * @param duration Duration of the lockout to apply when forcing idle (e.g. for interrupting attacks with a stun). Defaults to 0 for no lockout. */
+    void forceIdle(float duration = 0.0f);
 };
 
 #endif /* !__ENEMY_H__ */
