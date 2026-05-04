@@ -282,8 +282,12 @@ void Enemy::enterState(EnemyLoader::State state) {
     }
 }
 
-/** Forces the enemy into idle and clears progress on the interrupted state. */
-void Enemy::forceIdle() {
+/** Forces the enemy into idle and clears progress on the interrupted state. 
+ * @param duration Optional duration of the lockout to apply when forcing idle (e.g. for interrupting attacks with a stun). Defaults to 0 for no lockout. */
+void Enemy::forceIdle(float duration) {
+    if (duration > 0.0f) {
+        _attackLockout = std::max(_attackLockout, duration);
+    }
     if (_currentState != EnemyLoader::State::IDLE) {
         enterState(EnemyLoader::State::IDLE);
     } else {
@@ -328,7 +332,9 @@ void Enemy::tick(float dt) {
         }
     }
 
-    const float frozenDuration = std::max(previousStunDuration, previousLoveDuration);
+    // Love keeps the enemy in idle but doesn't freeze state time — idle animation still plays.
+    // Only stun freezes animation advancement.
+    const float frozenDuration = previousStunDuration;
     const float activeCombatDt = std::max(0.0f, dt - frozenDuration);
     if (activeCombatDt > 0.0f) {
         const float slowedCombatDt = std::max(0.0f, std::min(dt, previousSlowDuration) - frozenDuration);
@@ -453,12 +459,11 @@ EnemyLoader::State Enemy::getNextStateOrIdle() const {
 void Enemy::update(float dt) {
     tick(dt);
 
-    if (isLoved()) {
-        forceIdle();
+    if (isStunned()) {
         return;
     }
 
-    if (isStunned()) {
+    if (isLoved()) {
         return;
     }
 
@@ -569,7 +574,7 @@ void Enemy::applyLove(float duration, int playerIndex) {
     if (validPlayerIndex) {
         _targetIndex = playerIndex;
     }
-    forceIdle();
+    forceIdle(duration);
 
     if (!_debug) return;
     
@@ -591,8 +596,8 @@ void Enemy::syncLoveDuration(float duration) {
     const bool willBeLoved = duration > 0.0f;
     _loveDuration = duration;
 
-    if (willBeLoved) {
-        forceIdle();
+    if (!wasLoved && willBeLoved) {
+        forceIdle(duration);
     }
 
     if (!wasLoved && willBeLoved && _debug) {
