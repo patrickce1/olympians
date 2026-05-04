@@ -679,14 +679,6 @@ void GameScene::updateNetworkOrder() {
 
     _gameState.setEnemy(_network->getEnemy(), _assets);
 
-    // Tell the item controller which houses are in this game so only the matching
-    // divine items can spawn for the active roster.
-    std::vector<std::string> activeHouses;
-    for (const auto& player : _gameState.getPlayers()) {
-        activeHouses.push_back(player->getHouseName());
-    }
-    _itemController.setActiveHouses(activeHouses);
-
     initBackgroundAndBossImage();
 }
 
@@ -701,7 +693,19 @@ void GameScene::setActive(bool value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
             updateNetworkOrder();
-            
+
+            // Sync divine item filter from _gameState, which PreGameEntryScene has
+            // already kept up-to-date every frame from the network. Reading from
+            // _gameState here (not the network directly) means the filter is set
+            // even if updateNetworkOrder() returned early due to connection state.
+            {
+                std::vector<std::string> activeHouses;
+                for (const auto& player : _gameState.getPlayers()) {
+                    activeHouses.push_back(player->getHouseName());
+                }
+                _itemController.setActiveHouses(activeHouses);
+            }
+
             // Re-initialize AI players after updateNetworkOrder() rebuilds
             // AI slots via demoteToAI(). demoteToAI() creates EasyPlayerAI
             // objects but cannot call init() since it has no ItemController.
