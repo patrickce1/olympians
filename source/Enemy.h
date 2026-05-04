@@ -234,11 +234,13 @@ public:
     float getLoveDuration() const { return _loveDuration; }
     
     /**
-     * Applies or refreshes a love, forcing the enemy idle and extending the remaining duration.
+     * Applies or refreshes a love, forcing the enemy idle, turning it toward the
+     * source player, and extending the remaining duration.
      *
-     * @param duration  The love time to apply, in seconds.
+     * @param duration     The love time to apply, in seconds.
+     * @param playerIndex  The slot index of the player who applied the love.
      */
-    void applyLove(float duration);
+    void applyLove(float duration, int playerIndex);
     
     /**
      * Overwrites local love time from the host snapshot so remote clients mirror the authoritative state.
@@ -475,8 +477,9 @@ protected:
     /** Sets the cooldown timer based on the current state of the enemy. */
     void applyCooldown();
     
-    /** Forces the enemy back to idle immediately, clearing the current state's progress. */
-    void forceIdle();
+    /** Forces the enemy back to idle immediately, clearing the current state's progress.
+     * @param duration Duration of the lockout to apply when forcing idle (e.g. for interrupting attacks with a stun). Defaults to 0 for no lockout. */
+    void forceIdle(float duration = 0.0f);
 };
 
 #endif /* !__ENEMY_H__ */
