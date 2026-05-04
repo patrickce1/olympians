@@ -241,51 +241,74 @@
 	    {
             "id": "cerberus",
             "name": "cerberus",
-            "maxHealth": 100.0,
+            "maxHealth": 10000.0,
             "spritesheetPath": "textures/cerberus.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 1.0
+                "defenseLikelihood": 0.3
             },
             "customData": {
-                "eyeMultiplier": 2.0
+                "lifeStealPercent": 0.8,
+                "corrosiveEnabled": false
             },
             "states": {
                 "idle": {
                     "name": "idle"
                 },
                 "attack_1": {
-                    "name": "",
-                    "buildUpTime": 4.0,
+                    "name": "Bite",
+                    "buildUpTime": 2.0,
                     "cooldownTime": 0.0,
+                    "entryEvents": [
+                    ],
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 30.0
+                        },
+                        {
+                            "type": "DAMAGE",
+                            "target": 1,
+                            "amount": 30.0
+                        },
+                        {
+                            "type": "DAMAGE",
+                            "target": 3,
+                            "amount": 30.0
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "attack_2": {
-                    "name": "",
-                    "buildUpTime": 3.0,
-                    "cooldownTime": 1.0,
+                    "name": "Tail",
+                    "buildUpTime": 5.0,
+                    "cooldownTime": 2.0,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 2,
+                            "amount": 50
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "attack_3": {
-                    "name": "",
-                    "buildUpTime": 3.0,
-                    "cooldownTime": 1.0,
+                    "name": "Lifesteal Attack",
+                    "buildUpTime": 5.0,
+                    "cooldownTime": 5.0,
                     "events": [
                     ],
-                    "nextState": "idle"
+                    "nextState": "defensive_move"
                 },
                 "defensive_move" : {
-                    "name": "test heal move",
+                    "name": "Lifesteal Heal",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "events": [
                         {
                             "type": "HEAL",
-                            "amount": 10.0
+                            "amount": 100.0
                         }
                     ],
                     "nextState": "idle"
