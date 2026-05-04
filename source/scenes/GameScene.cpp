@@ -2117,6 +2117,7 @@ void GameScene::handleNetworkUpdates(float dt) {
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        applyPendingResurrectionSync();
         refreshTeammateNameLabels();
     }
     
