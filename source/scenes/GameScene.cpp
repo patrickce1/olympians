@@ -82,6 +82,7 @@ static HealthState getHealthState(float current, float max) {
  * @param def   The item definition describing the support item's effects.
  * @param resolvedMagnitude   The resolved support magnitude calculated for this item use.
  * @param targetPlayerID     The 0-based slot index of the player receiving the effect.
+ * @param shouldApplyEffects  Whether the effect should be broadcasted or not
  */
 static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int targetPlayerID, bool shouldApplyEffects) {
     if (!shouldApplyEffects) {
