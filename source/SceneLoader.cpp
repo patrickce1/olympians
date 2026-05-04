@@ -584,7 +584,7 @@ void SceneLoader::update(float dt) {
         {
         case WinLoseScene::Status::ABORT:
             _audio.playMusic("lobby");
-            if (_network->getEnemy() == "circe") {
+            if (_network->getEnemy() == "circe") { //Tutorial should go back to the setup screen.
                 _network->disconnect();
                 _hostSetupScene.setActive(true);
                 _currentScene = State::HOSTSETUP;

@@ -176,7 +176,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
  * assigning it as the enemy's target. Then forces the enemy into ATTACK_1,
  * bypassing normal AI state transitions.
  *
- * @param targetSlot  Index into the player list indicating which player
+ * @param targetSlot Index in the player list indicating which player
  * the boss should attack. Out-of-range values are ignored
  * and the enemy's current target remains unchanged.
  */
@@ -199,7 +199,7 @@ void GameScene::triggerBossAttack(int targetSlot) {
  * assigning it as the enemy's target. Then forces the enemy into DEFENSE_MOVE,
  * bypassing normal AI state transitions.
  *
- * @param targetSlot  Index into the player list indicating which player
+ * @param targetSlot Index in the player list indicating which player
  * the boss should react to. Out-of-range values are ignored
  * and the enemy's current target remains unchanged.
  */
@@ -1926,7 +1926,6 @@ void GameScene::handlePlayerInput(InputController& input) {
 
     if (finalAction != InputController::Action::NONE) {
         if (handlePlayerActions(finalAction, _draggedItemId)) {
-            CULog("GameScene: entered success block, finalAction=%d index=%d",
             (int)finalAction, _tutorialController.getIndex());
             // 2. Item was successfully used (action succeeded)
             // 3. Trigger glow effect on the activated zone
@@ -1943,7 +1942,6 @@ void GameScene::handlePlayerInput(InputController& input) {
                 }
                 _draggedIcon->setVisible(false);
             }
-            CULog("GameScene: drop succeeded, finalAction=%d isTutorial=%d", (int)finalAction, _isTutorial ? 1 : 0);
 
             if (_isTutorial){
                 _tutorialController.onAction(finalAction);
@@ -2581,7 +2579,6 @@ void GameScene::showDialogue(const std::string& message) {
 
 /**
  * Triggers the animation to hide the dialogue box.
- * This is a wrapper for slideDialogueOut() used to clear the UI of active dialogue.
  */
 void GameScene::hideDialogue() {
     slideDialogueOut();

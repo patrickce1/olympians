@@ -1560,7 +1560,7 @@ public:
     
     /**
      * Sets a singular zone to be active.
-     * @param zone The input zone that should be active, treating all others as inactive..
+     * @param zone The input zone that should be active, treating all others as inactive.
      */
     void setTutorialAllowedDropZone(InputController::Action zone);
 

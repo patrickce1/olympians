@@ -6,6 +6,14 @@ using namespace cugl;
 
 #pragma mark - Lifecycle
 
+/**
+ * Initializes the TutorialController with a game scene and asset manager.
+ *
+ * @param scene   A pointer to the active GameScene. Must not be null.
+ * @param assets  The shared asset manager used to load tutorial resources. Must not be null.
+ *
+ * @return true if initialization succeeded, false if either parameter is null.
+ */
 bool TutorialController::init(GameScene* scene, const std::shared_ptr<cugl::AssetManager>& assets) {
     if (!scene || !assets) return false;
     _gameScene = scene;
@@ -14,6 +22,14 @@ bool TutorialController::init(GameScene* scene, const std::shared_ptr<cugl::Asse
     return true;
 }
 
+/**
+ * Releases all resources held by the TutorialController and resets it to
+ * its default state.
+ *
+ * Clears the tutorial step sequence, nullifies scene and asset references,
+ * and resets all playback state including the current index, timer, and
+ * action-wait flag.
+ */
 void TutorialController::dispose() {
     _steps.clear();
     _gameScene = nullptr;
@@ -24,6 +40,14 @@ void TutorialController::dispose() {
     _waitingForAction = false;
 }
 
+/**
+ * Loads tutorial instructions from the "tutorial" JSON asset.
+ *
+ * Retrieves the JSON value keyed "tutorial" from the asset manager,
+ * parses it into the internal step sequence via parseSteps(), and
+ * logs the number of steps loaded. Does nothing if the asset manager
+ * is null or the asset is not found.
+ */
 void TutorialController::loadInstructionsFromJson() {
     if (!_assets) return;
     auto json = _assets->get<JsonValue>("tutorial");
@@ -32,6 +56,14 @@ void TutorialController::loadInstructionsFromJson() {
     CULog("Tutorial: loaded %zu steps from assets", _steps.size());
 }
 
+/**
+ * Loads tutorial instructions from a JSON file at the given path.
+ *
+ * @param path  The file path to the JSON tutorial definition.
+ *
+ * @return true if the file was successfully read and parsed, false if
+ *         the file could not be opened or contained invalid JSON.
+ */
 bool TutorialController::loadFromFile(const std::string& path) {
     auto reader = cugl::JsonReader::alloc(path);
     if (!reader) return false;
@@ -42,8 +74,14 @@ bool TutorialController::loadFromFile(const std::string& path) {
     return true;
 }
 
+/**
+ * Starts the tutorial from the beginning.
+ *
+ * Resets all playback state, deactivates the boss in the game scene,
+ * and advances to the first step. Does nothing if the step sequence
+ * is empty.
+ */
 void TutorialController::start() {
-    
     if (_steps.empty()) return;
     _active = true;
     _index = 0;
@@ -52,20 +90,23 @@ void TutorialController::start() {
     
     if (_gameScene) {
         _gameScene->setBossActive(false);
-        CULog("Tutorial: Started. Initial Boss State set to FALSE");
     }
     CULog("Tutorial: started with %zu steps", _steps.size());
     advanceStep();
-    
-    
-}
-
-void TutorialController::stop() {
-    _active = false;
 }
 
 #pragma mark - Parsing
 
+/**
+ * Converts a string token to its corresponding StepType enum value.
+ *
+ * @param str  The string to parse. Expected values are "show_message",
+ *             "wait_for_action", "spawn_item", "boss_attack", "boss_defend",
+ *             "delay", and "end".
+ *
+ * @return The matching StepType, or StepType::UNKNOWN if the string is
+ *         not recognized.
+ */
 StepType TutorialController::parseStepType(const std::string& str) const {
     if (str == "show_message")    return StepType::SHOW_MESSAGE;
     if (str == "wait_for_action") return StepType::WAIT_FOR_ACTION;
@@ -78,6 +119,15 @@ StepType TutorialController::parseStepType(const std::string& str) const {
     return StepType::UNKNOWN;
 }
 
+/**
+ * Converts a string token to its corresponding InputController::Action enum value.
+ *
+ * @param str  The string to parse. Expected values are "DROP_BOSS",
+ *             "DROP_ALLY_LEFT", "DROP_ALLY_RIGHT", "PASS_LEFT", and "PASS_RIGHT".
+ *
+ * @return The matching Action, or InputController::Action::NONE if the
+ *         string is not recognized.
+ */
 InputController::Action TutorialController::parseAction(const std::string& str) const {
     if (str == "DROP_BOSS")       return InputController::Action::DROP_BOSS;
     if (str == "DROP_ALLY_LEFT")  return InputController::Action::DROP_ALLY_LEFT;
@@ -87,6 +137,26 @@ InputController::Action TutorialController::parseAction(const std::string& str) 
     return InputController::Action::NONE;
 }
 
+/**
+ * Parses a JSON object into the internal tutorial step sequence.
+ *
+ * Expects a JSON object with a "steps" array, where each element is an
+ * object that may contain the following fields:
+ *
+ *   - "type"          (string)  Step type; see parseStepType().
+ *   - "text"          (string)  Message text to display.
+ *   - "action"        (string)  Required player action; see parseAction().
+ *   - "defId"         (string)  Definition ID for spawned items.
+ *   - "delay"         (float)   Duration in seconds for delay steps.
+ *   - "passDirection" (int)     Direction of a pass action.
+ *   - "bossActive"    (bool)    Whether the boss should be active.
+ *   - "bossTarget"    (int)     Target index for boss behavior.
+ *
+ * Clears any previously loaded steps before parsing. Silently skips
+ * malformed or non-object array elements.
+ *
+ * @param json  The root JSON value containing the "steps" array.
+ */
 void TutorialController::parseSteps(const std::shared_ptr<JsonValue>& json) {
     _steps.clear();
     if (!json || !json->isObject()) return;
@@ -112,6 +182,17 @@ void TutorialController::parseSteps(const std::shared_ptr<JsonValue>& json) {
 }
 
 #pragma mark - Update
+
+/**
+ * Updates the tutorial state for the current frame.
+ *
+ * Steps the internal timer by dt and advances to the next step once the
+ * timer expires. WAIT_FOR_ACTION steps are skipped by the timer and may
+ * only be advanced by onAction(). Does nothing if the tutorial is
+ * inactive or the current index is out of bounds.
+ *
+ * @param dt  Elapsed time in seconds since the last frame.
+ */
 void TutorialController::update(float dt) {
     if (!_active || _index < 0 || _index >= (int)_steps.size()) return;
     
@@ -140,6 +221,18 @@ void TutorialController::update(float dt) {
 }
 
 #pragma mark - Input
+
+/**
+ * Notifies the tutorial that a player action has occurred.
+ *
+ * If the tutorial is active and waiting on a WAIT_FOR_ACTION step,
+ * checks whether the given action satisfies the step's requirement.
+ * A step with action NONE accepts any input. On a match, clears any
+ * active highlight and drop zone restriction, then advances to the
+ * next step. Mismatched actions are ignored.
+ *
+ * @param action  The action performed by the player.
+ */
 void TutorialController::onAction(InputController::Action action) {
     CULog("Tutorial: onAction called action=%d active=%d waiting=%d expected=%d",
         (int)action, _active ? 1 : 0, _waitingForAction ? 1 : 0, (int)_steps[_index].action);
@@ -163,6 +256,15 @@ void TutorialController::onAction(InputController::Action action) {
     }
 }
 
+/**
+ * Dismisses the current tutorial message on player tap.
+ *
+ * Only advances the tutorial if the current step is a SHOW_MESSAGE step
+ * with no auto-dismiss delay. Does nothing if the tutorial is inactive,
+ * the index is out of bounds, the current step is not SHOW_MESSAGE, or
+ * the step has a positive delay (in which case it auto-advances via the
+ * timer instead).
+ */
 void TutorialController::dismissMessage() {
     //Inactive controller
     if (!_active) return;
@@ -182,34 +284,18 @@ void TutorialController::dismissMessage() {
     advanceStep();
 }
 
-#pragma mark - State Queries
-
-bool TutorialController::isCurrentMessageDismissible() const {
-    //Don't use if inactive or out of bounds.
-    if (!_active || _index < 0 || _index >= (int)_steps.size()) return false;
-    
-    //Dismissible (by tap) steps had a defined delay of 0.0 and were of type SHOW_MESSAGE
-    const TutorialStep& step = _steps[_index];
-    return step.type == StepType::SHOW_MESSAGE && step.delay == 0.0f;
-}
-
-bool TutorialController::isCurrentStepShowMessage() const {
-    if (!_active || _index < 0 || _index >= (int)_steps.size()) return false;
-    return _steps[_index].type == StepType::SHOW_MESSAGE;
-}
-
-bool TutorialController::isWaitingForActionMatch(InputController::Action action) const {
-    
-    if (!_active || !_waitingForAction) return false;
-    
-    if (_index < 0 || _index >= (int)_steps.size()) return false;
-    
-    const TutorialStep& step = _steps[_index];
-    return step.action == InputController::Action::NONE || step.action == action;
-}
-
 #pragma mark - Step Execution
 
+/**
+ * Advances through tutorial steps until one yields control back to the
+ * update loop or the sequence is exhausted.
+ *
+ * Calls executeStep() on each step in order. If executeStep() returns
+ * true, the step requires time or player input to complete and control
+ * is returned to the caller. If it returns false, the step completed
+ * immediately and the next step is processed. Deactivates the tutorial
+ * once all steps have been executed.
+ */
 void TutorialController::advanceStep() {
     while (_active && _index >= 0 && _index < (int)_steps.size()) {
         const TutorialStep& step = _steps[_index];
@@ -220,6 +306,32 @@ void TutorialController::advanceStep() {
     _active = false;
 }
 
+/**
+ * Executes a single tutorial step, applying its effects to the game scene.
+ *
+ * Before dispatching, resets per-step state (timer and action-wait flag)
+ * and applies the step's bossActive value to the scene if present.
+ *
+ * Step behavior by type:
+ * - SHOW_MESSAGE:    Displays dialogue text for delay > 0.
+ * - SPAWN_ITEM:      Spawns a tutorial item by defId and pass direction.
+ *                    Completes immediately.
+ * - WAIT_FOR_ACTION: Displays dialogue, highlights the relevant drop zone,
+ *                    and restricts input until the expected action is performed.
+ * - BOSS_ATTACK:     Triggers a boss attack on the target index.
+ *                    Completes immediately.
+ * - BOSS_DEFEND:     Triggers a boss defense on the target index, optionally
+ *                    showing dialogue and waiting for a delay.
+ * - END:             Hides dialogue, clears highlights, re-enables the boss,
+ *                    and deactivates the tutorial.
+ * - UNKNOWN/default: Hides dialogue and completes immediately.
+ *
+ * @param step  The tutorial step to execute.
+ *
+ * @return true if the step requires time or player input to complete
+ *         (i.e. the caller should yield control), false if the step
+ *         completed immediately and the next step should be processed.
+ */
 bool TutorialController::executeStep(const TutorialStep& step) {
     CULog("Tutorial: executeStep index=%d type=%d timer=%.2f", _index, (int)step.type, _timer);
 
@@ -286,6 +398,14 @@ bool TutorialController::executeStep(const TutorialStep& step) {
     return false;
 }
 
+/**
+ * Highlights the drop zone in the game scene corresponding to the given action.
+ *
+ * Maps each action to its associated highlight zone name:
+ * Does nothing if the game scene is null.
+ *
+ * @param action  The action whose corresponding zone should be highlighted.
+ */
 void TutorialController::applyZoneHighlight(InputController::Action action) {
     if (!_gameScene) {
             CULog("Tutorial Error: _gameScene is NULL in applyZoneHighlight");
