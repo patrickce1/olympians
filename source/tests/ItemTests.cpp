@@ -117,6 +117,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto shieldDef = db.getDef("shield");
     auto helmDef = db.getDef("helm");
     auto wheatDef = db.getDef("wheat");
+    auto swordDef = db.getDef("sword");
     auto resurrectionDef = db.getDef("resurrection");
     auto spearDef = db.getDef("spear");
     auto wingsDef = db.getDef("wings");
@@ -144,8 +145,12 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
                     floatsEqualWithinTolerance(wheatDef->getEffects()[0].regenAmount, 25.0f) &&
                     floatsEqualWithinTolerance(wheatDef->getEffects()[0].duration, 5.0f),
            "items: wheat regen values parse");
+    assertWithLabel(swordDef && swordDef->getAttackTarget() == ItemDef::AttackTarget::Enemy,
+           "items: sword attack target parses as enemy");
     assertWithLabel(resurrectionDef && resurrectionDef->hasEffectType(ItemDef::EffectType::Resurrect),
            "items: resurrection parses resurrect effect");
+    assertWithLabel(resurrectionDef && resurrectionDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
+           "items: resurrection attack target parses as all allies");
     assertWithLabel(resurrectionDef && !resurrectionDef->getEffects().empty() &&
                     resurrectionDef->getEffects()[0].targetAllAllies &&
                     floatsEqualWithinTolerance(resurrectionDef->getEffects()[0].reviveHealth, 25.0f) &&

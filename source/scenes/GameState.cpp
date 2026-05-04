@@ -365,15 +365,38 @@ void GameState::bossHealUpdates(std::vector<BossHealMessage> bossHeals) {
  */
 void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects) {
     for (const SupportEffectMessage& effect : supportEffects) {
-        if (effect.effectType == SupportEffectType::Resurrect && effect.applyToAllPlayers) {
+        auto applySupportEffect = [&](Player& target) {
+            switch (effect.effectType) {
+                case SupportEffectType::Heal:
+                    target.updateHealth(effect.magnitude);
+                    break;
+                case SupportEffectType::Shield:
+                    target.applyShield(effect.magnitude, effect.duration);
+                    break;
+                case SupportEffectType::Barrier:
+                    target.applyBarrier(effect.magnitude, effect.duration);
+                    break;
+                case SupportEffectType::Regen:
+                    target.applyRegen(effect.magnitude, effect.duration);
+                    break;
+                case SupportEffectType::Resurrect:
+                    if (target.isAlive()) {
+                        break;
+                    }
+                    target.setCurrentHealth(effect.magnitude);
+                    if (effect.secondaryMagnitude > 0.0f && effect.duration > 0.0f) {
+                        target.applyRegen(effect.secondaryMagnitude, effect.duration);
+                    }
+                    break;
+            }
+        };
+
+        if (effect.applyToAllPlayers) {
             for (const auto& player : _players) {
-                if (!player || player->isAlive()) {
+                if (!player) {
                     continue;
                 }
-                player->setCurrentHealth(effect.magnitude);
-                if (effect.secondaryMagnitude > 0.0f && effect.duration > 0.0f) {
-                    player->applyRegen(effect.secondaryMagnitude, effect.duration);
-                }
+                applySupportEffect(*player);
             }
             continue;
         }
@@ -382,23 +405,7 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
 
         Player* target = _players[effect.playerID].get();
         if (!target) continue;
-
-        switch (effect.effectType) {
-            case SupportEffectType::Heal:
-                target->updateHealth(effect.magnitude);
-                break;
-            case SupportEffectType::Shield:
-                target->applyShield(effect.magnitude, effect.duration);
-                break;
-            case SupportEffectType::Barrier:
-                target->applyBarrier(effect.magnitude, effect.duration);
-                break;
-            case SupportEffectType::Regen:
-                target->applyRegen(effect.magnitude, effect.duration);
-                break;
-            case SupportEffectType::Resurrect:
-                break;
-        }
+        applySupportEffect(*target);
     }
 }
 

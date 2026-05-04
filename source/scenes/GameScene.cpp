@@ -82,8 +82,10 @@ static HealthState getHealthState(float current, float max) {
  * @param resolvedMagnitude   The resolved support magnitude calculated for this item use.
  * @param targetPlayerID     The 0-based slot index of the player receiving the effect.
  * @param shouldApplyEffects  Whether the effect should be broadcasted or not
+ * @param applyToAllPlayers Whether the effect should be applied to every allied player slot.
  */
-static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int targetPlayerID, bool shouldApplyEffects) {
+static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude,
+                                    int targetPlayerID, bool shouldApplyEffects, bool applyToAllPlayers = false) {
     if (!shouldApplyEffects) {
         return;
     }
@@ -94,27 +96,33 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                 network.broadcastSupportEffect(SupportEffectType::Shield,
                     effect.mitigation,
                     effect.duration,
-                    targetPlayerID);
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
                 break;
             case ItemDef::EffectType::Barrier:
                 network.broadcastSupportEffect(SupportEffectType::Barrier,
                     effect.multiplier,
                     effect.duration,
-                    targetPlayerID);
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
                 break;
             case ItemDef::EffectType::Regen:
                 network.broadcastSupportEffect(SupportEffectType::Regen,
                     effect.regenAmount,
                     effect.duration,
-                    targetPlayerID);
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
                 break;
             case ItemDef::EffectType::Resurrect:
                 network.broadcastSupportEffect(SupportEffectType::Resurrect,
                     effect.reviveHealth,
                     effect.duration,
-                    -1,
+                    targetPlayerID,
                     effect.regenAmount,
-                    effect.targetAllAllies);
+                    applyToAllPlayers);
                 break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
@@ -127,14 +135,15 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
 }
 
 /**
- * Returns the first resurrect effect defined on an item, if any.
+ * Returns the first item effect matching the requested type, if any.
  *
- * @param def The item definition to scan for a resurrect effect entry.
- * @return A pointer to the first resurrect effect on the item, or `nullptr` if none exists.
+ * @param def The item definition to scan for a matching effect entry.
+ * @param type The effect type to search for on the item definition.
+ * @return A pointer to the first matching effect on the item, or `nullptr` if none exists.
  */
-static const ItemDef::Effect* findResurrectEffect(const ItemDef& def) {
+static const ItemDef::Effect* findEffect(const ItemDef& def, ItemDef::EffectType type) {
     for (const ItemDef::Effect& effect : def.getEffects()) {
-        if (effect.type == ItemDef::EffectType::Resurrect) {
+        if (effect.type == type) {
             return &effect;
         }
     }
@@ -896,9 +905,10 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
-    const ItemDef::Effect* resurrectEffect = findResurrectEffect(*def);
+    const bool targetsAllAllies = def->getAttackTarget() == ItemDef::AttackTarget::AllAllies;
+    const ItemDef::Effect* resurrectEffect = findEffect(*def, ItemDef::EffectType::Resurrect);
     const std::vector<int> resurrectedSlots =
-        (resurrectEffect && shouldApplyEffects && resurrectEffect->targetAllAllies)
+        (targetsAllAllies && resurrectEffect && shouldApplyEffects)
             ? collectDeadPartyPlayerSlots(*local)
             : std::vector<int>{};
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
@@ -906,22 +916,19 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         return false;
     }
 
-    if (resurrectEffect && shouldApplyEffects && resurrectEffect->targetAllAllies) {
+    if (targetsAllAllies) {
         if (!_network->isHost()) {
-            _pendingResurrectionSync.playerSlots = resurrectedSlots;
-            _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
-            _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
-            _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
-            _pendingResurrectionSync.active = !resurrectedSlots.empty();
-            _network->broadcastSupportEffect(SupportEffectType::Resurrect,
-                resurrectEffect->reviveHealth,
-                resurrectEffect->duration,
-                -1,
-                resurrectEffect->regenAmount,
-                true);
+            if (resurrectEffect && shouldApplyEffects) {
+                _pendingResurrectionSync.playerSlots = resurrectedSlots;
+                _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
+                _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
+                _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
+                _pendingResurrectionSync.active = !resurrectedSlots.empty();
+            }
+            broadcastSupportEffects(*_network, *def, resolvedMagnitude, -1, shouldApplyEffects, true);
         }
 
-        CULog("Player used resurrection item %llu", (unsigned long long)itemId);
+        CULog("Player used ally-target attack item %llu", (unsigned long long)itemId);
         return true;
     }
 
@@ -975,9 +982,10 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
-    const ItemDef::Effect* resurrectEffect = findResurrectEffect(*def);
+    const bool targetsAllAllies = def->getAttackTarget() == ItemDef::AttackTarget::AllAllies;
+    const ItemDef::Effect* resurrectEffect = findEffect(*def, ItemDef::EffectType::Resurrect);
     const std::vector<int> resurrectedSlots =
-        (resurrectEffect && shouldApplyEffects && resurrectEffect->targetAllAllies)
+        (targetsAllAllies && resurrectEffect && shouldApplyEffects)
             ? collectDeadPartyPlayerSlots(*local)
             : std::vector<int>{};
 
@@ -986,22 +994,19 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         return false;
     }
 
-    if (resurrectEffect && shouldApplyEffects && resurrectEffect->targetAllAllies) {
+    if (targetsAllAllies) {
         if (!_network->isHost()) {
-            _pendingResurrectionSync.playerSlots = resurrectedSlots;
-            _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
-            _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
-            _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
-            _pendingResurrectionSync.active = !resurrectedSlots.empty();
-            _network->broadcastSupportEffect(SupportEffectType::Resurrect,
-                resurrectEffect->reviveHealth,
-                resurrectEffect->duration,
-                -1,
-                resurrectEffect->regenAmount,
-                true);
+            if (resurrectEffect && shouldApplyEffects) {
+                _pendingResurrectionSync.playerSlots = resurrectedSlots;
+                _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
+                _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
+                _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
+                _pendingResurrectionSync.active = !resurrectedSlots.empty();
+            }
+            broadcastSupportEffects(*_network, *def, resolvedMagnitude, -1, shouldApplyEffects, true);
         }
 
-        CULog("Player used resurrection item %llu", (unsigned long long)itemId);
+        CULog("Player used ally-target attack item %llu", (unsigned long long)itemId);
         return true;
     }
 

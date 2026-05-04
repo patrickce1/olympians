@@ -65,6 +65,10 @@ public:
         Hermes,
         None
     };
+    enum class AttackTarget : uint8_t {
+        Enemy,
+        AllAllies
+    };
     /** Data-driven utility effect categories that items may apply. */
     enum class EffectType : uint8_t {
         Shield,
@@ -129,6 +133,9 @@ private:
     /* Base value of item before house multipliers are applied */
     float _baseValue = 1.0f;
 
+    /* Explicit target routing for attack items */
+    AttackTarget _attackTarget = AttackTarget::Enemy;
+
     /* House affinity tag used for rare/divine affinity bonus matching */
     House _houseAffinity = House::None;
 
@@ -180,8 +187,20 @@ public:
      * Rare/divine items can receive affinityBonus when this matches player house.
      */
     House getHouseAffinity() const { return _houseAffinity; }
+    
     /** Gets item type */
     Type getType() const { return _type; }
+    
+    /**
+     * Gets the target routing mode for attack items.
+     *
+     * Support items always return `AttackTarget::Enemy`, but the value is only
+     * meaningful when `getType() == Type::Attack`.
+     *
+     * @return The configured attack target routing mode.
+     */
+    AttackTarget getAttackTarget() const { return _attackTarget; }
+    
     /** Gets item rarity */
     Rarity getRarity() const { return _rarity; }
 
@@ -235,6 +254,16 @@ public:
      */
     static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
     
+    /**
+     * Extract AttackTarget enum from a string.
+     *
+     * @param value The string token to parse.
+     * @param fallback The attack target to return if parsing fails.
+     * @return The parsed attack target, or fallback if unrecognized.
+     */
+    static AttackTarget attackTargetFromString(std::string value,
+                                               AttackTarget fallback = AttackTarget::Enemy);
+
     /**
      * Extract House enum from a string.
      * Accepts "zeus", "poseidon", "hades", "demeter", "ares", "athena", or "none" (case-insensitive, trimmed).

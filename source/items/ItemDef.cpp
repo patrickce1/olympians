@@ -103,6 +103,26 @@ ItemDef::Rarity ItemDef::rarityFromString(std::string value, Rarity fallback) {
 }
 
 /**
+ * Parses an attack target mode from a string.
+ * Accepts "enemy" or "all_allies" (case-insensitive, trimmed).
+ *
+ * @param value The string token to parse.
+ * @param fallback The attack target to return if parsing fails.
+ * @return The parsed attack target, or fallback if unrecognized.
+ */
+ItemDef::AttackTarget ItemDef::attackTargetFromString(std::string value, AttackTarget fallback) {
+    value = normalizeToken(value);
+
+    if (value == "enemy") {
+        return AttackTarget::Enemy;
+    }
+    if (value == "all_allies") {
+        return AttackTarget::AllAllies;
+    }
+    return fallback;
+}
+
+/**
  * Parses a house identifier from a string.
  * Accepts "zeus", "poseidon", "hades", "demeter", "ares", "athena", or "none" (case-insensitive, trimmed).
  *
@@ -251,6 +271,19 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
         _type = typeFromString(typeText, Type::Attack);
     } else {
         return false;
+    }
+
+    _attackTarget = AttackTarget::Enemy;
+    if (_type == Type::Attack && json->has("attackTarget")) {
+        if (!json->get("attackTarget")->isString()) {
+            return false;
+        }
+
+        const std::string attackTargetText = normalizeToken(json->getString("attackTarget"));
+        if (attackTargetText != "enemy" && attackTargetText != "all_allies") {
+            return false;
+        }
+        _attackTarget = attackTargetFromString(attackTargetText, AttackTarget::Enemy);
     }
     
     if (json->has("rarity") && json->get("rarity")->isString()) {

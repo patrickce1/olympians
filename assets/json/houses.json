@@ -22,7 +22,7 @@
         },
         {
             "id": "hades",
-            "maxHealth": 100.0,
+            "maxHealth": 10000.0,
             "specialAbilities": ["resurrect"],
             "spritesheetPath": "textures/hades.png",
             "attack": 0.7,
