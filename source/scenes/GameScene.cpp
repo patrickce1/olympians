@@ -1064,7 +1064,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -1105,7 +1105,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -4070,18 +4070,22 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
  * @param def      The item definition whose effects to scan.
  * @param dropPos  Screen-space position where popups appear.
  * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
+ * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
  */
-void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos, bool shouldShowEffectPopup) {
+void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos,
+                                           bool shouldShowEffectPopup, bool hasHealingPopup) {
+    const bool hasRegenPopup = shouldShowEffectPopup && def && def->hasEffectType(ItemDef::EffectType::Regen);
+    const float popupYOffset = hasHealingPopup ? (hasRegenPopup ? -56.0f : -28.0f) : 0.0f;
     for (const auto& effect : def->getEffects()) {
         if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
             char text[32];
             std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
-            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, popupYOffset), true}});
         } else if (shouldShowEffectPopup && effect.type == ItemDef::EffectType::Barrier && effect.multiplier < 1.0f) {
             char text[32];
             const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
             std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);
-            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, popupYOffset), true}});
         }
     }
 }

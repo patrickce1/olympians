@@ -1341,10 +1341,12 @@ public:
      * @param def      The item definition whose effects to scan.
      * @param dropPos  Screen-space position where popups appear.
      * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
+     * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
      */
     void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
                                     const cugl::Vec2& dropPos,
-                                    bool shouldShowEffectPopup);
+                                    bool shouldShowEffectPopup,
+                                    bool hasHealingPopup);
 
     /**
      * Reapplies a pending client-side resurrection after stale host snapshots, until host sync catches up.
