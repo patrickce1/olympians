@@ -2,6 +2,7 @@
 #define __SETTINGS_SCENE_H__
 
 #include <cugl/cugl.h>
+#include "../SavedDataManager.h"
 
 /**
  * A persistent overlay scene for application settings.
@@ -161,9 +162,14 @@ public:
 #pragma mark Settings & Persistence
 
     /**
-     * Serializes current settings to a JSON file in the app's save directory.
+     * Persists the current settings to disk via SavedDataManager.
      *
-     * Called automatically when the user presses the save button.
+     * Reads the current text from the username field and stores it in
+     * SavedDataManager, then calls save() to write savedData.json. Called
+     * by the save button listener immediately before closing the scene.
+     *
+     * Extend this method to persist slider values and toggle states once
+     * those fields are added to the SavedDataManager schema.
      */
     void saveSettings();
 

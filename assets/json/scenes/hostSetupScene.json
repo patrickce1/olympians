@@ -203,22 +203,6 @@
                     "y_offset": -0.1
                 }
             },
-            "hostName": {
-                "type": "Widget",
-                "data": {
-                    "key": "textfield",
-                    "variables": {
-                        "text": ""
-                    }
-                },
-                "layout": {
-                    "x_anchor": "center",
-                    "y_anchor": "top",
-                    "absolute": false,
-                    "x_offset": 0,
-                    "y_offset": -0.26
-                }
-            },
             "bossSelectionCarouselIcons": {
                 "type": "Node",
                 "format": {

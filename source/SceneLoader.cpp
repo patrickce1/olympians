@@ -347,19 +347,26 @@ void SceneLoader::update(float dt) {
         break;
     case State::MENU:
         _menuScene.update(dt);
-        switch (_menuScene.consumeAction()) {
-            case MenuScene::Action::START_GAME:
+        switch (_menuScene.getStatus()) {
+            case MenuScene::Status::START_GAME:
                 CULog("Transitioning to HostSetupScene...");
                 _hostSetupScene.setActive(true);
                 _menuScene.setActive(false);
+                _menuScene.resetStatus();
                 _currentScene = State::HOSTSETUP;
                 break;
-            case MenuScene::Action::OPEN_SETTINGS:
-                CULog("SettingsScene placeholder pressed");
+            case MenuScene::Status::OPEN_SETTINGS:
+                CULog("MenuScene: opening settings");
                 _paused = true;
                 _settingsScene.setActive(true);
+                _menuScene.resetStatus();
                 break;
-            case MenuScene::Action::NONE:
+            case MenuScene::Status::NAME_ONBOARDING:
+            case MenuScene::Status::PENDING_ONBOARDING:
+            case MenuScene::Status::PENDING_SAVE:
+            case MenuScene::Status::NONE:
+                break;
+            
             default:
                 break;
         }

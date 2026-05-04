@@ -197,6 +197,288 @@
                 "x_offset": 0,
                 "y_offset": 0.06
             }
+        },
+        "namePopup": {
+            "type": "Node",
+            "format": {
+                "type": "Anchored"
+            },
+            "data": {
+                "anchor": [0.5, 0.5],
+                "size": [400, 852],
+                "angle": 0,
+                "visible": false
+            },
+            "children": {
+                "overlayBG": {
+                    "type": "Polygon",
+                    "data": {
+                        "polygon": [400, 852, 0, 852, 0, 0, 400, 0],
+                        "anchor": [0.5, 0.5],
+                        "color": [0, 0, 0, 150],
+                        "angle": 0,
+                        "visible": true
+                    },
+                    "layout": {
+                        "x_anchor": "center",
+                        "y_anchor": "middle",
+                        "absolute": false,
+                        "x_offset": 0,
+                        "y_offset": 0
+                    }
+                },
+                "popupBackground": {
+                    "type": "Image",
+                    "data": {
+                        "texture": "centerPopup",
+                        "size": [340, 300],
+                        "anchor": [0.5, 0.5],
+                        "visible": true,
+                        "angle": 0
+                    },
+                    "layout": {
+                        "x_anchor": "center",
+                        "y_anchor": "middle",
+                        "absolute": false,
+                        "x_offset": 0,
+                        "y_offset": 0
+                    }
+                },
+                "contents": {
+                    "type": "Node",
+                    "format": {
+                        "type": "Float",
+                        "x_alignment": "center",
+                        "y_alignment": "middle",
+                        "orientation": "vertical"
+                    },
+                    "data": {
+                        "anchor": [0.5, 0.5],
+                        "size": [300, 240],
+                        "angle": 0,
+                        "visible": true
+                    },
+                    "children": {
+                        "title": {
+                            "type": "Label",
+                            "data": {
+                                "anchor": [0.5, 0.5],
+                                "size": [300, 44],
+                                "angle": 0,
+                                "visible": true,
+                                "font": "mainFont",
+                                "text": "WELCOME OLYMPIANS",
+                                "foreground": "#FFD59Fff",
+                                "background": "#00000000",
+                                "padding": [0, 0, 0, 0],
+                                "valign": "middle",
+                                "halign": "center",
+                                "scale": 0.38
+                            },
+                            "layout": {
+                                "priority": 0,
+                                "padding": [0, 0, 0, 0]
+                            }
+                        },
+                        "subtitle": {
+                            "type": "Label",
+                            "data": {
+                                "anchor": [0.5, 0.5],
+                                "size": [300, 30],
+                                "angle": 0,
+                                "visible": true,
+                                "font": "mainFont",
+                                "text": "PLEASE ENTER NAME",
+                                "foreground": "#FFD59Faa",
+                                "background": "#00000000",
+                                "padding": [0, 0, 0, 0],
+                                "valign": "middle",
+                                "halign": "center",
+                                "scale": 0.281
+                            },
+                            "layout": {
+                                "priority": 1,
+                                "padding": [0, 4, 0, 0]
+                            }
+                        },
+                        "nameField": {
+                            "type": "Node",
+                            "format": {
+                                "type": "Anchored"
+                            },
+                            "data": {
+                                "anchor": [0.5, 0.5],
+                                "size": [280, 44],
+                                "angle": 0,
+                                "visible": true
+                            },
+                            "children": {
+                                "fieldBackground": {
+                                    "type": "Image",
+                                    "data": {
+                                        "texture": "textFieldBG",
+                                        "size": [280, 44],
+                                        "anchor": [0.5, 0.5],
+                                        "position": [0, 0],
+                                        "visible": true,
+                                        "angle": 0
+                                    },
+                                    "layout": {
+                                        "x_anchor": "center",
+                                        "y_anchor": "middle",
+                                        "absolute": false,
+                                        "x_offset": 0,
+                                        "y_offset": 0
+                                    }
+                                },
+                                "placeholder": {
+                                    "type": "Label",
+                                    "data": {
+                                        "anchor": [0.5, 0.5],
+                                        "size": [260, 44],
+                                        "angle": 0,
+                                        "visible": true,
+                                        "font": "mainFont",
+                                        "text": "ENTER NAME",
+                                        "foreground": "#FFD59F77",
+                                        "background": "#00000000",
+                                        "padding": [10, 0, 0, 0],
+                                        "valign": "middle",
+                                        "halign": "left",
+                                        "scale": 0.281
+                                    },
+                                    "layout": {
+                                        "x_anchor": "center",
+                                        "y_anchor": "middle",
+                                        "absolute": false,
+                                        "x_offset": 0,
+                                        "y_offset": 0
+                                    }
+                                },
+                                "text": {
+                                    "type": "TextField",
+                                    "data": {
+                                        "anchor": [0.5, 0.5],
+                                        "size": [260, 44],
+                                        "angle": 0,
+                                        "visible": true,
+                                        "font": "mainFont",
+                                        "foreground": "#FFD59Fff",
+                                        "background": "#00000000",
+                                        "padding": [10, 0, 0, 0],
+                                        "valign": "middle",
+                                        "halign": "left",
+                                        "scale": 0.281
+                                    },
+                                    "layout": {
+                                        "x_anchor": "center",
+                                        "y_anchor": "middle",
+                                        "absolute": false,
+                                        "x_offset": 0,
+                                        "y_offset": 0
+                                    }
+                                }
+                            },
+                            "layout": {
+                                "priority": 2,
+                                "padding": [0, 12, 0, 0]
+                            }
+                        },
+                        "save": {
+                            "type": "Widget",
+                            "format": { "type": "Anchored" },
+                            "data": {
+                                "key": "buttonMedium",
+                                "variables": {
+                                    "label": "SAVE"
+                                }
+                            },
+                            "layout": {
+                                "priority": 3,
+                                "padding": [0, 12, 0, 0]
+                            }
+                        }
+                    },
+                    "layout": {
+                        "x_anchor": "center",
+                        "y_anchor": "middle",
+                        "absolute": false,
+                        "x_offset": 0,
+                        "y_offset": 0
+                    }
+                }
+            },
+            "layout": {
+                "x_anchor": "center",
+                "y_anchor": "middle",
+                "absolute": false,
+                "x_offset": 0,
+                "y_offset": 0
+            }
+        },
+        "confirmPopup": {
+            "type": "Node",
+            "format": {
+                "type": "Anchored"
+            },
+            "data": {
+                "anchor": [0.5, 0.5],
+                "size": [340, 220],
+                "angle": 0,
+                "visible": false
+            },
+            "children": {
+                "popupBackground": {
+                    "type": "Image",
+                    "data": {
+                        "texture": "popupBG",
+                        "size": [340, 220],
+                        "anchor": [0.5, 0.5],
+                        "position": [0, 0],
+                        "visible": true,
+                        "angle": 0
+                    },
+                    "layout": {
+                        "x_anchor": "center",
+                        "y_anchor": "middle",
+                        "absolute": false,
+                        "x_offset": 0,
+                        "y_offset": 0
+                    }
+                },
+                "message": {
+                    "type": "Label",
+                    "data": {
+                        "anchor": [0.5, 0.5],
+                        "size": [280, 140],
+                        "angle": 0,
+                        "visible": true,
+                        "font": "mainFont",
+                        "text": "YOU CAN CHANGE YOUR NAME IN SETTINGS.",
+                        "foreground": "#FFEBD1ff",
+                        "background": "#00000000",
+                        "padding": [0, 0, 0, 0],
+                        "valign": "middle",
+                        "halign": "center",
+                        "wrap": true,
+                        "scale": 0.75
+                    },
+                    "layout": {
+                        "x_anchor": "center",
+                        "y_anchor": "middle",
+                        "absolute": false,
+                        "x_offset": 0,
+                        "y_offset": 0
+                    }
+                }
+            },
+            "layout": {
+                "x_anchor": "center",
+                "y_anchor": "middle",
+                "absolute": false,
+                "x_offset": 0,
+                "y_offset": 0.08
+            }
         }
     }
 }

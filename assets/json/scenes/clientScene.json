@@ -386,19 +386,6 @@
                             "priority": 0,
                             "padding": [0,16,0,0]
                         }
-                    },
-                    "playerName": {
-                        "type": "Widget",
-                        "data": {
-                            "key": "textfield",
-                            "variables": {
-                                "text": ""
-                            }
-                        },
-                        "layout": {
-                            "priority": 1,
-                            "padding": [0,0,0,0]
-                        }
                     }
                 },
                 "layout": {
