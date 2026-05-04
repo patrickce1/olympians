@@ -272,8 +272,13 @@
             "type": "attack",
             "rarity": "rare",
             "houseAffinity": "aphrodite",
-            "baseValue": 0.0,
-            "effects": []
+            "baseValue": 10.0,
+            "effects": [
+                {
+                    "type": "love",
+                    "duration": 5.0
+                }
+            ]
         },
         {
             "id": "thunderstorm",
