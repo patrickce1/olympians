@@ -111,6 +111,7 @@ void LobbyScene::setupUI() {
             auto image = std::dynamic_pointer_cast<scene2::Button>(
                 card->getChildByName("playerIcon")
             );
+            image->getChildByName("playerIconImg")->setScale(0.5f);
 
             _playerCards.push_back(card);
             _playerSlots.push_back(label);
@@ -297,6 +298,7 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<Player*> players) {
             } else {
                 image->setTexture(_assets->get<cugl::graphics::Texture>("emptySIcon"));
             }
+            image->setScale(0.5f);
         }
     }
 }

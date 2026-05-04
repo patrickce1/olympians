@@ -284,7 +284,11 @@
             "file": "textures/houseSelect/playerIconBorder.png"
         },
         "emptyLocalIcon": {
-            "file": "textures/houseSelect/emptyLocalIcon.png"
+            "file": "textures/houseSelect/emptyLocalIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "teamSelectIconEmpty": {
             "file": "textures/houseSelect/teamSelectIconEmpty.png"
@@ -300,7 +304,11 @@
             "wrapT": "clamp"
         },
         "poseidonSIcon": {
-            "file": "textures/houseSelect/poseidonSIcon.png"
+            "file": "textures/houseSelect/poseidonSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "aresSIcon": {
             "file": "textures/houseSelect/aresSIcon.png",
@@ -310,22 +318,46 @@
             "wrapT": "clamp"
         },
         "demeterSIcon": {
-            "file": "textures/houseSelect/demeterSIcon.png"
+            "file": "textures/houseSelect/demeterSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "hadesSIcon": {
-            "file": "textures/houseSelect/hadesSIcon.png"
+            "file": "textures/houseSelect/hadesSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "hermesSIcon": {
-            "file": "textures/houseSelect/hermesSIcon.png"
+            "file": "textures/houseSelect/hermesSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "zeusSIcon": {
-            "file": "textures/houseSelect/zeusSIcon.png"
+            "file": "textures/houseSelect/zeusSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "aphroditeSIcon": {
-            "file": "textures/houseSelect/aphroditeSIcon.png"
+            "file": "textures/houseSelect/aphroditeSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "hephaestusSIcon": {
-            "file": "textures/houseSelect/hephaestusSIcon.png"
+            "file": "textures/houseSelect/hephaestusSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "glowOverlayBoss": {
             "file": "textures/hostScene/glowOverlayBoss.png"
