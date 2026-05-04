@@ -1835,7 +1835,6 @@ void GameScene::handlePlayerInput(InputController& input) {
     // Tooltip cleanup
     _tooltipNode->setVisible(false);
     _holdTimer        = 0.0f;
-    _tooltipDismissed = false;
     _holdAnchorPos    = Vec2::ZERO;
 
     _draggedIcon = nullptr;
@@ -1903,7 +1902,6 @@ void GameScene::handleDragInitiation(InputController& input) {
 
             // Reset tooltip
             _holdTimer        = 0.0f;
-            _tooltipDismissed = false;
             _holdAnchorPos    = touchPosScreen;
             _tooltipNode->setVisible(false);
             
@@ -1938,9 +1936,9 @@ void GameScene::handleDragTracking(InputController& input) {
     Vec2 widgetPosition = dragScene + _dragOffset;
     
     // dismiss tooltip movement
-    if (_tooltipNode && !_tooltipDismissed) {
+    if (_tooltipNode) {
         if (dragScene.distance(_holdAnchorPos) > _tooltipMoveLimit) {
-            _tooltipDismissed = true;
+            _holdAnchorPos = dragScene;
             _holdTimer        = 0.0f;
             _tooltipNode->setVisible(false);
         }
@@ -2339,7 +2337,7 @@ bool GameScene::handleSettledItem(ItemInstance* item, std::shared_ptr<cugl::phys
  * @param dt  Delta time in seconds.
  */
 void GameScene::handleTooltipVisibility(float dt) {
-    if (_draggedIcon && _tooltipNode && !_tooltipDismissed) {
+    if (_draggedIcon && _tooltipNode) {
         _holdTimer += dt;
         if (_holdTimer >= _holdThreshold) {
             if (!_tooltipNode->isVisible()) {

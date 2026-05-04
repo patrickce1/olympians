@@ -326,9 +326,6 @@ protected:
     /** The world-coordinate pixels before the tooltip is dismissed */
     float _tooltipMoveLimit = 20.0f;
     
-    /** Whether the tooltip has been dismissed */
-    bool _tooltipDismissed = false;
-    
     /** The world position when drag begins */
     Vec2 _holdAnchorPos = Vec2::ZERO;
 
