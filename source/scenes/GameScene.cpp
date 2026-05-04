@@ -1179,7 +1179,7 @@ void GameScene::updateEnemyAndAI(float dt) {
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
     if (_enemyController.didFireScrambleEvent()) {
-        _network->scramblePlayers();
+        _network->scramblePlayerOrder();
         _network->broadcastPlayerOrder();
     }
 
