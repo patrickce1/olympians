@@ -1,8 +1,8 @@
 {
     "rarityWeights": {
-        "common": 60,
-        "rare": 32,
-        "divine": 8,
+        "common": 70,
+        "rare": 25,
+        "divine": 5,
         "special": 0
     },
     "items": [
@@ -153,7 +153,7 @@
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "hades",
-            "baseValue": 0.0,
+            "baseValue": 10.0,
             "weight": 6.0,
             "effects": [
                 {
@@ -215,7 +215,7 @@
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "athena",
-            "baseValue": 0.0,
+            "baseValue": 10.0,
             "weight": 6.0,
             "effects": [
                 {
@@ -367,7 +367,7 @@
             "type": "support",
             "rarity": "divine",
             "houseAffinity": "demeter",
-            "baseValue": 2.0,
+            "baseValue": 20.0,
             "weight": 10.0,
             "effects": []
         },
@@ -391,7 +391,7 @@
             "type": "support",
             "rarity": "divine",
             "houseAffinity": "athena",
-            "baseValue": 2.0,
+            "baseValue": 15.0,
             "weight": 10.0,
             "effects": []
         },
@@ -403,7 +403,7 @@
             "type": "attack",
             "rarity": "divine",
             "houseAffinity": "demeter",
-            "baseValue": 4.0,
+            "baseValue": 60.0,
             "weight": 10.0,
             "effects": []
         },
@@ -427,12 +427,12 @@
             "type": "attack",
             "rarity": "divine",
             "houseAffinity": "aphrodite",
-            "baseValue": 2.0,
+            "baseValue": 15.0,
             "weight": 10.0,
             "effects": []
         }
     ],
-    "itemInterval": 3.0,
+    "itemInterval": 2.5,
     "itemTimerStart": 1.5,
     "maxInventorySpawnItems": 5
 }

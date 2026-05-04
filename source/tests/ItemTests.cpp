@@ -830,6 +830,22 @@ void testStunEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     assertWithLabel(!enemy.isStunned(), "stun: enemy stun expires after duration elapses");
     enemy.update(0.5f);
     assertWithLabel(floatsEqualWithinTolerance(enemy.getStateTime(), 1.85f), "stun: enemy state timer resumes after stun ends");
+
+    Player hades("hades", 4, "Hades Tester", loader);
+    auto instOffAffinityLightning = ItemInstance::alloc("lightning_bolt", 1019);
+    assertWithLabel(instOffAffinityLightning != nullptr, "stun: create off-affinity lightning_bolt instance");
+    if (!instOffAffinityLightning) return;
+    hades.addItem(*instOffAffinityLightning);
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    enemy.setStateTime(0.5f);
+    const float enemyHealthBeforeOffAffinityUse = enemy.getCurrentHealth();
+    const float resolvedOffAffinityStun = hades.useItemById(instOffAffinityLightning->getId(), enemy, db);
+    assertWithLabel(resolvedOffAffinityStun > 0.0f, "stun: off-affinity lightning still resolves positive base damage");
+    assertWithLabel((enemyHealthBeforeOffAffinityUse - enemy.getCurrentHealth()) > 0.0f,
+                    "stun: off-affinity lightning still applies its base damage");
+    assertWithLabel(!enemy.isStunned(), "stun: off-affinity lightning does not apply stun");
 }
 
 /**
