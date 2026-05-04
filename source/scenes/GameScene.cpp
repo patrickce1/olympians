@@ -2660,8 +2660,7 @@ void GameScene::updateDropZoneVisibility(){
  * Must only be called while _draggedIcon and _tooltipNode are valid.
  */
 void GameScene::updateTooltipPosition() {
-    const float TOOLTIP_W   = 160.0f;
-    const float GAP         =   6.0f;
+    const float GAP = 6.0f;
 
     Size widgetSize = _draggedIcon->getContentSize();
 
@@ -2669,7 +2668,7 @@ void GameScene::updateTooltipPosition() {
     Vec2 widgetPos = _draggedIcon->getPosition();
 
     // Center tooltip horizontally over the widget, place it just above
-    float x = widgetPos.x + (widgetSize.width  - TOOLTIP_W) * 0.5f;
+    float x = widgetPos.x + (widgetSize.width  - _tooltipNode->getWidth()) * 0.5f;
     float y = widgetPos.y +  widgetSize.height + GAP;
 
     _tooltipNode->setPosition(Vec2(x, y));

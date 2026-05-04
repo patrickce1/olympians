@@ -324,7 +324,7 @@ protected:
     float _holdThreshold = 0.6f;
     
     /** The world-coordinate pixels before the tooltip is dismissed */
-    float _tooltipMoveLimit = 12.0f;
+    float _tooltipMoveLimit = 20.0f;
     
     /** Whether the tooltip has been dismissed */
     bool _tooltipDismissed = false;
