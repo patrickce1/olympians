@@ -272,6 +272,9 @@ protected:
     /** The boss health bar */
     std::shared_ptr<cugl::scene2::ProgressBar> _bossHealthBar;
     
+    /** The boss health bar icon */
+    std::shared_ptr<cugl::scene2::PolygonNode> _bossHealthBarIcon;
+     
     /** The boss health bar text showing amount of health left */
     std::shared_ptr<cugl::scene2::Label> _bossHealthBarText;
     

@@ -474,8 +474,20 @@
         "healthFillYellow": {
             "file": "textures/gameScene/healthFillYellow.png"
         },
+        "healthFillBlue": {
+            "file": "textures/gameScene/healthFillBlue.png"
+        },
         "healthFillPink": {
             "file": "textures/gameScene/healthFillPink.png"
+        },
+        "stunIcon": {
+            "file": "textures/gameScene/stunIcon.png"
+        },
+        "loveIcon": {
+            "file": "textures/gameScene/loveIcon.png"
+        },
+        "slowIcon": {
+            "file": "textures/gameScene/slowIcon.png"
         },
         "playerUsernameBG": {
             "file": "textures/gameScene/playerNameBG.png"

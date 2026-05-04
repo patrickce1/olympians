@@ -361,6 +361,9 @@ bool GameScene::initSceneGraph() {
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
         
+        _bossHealthBarIcon = std::dynamic_pointer_cast<scene2::PolygonNode>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.barIcon"));
+        
         _bossName = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.bossName.label"));
         
@@ -1238,13 +1241,33 @@ void GameScene::updateEnemyHealthBarEffect(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
     
-    if (enemy->isStunned()){
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillYellow"));
+    auto applyBossBar = [&](const std::string& barTex,
+                            const std::string& iconTex,
+                            bool showIcon) {
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>(barTex));
+
+        if (showIcon) {
+            _bossHealthBarIcon->setTexture(_assets->get<cugl::graphics::Texture>(iconTex));
+            _bossHealthBarIcon->setScale(0.5f);
+            _bossHealthBarIcon->setVisible(true);
+        } else {
+            _bossHealthBarIcon->setVisible(false);
+        }
+    };
+
+    std::string bar = "healthFillRed";
+    std::string icon = "";
+    bool show = false;
+
+    if (enemy->isStunned()) {
+        bar = "healthFillYellow"; icon = "stunIcon"; show = true;
     } else if (enemy->isLoved()) {
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillPink"));
-    } else {
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillRed"));
+        bar = "healthFillPink"; icon = "loveIcon"; show = true;
+    } else if (enemy->isSlowed()) {
+        bar = "healthFillBlue"; icon = "slowIcon"; show = true;
     }
+
+    applyBossBar(bar, icon, show);
 }
 
 /**
