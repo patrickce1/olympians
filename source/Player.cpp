@@ -304,6 +304,25 @@ static float computeResolvedItemMagnitude(const Player& player,
 }
 
 /**
+ * Returns whether this player can apply the item's configured utility effects.
+ *
+ * Effects are universal when the item has no house affinity. Otherwise, only
+ * players whose selected house matches the item affinity can trigger them.
+ *
+ * @param player  The player attempting to use the item.
+ * @param def     The item definition being checked.
+ * @return True when the item's effects should be dispatched.
+ */
+static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
+    if (def.getHouseAffinity() == ItemDef::House::None) {
+        return true;
+    }
+
+    return def.getHouseAffinity() ==
+           ItemDef::houseFromString(player.getHouseName(), ItemDef::House::None);
+}
+
+/**
  * Returns whether consuming the given item should advance the player's upgrade streak.
  *
  * @param def The item definition being checked for streak-advancing effects.
@@ -335,7 +354,7 @@ float Player::resolveItemMagnitude(const ItemDef& def, const ItemDatabase& db) c
  * @param def The item definition that was just consumed.
  */
 void Player::recordItemUse(const ItemDef& def) {
-    if (itemConsumesUpgradeStreak(def)) {
+    if (itemConsumesUpgradeStreak(def) && canApplyItemEffects(*this, def)) {
         _malletUseCount += 1;
     }
 }
@@ -386,14 +405,17 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
         }
 
         const float resolvedMagnitude = resolveItemMagnitude(*def, db);
+        const bool shouldApplyEffects = canApplyItemEffects(*this, *def);
         float returnedMagnitude = 0.0f;
         if (def->getType() == ItemDef::Type::Support) {
             target.updateHealth(resolvedMagnitude);
             returnedMagnitude = resolvedMagnitude;
-            for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, target);
+            if (shouldApplyEffects) {
+                for (const ItemDef::Effect& effect : def->getEffects()) {
+                    EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, target);
+                }
             }
-        } else if (!def->getEffects().empty()) {
+        } else if (shouldApplyEffects && !def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
                 EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, target);
             }
@@ -432,6 +454,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
         }
 
         const float resolvedMagnitude = resolveItemMagnitude(*def, db);
+        const bool shouldApplyEffects = canApplyItemEffects(*this, *def);
         float returnedMagnitude = 0.0f;
         if (def->getId() == "gaia_rock") {
             target.updateHealth(resolvedMagnitude);
@@ -439,10 +462,12 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
         } else if (def->getType() == ItemDef::Type::Attack) {
             target.takeDamage(resolvedMagnitude, getPlayerNumber());
             returnedMagnitude = resolvedMagnitude;
-            for (const ItemDef::Effect& effect : def->getEffects()) {
-                applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+            if (shouldApplyEffects) {
+                for (const ItemDef::Effect& effect : def->getEffects()) {
+                    applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                }
             }
-        } else if (!def->getEffects().empty()) {
+        } else if (shouldApplyEffects && !def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
                 applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
             }

@@ -333,6 +333,20 @@ protected:
 
     /** Whether support zones may be disabled*/
     bool _tutorialDisableSupportZones = false;
+    /** The respective tooltip from the item being held down. */
+    std::shared_ptr<cugl::scene2::PolygonNode> _tooltipNode;
+    
+    /** The timer for holding an item to acrivate tooltip */
+    float _holdTimer = 0.0f;
+    
+    /** The amount of seconds before the tooltip appears */
+    float _holdThreshold = 0.6f;
+    
+    /** The world-coordinate pixels before the tooltip is dismissed */
+    float _tooltipMoveLimit = 20.0f;
+    
+    /** The world position when drag begins */
+    Vec2 _holdAnchorPos = Vec2::ZERO;
 
 #pragma mark - Drag State
 
@@ -995,6 +1009,14 @@ public:
      * @param input  The active input controller.
      */
     void handleDragTracking(InputController& input);
+    
+    /**
+     * Handles tooltip visibility during drag: after holding long enough,
+     * shows the tooltip (once) and keeps it aligned with the dragged item.
+     *
+     * @param dt  Delta time in seconds.
+     */
+    void handleTooltipVisibility(float dt);
 
     /**
     * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory.
@@ -1401,7 +1423,8 @@ public:
      * @return Ordered list of FloatingPopupData for the sequence.
      */
     std::vector<FloatingPopupData> buildHealPopups(float baseValue, float resolvedHeal,
-                                                   const std::shared_ptr<const ItemDef>& def) const;
+                                                   const std::shared_ptr<const ItemDef>& def,
+                                                   bool shouldShowEffectPopup) const;
 
     /**
      * Fires visual popups for any shield or barrier effects on a support item.
@@ -1412,8 +1435,11 @@ public:
      *
      * @param def      The item definition whose effects to scan.
      * @param dropPos  Screen-space position where popups appear.
+     * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
      */
-    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos);
+    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
+                                    const cugl::Vec2& dropPos,
+                                    bool shouldShowEffectPopup);
 
     /**
      * Plays the item's defined use sound, or the generic "support" sound if none is set.
@@ -1534,6 +1560,12 @@ public:
      * and toggles their visibility accordingly.
      */
     void updateDropZoneVisibility();
+    
+    /**
+     * Repositions the tooltip node above the currently dragged icon.
+     * Must only be called while _draggedIcon and _tooltipNode are valid.
+     */
+    void updateTooltipPosition();
 
 #pragma mark -
 #pragma mark Tutorial
