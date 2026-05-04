@@ -1334,7 +1334,8 @@ public:
      * @return Ordered list of FloatingPopupData for the sequence.
      */
     std::vector<FloatingPopupData> buildHealPopups(float baseValue, float resolvedHeal,
-                                                   const std::shared_ptr<const ItemDef>& def) const;
+                                                   const std::shared_ptr<const ItemDef>& def,
+                                                   bool shouldShowEffectPopup) const;
 
     /**
      * Fires visual popups for any shield or barrier effects on a support item.
@@ -1345,8 +1346,11 @@ public:
      *
      * @param def      The item definition whose effects to scan.
      * @param dropPos  Screen-space position where popups appear.
+     * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
      */
-    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos);
+    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
+                                    const cugl::Vec2& dropPos,
+                                    bool shouldShowEffectPopup);
 
     /**
      * Plays the item's defined use sound, or the generic "support" sound if none is set.

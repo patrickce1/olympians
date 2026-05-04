@@ -1,8 +1,8 @@
 {
     "rarityWeights": {
         "common": 0.45,
-        "rare": 0.40,
-        "divine": 0.15,
+        "rare": 0.15,
+        "divine": 0.01,
         "special": 0.0
     },
     "items": [
@@ -154,7 +154,7 @@
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "hades",
-            "baseValue": 0.0,
+            "baseValue": 10.0,
             "effects": [
                 {
                     "type": "barrier",
@@ -216,7 +216,7 @@
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "athena",
-            "baseValue": 0.0,
+            "baseValue": 10.0,
             "effects": [
                 {
                     "type": "barrier",
@@ -286,8 +286,13 @@
             "type": "attack",
             "rarity": "rare",
             "houseAffinity": "aphrodite",
-            "baseValue": 0.0,
-            "effects": []
+            "baseValue": 10.0,
+            "effects": [
+                {
+                    "type": "love",
+                    "duration": 5.0
+                }
+            ]
         },
         {
             "id": "thunderstorm",
@@ -298,7 +303,7 @@
             "type": "attack",
             "rarity": "divine",
             "houseAffinity": "zeus",
-            "baseValue": 80.0,
+            "baseValue": 10.0,
             "effects": [],
             "itemUseAnimation": {
                 "spriteSheetId": "storm_animation",
@@ -319,7 +324,7 @@
             "type": "attack",
             "rarity": "divine",
             "houseAffinity": "poseidon",
-            "baseValue": 20.0,
+            "baseValue": 0.0,
             "effects": [],
             "itemUseAnimation": {
                 "spriteSheetId": "tide_animation",
@@ -363,7 +368,7 @@
             "type": "support",
             "rarity": "divine",
             "houseAffinity": "demeter",
-            "baseValue": 2.0,
+            "baseValue": 0.0,
             "effects": []
         },
         {
@@ -387,7 +392,7 @@
             "type": "support",
             "rarity": "divine",
             "houseAffinity": "athena",
-            "baseValue": 2.0,
+            "baseValue": 0.0,
             "effects": []
         },
         {
@@ -399,7 +404,7 @@
             "type": "attack",
             "rarity": "divine",
             "houseAffinity": "demeter",
-            "baseValue": 4.0,
+            "baseValue": 60.0,
             "effects": []
         },
         {
@@ -423,11 +428,11 @@
             "type": "attack",
             "rarity": "divine",
             "houseAffinity": "aphrodite",
-            "baseValue": 2.0,
+            "baseValue": 0.0,
             "effects": []
         }
     ],
-    "itemInterval": 3.0,
+    "itemInterval": 2.5,
     "itemTimerStart": 1.5,
     "maxInventorySpawnItems": 5
 }

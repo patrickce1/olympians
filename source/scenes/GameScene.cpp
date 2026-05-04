@@ -81,11 +81,13 @@ static HealthState getHealthState(float current, float max) {
  * @param def   The item definition describing the support item's effects.
  * @param resolvedMagnitude   The resolved support magnitude calculated for this item use.
  * @param targetPlayerID     The 0-based slot index of the player receiving the effect.
+ * @param shouldApplyEffects  Whether the effect should be broadcasted or not
  */
-static void broadcastSupportEffects(NetworkController& network,
-                                    const ItemDef& def,
-                                    float resolvedMagnitude,
-                                    int targetPlayerID) {
+static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int targetPlayerID, bool shouldApplyEffects) {
+    if (!shouldApplyEffects) {
+        return;
+    }
+
     for (const ItemDef::Effect& effect : def.getEffects()) {
         switch (effect.type) {
             case ItemDef::EffectType::Shield:
@@ -126,10 +128,15 @@ static void broadcastSupportEffects(NetworkController& network,
  * @param def                The item definition describing the attack item's effects.
  * @param resolvedMagnitude  The resolved attack magnitude calculated for this item use.
  * @param playerIndex    The index of the player applying the enemy effect.
+ * @param shouldApplyEffects  Whether the effects should be applied or not.
  * @return   The collection of enemy effects to be applied this frame.
  */
-static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, float resolvedMagnitude, int playerIndex) {
+static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, float resolvedMagnitude, int playerIndex, bool shouldApplyEffects) {
     std::vector<EnemyEffectMessage> enemyEffects;
+    if (!shouldApplyEffects) {
+        return enemyEffects;
+    }
+
     for (const ItemDef::Effect& effect : def.getEffects()) {
         EnemyEffectMessage effectMsg;
         effectMsg.duration = effect.duration;
@@ -181,6 +188,22 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
             effectMsg.playerIndex,
             effectMsg.applyToAllSides);
     }
+}
+
+/**
+ * Returns whether an item effect should be applied based on the user's house.
+ *
+ * @param player The player using the item.
+ * @param def The item definition being resolved.
+ * @return Whether an item effect should be applied
+ */
+static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
+    if (def.getHouseAffinity() == ItemDef::House::None) {
+        return true;
+    }
+
+    return def.getHouseAffinity() ==
+           ItemDef::houseFromString(player.getHouseName(), ItemDef::House::None);
 }
 
 /**
@@ -806,6 +829,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
                                       Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
     const float baseValue = def->getBaseValue();
+    const bool shouldApplyEffects = canApplyItemEffects(*local, *def);
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
@@ -827,7 +851,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
     const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
     const std::vector<EnemyEffectMessage> enemyEffects =
-        (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber())
+        (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects)
                               : std::vector<EnemyEffectMessage>{};
 
     startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
@@ -860,6 +884,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
                                        Player* local, Enemy* enemy) {
     const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
     const float baseValue = def->getBaseValue();
+    const bool shouldApplyEffects = canApplyItemEffects(*local, *def);
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
@@ -886,7 +911,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         else {
             _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
         }
-        broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber()));
+        broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects));
     }
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique("enemy_hurt");
@@ -925,24 +950,25 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         if (!def || def->getType() != ItemDef::Type::Support) return false;
 
         const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
+        const bool shouldShowEffectPopup = canApplyItemEffects(*local, *def);
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
 
         if (!_network->isHost()) {
             _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
+            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
         }
             
         playSupportItemSound(def);
         CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup));
         return true;
     }
     return false;
@@ -965,23 +991,24 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         if (!def || def->getType() != ItemDef::Type::Support) return false;
 
         const cugl::Vec2 dropPos = resolveItemDropPosition(itemId);
+        const bool shouldShowEffectPopup = canApplyItemEffects(*local, *def);
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
 
         if (!_network->isHost()) {
             _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber());
+            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
         }
         playSupportItemSound(def);
         CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup));
         return true;
     }
     return false;
@@ -3905,7 +3932,8 @@ void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
  * @return Ordered list of FloatingPopupData for the sequence (1 or 3 entries).
  */
 std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal,
-                                                         const std::shared_ptr<const ItemDef>& def) const {
+                                                         const std::shared_ptr<const ItemDef>& def,
+                                                         bool shouldShowEffectPopup) const {
     // Back-calculate the house multiplier from the resolved heal so we can show it in the sequence.
     const float totalMultiplier = (baseValue > 0.0f) ? resolvedHeal / baseValue : 1.0f;
     const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
@@ -3936,7 +3964,7 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
             {houseText, 17.0f*(1.0f+houseLog), cugl::Color4(244, 186,  51, 255), cugl::Color4::BLACK, 0.05f, 0.3f,  cugl::Vec2(20.0f, 15.0f), false},
             {finalText, 26.0f*(1.0f+houseLog), healGreen,                        cugl::Color4::BLACK, 0.35f, 0.5f,  cugl::Vec2::ZERO,         true},
         };
-        if (regenAmount > 0.0f) {
+        if (shouldShowEffectPopup && regenAmount > 0.0f) {
             popups.push_back({regenText, 22.0f, healGreen, cugl::Color4::BLACK, 0.35f, 0.5f, cugl::Vec2(0.0f, -28.0f), false});
         }
         return popups;
@@ -3945,7 +3973,7 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
     popups = {
         {finalText, 26.0f, healGreen, cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true},
     };
-    if (regenAmount > 0.0f) {
+    if (shouldShowEffectPopup && regenAmount > 0.0f) {
         popups.push_back({regenText, 22.0f, healGreen, cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, -28.0f), false});
     }
     return popups;
@@ -3957,15 +3985,15 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
  *
  * @param def      The item definition whose effects to scan.
  * @param dropPos  Screen-space position where popups appear.
+ * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
  */
-void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
-                                   const cugl::Vec2& dropPos) {
+void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos, bool shouldShowEffectPopup) {
     for (const auto& effect : def->getEffects()) {
         if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
             char text[32];
             std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
             createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
-        } else if (effect.type == ItemDef::EffectType::Barrier && effect.multiplier < 1.0f) {
+        } else if (shouldShowEffectPopup && effect.type == ItemDef::EffectType::Barrier && effect.multiplier < 1.0f) {
             char text[32];
             const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
             std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);

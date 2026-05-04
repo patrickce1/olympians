@@ -282,8 +282,12 @@ void Enemy::enterState(EnemyLoader::State state) {
     }
 }
 
-/** Forces the enemy into idle and clears progress on the interrupted state. */
-void Enemy::forceIdle() {
+/** Forces the enemy into idle and clears progress on the interrupted state. 
+ * @param duration Optional duration of the lockout to apply when forcing idle (e.g. for interrupting attacks with a stun). Defaults to 0 for no lockout. */
+void Enemy::forceIdle(float duration) {
+    if (duration > 0.0f) {
+        _attackLockout = std::max(_attackLockout, duration);
+    }
     if (_currentState != EnemyLoader::State::IDLE) {
         enterState(EnemyLoader::State::IDLE);
     } else {
@@ -328,7 +332,9 @@ void Enemy::tick(float dt) {
         }
     }
 
-    const float frozenDuration = std::max(previousStunDuration, previousLoveDuration);
+    // Love keeps the enemy in idle but doesn't freeze state time — idle animation still plays.
+    // Only stun freezes animation advancement.
+    const float frozenDuration = previousStunDuration;
     const float activeCombatDt = std::max(0.0f, dt - frozenDuration);
     if (activeCombatDt > 0.0f) {
         const float slowedCombatDt = std::max(0.0f, std::min(dt, previousSlowDuration) - frozenDuration);
@@ -453,12 +459,11 @@ EnemyLoader::State Enemy::getNextStateOrIdle() const {
 void Enemy::update(float dt) {
     tick(dt);
 
-    if (isLoved()) {
-        forceIdle();
+    if (isStunned()) {
         return;
     }
 
-    if (isStunned()) {
+    if (isLoved()) {
         return;
     }
 
@@ -552,25 +557,31 @@ void Enemy::syncStunDuration(float duration) {
 }
 
 /**
- * Applies or refreshes a love, forcing the enemy idle and extending the remaining duration.
+ * Applies or refreshes a love, forcing the enemy idle, turning it toward the
+ * source player, and extending the remaining duration.
  *
- * @param duration  The love time to apply, in seconds.
+ * @param duration     The love time to apply, in seconds.
+ * @param playerIndex  The slot index of the player who applied the love.
  */
-void Enemy::applyLove(float duration) {
+void Enemy::applyLove(float duration, int playerIndex) {
     if (duration <= 0.0f) {
         return;
     }
 
+    const bool validPlayerIndex = playerIndex >= 0 && playerIndex < NUM_PLAYERS;
     const bool wasLoved = isLoved();
     _loveDuration = std::max(_loveDuration, duration);
-    forceIdle();
+    if (validPlayerIndex) {
+        _targetIndex = playerIndex;
+    }
+    forceIdle(duration);
 
     if (!_debug) return;
     
     if (!wasLoved) {
-        CULog("Enemy love applied: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
+        CULog("Enemy love applied: enemy='%s' duration=%.3f target=%d", _enemyId.c_str(), _loveDuration, _targetIndex);
     } else {
-        CULog("Enemy love refreshed: enemy='%s' duration=%.3f", _enemyId.c_str(), _loveDuration);
+        CULog("Enemy love refreshed: enemy='%s' duration=%.3f target=%d", _enemyId.c_str(), _loveDuration, _targetIndex);
     }
 }
 
@@ -585,8 +596,8 @@ void Enemy::syncLoveDuration(float duration) {
     const bool willBeLoved = duration > 0.0f;
     _loveDuration = duration;
 
-    if (willBeLoved) {
-        forceIdle();
+    if (!wasLoved && willBeLoved) {
+        forceIdle(duration);
     }
 
     if (!wasLoved && willBeLoved && _debug) {
