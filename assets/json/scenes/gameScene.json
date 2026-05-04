@@ -243,23 +243,6 @@
                     "y_offset": 0
                 }
             },
-            "tooltip": {
-                "type": "Image",
-                "data": {
-                    "texture": "exampleTooltip",
-                    "size": [672,327],
-                    "anchor": [
-                        0,
-                        0
-                    ],
-                    "position": [
-                        0,
-                        0
-                    ],
-                    "visible": false,
-                    "angle": 0
-                }
-            },
             "resetButton": {
                 "type": "Image",
                 "data": {
