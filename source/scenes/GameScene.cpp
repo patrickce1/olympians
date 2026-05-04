@@ -2664,7 +2664,6 @@ void GameScene::updateTooltipPosition() {
 
     Size widgetSize = _draggedIcon->getContentSize();
 
-    // Widget position is already in inventory-local space (anchor BOTTOM_LEFT)
     Vec2 widgetPos = _draggedIcon->getPosition();
 
     // Center tooltip horizontally over the widget, place it just above
