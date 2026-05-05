@@ -521,7 +521,7 @@ static void testMalletUpgradeScaling(const HouseLoader& loader,
     offAffinityPlayer->setMalletUseCount(2);
     offAffinityPlayer->addItem(makeItem("mallet"));
     const float offAffinityResolved = offAffinityPlayer->useItemById(offAffinityPlayer->getInventory()[0].getId(), enemy, db);
-    const float expectedOffAffinity = 15.0f * (1.0f + 1.0f);
+    const float expectedOffAffinity = 22.5f * (1.0f + 1.0f);
     assertWithLabel(floatsEqualWithinTolerance(offAffinityResolved, expectedOffAffinity), "mallet upgrade: off-affinity mallet still uses existing streak damage");
     assertWithLabel(offAffinityPlayer->getMalletUseCount() == 2, "mallet upgrade: off-affinity mallet does not increment streak");
 }

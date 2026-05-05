@@ -463,11 +463,11 @@ void Enemy::update(float dt) {
         return;
     }
 
-    if (isLoved()) {
-        return;
-    }
-
-    if (readyToFire()) {
+    // Skip damage events while loved — enemy is friendly and shouldn't deal damage.
+    // But still fall through to isStateComplete() so in-progress attack animations
+    // (like the scream's frame-based completion) can finish and transition to idle
+    // instead of freezing on the last frame.
+    if (!isLoved() && readyToFire()) {
         fireEvents();
     }
 
