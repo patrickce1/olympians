@@ -265,6 +265,12 @@ bool ItemDef::init(const std::shared_ptr<JsonValue>& json) {
         _baseValue = 0.0f;
     }
 
+    _weight = 10.0f;
+    if (json->has("weight") && json->get("weight")->isNumber()) {
+        float w = json->getFloat("weight");
+        _weight = (w > 0.0f) ? w : 10.0f;
+    }
+
     _effects.clear();
     if (json->has("effects")) {
         auto effects = json->get("effects");
