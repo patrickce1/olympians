@@ -112,6 +112,9 @@ private:
     /* PLACEHOLDER FOR REPRESENTING ITEM TEXTURE/ICON */
     std::string _iconKey;
     
+    /* Texture for representing the tooltip */
+    std::string _tooltipKey;
+    
     /* Type of item (e.g. Attack, Support) */
     Type _type;
     
@@ -135,6 +138,9 @@ private:
     
     /* Optional sound to play when item is used (empty string if not defined) */
     std::string _itemUseSound;
+
+    /* Relative spawn weight within this item's rarity tier (default 10). Higher = more common. */
+    float _weight = 10.0f;
     
 public:
     ItemDef() = default;
@@ -162,6 +168,8 @@ public:
     const std::string& getDescription() const { return _description; }
     /** Gets item icon key (used to look up texture in asset manager) */
     const std::string& getIconKey() const { return _iconKey; }
+    /** Gets item tooltip key (used to look up texture in asset manager) */
+    const std::string& getTooltipKey() const { return _tooltipKey; }
     /** Gets the base value of the item before multipliers are applied */
     const float getBaseValue() const { return _baseValue; }
 
@@ -192,6 +200,13 @@ public:
     /** Gets the animation configuration for this item (valid only if hasItemUseAnimation() is true) */
     const ItemUseAnimationConfig& getItemUseAnimation() const { return _itemUseAnimationConfig; }
     
+    /**
+     * Returns the spawn weight of this item relative to other items in the same rarity tier.
+     * Used for within-tier weighted random selection. Default is 10 if not specified in JSON.
+     * @return the spawn weight of this item, where higher means more common within its rarity tier.
+     */
+    float getWeight() const { return _weight; }
+
     /**
      * Gets the sound asset key to play when this item is used.
      * Returns an empty string if no itemUseSound is defined in the item JSON.

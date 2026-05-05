@@ -88,7 +88,7 @@
         {
             "id": "cyclops",
             "name": "cyclops",
-            "maxHealth": 10000.0,
+            "maxHealth": 15000.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
                 "retargetLikelihood": 0.5,
@@ -108,7 +108,7 @@
                         {
                             "type": "SIDE_MODIFIER",
                             "target": 0,
-                            "amount": 2.0
+                            "amount": 2.5
                         },
 			            {
                             "type": "SIDE_MODIFIER",

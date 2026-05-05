@@ -496,7 +496,7 @@ void testShieldEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 
     const float shieldHealthBeforeUse = shieldTarget.getCurrentHealth();
     float resolvedShield = athena.useItemById(instShield->getId(), shieldTarget, db);
-    assertWithLabel(floatsEqualWithinTolerance(resolvedShield, shieldDef->getBaseValue() * (1.0f + 0.6f)),
+    assertWithLabel(floatsEqualWithinTolerance(resolvedShield, shieldDef->getBaseValue() * (1.0f + 0.3f)),
                     "shield: shield item returns the expected resolved base heal");
     assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth() - shieldHealthBeforeUse,
                                               std::min(resolvedShield, shieldTarget.getMaxHealth() - shieldHealthBeforeUse)),
@@ -561,7 +561,7 @@ void testBarrierEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 
     const float barrierHealthBeforeUse = barrierTarget.getCurrentHealth();
     float resolvedBarrier = athena.useItemById(instBarrier->getId(), barrierTarget, db);
-    assertWithLabel(floatsEqualWithinTolerance(resolvedBarrier, barrierDef->getBaseValue() * (1.0f + 0.6f)),
+    assertWithLabel(floatsEqualWithinTolerance(resolvedBarrier, barrierDef->getBaseValue() * (1.0f + 0.3f) * 1.5f),
                     "barrier: barrier item returns the expected resolved base heal");
     assertWithLabel(floatsEqualWithinTolerance(barrierTarget.getCurrentHealth() - barrierHealthBeforeUse,
                                               std::min(resolvedBarrier, barrierTarget.getMaxHealth() - barrierHealthBeforeUse)),
@@ -693,8 +693,8 @@ void testHelmEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 
     const float helmHealthBeforeUse = helmTarget.getCurrentHealth();
     const float resolvedHelm = hades.useItemById(instHelm->getId(), helmTarget, db);
-    assertWithLabel(floatsEqualWithinTolerance(resolvedHelm, 0.0f), "helm: helm item returns zero resolved base heal");
-    assertWithLabel(floatsEqualWithinTolerance(helmTarget.getCurrentHealth(), helmHealthBeforeUse), "helm: helm does not change health on use");
+    assertWithLabel(floatsEqualWithinTolerance(resolvedHelm, helmDef->getBaseValue() * (1.0f + 0.3f) * 1.5f), "helm: helm item returns the expected resolved base heal");
+    assertWithLabel(helmTarget.getCurrentHealth() > helmHealthBeforeUse, "helm: helm applies base heal on use");
     assertWithLabel(helmTarget.hasBarrier(), "helm: helm arms a barrier on the target");
     assertWithLabel(floatsEqualWithinTolerance(helmTarget.getBarrierMultiplier(), helmEffect.multiplier), "helm: helm barrier multiplier applies");
     assertWithLabel(floatsEqualWithinTolerance(helmTarget.getBarrierDuration(), helmEffect.duration), "helm: helm barrier duration applies");
@@ -830,6 +830,22 @@ void testStunEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     assertWithLabel(!enemy.isStunned(), "stun: enemy stun expires after duration elapses");
     enemy.update(0.5f);
     assertWithLabel(floatsEqualWithinTolerance(enemy.getStateTime(), 1.85f), "stun: enemy state timer resumes after stun ends");
+
+    Player hades("hades", 4, "Hades Tester", loader);
+    auto instOffAffinityLightning = ItemInstance::alloc("lightning_bolt", 1019);
+    assertWithLabel(instOffAffinityLightning != nullptr, "stun: create off-affinity lightning_bolt instance");
+    if (!instOffAffinityLightning) return;
+    hades.addItem(*instOffAffinityLightning);
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    enemy.setStateTime(0.5f);
+    const float enemyHealthBeforeOffAffinityUse = enemy.getCurrentHealth();
+    const float resolvedOffAffinityStun = hades.useItemById(instOffAffinityLightning->getId(), enemy, db);
+    assertWithLabel(resolvedOffAffinityStun > 0.0f, "stun: off-affinity lightning still resolves positive base damage");
+    assertWithLabel((enemyHealthBeforeOffAffinityUse - enemy.getCurrentHealth()) > 0.0f,
+                    "stun: off-affinity lightning still applies its base damage");
+    assertWithLabel(!enemy.isStunned(), "stun: off-affinity lightning does not apply stun");
 }
 
 /**

@@ -496,6 +496,7 @@ static void testMalletUpgradeScaling(const HouseLoader& loader,
                                      Enemy& enemy) {
     auto firstPlayer = std::make_shared<Player>("hephaestus", 1, "Hephaestus P1", loader);
     auto secondPlayer = std::make_shared<Player>("hephaestus", 2, "Hephaestus P2", loader);
+    auto offAffinityPlayer = std::make_shared<Player>("ares", 3, "Ares P3", loader);
 
     auto malletDef = db.getDef("mallet");
     assertWithLabel(malletDef != nullptr, "mallet upgrade: mallet def exists");
@@ -516,6 +517,13 @@ static void testMalletUpgradeScaling(const HouseLoader& loader,
     secondPlayer->addItem(makeItem("mallet"));
     const float otherResolved = secondPlayer->useItemById(secondPlayer->getInventory()[0].getId(), enemy, db);
     assertWithLabel(floatsEqualWithinTolerance(otherResolved, expectedFirst), "mallet upgrade: each player tracks an independent streak");
+
+    offAffinityPlayer->setMalletUseCount(2);
+    offAffinityPlayer->addItem(makeItem("mallet"));
+    const float offAffinityResolved = offAffinityPlayer->useItemById(offAffinityPlayer->getInventory()[0].getId(), enemy, db);
+    const float expectedOffAffinity = 22.5f * (1.0f + 1.0f);
+    assertWithLabel(floatsEqualWithinTolerance(offAffinityResolved, expectedOffAffinity), "mallet upgrade: off-affinity mallet still uses existing streak damage");
+    assertWithLabel(offAffinityPlayer->getMalletUseCount() == 2, "mallet upgrade: off-affinity mallet does not increment streak");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
