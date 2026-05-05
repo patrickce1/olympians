@@ -223,17 +223,28 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
 }
 
 /**
+ * Returns the first effect of the requested type, if present on this item.
+ *
+ * @param type The effect category to search for.
+ * @return A pointer to the first matching effect, or `nullptr` if none exists.
+ */
+const ItemDef::Effect* ItemDef::getEffect(EffectType type) const {
+    for (const Effect& effect : _effects) {
+        if (effect.type == type) {
+            return &effect;
+        }
+    }
+    return nullptr;
+}
+
+/**
  * Returns true if this item contains at least one effect of the given type.
  *
  * @param type  The effect category to search for.
+ * @return true if the item contains at least one matching effect.
  */
 bool ItemDef::hasEffectType(EffectType type) const {
-    for (const Effect& effect : _effects) {
-        if (effect.type == type) {
-            return true;
-        }
-    }
-    return false;
+    return getEffect(type) != nullptr;
 }
 
 /**

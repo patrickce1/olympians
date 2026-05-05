@@ -208,6 +208,14 @@ public:
     const std::vector<Effect>& getEffects() const { return _effects; }
     
     /**
+     * Returns the first effect of the requested type, if present on this item.
+     *
+     * @param type The effect category to search for.
+     * @return A pointer to the first matching effect, or `nullptr` if none exists.
+     */
+    const Effect* getEffect(EffectType type) const;
+
+    /**
      * Returns true if this item contains at least one effect of the given type.
      *
      * @param type  The effect category to search for.

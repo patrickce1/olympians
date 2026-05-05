@@ -134,22 +134,6 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
 }
 
 /**
- * Returns the first item effect matching the requested type, if any.
- *
- * @param def The item definition to scan for a matching effect entry.
- * @param type The effect type to search for on the item definition.
- * @return A pointer to the first matching effect on the item, or `nullptr` if none exists.
- */
-static const ItemDef::Effect* findEffect(const ItemDef& def, ItemDef::EffectType type) {
-    for (const ItemDef::Effect& effect : def.getEffects()) {
-        if (effect.type == type) {
-            return &effect;
-        }
-    }
-    return nullptr;
-}
-
-/**
  * Returns the party slots that are currently dead and reachable from the given source player.
  *
  * Traverses the local party ring using left/right player links and records only the
@@ -1039,7 +1023,7 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
     }
 
     if (!_network->isHost()) {
-        const ItemDef::Effect* resurrectEffect = findEffect(*def, ItemDef::EffectType::Resurrect);
+        const ItemDef::Effect* resurrectEffect = def->getEffect(ItemDef::EffectType::Resurrect);
         if (resurrectEffect && shouldApplyEffects) {
             const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(*local);
             _pendingResurrectionSync.playerSlots = resurrectedSlots;
