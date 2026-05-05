@@ -134,36 +134,19 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
 }
 
 /**
- * Returns the party slots that are currently dead and reachable from the given source player.
+ * Returns the player slots that are currently dead in the replicated game state.
  *
- * Traverses the local party ring using left/right player links and records only the
- * player numbers of members who are dead at the time of the query.
+ * Scans the current player roster stored on `GameState` and records only the player
+ * numbers of members who are dead at the time of the query.
  *
- * @param source The player whose connected party should be traversed.
+ * @param gameState The replicated game state containing the player roster.
  * @return A vector of player slot indices for party members who are currently dead.
  */
-static std::vector<int> collectDeadPartyPlayerSlots(Player& source) {
-    std::vector<Player*> party;
+static std::vector<int> collectDeadPartyPlayerSlots(const GameState& gameState) {
     std::vector<int> deadSlots;
-    party.push_back(&source);
-    for (size_t index = 0; index < party.size() && party.size() < Enemy::NUM_PLAYERS; ++index) {
-        Player* player = party[index];
-        if (!player) {
-            continue;
-        }
-
-        if (!player->isAlive()) {
+    for (const auto& player : gameState.getPlayers()) {
+        if (player && !player->isAlive()) {
             deadSlots.push_back(player->getPlayerNumber());
-        }
-
-        Player* neighbors[2] = { player->getLeftPlayer(), player->getRightPlayer() };
-        for (Player* neighbor : neighbors) {
-            if (!neighbor) {
-                continue;
-            }
-            if (std::find(party.begin(), party.end(), neighbor) == party.end()) {
-                party.push_back(neighbor);
-            }
         }
     }
     return deadSlots;
@@ -1025,7 +1008,7 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
     if (!_network->isHost()) {
         const ItemDef::Effect* resurrectEffect = def->getEffect(ItemDef::EffectType::Resurrect);
         if (resurrectEffect && shouldApplyEffects) {
-            const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(*local);
+            const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(_gameState);
             _pendingResurrectionSync.playerSlots = resurrectedSlots;
             _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
             _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
