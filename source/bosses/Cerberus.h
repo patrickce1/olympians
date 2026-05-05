@@ -21,7 +21,13 @@ class Cerberus : public Enemy {
 private:
     /** Fraction of damage converted to healing (from customData) */
     float _lifeStealPercent;
-
+    
+    /** Accumulates elapsed time between corrosive inventory drains */
+    float _corrosiveDrainAccum;
+    
+    /** seconds between inventory drains */
+    constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
+    
     /** Tracks which of the 3 heads are currently stunned */
     bool _headStunned[3];
     
@@ -38,7 +44,7 @@ private:
     float _corrosiveTimer;
 
     /** Player slot index currently afflicted by the corrosive debuff */
-    int _corrosiveTarget;
+    int _corrosiveTarget = -1;
 
 public:
     Cerberus() {}
@@ -97,14 +103,14 @@ public:
     void unstunHead(int headIndex);
 
     /**
-     * Applies the corrosive debuff to a player's inventory slot.
+     * Applies the corrosive debuff to _corrosiveTarget for _corrosiveTimer seconds.
      * Notifies the game scene to fade tokens, show the corrosive outline,
      * and block item passing/receiving for the debuff duration.
      *
      * @param playerIndex  Slot index of the player to afflict
      * @param duration     How long the debuff lasts in seconds
      */
-    void applyCorrosive(int playerIndex, float duration);
+    void applyCorrosive();
 
     /** Returns true if Cerberus is currently in a full stun */
     bool isFullyStunned() const { return _isFullyStunned; }
