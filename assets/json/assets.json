@@ -465,7 +465,11 @@
             "file": "textures/elements/sideIconBG.png"
         },
         "backArrow": {
-            "file": "textures/backArrow.png"
+            "file": "textures/backArrow.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "menuBG": {
             "file": "textures/menuBG.png"
