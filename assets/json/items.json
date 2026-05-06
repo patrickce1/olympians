@@ -407,6 +407,7 @@
             "rarity": "divine",
             "houseAffinity": "demeter",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": []
         },
         {
@@ -434,6 +435,7 @@
             "rarity": "divine",
             "houseAffinity": "athena",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": []
         },
         {
@@ -475,6 +477,7 @@
             "rarity": "divine",
             "houseAffinity": "aphrodite",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": []
         }
     ],
