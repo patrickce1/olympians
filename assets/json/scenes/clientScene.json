@@ -409,7 +409,7 @@
                     "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": 0.03
+                    "y_offset": 0.07
                 }
             },
             "back": {
@@ -481,7 +481,7 @@
                     "y_anchor": "bottom",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": 0.04
+                    "y_offset": 0.09
                 }
             },
             "errorPopup": {

@@ -890,7 +890,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.82
+                    "y_offset": -0.78
                 }
             },
             "bossCarousel": {
@@ -1291,7 +1291,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.28
+                    "y_offset": -0.24
                 }
             },
             "header": {
@@ -1389,7 +1389,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.17
+                    "y_offset": -0.20
                 }
             },
             "indicator": {
