@@ -510,7 +510,7 @@ void testShieldEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 
     const float shieldHealthBeforeUse = shieldTarget.getCurrentHealth();
     float resolvedShield = athena.useItemById(instShield->getId(), shieldTarget, db);
-    assertWithLabel(floatsEqualWithinTolerance(resolvedShield, shieldDef->getBaseValue() * (1.0f + 0.6f)),
+    assertWithLabel(floatsEqualWithinTolerance(resolvedShield, shieldDef->getBaseValue() * (1.0f + 0.3f)),
                     "shield: shield item returns the expected resolved base heal");
     assertWithLabel(floatsEqualWithinTolerance(shieldTarget.getCurrentHealth() - shieldHealthBeforeUse,
                                               std::min(resolvedShield, shieldTarget.getMaxHealth() - shieldHealthBeforeUse)),

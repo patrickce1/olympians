@@ -1,9 +1,9 @@
 {
     "rarityWeights": {
-        "common": 0.45,
-        "rare": 0.15,
-        "divine": 0.01,
-        "special": 0.0
+        "common": 70,
+        "rare": 25,
+        "divine": 5,
+        "special": 0
     },
     "items": [
         {
@@ -17,6 +17,7 @@
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 20.0,
+            "weight": 12.0,
             "effects": [],
             "itemUseSound": "attack_slash",
             "itemUseAnimation": {
@@ -38,6 +39,7 @@
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 10.0,
+            "weight": 7.0,
             "effects": []
         },
         {
@@ -50,6 +52,7 @@
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 15.0,
+            "weight": 7.0,
             "effects": []
         },
         {
@@ -63,6 +66,7 @@
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 23.0,
+            "weight": 10.0,
             "effects": [],
             "itemUseSound": "attack_thrust",
             "itemUseAnimation": {
@@ -81,9 +85,10 @@
             "icon": "item_shield",
             "tooltip": "tooltip_shield",
             "type": "support",
-            "rarity": "rare",
+            "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 0.0,
+            "weight": 2.0,
             "effects": [
                 {
                     "type": "shield",
@@ -103,6 +108,7 @@
             "rarity": "rare",
             "houseAffinity": "zeus",
             "baseValue": 27.0,
+            "weight": 13.0,
             "effects": [
                 {
                     "type": "stun",
@@ -130,6 +136,7 @@
             "rarity": "rare",
             "houseAffinity": "poseidon",
             "baseValue": 27.0,
+            "weight": 13.0,
             "effects": [
                 {
                     "type": "vulnerable",
@@ -159,6 +166,7 @@
             "rarity": "rare",
             "houseAffinity": "hades",
             "baseValue": 10.0,
+            "weight": 6.0,
             "effects": [
                 {
                     "type": "barrier",
@@ -177,6 +185,7 @@
             "rarity": "rare",
             "houseAffinity": "demeter",
             "baseValue": 25.0,
+            "weight": 10.0,
             "effects": [
                 {
                     "type": "regen",
@@ -196,6 +205,7 @@
             "rarity": "rare",
             "houseAffinity": "hephaestus",
             "baseValue": 10.0,
+            "weight": 13.0,
             "effects": [
                 {
                     "type": "upgrade",
@@ -222,6 +232,7 @@
             "rarity": "rare",
             "houseAffinity": "athena",
             "baseValue": 10.0,
+            "weight": 6.0,
             "effects": [
                 {
                     "type": "barrier",
@@ -241,6 +252,7 @@
             "rarity": "rare",
             "houseAffinity": "ares",
             "baseValue": 27.0,
+            "weight": 12.0,
             "effects": [
                 {
                     "type": "vulnerable",
@@ -270,6 +282,7 @@
             "rarity": "rare",
             "houseAffinity": "hermes",
             "baseValue": 10.0,
+            "weight": 7.0,
             "effects": [
                 {
                     "type": "slow",
@@ -295,6 +308,7 @@
             "rarity": "rare",
             "houseAffinity": "aphrodite",
             "baseValue": 10.0,
+            "weight": 11.0,
             "effects": [
                 {
                     "type": "love",
@@ -313,6 +327,7 @@
             "rarity": "divine",
             "houseAffinity": "zeus",
             "baseValue": 10.0,
+            "weight": 10.0,
             "effects": [],
             "itemUseAnimation": {
                 "spriteSheetId": "storm_animation",
@@ -335,6 +350,7 @@
             "rarity": "divine",
             "houseAffinity": "poseidon",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": [],
             "itemUseAnimation": {
                 "spriteSheetId": "tide_animation",
@@ -369,6 +385,7 @@
             "rarity": "divine",
             "houseAffinity": "hades",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": [
                 {
                     "type": "resurrect",
@@ -403,6 +420,7 @@
             "rarity": "divine",
             "houseAffinity": "hephaestus",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": []
         },
         {
@@ -429,6 +447,7 @@
             "rarity": "divine",
             "houseAffinity": "demeter",
             "baseValue": 60.0,
+            "weight": 10.0,
             "effects": []
         },
         {
@@ -442,6 +461,7 @@
             "rarity": "divine",
             "houseAffinity": "hermes",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": []
         },
         {
