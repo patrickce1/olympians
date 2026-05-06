@@ -515,27 +515,80 @@
                 "y_offset": 0
             }
         },
+        
         "confirmPopup": {
             "type": "Node",
             "format": {
                 "type": "Anchored"
             },
             "data": {
-                "anchor": [0.5, 0.5],
-                "size": [340, 220],
+                "anchor": [
+                    0.5,
+                    0.5
+                ],
+                "size": [
+                    573,
+                    419
+                ],
                 "angle": 0,
-                "visible": false
+                "position": [
+                    -90,
+                    222
+                ],
+                "visible": true
             },
             "children": {
+                "overlayBG": {
+                    "type": "Solid",
+                    "data": {
+                        "polygon": [
+                            641,
+                            852,
+                            0,
+                            852,
+                            0,
+                            0,
+                            641,
+                            0
+                        ],
+                        "color": "#00000080",
+                        "anchor": [
+                            0.5,
+                            0.5
+                        ],
+                        "position": [
+                            -124,
+                            0
+                        ],
+                        "visible": true,
+                        "angle": 0
+                    },
+                    "layout": {
+                        "x_anchor": "center",
+                        "y_anchor": "middle",
+                        "absolute": false,
+                        "x_offset": 0,
+                        "y_offset": 0
+                    }
+                },
                 "popupBackground": {
                     "type": "Image",
                     "data": {
-                        "texture": "popupBG",
-                        "size": [340, 220],
-                        "anchor": [0.5, 0.5],
-                        "position": [0, 0],
-                        "visible": true,
-                        "angle": 0
+                        "texture": "subPopupBG",
+                        "anchor": [
+                            0.5,
+                            0.5
+                        ],
+                        "size": [
+                            573,
+                            419
+                        ],
+                        "angle": 0,
+                        "position": [
+                            0,
+                            0
+                        ],
+                        "visible": true
                     },
                     "layout": {
                         "x_anchor": "center",
@@ -548,26 +601,42 @@
                 "message": {
                     "type": "Label",
                     "data": {
-                        "anchor": [0.5, 0.5],
-                        "size": [280, 140],
+                        "anchor": [
+                            0.5,
+                            0.5
+                        ],
+                        "size": [
+                            900,
+                            200
+                        ],
+                        "position": [
+                            158,
+                            188.14499282836914
+                        ],
                         "angle": 0,
                         "visible": true,
                         "font": "mainFont",
                         "text": "YOU CAN CHANGE YOUR NAME IN SETTINGS.",
-                        "foreground": "#FFEBD1ff",
+                        "foreground": "#ffd9a9ff",
                         "background": "#00000000",
-                        "padding": [0, 0, 0, 0],
+                        "padding": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
                         "valign": "middle",
                         "halign": "center",
                         "wrap": true,
-                        "scale": 0.75
+                        "scale": 0.3125
                     },
+                    "children": {},
                     "layout": {
                         "x_anchor": "center",
                         "y_anchor": "middle",
                         "absolute": false,
                         "x_offset": 0,
-                        "y_offset": 0
+                        "y_offset": -0.01
                     }
                 }
             },
@@ -576,7 +645,7 @@
                 "y_anchor": "middle",
                 "absolute": false,
                 "x_offset": 0,
-                "y_offset": 0.08
+                "y_offset": 0.01
             }
         }
     }
