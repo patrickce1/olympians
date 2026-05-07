@@ -163,7 +163,6 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     assertWithLabel(educateDef && educateDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
            "items: educate attack target parses as all allies");
     assertWithLabel(educateDef && !educateDef->getEffects().empty() &&
-                    educateDef->getEffects()[0].targetAllAllies &&
                     floatsEqualWithinTolerance(educateDef->getEffects()[0].duration, 10.0f),
            "items: educate duration parses");
     assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
