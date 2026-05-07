@@ -1800,7 +1800,7 @@ void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonN
             damageBlinkTimer = _blinkDuration;
             healBlinkTimer = 0.0f;
             startedNewBlink = true;
-        } else if ((currentHealth - lastHealth) >= 1.0f) {
+        } else if (currentHealth > lastHealth) {
             healBlinkTimer = _blinkDuration / 2;
             damageBlinkTimer = 0.0f;
             startedNewBlink = true;
@@ -1816,14 +1816,19 @@ void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonN
         }
     }
 
+    const bool hasActiveRegen = player->hasRegen();
+
     if (!isAlive) {
         damageBlinkTimer = 0.0f;
         healBlinkTimer = 0.0f;
         slot->setColor(Color4(255, 255, 255, 255));
-    } else if (healBlinkTimer > 0.0f) {
-        slot->setColor(Color4(176, 224, 176, 255));
     } else if (damageBlinkTimer > 0.0f && shouldShowDamageBlink(damageBlinkTimer, _blinkInterval)) {
         slot->setColor(Color4(224, 160, 160, 255));
+    } else if (hasActiveRegen) {
+        // Regen applies small heals every frame, so keep a visible green tint up while it is active.
+        slot->setColor(Color4(120, 220, 120, 255));
+    } else if (healBlinkTimer > 0.0f) {
+        slot->setColor(Color4(176, 224, 176, 255));
     } else {
         slot->setColor(Color4(255, 255, 255, 255));
     }
