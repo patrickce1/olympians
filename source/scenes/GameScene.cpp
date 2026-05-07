@@ -2991,7 +2991,6 @@ void GameScene::update(float dt, InputController& input) {
             slideDialogueIn();
         }
     }
-    CULog("Enemy ID: %s", _gameState.getEnemy()->getId().c_str());
 
 }
 

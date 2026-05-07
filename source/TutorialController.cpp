@@ -217,8 +217,6 @@ bool TutorialController::isWaitingForActionMatch(InputController::Action action)
 void TutorialController::update(float dt) {
     if (!_active || _index < 0 || _index >= (int)_steps.size()) return;
     
-    CULog("Tutorial: index=%d type=%d waiting=%d timer=%.2f",
-            _index, (int)_steps[_index].type, _waitingForAction ? 1 : 0, _timer);
     // wait_for_action steps never auto-advance — only onAction() can advance them.
     if (_waitingForAction) {
         
@@ -348,7 +346,6 @@ void TutorialController::advanceStep() {
  *         completed immediately and the next step should be processed.
  */
 bool TutorialController::executeStep(const TutorialStep& step) {
-    CULog("Tutorial: executeStep index=%d type=%d timer=%.2f", _index, (int)step.type, _timer);
 
     // Reset per-step state.
     _waitingForAction = false;
