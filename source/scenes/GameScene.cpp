@@ -1766,7 +1766,6 @@ void GameScene::handleResetButton(InputController& input) {
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
     if (_resetBtn->getBoundingBox().contains(touchPosScreen)) {
-        CULog("Reset button tapped!");
         reset();
     }
 }
@@ -2086,6 +2085,30 @@ void GameScene::handleGaiaSpawn() {
     
     return;
 }
+
+/**
+ * Checks if Cerberus's corrosive debuff should drain an item from the affected player.
+ * If the drain timer has elapsed, removes a random item from the target player's inventory.
+ * Host handles this authoritative logic; clients receive updates via game state broadcasts.
+ */
+void GameScene::handleCorrosiveDrain(){
+    if (_gameState.getEnemy()->getId() != "cerberus") return;
+
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+    if (!cerberus->shouldDrainItem()) return;
+
+    int targetIndex = cerberus->getCorrosiveTarget();
+
+    Player* victim = _gameState.getPlayerBySlot(targetIndex);
+    if (!victim || victim->getInventory().empty()) {
+        return;
+    }
+
+    auto& inventory = victim->getInventory();
+    int randomIndex = rand() % inventory.size();
+    victim->removeItemById(inventory[randomIndex].getId());
+}
+
 
 /**
  * Spawns items for the local player every frame, and for all AI-controlled
@@ -2659,6 +2682,7 @@ void GameScene::update(float dt, InputController& input) {
     handleItemSpawn(dt);
     updateEnemyAnimation(dt, _network->getLocalPlayerNumber());
     updateEnemyAndAI(dt);
+    handleCorrosiveDrain();
     updateEnemyHealthBarEffect(dt);
     updateDropZoneVisibility();
 

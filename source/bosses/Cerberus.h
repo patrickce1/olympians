@@ -24,10 +24,7 @@ private:
     
     /** Accumulates elapsed time between corrosive inventory drains */
     float _corrosiveDrainAccum;
-    
-    /** seconds between inventory drains */
-    constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
-    
+
     /** Tracks which of the 3 heads are currently stunned */
     bool _headStunned[3];
     
@@ -46,6 +43,9 @@ private:
     /** True when the corrosive debuff is active on the targeted player */
     bool _corrosiveActive;
 
+    /** True if the boss should try to drain an item from the inventory during corrosive.*/
+    bool _shouldDrain;
+
     /** Remaining duration of the corrosive debuff in seconds */
     float _corrosiveTimer;
 
@@ -53,6 +53,16 @@ private:
     int _corrosiveTarget = -1;
 
 public:
+    
+    /** seconds between inventory drains. i.e. how long in time for the next item to start corroding */
+    static constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
+
+    /** Duration in seconds that a head stays stunned after being hit */
+    static constexpr float HEAD_STUN_DURATION = 3.0f;
+
+    /** Duration in seconds that the corrosive debuff lasts */
+    static constexpr float CORROSIVE_DURATION = 10.0f;
+    
     Cerberus() {}
 
     /**
@@ -109,14 +119,21 @@ public:
     void unstunHead(int headIndex);
 
     /**
-     * Applies the corrosive debuff to _corrosiveTarget for _corrosiveTimer seconds.
-     * Notifies the game scene to fade tokens, show the corrosive outline,
-     * and block item passing/receiving for the debuff duration.
+     * Applies the corrosive debuff to a player for the specified duration.
+     * GameScene will fade tokens, show the corrosive outline, and block
+     * item passing for the debuff duration.
      *
      * @param playerIndex  Slot index of the player to afflict
      * @param duration     How long the debuff lasts in seconds
      */
-    void applyCorrosive();
+    void startCorrosive(int playerIndex, float duration);
+
+    /**Determines if corrosive should drain an item for the player. 
+     * Makes sure there are items, and that time has passed.*/
+    bool shouldDrainItem(); 
+
+    /**Returns the target to be applied corrosion, or is currently corroded */
+    int getCorrosiveTarget() const { return _corrosiveTarget; }
 
     /** Returns true if Cerberus is currently in a full stun */
     bool isFullyStunned() const { return _isFullyStunned; }

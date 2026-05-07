@@ -15,6 +15,7 @@
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 #include "../bosses/Gaia.h"
+#include "../bosses/Cerberus.h"
 
 
 /** Animation duration for floating popups to scale in, in seconds. */
@@ -954,6 +955,13 @@ public:
       * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well
       */
     void handleGaiaSpawn();
+
+    /**
+     * Checks if Cerberus's corrosive debuff should drain an item from the affected player.
+     * If the drain timer has elapsed, removes a random item from the target player's inventory.
+     * Host handles this authoritative logic; clients receive updates via game state broadcasts.
+     */
+    void handleCorrosiveDrain();
     
     /**
      * Spawns items for the local player every frame, and for all AI-controlled

@@ -24,9 +24,7 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath) {
     _corrosiveTimer      = 0.0f;
     _corrosiveTarget     = -1;
     _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL;
-    
-    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f,
-                      _lifeStealPercent);
+
     return success;
 }
 
@@ -57,8 +55,6 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, con
     _corrosiveTarget     = -1;
     _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL;
     
-    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f,
-                      _lifeStealPercent);
     return success;
 }
 
@@ -80,25 +76,32 @@ void Cerberus::update(float dt) {
             }
         }
     }
-        if (_corrosiveActive) {
-            _corrosiveTimer -= dt;
-            if (_corrosiveTimer <= 0){
-                _corrosiveTimer = 0;
-                _corrosiveActive = false;
-                _corrosiveTarget = -1;
-            }
-            else {
-                _corrosiveDrainAccum -= dt;
-                if (_corrosiveDrainAccum <= 0) {
-                    _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL; // reset
-                    applyCorrosion();
+    if (_corrosiveActive) {
+        _corrosiveTimer -= dt;
+        if (_corrosiveTimer <= 0){
+            _corrosiveTimer = 0;
+            _corrosiveActive = false;
+            _corrosiveTarget = -1;
+            _corrosiveDrainAccum = 0;
+        }
+        else {
+            _corrosiveDrainAccum -= dt;
+            if (_corrosiveDrainAccum <= 0) {
+                _shouldDrain = true;
+                _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL; // reset
             }
         }
-        Enemy::update(dt);
-        
+    }
+    Enemy::update(dt);
 }
 
-
+/**
+ * Registers a stun on one of Cerberus's heads. If all 3 heads become
+ * stunned simultaneously, triggers a full stun and plays the
+ * heads-lowered animation.
+ *
+ * @param headIndex  Which head was stunned (0, 1, or 2)
+ */
 void Cerberus::stunHead(int headIndex) {
     _headStunned[headIndex] = true;
     _headStunTimer[headIndex] = HEAD_STUN_DURATION;
@@ -108,8 +111,37 @@ void Cerberus::stunHead(int headIndex) {
     }
 }
 
+/**
+ * Clears the stun state on a single head, called when the stun
+ * duration on that head expires.
+ *
+ * @param headIndex  Which head to unstun (0, 1, or 2)
+ */
 void Cerberus::unstunHead(int headIndex) {
     _headStunned[headIndex] = false;
     _headStunTimer[headIndex] = 0;
     _isFullyStunned = false;
+}
+
+/**
+ * Applies the corrosive debuff to _corrosiveTarget for _corrosiveTimer seconds.
+ * Notifies the game scene to fade tokens, show the corrosive outline,
+ * and block item passing/receiving for the debuff duration.
+ *
+ * @param playerIndex  Slot index of the player to afflict
+ * @param duration     How long the debuff lasts in seconds
+ */
+void Cerberus::startCorrosive(int playerIndex, float duration) {
+    _corrosiveTarget = playerIndex;
+    _corrosiveTimer = duration;
+    _corrosiveActive = true;
+    _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL;
+}
+
+bool Cerberus::shouldDrainItem() {
+    if (_shouldDrain){
+        _shouldDrain = false;
+        return true;
+    }
+    return false;
 }
