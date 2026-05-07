@@ -1800,7 +1800,7 @@ void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonN
             damageBlinkTimer = _blinkDuration;
             healBlinkTimer = 0.0f;
             startedNewBlink = true;
-        } else if (currentHealth > lastHealth) {
+        } else if ((currentHealth - lastHealth) >= 1.0f) {
             healBlinkTimer = _blinkDuration / 2;
             damageBlinkTimer = 0.0f;
             startedNewBlink = true;
