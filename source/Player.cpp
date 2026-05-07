@@ -380,6 +380,81 @@ static float applyAttackEffectToEnemy(const ItemDef::Effect& effect, float resol
 }
 
 /**
+ * Collects the connected party members reachable from the given source player's links.
+ *
+ * @param source The player whose left/right party links should be traversed.
+ * @return A vector containing each reachable party member at most once.
+ */
+static std::vector<Player*> collectPartyMembers(Player& source) {
+    std::vector<Player*> party;
+    party.push_back(&source);
+    for (size_t index = 0; index < party.size() && party.size() < Enemy::NUM_PLAYERS; ++index) {
+        Player* player = party[index];
+        if (!player) {
+            continue;
+        }
+
+        Player* neighbors[2] = { player->getLeftPlayer(), player->getRightPlayer() };
+        for (Player* neighbor : neighbors) {
+            if (!neighbor) {
+                continue;
+            }
+            if (std::find(party.begin(), party.end(), neighbor) == party.end()) {
+                party.push_back(neighbor);
+            }
+        }
+    }
+
+    return party;
+}
+
+/**
+ * Applies a resurrect effect to every dead player reachable from the source player's party links.
+ *
+ * Traverses the party ring connected to `source` and revives only players who are
+ * currently dead. Living players are left unchanged.
+ *
+ * @param effect The resurrect effect definition containing revive and regen tuning values.
+ * @param source The player whose party links define the connected ally set.
+ */
+static void applyResurrectEffectToParty(const ItemDef::Effect& effect, Player& source) {
+    if (!effect.targetAllAllies) {
+        return;
+    }
+
+    for (Player* player : collectPartyMembers(source)) {
+        if (!player || player->isAlive()) {
+            continue;
+        }
+        player->setCurrentHealth(effect.reviveHealth);
+        if (effect.regenAmount > 0.0f && effect.duration > 0.0f) {
+            player->applyRegen(effect.regenAmount, effect.duration);
+        }
+    }
+}
+
+/**
+ * Applies one attack-item effect to every connected allied party member.
+ *
+ * @param effect The ally-targeted effect definition to apply.
+ * @param resolvedMagnitude The resolved attack magnitude associated with the item.
+ * @param source The player whose party links define the connected ally set.
+ */
+static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolvedMagnitude, Player& source) {
+    if (effect.type == ItemDef::EffectType::Resurrect) {
+        applyResurrectEffectToParty(effect, source);
+        return;
+    }
+
+    for (Player* player : collectPartyMembers(source)) {
+        if (!player) {
+            continue;
+        }
+        EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, *player);
+    }
+}
+
+/**
  * Uses the inventory item with the given id on a player target.
  *
  * Support items heal the target using the resolved item magnitude, while any
@@ -460,11 +535,20 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             target.updateHealth(resolvedMagnitude);
             returnedMagnitude = resolvedMagnitude;
         } else if (def->getType() == ItemDef::Type::Attack) {
-            target.takeDamage(resolvedMagnitude, getPlayerNumber());
-            returnedMagnitude = resolvedMagnitude;
-            if (shouldApplyEffects) {
+            const bool targetsAllAllies = def->getAttackTarget() == ItemDef::AttackTarget::AllAllies;
+            const bool appliesToEnemy = !targetsAllAllies;
+
+            if (appliesToEnemy) {
+                target.takeDamage(resolvedMagnitude, getPlayerNumber());
+                returnedMagnitude = resolvedMagnitude;
+                if (shouldApplyEffects) {
+                    for (const ItemDef::Effect& effect : def->getEffects()) {
+                        applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                    }
+                }
+            } else if (shouldApplyEffects) {
                 for (const ItemDef::Effect& effect : def->getEffects()) {
-                    applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                    applyAttackEffectToParty(effect, resolvedMagnitude, *this);
                 }
             }
         } else if (shouldApplyEffects && !def->getEffects().empty()) {

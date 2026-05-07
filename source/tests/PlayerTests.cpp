@@ -360,6 +360,7 @@ static void testUseAttackItemDamagesEnemy(const HouseLoader& loader,
                                           Enemy& enemy,
                                           const std::string& attackDefId) {
     auto players   = makeTwoPlayers(loader, houseId);
+    enemy.setCurrentHealth(100.0f);
     float hpBefore = enemy.getCurrentHealth();
     players[0]->addItem(makeItem(attackDefId));
 
@@ -521,7 +522,7 @@ static void testMalletUpgradeScaling(const HouseLoader& loader,
     offAffinityPlayer->setMalletUseCount(2);
     offAffinityPlayer->addItem(makeItem("mallet"));
     const float offAffinityResolved = offAffinityPlayer->useItemById(offAffinityPlayer->getInventory()[0].getId(), enemy, db);
-    const float expectedOffAffinity = 22.5f * (1.0f + 1.0f);
+    const float expectedOffAffinity = 15.0f * (1.0f + 1.0f) * 1.5f;
     assertWithLabel(floatsEqualWithinTolerance(offAffinityResolved, expectedOffAffinity), "mallet upgrade: off-affinity mallet still uses existing streak damage");
     assertWithLabel(offAffinityPlayer->getMalletUseCount() == 2, "mallet upgrade: off-affinity mallet does not increment streak");
 }
@@ -712,8 +713,8 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     ItemDatabase    db     = loadDatabase(itemsJsonPath, housesJsonPath);
     Enemy           enemy  = loadEnemy(enemiesJsonPath, "cyclops");
 
-    const std::string attackDefId  = firstDefIdOfType(db, ItemDef::Type::Attack);
-    const std::string supportDefId = firstDefIdOfType(db, ItemDef::Type::Support);
+    const std::string attackDefId  = "sword";
+    const std::string supportDefId = "apple";
     const std::string houseId  = "poseidon";
 
     if (attackDefId.empty())  CULogError("PlayerTests: no Attack item found in '%s'",  itemsJsonPath.c_str());

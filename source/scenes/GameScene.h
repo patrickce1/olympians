@@ -420,6 +420,23 @@ protected:
     /** Vector of pending floating popups that have been queued but not yet spawned. */
     std::vector<PendingFloatingPopup> _pendingFloatingPopups;
 
+    /** Tracks a client-predicted resurrection until the authoritative host snapshot catches up. */
+    struct PendingResurrectionSync {
+        /** Party slots that were dead when the resurrection item was used locally. */
+        std::vector<int> playerSlots;
+        /** Health each revived slot should be restored to. */
+        float reviveHealth = 0.0f;
+        /** Total regen to arm on each revived slot. */
+        float regenAmount = 0.0f;
+        /** Regen duration to arm on each revived slot. */
+        float regenDuration = 0.0f;
+        /** Whether there is an active pending resurrection prediction. */
+        bool active = false;
+    };
+
+    /** Client-side predicted resurrection state waiting for host confirmation. */
+    PendingResurrectionSync _pendingResurrectionSync;
+
 #pragma mark - Glow Effect State
 
     /** The drop zone action whose region should currently glow. */
@@ -1347,10 +1364,33 @@ public:
      * @param def      The item definition whose effects to scan.
      * @param dropPos  Screen-space position where popups appear.
      * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
+     * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
      */
-    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
-                                    const cugl::Vec2& dropPos,
-                                    bool shouldShowEffectPopup);
+    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos, bool shouldShowEffectPopup, bool hasHealingPopup);
+
+    /**
+     * Handles the shared ally-target branch for attack items and returns whether it fully resolved the item use.
+     *
+     * Applies any client-side pending resurrection cache needed to mask stale host snapshots,
+     * broadcasts ally-target support effects to the host on non-host clients, and early-outs
+     * the attack pipeline when the item is configured to target all allies instead of the enemy.
+     *
+     * @param itemId The item instance ID being used.
+     * @param def The item definition that controls attack target routing and effects.
+     * @param local The local player performing the attack.
+     * @param resolvedMagnitude The resolved attack magnitude returned by `useItemById`.
+     * @param shouldApplyEffects Whether the item's configured effects should be dispatched.
+     * @return True if the item targeted all allies and was fully handled here; false if enemy-target attack handling should continue.
+     */
+    bool handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::shared_ptr<const ItemDef>& def, Player* local, float resolvedMagnitude, bool shouldApplyEffects);
+
+    /**
+     * Reapplies a pending client-side resurrection after stale host snapshots, until host sync catches up.
+     *
+     * Used only on non-host clients after `GameState::networkUpdate()` so a just-used
+     * resurrection item is not visually reverted by an older authoritative snapshot.
+     */
+    void applyPendingResurrectionSync();
 
     /**
      * Plays the item's defined use sound, or the generic "support" sound if none is set.

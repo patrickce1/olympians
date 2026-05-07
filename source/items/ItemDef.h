@@ -65,11 +65,16 @@ public:
         Hermes,
         None
     };
+    enum class AttackTarget : uint8_t {
+        Enemy,
+        AllAllies
+    };
     /** Data-driven utility effect categories that items may apply. */
     enum class EffectType : uint8_t {
         Shield,
         Barrier,
         Regen,
+        Resurrect,
         Stun,
         Love,
         Slow,
@@ -93,10 +98,14 @@ public:
         float mitigation = 0.0f;
         /** Flat healing amount used by regen effects. */
         float regenAmount = 0.0f;
+        /** Flat health restored immediately when a resurrection revives a dead ally. */
+        float reviveHealth = 0.0f;
         /** Duration in seconds for timed effects. */
         float duration = 0.0f;
         /** Whether an item effect should apply to all four boss sides. */
         bool applyToAllSides = false;
+        /** Whether an item effect should target every allied player slot. */
+        bool targetAllAllies = false;
     };
 
 private:
@@ -123,6 +132,9 @@ private:
     
     /* Base value of item before house multipliers are applied */
     float _baseValue = 1.0f;
+
+    /* Explicit target routing for attack items */
+    AttackTarget _attackTarget = AttackTarget::Enemy;
 
     /* House affinity tag used for rare/divine affinity bonus matching */
     House _houseAffinity = House::None;
@@ -178,14 +190,34 @@ public:
      * Rare/divine items can receive affinityBonus when this matches player house.
      */
     House getHouseAffinity() const { return _houseAffinity; }
+    
     /** Gets item type */
     Type getType() const { return _type; }
+    
+    /**
+     * Gets the target routing mode for attack items.
+     *
+     * Support items always return `AttackTarget::Enemy`, but the value is only
+     * meaningful when `getType() == Type::Attack`.
+     *
+     * @return The configured attack target routing mode.
+     */
+    AttackTarget getAttackTarget() const { return _attackTarget; }
+    
     /** Gets item rarity */
     Rarity getRarity() const { return _rarity; }
 
     /** Gets utility item effects */
     const std::vector<Effect>& getEffects() const { return _effects; }
     
+    /**
+     * Returns the first effect of the requested type, if present on this item.
+     *
+     * @param type The effect category to search for.
+     * @return A pointer to the first matching effect, or `nullptr` if none exists.
+     */
+    const Effect* getEffect(EffectType type) const;
+
     /**
      * Returns true if this item contains at least one effect of the given type.
      *
@@ -240,6 +272,15 @@ public:
      */
     static Rarity rarityFromString(std::string value, Rarity fallback = Rarity::Common);
     
+    /**
+     * Extract AttackTarget enum from a string.
+     *
+     * @param value The string token to parse.
+     * @param fallback The attack target to return if parsing fails.
+     * @return The parsed attack target, or fallback if unrecognized.
+     */
+    static AttackTarget attackTargetFromString(std::string value, AttackTarget fallback = AttackTarget::Enemy);
+
     /**
      * Extract House enum from a string.
      * Accepts "zeus", "poseidon", "hades", "demeter", "ares", "athena", or "none" (case-insensitive, trimmed).
