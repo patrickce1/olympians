@@ -152,7 +152,6 @@ static std::vector<int> collectDeadPartyPlayerSlots(const GameState& gameState) 
     return deadSlots;
 }
 
-
 /**
  * Collects the resolved enemy-facing effects of an attack item.
  *
