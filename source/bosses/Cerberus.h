@@ -33,6 +33,12 @@ private:
     
     /** Tracks how much long each head is stunned for. Should be 0 if not stunned */
     float _headStunTimer[3];
+    
+    /** Current health of each of Cerberus's 3 heads */
+    float _headHealth[3];
+
+    /** Max health of each head, loaded from JSON */
+    float _headMaxHealth[3];
 
     /** True when all 3 heads are stunned simultaneously. Cerberus is disabled */
     bool _isFullyStunned;

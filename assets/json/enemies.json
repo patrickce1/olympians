@@ -249,6 +249,7 @@
             },
             "customData": {
                 "lifeStealPercent": 0.8,
+                "headHealth": 500
             },
             "states": {
                 "idle": {

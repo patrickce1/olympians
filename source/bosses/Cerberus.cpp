@@ -11,6 +11,20 @@
 bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath) {
     bool success = Enemy::init("cerberus", jsonPath);
     _lifeStealPercent        =  _customData->getFloat("lifeStealPercent");
+    float headHp = _customData -> getFloat("headHealth");
+    for (int i = 0; i < 3; i++){
+        _headMaxHealth[i] = headHp;
+        _headHealth[i]    = headHp;
+        _headStunned[i]   = false;
+        _headStunTimer[i] = 0.0f;
+    }
+    
+    _isFullyStunned      = false;
+    _corrosiveActive     = false;
+    _corrosiveTimer      = 0.0f;
+    _corrosiveTarget     = -1;
+    _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL;
+    
     if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f,
                       _lifeStealPercent);
     return success;
@@ -29,6 +43,20 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath) {
 bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) {
     bool success = Enemy::init("cerberus", jsonPath, assets);
     _lifeStealPercent        =  _customData->getFloat("lifeStealPercent");
+    float headHp = _customData -> getFloat("headHealth");
+    for (int i = 0; i < 3; i++){
+        _headMaxHealth[i] = headHp;
+        _headHealth[i]    = headHp;
+        _headStunned[i]   = false;
+        _headStunTimer[i] = 0.0f;
+    }
+    
+    _isFullyStunned      = false;
+    _corrosiveActive     = false;
+    _corrosiveTimer      = 0.0f;
+    _corrosiveTarget     = -1;
+    _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL;
+    
     if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f,
                       _lifeStealPercent);
     return success;
@@ -57,6 +85,7 @@ void Cerberus::update(float dt) {
             if (_corrosiveTimer <= 0){
                 _corrosiveTimer = 0;
                 _corrosiveActive = false;
+                _corrosiveTarget = -1;
             }
             else {
                 _corrosiveDrainAccum -= dt;
