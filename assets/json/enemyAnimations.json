@@ -73,6 +73,20 @@
             "scale": 0.85,
             "offsetX": 0,
             "offsetY": 0
+        },
+        {
+            "id": "cerberus_idle_animation",
+            "texture": "textures/gameScene/cerberus/cerberus_idle_animation.png",
+            "frameCount": 8,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "loopStartFrame": 0,
+            "loopEndFrame": 7,
+            "positionX": 196.5,
+            "positionY": 286.0,
+            "scale": 0.75,
+            "offsetX": 0,
+            "offsetY": 0
         }
     ]
 }

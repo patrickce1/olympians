@@ -702,11 +702,16 @@ void GameScene::setActive(bool value) {
             
             // Reset enemy animation state for clean start
             _enemyAnimationCurrentDirection = 0;
-            
-            // Hide animation sprite on scene reset
+
+            // Hide animation sprite and clear the cached ID so the next call
+            // to updateEnemyAnimation() unconditionally calls switchVisibleAnimation().
+            // Without this reset a repeat game with the same enemy never calls
+            // switchVisibleAnimation(), leaving the sprite permanently invisible.
             if (_currentVisibleAnimationSprite) {
                 _currentVisibleAnimationSprite->setVisible(false);
             }
+            _currentAnimationId = "";
+            _currentVisibleAnimationSprite = nullptr;
         }
     }
 }

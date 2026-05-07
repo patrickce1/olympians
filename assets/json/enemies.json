@@ -252,7 +252,8 @@
             },
             "states": {
                 "idle": {
-                    "name": "idle"
+                    "name": "idle",
+                    "animationKey": "cerberus_idle_animation"
                 },
                 "attack_1": {
                     "name": "Bite",
