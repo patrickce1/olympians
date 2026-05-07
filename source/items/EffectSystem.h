@@ -116,6 +116,7 @@ public:
             case ItemDef::EffectType::Regen:
                 return applyRegenToPlayer(effect, target);
             case ItemDef::EffectType::Resurrect:
+            case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Slow:
@@ -154,6 +155,7 @@ public:
             case ItemDef::EffectType::Barrier:
             case ItemDef::EffectType::Regen:
             case ItemDef::EffectType::Resurrect:
+            case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Upgrade:
                 break;
         }

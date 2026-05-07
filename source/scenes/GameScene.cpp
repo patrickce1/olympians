@@ -123,6 +123,14 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                     effect.regenAmount,
                     applyToAllPlayers);
                 break;
+            case ItemDef::EffectType::Educate:
+                network.broadcastSupportEffect(SupportEffectType::Educate,
+                    0.0f,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
+                break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Slow:
@@ -205,6 +213,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Barrier:
             case ItemDef::EffectType::Regen:
             case ItemDef::EffectType::Resurrect:
+            case ItemDef::EffectType::Educate:
                 break;
         }
     }
@@ -234,6 +243,10 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
  * @return Whether an item effect should be applied
  */
 static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
+    if (player.hasEducate()) {
+        return true;
+    }
+
     if (def.getHouseAffinity() == ItemDef::House::None) {
         return true;
     }
@@ -657,6 +670,7 @@ void GameScene::dispose() {
         _activeFloatingPopups.clear();
         _pendingFloatingPopups.clear();
         _pendingResurrectionSync = PendingResurrectionSync{};
+        _pendingPartyEffectSyncs.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
             _itemPhysicsWorld->dispose();
@@ -781,6 +795,7 @@ void GameScene::reset() {
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
     _pendingResurrectionSync = PendingResurrectionSync{};
+    _pendingPartyEffectSyncs.clear();
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
@@ -1018,14 +1033,53 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
     }
 
     if (!_network->isHost()) {
-        const ItemDef::Effect* resurrectEffect = def->getEffect(ItemDef::EffectType::Resurrect);
-        if (resurrectEffect && shouldApplyEffects) {
-            const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(_gameState);
-            _pendingResurrectionSync.playerSlots = resurrectedSlots;
-            _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
-            _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
-            _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
-            _pendingResurrectionSync.active = !resurrectedSlots.empty();
+        for (const ItemDef::Effect& effect : def->getEffects()) {
+            if (!shouldApplyEffects) {
+                break;
+            }
+
+            switch (effect.type) {
+                case ItemDef::EffectType::Resurrect: {
+                    const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(_gameState);
+                    _pendingResurrectionSync.playerSlots = resurrectedSlots;
+                    _pendingResurrectionSync.reviveHealth = effect.reviveHealth;
+                    _pendingResurrectionSync.regenAmount = effect.regenAmount;
+                    _pendingResurrectionSync.regenDuration = effect.duration;
+                    _pendingResurrectionSync.active = !resurrectedSlots.empty();
+                    break;
+                }
+                case ItemDef::EffectType::Educate: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Educate;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.duration = effect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
+                case ItemDef::EffectType::Shield:
+                case ItemDef::EffectType::Barrier:
+                case ItemDef::EffectType::Regen:
+                case ItemDef::EffectType::Stun:
+                case ItemDef::EffectType::Love:
+                case ItemDef::EffectType::Slow:
+                case ItemDef::EffectType::Vulnerable:
+                case ItemDef::EffectType::Upgrade:
+                    break;
+            }
         }
         broadcastSupportEffects(*_network, *def, resolvedMagnitude, -1, shouldApplyEffects, true);
     }
@@ -2129,6 +2183,7 @@ void GameScene::handleNetworkUpdates(float dt) {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
         applyPendingResurrectionSync();
+        applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
     }
     
@@ -2191,6 +2246,46 @@ void GameScene::applyPendingResurrectionSync() {
     if (!waitingForHost) {
         _pendingResurrectionSync = PendingResurrectionSync{};
     }
+}
+
+/**
+ * Reapplies a pending client-side educate buff after stale host snapshots, until host sync catches up.
+ */
+void GameScene::applyPendingPartyEffectSyncs() {
+    auto shouldKeepPendingEffect = [&](PendingPartyEffectSync& pendingEffect) {
+        bool waitingForHost = false;
+
+        for (int slot : pendingEffect.playerSlots) {
+            Player* player = _gameState.getPlayerBySlot(slot);
+            if (!player) {
+                continue;
+            }
+
+            switch (pendingEffect.effectType) {
+                case ItemDef::EffectType::Educate:
+                    if (player->hasEducate()) {
+                        continue;
+                    }
+                    player->applyEducate(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return waitingForHost;
+    };
+
+    _pendingPartyEffectSyncs.erase(
+        std::remove_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+            [&](PendingPartyEffectSync& pendingEffect) {
+                if (!pendingEffect.active) {
+                    return true;
+                }
+                return !shouldKeepPendingEffect(pendingEffect);
+            }),
+        _pendingPartyEffectSyncs.end());
 }
 
 /** 

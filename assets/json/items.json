@@ -1,8 +1,8 @@
 {
     "rarityWeights": {
-        "common": 70,
+        "common": 0,
         "rare": 25,
-        "divine": 5,
+        "divine": 25,
         "special": 0
     },
     "items": [
@@ -436,7 +436,12 @@
             "houseAffinity": "athena",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "educate",
+                    "duration": 10.0
+                }
+            ]
         },
         {
             "id": "rage",

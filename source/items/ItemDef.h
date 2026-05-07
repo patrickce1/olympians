@@ -75,6 +75,7 @@ public:
         Barrier,
         Regen,
         Resurrect,
+        Educate,
         Stun,
         Love,
         Slow,

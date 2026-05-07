@@ -388,6 +388,9 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
                         target.applyRegen(effect.secondaryMagnitude, effect.duration);
                     }
                     break;
+                case SupportEffectType::Educate:
+                    target.applyEducate(effect.duration);
+                    break;
             }
         };
 
@@ -472,26 +475,31 @@ void GameState::networkUpdate(GameStateMessage newState) {
         newState.player3HP,
         newState.player4HP
     };
-    std::vector<std::array<float, 6>> runtimeEffects = {
-        std::array<float, 6>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
+    std::vector<std::array<float, 7>> runtimeEffects = {
+        std::array<float, 7>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
                              newState.player1BarrierMultiplier, newState.player1BarrierDuration,
-                             newState.player1RegenAmountRemaining, newState.player1RegenDuration},
-        std::array<float, 6>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
+                             newState.player1RegenAmountRemaining, newState.player1RegenDuration,
+                             newState.player1EducateDuration},
+        std::array<float, 7>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
                              newState.player2BarrierMultiplier, newState.player2BarrierDuration,
-                             newState.player2RegenAmountRemaining, newState.player2RegenDuration},
-        std::array<float, 6>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
+                             newState.player2RegenAmountRemaining, newState.player2RegenDuration,
+                             newState.player2EducateDuration},
+        std::array<float, 7>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
                              newState.player3BarrierMultiplier, newState.player3BarrierDuration,
-                             newState.player3RegenAmountRemaining, newState.player3RegenDuration},
-        std::array<float, 6>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
+                             newState.player3RegenAmountRemaining, newState.player3RegenDuration,
+                             newState.player3EducateDuration},
+        std::array<float, 7>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
                              newState.player4BarrierMultiplier, newState.player4BarrierDuration,
-                             newState.player4RegenAmountRemaining, newState.player4RegenDuration}
+                             newState.player4RegenAmountRemaining, newState.player4RegenDuration,
+                             newState.player4EducateDuration}
     };
 
     for (int i = 0; i < _players.size(); i++) {
         _players[i]->setCurrentHealth(healths[i]);
         _players[i]->syncRuntimeEffects(runtimeEffects[i][0], runtimeEffects[i][1],
                                         runtimeEffects[i][2], runtimeEffects[i][3],
-                                        runtimeEffects[i][4], runtimeEffects[i][5]);
+                                        runtimeEffects[i][4], runtimeEffects[i][5],
+                                        runtimeEffects[i][6]);
         _players[i]->setMalletUseCount(newState.playerMalletUseCounts[i]);
     }
 }
