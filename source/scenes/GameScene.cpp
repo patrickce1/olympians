@@ -406,6 +406,9 @@ bool GameScene::initSceneGraph() {
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
         
+        _playerHealthBarGlow = std::dynamic_pointer_cast<scene2::PolygonNode>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.effectGlow"));
+        
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
         
@@ -1823,6 +1826,24 @@ void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     );
 }
 
+void GameScene::updatePlayerHealthBarEffect(float dt) {
+    auto player = _gameState.getLocalPlayer();
+    if (!player || !player->isAlive()) return;
+    
+    if (player->hasShield()) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("shieldBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else if (player->hasBarrier() && player->getBarrierMultiplier() == 0) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("helmBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else if (player->hasBarrier() && player->getBarrierMultiplier() > 0) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("aegisBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else {
+        _playerHealthBarGlow->setVisible(false);
+    }
+}
+
 /**
  * Updates the player and teammate UI icons to reflect their current health.
  */
@@ -3013,6 +3034,7 @@ void GameScene::update(float dt, InputController& input) {
     _network->clearQueues();
     updateAllPlayersAndEnemyHealthUI(dt);
     updatePlayerAndTeammateIcons(dt);
+    updatePlayerHealthBarEffect(dt);
 }
 
 #pragma mark -

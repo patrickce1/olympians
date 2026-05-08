@@ -287,6 +287,9 @@ protected:
     /** The player's health bar text showing amount of health left */
     std::shared_ptr<cugl::scene2::Label> _playerHealthBarText;
     
+    /** The player's health bar glow representing the current effect applied on the player */
+    std::shared_ptr<cugl::scene2::PolygonNode> _playerHealthBarGlow;
+    
     /** The player's name label showing username */
     std::shared_ptr<cugl::scene2::Label> _playerName;
     
@@ -888,6 +891,8 @@ public:
      * @param dt Delta time in seconds
      */
     void updateAllPlayersAndEnemyHealthUI(float dt);
+    
+    void updatePlayerHealthBarEffect(float dt);
     
     /**
      * Updates the player and teammate UI icons to reflect their current health.
