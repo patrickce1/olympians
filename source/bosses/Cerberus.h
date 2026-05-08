@@ -55,13 +55,13 @@ private:
 public:
     
     /** seconds between inventory drains. i.e. how long in time for the next item to start corroding */
-    static constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
+    static constexpr float CORROSIVE_DRAIN_INTERVAL = 0.5f;  // Changed from 1.0 to 0.5 for faster draining
 
     /** Duration in seconds that a head stays stunned after being hit */
     static constexpr float HEAD_STUN_DURATION = 3.0f;
 
     /** Duration in seconds that the corrosive debuff lasts */
-    static constexpr float CORROSIVE_DURATION = 10.0f;
+    static constexpr float CORROSIVE_DURATION = 20.0f;  // Changed from 10.0 to 20.0 for longer duration
     
     Cerberus() {}
 
@@ -86,7 +86,8 @@ public:
 
     /**
      * Per-frame update. Ticks down the full stun timer and corrosive
-     * debuff timer, clearing them when they expire.
+     * debuff timer, clearing them when they expire. Also triggers corrosive
+     * when ATTACK_3 state begins.
      *
      * @param dt  Elapsed time in seconds since the last update
      */
@@ -128,12 +129,15 @@ public:
      */
     void startCorrosive(int playerIndex, float duration);
 
-    /**Determines if corrosive should drain an item for the player. 
+    /**Determines if corrosive should drain an item for the player.
      * Makes sure there are items, and that time has passed.*/
-    bool shouldDrainItem(); 
+    bool shouldDrainItem();
 
     /**Returns the target to be applied corrosion, or is currently corroded */
     int getCorrosiveTarget() const { return _corrosiveTarget; }
+
+    /** Ends the corrosive effect early (e.g., when player runs out of items) */
+    void endCorrosive();
 
     /** Returns true if Cerberus is currently in a full stun */
     bool isFullyStunned() const { return _isFullyStunned; }

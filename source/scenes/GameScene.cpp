@@ -2092,21 +2092,50 @@ void GameScene::handleGaiaSpawn() {
  * Host handles this authoritative logic; clients receive updates via game state broadcasts.
  */
 void GameScene::handleCorrosiveDrain(){
-    if (_gameState.getEnemy()->getId() != "cerberus") return;
+    CULog("handleCorrosiveDrain called");
 
+    if (!_gameState.getEnemy()) {
+        CULog("  -> No enemy exists");
+        return;
+    }
+
+    CULog("  -> Enemy exists, ID: %s", _gameState.getEnemy()->getId().c_str());
+
+    if (_gameState.getEnemy()->getId() != "cerberus") {
+        CULog("  -> Not Cerberus, returning");
+        return;
+    }
+
+    CULog("  -> Is Cerberus, attempting cast");
     auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
-    if (!cerberus->shouldDrainItem()) return;
+
+    if (!cerberus) {
+        CULog("  -> Cast FAILED");
+        return;
+    }
+
+    CULog("  -> Cast succeeded, checking shouldDrainItem");
+    if (!cerberus->shouldDrainItem()) {
+        CULog("  -> shouldDrainItem returned false");
+        return;
+    }
+
+    CULog("  -> DRAINING ITEM NOW");
 
     int targetIndex = cerberus->getCorrosiveTarget();
 
     Player* victim = _gameState.getPlayerBySlot(targetIndex);
     if (!victim || victim->getInventory().empty()) {
+        CULog("  -> No victim or empty inventory, ending corrosive");
+        // End corrosive early since player has no items left
+        cerberus->endCorrosive();
         return;
     }
 
     auto& inventory = victim->getInventory();
     int randomIndex = rand() % inventory.size();
     victim->removeItemById(inventory[randomIndex].getId());
+    CULog("  -> Item drained successfully (%d items remaining)", (int)victim->getInventory().size());
 }
 
 

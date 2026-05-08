@@ -67,6 +67,18 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, con
  * @param dt  Elapsed time in seconds since the last update
  */
 void Cerberus::update(float dt) {
+    // Store previous state to detect state changes
+    static EnemyLoader::State previousState = EnemyLoader::State::IDLE;
+    EnemyLoader::State currentState = getCurrentState();
+
+    // Trigger corrosive when entering ATTACK_3 state
+    if (currentState == EnemyLoader::State::ATTACK_3 && previousState != EnemyLoader::State::ATTACK_3) {
+        // Always target player 0 (local player) for testing
+        startCorrosive(0, CORROSIVE_DURATION);
+        CULog("Cerberus: ATTACK_3 started, triggering corrosive on player 0 (YOU)");
+    }
+    previousState = currentState;
+
     //Tick the head stun timers
     for (int i = 0; i < 3; i++){
         if (_headStunned[i]){
@@ -77,18 +89,22 @@ void Cerberus::update(float dt) {
         }
     }
     if (_corrosiveActive) {
+        CULog("Cerberus: Corrosive active, timer=%.2f, accum=%.2f", _corrosiveTimer, _corrosiveDrainAccum);
         _corrosiveTimer -= dt;
         if (_corrosiveTimer <= 0){
             _corrosiveTimer = 0;
             _corrosiveActive = false;
             _corrosiveTarget = -1;
             _corrosiveDrainAccum = 0;
+            CULog("Cerberus: Corrosive ended");
         }
         else {
             _corrosiveDrainAccum -= dt;
+            CULog("Cerberus: Accum ticking: %.3f (will drain at 0)", _corrosiveDrainAccum);
             if (_corrosiveDrainAccum <= 0) {
                 _shouldDrain = true;
-                _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL; // reset
+                _corrosiveDrainAccum += CORROSIVE_DRAIN_INTERVAL; // reset by adding interval (more accurate)
+                CULog("Cerberus: Setting _shouldDrain to TRUE, resetting accum to %.3f", _corrosiveDrainAccum);
             }
         }
     }
@@ -136,12 +152,30 @@ void Cerberus::startCorrosive(int playerIndex, float duration) {
     _corrosiveTimer = duration;
     _corrosiveActive = true;
     _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL;
+    _shouldDrain = false;
+    CULog("Cerberus: startCorrosive called - player=%d, duration=%.1f", playerIndex, duration);
 }
 
 bool Cerberus::shouldDrainItem() {
+    CULog("Cerberus: shouldDrainItem called - _shouldDrain=%d, _corrosiveActive=%d", _shouldDrain, _corrosiveActive);
     if (_shouldDrain){
         _shouldDrain = false;
+        CULog("Cerberus: Returning TRUE, consuming drain flag");
         return true;
     }
     return false;
+}
+
+void Cerberus::takeDamage(float damage, int playerIndex){
+    // TODO: Implement life steal logic (80% of damage converted to healing)
+    Enemy::takeDamage(damage, playerIndex);
+}
+
+void Cerberus::endCorrosive() {
+    _corrosiveActive = false;
+    _corrosiveTimer = 0.0f;
+    _corrosiveTarget = -1;
+    _corrosiveDrainAccum = 0.0f;
+    _shouldDrain = false;
+    CULog("Cerberus: endCorrosive called - corrosive terminated early");
 }
