@@ -20,6 +20,12 @@ bool ItemInstance::init(const std::string& defId, ItemId id) {
     return true;
 }
 
+/**
+ * Redefines this existing item instance without changing its stable ID.
+ *
+ * @param defId  The replacement item definition ID to assign to this instance.
+ * @return true if the definition ID was non-empty and applied, false otherwise.
+ */
 bool ItemInstance::setDefId(const std::string& defId) {
     if (defId.empty()) return false;
     _defId = defId;

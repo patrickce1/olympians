@@ -54,6 +54,11 @@ constexpr float ITEM_TOOLTIP_GAP = 6.0f;
  */
 enum class HealthState { FULL, HALF, DEAD };
 
+/**
+ * Generates a positive host-authoritative seed for one forge effect application.
+ *
+ * @return A non-negative integer seed used to derive deterministic forge rolls.
+ */
 static int makeForgeSeed();
 
 /**
@@ -2316,6 +2321,11 @@ void GameScene::applyPendingPartyEffectSyncs() {
         _pendingPartyEffectSyncs.end());
 }
 
+/**
+ * Generates a positive host-authoritative seed for one forge effect application.
+ *
+ * @return A non-negative integer seed used to derive deterministic forge rolls.
+ */
 static int makeForgeSeed() {
     cugl::Random rng;
     if (rng.init()) {
@@ -2324,6 +2334,15 @@ static int makeForgeSeed() {
     return 0x13572468;
 }
 
+/**
+ * Applies queued or requested forge effects using host-authoritative seeds.
+ *
+ * The host processes only non-authoritative client requests, applies forge locally once,
+ * and broadcasts an authoritative seeded message. Clients apply only authoritative
+ * seeded messages from the host.
+ *
+ * @param forgeEffects  The forge effect messages received during the current network update.
+ */
 void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forgeEffects) {
     for (const ForgeEffectMessage& forgeEffect : forgeEffects) {
         if (_network->isHost()) {
@@ -2340,6 +2359,15 @@ void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forge
     }
 }
 
+/**
+ * Redefines existing local item instances for forge and refreshes any visible widgets.
+ *
+ * Each player's roll uses a deterministic seed derived from the shared base seed and
+ * that player's slot number so all machines resolve matching local inventories the same way.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ * @param seed    Deterministic base seed used to derive per-player forge rolls.
+ */
 void GameScene::applyForgeEffect(float chance, int seed) {
     const std::uint32_t baseSeed = static_cast<std::uint32_t>(seed);
     for (const auto& player : _gameState.getPlayers()) {
@@ -3427,7 +3455,12 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     startItemSliding(id, spawnVelocity, slideOrigin);
 }
 
-/** Synchronises on-screen item widgets with the local player's current inventory. */
+/**
+ * Refreshes existing widget textures after item instances are redefined in place.
+ *
+ * Forge preserves item instance IDs, so the existing inventory widgets are kept and
+ * only their textures are swapped to match the new item definitions.
+ */
 void GameScene::refreshInventoryWidgetTextures() {
     Player* local = _gameState.getLocalPlayer();
     if (!local || !_assets) return;

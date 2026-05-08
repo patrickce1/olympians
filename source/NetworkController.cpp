@@ -690,6 +690,11 @@ void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float m
 	_serializer.reset();
 }
 
+/**
+ * Sends a forge request to the host for authoritative seeding.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ */
 void NetworkController::requestForgeEffect(float chance) {
     _serializer.writeSint32(MessageType::FORGE_EFFECT);
     _serializer.writeFloat(chance);
@@ -699,6 +704,12 @@ void NetworkController::requestForgeEffect(float chance) {
     _serializer.reset();
 }
 
+/**
+ * HOST ONLY. Broadcasts an authoritative forge seed to every connected client.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ * @param seed    Host-generated deterministic seed all clients should use for forge rolls.
+ */
 void NetworkController::broadcastForgeEffect(float chance, int seed) {
     _serializer.writeSint32(MessageType::FORGE_EFFECT);
     _serializer.writeFloat(chance);

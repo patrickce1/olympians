@@ -189,6 +189,15 @@ ItemInstance::ItemId ItemController::giveItemByID(Player* player, const std::str
     return itemId;
 }
 
+/**
+ * Redefines qualifying item instances for the forge effect without changing item IDs or slots.
+ * Common items become random rare items; rare items may become random divine items.
+ *
+ * @param player        The player whose existing inventory should be transformed.
+ * @param divineChance  Chance in [0, 1] that each rare item upgrades to divine.
+ * @param seed          Host-authoritative seed used for deterministic local rolls.
+ * @return              Number of item instances redefined.
+ */
 int ItemController::applyForgeEffect(Player* player, float divineChance, std::uint32_t seed) {
     if (!player) {
         return 0;

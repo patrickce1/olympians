@@ -165,10 +165,19 @@ public:
      */
     void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides);
 
-    /** Sends a forge request to the host for authoritative seeding. */
+    /**
+     * Sends a forge request to the host for authoritative seeding.
+     *
+     * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+     */
     void requestForgeEffect(float chance);
 
-    /** HOST ONLY. Broadcasts an authoritative forge seed to every connected client. */
+    /**
+     * HOST ONLY. Broadcasts an authoritative forge seed to every connected client.
+     *
+     * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+     * @param seed    Host-generated deterministic seed all clients should use for forge rolls.
+     */
     void broadcastForgeEffect(float chance, int seed);
 
     /** The following are USED ONLY BY THE HOST */
