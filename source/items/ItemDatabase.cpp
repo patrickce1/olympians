@@ -395,6 +395,12 @@ std::string ItemDatabase::rollRandomDefId(ItemDef::Rarity rarity) {
     return rollFromBucket(bucket->second);
 }
 
+/** Weighted roll within a specific rarity bucket and a defined rng seed.
+ *
+ * @param rarity  The rarity bucket to roll from.
+ * @param rng  The predefined rng seed to roll with.
+ * @return The string of the rolled item defId.
+ */
 std::string ItemDatabase::rollRandomDefId(ItemDef::Rarity rarity, cugl::Random& rng) const {
     auto bucket = _bucketsByRarity.find(rarity);
     if (bucket == _bucketsByRarity.end()) return "";

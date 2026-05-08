@@ -162,7 +162,12 @@ public:
     /** Weighted roll within a specific rarity bucket (probably not needed) */
     std::string rollRandomDefId(ItemDef::Rarity rarity);
 
-    /** Weighted roll within a rarity bucket using the caller-provided RNG. */
+    /** Weighted roll within a specific rarity bucket and a defined rng seed.
+     *
+     * @param rarity  The rarity bucket to roll from.
+     * @param rng  The predefined rng seed to roll with.
+     * @return The string of the rolled item defId.
+     */
     std::string rollRandomDefId(ItemDef::Rarity rarity, cugl::Random& rng) const;
     
     /** Serializable option */
