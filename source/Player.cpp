@@ -543,17 +543,35 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
                 returnedMagnitude = resolvedMagnitude;
                 if (shouldApplyEffects) {
                     for (const ItemDef::Effect& effect : def->getEffects()) {
-                        applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                        float duration = applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                        
+                        _effectEvents.push_back({
+                            effect,
+                            duration
+                        });
+                    
                     }
                 }
             } else if (shouldApplyEffects) {
                 for (const ItemDef::Effect& effect : def->getEffects()) {
                     applyAttackEffectToParty(effect, resolvedMagnitude, *this);
+                    
+                    // record ONLY data, no UI
+                    _effectEvents.push_back({
+                        effect,
+                        effect.duration
+                    });
                 }
             }
         } else if (shouldApplyEffects && !def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
                 applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                
+                // record ONLY data, no UI
+                _effectEvents.push_back({
+                    effect,
+                    effect.duration
+                });
             }
         }
 

@@ -64,6 +64,13 @@ private:
     float _regenDuration = 0.0f;
     /** Number of prior mallet uses recorded for this player this round. */
     int _malletUseCount = 0;
+    
+    struct EffectEvent {
+        ItemDef::Effect effectId;
+        float duration;
+    };
+    
+    std::vector<EffectEvent> _effectEvents;
 
 public:
     /**
@@ -367,6 +374,12 @@ public:
      * @param name  The display name to assign.
      */
     void setPlayerName(const std::string& name) { _playerName = name; }
+    
+    std::vector<EffectEvent> getEffectEvents() {
+        auto out = _effectEvents;
+        _effectEvents.clear();
+        return out;
+    }
     
 };
 #endif /* !__PLAYER_H__ */

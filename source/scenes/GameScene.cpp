@@ -886,6 +886,31 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
+    
+    auto events = local->getEffectEvents();
+    
+    for (const auto& e : events) {
+
+        if (e.effectId.type == ItemDef::EffectType::Stun) {
+            auto texture =
+                _assets->get<cugl::graphics::Texture>(def->getIconKey());
+
+            auto icon =
+                cugl::scene2::PolygonNode::allocWithTexture(texture);
+
+            icon->setScale(0.15f);
+            icon->setPosition(100, 100);
+            
+            _gameArea->addChild(icon);
+
+            _enemyEffectIcons.push_back({
+                e.effectId.type,
+                def->getIconKey(),
+                icon,
+                e.duration
+            });
+        }
+    }
 
     const auto& animConfig = def->getItemUseAnimation();
     const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
@@ -1290,6 +1315,80 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
             return false;
     }
 }
+
+void GameScene::updateEnemyEffectIcons(float dt) {
+    for (auto it = _enemyEffectIcons.begin();
+         it != _enemyEffectIcons.end(); ) {
+
+        it->remainingDuration -= dt;
+
+        if (it->remainingDuration <= 0.0f) {
+
+            if (it->icon) {
+                it->icon->removeFromParent();
+            }
+
+            it = _enemyEffectIcons.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+}
+//void GameScene::showEnemyEffectIcon(
+//    const std::string& effectId,
+//    const std::string& textureKey)
+//{
+//    // Remove existing icon for this effect type
+//    for (auto it = _enemyEffectIcons.begin();
+//         it != _enemyEffectIcons.end(); ) {
+//
+//        if (it->effectId == effectId) {
+//
+//            if (it->icon) {
+//                it->icon->removeFromParent();
+//            }
+//
+//            it = _enemyEffectIcons.erase(it);
+//        }
+//        else {
+//            ++it;
+//        }
+//    }
+//
+//    // Load texture
+//    auto texture =
+//        _assets->get<cugl::graphics::Texture>(textureKey);
+//
+//    if (!texture) {
+//        CULog("Missing effect icon texture: %s",
+//              textureKey.c_str());
+//        return;
+//    }
+//
+//    // Create icon
+//    auto node =
+//        cugl::scene2::PolygonNode::allocWithTexture(texture);
+//
+//    node->setScale(0.15f);
+//
+//    // TEMP positioning
+//    node->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+//    node->setPosition(100, 100);
+//
+//    // Add to HUD
+//    _gameArea->addChild(node);
+//
+//    // Store reference
+//    _enemyEffectIcons.push_back({
+//        effectId,
+//        textureKey,
+//        node
+//    });
+//
+//    CULog("Showing enemy effect icon: %s",
+//          effectId.c_str());
+//}
 
 #pragma mark -
 #pragma mark Update Helpers
@@ -2872,6 +2971,7 @@ void GameScene::update(float dt, InputController& input) {
     updateSnapbackAnimations(dt);
     updateItemUseAnimations(dt);
     updatePopupAnimations(dt);
+    updateEnemyEffectIcons(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);

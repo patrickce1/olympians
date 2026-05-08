@@ -169,6 +169,13 @@ struct FloatingPopupData {
     bool playSound = true;                          /** If true, plays the popup_ding sound when this popup spawns. */
 };
 
+struct ActiveEffectIcon {
+    ItemDef::EffectType effectId;
+    std::string textureKey;
+    std::shared_ptr<cugl::scene2::PolygonNode> icon;
+    float remainingDuration;
+};
+
 /**
  * Controller for the core game scene.
  *
@@ -328,7 +335,10 @@ protected:
     
     /** The world position when drag begins */
     Vec2 _holdAnchorPos = Vec2::ZERO;
-
+    
+#pragma mark - Item Timers UI
+    std::vector<ActiveEffectIcon> _enemyEffectIcons;
+    
 #pragma mark - Drag State
 
     /** The scene node currently being dragged by the player, or nullptr. */
@@ -1398,6 +1408,12 @@ public:
      * @param def  The item definition.
      */
     void playSupportItemSound(const std::shared_ptr<const ItemDef>& def);
+    
+    
+    void showEnemyEffectIcon(const std::string& effectId,const std::string& textureKey, const float duration);
+
+    void updateEnemyEffectIcons(float dt);
+
     
 #pragma mark - Inventory UI
 
