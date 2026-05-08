@@ -82,8 +82,9 @@ static HealthState getHealthState(float current, float max) {
  * @param resolvedMagnitude   The resolved support magnitude calculated for this item use.
  * @param targetPlayerID     The 0-based slot index of the player receiving the effect.
  * @param shouldApplyEffects  Whether the effect should be broadcasted or not
+ * @param applyToAllPlayers Whether the effect should be applied to every allied player slot.
  */
-static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int targetPlayerID, bool shouldApplyEffects) {
+static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int targetPlayerID, bool shouldApplyEffects, bool applyToAllPlayers = false) {
     if (!shouldApplyEffects) {
         return;
     }
@@ -94,19 +95,41 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                 network.broadcastSupportEffect(SupportEffectType::Shield,
                     effect.mitigation,
                     effect.duration,
-                    targetPlayerID);
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
                 break;
             case ItemDef::EffectType::Barrier:
                 network.broadcastSupportEffect(SupportEffectType::Barrier,
                     effect.multiplier,
                     effect.duration,
-                    targetPlayerID);
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
                 break;
             case ItemDef::EffectType::Regen:
                 network.broadcastSupportEffect(SupportEffectType::Regen,
                     effect.regenAmount,
                     effect.duration,
-                    targetPlayerID);
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
+                break;
+            case ItemDef::EffectType::Resurrect:
+                network.broadcastSupportEffect(SupportEffectType::Resurrect,
+                    effect.reviveHealth,
+                    effect.duration,
+                    targetPlayerID,
+                    effect.regenAmount,
+                    applyToAllPlayers);
+                break;
+            case ItemDef::EffectType::Educate:
+                network.broadcastSupportEffect(SupportEffectType::Educate,
+                    0.0f,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
                 break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
@@ -116,6 +139,25 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                 break;
         }
     }
+}
+
+/**
+ * Returns the player slots that are currently dead in the replicated game state.
+ *
+ * Scans the current player roster stored on `GameState` and records only the player
+ * numbers of members who are dead at the time of the query.
+ *
+ * @param gameState The replicated game state containing the player roster.
+ * @return A vector of player slot indices for party members who are currently dead.
+ */
+static std::vector<int> collectDeadPartyPlayerSlots(const GameState& gameState) {
+    std::vector<int> deadSlots;
+    for (const auto& player : gameState.getPlayers()) {
+        if (player && !player->isAlive()) {
+            deadSlots.push_back(player->getPlayerNumber());
+        }
+    }
+    return deadSlots;
 }
 
 /**
@@ -169,6 +211,8 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
             case ItemDef::EffectType::Regen:
+            case ItemDef::EffectType::Resurrect:
+            case ItemDef::EffectType::Educate:
                 break;
         }
     }
@@ -198,6 +242,10 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
  * @return Whether an item effect should be applied
  */
 static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
+    if (player.hasEducate()) {
+        return true;
+    }
+
     if (def.getHouseAffinity() == ItemDef::House::None) {
         return true;
     }
@@ -623,6 +671,8 @@ void GameScene::dispose() {
         _consumedItemAnimations.clear();
         _activeFloatingPopups.clear();
         _pendingFloatingPopups.clear();
+        _pendingResurrectionSync = PendingResurrectionSync{};
+        _pendingPartyEffectSyncs.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
             _itemPhysicsWorld->dispose();
@@ -699,7 +749,19 @@ void GameScene::setActive(bool value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
             updateNetworkOrder();
-            
+
+            // Sync divine item filter from _gameState, which PreGameEntryScene has
+            // already kept up-to-date every frame from the network. Reading from
+            // _gameState here (not the network directly) means the filter is set
+            // even if updateNetworkOrder() returned early due to connection state.
+            {
+                std::vector<std::string> activeHouses;
+                for (const auto& player : _gameState.getPlayers()) {
+                    activeHouses.push_back(player->getHouseName());
+                }
+                _itemController.setActiveHouses(activeHouses);
+            }
+
             // Re-initialize AI players after updateNetworkOrder() rebuilds
             // AI slots via demoteToAI(). demoteToAI() creates EasyPlayerAI
             // objects but cannot call init() since it has no ItemController.
@@ -734,6 +796,8 @@ void GameScene::reset() {
     _status = Status::PLAYING;
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
+    _pendingResurrectionSync = PendingResurrectionSync{};
+    _pendingPartyEffectSyncs.clear();
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
@@ -841,18 +905,31 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         return false;
     }
 
+    const auto& animConfig = def->getItemUseAnimation();
+    const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
+
+    if (handleAllyTargetAttack(itemId, def, local, resolvedMagnitude, shouldApplyEffects)) {
+        startItemUseAnimation(animConfig, 0.0f, animPos, 0);
+        if (!_activeItemUseAnimations.empty()) {
+            _activeItemUseAnimations.back().popupPosition = dropPos;
+            _activeItemUseAnimations.back().baseValue = baseValue;
+            _activeItemUseAnimations.back().houseAffinityMultiplier = houseAffinityMultiplier;
+            _activeItemUseAnimations.back().upgradeMultiplier = upgradeMultiplier;
+            _activeItemUseAnimations.back().itemDefID = def->getId();
+        }
+        return true;
+    }
+
     // Host snapshots are authoritative for slow timing, so non-host clients
     // clear their speculative local slow until the host state arrives.
     if (!_network->isHost() && def->hasEffectType(ItemDef::EffectType::Slow)) {
         enemy->syncSlow(1.0f, 0.0f);
     }
 
-    const auto& animConfig = def->getItemUseAnimation();
     CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
           resolvedMagnitude);
 
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
-    const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
     const std::vector<EnemyEffectMessage> enemyEffects =
         (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects)
                               : std::vector<EnemyEffectMessage>{};
@@ -897,6 +974,10 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         return false;
     }
 
+    if (handleAllyTargetAttack(itemId, def, local, resolvedMagnitude, shouldApplyEffects)) {
+        return true;
+    }
+
     // Host snapshots are authoritative for slow timing, so non-host clients
     // clear their speculative local slow until the host state arrives.
     if (!_network->isHost() && def->hasEffectType(ItemDef::EffectType::Slow)) {
@@ -927,12 +1008,85 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         return true;
     }
 
-    const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
-    const float finalDamage     = resolvedMagnitude * sideMultiplier;
-    createFloatingPopup(dropPos, buildAttackDamagePopups(
-        baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
-        resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+    if (baseValue > 0.0f) {
+        const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
+        const float finalDamage     = resolvedMagnitude * sideMultiplier;
+        createFloatingPopup(dropPos, buildAttackDamagePopups(
+            baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
+            resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+    }
 
+    return true;
+}
+
+/**
+ * Handles the shared ally-target branch for attack items and returns whether it fully resolved the item use.
+ *
+ * @param itemId The item instance ID being used.
+ * @param def The item definition that controls attack target routing and effects.
+ * @param local The local player performing the attack.
+ * @param resolvedMagnitude The resolved attack magnitude returned by `useItemById`.
+ * @param shouldApplyEffects Whether the item's configured effects should be dispatched.
+ * @return True if the item targeted all allies and was fully handled here; false if enemy-target attack handling should continue.
+ */
+bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::shared_ptr<const ItemDef>& def, Player* local, float resolvedMagnitude, bool shouldApplyEffects) {
+    if (def->getAttackTarget() != ItemDef::AttackTarget::AllAllies) {
+        return false;
+    }
+
+    if (!_network->isHost()) {
+        for (const ItemDef::Effect& effect : def->getEffects()) {
+            if (!shouldApplyEffects) {
+                break;
+            }
+
+            switch (effect.type) {
+                case ItemDef::EffectType::Resurrect: {
+                    const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(_gameState);
+                    _pendingResurrectionSync.playerSlots = resurrectedSlots;
+                    _pendingResurrectionSync.reviveHealth = effect.reviveHealth;
+                    _pendingResurrectionSync.regenAmount = effect.regenAmount;
+                    _pendingResurrectionSync.regenDuration = effect.duration;
+                    _pendingResurrectionSync.active = !resurrectedSlots.empty();
+                    break;
+                }
+                case ItemDef::EffectType::Educate: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Educate;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.duration = effect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
+                case ItemDef::EffectType::Shield:
+                case ItemDef::EffectType::Barrier:
+                case ItemDef::EffectType::Regen:
+                case ItemDef::EffectType::Stun:
+                case ItemDef::EffectType::Love:
+                case ItemDef::EffectType::Slow:
+                case ItemDef::EffectType::Vulnerable:
+                case ItemDef::EffectType::Upgrade:
+                    break;
+            }
+        }
+        broadcastSupportEffects(*_network, *def, resolvedMagnitude, -1, shouldApplyEffects, true);
+    }
+
+    CULog("Player used ally-target attack item %llu", (unsigned long long)itemId);
     return true;
 }
 
@@ -957,7 +1111,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -998,7 +1152,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -1741,14 +1895,19 @@ void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonN
         }
     }
 
+    const bool hasActiveRegen = player->hasRegen();
+
     if (!isAlive) {
         damageBlinkTimer = 0.0f;
         healBlinkTimer = 0.0f;
         slot->setColor(Color4(255, 255, 255, 255));
-    } else if (healBlinkTimer > 0.0f) {
-        slot->setColor(Color4(176, 224, 176, 255));
     } else if (damageBlinkTimer > 0.0f && shouldShowDamageBlink(damageBlinkTimer, _blinkInterval)) {
         slot->setColor(Color4(224, 160, 160, 255));
+    } else if (hasActiveRegen) {
+        // Regen applies small heals every frame, so keep a visible green tint up while it is active.
+        slot->setColor(Color4(120, 220, 120, 255));
+    } else if (healBlinkTimer > 0.0f) {
+        slot->setColor(Color4(176, 224, 176, 255));
     } else {
         slot->setColor(Color4(255, 255, 255, 255));
     }
@@ -2052,6 +2211,8 @@ void GameScene::handleNetworkUpdates(float dt) {
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        applyPendingResurrectionSync();
+        applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
     }
     
@@ -2080,6 +2241,80 @@ void GameScene::handleNetworkUpdates(float dt) {
     }
 
     processNetworkedPasses(_network->getPassUpdates());
+}
+
+/**
+ * Reapplies a pending client-side resurrection after stale host snapshots, until host sync catches up.
+ *
+ * Each queued slot is checked against the latest replicated game state. Slots that are
+ * still dead are restored locally using the cached revive and regen values; once all
+ * tracked slots are alive in the authoritative snapshot, the pending cache is cleared.
+ */
+void GameScene::applyPendingResurrectionSync() {
+    if (!_pendingResurrectionSync.active) {
+        return;
+    }
+
+    bool waitingForHost = false;
+    for (int slot : _pendingResurrectionSync.playerSlots) {
+        Player* player = _gameState.getPlayerBySlot(slot);
+        if (!player) {
+            continue;
+        }
+        if (player->isAlive()) {
+            continue;
+        }
+
+        player->setCurrentHealth(_pendingResurrectionSync.reviveHealth);
+        if (_pendingResurrectionSync.regenAmount > 0.0f && _pendingResurrectionSync.regenDuration > 0.0f) {
+            player->applyRegen(_pendingResurrectionSync.regenAmount, _pendingResurrectionSync.regenDuration);
+        }
+        waitingForHost = true;
+    }
+
+    if (!waitingForHost) {
+        _pendingResurrectionSync = PendingResurrectionSync{};
+    }
+}
+
+/**
+ * Reapplies a pending client-side educate buff after stale host snapshots, until host sync catches up.
+ */
+void GameScene::applyPendingPartyEffectSyncs() {
+    auto shouldKeepPendingEffect = [&](PendingPartyEffectSync& pendingEffect) {
+        bool waitingForHost = false;
+
+        for (int slot : pendingEffect.playerSlots) {
+            Player* player = _gameState.getPlayerBySlot(slot);
+            if (!player) {
+                continue;
+            }
+
+            switch (pendingEffect.effectType) {
+                case ItemDef::EffectType::Educate:
+                    if (player->hasEducate()) {
+                        continue;
+                    }
+                    player->applyEducate(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return waitingForHost;
+    };
+
+    _pendingPartyEffectSyncs.erase(
+        std::remove_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+            [&](PendingPartyEffectSync& pendingEffect) {
+                if (!pendingEffect.active) {
+                    return true;
+                }
+                return !shouldKeepPendingEffect(pendingEffect);
+            }),
+        _pendingPartyEffectSyncs.end());
 }
 
 /** 
@@ -3669,16 +3904,18 @@ void GameScene::updateItemUseAnimations(float dt) {
             if (activeAnim.damageAmount > 0.0f) {
                 auto enemy = _gameState.getEnemy();
                 if (enemy) {
-                    const int   playerNum      = _gameState.getLocalPlayer()->getPlayerNumber();
-                    const float sideMultiplier = enemy->getSideMultiplier(playerNum);
-                    const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
+                    const int playerNum = _gameState.getLocalPlayer()->getPlayerNumber();
 
                     // Apply pre-calculated damage and show the popup sequence.
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
-                    createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
-                        activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
-                        activeAnim.upgradeMultiplier, sideMultiplier,
-                        activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
+                    if (activeAnim.baseValue > 0.0f) {
+                        const float sideMultiplier = enemy->getSideMultiplier(playerNum);
+                        const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
+                        createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
+                            activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
+                            activeAnim.upgradeMultiplier, sideMultiplier,
+                            activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
+                    }
 
                     // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
@@ -4011,18 +4248,22 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
  * @param def      The item definition whose effects to scan.
  * @param dropPos  Screen-space position where popups appear.
  * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
+ * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
  */
-void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos, bool shouldShowEffectPopup) {
+void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos,
+                                           bool shouldShowEffectPopup, bool hasHealingPopup) {
+    const bool hasRegenPopup = shouldShowEffectPopup && def && def->hasEffectType(ItemDef::EffectType::Regen);
+    const float popupYOffset = hasHealingPopup ? (hasRegenPopup ? -56.0f : -28.0f) : 0.0f;
     for (const auto& effect : def->getEffects()) {
         if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
             char text[32];
             std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
-            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, popupYOffset), true}});
         } else if (shouldShowEffectPopup && effect.type == ItemDef::EffectType::Barrier && effect.multiplier < 1.0f) {
             char text[32];
             const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
             std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);
-            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, popupYOffset), true}});
         }
     }
 }

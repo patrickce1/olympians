@@ -49,6 +49,16 @@ public:
      */
     void giveRandomItem(Player* player);
 
+    /**
+     * Restricts divine item rolls to items whose houseAffinity matches one of the given
+     * house IDs. Call once after the player roster is known. Forwards to ItemDatabase.
+     *
+     * @param houseIds  Player house ID strings (e.g. "zeus", "poseidon")
+     */
+    void setActiveHouses(const std::vector<std::string>& houseIds) {
+        _itemDb.setActiveHouses(houseIds);
+    }
+
     /*
     * Retrieves the item database
     * @return the item database
