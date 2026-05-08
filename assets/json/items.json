@@ -436,7 +436,12 @@
             "houseAffinity": "athena",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "educate",
+                    "duration": 10.0
+                }
+            ]
         },
         {
             "id": "rage",
@@ -447,7 +452,7 @@
             "type": "attack",
             "attackTarget": "enemy",
             "rarity": "divine",
-            "houseAffinity": "demeter",
+            "houseAffinity": "ares",
             "baseValue": 60.0,
             "weight": 10.0,
             "effects": []

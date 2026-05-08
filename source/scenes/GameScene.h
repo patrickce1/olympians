@@ -437,6 +437,21 @@ protected:
     /** Client-side predicted resurrection state waiting for host confirmation. */
     PendingResurrectionSync _pendingResurrectionSync;
 
+    /** Tracks one client-predicted duration-only party effect until the authoritative host snapshot catches up. */
+    struct PendingPartyEffectSync {
+        /** The effect being predicted. */
+        ItemDef::EffectType effectType = ItemDef::EffectType::Educate;
+        /** Party slots that should receive the effect. */
+        std::vector<int> playerSlots;
+        /** Effect duration to apply until host state arrives. */
+        float duration = 0.0f;
+        /** Whether there is an active pending party-effect prediction. */
+        bool active = false;
+    };
+
+    /** Client-side predicted party-effect states waiting for host confirmation. */
+    std::vector<PendingPartyEffectSync> _pendingPartyEffectSyncs;
+
 #pragma mark - Glow Effect State
 
     /** The drop zone action whose region should currently glow. */
@@ -1391,6 +1406,11 @@ public:
      * resurrection item is not visually reverted by an older authoritative snapshot.
      */
     void applyPendingResurrectionSync();
+
+    /**
+     * Reapplies pending client-side duration-only party effects after stale host snapshots, until host sync catches up.
+     */
+    void applyPendingPartyEffectSyncs();
 
     /**
      * Plays the item's defined use sound, or the generic "support" sound if none is set.

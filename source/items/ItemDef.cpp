@@ -45,6 +45,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
         out = ItemDef::EffectType::Resurrect;
         return true;
     }
+    if (value == "educate") {
+        out = ItemDef::EffectType::Educate;
+        return true;
+    }
     if (value == "stun") {
         out = ItemDef::EffectType::Stun;
         return true;

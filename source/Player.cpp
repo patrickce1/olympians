@@ -178,6 +178,26 @@ void Player::applyRegen(float amount, float duration) {
 }
 
 /**
+ * Applies a timed educate effect to this player.
+ *
+ * @param duration How long the educate effect should stay active.
+ */
+void Player::applyEducate(float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    _educateDuration = duration;
+
+    if (_debug) {
+        CULog("Educate applied: player='%s' house='%s' duration=%.3f",
+            _playerName.c_str(),
+            _houseId.c_str(),
+            _educateDuration);
+    }
+}
+
+/**
  * Advances this player's active runtime support effects by the elapsed frame time.
  *
  * Both shield and barrier durations are reduced by `dt` and clamped to `0.0f` so
@@ -235,6 +255,15 @@ void Player::updateEffects(float dt) {
             }
         }
     }
+
+    if (_educateDuration > 0.0f) {
+        _educateDuration = std::max(0.0f, _educateDuration - dt);
+        if (_educateDuration <= 0.0f && _debug) {
+            CULog("Educate expired: player='%s' house='%s'",
+                _playerName.c_str(),
+                _houseId.c_str());
+        }
+    }
 }
 
 /** Clears runtime-only combat effects. */
@@ -248,6 +277,7 @@ void Player::clearRuntimeEffects() {
     _hasRegen = false;
     _regenAmountRemaining = 0.0f;
     _regenDuration = 0.0f;
+    _educateDuration = 0.0f;
 }
 
 /**
@@ -314,6 +344,10 @@ static float computeResolvedItemMagnitude(const Player& player,
  * @return True when the item's effects should be dispatched.
  */
 static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
+    if (player.hasEducate()) {
+        return true;
+    }
+
     if (def.getHouseAffinity() == ItemDef::House::None) {
         return true;
     }
@@ -443,6 +477,15 @@ static void applyResurrectEffectToParty(const ItemDef::Effect& effect, Player& s
 static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolvedMagnitude, Player& source) {
     if (effect.type == ItemDef::EffectType::Resurrect) {
         applyResurrectEffectToParty(effect, source);
+        return;
+    }
+    if (effect.type == ItemDef::EffectType::Educate) {
+        for (Player* player : collectPartyMembers(source)) {
+            if (!player) {
+                continue;
+            }
+            player->applyEducate(effect.duration);
+        }
         return;
     }
 
