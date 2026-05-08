@@ -267,6 +267,12 @@ void SceneLoader::update(float dt) {
             } else{
                 CULog("Warning: Failed to initialize audio controller");
             }
+                
+            // Load persisted player data before any scene is initialized so
+            // MenuScene can check hasPlayerName() on first activation
+            SavedDataManager::get().load();
+            CULog("SceneLoader: SavedDataManager loaded, playerName='%s'",
+                  SavedDataManager::get().getPlayerName().c_str());
 
             if (_menuScene.init(_assets)){
                 _menuScene.setSpriteBatch(_batch);

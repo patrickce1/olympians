@@ -172,14 +172,6 @@ public:
      * those fields are added to the SavedDataManager schema.
      */
     void saveSettings();
-
-    /**
-     * Deserializes settings from the JSON file in the app's save directory.
-     *
-     * Called at the end of init(). If no save file exists, default
-     * values are kept and no error is raised.
-     */
-    void loadSettings();
     
     /**
      * Returns true if the user has pressed back or save, then resets the flag.

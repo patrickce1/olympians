@@ -3,7 +3,7 @@
 using namespace cugl;
 
 #define SAVE_FILE       "savedData.json"
-#define SAVE_ASSET_PATH "json/savedData.json"   // path inside your assets folder
+#define SAVE_ASSET_PATH "json/savedData.json"
 
 // ---------------------------------------------------------------------------
 #pragma mark - Helpers
@@ -91,9 +91,11 @@ bool SavedDataManager::load() {
         return false;
     }
 
-    if (root->has("playerName")) {
-        _playerName = root->getString("playerName", "");
-    }
+    if (root->has("playerName"))     _playerName     = root->getString("playerName", "");
+    if (root->has("sfxVolume"))      _sfxVolume      = (float)root->getFloat("sfxVolume",   1.0);
+    if (root->has("musicVolume"))    _musicVolume    = (float)root->getFloat("musicVolume", 1.0);
+    if (root->has("effectsEnabled")) _effectsEnabled = root->getBool("effectsEnabled", true);
+    if (root->has("hapticsEnabled")) _hapticsEnabled = root->getBool("hapticsEnabled", true);
 
     CULog("SaveDataManager: loaded — playerName='%s'", _playerName.c_str());
     return true;
@@ -111,7 +113,11 @@ bool SavedDataManager::save() {
     std::string path = getSavePath();
 
     auto root = JsonValue::allocObject();
-    root->appendChild("playerName", JsonValue::alloc(_playerName));
+    root->appendChild("playerName",     JsonValue::alloc(_playerName));
+    root->appendChild("sfxVolume",      JsonValue::alloc((double)_sfxVolume));
+    root->appendChild("musicVolume",    JsonValue::alloc((double)_musicVolume));
+    root->appendChild("effectsEnabled", JsonValue::alloc(_effectsEnabled));
+    root->appendChild("hapticsEnabled", JsonValue::alloc(_hapticsEnabled));
 
     auto writer = JsonWriter::alloc(path);
     if (writer == nullptr) {

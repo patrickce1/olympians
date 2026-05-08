@@ -6,7 +6,14 @@
 
 /**
  * Singleton that manages persistent local player data stored in
- * save/savedata.json inside the application's writable directory.
+ * savedData.json inside the application's writable directory.
+ *
+ * Persisted fields:
+ *   - playerName    : the player's display name
+ *   - sfxVolume     : SFX/audio volume multiplier in [0, 1]
+ *   - musicVolume   : music volume multiplier in [0, 1]
+ *   - effectsEnabled: whether screen effects are on
+ *   - hapticsEnabled: whether haptic feedback is on
  *
  * Call load() once at app startup before any scene is activated.
  * Call save() after mutating any field to persist changes to disk.
@@ -15,6 +22,7 @@
  *   SavedDataManager::get().load();
  *   SavedDataManager::get().getPlayerName();
  *   SavedDataManager::get().setPlayerName("Atlas");
+ *   SavedDataManager::get().setSFXVolume(0.8f);
  *   SavedDataManager::get().save();
  */
 class SavedDataManager {
@@ -44,12 +52,20 @@ public:
     /**
      * Loads save data from disk.
      *
-     * Attempts to open and parse save/savedata.json from the application's
-     * writable directory. If the file is absent (first launch) or malformed,
-     * all fields retain their default values and false is returned. On
-     * success each recognised JSON key is applied to the corresponding
-     * member field. Safe to call more than once — each call re-reads the
-     * file from disk.
+     * On first launch, copies the default savedData.json from the asset
+     * bundle into the writable save directory, then reads from that copy.
+     * On subsequent launches it reads the writable copy directly.
+     *
+     * Recognised JSON keys and their corresponding fields:
+     *   - "playerName"     → _playerName
+     *   - "sfxVolume"      → _sfxVolume
+     *   - "musicVolume"    → _musicVolume
+     *   - "effectsEnabled" → _effectsEnabled
+     *   - "hapticsEnabled" → _hapticsEnabled
+     *
+     * Missing keys are silently skipped; the corresponding field retains
+     * its default value. Safe to call more than once — each call re-reads
+     * the file from disk.
      *
      * @return true if the file was found and parsed without error;
      *         false on missing file or parse failure (defaults are used
@@ -58,20 +74,30 @@ public:
     bool load();
 
     /**
-     * Writes current save data to disk.
+     * Writes current save data to the writable copy of savedData.json.
      *
-     * Creates the save/ subdirectory under the platform save directory if
-     * it does not already exist, then serialises all member fields as a
-     * JSON object and writes it to save/savedata.json, overwriting any
-     * prior contents. Should be called after any setter call that should
-     * be persisted across sessions.
+     * Serialises all member fields as a JSON object and writes it to
+     * savedData.json in the platform writable directory, overwriting any
+     * prior contents. Never touches the read-only asset bundle.
      *
-     * @return true if the directory was accessible and the file was written
-     *         successfully; false on any filesystem error.
+     * Written keys:
+     *   - "playerName"
+     *   - "sfxVolume"
+     *   - "musicVolume"
+     *   - "effectsEnabled"
+     *   - "hapticsEnabled"
+     *
+     * Should be called after any setter whose change should survive
+     * across sessions.
+     *
+     * @return true if the file was written successfully; false on any
+     *         filesystem error.
      */
     bool save();
 
 #pragma mark - Accessors
+
+    // ── Player name ────────────────────────────────────────────────────────
 
     /**
      * Returns the saved player name.
@@ -86,7 +112,7 @@ public:
     /**
      * Sets the player name in memory.
      *
-     * This does not write to disk. Call save() afterwards to persist the
+     * Does not write to disk. Call save() afterwards to persist the
      * change across sessions.
      *
      * @param name  The player name to store.
@@ -103,9 +129,97 @@ public:
      */
     bool hasPlayerName() const { return !_playerName.empty(); }
 
+    // ── SFX volume ─────────────────────────────────────────────────────────
+
+    /**
+     * Returns the saved SFX/audio volume multiplier.
+     *
+     * Value is in [0, 1]. Defaults to 1.0 if load() has not yet been
+     * called or the key was absent from the save file.
+     *
+     * @return the SFX volume multiplier.
+     */
+    float getSFXVolume() const { return _sfxVolume; }
+
+    /**
+     * Sets the SFX/audio volume multiplier in memory.
+     *
+     * Does not write to disk. Call save() afterwards to persist the
+     * change across sessions. Value should be in [0, 1].
+     *
+     * @param v  The new SFX volume multiplier.
+     */
+    void setSFXVolume(float v) { _sfxVolume = v; }
+
+    // ── Music volume ───────────────────────────────────────────────────────
+
+    /**
+     * Returns the saved music volume multiplier.
+     *
+     * Value is in [0, 1]. Defaults to 1.0 if load() has not yet been
+     * called or the key was absent from the save file.
+     *
+     * @return the music volume multiplier.
+     */
+    float getMusicVolume() const { return _musicVolume; }
+
+    /**
+     * Sets the music volume multiplier in memory.
+     *
+     * Does not write to disk. Call save() afterwards to persist the
+     * change across sessions. Value should be in [0, 1].
+     *
+     * @param v  The new music volume multiplier.
+     */
+    void setMusicVolume(float v) { _musicVolume = v; }
+
+    // ── Screen effects ─────────────────────────────────────────────────────
+
+    /**
+     * Returns true if screen effects are enabled.
+     *
+     * Defaults to true if load() has not yet been called or the key was
+     * absent from the save file.
+     *
+     * @return true if effects are on; false if they are disabled.
+     */
+    bool getEffectsEnabled() const { return _effectsEnabled; }
+
+    /**
+     * Sets whether screen effects are enabled in memory.
+     *
+     * Does not write to disk. Call save() afterwards to persist the
+     * change across sessions.
+     *
+     * @param v  true to enable effects; false to disable.
+     */
+    void setEffectsEnabled(bool v) { _effectsEnabled = v; }
+
+    // ── Haptics ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns true if haptic feedback is enabled.
+     *
+     * Defaults to true if load() has not yet been called or the key was
+     * absent from the save file.
+     *
+     * @return true if haptics are on; false if they are disabled.
+     */
+    bool getHapticsEnabled() const { return _hapticsEnabled; }
+
+    /**
+     * Sets whether haptic feedback is enabled in memory.
+     *
+     * Does not write to disk. Call save() afterwards to persist the
+     * change across sessions.
+     *
+     * @param v  true to enable haptics; false to disable.
+     */
+    void setHapticsEnabled(bool v) { _hapticsEnabled = v; }
+
 private:
     SavedDataManager() = default;
-    
+
     /**
      * Returns the absolute path to savedData.json inside the writable
      * application directory. This is the live copy that gets read and
@@ -123,8 +237,20 @@ private:
      */
     std::string getAssetPath() const;
 
-    /** The saved player name. Empty string if not yet set. */
+    /** The saved player display name. Empty string if not yet set. */
     std::string _playerName;
+
+    /** SFX/audio volume multiplier in [0, 1]. Default 1.0. */
+    float _sfxVolume = 1.0f;
+
+    /** Music volume multiplier in [0, 1]. Default 1.0. */
+    float _musicVolume = 1.0f;
+
+    /** Whether screen effects are enabled. Default true. */
+    bool _effectsEnabled = true;
+
+    /** Whether haptic feedback is enabled. Default true. */
+    bool _hapticsEnabled = true;
 };
 
 #endif /* __SAVE_DATA_MANAGER_H__ */

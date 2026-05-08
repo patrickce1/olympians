@@ -170,12 +170,22 @@ void SettingsScene::setActive(bool value) {
             // Pre-populate the name field with the currently saved name
             // so the player can see and edit their existing value
             const std::string& saved = SavedDataManager::get().getPlayerName();
+            // Restore persisted values to the UI
+            _sfxVolume      = SavedDataManager::get().getSFXVolume();
+            _musicVolume    = SavedDataManager::get().getMusicVolume();
+            _effectsEnabled = SavedDataManager::get().getEffectsEnabled();
+            _hapticsEnabled = SavedDataManager::get().getHapticsEnabled();
+
             if (_usernameField && !saved.empty()) {
                 _usernameField->setText(saved);
                 auto placeholder = std::dynamic_pointer_cast<scene2::Label>(
                     _assets->get<scene2::SceneNode>("settingsScene.username.placeholder"));
                 if (placeholder) placeholder->setVisible(false);
             }
+            if (_sfxSlider)     _sfxSlider->setValue(_sfxVolume);
+            if (_musicSlider)   _musicSlider->setValue(_musicVolume);
+            if (_effectsButton) _effectsButton->setDown(_effectsEnabled);
+            if (_hapticsButton) _hapticsButton->setDown(_hapticsEnabled);
         } else {
             _saveButton->setDown(false);
             _backButton->setDown(false);
@@ -238,11 +248,13 @@ void SettingsScene::setInputEnabled(bool enabled) {
 void SettingsScene::saveSettings() {
     if (_usernameField) {
         const std::string name = _usernameField->getText();
-        // Only overwrite the saved name if the field is non-empty;
-        // leaving it blank should not erase a previously saved name
         if (!name.empty()) {
             SavedDataManager::get().setPlayerName(name);
         }
     }
+    SavedDataManager::get().setSFXVolume(_sfxVolume);
+    SavedDataManager::get().setMusicVolume(_musicVolume);
+    SavedDataManager::get().setEffectsEnabled(_effectsEnabled);
+    SavedDataManager::get().setHapticsEnabled(_hapticsEnabled);
     SavedDataManager::get().save();
 }
