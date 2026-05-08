@@ -408,13 +408,25 @@
             "file": "textures/lobbyScene/gaiaLobbyImage.png"
         },
         "glowBorder": {
-            "file": "textures/lobbyScene/glowBorder.png"
+            "file": "textures/lobbyScene/glowBorder.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "playerIconBG": {
-            "file": "textures/lobbyScene/playerIconBG.png"
+            "file": "textures/lobbyScene/playerIconBG.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "emptySIcon": {
-            "file": "textures/lobbyScene/emptySIcon.png"
+            "file": "textures/lobbyScene/emptySIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "key1": {
             "file": "textures/keypad/key1.png"
