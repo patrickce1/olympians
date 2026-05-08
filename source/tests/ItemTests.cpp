@@ -2,6 +2,7 @@
 // Unit tests for item JSON parsing and house multipliers loading.
 
 #include "ItemTests.h"
+#include "../items/ItemController.h"
 #include "../items/ItemDatabase.h"
 #include "../items/ItemInstance.h"
 #include "../HouseLoader.h"
@@ -10,6 +11,7 @@
 #include <cugl/cugl.h>
 #include <cmath>
 #include <set>
+#include <vector>
 
 namespace {
 
@@ -80,6 +82,34 @@ std::shared_ptr<cugl::JsonValue> readJson(const std::string& path) {
 }
 
 /**
+ * Collects the current definition IDs from a player's inventory in slot order.
+ *
+ * @param player Player whose inventory should be inspected
+ * @return       Definition IDs for each item instance in inventory order
+ */
+std::vector<std::string> collectInventoryDefIds(const Player& player) {
+    std::vector<std::string> result;
+    for (const ItemInstance& item : player.getInventory()) {
+        result.push_back(item.getDefId());
+    }
+    return result;
+}
+
+/**
+ * Collects stable item instance IDs from a player's inventory in slot order.
+ *
+ * @param player Player whose inventory should be inspected
+ * @return       Stable item instance IDs for each inventory slot
+ */
+std::vector<ItemInstance::ItemId> collectInventoryItemIds(const Player& player) {
+    std::vector<ItemInstance::ItemId> result;
+    for (const ItemInstance& item : player.getInventory()) {
+        result.push_back(item.getId());
+    }
+    return result;
+}
+
+/**
  * Tests item JSON loading and basic field validation.
  *
  * Verifies that:
@@ -120,6 +150,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto swordDef = db.getDef("sword");
     auto resurrectionDef = db.getDef("resurrection");
     auto educateDef = db.getDef("educate");
+    auto forgeDef = db.getDef("forge");
     auto spearDef = db.getDef("spear");
     auto wingsDef = db.getDef("wings");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
@@ -165,6 +196,13 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     assertWithLabel(educateDef && !educateDef->getEffects().empty() &&
                     floatsEqualWithinTolerance(educateDef->getEffects()[0].duration, 10.0f),
            "items: educate duration parses");
+    assertWithLabel(forgeDef && forgeDef->hasEffectType(ItemDef::EffectType::Forge),
+           "items: forge parses forge effect");
+    assertWithLabel(forgeDef && forgeDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
+           "items: forge attack target parses as all allies");
+    assertWithLabel(forgeDef && !forgeDef->getEffects().empty() &&
+                    floatsEqualWithinTolerance(forgeDef->getEffects()[0].chance, 0.1f),
+           "items: forge divine upgrade chance parses");
     assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
            "items: spear parses vulnerable effect");
     assertWithLabel(spearDef && !spearDef->getEffects().empty() && floatsEqualWithinTolerance(spearDef->getEffects()[0].multiplier, 2.0f),
@@ -1301,6 +1339,100 @@ void testEducateEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     assertWithLabel(!zeus.hasEducate(), "educate: buff expires after configured duration");
 }
 
+/**
+ * Tests the forge item transformation rules and stable instance identity behavior.
+ */
+void testForgeEffect(const std::string& housesJsonPath) {
+    ItemController controller;
+    std::shared_ptr<cugl::AssetManager> assets;
+    bool controllerOk = controller.init(assets);
+    assertWithLabel(controllerOk, "forge: item controller init succeeds");
+    if (!controllerOk) return;
+
+    const ItemDatabase& db = controller.getDatabase();
+    auto appleDef = db.getDef("apple");
+    auto spearDef = db.getDef("spear");
+    auto forgeDef = db.getDef("forge");
+    assertWithLabel(appleDef && appleDef->getRarity() == ItemDef::Rarity::Common,
+                    "forge: apple fixture is common");
+    assertWithLabel(spearDef && spearDef->getRarity() == ItemDef::Rarity::Rare,
+                    "forge: spear fixture is rare");
+    assertWithLabel(forgeDef && forgeDef->getRarity() == ItemDef::Rarity::Divine,
+                    "forge: forge fixture is divine");
+    if (!appleDef || !spearDef || !forgeDef) return;
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "forge: house loader init succeeds");
+    if (!housesOk) return;
+
+    Player player("zeus", 0, "Forge Tester", loader);
+    auto commonItem = ItemInstance::alloc("apple", 4001);
+    auto rareItem = ItemInstance::alloc("spear", 4002);
+    auto divineItem = ItemInstance::alloc("forge", 4003);
+    assertWithLabel(commonItem && rareItem && divineItem, "forge: create item instances");
+    if (!commonItem || !rareItem || !divineItem) return;
+
+    player.addItem(*commonItem);
+    player.addItem(*rareItem);
+    player.addItem(*divineItem);
+    const auto idsBefore = collectInventoryItemIds(player);
+
+    const int changed = controller.applyForgeEffect(&player, 1.0f, 12345u);
+    const auto& inventory = player.getInventory();
+    assertWithLabel(inventory.size() == 3, "forge: inventory size is unchanged");
+    assertWithLabel(collectInventoryItemIds(player) == idsBefore,
+                    "forge: existing item instance ids are preserved");
+    assertWithLabel(changed == 2, "forge: only common and rare items are redefined");
+
+    auto commonAfterDef = db.getDef(inventory[0].getDefId());
+    auto rareAfterDef = db.getDef(inventory[1].getDefId());
+    assertWithLabel(commonAfterDef && commonAfterDef->getRarity() == ItemDef::Rarity::Rare,
+                    "forge: common item becomes rare");
+    assertWithLabel(rareAfterDef && rareAfterDef->getRarity() == ItemDef::Rarity::Divine,
+                    "forge: rare item becomes divine when chance succeeds");
+    assertWithLabel(inventory[2].getDefId() == "forge",
+                    "forge: divine items are left unchanged");
+
+    Player chancePlayer("zeus", 1, "Forge Chance Tester", loader);
+    auto chanceCommon = ItemInstance::alloc("apple", 4011);
+    auto chanceRare = ItemInstance::alloc("spear", 4012);
+    assertWithLabel(chanceCommon && chanceRare, "forge: create chance item instances");
+    if (!chanceCommon || !chanceRare) return;
+    chancePlayer.addItem(*chanceCommon);
+    chancePlayer.addItem(*chanceRare);
+
+    const int chanceChanged = controller.applyForgeEffect(&chancePlayer, 0.0f, 67890u);
+    const auto& chanceInventory = chancePlayer.getInventory();
+    auto chanceCommonAfterDef = db.getDef(chanceInventory[0].getDefId());
+    assertWithLabel(chanceChanged == 1, "forge: zero divine chance only redefines common items");
+    assertWithLabel(chanceCommonAfterDef && chanceCommonAfterDef->getRarity() == ItemDef::Rarity::Rare,
+                    "forge: common item still becomes rare when divine chance is zero");
+    assertWithLabel(chanceInventory[1].getDefId() == "spear",
+                    "forge: rare item stays rare when divine chance fails");
+
+    Player firstSeedPlayer("zeus", 2, "Forge Seed One", loader);
+    Player secondSeedPlayer("zeus", 3, "Forge Seed Two", loader);
+    auto firstCommon = ItemInstance::alloc("apple", 4021);
+    auto firstRare = ItemInstance::alloc("spear", 4022);
+    auto secondCommon = ItemInstance::alloc("apple", 4031);
+    auto secondRare = ItemInstance::alloc("spear", 4032);
+    assertWithLabel(firstCommon && firstRare && secondCommon && secondRare,
+                    "forge: create deterministic seed item instances");
+    if (!firstCommon || !firstRare || !secondCommon || !secondRare) return;
+    firstSeedPlayer.addItem(*firstCommon);
+    firstSeedPlayer.addItem(*firstRare);
+    secondSeedPlayer.addItem(*secondCommon);
+    secondSeedPlayer.addItem(*secondRare);
+
+    const int firstChanged = controller.applyForgeEffect(&firstSeedPlayer, 1.0f, 24680u);
+    const int secondChanged = controller.applyForgeEffect(&secondSeedPlayer, 1.0f, 24680u);
+    assertWithLabel(firstChanged == secondChanged,
+                    "forge: same seed changes the same number of items");
+    assertWithLabel(collectInventoryDefIds(firstSeedPlayer) == collectInventoryDefIds(secondSeedPlayer),
+                    "forge: same seed produces the same replacement definitions");
+}
+
 } // namespace
 
 void ItemTests::runAll(const std::string& itemsJsonPath,
@@ -1342,6 +1474,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testGaiaRockHealsEnemy(itemsJson, housesJsonPath, enemiesJsonPath);
     testResurrectionEffect(itemsJson, housesJsonPath, enemiesJsonPath);
     testEducateEffect(itemsJson, housesJsonPath, enemiesJsonPath);
+    testForgeEffect(housesJsonPath);
     
     printSummary();
 }
