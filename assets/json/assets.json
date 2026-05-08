@@ -525,6 +525,15 @@
         "slowIcon": {
             "file": "textures/gameScene/slowIcon.png"
         },
+        "helmBar": {
+            "file": "textures/gameScene/helmBar.png"
+        },
+        "aegisBar": {
+            "file": "textures/gameScene/aegisBar.png"
+        },
+        "shieldBar": {
+            "file": "textures/gameScene/shieldBar.png"
+        },
         "playerUsernameBG": {
             "file": "textures/gameScene/playerNameBG.png"
         },
