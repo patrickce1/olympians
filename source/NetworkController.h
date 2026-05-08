@@ -413,11 +413,34 @@ public:
      *  the join message without prematurely inserting into _slotToPlayer. */
     void setPlayerNameOnly(const std::string& name) { _playerName = name; }
 
-    /** Takes the current player ordering and randomizes it to create a new one. It can create the same ordering as before */
-    void scramblePlayerOrder();
+
+
+    /**
+    * HOST ONLY. Performs a mid-game scramble of player slots.
+    * Generates a single shuffled slot mapping and applies it
+    *   to the authoritative slot-to-player and UUID-to-slot maps.
+    * Broadcasts the final mapping to all clients so they can rebuild
+    * their local slot ordering.
+    * After this runs, GameScene is expected to react by calling
+    * updateNetworkOrder() to rewire neighbours and spatial positions.
+    */
+    void scrambleAndBroadcastPlayerOrder();
 
     /** Broadcasts the current ordering of players */
-    void broadcastPlayerOrder();
+    void checkMidGameScramble();
+
+    /**
+    * Applies a complete slot remapping in one atomic operation.
+    * Rebuilds the internal _slotToPlayer and _uuidToSlot maps using the
+    * provided old-slot -> new-slot mapping.
+    * Preserves player identity and runtime state; only the slot indices
+    * are reassigned.
+    * Safe to call on both host and clients when handling a
+    * MID_GAME_SCRAMBLE message.
+    * Sets a one-frame flag so GameScene can update neighbour order via
+    * updateNetworkOrder() exactly once.
+    */
+    void applyScrambleMapping(const std::array<int, 4>& mapping);
 
 
 protected:

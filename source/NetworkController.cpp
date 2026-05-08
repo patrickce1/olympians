@@ -1145,3 +1145,55 @@ void NetworkController::swapSlots(int slotA, int slotB) {
 
     broadcastLobbyState();
 }
+
+
+// NetworkController.cpp
+void NetworkController::scrambleAndBroadcastPlayerOrder() {
+    if (!_network->isHost()) {
+        return;
+    }
+
+    // Build identity list [0,1,2,3]
+    std::array<int, 4> mapping = { 0, 1, 2, 3 };
+
+    // Shuffle atomically (single final result)
+    std::shuffle(mapping.begin(), mapping.end(), _rng);
+
+    // Send once
+    // Broadcast final mapping to all clients
+    _serializer.writeSint32(MessageType::MID_GAME_SCRAMBLE);
+    for (int i = 0; i < 4; ++i) {
+        _serializer.writeSint32(mapping[i]);
+    }
+
+    _network->broadcast()
+    _serializer->re
+
+    // Host applies immediately
+    applyScrambleMapping(mapping);
+}
+
+void NetworkController::applyScrambleMapping(
+    const std::array<int, 4>& mapping
+) {
+    std::unordered_map<int, NetworkedPlayer> newSlotToPlayer;
+    std::unordered_map<std::string, int> newUuidToSlot;
+
+    // Remap all existing players atomically
+    for (int oldSlot = 0; oldSlot < 4; ++oldSlot) {
+        auto it = _slotToPlayer.find(oldSlot);
+        if (it != _slotToPlayer.end()) {
+            int newSlot = mapping[oldSlot];
+            const NetworkedPlayer& player = it->second;
+
+            newSlotToPlayer[newSlot] = player;
+            newUuidToSlot[player.networkID] = newSlot;
+        }
+    }
+
+    _slotToPlayer = std::move(newSlotToPlayer);
+    _uuidToSlot = std::move(newUuidToSlot);
+
+    // Let GameScene know it must rewire neighbours once
+    _midGameScramblePending = true;
+}
