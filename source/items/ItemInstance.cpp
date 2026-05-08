@@ -20,6 +20,12 @@ bool ItemInstance::init(const std::string& defId, ItemId id) {
     return true;
 }
 
+bool ItemInstance::setDefId(const std::string& defId) {
+    if (defId.empty()) return false;
+    _defId = defId;
+    return true;
+}
+
 /**
  * Serializes this ItemInstance to a JSON object.
  * Stores the instance ID as a double (for JSON compatibility) and the defId as a string.

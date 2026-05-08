@@ -422,7 +422,12 @@
             "houseAffinity": "hephaestus",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "forge",
+                    "chance": 0.1
+                }
+            ]
         },
         {
             "id": "educate",
@@ -452,7 +457,7 @@
             "type": "attack",
             "attackTarget": "enemy",
             "rarity": "divine",
-            "houseAffinity": "demeter",
+            "houseAffinity": "ares",
             "baseValue": 60.0,
             "weight": 10.0,
             "effects": []

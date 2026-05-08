@@ -188,3 +188,38 @@ ItemInstance::ItemId ItemController::giveItemByID(Player* player, const std::str
     player->addItem(*itemInstance);
     return itemId;
 }
+
+int ItemController::applyForgeEffect(Player* player, float divineChance, std::uint32_t seed) {
+    if (!player) {
+        return 0;
+    }
+
+    cugl::Random rng;
+    rng.initWithSeed(static_cast<Uint64>(seed));
+
+    int redefinedCount = 0;
+    auto& inventory = const_cast<std::vector<ItemInstance>&>(player->getInventory());
+    for (ItemInstance& item : inventory) {
+        auto currentDef = _itemDb.getDef(item.getDefId());
+        if (!currentDef) {
+            continue;
+        }
+
+        std::string replacementDefId;
+        if (currentDef->getRarity() == ItemDef::Rarity::Common) {
+            replacementDefId = _itemDb.rollRandomDefId(ItemDef::Rarity::Rare, rng);
+        } else if (currentDef->getRarity() == ItemDef::Rarity::Rare && rng.getRightOpenDouble(0.0, 1.0) < divineChance) {
+            replacementDefId = _itemDb.rollRandomDefId(ItemDef::Rarity::Divine, rng);
+        }
+
+        if (replacementDefId.empty() || replacementDefId == item.getDefId()) {
+            continue;
+        }
+
+        if (item.setDefId(replacementDefId)) {
+            redefinedCount++;
+        }
+    }
+
+    return redefinedCount;
+}

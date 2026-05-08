@@ -388,6 +388,14 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             enemyEffects.push_back(readEnemyEffectMessage(_deserializer));
             break;
         }
+        case MessageType::FORGE_EFFECT: {
+            ForgeEffectMessage forgeMsg;
+            forgeMsg.chance = _deserializer.readFloat();
+            forgeMsg.seed = _deserializer.readSint32();
+            forgeMsg.authoritative = _deserializer.readBool();
+            forgeEffects.push_back(forgeMsg);
+            break;
+        }
         case MessageType::PLAYER_PASS: {
             std::string itemID = _deserializer.readString();
             int passRecieverID = _deserializer.readSint32();
@@ -562,6 +570,7 @@ void NetworkController::clearQueues() {
 	heals.clear();
 	supportEffects.clear();
 	enemyEffects.clear();
+    forgeEffects.clear();
 	passes.clear();
     bossHeals.clear();
     gaiaSpawns = 0;
@@ -679,6 +688,24 @@ void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float m
     writeEnemyEffectMessage(_serializer, effectMsg);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
+}
+
+void NetworkController::requestForgeEffect(float chance) {
+    _serializer.writeSint32(MessageType::FORGE_EFFECT);
+    _serializer.writeFloat(chance);
+    _serializer.writeSint32(0);
+    _serializer.writeBool(false);
+    _network->sendToHost(_serializer.serialize());
+    _serializer.reset();
+}
+
+void NetworkController::broadcastForgeEffect(float chance, int seed) {
+    _serializer.writeSint32(MessageType::FORGE_EFFECT);
+    _serializer.writeFloat(chance);
+    _serializer.writeSint32(seed);
+    _serializer.writeBool(true);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }
 
 /**

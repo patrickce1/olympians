@@ -126,6 +126,9 @@ public:
     // Getters
     ItemId getId() const { return _id; }
     const std::string& getDefId() const { return _defId; }
+
+    /** Redefines this existing item instance without changing its stable ID. */
+    bool setDefId(const std::string& defId);
     
     // Sliding state getters
     /**

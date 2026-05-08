@@ -165,6 +165,12 @@ public:
      */
     void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides);
 
+    /** Sends a forge request to the host for authoritative seeding. */
+    void requestForgeEffect(float chance);
+
+    /** HOST ONLY. Broadcasts an authoritative forge seed to every connected client. */
+    void broadcastForgeEffect(float chance, int seed);
+
     /** The following are USED ONLY BY THE HOST */
     /** Send the GameState state as the new authoritative version of the game to all players */
     void broadcastGameState(const GameState& state);
@@ -222,6 +228,9 @@ public:
 
     /** Returns all enemy effect messages received after calling getNetworkUpdate(). */
     const std::vector<EnemyEffectMessage>& getEnemyEffectUpdates() const { return enemyEffects; }
+
+    /** Returns all forge effect messages received after calling getNetworkUpdate(). */
+    const std::vector<ForgeEffectMessage>& getForgeEffectUpdates() const { return forgeEffects; }
 
     /** Returns the number of Gaia item spawn messages we received after calling getNetworkUpdate() */
     int getNumGaiaSpawns() const { return gaiaSpawns; }
@@ -440,7 +449,8 @@ protected:
         ENEMY_EFFECT = 15,
         SWAP_SLOTS = 16,
         BOSS_HEAL = 17,
-        GAIA_SPAWN = 18
+        GAIA_SPAWN = 18,
+        FORGE_EFFECT = 19
     };
 
     /** Our network connection */
@@ -467,6 +477,7 @@ private:
     std::vector<HealMessage> heals;
     std::vector<SupportEffectMessage> supportEffects;
     std::vector<EnemyEffectMessage> enemyEffects;
+    std::vector<ForgeEffectMessage> forgeEffects;
 
     /** Integer that keeps track of how many messages a client received to spawn in Gaia rocks */
     int gaiaSpawns;

@@ -1412,6 +1412,12 @@ public:
      */
     void applyPendingPartyEffectSyncs();
 
+    /** Applies queued/requested forge effects using host-authoritative seeds. */
+    void processForgeEffects(const std::vector<ForgeEffectMessage>& forgeEffects);
+
+    /** Redefines existing local item instances for forge and refreshes any visible widgets. */
+    void applyForgeEffect(float chance, int seed);
+
     /**
      * Plays the item's defined use sound, or the generic "support" sound if none is set.
      *
@@ -1489,6 +1495,9 @@ public:
 
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
+
+    /** Refreshes existing widget textures after an item instance is redefined in place. */
+    void refreshInventoryWidgetTextures();
 
 #pragma mark - Update & Render
 
