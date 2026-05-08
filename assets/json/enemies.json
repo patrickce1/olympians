@@ -95,8 +95,8 @@
                 "defenseLikelihood": 0.25
             },
             "customData": {
-                "frantic1Threshold": 0.75,
-                "frantic2Threshold": 0.25,
+                "frantic1Threshold": 0.66,
+                "frantic2Threshold": 0.33,
                 "boulderTossReductionAmount": 1.0,
                 "franticRate": 0.75
             },
