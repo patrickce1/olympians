@@ -488,6 +488,9 @@ static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolv
         }
         return;
     }
+    if (effect.type == ItemDef::EffectType::Forge) {
+        return;
+    }
 
     for (Player* player : collectPartyMembers(source)) {
         if (!player) {

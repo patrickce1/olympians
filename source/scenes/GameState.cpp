@@ -391,6 +391,8 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
                 case SupportEffectType::Educate:
                     target.applyEducate(effect.duration);
                     break;
+                case SupportEffectType::Forge:
+                    break;
             }
         };
 

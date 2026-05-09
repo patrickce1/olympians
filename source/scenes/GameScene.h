@@ -1413,6 +1413,21 @@ public:
     void applyPendingPartyEffectSyncs();
 
     /**
+     * Applies queued or requested forge effects using host-authoritative seeds.
+     *
+     * @param forgeEffects  The forge effect messages received during the current network update.
+     */
+    void processForgeEffects(const std::vector<ForgeEffectMessage>& forgeEffects);
+
+    /**
+     * Redefines existing local item instances for forge and refreshes any visible widgets.
+     *
+     * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+     * @param seed    Deterministic base seed used to derive per-player forge rolls.
+     */
+    void applyForgeEffect(float chance, int seed);
+
+    /**
      * Plays the item's defined use sound, or the generic "support" sound if none is set.
      *
      * @param def  The item definition.
@@ -1489,6 +1504,11 @@ public:
 
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
+
+    /**
+     * Refreshes existing widget textures after item instances are redefined in place.
+     */
+    void refreshInventoryWidgetTextures();
 
 #pragma mark - Update & Render
 

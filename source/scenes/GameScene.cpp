@@ -55,6 +55,13 @@ constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 enum class HealthState { FULL, HALF, DEAD };
 
 /**
+ * Generates a positive host-authoritative seed for one forge effect application.
+ *
+ * @return A non-negative integer seed used to derive deterministic forge rolls.
+ */
+static int makeForgeSeed();
+
+/**
  * Determines the health state of a player based on current and maximum health.
  *
  * @param current Current health value of the player.
@@ -130,6 +137,8 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                     targetPlayerID,
                     0.0f,
                     applyToAllPlayers);
+                break;
+            case ItemDef::EffectType::Forge:
                 break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
@@ -213,6 +222,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Regen:
             case ItemDef::EffectType::Resurrect:
             case ItemDef::EffectType::Educate:
+            case ItemDef::EffectType::Forge:
                 break;
         }
     }
@@ -1031,6 +1041,21 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
         return false;
     }
 
+    if (shouldApplyEffects) {
+        for (const ItemDef::Effect& effect : def->getEffects()) {
+            if (effect.type != ItemDef::EffectType::Forge) {
+                continue;
+            }
+            if (_network->isHost()) {
+                const int seed = makeForgeSeed();
+                applyForgeEffect(effect.chance, seed);
+                _network->broadcastForgeEffect(effect.chance, seed);
+            } else {
+                _network->requestForgeEffect(effect.chance);
+            }
+        }
+    }
+
     if (!_network->isHost()) {
         for (const ItemDef::Effect& effect : def->getEffects()) {
             if (!shouldApplyEffects) {
@@ -1069,6 +1094,8 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                     }
                     break;
                 }
+                case ItemDef::EffectType::Forge:
+                    break;
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
                 case ItemDef::EffectType::Regen:
@@ -2172,6 +2199,7 @@ void GameScene::handleNetworkUpdates(float dt) {
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
+        processForgeEffects(_network->getForgeEffectUpdates());
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
 
         for (auto& player : _gameState.getPlayers()) {
@@ -2186,6 +2214,7 @@ void GameScene::handleNetworkUpdates(float dt) {
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        processForgeEffects(_network->getForgeEffectUpdates());
         applyPendingResurrectionSync();
         applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
@@ -2290,6 +2319,65 @@ void GameScene::applyPendingPartyEffectSyncs() {
                 return !shouldKeepPendingEffect(pendingEffect);
             }),
         _pendingPartyEffectSyncs.end());
+}
+
+/**
+ * Generates a positive host-authoritative seed for one forge effect application.
+ *
+ * @return A non-negative integer seed used to derive deterministic forge rolls.
+ */
+static int makeForgeSeed() {
+    cugl::Random rng;
+    if (rng.init()) {
+        return static_cast<int>(rng.getUint32() & 0x7fffffffu);
+    }
+    return 0x13572468;
+}
+
+/**
+ * Applies queued or requested forge effects using host-authoritative seeds.
+ *
+ * The host processes only non-authoritative client requests, applies forge locally once,
+ * and broadcasts an authoritative seeded message. Clients apply only authoritative
+ * seeded messages from the host.
+ *
+ * @param forgeEffects  The forge effect messages received during the current network update.
+ */
+void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forgeEffects) {
+    for (const ForgeEffectMessage& forgeEffect : forgeEffects) {
+        if (_network->isHost()) {
+            if (forgeEffect.authoritative) {
+                continue;
+            }
+
+            const int seed = makeForgeSeed();
+            applyForgeEffect(forgeEffect.divineChance, seed);
+            _network->broadcastForgeEffect(forgeEffect.divineChance, seed);
+        } else if (forgeEffect.authoritative) {
+            applyForgeEffect(forgeEffect.divineChance, forgeEffect.seed);
+        }
+    }
+}
+
+/**
+ * Redefines existing local item instances for forge and refreshes any visible widgets.
+ *
+ * Each player's roll uses a deterministic seed derived from the shared base seed and
+ * that player's slot number so all machines resolve matching local inventories the same way.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ * @param seed    Deterministic base seed used to derive per-player forge rolls.
+ */
+void GameScene::applyForgeEffect(float chance, int seed) {
+    const std::uint32_t baseSeed = static_cast<std::uint32_t>(seed);
+    for (const auto& player : _gameState.getPlayers()) {
+        if (!player) {
+            continue;
+        }
+        const std::uint32_t playerSeed = baseSeed ^ (0x9e3779b9u + static_cast<std::uint32_t>(player->getPlayerNumber()));
+        _itemController.applyForgeEffect(player.get(), chance, playerSeed);
+    }
+    refreshInventoryWidgetTextures();
 }
 
 /** 
@@ -3367,7 +3455,36 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     startItemSliding(id, spawnVelocity, slideOrigin);
 }
 
-/** Synchronises on-screen item widgets with the local player's current inventory. */
+/**
+ * Refreshes existing widget textures after item instances are redefined in place.
+ *
+ * Forge preserves item instance IDs, so the existing inventory widgets are kept and
+ * only their textures are swapped to match the new item definitions.
+ */
+void GameScene::refreshInventoryWidgetTextures() {
+    Player* local = _gameState.getLocalPlayer();
+    if (!local || !_assets) return;
+
+    for (const ItemInstance& item : local->getInventory()) {
+        auto widgetIt = _itemWidgets.find(item.getId());
+        if (widgetIt == _itemWidgets.end() || !widgetIt->second) {
+            continue;
+        }
+
+        auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
+        if (!itemDef) {
+            continue;
+        }
+
+        auto texture = _assets->get<cugl::graphics::Texture>(itemDef->getIconKey());
+        auto polygon = std::dynamic_pointer_cast<scene2::PolygonNode>(widgetIt->second);
+        if (texture && polygon) {
+            polygon->setTexture(texture);
+            polygon->setContentSize(Size(100, 100));
+        }
+    }
+}
+
 void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();
     if (!_inventory || !local) return;

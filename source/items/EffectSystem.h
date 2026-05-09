@@ -122,6 +122,7 @@ public:
             case ItemDef::EffectType::Slow:
             case ItemDef::EffectType::Vulnerable:
             case ItemDef::EffectType::Upgrade:
+            case ItemDef::EffectType::Forge:
                 break;
         }
 
@@ -157,6 +158,7 @@ public:
             case ItemDef::EffectType::Resurrect:
             case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Upgrade:
+            case ItemDef::EffectType::Forge:
                 break;
         }
 
