@@ -217,6 +217,8 @@ void HostSetupScene::setActive(bool value) {
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);
             
+            _leftButton->setVisible(true);
+            _rightButton->setVisible(true);
             _startGame->activate();
             _leftButton->activate();
             _rightButton->activate();

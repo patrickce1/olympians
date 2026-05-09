@@ -251,6 +251,8 @@ void HouseSelectScene::setActive(bool value) {
             // Jump carousel to the saved index (no animation on restore)
             _isAnimating = false;
             refreshLocalPlayerIcon();
+            _rightButton->setVisible(true);
+            _leftButton->setVisible(true);
             slideTo(getInitialCarouselIndex(_targetSlot));
             updateTeammateIcons();
 

@@ -177,6 +177,8 @@ void BossSelectScene::setActive(bool value) {
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);
             
+            _leftButton->setVisible(true);
+            _rightButton->setVisible(true);
             _leftButton->activate();
             _rightButton->activate();
             _backButton->activate();
