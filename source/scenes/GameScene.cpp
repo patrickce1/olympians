@@ -1845,6 +1845,12 @@ void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     );
 }
 
+/**
+ * Updates the local player's progress bar with the current effects that have been applied
+ * onto them.
+ *
+ * @param dt Delta time in seconds
+ */
 void GameScene::updatePlayerHealthBarEffect(float dt) {
     auto player = _gameState.getLocalPlayer();
     if (!player || !player->isAlive()) return;

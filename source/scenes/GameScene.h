@@ -308,10 +308,10 @@ protected:
     /** Right teammate username label */
     std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
     
-    /** The left player's name label showing house name  */
+    /** The left player's label showing house name  */
     std::shared_ptr<cugl::scene2::Label> _leftPlayerHouse;
     
-    /** The right player's name label showing house name  */
+    /** The right player's label showing house name  */
     std::shared_ptr<cugl::scene2::Label> _rightPlayerHouse;
     
     /** Left teammate's health bar*/
@@ -901,6 +901,12 @@ public:
      */
     void updateAllPlayersAndEnemyHealthUI(float dt);
     
+    /**
+     * Updates the local player's progress bar with the current effects that have been applied
+     * onto them.
+     *
+     * @param dt Delta time in seconds
+     */
     void updatePlayerHealthBarEffect(float dt);
     
     /**
