@@ -483,9 +483,11 @@ void LobbyScene::update(float timestep, InputController& input) {
     
     // Only the host can start; only enable the button when all players have locked in a house.
     if (_network->isHost()) {
-            _enterGame->activate();
+        _enterGame->activate();
+        _enterGame->setVisible(true);
     } else {
         _enterGame->deactivate();
+        _enterGame->setVisible(false);
     }
     
     // Press logic

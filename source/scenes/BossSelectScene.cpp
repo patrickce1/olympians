@@ -247,10 +247,10 @@ void BossSelectScene::update(float timestep) {
 void BossSelectScene::configureLockButton() {
     if (_network->isHost()) {
         _lockButton->activate();
-        _lockButton->SceneNode::setColor(Color4::WHITE);
+        _lockButton->setVisible(true);
     } else {
         _lockButton->deactivate();
-        _lockButton->SceneNode::setColor(Color4(255, 255, 255, 125));
+        _lockButton->setVisible(false);
     }
 }
 

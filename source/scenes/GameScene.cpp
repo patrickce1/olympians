@@ -1830,10 +1830,7 @@ void GameScene::updatePlayerHealthBarEffect(float dt) {
     auto player = _gameState.getLocalPlayer();
     if (!player || !player->isAlive()) return;
     
-    if (player->hasShield()) {
-        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("shieldBar"));
-        _playerHealthBarGlow->setVisible(true);
-    } else if (player->hasBarrier() && player->getBarrierMultiplier() == 0) {
+    if (player->hasBarrier() && player->getBarrierMultiplier() == 0) {
         _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("helmBar"));
         _playerHealthBarGlow->setVisible(true);
     } else if (player->hasBarrier() && player->getBarrierMultiplier() > 0) {
