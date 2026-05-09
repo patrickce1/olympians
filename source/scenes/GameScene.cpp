@@ -2351,10 +2351,10 @@ void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forge
             }
 
             const int seed = makeForgeSeed();
-            applyForgeEffect(forgeEffect.chance, seed);
-            _network->broadcastForgeEffect(forgeEffect.chance, seed);
+            applyForgeEffect(forgeEffect.divineChance, seed);
+            _network->broadcastForgeEffect(forgeEffect.divineChance, seed);
         } else if (forgeEffect.authoritative) {
-            applyForgeEffect(forgeEffect.chance, forgeEffect.seed);
+            applyForgeEffect(forgeEffect.divineChance, forgeEffect.seed);
         }
     }
 }
