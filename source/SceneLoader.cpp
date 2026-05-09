@@ -384,7 +384,6 @@ void SceneLoader::update(float dt) {
             case MenuScene::Status::PENDING_SAVE:
             case MenuScene::Status::NONE:
                 break;
-            
             default:
                 break;
         }
