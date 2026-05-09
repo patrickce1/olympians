@@ -337,10 +337,10 @@ bool AudioController::playSoundUnique(const std::string& soundKey, bool loop) {
  * @param multiplier The music volume multiplier (0.0 to 1.0)
  */
 void AudioController::setMusicVolumeMultiplier(float multiplier) {
-    float clamped = std::max(0.0f, std::min(1.0f, multiplier));
-    if (clamped == _musicVolumeMultiplier) return;
+    float clampedMultiplier = std::max(0.0f, std::min(1.0f, multiplier));
+    if (clampedMultiplier == _musicVolumeMultiplier) return;
     
-    _musicVolumeMultiplier = clamped;
+    _musicVolumeMultiplier = clampedMultiplier;
     if (_debug) CULog("AudioController: Set music volume multiplier to %.2f", _musicVolumeMultiplier);
     
     auto engine = AudioEngine::get();
