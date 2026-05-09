@@ -308,6 +308,12 @@ protected:
     /** Right teammate username label */
     std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
     
+    /** The left player's name label showing house name  */
+    std::shared_ptr<cugl::scene2::Label> _leftPlayerHouse;
+    
+    /** The right player's name label showing house name  */
+    std::shared_ptr<cugl::scene2::Label> _rightPlayerHouse;
+    
     /** Left teammate's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _leftPHealthBar;
     

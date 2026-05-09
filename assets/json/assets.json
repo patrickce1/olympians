@@ -555,6 +555,9 @@
         "playerHouseBG": {
           "file": "textures/gameScene/playerHouseBG.png"
         },
+        "playerHouseFBG": {
+          "file": "textures/gameScene/playerHouseFBG.png"
+        },
         "teamLeftFill": {
           "file": "textures/gameScene/teamLeftFill.png"
         },

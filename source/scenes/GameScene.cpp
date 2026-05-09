@@ -379,6 +379,12 @@ bool GameScene::initSceneGraph() {
         _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
              _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.username"));
         
+        _leftPlayerHouse = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.playerHouse.label"));
+        
+        _rightPlayerHouse = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.playerHouse.label"));
+        
         _leftPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.fill"));
         
@@ -667,6 +673,8 @@ void GameScene::dispose() {
         _playerName = nullptr;
         _bossName = nullptr;
         _playerHouseName = nullptr;
+        _leftPlayerHouse = nullptr;
+        _rightPlayerHouse = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
         _enemyAnimationSpriteNodes.clear();
@@ -738,6 +746,14 @@ void GameScene::updateNetworkOrder() {
 
     _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
     _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
+    
+    std::string leftName = _gameState.getLocalPlayer()->getLeftPlayer()->getHouseName();
+    for (char &character : leftName) character = toupper(character);
+    _leftPlayerHouse->setText(leftName);
+    
+    std::string rightName = _gameState.getLocalPlayer()->getRightPlayer()->getHouseName();
+    for (char &character : rightName) character = toupper(character);
+    _rightPlayerHouse->setText(rightName);
 
     _gameState.setEnemy(_network->getEnemy(), _assets);
 
