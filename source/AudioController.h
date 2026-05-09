@@ -98,7 +98,6 @@ public:
      * @param key The unique identifier for this playback instance
      * @param soundKey The key to retrieve the sound from the asset manager
      * @param loop Whether the sound should loop continuously
-     * @param volume The playback volume (0.0 to 1.0)
      * @param force Whether to force playback even if all slots are full
      * @return true if the sound was successfully added to the audio engine
      */
