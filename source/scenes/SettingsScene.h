@@ -135,6 +135,29 @@ public:
      * _onClose after persisting state.
      */
     void setupListeners();
+    
+    /**
+     * Sets the initial music and SFX volume values without triggering callbacks.
+     *
+     * Called once from SceneLoader after the settings callbacks are registered
+     * but before the scene is ever opened. Primes _musicVolume and _sfxVolume
+     * with the values loaded from SavedDataManager so that when setActive(true)
+     * positions the sliders, they land on the correct saved position rather
+     * than the default of 1.0.
+     *
+     * Do not call this after the scene has been opened — use the sliders directly.
+     *
+     * @param music  The saved music volume multiplier in [0, 1].
+     * @param sfx    The saved SFX volume multiplier in [0, 1].
+     */
+    void initSliderValues(float music, float sfx) {
+        _musicVolume = music;
+        _sfxVolume   = sfx;
+        // Apply immediately to the audio controller via the registered callbacks
+        if (_onMusicVolumeChange) _onMusicVolumeChange(music);
+        if (_onSFXVolumeChange)   _onSFXVolumeChange(sfx);
+
+    }
 
 #pragma mark -
 #pragma mark Scene Lifecycle

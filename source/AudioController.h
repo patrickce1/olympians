@@ -30,7 +30,7 @@ protected:
     std::string _currentMusicKey = "";
     
     /** Master volume multiplier for music (0.0 to 1.0) */
-    float _musicVolumeMultiplier = 1.0f;
+    float _musicVolumeMultiplier = 0.0f;
     
     /** Master volume multiplier for sound effects (0.0 to 1.0) */
     float _sfxVolumeMultiplier = 1.0f;
@@ -103,7 +103,7 @@ public:
      * @return true if the sound was successfully added to the audio engine
      */
     bool playSound(const std::string& key, const std::string& soundKey,
-                   bool loop = false, float volume = 1.0f, bool force = false);
+                   bool loop = false, bool force = false);
 
     /**
      * Stops a currently playing sound.
@@ -171,9 +171,8 @@ public:
      *
      * @param soundKey The key to retrieve the music from the asset manager
      * @param loop Whether the music should loop continuously
-     * @param volume The music volume (0.0 to 1.0), defaults to 1.0
      */
-    void playMusic(const std::string& soundKey, bool loop = true, float volume = 1.0f);
+    void playMusic(const std::string& soundKey, bool loop = true);
 
     /**
      * Stops the currently playing music track.
@@ -250,6 +249,6 @@ public:
      * @param volume The playback volume (0.0 to 1.0)
      * @return true if the sound was successfully added to the audio engine
      */
-    bool playSoundUnique(const std::string& soundKey, bool loop = false, float volume = 1.0f);
+    bool playSoundUnique(const std::string& soundKey, bool loop = false);
 };
 #endif /* __AUDIO_CONTROLLER_H__ */

@@ -103,6 +103,9 @@ void SettingsScene::setupUI() {
 void SettingsScene::setupListeners() {
     // Back button — hide the overlay
     _backButton->addListener([this](const std::string& name, bool down) {
+        // Revert audio to last saved values without touching SavedDataManager
+        if (_onMusicVolumeChange) _onMusicVolumeChange(SavedDataManager::get().getMusicVolume());
+        if (_onSFXVolumeChange)   _onSFXVolumeChange(SavedDataManager::get().getSFXVolume());
         if (!down) _pendingClose = true;
     });
 

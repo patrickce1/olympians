@@ -259,18 +259,23 @@ void SceneLoader::update(float dt) {
 
             // NETWORK
             _network->init(_assets); // assets loaded, load network controller
-
-            // Initialize and start audio controller
-            if (_audio.init(_assets)){
-                _audio.startAudioEngine();
-                _audio.playMusic("lobby");
-            } else{
-                CULog("Warning: Failed to initialize audio controller");
-            }
                 
             // Load persisted player data before any scene is initialized so
             // MenuScene can check hasPlayerName() on first activation
             SavedDataManager::get().load();
+            CULog("SavedDataManager: musicVolume=%.2f sfxVolume=%.2f",
+                      SavedDataManager::get().getMusicVolume(),
+                      SavedDataManager::get().getSFXVolume());
+                
+            // Apply persisted volume levels to the audio controller immediately
+            if (_audio.init(_assets)) {
+                _audio.startAudioEngine();
+                _audio.setMusicVolumeMultiplier(SavedDataManager::get().getMusicVolume());
+                _audio.setSFXVolumeMultiplier(SavedDataManager::get().getSFXVolume());
+            } else{
+                CULog("Warning: Failed to initialize audio controller");
+            }
+                
             CULog("SceneLoader: SavedDataManager loaded, playerName='%s'",
                   SavedDataManager::get().getPlayerName().c_str());
 
@@ -349,6 +354,13 @@ void SceneLoader::update(float dt) {
                     _audio.setSFXVolumeMultiplier(value);
                 });
             }
+                
+            // Set sliders to match saved values without triggering callbacks
+            _settingsScene.initSliderValues(
+                SavedDataManager::get().getMusicVolume(),
+                SavedDataManager::get().getSFXVolume()
+            );
+            _audio.playMusic("lobby");
         }
         break;
     case State::MENU:

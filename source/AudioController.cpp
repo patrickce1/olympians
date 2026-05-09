@@ -64,7 +64,7 @@ void AudioController::stopAudioEngine() {
  * @return true if the sound was successfully added to the audio engine
  */
 bool AudioController::playSound(const std::string& key, const std::string& soundKey,
-                                bool loop, float volume, bool force) {
+                                bool loop, bool force) {
     if (_assets == nullptr) {
         if (_debug) CULog("AudioController::playSound: assets not initialized");
         return false;
@@ -82,21 +82,9 @@ bool AudioController::playSound(const std::string& key, const std::string& sound
         return false;
     }
 
-    // Use default volume from JSON if volume is 1.0f (default parameter)
-    float finalVolume = volume;
-    if (volume == 1.0f) {
-        finalVolume = getDefaultVolume(soundKey);
-    }
-    
-    // Apply SFX volume multiplier
-    finalVolume *= _sfxVolumeMultiplier;
-    
-    // Clamp to valid range
-    finalVolume = std::max(0.0f, std::min(1.0f, finalVolume));
-
-    bool success = engine->play(key, sound, loop, finalVolume, force);
+    bool success = engine->play(key, sound, loop, _sfxVolumeMultiplier, force);
     if (success) {
-        if (_debug) CULog("AudioController: Playing sound '%s' with key '%s' (volume=%.2f)", soundKey.c_str(), key.c_str(), finalVolume);
+        if (_debug) CULog("AudioController: Playing sound '%s' with key '%s' (volume=%.2f)", soundKey.c_str(), key.c_str(), _sfxVolumeMultiplier);
     } else {
         if (_debug) CULog("AudioController: Failed to play sound '%s' (no available slots)", soundKey.c_str());
     }
@@ -214,9 +202,8 @@ void AudioController::resumeAllSounds() {
  *
  * @param soundKey The key to retrieve the music from the asset manager
  * @param loop Whether the music should loop continuously
- * @param volume The music volume (0.0 to 1.0)
  */
-void AudioController::playMusic(const std::string& soundKey, bool loop, float volume) {
+void AudioController::playMusic(const std::string& soundKey, bool loop) {
     // Don't restart music if the same track is already playing
     if (_currentMusicKey == soundKey) {
         if (_debug) CULog("AudioController: Music '%s' already playing, skipping restart", soundKey.c_str());
@@ -245,25 +232,11 @@ void AudioController::playMusic(const std::string& soundKey, bool loop, float vo
         if (_debug) CULog("AudioController::playMusic: failed to get music queue");
         return;
     }
-
-    // Use default volume from JSON if volume is 1.0f (default parameter)
-    float finalVolume = volume;
-    if (volume == 1.0f) {
-        finalVolume = getDefaultVolume(soundKey);
-    }
     
-    // Apply music volume multiplier
-    finalVolume *= _musicVolumeMultiplier;
-    
-    // Clamp to valid range
-    finalVolume = std::max(0.0f, std::min(1.0f, finalVolume));
-    
-    // Set volume on the sound before queuing
-    sound->setVolume(finalVolume);
-    
-    musicQueue->play(sound, loop);
+    // Queue the sound and set the volume
+    musicQueue->play(sound, loop, _musicVolumeMultiplier);
     _currentMusicKey = soundKey;
-    if (_debug) CULog("AudioController: Playing music '%s' (loop=%d, volume=%.2f)", soundKey.c_str(), loop, finalVolume);
+    if (_debug) CULog("AudioController: Playing music '%s' (loop=%d, volume=%.2f)", soundKey.c_str(), loop, _musicVolumeMultiplier);
 }
 
 /**
@@ -352,9 +325,9 @@ float AudioController::getMusicVolume() const {
  * @param volume The playback volume (0.0 to 1.0)
  * @return true if the sound was successfully added to the audio engine
  */
-bool AudioController::playSoundUnique(const std::string& soundKey, bool loop, float volume) {
+bool AudioController::playSoundUnique(const std::string& soundKey, bool loop) {
     std::string uniqueKey = soundKey + "_" + std::to_string(_soundCounter++);
-    return playSound(uniqueKey, soundKey, loop, volume);
+    return playSound(uniqueKey, soundKey, loop, _sfxVolumeMultiplier);
 }
 
 /**
@@ -364,8 +337,19 @@ bool AudioController::playSoundUnique(const std::string& soundKey, bool loop, fl
  * @param multiplier The music volume multiplier (0.0 to 1.0)
  */
 void AudioController::setMusicVolumeMultiplier(float multiplier) {
-    _musicVolumeMultiplier = std::max(0.0f, std::min(1.0f, multiplier));
+    float clamped = std::max(0.0f, std::min(1.0f, multiplier));
+    if (clamped == _musicVolumeMultiplier) return;
+    
+    _musicVolumeMultiplier = clamped;
     if (_debug) CULog("AudioController: Set music volume multiplier to %.2f", _musicVolumeMultiplier);
+    
+    auto engine = AudioEngine::get();
+    if (engine) {
+        auto musicQueue = engine->getMusicQueue();
+        if (musicQueue) {
+            musicQueue->setVolume(_musicVolumeMultiplier);
+        }
+    }
 }
 
 /**
