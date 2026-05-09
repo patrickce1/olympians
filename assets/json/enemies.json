@@ -2,7 +2,7 @@
     "enemies": [
         {
             "id": "circe",
-            "name": "CIRCE",
+            "name": "circe",
             "description": "Circe, a cunning enchantress who tests your resolve with illusions. Defeat her to break her spell.",
             "maxHealth": 5000.0,
             "spritesheetPath": "textures/circe.png",
@@ -88,7 +88,7 @@
         },
         {
             "id": "cyclops",
-            "name": "CYCLOPS",
+            "name": "cyclops",
             "description": "Cyclops, the lone guardian of the cave, blinded by rage and hunger. Defeat it to escape its domain.",
             "maxHealth": 15000.0,
             "spritesheetPath": "textures/cyclops.png",
@@ -242,7 +242,7 @@
         },
 	    {
             "id": "cerberus",
-            "name": "CERBERUS",
+            "name": "cerberus",
             "description": "Hades’ companion gone rogue, defeat it and bring him back to Hell. Attacks.....Defenses....",
             "maxHealth": 100.0,
             "spritesheetPath": "textures/cerberus.png",
@@ -297,7 +297,7 @@
         },
         {
             "id": "gaia",
-            "name": "GAIA",
+            "name": "gaia",
             "description": "Gaia, the primordial force of the earth. Defeat her to overcome nature itself.",
             "maxHealth": 10000.0,
             "spritesheetPath": "textures/gaia.png",

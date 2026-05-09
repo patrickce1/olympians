@@ -407,6 +407,9 @@
         "gaiaLobbyImage": {
             "file": "textures/lobbyScene/gaiaLobbyImage.png"
         },
+        "lobbyBottomLabelBG": {
+            "file": "textures/lobbyScene/lobbyBottomLabelBG.png"
+        },
         "glowBorder": {
             "file": "textures/lobbyScene/glowBorder.png",
             "minfilter": "linear",
