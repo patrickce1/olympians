@@ -146,11 +146,13 @@ public:
      * Sends a support effect application to the host for authoritative processing.
      *
      * @param effectType The kind of support effect that was applied.
-     * @param magnitude  The resolved magnitude of the effect.
+     * @param magnitude  The primary resolved magnitude of the effect.
      * @param duration   The timed duration of the effect, or 0 for instant effects.
-     * @param playerID   The 0-based index of the player receiving the effect.
+     * @param playerID   The 0-based index of the player receiving the effect, or -1 for all-player effects.
+     * @param secondaryMagnitude Optional secondary magnitude used by multi-stage effects such as resurrect.
+     * @param applyToAllPlayers Whether the effect should be applied to every allied player slot instead of one target.
      */
-    void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID);
+    void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID, float secondaryMagnitude = 0.0f, bool applyToAllPlayers = false);
     
     /**
      * Sends an enemy-affecting attack effect to the host for authoritative processing.

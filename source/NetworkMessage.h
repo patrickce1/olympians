@@ -48,7 +48,9 @@ enum class SupportEffectType : int32_t {
     Heal = 0,
     Shield = 1,
     Barrier = 2,
-    Regen = 3
+    Regen = 3,
+    Resurrect = 4,
+    Educate = 5
 };
 
 /** Attack effect categories sent from clients to the host. */
@@ -74,6 +76,8 @@ struct SupportEffectMessage {
     SupportEffectType effectType;
     float magnitude;
     float duration;
+    float secondaryMagnitude = 0.0f;
+    bool applyToAllPlayers = false;
 };
 
 /** Message sent by the client to indicate an enemy-affecting item effect. */
@@ -116,6 +120,7 @@ struct PlayerRuntimeEffectState {
     float barrierDuration;
     float regenAmountRemaining;
     float regenDuration;
+    float educateDuration;
 };
 
 /** Message sent by the host to other players about the current state of the game
@@ -182,24 +187,28 @@ struct GameStateMessage {
             float player1BarrierDuration;
             float player1RegenAmountRemaining;
             float player1RegenDuration;
+            float player1EducateDuration;
             float player2ShieldMitigation;
             float player2ShieldDuration;
             float player2BarrierMultiplier;
             float player2BarrierDuration;
             float player2RegenAmountRemaining;
             float player2RegenDuration;
+            float player2EducateDuration;
             float player3ShieldMitigation;
             float player3ShieldDuration;
             float player3BarrierMultiplier;
             float player3BarrierDuration;
             float player3RegenAmountRemaining;
             float player3RegenDuration;
+            float player3EducateDuration;
             float player4ShieldMitigation;
             float player4ShieldDuration;
             float player4BarrierMultiplier;
             float player4BarrierDuration;
             float player4RegenAmountRemaining;
             float player4RegenDuration;
+            float player4EducateDuration;
         };
         PlayerRuntimeEffectState playerRuntimeEffects[kMaxPlayers];
     };
@@ -208,7 +217,7 @@ struct GameStateMessage {
     GameStateMessage() : bossHealth(0.0f), bossTarget(0), bossState(0), stateTime(0.0f) {
         std::fill_n(playerHP, kMaxPlayers, 0.0f);
         for (int ii = 0; ii < kMaxPlayers; ++ii) {
-            playerRuntimeEffects[ii] = { 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f };
+            playerRuntimeEffects[ii] = { 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f };
         }
     }
 
