@@ -50,7 +50,8 @@ enum class SupportEffectType : int32_t {
     Barrier = 2,
     Regen = 3,
     Resurrect = 4,
-    Educate = 5
+    Educate = 5,
+    Forge = 6
 };
 
 /** Attack effect categories sent from clients to the host. */
@@ -80,7 +81,16 @@ struct SupportEffectMessage {
     bool applyToAllPlayers = false;
 };
 
-/** Message sent by the client to indicate an enemy-affecting item effect. */
+/** Message sent to request or apply a party-wide forge inventory transformation. */
+struct ForgeEffectMessage {
+    /** Chance in [0, 1] that each rare item upgrades to divine. */
+    float divineChance = 0.0f;
+    /** Host-authoritative deterministic seed for local forge rolls. */
+    int seed = 0;
+    /** True when this message came from the host and should be applied locally. */
+    bool authoritative = false;
+};
+
 struct EnemyEffectMessage {
     /** The category of enemy effect to apply. */
     EnemyEffectType effectType;

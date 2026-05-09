@@ -176,6 +176,8 @@ void BossSelectScene::setActive(bool value) {
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);
             
+            _leftButton->setVisible(true);
+            _rightButton->setVisible(true);
             _leftButton->activate();
             _rightButton->activate();
             _backButton->activate();
@@ -252,10 +254,10 @@ void BossSelectScene::update(float timestep, InputController& input) {
 void BossSelectScene::configureLockButton() {
     if (_network->isHost()) {
         _lockButton->activate();
-        _lockButton->SceneNode::setColor(Color4::WHITE);
+        _lockButton->setVisible(true);
     } else {
         _lockButton->deactivate();
-        _lockButton->SceneNode::setColor(Color4(255, 255, 255, 125));
+        _lockButton->setVisible(false);
     }
 }
 
@@ -282,6 +284,15 @@ void BossSelectScene::slideTo(int newIndex) {
     
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
+    
+    if (_currentIndex == 0) {
+        _leftButton->setVisible(false);
+    } else if (_currentIndex == _bossCards.size() - 1) {
+        _rightButton->setVisible(false);
+    } else {
+        _rightButton->setVisible(true);
+        _leftButton->setVisible(true);
+    }
     
     // Set the visibility of all glow overlays to false and the currentIndex card's to true
     for (int i = 0; i < _bossCards.size(); i++) {

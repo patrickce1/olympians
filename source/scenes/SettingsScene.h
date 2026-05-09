@@ -2,6 +2,7 @@
 #define __SETTINGS_SCENE_H__
 
 #include <cugl/cugl.h>
+#include "../SavedDataManager.h"
 
 /**
  * A persistent overlay scene for application settings.
@@ -134,6 +135,29 @@ public:
      * _onClose after persisting state.
      */
     void setupListeners();
+    
+    /**
+     * Sets the initial music and SFX volume values without triggering callbacks.
+     *
+     * Called once from SceneLoader after the settings callbacks are registered
+     * but before the scene is ever opened. Primes _musicVolume and _sfxVolume
+     * with the values loaded from SavedDataManager so that when setActive(true)
+     * positions the sliders, they land on the correct saved position rather
+     * than the default of 1.0.
+     *
+     * Do not call this after the scene has been opened — use the sliders directly.
+     *
+     * @param music  The saved music volume multiplier in [0, 1].
+     * @param sfx    The saved SFX volume multiplier in [0, 1].
+     */
+    void initSliderValues(float music, float sfx) {
+        _musicVolume = music;
+        _sfxVolume   = sfx;
+        // Apply immediately to the audio controller via the registered callbacks
+        if (_onMusicVolumeChange) _onMusicVolumeChange(music);
+        if (_onSFXVolumeChange)   _onSFXVolumeChange(sfx);
+
+    }
 
 #pragma mark -
 #pragma mark Scene Lifecycle
@@ -161,19 +185,16 @@ public:
 #pragma mark Settings & Persistence
 
     /**
-     * Serializes current settings to a JSON file in the app's save directory.
+     * Persists the current settings to disk via SavedDataManager.
      *
-     * Called automatically when the user presses the save button.
+     * Reads the current text from the username field and stores it in
+     * SavedDataManager, then calls save() to write savedData.json. Called
+     * by the save button listener immediately before closing the scene.
+     *
+     * Extend this method to persist slider values and toggle states once
+     * those fields are added to the SavedDataManager schema.
      */
     void saveSettings();
-
-    /**
-     * Deserializes settings from the JSON file in the app's save directory.
-     *
-     * Called at the end of init(). If no save file exists, default
-     * values are kept and no error is raised.
-     */
-    void loadSettings();
     
     /**
      * Returns true if the user has pressed back or save, then resets the flag.

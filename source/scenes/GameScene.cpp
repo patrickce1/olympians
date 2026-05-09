@@ -55,6 +55,13 @@ constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 enum class HealthState { FULL, HALF, DEAD };
 
 /**
+ * Generates a positive host-authoritative seed for one forge effect application.
+ *
+ * @return A non-negative integer seed used to derive deterministic forge rolls.
+ */
+static int makeForgeSeed();
+
+/**
  * Determines the health state of a player based on current and maximum health.
  *
  * @param current Current health value of the player.
@@ -130,6 +137,8 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                     targetPlayerID,
                     0.0f,
                     applyToAllPlayers);
+                break;
+            case ItemDef::EffectType::Forge:
                 break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
@@ -213,6 +222,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Regen:
             case ItemDef::EffectType::Resurrect:
             case ItemDef::EffectType::Educate:
+            case ItemDef::EffectType::Forge:
                 break;
         }
     }
@@ -379,11 +389,23 @@ bool GameScene::initSceneGraph() {
         _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
              _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.username"));
         
+        _leftPlayerHouse = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.playerHouse.label"));
+        
+        _rightPlayerHouse = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.playerHouse.label"));
+        
         _leftPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.fill"));
         
         _rightPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.fill"));
+        
+        _leftPHealthShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.shield"));
+        
+        _rightPHealthShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.shield"));
         
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
@@ -406,8 +428,17 @@ bool GameScene::initSceneGraph() {
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
         
+        _playerHealthBarGlow = std::dynamic_pointer_cast<scene2::PolygonNode>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.effectGlow"));
+        
+        _playerHealthBarShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarShield"));
+        
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
+        
+        _bossHealthBarIcon = std::dynamic_pointer_cast<scene2::PolygonNode>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.barIcon"));
         
         _bossName = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.bossName.label"));
@@ -524,8 +555,8 @@ void GameScene::initInputZones(){
     _attackArea->setVisible(false);
     
     _supportZones = {
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.45f, w * 0.399f, h * 0.40f)},
-        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.75f,   h * 0.45f, w * 0.399f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.39f, w * 0.36f, h * 0.52f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.79f,   h * 0.39f, w * 0.399f, h * 0.52f)},
     };
       
     _inventoryZones = {
@@ -655,9 +686,13 @@ void GameScene::dispose() {
         _playerHealthBar = nullptr;
         _leftPHealthBar = nullptr;
         _rightPHealthBar = nullptr;
+        _leftPHealthShield = nullptr;
+        _rightPHealthShield = nullptr;
         _playerName = nullptr;
         _bossName = nullptr;
         _playerHouseName = nullptr;
+        _leftPlayerHouse = nullptr;
+        _rightPlayerHouse = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
         _enemyAnimationSpriteNodes.clear();
@@ -729,6 +764,14 @@ void GameScene::updateNetworkOrder() {
 
     _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
     _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
+    
+    std::string leftName = _gameState.getLocalPlayer()->getLeftPlayer()->getHouseName();
+    for (char &character : leftName) character = toupper(character);
+    _leftPlayerHouse->setText(leftName);
+    
+    std::string rightName = _gameState.getLocalPlayer()->getRightPlayer()->getHouseName();
+    for (char &character : rightName) character = toupper(character);
+    _rightPlayerHouse->setText(rightName);
 
     _gameState.setEnemy(_network->getEnemy(), _assets);
 
@@ -1031,6 +1074,21 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
         return false;
     }
 
+    if (shouldApplyEffects) {
+        for (const ItemDef::Effect& effect : def->getEffects()) {
+            if (effect.type != ItemDef::EffectType::Forge) {
+                continue;
+            }
+            if (_network->isHost()) {
+                const int seed = makeForgeSeed();
+                applyForgeEffect(effect.chance, seed);
+                _network->broadcastForgeEffect(effect.chance, seed);
+            } else {
+                _network->requestForgeEffect(effect.chance);
+            }
+        }
+    }
+
     if (!_network->isHost()) {
         for (const ItemDef::Effect& effect : def->getEffects()) {
             if (!shouldApplyEffects) {
@@ -1069,6 +1127,8 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                     }
                     break;
                 }
+                case ItemDef::EffectType::Forge:
+                    break;
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
                 case ItemDef::EffectType::Regen:
@@ -1392,13 +1452,33 @@ void GameScene::updateEnemyHealthBarEffect(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
     
-    if (enemy->isStunned()){
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillYellow"));
+    auto applyBossBar = [&](const std::string& barTex,
+                            const std::string& iconTex,
+                            bool showIcon) {
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>(barTex));
+
+        if (showIcon) {
+            _bossHealthBarIcon->setTexture(_assets->get<cugl::graphics::Texture>(iconTex));
+            _bossHealthBarIcon->setScale(0.5f);
+            _bossHealthBarIcon->setVisible(true);
+        } else {
+            _bossHealthBarIcon->setVisible(false);
+        }
+    };
+
+    std::string bar = "healthFillRed";
+    std::string icon = "";
+    bool show = false;
+
+    if (enemy->isStunned()) {
+        bar = "healthFillYellow"; icon = "stunIcon"; show = true;
     } else if (enemy->isLoved()) {
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillPink"));
-    } else {
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillRed"));
+        bar = "healthFillPink"; icon = "loveIcon"; show = true;
+    } else if (enemy->isSlowed()) {
+        bar = "healthFillBlue"; icon = "slowIcon"; show = true;
     }
+
+    applyBossBar(bar, icon, show);
 }
 
 /**
@@ -1785,17 +1865,102 @@ void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
     if (_playerHealthBar->getProgress() <= 0) {
         _playerHealthBar->setVisible(false);
+        _gameArea->getChildByName("playerDeath")->setVisible(true);
     } else {
         _playerHealthBar->setVisible(true);
+        _gameArea->getChildByName("playerDeath")->setVisible(false);
     }
     
     auto leftPlayer = player->getLeftPlayer();
-    _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+    if (leftPlayer->hasShield()) {
+        float maxHealth = (float)leftPlayer->getMaxHealth();
+        float health    = (float)leftPlayer->getCurrentHealth();
+        float shield    = (float)leftPlayer->getShieldHealth();
+
+        float total = health + shield;
+
+        if (total >= maxHealth) {
+            _leftPHealthShield->setProgress(1.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _leftPHealthBar->setProgress(visibleHealth / maxHealth);
+        }
+        else {
+            _leftPHealthShield->setProgress(total / maxHealth);
+            _leftPHealthBar->setProgress(health / maxHealth);
+        }
+        _leftPHealthShield->setVisible(true);
+    } else {
+        _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+        _leftPHealthShield->setVisible(false);
+    }
     
     auto rightPlayer = player->getRightPlayer();
-    _rightPHealthBar->setProgress(
-        1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth())
-    );
+    if (rightPlayer->hasShield()) {
+        float maxHealth = (float)rightPlayer->getMaxHealth();
+        float health    = (float)rightPlayer->getCurrentHealth();
+        float shield    = (float)rightPlayer->getShieldHealth();
+        
+        float total = health + shield;
+        
+        if (total >= maxHealth) {
+            _rightPHealthBar->setProgress(0.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _rightPHealthShield->setProgress(1.0f - (visibleHealth / maxHealth));
+        } else {
+            _rightPHealthShield->setProgress(1.0f - (health / maxHealth));
+            _rightPHealthBar->setProgress(1.0f - (total / maxHealth));
+        }
+        _rightPHealthShield->setVisible(true);
+    } else {
+        _rightPHealthBar->setProgress(
+            1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth()));
+        _rightPHealthShield->setVisible(false);
+    }
+}
+
+/**
+ * Updates the local player's progress bar with the current effects that have been applied
+ * onto them.
+ *
+ * @param dt Delta time in seconds
+ */
+void GameScene::updatePlayerHealthBarEffect(float dt) {
+    auto player = _gameState.getLocalPlayer();
+    if (!player || !player->isAlive()) return;
+    
+    if (player->hasBarrier() && player->getBarrierMultiplier() == 0) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("helmBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else if (player->hasBarrier() && player->getBarrierMultiplier() > 0) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("aegisBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else {
+        _playerHealthBarGlow->setVisible(false);
+    }
+    
+    if (player->hasShield()) {
+        float maxHealth = (float)player->getMaxHealth();
+        float health    = (float)player->getCurrentHealth();
+        float shield    = (float)player->getShieldHealth();
+
+        float total = health + shield;
+
+        if (total >= maxHealth) {
+            _playerHealthBarShield->setProgress(1.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _playerHealthBar->setProgress(visibleHealth / maxHealth);
+        }
+        else {
+            _playerHealthBarShield->setProgress(total / maxHealth);
+            _playerHealthBar->setProgress(health / maxHealth);
+        }
+        _playerHealthBarShield->setVisible(true);
+    } else {
+        _playerHealthBarShield->setVisible(false);
+    }
 }
 
 /**
@@ -2172,6 +2337,7 @@ void GameScene::handleNetworkUpdates(float dt) {
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
+        processForgeEffects(_network->getForgeEffectUpdates());
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
 
         for (auto& player : _gameState.getPlayers()) {
@@ -2186,6 +2352,7 @@ void GameScene::handleNetworkUpdates(float dt) {
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        processForgeEffects(_network->getForgeEffectUpdates());
         applyPendingResurrectionSync();
         applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
@@ -2290,6 +2457,65 @@ void GameScene::applyPendingPartyEffectSyncs() {
                 return !shouldKeepPendingEffect(pendingEffect);
             }),
         _pendingPartyEffectSyncs.end());
+}
+
+/**
+ * Generates a positive host-authoritative seed for one forge effect application.
+ *
+ * @return A non-negative integer seed used to derive deterministic forge rolls.
+ */
+static int makeForgeSeed() {
+    cugl::Random rng;
+    if (rng.init()) {
+        return static_cast<int>(rng.getUint32() & 0x7fffffffu);
+    }
+    return 0x13572468;
+}
+
+/**
+ * Applies queued or requested forge effects using host-authoritative seeds.
+ *
+ * The host processes only non-authoritative client requests, applies forge locally once,
+ * and broadcasts an authoritative seeded message. Clients apply only authoritative
+ * seeded messages from the host.
+ *
+ * @param forgeEffects  The forge effect messages received during the current network update.
+ */
+void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forgeEffects) {
+    for (const ForgeEffectMessage& forgeEffect : forgeEffects) {
+        if (_network->isHost()) {
+            if (forgeEffect.authoritative) {
+                continue;
+            }
+
+            const int seed = makeForgeSeed();
+            applyForgeEffect(forgeEffect.divineChance, seed);
+            _network->broadcastForgeEffect(forgeEffect.divineChance, seed);
+        } else if (forgeEffect.authoritative) {
+            applyForgeEffect(forgeEffect.divineChance, forgeEffect.seed);
+        }
+    }
+}
+
+/**
+ * Redefines existing local item instances for forge and refreshes any visible widgets.
+ *
+ * Each player's roll uses a deterministic seed derived from the shared base seed and
+ * that player's slot number so all machines resolve matching local inventories the same way.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ * @param seed    Deterministic base seed used to derive per-player forge rolls.
+ */
+void GameScene::applyForgeEffect(float chance, int seed) {
+    const std::uint32_t baseSeed = static_cast<std::uint32_t>(seed);
+    for (const auto& player : _gameState.getPlayers()) {
+        if (!player) {
+            continue;
+        }
+        const std::uint32_t playerSeed = baseSeed ^ (0x9e3779b9u + static_cast<std::uint32_t>(player->getPlayerNumber()));
+        _itemController.applyForgeEffect(player.get(), chance, playerSeed);
+    }
+    refreshInventoryWidgetTextures();
 }
 
 /** 
@@ -2988,6 +3214,7 @@ void GameScene::update(float dt, InputController& input) {
     _network->clearQueues();
     updateAllPlayersAndEnemyHealthUI(dt);
     updatePlayerAndTeammateIcons(dt);
+    updatePlayerHealthBarEffect(dt);
 }
 
 #pragma mark -
@@ -3367,7 +3594,36 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     startItemSliding(id, spawnVelocity, slideOrigin);
 }
 
-/** Synchronises on-screen item widgets with the local player's current inventory. */
+/**
+ * Refreshes existing widget textures after item instances are redefined in place.
+ *
+ * Forge preserves item instance IDs, so the existing inventory widgets are kept and
+ * only their textures are swapped to match the new item definitions.
+ */
+void GameScene::refreshInventoryWidgetTextures() {
+    Player* local = _gameState.getLocalPlayer();
+    if (!local || !_assets) return;
+
+    for (const ItemInstance& item : local->getInventory()) {
+        auto widgetIt = _itemWidgets.find(item.getId());
+        if (widgetIt == _itemWidgets.end() || !widgetIt->second) {
+            continue;
+        }
+
+        auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
+        if (!itemDef) {
+            continue;
+        }
+
+        auto texture = _assets->get<cugl::graphics::Texture>(itemDef->getIconKey());
+        auto polygon = std::dynamic_pointer_cast<scene2::PolygonNode>(widgetIt->second);
+        if (texture && polygon) {
+            polygon->setTexture(texture);
+            polygon->setContentSize(Size(100, 100));
+        }
+    }
+}
+
 void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();
     if (!_inventory || !local) return;
@@ -3510,8 +3766,8 @@ void GameScene::render() {
         renderItemWidgetDebug(batch.get());
         renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
+        renderDropZonesDebug(batch.get());
     }
-//    renderDropZonesDebug(batch.get());
     batch->end();
 }
 

@@ -145,15 +145,25 @@ void ItemDatabase::addToBucket(Bucket& bucket, const std::string& defId, double 
  * @return the defId of the selected item, or "" if the bucket is empty
  */
 std::string ItemDatabase::rollFromBucket(const Bucket& bucket) {
-    if (bucket.defIds.empty() || bucket.total <= 0.0) return "";
-
     if (!_rngReady) {
         // Lazy seed if user forgot to seed explicitly
         const_cast<ItemDatabase*>(this)->setStartingPointWithTime();
     }
+    return rollFromBucket(bucket, _rng);
+}
+
+/**
+ * Rolls a random item definition ID from a bucket using the caller-provided RNG.
+ *
+ * @param bucket  The weighted rarity bucket to roll from.
+ * @param rng     The RNG instance that should supply the random roll.
+ * @return the defId of the selected item, or "" if the bucket is empty.
+ */
+std::string ItemDatabase::rollFromBucket(const Bucket& bucket, cugl::Random& rng) const {
+    if (bucket.defIds.empty() || bucket.total <= 0.0) return "";
 
     // Pick a random value in [0, total) — this is our "dart throw" into the weight space
-    double randVal = _rng.getRightOpenDouble(0.0, bucket.total);
+    double randVal = rng.getRightOpenDouble(0.0, bucket.total);
 
     // Binary search the prefix sum array for the first entry greater than r (std::upper_bound).
     auto bucketItem = std::upper_bound(bucket.prefix.begin(), bucket.prefix.end(), randVal);
@@ -386,7 +396,26 @@ std::string ItemDatabase::rollRandomDefId() {
 std::string ItemDatabase::rollRandomDefId(ItemDef::Rarity rarity) {
     auto bucket = _bucketsByRarity.find(rarity);
     if (bucket == _bucketsByRarity.end()) return "";
+    if (rarity == ItemDef::Rarity::Divine && _hasActiveHouseFilter && !_filteredDivineBucket.defIds.empty()) {
+        return rollFromBucket(_filteredDivineBucket);
+    }
     return rollFromBucket(bucket->second);
+}
+
+/**
+ * Rolls a random item definition ID within a rarity bucket using the caller-provided RNG.
+ *
+ * @param rarity  The rarity bucket to roll from.
+ * @param rng     The RNG instance that should supply the random roll.
+ * @return the defId of the selected item, or "" if the bucket is empty.
+ */
+std::string ItemDatabase::rollRandomDefId(ItemDef::Rarity rarity, cugl::Random& rng) const {
+    auto bucket = _bucketsByRarity.find(rarity);
+    if (bucket == _bucketsByRarity.end()) return "";
+    if (rarity == ItemDef::Rarity::Divine && _hasActiveHouseFilter && !_filteredDivineBucket.defIds.empty()) {
+        return rollFromBucket(_filteredDivineBucket, rng);
+    }
+    return rollFromBucket(bucket->second, rng);
 }
 
 /** Just for potential usage */

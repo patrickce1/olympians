@@ -86,20 +86,9 @@ void ClientScene::setupUI() {
     _gameId = std::dynamic_pointer_cast<scene2::TextField>(
         _assets->get<scene2::SceneNode>("clientScene.center.gameID.text"));
 
-    _playerName = std::dynamic_pointer_cast<scene2::TextField>(
-        _assets->get<scene2::SceneNode>("clientScene.center.playerName.text"));
-
     // Create placeholder text for text-field
     _textFieldPlaceholder = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.gameID.placeholder"));
     _textFieldPlaceholder->setText("ENTER GAME ID");
-    
-    std::shared_ptr<cugl::scene2::Label> playerNamePlaceholder = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("clientScene.center.playerName.placeholder"));
-    playerNamePlaceholder->setText("ENTER NAME");
-    
-    // Set the placeholders to invisible when typing starts
-    _playerName->addTypeListener([this, playerNamePlaceholder](const std::string& name, const std::string& value) {
-        playerNamePlaceholder->setVisible(value.empty());
-    });
     
     // Error popup node
     _errorPopup = _assets->get<scene2::SceneNode>("clientScene.errorPopup");
@@ -158,15 +147,21 @@ void ClientScene::setupListeners() {
         if (down) {
             if (_status == Status::JOINING) return;  // already attempting, ignore
             
-            if (_gameId->getText() != "" && _playerName->getText() != "") {
-                // Begin an async join attempt — do NOT set START yet.
-                // update() will poll the connection and decide the outcome.
+            // Read the saved name from SavedDataManager instead of a UI text field.
+            // If no name is saved (edge case — MenuScene onboarding should always
+            // ensure one exists) show a clear error directing the player to Settings.
+            const std::string savedName = SavedDataManager::get().getPlayerName();
+            if (!_gameId->getText().empty() && !savedName.empty()) {
                 _network->joinRoom(_gameId->getText());
                 _joinTimer = 0.0f;
-                _status = Status::JOINING;
+                _status    = Status::JOINING;
                 _pendingInputDisable = true;
             } else {
-                _enterGame->setDown(true);
+                if (savedName.empty()) {
+                    showError("Please set your name in Settings.");
+                } else {
+                    _enterGame->setDown(true);
+                }
             }
         }
     });
@@ -203,7 +198,6 @@ void ClientScene::dispose() {
         _backButton = nullptr;
         _hostButton = nullptr;
         _gameId = nullptr;
-        _playerName = nullptr;
         _errorPopup = nullptr;
         _active = false;
         _keypadButtons.clear();
@@ -253,13 +247,11 @@ void ClientScene::setActive(bool value, bool preserveGameId) {
             _enterGame->activate();
             _backButton->activate();
             _hostButton->activate();
-            _playerName->activate();
             _settingsButton->activate();
             for (auto& button : _keypadButtons) {
                 button->activate();
             }
         } else {
-            _playerName->deactivate();
             _enterGame->deactivate();
             _backButton->deactivate();
             _hostButton->deactivate();
@@ -311,7 +303,7 @@ void ClientScene::update(float timestep) {
 
         if (connStatus == NetworkController::Status::CONNECTED) {
             _network->registerDisconnectCallback();
-            _network->setPlayerNameOnly(_playerName->getText());
+            _network->setPlayerNameOnly(SavedDataManager::get().getPlayerName());
             _network->broadcastJoinedLobby();
             _joinTimer = 0.0f;
             _status = Status::PENDING_LOBBY;
@@ -351,7 +343,7 @@ void ClientScene::update(float timestep) {
                 return;
             }
             
-            _network->setPlayerName(_playerName->getText());
+            _network->setPlayerName(SavedDataManager::get().getPlayerName());
             _status = Status::START;
         }
     }
@@ -390,14 +382,12 @@ void ClientScene::setInputEnabled(bool enabled) {
         _enterGame->activate();
         _backButton->activate();
         _hostButton->activate();
-        _playerName->activate();
         _settingsButton->activate();
         for (auto& btn : _keypadButtons) btn->activate();
         _enterGame->setDown(false);
     } else {
         _enterGame->deactivate();
         _hostButton->deactivate();
-        _playerName->deactivate();
         _settingsButton->deactivate();
         _backButton->deactivate();
         for (auto& btn : _keypadButtons) btn->deactivate();

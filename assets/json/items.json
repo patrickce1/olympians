@@ -422,7 +422,12 @@
             "houseAffinity": "hephaestus",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "forge",
+                    "chance": 0.1
+                }
+            ]
         },
         {
             "id": "educate",
