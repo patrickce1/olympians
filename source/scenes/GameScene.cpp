@@ -1866,8 +1866,22 @@ void GameScene::updatePlayerHealthBarEffect(float dt) {
     }
     
     if (player->hasShield()) {
-        auto totalHealth = player->getCurrentHealth() + player->getShieldHealth();
-        _playerHealthBarShield->setProgress(std::min((totalHealth / player->getMaxHealth()),1.0f));
+        float maxHealth = (float)player->getMaxHealth();
+        float health    = (float)player->getCurrentHealth();
+        float shield    = (float)player->getShieldHealth();
+
+        float total = health + shield;
+
+        if (total >= maxHealth) {
+            _playerHealthBarShield->setProgress(1.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _playerHealthBar->setProgress(visibleHealth / maxHealth);
+        }
+        else {
+            _playerHealthBarShield->setProgress(total / maxHealth);
+            _playerHealthBar->setProgress(health / maxHealth);
+        }
         _playerHealthBarShield->setVisible(true);
     } else {
         _playerHealthBarShield->setVisible(false);
