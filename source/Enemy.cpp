@@ -108,7 +108,6 @@ static int relativeSideForPlayer(int playerIndex, int targetIndex) {
  */
 bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
     _enemyId = def.id;
-    _enemyDescription = def.description;
     _spritesheetPath = def.spritesheetPath;
     _maxHealth = def.maxHealth;
     _currentHealth = def.maxHealth;
