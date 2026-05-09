@@ -259,14 +259,25 @@ void SceneLoader::update(float dt) {
 
             // NETWORK
             _network->init(_assets); // assets loaded, load network controller
-
-            // Initialize and start audio controller
-            if (_audio.init(_assets)){
+                
+            // Load persisted player data before any scene is initialized so
+            // MenuScene can check hasPlayerName() on first activation
+            SavedDataManager::get().load();
+            CULog("SavedDataManager: musicVolume=%.2f sfxVolume=%.2f",
+                      SavedDataManager::get().getMusicVolume(),
+                      SavedDataManager::get().getSFXVolume());
+                
+            // Apply persisted volume levels to the audio controller immediately
+            if (_audio.init(_assets)) {
                 _audio.startAudioEngine();
-                _audio.playMusic("lobby");
+                _audio.setMusicVolumeMultiplier(SavedDataManager::get().getMusicVolume());
+                _audio.setSFXVolumeMultiplier(SavedDataManager::get().getSFXVolume());
             } else{
                 CULog("Warning: Failed to initialize audio controller");
             }
+                
+            CULog("SceneLoader: SavedDataManager loaded, playerName='%s'",
+                  SavedDataManager::get().getPlayerName().c_str());
 
             if (_menuScene.init(_assets)){
                 _menuScene.setSpriteBatch(_batch);
@@ -343,23 +354,36 @@ void SceneLoader::update(float dt) {
                     _audio.setSFXVolumeMultiplier(value);
                 });
             }
+                
+            // Set sliders to match saved values without triggering callbacks
+            _settingsScene.initSliderValues(
+                SavedDataManager::get().getMusicVolume(),
+                SavedDataManager::get().getSFXVolume()
+            );
+            _audio.playMusic("lobby");
         }
         break;
     case State::MENU:
         _menuScene.update(dt);
-        switch (_menuScene.consumeAction()) {
-            case MenuScene::Action::START_GAME:
+        switch (_menuScene.getStatus()) {
+            case MenuScene::Status::START_GAME:
                 CULog("Transitioning to HostSetupScene...");
                 _hostSetupScene.setActive(true);
                 _menuScene.setActive(false);
+                _menuScene.resetStatus();
                 _currentScene = State::HOSTSETUP;
                 break;
-            case MenuScene::Action::OPEN_SETTINGS:
-                CULog("SettingsScene placeholder pressed");
+            case MenuScene::Status::OPEN_SETTINGS:
+                CULog("MenuScene: opening settings");
                 _paused = true;
                 _settingsScene.setActive(true);
+                _menuScene.resetStatus();
                 break;
-            case MenuScene::Action::NONE:
+            case MenuScene::Status::NAME_ONBOARDING:
+            case MenuScene::Status::PENDING_ONBOARDING:
+            case MenuScene::Status::PENDING_SAVE:
+            case MenuScene::Status::NONE:
+                break;
             default:
                 break;
         }

@@ -420,6 +420,12 @@
         "centerPopup": {
             "file": "textures/elements/errorPopupFrame.png"
         },
+        "namePopupBG": {
+            "file": "textures/elements/namePopupBG.png"
+        },
+        "subPopupBG": {
+            "file": "textures/elements/subPopupBG.png"
+        },
         "loadingCircle": {
             "file": "textures/elements/loadingCircle.png"
         },

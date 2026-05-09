@@ -119,6 +119,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto wheatDef = db.getDef("wheat");
     auto swordDef = db.getDef("sword");
     auto resurrectionDef = db.getDef("resurrection");
+    auto educateDef = db.getDef("educate");
     auto spearDef = db.getDef("spear");
     auto wingsDef = db.getDef("wings");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
@@ -157,6 +158,13 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
                     floatsEqualWithinTolerance(resurrectionDef->getEffects()[0].regenAmount, 25.0f) &&
                     floatsEqualWithinTolerance(resurrectionDef->getEffects()[0].duration, 5.0f),
            "items: resurrection revive and regen values parse");
+    assertWithLabel(educateDef && educateDef->hasEffectType(ItemDef::EffectType::Educate),
+           "items: educate parses educate effect");
+    assertWithLabel(educateDef && educateDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
+           "items: educate attack target parses as all allies");
+    assertWithLabel(educateDef && !educateDef->getEffects().empty() &&
+                    floatsEqualWithinTolerance(educateDef->getEffects()[0].duration, 10.0f),
+           "items: educate duration parses");
     assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
            "items: spear parses vulnerable effect");
     assertWithLabel(spearDef && !spearDef->getEffects().empty() && floatsEqualWithinTolerance(spearDef->getEffects()[0].multiplier, 2.0f),
@@ -1230,6 +1238,69 @@ void testResurrectionEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
     assertWithLabel(hades.getInventory().empty(), "resurrection: item is consumed from inventory after use");
 }
 
+/**
+ * Tests that educate temporarily allows off-affinity players to apply item effects.
+ */
+void testEducateEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+    const std::string& housesJsonPath,
+    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "educate: item db load succeeds");
+
+    auto educateDef = db.getDef("educate");
+    assertWithLabel(educateDef != nullptr, "educate: educate def exists");
+    if (!educateDef || educateDef->getEffects().empty()) return;
+
+    const ItemDef::Effect educateEffect = educateDef->getEffects()[0];
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "educate: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "educate: enemy init succeeds");
+    if (!enemyOk) return;
+
+    Player athena("athena", 0, "Athena Tester", loader);
+    Player zeus("zeus", 1, "Zeus Ally", loader);
+    Player hades("hades", 2, "Hades Ally", loader);
+    Player demeter("demeter", 3, "Demeter Ally", loader);
+
+    athena.setLeftPlayer(&demeter);
+    athena.setRightPlayer(&zeus);
+    zeus.setLeftPlayer(&athena);
+    zeus.setRightPlayer(&hades);
+    hades.setLeftPlayer(&zeus);
+    hades.setRightPlayer(&demeter);
+    demeter.setLeftPlayer(&hades);
+    demeter.setRightPlayer(&athena);
+
+    auto instEducate = ItemInstance::alloc("educate", 3001);
+    auto instLightning = ItemInstance::alloc("lightning_bolt", 3002);
+    assertWithLabel(instEducate != nullptr && instLightning != nullptr, "educate: create item instances");
+    if (!instEducate || !instLightning) return;
+
+    athena.addItem(*instEducate);
+    zeus.addItem(*instLightning);
+
+    const float educateResolved = athena.useItemById(instEducate->getId(), enemy, db);
+    assertWithLabel(floatsEqualWithinTolerance(educateResolved, 0.0f), "educate: item returns zero base damage");
+    assertWithLabel(athena.hasEducate() && zeus.hasEducate() && hades.hasEducate() && demeter.hasEducate(),
+                    "educate: all allies receive educate buff");
+    assertWithLabel(floatsEqualWithinTolerance(zeus.getEducateDuration(), educateEffect.duration),
+                    "educate: duration comes from JSON");
+
+    const float enemyHealthBefore = enemy.getCurrentHealth();
+    const float lightningResolved = zeus.useItemById(instLightning->getId(), enemy, db);
+    assertWithLabel(lightningResolved > 0.0f, "educate: off-affinity user still resolves attack magnitude");
+    assertWithLabel(enemyHealthBefore > enemy.getCurrentHealth(), "educate: off-affinity lightning still damages enemy");
+    assertWithLabel(enemy.isStunned(), "educate: off-affinity user can apply item effects while educated");
+
+    zeus.updateEffects(educateEffect.duration);
+    assertWithLabel(!zeus.hasEducate(), "educate: buff expires after configured duration");
+}
+
 } // namespace
 
 void ItemTests::runAll(const std::string& itemsJsonPath,
@@ -1270,6 +1341,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testTridentVulnerableAllSides(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testGaiaRockHealsEnemy(itemsJson, housesJsonPath, enemiesJsonPath);
     testResurrectionEffect(itemsJson, housesJsonPath, enemiesJsonPath);
+    testEducateEffect(itemsJson, housesJsonPath, enemiesJsonPath);
     
     printSummary();
 }
