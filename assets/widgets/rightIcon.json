@@ -184,7 +184,7 @@
                                 0
                             ],
                             "valign": "middle",
-                            "halign": "right",
+                            "halign": "center",
                             "scale": 0.125
                         },
                         "children": {},
