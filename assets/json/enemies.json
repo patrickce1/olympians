@@ -249,16 +249,24 @@
             },
             "customData": {
                 "lifeStealPercent": 0.8,
+                "headAnimationId": "cerberus_head_idle_animation",
+                "heads": {
+                    "front": { "offsetX":   0.0, "offsetY":  60.0, "phaseOffset": 0.00 },
+                    "right": { "offsetX":  60.0, "offsetY":  20.0, "phaseOffset": 0.24 },
+                    "back":  { "offsetX":   0.0, "offsetY": 20.0, "phaseOffset": 0.48 },
+                    "left":  { "offsetX": -60.0, "offsetY":  20.0, "phaseOffset": 0.42 }
+                }
             },
             "states": {
                 "idle": {
                     "name": "idle",
-                    "animationKey": "cerberus_idle_animation"
+                    "headAnimationKey": "cerberus_head_idle_animation"
                 },
                 "attack_1": {
                     "name": "Bite",
                     "buildUpTime": 2.0,
-                    "cooldownTime": 0.0,
+                    "cooldownTime": 2.0,
+                    "headAnimationKey": "cerberus_head_bite_animation",
                     "entryEvents": [
                     ],
                     "events": [
@@ -282,8 +290,9 @@
                 },
                 "attack_2": {
                     "name": "Tail",
-                    "buildUpTime": 5.0,
+                    "buildUpTime": 1.0,
                     "cooldownTime": 2.0,
+                    "headAnimationKey": "cerberus_head_idle_animation",
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -295,16 +304,25 @@
                 },
                 "attack_3": {
                     "name": "Lifesteal Attack",
-                    "buildUpTime": 5.0,
-                    "cooldownTime": 5.0,
+                    "buildUpTime": 1.0,
+                    "cooldownTime": 2.0,
+                    "headAnimationKey": "cerberus_head_bite_animation",
+                    "headParticipants": [0],
+                    "headParticipantsRelative": true,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 50.0
+                        }
                     ],
                     "nextState": "defensive_move"
                 },
                 "defensive_move" : {
                     "name": "Lifesteal Heal",
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
+                    "buildUpTime": 1.0,
+                    "cooldownTime": 2.0,
+                    "headAnimationKey": "cerberus_head_idle_animation",
                     "events": [
                         {
                             "type": "HEAL",

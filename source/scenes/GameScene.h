@@ -455,6 +455,17 @@ protected:
 
 #pragma mark - Enemy Animation State
 
+    struct CerberusHeadOffset {
+        float offsetX    = 0.0f;
+        float offsetY    = 0.0f;
+        float phaseOffset = 0.0f;
+    };
+
+    struct CerberusAnimConfig {
+        std::string bodyAnimId;
+        CerberusHeadOffset headOffsets[4];  // 0=front, 1=right, 2=back, 3=left
+    };
+
     /** Animation registry loaded from enemyAnimations.json. Maps animation ID to metadata. */
     std::unordered_map<std::string, AnimationEntry> _animationRegistry;
 
@@ -481,6 +492,27 @@ protected:
     
     /** Flag tracking if damage has been dealt during the current enemy state. Resets when state changes. */
     bool _enemyAttackDamageDealtThisState = false;
+
+    CerberusAnimConfig _cerberusAnimConfig;
+    std::shared_ptr<cugl::scene2::SpriteNode> _cerberusBodySprite;
+    /** Second body sprite inserted above all heads; shown only when facing away (direction=2). */
+    std::shared_ptr<cugl::scene2::SpriteNode> _cerberusBodySpriteTop;
+    /** Per-animation-key sprite sets for all cerberus head animations (one SpriteNode per head). */
+    std::unordered_map<std::string, std::array<std::shared_ptr<cugl::scene2::SpriteNode>, 4>> _cerberusHeadSpritesByAnim;
+    /** headAnimationKey of the IDLE state — fallback for non-participating heads. */
+    std::string _cerberusIdleHeadAnimKey;
+    /** Last enemy state seen; used to detect transitions and reset head timers. */
+    EnemyLoader::State _cerberusLastState = EnemyLoader::State::IDLE;
+    /** Guards per-head damage sound so it fires once per attack, not every frame. */
+    bool _cerberusSoundFired[4] = {false, false, false, false};
+    float _cerberusHeadAnimTime[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    float _cerberusBodyAnimTime = 0.0f;
+    /** Per-head committed animation key — persists until the animation completes, even across state transitions. */
+    std::string _cerberusHeadActiveAnimKey[4];
+    /** BuildUpTime saved when each head's attack animation was committed; needed for correct two-phase frame math after state transitions. */
+    float _cerberusHeadAnimBuildUpTime[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    /** Last direction for which head z-order was applied; -1 forces a reorder on first frame. */
+    int _cerberusLastDirection = -1;
 
 #pragma mark - Controllers
 
@@ -742,6 +774,12 @@ public:
      * @param localPlayerIndex  The local player's index (0-3) for calculating relative direction
      */
     void updateEnemyAnimation(float dt, int localPlayerIndex);
+
+    /** Handles body + 4-head animation logic exclusively for Cerberus. */
+    void updateCerberusAnimation(float dt, int localPlayerIndex);
+
+    /** Reorders cerberus head sprites in _bossSprite so the head facing the local player renders on top. Called when direction changes. */
+    void reorderCerberusHeads(int direction);
 
     /**
      * Pre-creates all enemy animation sprite nodes with their textures and layouts.

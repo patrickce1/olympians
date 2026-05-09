@@ -11,7 +11,7 @@
 bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath) {
     bool success = Enemy::init("cerberus", jsonPath);
     _lifeStealPercent        =  _customData->getFloat("lifeStealPercent");
-    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f,
+    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f",
                       _lifeStealPercent);
     return success;
 }
@@ -29,7 +29,7 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath) {
 bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) {
     bool success = Enemy::init("cerberus", jsonPath, assets);
     _lifeStealPercent        =  _customData->getFloat("lifeStealPercent");
-    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f,
+    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f",
                       _lifeStealPercent);
     return success;
 }
@@ -45,42 +45,52 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, con
 void Cerberus::update(float dt) {
     //Tick the head stun timers
     for (int i = 0; i < 3; i++){
-        if (_headStunned[i]){
-            _headStunTimer[i] -= dt;
-            if (_headStunTimer[i] <= 0) {
+        if (_heads[i].stunned){
+            _heads[i].stunTimer -= dt;
+            if (_heads[i].stunTimer <= 0) {
                 unstunHead(i);
             }
         }
     }
-        if (_corrosiveActive) {
-            _corrosiveTimer -= dt;
-            if (_corrosiveTimer <= 0){
-                _corrosiveTimer = 0;
-                _corrosiveActive = false;
-            }
-            else {
-                _corrosiveDrainAccum -= dt;
-                if (_corrosiveDrainAccum <= 0) {
-                    _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL; // reset
-                    applyCorrosion();
+    if (_corrosiveActive) {
+        _corrosiveTimer -= dt;
+        if (_corrosiveTimer <= 0){
+            _corrosiveTimer = 0;
+            _corrosiveActive = false;
+        }
+        else {
+            _corrosiveDrainAccum -= dt;
+            if (_corrosiveDrainAccum <= 0) {
+                _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL;
+                applyCorrosive();
             }
         }
-        Enemy::update(dt);
-        
+    }
+    Enemy::update(dt);
 }
 
 
-void Cerberus::stunHead(int headIndex) {
-    _headStunned[headIndex] = true;
-    _headStunTimer[headIndex] = HEAD_STUN_DURATION;
+void Cerberus::takeDamage(float damage, int playerIndex) {
+    float heal = damage * _lifeStealPercent;
+    updateHealth(heal);
+    Enemy::takeDamage(damage, playerIndex);
+}
 
-    if (_headStunned[0] && _headStunned[1] && _headStunned[2]) {
+void Cerberus::applyCorrosive() {
+    // Stub: full corrosive inventory drain to be implemented with game scene integration
+}
+
+void Cerberus::stunHead(int headIndex) {
+    _heads[headIndex].stunned = true;
+    _heads[headIndex].stunTimer = HEAD_STUN_DURATION;
+
+    if (_heads[0].stunned && _heads[1].stunned && _heads[2].stunned) {
         _isFullyStunned = true;
     }
 }
 
 void Cerberus::unstunHead(int headIndex) {
-    _headStunned[headIndex] = false;
-    _headStunTimer[headIndex] = 0;
+    _heads[headIndex].stunned = false;
+    _heads[headIndex].stunTimer = 0;
     _isFullyStunned = false;
 }

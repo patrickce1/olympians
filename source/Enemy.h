@@ -143,6 +143,9 @@ public:
     /** Returns the unique id of this enemy */
     const std::string& getId() const { return _enemyId; }
 
+    /** Returns the raw customData JSON blob from enemies.json */
+    std::shared_ptr<cugl::JsonValue> getCustomData() const { return _customData; }
+
     /** Returns the file path to the sprite sheet */
     const std::string& getSpritesheetPath() const { return _spritesheetPath; }
 

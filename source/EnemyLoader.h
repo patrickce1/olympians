@@ -40,7 +40,7 @@ public:
         std::string name;
         float buildUpTime = 0.0f;
         float cooldownTime = 0.0f;
-        State nextState = IDLE;                
+        State nextState = IDLE;
         std::vector<EventDef> entryEvents;  // fired immediately when entering this state
         std::vector<EventDef> events;       // fired when the state completes
         std::string animationKey;           // Key to lookup animation in enemyAnimations.json
@@ -50,6 +50,9 @@ public:
         float frameDuration = 0.0f;         // Duration per frame in seconds
         int damageFrame = -1;               // Frame index when events fire (-1 = fire at loop end or last frame)
         int outroFrameCount = 0;            // Frames after loopEndFrame that play before state exits
+        std::string headAnimationKey;           // Optional: per-head-sprite animation for this state
+        std::vector<int> headParticipants;      // Which head indices play headAnimationKey; empty = all
+        bool headParticipantsRelative = false;  // If true, indices are direction-relative (0=center, 1=right, 3=left)
     };
 
     struct AIConfig {
@@ -200,7 +203,15 @@ public:
                 stateDef.cooldownTime = stateJson->getFloat("cooldownTime", 0.0f);
                 stateDef.nextState    = parseStateType(stateJson->getString("nextState", "idle"));
                 stateDef.animationKey = stateJson->getString("animationKey", "");
-                
+                stateDef.headAnimationKey = stateJson->getString("headAnimationKey", "");
+                stateDef.headParticipantsRelative = stateJson->getBool("headParticipantsRelative", false);
+                auto participantsJson = stateJson->get("headParticipants");
+                if (participantsJson && participantsJson->isArray()) {
+                    for (int p = 0; p < participantsJson->size(); p++) {
+                        stateDef.headParticipants.push_back(participantsJson->get(p)->asInt());
+                    }
+                }
+
                 // Populate animation metadata from registry if available
                 if (!stateDef.animationKey.empty() && _animationRegistry.count(stateDef.animationKey) > 0) {
                     const auto& animMeta = _animationRegistry.at(stateDef.animationKey);
@@ -215,6 +226,22 @@ public:
                         stateDef.outroFrameCount = std::max(0, animMeta.frameCount - loopEnd - 1);
                     } else {
                         stateDef.frameCount = animMeta.frameCount;
+                    }
+                } else if (stateDef.animationKey.empty() &&
+                           !stateDef.headAnimationKey.empty() &&
+                           _animationRegistry.count(stateDef.headAnimationKey) > 0) {
+                    // No body animation, but a two-phase head animation exists.
+                    // Derive outroFrameCount from the head animation's attack frames so
+                    // isStateComplete() waits for the full animation just like Cyclops.
+                    // buildUpTime in JSON stays as the natural loop-phase duration.
+                    const auto& headMeta = _animationRegistry.at(stateDef.headAnimationKey);
+                    bool pureLoop = (headMeta.loopEndFrame < 0 ||
+                                     headMeta.loopEndFrame >= headMeta.frameCount - 1);
+                    if (!pureLoop && headMeta.loopStartFrame >= 0) {
+                        stateDef.outroFrameCount = headMeta.frameCount - headMeta.loopEndFrame - 1;
+                        stateDef.frameDuration   = headMeta.frameDuration;
+                        stateDef.frameCount      = 0; // keep time-based completion
+                        stateDef.damageFrame     = headMeta.damageFrame;
                     }
                 }
 

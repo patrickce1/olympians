@@ -729,6 +729,12 @@
             "stream": false,
             "volume": 0.5
         },
+        "cerberus_bite": {
+            "type": "sample",
+            "file": "sounds/cerberus_bite.wav",
+            "stream": false,
+            "volume": 0.45
+        },
         "shield_block": {
             "type": "sample",
             "file": "sounds/shield_block.wav",

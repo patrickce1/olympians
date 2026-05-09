@@ -26,13 +26,18 @@ private:
     float _corrosiveDrainAccum;
     
     /** seconds between inventory drains */
-    constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
+    static constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
+
+    /** seconds a single head remains stunned after being hit */
+    static constexpr float HEAD_STUN_DURATION = 3.0f;
     
-    /** Tracks which of the 3 heads are currently stunned */
-    bool _headStunned[3];
-    
-    /** Tracks how much long each head is stunned for. Should be 0 if not stunned */
-    float _headStunTimer[3];
+    struct CerberusHead {
+        bool  stunned   = false;
+        float stunTimer = 0.0f;
+    };
+
+    /** Per-head stun state for each of Cerberus's 3 heads */
+    CerberusHead _heads[3];
 
     /** True when all 3 heads are stunned simultaneously. Cerberus is disabled */
     bool _isFullyStunned;
