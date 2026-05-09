@@ -1220,10 +1220,7 @@ void GameScene::updateEnemyAndAI(float dt) {
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
-    if (_enemyController.didFireScrambleEvent()) {
-        _network->scramblePlayerOrder();
-        _network->broadcastPlayerOrder();
-    }
+
 
     // Play shield block sound if local player's shield absorbed damage this update
     if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
@@ -1239,6 +1236,11 @@ void GameScene::updateEnemyAndAI(float dt) {
     
     // Play sounds for LOCAL player and enemy health changes after all updates
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
+
+    if (_enemyController.didFireScrambleEvent()) {
+        _network->scrambleAndBroadcastPlayerOrder();
+        updateNetworkOrder();
+    }
 }
 
 /**

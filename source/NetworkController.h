@@ -426,8 +426,8 @@ public:
     */
     void scrambleAndBroadcastPlayerOrder();
 
-    /** Broadcasts the current ordering of players */
-    void checkMidGameScramble();
+    /** Checks if a scramble has occured. It consumes the token for it */
+    bool checkMidGameScramble();
 
     /**
     * Applies a complete slot remapping in one atomic operation.
@@ -468,7 +468,8 @@ protected:
         SWAP_SLOTS = 16,
         BOSS_HEAL = 17,
         GAIA_SPAWN = 18,
-        PLAYER_ORDER = 19
+        PLAYER_ORDER = 19,
+        MID_GAME_SCRAMBLE = 20
     };
 
     /** Our network connection */
@@ -530,6 +531,12 @@ private:
     
     /** Houses chosen by the host for AI slots, keyed by game slot index */
     std::unordered_map<int, std::string> _aIHouses;
+
+    /** Boolean flag that keeps track of if a mid game scramble was applied */
+    bool _midGameScramblePending;
+
+    /* RNG for host - authoritative slot shuffling during gameplay. **/ 
+    std::mt19937 _rng;
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */

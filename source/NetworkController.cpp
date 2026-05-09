@@ -231,6 +231,9 @@ bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) 
 	_playerName = "";
 	_gameWon = false;
 	_gameLost = false;
+
+    // Seed RNG once for host-authoritative shuffle operations
+    _rng = std::mt19937(std::random_device{}());
 	return true;
 }
 
@@ -529,6 +532,20 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             _hostsCurrentScene = _deserializer.readSint32();
             break;
         }
+        case MessageType::MID_GAME_SCRAMBLE: {
+            std::array<int, 4> mapping;
+
+            // Read old-slot -> new-slot mapping from the network
+            for (int i = 0; i < 4; ++i) {
+                mapping[i] = _deserializer.readSint32();
+            }
+
+            // Apply atomically on this client
+            applyScrambleMapping(mapping);
+
+            _midGameScramblePending = true;
+        }
+
 	}
 }
 
@@ -1166,16 +1183,14 @@ void NetworkController::scrambleAndBroadcastPlayerOrder() {
         _serializer.writeSint32(mapping[i]);
     }
 
-    _network->broadcast()
-    _serializer->re
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 
     // Host applies immediately
     applyScrambleMapping(mapping);
 }
 
-void NetworkController::applyScrambleMapping(
-    const std::array<int, 4>& mapping
-) {
+void NetworkController::applyScrambleMapping(const std::array<int, 4>& mapping) {
     std::unordered_map<int, NetworkedPlayer> newSlotToPlayer;
     std::unordered_map<std::string, int> newUuidToSlot;
 
@@ -1193,7 +1208,10 @@ void NetworkController::applyScrambleMapping(
 
     _slotToPlayer = std::move(newSlotToPlayer);
     _uuidToSlot = std::move(newUuidToSlot);
+}
 
-    // Let GameScene know it must rewire neighbours once
-    _midGameScramblePending = true;
+bool NetworkController::checkMidGameScramble() {
+    bool value = _midGameScramblePending;
+    _midGameScramblePending = false;
+    return value;
 }

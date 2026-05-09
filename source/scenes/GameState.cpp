@@ -606,3 +606,35 @@ void GameState::swapPlayers(int slotA, int slotB) {
         _players[i]->setRightPlayer(_players[(i + 1) % total].get());
     }
 }
+
+void GameState::applyShuffledOrder(const std::array<int, 4>& order) {
+    // Defensive checks
+    assert(order.size() == _players.size());
+
+    // Reorder players by swapping references only
+    std::vector<std::shared_ptr<Player>> reordered(_players.size());
+
+    for (size_t oldSlot = 0; oldSlot < order.size(); ++oldSlot) {
+        int newSlot = order[oldSlot];
+        assert(newSlot >= 0 && newSlot < (int)_players.size());
+        reordered[newSlot] = _players[oldSlot];
+    }
+
+    // Sanity check: no null slots
+    for (size_t i = 0; i < reordered.size(); ++i) {
+        assert(reordered[i] && "applyShuffledOrder produced null player slot");
+    }
+
+    // Commit reordered players
+    _players = std::move(reordered);
+
+    // Rebuild network ID -> Player map
+    _playerIdMap.clear();
+    for (const auto& player : _players) {
+        int netId = player->getNetworkId();
+        _playerIdMap[netId] = player.get();
+    }
+
+    // Recompute any slot-dependent relationships (neighbors, visuals, turn order)
+    rebuildNetworkOrderState();
+}

@@ -290,6 +290,17 @@ public:
      */
     void swapPlayers(int slotA, int slotB);
 
+
+    /**
+     * Applies a shuffled player order by remapping existing Player instances
+     * to new slots. This operation preserves player identity, inventory, AI
+     * state, and database references.
+     *
+     * The provided order maps oldSlot -> newSlot.
+     */
+    void applyShuffledOrder(const std::array<int, 4>& order);
+
+
 private:
 
     /**

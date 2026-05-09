@@ -62,6 +62,7 @@ bool EasyPlayerAI::init(const ItemDatabase& db, const std::string& path) {
  * Returns whether the AI has at least one attack item in its inventory.
  */
 bool EasyPlayerAI::canAttack() const {
+    if (!_db) return false;
     for (const ItemInstance& item : getInventory()) {
         auto def = _db->getDef(item.getDefId());
         if (def && def->getType() == ItemDef::Type::Attack) return true;
@@ -74,6 +75,7 @@ bool EasyPlayerAI::canAttack() const {
  * (left or right) is alive and below _healThreshold.
  */
 bool EasyPlayerAI::canSupport() const {
+    if (!_db) return false;
     bool hasSupportItem = false;
     for (const ItemInstance& item : getInventory()) {
         auto def = _db->getDef(item.getDefId());
