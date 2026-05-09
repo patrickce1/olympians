@@ -547,7 +547,7 @@ void SceneLoader::update(float dt) {
         }
         break;
     case State::BOSSSELECT:
-        _bossSelectScene.update(dt);
+        _bossSelectScene.update(dt, _input);
         switch (_bossSelectScene.getStatus())
         {
         case BossSelectScene::Status::PRE_GAMESCENE_START:

@@ -14,7 +14,6 @@ using namespace std;
 /** Interpolation smoothing factor*/
 #define SMOOTHING_FACTOR 0.2f
 
-
 #pragma mark -
 #pragma mark Provided Methods
 
@@ -202,8 +201,9 @@ void BossSelectScene::setActive(bool value) {
  * We need to update this method to constantly talk to the server
  *
  * @param timestep  The amount of time (in seconds) since the last frame
+ * @param input         The input controller instance
  */
-void BossSelectScene::update(float timestep) {
+void BossSelectScene::update(float timestep, InputController& input) {
     // Kick client if host terminated the session
     if (!_network->isHost()) {
         if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
@@ -236,6 +236,11 @@ void BossSelectScene::update(float timestep) {
             _bossSelectionCardContainer->setPosition(interpolatedPos);
         }
     }
+    // Process swipe gestures in three phases every frame so that begin,
+    // tracking, and release are never skipped within the same update cycle.
+    handleSwipeBegin(input);
+    handleSwipeTracking(input);
+    handleSwipeRelease(input);
 }
 
 /**
@@ -331,3 +336,104 @@ bool BossSelectScene::loadBosses() {
     return true;
 }
 
+#pragma mark -
+#pragma mark Swipe Gesture Handling
+
+/**
+ * Records the touch-down position to begin tracking a swipe gesture.
+ *
+ * On the first frame a touch is detected while no swipe is in progress,
+ * captures the container's current X and the finger's starting X so
+ * handleSwipeTracking() can compute deltas relative to the drag origin.
+ *
+ * No-op if a swipe is already active or no touch is detected this frame.
+ *
+ * @param input  The input controller for this frame.
+ */
+void BossSelectScene::handleSwipeBegin(InputController& input) {
+    if (_isSwiping) return;
+    if (!input.isTouching() && !input.isMouseDown()) return;
+
+    // Record where the finger started and where the container was at that
+    // moment, so tracking can offset from both without accumulating drift.
+    _swipeTouchStartX       = input.getTouchStart().x;
+    _swipeContainerStartX   = _bossSelectionCardContainer->getPosition().x;
+    _isSwiping              = true;
+}
+
+/**
+ * Moves the card container directly under the finger each frame.
+ *
+ * Computes the delta between the finger's current position and its
+ * touch-down position, then applies that delta to the container's position
+ * at the start of the drag. This keeps the cards locked to the finger
+ * with no smoothing or lag while the touch is held.
+ *
+ * The container is clamped so it cannot be dragged past the first or last
+ * card, preventing empty space from appearing at either end.
+ *
+ * No-op when no swipe is active or no touch contact exists this frame.
+ * Does not guard on _isAnimating — if the user puts their finger down
+ * during a lerp, the drag immediately takes over.
+ *
+ * @param input  The input controller for this frame.
+ */
+void BossSelectScene::handleSwipeTracking(InputController& input) {
+    if (!_isSwiping) return;
+    if (!input.isTouching() && !input.isMouseDown()) return;
+
+    float fingerDelta = input.getDragPos().x - _swipeTouchStartX;
+    float rawX        = _swipeContainerStartX + fingerDelta;
+
+    // Clamp so the container never scrolls past card 0 (right bound)
+    // or the last card (left bound).
+    float maxX     = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
+    float minX     = maxX - ((int)_bossCards.size() - 1) * ROLE_CARD_WIDTH;
+    float clampedX = std::max(minX, std::min(maxX, rawX));
+
+    Vec2 pos = _bossSelectionCardContainer->getPosition();
+    _bossSelectionCardContainer->setPosition(Vec2(clampedX, pos.y));
+}
+
+/**
+ * Snaps the carousel to the card whose preset position is closest to the
+ * current container position when the finger lifts.
+ *
+ * Uses the container's X at the moment of release to compute a fractional
+ * card index, rounds to the nearest integer, clamps to the valid range,
+ * then calls slideTo() which lerps the container to that card's exact
+ * preset X position.
+ *
+ * No-op if touchEnded() is not true this frame or no swipe was active.
+ *
+ * @param input  The input controller for this frame.
+ */
+void BossSelectScene::handleSwipeRelease(InputController& input) {
+    if (!input.touchEnded()) return;
+
+    if (!_isSwiping) {
+        _isSwiping = false;
+        return;
+    }
+
+    // Read the container's X at the exact moment of release.
+    float currentContainerX = _bossSelectionCardContainer->getPosition().x;
+
+    // Each card i is perfectly centred when the container is at:
+    //   centreX - (i * ROLE_CARD_WIDTH)
+    // Inverting gives the fractional index at the current container X.
+    // Rounding finds the nearest card.
+    float centreX      = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
+    float rawIndex     = (centreX - currentContainerX) / ROLE_CARD_WIDTH;
+    int   nearestIndex = static_cast<int>(std::round(rawIndex));
+    nearestIndex       = std::max(0, std::min((int)_bossCards.size() - 1, nearestIndex));
+
+    // Allow slideTo() to run even if a previous lerp was interrupted by
+    // this drag, then animate to the nearest card's preset position.
+    _isAnimating = false;
+    slideTo(nearestIndex);
+
+    _isSwiping      = false;
+    _swipeTouchStartX = 0.0f;
+    _swipeContainerStartX = 0.0f;
+}

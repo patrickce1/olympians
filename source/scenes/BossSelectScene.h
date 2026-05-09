@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include "../InputController.h"
 #include "../EnemyLoader.h"
 #include "../NetworkController.h"
 
@@ -75,6 +76,27 @@ protected:
     
     /** The initial position of the boss carousel. */
     cugl::Vec2 _baseCarouselPosition;
+    
+    // --- Swipe gesture state ---
+
+    /** X position where the finger first touched down. */
+    float _swipeTouchStartX = 0.0f;
+
+    /** Whether a swipe gesture is currently being tracked. */
+    bool _isSwiping = false;
+    
+    /**
+     * The X position of the card container at the moment the current touch
+     * began. Combined with _swipeTouchStartX to compute drag deltas in
+     * handleSwipeTracking() without accumulated drift.
+     */
+    float _swipeContainerStartX = 0.0f;
+    
+    /**
+     * Minimum horizontal pixel distance the finger must travel before
+     * the gesture is committed as a swipe and a slide is triggered.
+     */
+    static constexpr float SWIPE_THRESHOLD = 80.0f;
 
 public:
 #pragma mark -
@@ -160,8 +182,9 @@ public:
      * The method called to update the scene.
      *
      * @param timestep  The amount of time (in seconds) since the last frame
+     * @param input         The input controller instance
      */
-    void update(float timestep) override;
+    void update(float timestep, InputController& input);
     
 
 private:
@@ -195,6 +218,47 @@ private:
     
     /** Loads boss definitions from the enemies JSON to use in selection. */
     bool loadBosses();
+    
+    /**
+     * Records the touch-down position to begin tracking a potential swipe.
+     *
+     * Called every frame from update(). On the first frame a touch is
+     * detected while no swipe is already in progress, stores the starting
+     * X coordinate (screen space) in _swipeTouchStartX and sets _isSwiping.
+     * No-op on subsequent frames or when a gesture is already active.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeBegin(InputController& input);
+
+    /**
+     * Drags the card container live under the finger while a swipe is in
+     * progress, giving immediate tactile feedback before the gesture commits.
+     *
+     * Called every frame from update(). Reads the current drag position,
+     * computes how far the finger has moved from _swipeTouchStartX, and
+     * repositions the card container by that delta. The container is clamped
+     * to prevent dragging more than one card-width past either end of the
+     * carousel. No-op when _isSwiping is false or a lerp animation is
+     * already running.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeTracking(InputController& input);
+
+    /**
+     * Resolves a completed swipe gesture into a carousel slide or a snap-back.
+     *
+     * Called every frame from update(). When touchEnded() is true, measures
+     * total horizontal travel from _swipeTouchStartX to the release position.
+     * If the distance exceeds SWIPE_THRESHOLD the carousel advances one card
+     * in the swipe direction via slideTo(). Otherwise the container is snapped
+     * back to the current slide target with no index change. Always clears
+     * _isSwiping and _swipeTouchStartX before returning.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeRelease(InputController& input);
 };
 
 #endif /* __BOSS_SELECT_SCENE_H__ */
