@@ -63,6 +63,9 @@ protected:
     /** Circular boss image button to go to boss select scene */
     std::shared_ptr<cugl::scene2::Button> _bossLobbyButton;
     
+    /** Label at the bottom of the lobby to display text in replacement of the entry button for clients */
+    std::shared_ptr<cugl::scene2::SceneNode> _lobbyDescriptionLabel;
+    
     /** Player usernames (to update when they join) */
     std::vector<std::shared_ptr<cugl::scene2::Label>> _playerSlots;
     
@@ -305,7 +308,7 @@ private:
      *
      * @param enemyID The identifier of the enemy whose background should be displayed.
      */
-    void updateLobbyBossImage(std::string enemyID);
+    void updateLobbyBoss(std::string enemyID);
     
     /**
      * Syncs _gameState player names and house selections with the current

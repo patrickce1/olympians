@@ -1281,7 +1281,7 @@
                             "x_anchor": "center",
                             "y_anchor": "middle",
                             "absolute": false,
-                            "x_offset": 0.001,
+                            "x_offset": -0.001,
                             "y_offset": -0.02
                         }
                     }

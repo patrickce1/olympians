@@ -107,6 +107,104 @@
                     "y_offset": 0
                 }
             },
+            "playerHouse": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        96,
+                        14
+                    ],
+                    "angle": 0,
+                    "position": [
+                        -5,
+                        30
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "playerHouseBG": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "playerHouseBG",
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                96,
+                                14
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "label": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                496,
+                                112
+                            ],
+                            "position": [
+                                16,
+                                -9.5367431640625e-7
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "HOUSENAME",
+                            "foreground": "#000000ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "middle",
+                            "halign": "center",
+                            "scale": 0.125
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.17,
+                            "y_offset": 0
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": -0.09,
+                    "y_offset": -0.56
+                }
+            },
             "leftNameBG": {
                 "type": "Image",
                 "data": {
@@ -200,6 +298,33 @@
                         "type": "Image",
                         "data": {
                             "texture": "teamLeftFrame",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                117,
+                                5
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "shield": {
+                        "type": "Progress",
+                        "data": {
+                            "texture": "teamLeftShield",
                             "anchor": [
                                 0,
                                 1

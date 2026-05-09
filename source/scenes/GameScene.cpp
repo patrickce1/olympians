@@ -453,11 +453,23 @@ bool GameScene::initSceneGraph() {
         _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
              _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.username"));
         
+        _leftPlayerHouse = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.playerHouse.label"));
+        
+        _rightPlayerHouse = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.playerHouse.label"));
+        
         _leftPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.fill"));
         
         _rightPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.fill"));
+        
+        _leftPHealthShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.shield"));
+        
+        _rightPHealthShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.shield"));
         
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
@@ -480,8 +492,17 @@ bool GameScene::initSceneGraph() {
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
         
+        _playerHealthBarGlow = std::dynamic_pointer_cast<scene2::PolygonNode>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.effectGlow"));
+        
+        _playerHealthBarShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarShield"));
+        
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
+        
+        _bossHealthBarIcon = std::dynamic_pointer_cast<scene2::PolygonNode>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.barIcon"));
         
         _bossName = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.bossName.label"));
@@ -598,8 +619,8 @@ void GameScene::initInputZones(){
     _attackArea->setVisible(false);
     
     _supportZones = {
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.45f, w * 0.399f, h * 0.40f)},
-        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.75f,   h * 0.45f, w * 0.399f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.39f, w * 0.36f, h * 0.52f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.79f,   h * 0.39f, w * 0.399f, h * 0.52f)},
     };
       
     _inventoryZones = {
@@ -729,9 +750,13 @@ void GameScene::dispose() {
         _playerHealthBar = nullptr;
         _leftPHealthBar = nullptr;
         _rightPHealthBar = nullptr;
+        _leftPHealthShield = nullptr;
+        _rightPHealthShield = nullptr;
         _playerName = nullptr;
         _bossName = nullptr;
         _playerHouseName = nullptr;
+        _leftPlayerHouse = nullptr;
+        _rightPlayerHouse = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
         _enemyAnimationSpriteNodes.clear();
@@ -803,6 +828,14 @@ void GameScene::updateNetworkOrder() {
 
     _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
     _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
+    
+    std::string leftName = _gameState.getLocalPlayer()->getLeftPlayer()->getHouseName();
+    for (char &character : leftName) character = toupper(character);
+    _leftPlayerHouse->setText(leftName);
+    
+    std::string rightName = _gameState.getLocalPlayer()->getRightPlayer()->getHouseName();
+    for (char &character : rightName) character = toupper(character);
+    _rightPlayerHouse->setText(rightName);
 
     _gameState.setEnemy(_network->getEnemy(), _assets);
 
@@ -1507,13 +1540,33 @@ void GameScene::updateEnemyHealthBarEffect(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
     
-    if (enemy->isStunned()){
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillYellow"));
+    auto applyBossBar = [&](const std::string& barTex,
+                            const std::string& iconTex,
+                            bool showIcon) {
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>(barTex));
+
+        if (showIcon) {
+            _bossHealthBarIcon->setTexture(_assets->get<cugl::graphics::Texture>(iconTex));
+            _bossHealthBarIcon->setScale(0.5f);
+            _bossHealthBarIcon->setVisible(true);
+        } else {
+            _bossHealthBarIcon->setVisible(false);
+        }
+    };
+
+    std::string bar = "healthFillRed";
+    std::string icon = "";
+    bool show = false;
+
+    if (enemy->isStunned()) {
+        bar = "healthFillYellow"; icon = "stunIcon"; show = true;
     } else if (enemy->isLoved()) {
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillPink"));
-    } else {
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillRed"));
+        bar = "healthFillPink"; icon = "loveIcon"; show = true;
+    } else if (enemy->isSlowed()) {
+        bar = "healthFillBlue"; icon = "slowIcon"; show = true;
     }
+
+    applyBossBar(bar, icon, show);
 }
 
 /**
@@ -1900,17 +1953,102 @@ void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
     if (_playerHealthBar->getProgress() <= 0) {
         _playerHealthBar->setVisible(false);
+        _gameArea->getChildByName("playerDeath")->setVisible(true);
     } else {
         _playerHealthBar->setVisible(true);
+        _gameArea->getChildByName("playerDeath")->setVisible(false);
     }
     
     auto leftPlayer = player->getLeftPlayer();
-    _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+    if (leftPlayer->hasShield()) {
+        float maxHealth = (float)leftPlayer->getMaxHealth();
+        float health    = (float)leftPlayer->getCurrentHealth();
+        float shield    = (float)leftPlayer->getShieldHealth();
+
+        float total = health + shield;
+
+        if (total >= maxHealth) {
+            _leftPHealthShield->setProgress(1.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _leftPHealthBar->setProgress(visibleHealth / maxHealth);
+        }
+        else {
+            _leftPHealthShield->setProgress(total / maxHealth);
+            _leftPHealthBar->setProgress(health / maxHealth);
+        }
+        _leftPHealthShield->setVisible(true);
+    } else {
+        _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+        _leftPHealthShield->setVisible(false);
+    }
     
     auto rightPlayer = player->getRightPlayer();
-    _rightPHealthBar->setProgress(
-        1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth())
-    );
+    if (rightPlayer->hasShield()) {
+        float maxHealth = (float)rightPlayer->getMaxHealth();
+        float health    = (float)rightPlayer->getCurrentHealth();
+        float shield    = (float)rightPlayer->getShieldHealth();
+        
+        float total = health + shield;
+        
+        if (total >= maxHealth) {
+            _rightPHealthBar->setProgress(0.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _rightPHealthShield->setProgress(1.0f - (visibleHealth / maxHealth));
+        } else {
+            _rightPHealthShield->setProgress(1.0f - (health / maxHealth));
+            _rightPHealthBar->setProgress(1.0f - (total / maxHealth));
+        }
+        _rightPHealthShield->setVisible(true);
+    } else {
+        _rightPHealthBar->setProgress(
+            1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth()));
+        _rightPHealthShield->setVisible(false);
+    }
+}
+
+/**
+ * Updates the local player's progress bar with the current effects that have been applied
+ * onto them.
+ *
+ * @param dt Delta time in seconds
+ */
+void GameScene::updatePlayerHealthBarEffect(float dt) {
+    auto player = _gameState.getLocalPlayer();
+    if (!player || !player->isAlive()) return;
+    
+    if (player->hasBarrier() && player->getBarrierMultiplier() == 0) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("helmBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else if (player->hasBarrier() && player->getBarrierMultiplier() > 0) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("aegisBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else {
+        _playerHealthBarGlow->setVisible(false);
+    }
+    
+    if (player->hasShield()) {
+        float maxHealth = (float)player->getMaxHealth();
+        float health    = (float)player->getCurrentHealth();
+        float shield    = (float)player->getShieldHealth();
+
+        float total = health + shield;
+
+        if (total >= maxHealth) {
+            _playerHealthBarShield->setProgress(1.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _playerHealthBar->setProgress(visibleHealth / maxHealth);
+        }
+        else {
+            _playerHealthBarShield->setProgress(total / maxHealth);
+            _playerHealthBar->setProgress(health / maxHealth);
+        }
+        _playerHealthBarShield->setVisible(true);
+    } else {
+        _playerHealthBarShield->setVisible(false);
+    }
 }
 
 /**
@@ -3179,6 +3317,7 @@ void GameScene::update(float dt, InputController& input) {
     _network->clearQueues();
     updateAllPlayersAndEnemyHealthUI(dt);
     updatePlayerAndTeammateIcons(dt);
+    updatePlayerHealthBarEffect(dt);
 }
 
 #pragma mark -
@@ -3730,8 +3869,8 @@ void GameScene::render() {
         renderItemWidgetDebug(batch.get());
         renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
+        renderDropZonesDebug(batch.get());
     }
-//    renderDropZonesDebug(batch.get());
     batch->end();
 }
 

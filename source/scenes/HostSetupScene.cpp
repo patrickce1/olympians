@@ -201,6 +201,8 @@ void HostSetupScene::setActive(bool value) {
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);
             
+            _leftButton->setVisible(true);
+            _rightButton->setVisible(true);
             _startGame->activate();
             _leftButton->activate();
             _rightButton->activate();
@@ -315,6 +317,15 @@ void HostSetupScene::slideTo(int newIndex) {
     
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
+    
+    if (_currentIndex == 0) {
+        _leftButton->setVisible(false);
+    } else if (_currentIndex == _bossCards.size() - 1) {
+        _rightButton->setVisible(false);
+    } else {
+        _rightButton->setVisible(true);
+        _leftButton->setVisible(true);
+    }
     
     // Set the visibility of all glow overlays to false and the currentIndex card's to true
     for (int i = 0; i < _bossCards.size(); i++) {
