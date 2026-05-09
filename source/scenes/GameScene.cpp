@@ -539,8 +539,8 @@ void GameScene::initInputZones(){
     _attackArea->setVisible(false);
     
     _supportZones = {
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.45f, w * 0.399f, h * 0.40f)},
-        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.75f,   h * 0.45f, w * 0.399f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.37f, w * 0.399f, h * 0.55f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.75f,   h * 0.37f, w * 0.399f, h * 0.55f)},
     };
       
     _inventoryZones = {
@@ -3601,8 +3601,8 @@ void GameScene::render() {
         renderItemWidgetDebug(batch.get());
         renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
+        renderDropZonesDebug(batch.get());
     }
-//    renderDropZonesDebug(batch.get());
     batch->end();
 }
 
