@@ -51,7 +51,8 @@ enum class SupportEffectType : int32_t {
     Regen = 3,
     Resurrect = 4,
     Educate = 5,
-    Forge = 6
+    Forge = 6,
+    Charm = 7
 };
 
 /** Attack effect categories sent from clients to the host. */
@@ -131,6 +132,7 @@ struct PlayerRuntimeEffectState {
     float regenAmountRemaining;
     float regenDuration;
     float educateDuration;
+    float charmDuration;
 };
 
 /** Message sent by the host to other players about the current state of the game
@@ -198,6 +200,7 @@ struct GameStateMessage {
             float player1RegenAmountRemaining;
             float player1RegenDuration;
             float player1EducateDuration;
+            float player1CharmDuration;
             float player2ShieldMitigation;
             float player2ShieldDuration;
             float player2BarrierMultiplier;
@@ -205,6 +208,7 @@ struct GameStateMessage {
             float player2RegenAmountRemaining;
             float player2RegenDuration;
             float player2EducateDuration;
+            float player2CharmDuration;
             float player3ShieldMitigation;
             float player3ShieldDuration;
             float player3BarrierMultiplier;
@@ -212,6 +216,7 @@ struct GameStateMessage {
             float player3RegenAmountRemaining;
             float player3RegenDuration;
             float player3EducateDuration;
+            float player3CharmDuration;
             float player4ShieldMitigation;
             float player4ShieldDuration;
             float player4BarrierMultiplier;
@@ -219,6 +224,7 @@ struct GameStateMessage {
             float player4RegenAmountRemaining;
             float player4RegenDuration;
             float player4EducateDuration;
+            float player4CharmDuration;
         };
         PlayerRuntimeEffectState playerRuntimeEffects[kMaxPlayers];
     };
@@ -227,7 +233,7 @@ struct GameStateMessage {
     GameStateMessage() : bossHealth(0.0f), bossTarget(0), bossState(0), stateTime(0.0f) {
         std::fill_n(playerHP, kMaxPlayers, 0.0f);
         for (int ii = 0; ii < kMaxPlayers; ++ii) {
-            playerRuntimeEffects[ii] = { 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+            playerRuntimeEffects[ii] = { 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
         }
     }
 
