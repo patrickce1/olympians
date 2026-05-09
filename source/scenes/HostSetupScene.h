@@ -7,6 +7,7 @@
 #include <vector>
 #include "../EnemyLoader.h"
 #include "../NetworkController.h"
+#include "../SavedDataManager.h"
 
 /**
  * This class provides the interface to make a new game.
@@ -51,9 +52,6 @@ protected:
     
     /** The settings button to display settings menu */
     std::shared_ptr<cugl::scene2::Button> _settingsButton;
-    
-    /** The player label (for updating) */
-    std::shared_ptr<cugl::scene2::TextField> _hostName;
     
     /** The boss selection node list */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _bossCards;
