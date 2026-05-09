@@ -522,6 +522,9 @@
         "healthFillYellow": {
             "file": "textures/gameScene/healthFillYellow.png"
         },
+        "healthFillGray": {
+            "file": "textures/gameScene/healthFillGray.png"
+        },
         "healthFillBlue": {
             "file": "textures/gameScene/healthFillBlue.png"
         },

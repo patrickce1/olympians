@@ -290,6 +290,9 @@ protected:
     /** The player's health bar glow representing the current effect applied on the player */
     std::shared_ptr<cugl::scene2::PolygonNode> _playerHealthBarGlow;
     
+    /** The player's shield bar under the actual health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBarShield;
+    
     /** The player's name label showing username */
     std::shared_ptr<cugl::scene2::Label> _playerName;
     

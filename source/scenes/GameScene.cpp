@@ -409,6 +409,9 @@ bool GameScene::initSceneGraph() {
         _playerHealthBarGlow = std::dynamic_pointer_cast<scene2::PolygonNode>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.effectGlow"));
         
+        _playerHealthBarShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarShield"));
+        
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
         
@@ -1838,6 +1841,14 @@ void GameScene::updatePlayerHealthBarEffect(float dt) {
         _playerHealthBarGlow->setVisible(true);
     } else {
         _playerHealthBarGlow->setVisible(false);
+    }
+    
+    if (player->hasShield()) {
+        auto totalHealth = player->getCurrentHealth() + player->getShieldHealth();
+        _playerHealthBarShield->setProgress(std::min((totalHealth / player->getMaxHealth()),1.0f));
+        _playerHealthBarShield->setVisible(true);
+    } else {
+        _playerHealthBarShield->setVisible(false);
     }
 }
 
