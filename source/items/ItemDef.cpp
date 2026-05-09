@@ -69,6 +69,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
         out = ItemDef::EffectType::Upgrade;
         return true;
     }
+    if (value == "forge") {
+        out = ItemDef::EffectType::Forge;
+        return true;
+    }
     return false;
 }
 
@@ -211,6 +215,11 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
     out.duration = 0.0f;
     if (json->has("duration") && json->get("duration")->isNumber()) {
         out.duration = std::max(0.0f, json->getFloat("duration"));
+    }
+
+    out.chance = 0.0f;
+    if (json->has("chance") && json->get("chance")->isNumber()) {
+        out.chance = std::max(0.0f, std::min(1.0f, json->getFloat("chance")));
     }
 
     out.applyToAllSides = false;
