@@ -245,7 +245,6 @@ public:
      *
      * @param soundKey The key to retrieve the sound from the asset manager
      * @param loop Whether the sound should loop continuously
-     * @param volume The playback volume (0.0 to 1.0)
      * @return true if the sound was successfully added to the audio engine
      */
     bool playSoundUnique(const std::string& soundKey, bool loop = false);
