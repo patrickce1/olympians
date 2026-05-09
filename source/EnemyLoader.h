@@ -60,6 +60,7 @@ public:
     AIConfig ai;
     struct EnemyDef {
         std::string id;
+        std::string description;
         Boss name; //Not used yet, but will be used for boss animations in a future pr
         float maxHealth = 0.0f;
         std::string spritesheetPath;
@@ -180,6 +181,7 @@ public:
 
             EnemyDef def;
             def.id = entry->getString("id");
+            def.description = entry->getString("description");
             def.name = parseBoss(entry->getString("name"));
             def.maxHealth = entry->getFloat("maxHealth");
             def.spritesheetPath = entry->getString("spritesheetPath");

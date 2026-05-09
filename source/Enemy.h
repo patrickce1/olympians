@@ -40,6 +40,9 @@ protected:
     /** Unique identifier for this enemy (e.g., "cyclops", "cerberus") */
     std::string _enemyId;
     
+    /** Unique description for this enemy (e.g., "cyclops", "cerberus") */
+    std::string _enemyDescription;
+    
     /** Path to the sprite sheet texture for this enemy */
     std::string _spritesheetPath;
 
@@ -142,6 +145,9 @@ public:
 
     /** Returns the unique id of this enemy */
     const std::string& getId() const { return _enemyId; }
+    
+    /** Returns the unique description of this enemy */
+    const std::string& getDescription() const { return _enemyDescription; }
 
     /** Returns the file path to the sprite sheet */
     const std::string& getSpritesheetPath() const { return _spritesheetPath; }
