@@ -85,7 +85,7 @@ struct SupportEffectMessage {
 /** Message sent to request or apply a party-wide forge inventory transformation. */
 struct ForgeEffectMessage {
     /** Chance in [0, 1] that each rare item upgrades to divine. */
-    float chance = 0.0f;
+    float divineChance = 0.0f;
     /** Host-authoritative deterministic seed for local forge rolls. */
     int seed = 0;
     /** True when this message came from the host and should be applied locally. */

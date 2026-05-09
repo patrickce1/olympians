@@ -393,7 +393,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
         }
         case MessageType::FORGE_EFFECT: {
             ForgeEffectMessage forgeMsg;
-            forgeMsg.chance = _deserializer.readFloat();
+            forgeMsg.divineChance = _deserializer.readFloat();
             forgeMsg.seed = _deserializer.readSint32();
             forgeMsg.authoritative = _deserializer.readBool();
             forgeEffects.push_back(forgeMsg);

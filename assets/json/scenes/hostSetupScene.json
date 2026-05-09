@@ -203,22 +203,6 @@
                     "y_offset": -0.1
                 }
             },
-            "hostName": {
-                "type": "Widget",
-                "data": {
-                    "key": "textfield",
-                    "variables": {
-                        "text": ""
-                    }
-                },
-                "layout": {
-                    "x_anchor": "center",
-                    "y_anchor": "top",
-                    "absolute": false,
-                    "x_offset": 0,
-                    "y_offset": -0.26
-                }
-            },
             "bossSelectionCarouselIcons": {
                 "type": "Node",
                 "format": {
@@ -906,7 +890,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.82
+                    "y_offset": -0.78
                 }
             },
             "bossCarousel": {
@@ -1307,7 +1291,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.28
+                    "y_offset": -0.24
                 }
             },
             "header": {
@@ -1405,7 +1389,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.17
+                    "y_offset": -0.20
                 }
             },
             "indicator": {

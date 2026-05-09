@@ -2445,7 +2445,7 @@ void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forge
                 continue;
             }
 
-            float resolvedChance = forgeEffect.chance;
+            float resolvedChance = forgeEffect.divineChance;
             for (const auto& player : _gameState.getPlayers()) {
                 if (player && player->hasCharm()) {
                     resolvedChance = std::min(1.0f, resolvedChance * 2.0f);
@@ -2457,7 +2457,7 @@ void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forge
             applyForgeEffect(resolvedChance, seed);
             _network->broadcastForgeEffect(resolvedChance, seed);
         } else if (forgeEffect.authoritative) {
-            applyForgeEffect(forgeEffect.chance, forgeEffect.seed);
+            applyForgeEffect(forgeEffect.divineChance, forgeEffect.seed);
         }
     }
 }
