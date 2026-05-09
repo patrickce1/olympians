@@ -391,6 +391,12 @@ bool GameScene::initSceneGraph() {
         _rightPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.fill"));
         
+        _leftPHealthShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.shield"));
+        
+        _rightPHealthShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.shield"));
+        
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
         
@@ -670,6 +676,8 @@ void GameScene::dispose() {
         _playerHealthBar = nullptr;
         _leftPHealthBar = nullptr;
         _rightPHealthBar = nullptr;
+        _leftPHealthShield = nullptr;
+        _rightPHealthShield = nullptr;
         _playerName = nullptr;
         _bossName = nullptr;
         _playerHouseName = nullptr;
@@ -1837,12 +1845,52 @@ void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     }
     
     auto leftPlayer = player->getLeftPlayer();
-    _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+    if (leftPlayer->hasShield()) {
+        float maxHealth = (float)leftPlayer->getMaxHealth();
+        float health    = (float)leftPlayer->getCurrentHealth();
+        float shield    = (float)leftPlayer->getShieldHealth();
+
+        float total = health + shield;
+
+        if (total >= maxHealth) {
+            _leftPHealthShield->setProgress(1.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _leftPHealthBar->setProgress(visibleHealth / maxHealth);
+        }
+        else {
+            _leftPHealthShield->setProgress(total / maxHealth);
+            _leftPHealthBar->setProgress(health / maxHealth);
+        }
+        _leftPHealthShield->setVisible(true);
+    } else {
+        _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+        _leftPHealthShield->setVisible(false);
+    }
     
     auto rightPlayer = player->getRightPlayer();
-    _rightPHealthBar->setProgress(
-        1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth())
-    );
+    if (rightPlayer->hasShield()) {
+        float maxHealth = (float)rightPlayer->getMaxHealth();
+        float health    = (float)rightPlayer->getCurrentHealth();
+        float shield    = (float)rightPlayer->getShieldHealth();
+        
+        float total = health + shield;
+        
+        if (total >= maxHealth) {
+            _rightPHealthBar->setProgress(0.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _rightPHealthShield->setProgress(1.0f - (visibleHealth / maxHealth));
+        } else {
+            _rightPHealthShield->setProgress(1.0f - (health / maxHealth));
+            _rightPHealthBar->setProgress(1.0f - (total / maxHealth));
+        }
+        _rightPHealthShield->setVisible(true);
+    } else {
+        _rightPHealthBar->setProgress(
+            1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth()));
+        _rightPHealthShield->setVisible(false);
+    }
 }
 
 /**

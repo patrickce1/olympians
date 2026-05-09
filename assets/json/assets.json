@@ -570,11 +570,17 @@
         "teamLeftFill": {
           "file": "textures/gameScene/teamLeftFill.png"
         },
+        "teamLeftShield": {
+          "file": "textures/gameScene/teamLeftShield.png"
+        },
         "teamLeftFrame": {
           "file": "textures/gameScene/teamLeftFrame.png"
         },
         "teamRightFill": {
           "file": "textures/gameScene/teamRightFrame.png"
+        },
+        "teamRightShield": {
+          "file": "textures/gameScene/teamRightShield.png"
         },
         "teamRightFrame": {
           "file": "textures/gameScene/teamRightFill.png"

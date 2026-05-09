@@ -320,6 +320,12 @@ protected:
     /** Right teammate's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _rightPHealthBar;
     
+    /** The left player's shield bar under the actual health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _leftPHealthShield;
+    
+    /** The right player's shield bar under the actual health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _rightPHealthShield;
+    
     /** Slots already demoted to Easy AI this session; prevents re-demoting each frame. */
     std::unordered_set<int> _slotsDemotedToAI;
     
