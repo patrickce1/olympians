@@ -147,9 +147,9 @@ public:
      * Does not write to disk. Call save() afterwards to persist the
      * change across sessions. Value should be in [0, 1].
      *
-     * @param v  The new SFX volume multiplier.
+     * @param value  The new SFX volume multiplier.
      */
-    void setSFXVolume(float v) { _sfxVolume = v; }
+    void setSFXVolume(float value) { _sfxVolume = value; }
 
     // ── Music volume ───────────────────────────────────────────────────────
 
@@ -169,9 +169,9 @@ public:
      * Does not write to disk. Call save() afterwards to persist the
      * change across sessions. Value should be in [0, 1].
      *
-     * @param v  The new music volume multiplier.
+     * @param value  The new music volume multiplier.
      */
-    void setMusicVolume(float v) { _musicVolume = v; }
+    void setMusicVolume(float value) { _musicVolume = value; }
 
     // ── Screen effects ─────────────────────────────────────────────────────
 
@@ -191,9 +191,9 @@ public:
      * Does not write to disk. Call save() afterwards to persist the
      * change across sessions.
      *
-     * @param v  true to enable effects; false to disable.
+     * @param value  true to enable effects; false to disable.
      */
-    void setEffectsEnabled(bool v) { _effectsEnabled = v; }
+    void setEffectsEnabled(bool value) { _effectsEnabled = value; }
 
     // ── Haptics ────────────────────────────────────────────────────────────
 
@@ -213,9 +213,9 @@ public:
      * Does not write to disk. Call save() afterwards to persist the
      * change across sessions.
      *
-     * @param v  true to enable haptics; false to disable.
+     * @param value  true to enable haptics; false to disable.
      */
-    void setHapticsEnabled(bool v) { _hapticsEnabled = v; }
+    void setHapticsEnabled(bool value) { _hapticsEnabled = value; }
 
 private:
     SavedDataManager() = default;
