@@ -272,6 +272,9 @@ protected:
     /** The boss health bar */
     std::shared_ptr<cugl::scene2::ProgressBar> _bossHealthBar;
     
+    /** The boss health bar icon */
+    std::shared_ptr<cugl::scene2::PolygonNode> _bossHealthBarIcon;
+     
     /** The boss health bar text showing amount of health left */
     std::shared_ptr<cugl::scene2::Label> _bossHealthBarText;
     
@@ -283,6 +286,12 @@ protected:
     
     /** The player's health bar text showing amount of health left */
     std::shared_ptr<cugl::scene2::Label> _playerHealthBarText;
+    
+    /** The player's health bar glow representing the current effect applied on the player */
+    std::shared_ptr<cugl::scene2::PolygonNode> _playerHealthBarGlow;
+    
+    /** The player's shield bar under the actual health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBarShield;
     
     /** The player's name label showing username */
     std::shared_ptr<cugl::scene2::Label> _playerName;
@@ -299,11 +308,23 @@ protected:
     /** Right teammate username label */
     std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
     
+    /** The left player's label showing house name  */
+    std::shared_ptr<cugl::scene2::Label> _leftPlayerHouse;
+    
+    /** The right player's label showing house name  */
+    std::shared_ptr<cugl::scene2::Label> _rightPlayerHouse;
+    
     /** Left teammate's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _leftPHealthBar;
     
     /** Right teammate's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _rightPHealthBar;
+    
+    /** The left player's shield bar under the actual health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _leftPHealthShield;
+    
+    /** The right player's shield bar under the actual health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _rightPHealthShield;
     
     /** Slots already demoted to Easy AI this session; prevents re-demoting each frame. */
     std::unordered_set<int> _slotsDemotedToAI;
@@ -885,6 +906,14 @@ public:
      * @param dt Delta time in seconds
      */
     void updateAllPlayersAndEnemyHealthUI(float dt);
+    
+    /**
+     * Updates the local player's progress bar with the current effects that have been applied
+     * onto them.
+     *
+     * @param dt Delta time in seconds
+     */
+    void updatePlayerHealthBarEffect(float dt);
     
     /**
      * Updates the player and teammate UI icons to reflect their current health.
