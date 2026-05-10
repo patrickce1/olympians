@@ -151,6 +151,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto resurrectionDef = db.getDef("resurrection");
     auto educateDef = db.getDef("educate");
     auto forgeDef = db.getDef("forge");
+    auto charmDef = db.getDef("charm");
     auto spearDef = db.getDef("spear");
     auto wingsDef = db.getDef("wings");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
@@ -203,6 +204,13 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     assertWithLabel(forgeDef && !forgeDef->getEffects().empty() &&
                     floatsEqualWithinTolerance(forgeDef->getEffects()[0].chance, 0.1f),
            "items: forge divine upgrade chance parses");
+    assertWithLabel(charmDef && charmDef->hasEffectType(ItemDef::EffectType::Charm),
+           "items: charm parses charm effect");
+    assertWithLabel(charmDef && charmDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
+           "items: charm attack target parses as all allies");
+    assertWithLabel(charmDef && !charmDef->getEffects().empty() &&
+                    floatsEqualWithinTolerance(charmDef->getEffects()[0].duration, 10.0f),
+           "items: charm duration parses");
     assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
            "items: spear parses vulnerable effect");
     assertWithLabel(spearDef && !spearDef->getEffects().empty() && floatsEqualWithinTolerance(spearDef->getEffects()[0].multiplier, 2.0f),
