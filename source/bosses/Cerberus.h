@@ -28,8 +28,6 @@ private:
     /** Seconds between successive corrosive inventory drain ticks. */
     static constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
 
-    /** Damage multiplier applied when a player strikes any non-back head while all three heads are knocked simultaneously. */
-    static constexpr float ALL_HEADS_KNOCKED_MULTIPLIER = 5.0f;
 
     /**
      * Per-head state tracking for the knock mechanic.
@@ -138,6 +136,9 @@ public:
 
     /** Returns true if the corrosive debuff is currently active on any player. */
     bool isCorrosiveActive() const { return _corrosiveActive; }
+
+    /** Damage multiplier applied when a player strikes any non-back head while all three heads are knocked simultaneously. */
+    static constexpr float ALL_HEADS_KNOCKED_MULTIPLIER = 5.0f;
 
     /** Returns true if all three heads (main, right, left) are simultaneously knocked. */
     bool allHeadsKnocked() const {

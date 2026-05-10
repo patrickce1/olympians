@@ -99,13 +99,15 @@ void Cerberus::takeDamage(float damage, int playerIndex) {
     int attackerRelativeSlot = (playerIndex - getTargetIndex() + 4) % 4;
 
     if (attackerRelativeSlot != 2 && allHeadsKnocked()) {
-        // All-heads-knocked window: apply multiplier, heal life-steal on the boosted amount,
-        // wake all heads, and skip the normal threshold logic.
-        float boostedDamage = damage * ALL_HEADS_KNOCKED_MULTIPLIER;
-        updateHealth(boostedDamage * _lifeStealPercent);
+        // All-heads-knocked window: the 5x side multiplier was already set by knockHead,
+        // so Enemy::takeDamage applies it naturally and the popup shows it automatically.
+        // After the hit: reset all sides to 1.0, wake all heads, and return to idle.
+        updateHealth(damage * _lifeStealPercent);
+        Enemy::takeDamage(damage, playerIndex);
+        for (int side = 0; side < 4; side++) setSideMultiplier(side, 1.0f);
         for (int headIndex = 0; headIndex < 3; headIndex++) unKnockHead(headIndex);
-        Enemy::takeDamage(boostedDamage, playerIndex);
-        CULog("[Cerberus] All-heads-knocked window triggered — %.1fx damage, all heads woken", ALL_HEADS_KNOCKED_MULTIPLIER);
+        forceIdle(0.0f);
+        CULog("[Cerberus] All-heads-knocked window triggered — %.1fx side multiplier applied, all heads woken", ALL_HEADS_KNOCKED_MULTIPLIER);
         return;
     }
 
@@ -136,6 +138,14 @@ void Cerberus::knockHead(int headArrayIndex) {
     _heads[headArrayIndex].knocked = true;
     _heads[headArrayIndex].knockedTimer = _knockedDuration;
     CULog("[Cerberus] Head %d knocked for %.1fs", headArrayIndex, _knockedDuration);
+
+    if (allHeadsKnocked()) {
+        // All three heads are now down — boost all non-back sides to signal the vulnerability window.
+        setSideMultiplier(0, ALL_HEADS_KNOCKED_MULTIPLIER);
+        setSideMultiplier(1, ALL_HEADS_KNOCKED_MULTIPLIER);
+        setSideMultiplier(3, ALL_HEADS_KNOCKED_MULTIPLIER);
+        CULog("[Cerberus] All heads knocked — %.1fx side multiplier active on all non-back sides", ALL_HEADS_KNOCKED_MULTIPLIER);
+    }
 }
 
 /**

@@ -266,7 +266,13 @@
             "states": {
                 "idle": {
                     "name": "idle",
-                    "headAnimationKey": "cerberus_head_idle_animation"
+                    "headAnimationKey": "cerberus_head_idle_animation",
+                    "entryEvents": [
+                        { "type": "SIDE_MODIFIER", "target": 0, "amount": 1.0 },
+                        { "type": "SIDE_MODIFIER", "target": 1, "amount": 1.0 },
+                        { "type": "SIDE_MODIFIER", "target": 2, "amount": 1.0 },
+                        { "type": "SIDE_MODIFIER", "target": 3, "amount": 1.0 }
+                    ]
                 },
                 "attack_1": {
                     "name": "Bite",
