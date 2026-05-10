@@ -65,7 +65,7 @@ public:
 
 private:
     /** Debug boolean. Set to false to prevent debug statements */
-    bool _debug = true;
+    bool _debug = false;
 
     /** Keeps track of if a scramble event was fired this frame. Should be reset after being extracted */
     bool _scrambleFired;

@@ -416,18 +416,27 @@ public:
 
 
     /**
-    * HOST ONLY. Performs a mid-game scramble of player slots.
-    * Generates a single shuffled slot mapping and applies it
-    *   to the authoritative slot-to-player and UUID-to-slot maps.
-    * Broadcasts the final mapping to all clients so they can rebuild
-    * their local slot ordering.
-    * After this runs, GameScene is expected to react by calling
-    * updateNetworkOrder() to rewire neighbours and spatial positions.
+    * HOST ONLY. Broadcasts the new player order.
+    * @param newMapping represents the new order, where newMapping[i] is the new slot that
+    * player i ended up in. For example, if newMapping[0] = 1, that means that the player
+    * at slot 0 ended up at slot 1 after the scramble
     */
-    void scrambleAndBroadcastPlayerOrder();
+    void broadcastPlayerScramble(const std::array<int, 4>& newMapping);
 
-    /** Checks if a scramble has occured. It consumes the token for it */
+    /** CLIENT ONLY. Checks if we recieved a message that player order has been scrambled.
+        If yes, it returns true and sets _midGameScramblePending to false to ensure the scramble is
+        only applied once */
     bool checkMidGameScramble();
+
+    /**
+     * Returns the most recent player scramble mapping broadcast by the host.
+     * Must be used in conjunction with checkMidGameScramble() to ensure
+     * the mapping is not stale or applied more than once.
+     *
+     * @return A length-4 array where index i contains the new slot that
+     *         the player originally at slot i should occupy.
+     */
+    std::array<int, 4> getPlayerScrambleMapping() { return _playerScrambleMapping; }
 
     /**
     * Applies a complete slot remapping in one atomic operation.
@@ -439,8 +448,11 @@ public:
     * MID_GAME_SCRAMBLE message.
     * Sets a one-frame flag so GameScene can update neighbour order via
     * updateNetworkOrder() exactly once.
+    * @param newMapping represents the new order, where newMapping[i] is the new slot that
+    *        player i ended up in. For example, if newMapping[0] = 1, that means that the player
+    *        at slot 0 ended up at slot 1 after the scramble
     */
-    void applyScrambleMapping(const std::array<int, 4>& mapping);
+    void applyPlayerScramble(const std::array<int, 4>& newMapping);
 
 
 protected:
@@ -532,11 +544,11 @@ private:
     /** Houses chosen by the host for AI slots, keyed by game slot index */
     std::unordered_map<int, std::string> _aIHouses;
 
-    /** Boolean flag that keeps track of if a mid game scramble was applied */
-    bool _midGameScramblePending;
+    /** Array that we use to write in any new mappings. By default it's just the normal mapping*/
+    std::array<int, 4> _playerScrambleMapping = { 0,1,2,3 };
 
-    /* RNG for host - authoritative slot shuffling during gameplay. **/ 
-    std::mt19937 _rng;
+    /** Boolean flag that keeps track of if a mid game scramble was applied */
+    bool _midGameScramblePending = false;
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */

@@ -232,8 +232,6 @@ bool NetworkController::init(const std::shared_ptr<cugl::AssetManager>& assets) 
 	_gameWon = false;
 	_gameLost = false;
 
-    // Seed RNG once for host-authoritative shuffle operations
-    _rng = std::mt19937(std::random_device{}());
 	return true;
 }
 
@@ -533,16 +531,11 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             break;
         }
         case MessageType::MID_GAME_SCRAMBLE: {
-            std::array<int, 4> mapping;
-
             // Read old-slot -> new-slot mapping from the network
             for (int i = 0; i < 4; ++i) {
-                mapping[i] = _deserializer.readSint32();
+                _playerScrambleMapping[i] = _deserializer.readSint32();
             }
-
-            // Apply atomically on this client
-            applyScrambleMapping(mapping);
-
+            applyPlayerScramble(_playerScrambleMapping);
             _midGameScramblePending = true;
         }
 
@@ -1165,16 +1158,10 @@ void NetworkController::swapSlots(int slotA, int slotB) {
 
 
 // NetworkController.cpp
-void NetworkController::scrambleAndBroadcastPlayerOrder() {
+void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& mapping) {
     if (!_network->isHost()) {
         return;
     }
-
-    // Build identity list [0,1,2,3]
-    std::array<int, 4> mapping = { 0, 1, 2, 3 };
-
-    // Shuffle atomically (single final result)
-    std::shuffle(mapping.begin(), mapping.end(), _rng);
 
     // Send once
     // Broadcast final mapping to all clients
@@ -1185,12 +1172,9 @@ void NetworkController::scrambleAndBroadcastPlayerOrder() {
 
     _network->broadcast(_serializer.serialize());
     _serializer.reset();
-
-    // Host applies immediately
-    applyScrambleMapping(mapping);
 }
 
-void NetworkController::applyScrambleMapping(const std::array<int, 4>& mapping) {
+void NetworkController::applyPlayerScramble(const std::array<int, 4>& newMapping) {
     std::unordered_map<int, NetworkedPlayer> newSlotToPlayer;
     std::unordered_map<std::string, int> newUuidToSlot;
 
@@ -1198,7 +1182,7 @@ void NetworkController::applyScrambleMapping(const std::array<int, 4>& mapping) 
     for (int oldSlot = 0; oldSlot < 4; ++oldSlot) {
         auto it = _slotToPlayer.find(oldSlot);
         if (it != _slotToPlayer.end()) {
-            int newSlot = mapping[oldSlot];
+            int newSlot = newMapping[oldSlot];
             const NetworkedPlayer& player = it->second;
 
             newSlotToPlayer[newSlot] = player;

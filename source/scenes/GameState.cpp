@@ -607,34 +607,64 @@ void GameState::swapPlayers(int slotA, int slotB) {
     }
 }
 
-void GameState::applyShuffledOrder(const std::array<int, 4>& order) {
-    // Defensive checks
-    assert(order.size() == _players.size());
+/**
+ * Reorders the player array according to a permutation supplied by the boss
+ * scramble mechanic.  After reordering, all neighbour pointers in the
+ * circular ring are re-wired and the player ID map is rebuilt.
+ *
+ * The permutation is expressed as a "where does slot i go?" mapping:
+ *   newSlot = permutation[oldSlot]
+ * e.g. permutation = {2, 0, 3, 1} moves
+ *   old slot 0 → new slot 2
+ *   old slot 1 → new slot 0
+ *   old slot 2 → new slot 3
+ *   old slot 3 → new slot 1
+ *
+ * Host only — clients must receive the permutation over the network and
+ * call this with the same array so all peers stay in sync.
+ *
+ * @param newMapping  A length-4 array where permutation[i] is the new
+ *                     slot index that the player currently at slot i
+ *                     should occupy.  Must be a valid permutation of
+ *                     {0, 1, 2, 3}; behaviour is undefined otherwise.
+ */
+void GameState::applyPlayerScramble(const std::array<int, 4>& newMapping) {
+    const int n = (int)_players.size();
+    CUAssertLog(n == 4, "applyScramble expects exactly 4 players");
 
-    // Reorder players by swapping references only
-    std::vector<std::shared_ptr<Player>> reordered(_players.size());
-
-    for (size_t oldSlot = 0; oldSlot < order.size(); ++oldSlot) {
-        int newSlot = order[oldSlot];
-        assert(newSlot >= 0 && newSlot < (int)_players.size());
+    // Build the reordered array without mutating _players mid-loop.
+    std::array<std::shared_ptr<Player>, 4> reordered;
+    for (int oldSlot = 0; oldSlot < n; oldSlot++) {
+        int newSlot = newMapping[oldSlot];
+        CUAssertLog(newSlot >= 0 && newSlot < n, "applyScramble: permutation value out of range");
         reordered[newSlot] = _players[oldSlot];
     }
 
-    // Sanity check: no null slots
-    for (size_t i = 0; i < reordered.size(); ++i) {
-        assert(reordered[i] && "applyShuffledOrder produced null player slot");
+    // Commit reordered array back and track whether _localPlayer moved.
+    Player* localBefore = _localPlayer;
+    for (int i = 0; i < n; i++) {
+        _players[i] = reordered[i];
+        _playerIdMap[i] = _players[i].get();
     }
 
-    // Commit reordered players
-    _players = std::move(reordered);
-
-    // Rebuild network ID -> Player map
-    _playerIdMap.clear();
-    for (const auto& player : _players) {
-        int netId = player->getNetworkId();
-        _playerIdMap[netId] = player.get();
+    // Re-wire circular neighbour ring.
+    for (int i = 0; i < n; i++) {
+        _players[i]->setLeftPlayer(_players[(i - 1 + n) % n].get());
+        _players[i]->setRightPlayer(_players[(i + 1) % n].get());
     }
 
-    // Recompute any slot-dependent relationships (neighbors, visuals, turn order)
-    rebuildNetworkOrderState();
+    // Update each player's internal slot number to match their new position
+    for (int i = 0; i < n; i++) {
+        _players[i]->setPlayerNumber(i);
+    }
+
+    // Keep _localPlayer pointing at the same player object, now at its new slot.
+    if (localBefore) {
+        for (int i = 0; i < n; i++) {
+            if (_players[i].get() == localBefore) {
+                _localPlayer = _players[i].get();
+                break;
+            }
+        }
+    }
 }

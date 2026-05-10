@@ -523,6 +523,10 @@ protected:
 
     Status _status;
 
+ #pragma mark - Gaia Variables
+    /* RNG for host - authoritative slot shuffling during gameplay. **/
+    std::mt19937 _rng;
+
 public:
 #pragma mark - Constructors
 
@@ -977,6 +981,12 @@ public:
       * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well
       */
     void handleGaiaSpawn();
+
+    /** HOST ONLY. Custom method used by Gaia. This creates a new ordering for the players.
+      * This new ordering is sent to the GameState to be applied to the local machine's.
+      * This also broadcasts the new ordering over the network for clients to apply respectively as well
+    */
+    void handleGaiaScramble();
     
     /**
      * Spawns items for the local player every frame, and for all AI-controlled

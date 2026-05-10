@@ -578,6 +578,9 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     updatePlayerAndTeammateIcons(0.0f);
     
     setActive(false);
+
+    // Seed RNG once for host-authoritative shuffle operations
+    _rng = std::mt19937(std::random_device{}());
     return true;
 }
 
@@ -1036,6 +1039,9 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
     Player* target = local ? local->getLeftPlayer() : nullptr;
     if (!local || !target || itemId == 0) return false;
 
+    CULog("Our friends' ID is %d, ", target->getPlayerNumber());
+    CULog("Our number is %d", local->getPlayerNumber());
+
     // For real players, verify they're still in the networked players list
     if (!target->isAI()) {
         int targetSlot = target->getPlayerNumber();
@@ -1084,6 +1090,9 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
     if (!local || !target || itemId == 0) return false;
+
+    CULog("Our friends' ID is %d, ", target->getPlayerNumber());
+    CULog("Our number is %d", local->getPlayerNumber());
 
     // For real players, verify they're still in the networked players list
     if (!target->isAI()) {
@@ -1238,8 +1247,7 @@ void GameScene::updateEnemyAndAI(float dt) {
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
 
     if (_enemyController.didFireScrambleEvent()) {
-        _network->scrambleAndBroadcastPlayerOrder();
-        updateNetworkOrder();
+        handleGaiaScramble();
     }
 }
 
@@ -2046,6 +2054,9 @@ void GameScene::handleNetworkUpdates(float dt) {
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        if (_network->checkMidGameScramble()) {
+            _gameState.applyPlayerScramble(_network->getPlayerScrambleMapping());
+        }
         refreshTeammateNameLabels();
     }
     
@@ -2128,6 +2139,19 @@ void GameScene::handleGaiaSpawn() {
     
     return;
 }
+
+void GameScene::handleGaiaScramble() {
+    // Build identity list [0,1,2,3]
+    std::array<int, 4> mapping = { 0, 1, 2, 3 };
+
+    // Shuffle atomically (single final result)
+    std::shuffle(mapping.begin(), mapping.end(), _rng);
+
+    _network->applyPlayerScramble(mapping);
+    _gameState.applyPlayerScramble(mapping);
+    _network->broadcastPlayerScramble(mapping);
+}
+
 
 /**
  * Spawns items for the local player every frame, and for all AI-controlled
