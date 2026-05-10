@@ -1,6 +1,7 @@
 // EnemyController.cpp
 #include "EnemyController.h"
 #include "scenes/GameScene.h"
+#include "bosses/Cerberus.h"
 #include <algorithm>
 
 using namespace cugl;
@@ -231,6 +232,22 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
 
     int offset = fe.def.target; // int offset from JSON
     int victim = wrapIndex(enemy->getTargetIndex() + offset, n);
+
+    // Cerberus: knocked heads block or redirect damage.
+    // _heads[3]: 0=main,1=right,2=left; isHeadKnocked converts absolute slot internally.
+    if (enemy->getId() == "cerberus") {
+        auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
+        if (cerberus && cerberus->isHeadKnocked(victim)) {
+            if (fe.state == EnemyLoader::State::ATTACK_3) {
+                // Single-head attack: try to redirect to an un-knocked side head
+                int alt = cerberus->getAlternateKnockedHead(enemy->getTargetIndex());
+                if (alt < 0) return; // all knocked, skip
+                victim = alt;
+            } else {
+                return; // head knocked, this side is protected
+            }
+        }
+    }
     
     // Victim was killed before event completed
     if (!players[victim]->isAlive()) {

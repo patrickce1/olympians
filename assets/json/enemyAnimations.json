@@ -83,8 +83,8 @@
             "loopStartFrame": 0,
             "loopEndFrame": 7,
             "positionX": 196.5,
-            "positionY": 216.0,
-            "scale": 0.75,
+            "positionY": 206.0,
+            "scale": 0.32,
             "offsetX": 0,
             "offsetY": 0
         },
@@ -99,6 +99,20 @@
             "positionX": 196.5,
             "positionY": 286.0,
             "scale": 0.25,
+            "offsetX": 0,
+            "offsetY": 0
+        },
+        {
+            "id": "cerberus_head_knocked_animation",
+            "texture": "textures/gameScene/cerberus/cerberus_head_knocked_animation.png",
+            "frameCount": 4,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "loopStartFrame": 0,
+            "loopEndFrame": 3,
+            "positionX": 196.5,
+            "positionY": 286.0,
+            "scale": 0.2,
             "offsetX": 0,
             "offsetY": 0
         },

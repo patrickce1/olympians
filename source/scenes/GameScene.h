@@ -15,6 +15,7 @@
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 #include "../bosses/Gaia.h"
+#include "../bosses/Cerberus.h"
 
 
 /** Animation duration for floating popups to scale in, in seconds. */

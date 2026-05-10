@@ -10,9 +10,13 @@
  */
 bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath) {
     bool success = Enemy::init("cerberus", jsonPath);
-    _lifeStealPercent        =  _customData->getFloat("lifeStealPercent");
-    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f",
-                      _lifeStealPercent);
+    _lifeStealPercent     = _customData->getFloat("lifeStealPercent");
+    _maxKnockedThreshold    = _customData->getFloat("knockedThreshold", 50.0f);
+    _knockedDuration        = _customData->getFloat("knockedDuration", 4.0f);
+    _knockedThresholdRegen  = _customData->getFloat("knockedThresholdRegen", 10.0f);
+    for (int i = 0; i < 3; i++) _heads[i].knockedThreshold = _maxKnockedThreshold;
+    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f knockedThreshold=%.1f knockedDuration=%.1f regen=%.1f",
+                      _lifeStealPercent, _maxKnockedThreshold, _knockedDuration, _knockedThresholdRegen);
     return success;
 }
 
@@ -28,9 +32,13 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath) {
  */
 bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) {
     bool success = Enemy::init("cerberus", jsonPath, assets);
-    _lifeStealPercent        =  _customData->getFloat("lifeStealPercent");
-    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f",
-                      _lifeStealPercent);
+    _lifeStealPercent       = _customData->getFloat("lifeStealPercent");
+    _maxKnockedThreshold    = _customData->getFloat("knockedThreshold", 50.0f);
+    _knockedDuration        = _customData->getFloat("knockedDuration", 4.0f);
+    _knockedThresholdRegen  = _customData->getFloat("knockedThresholdRegen", 10.0f);
+    for (int i = 0; i < 3; i++) _heads[i].knockedThreshold = _maxKnockedThreshold;
+    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f knockedThreshold=%.1f knockedDuration=%.1f regen=%.1f",
+                      _lifeStealPercent, _maxKnockedThreshold, _knockedDuration, _knockedThresholdRegen);
     return success;
 }
 
@@ -43,13 +51,13 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, con
  * @param dt  Elapsed time in seconds since the last update
  */
 void Cerberus::update(float dt) {
-    //Tick the head stun timers
-    for (int i = 0; i < 3; i++){
-        if (_heads[i].stunned){
-            _heads[i].stunTimer -= dt;
-            if (_heads[i].stunTimer <= 0) {
-                unstunHead(i);
-            }
+    for (int i = 0; i < 3; i++) {
+        if (_heads[i].knocked) {
+            _heads[i].knockedTimer -= dt;
+            if (_heads[i].knockedTimer <= 0) unKnockHead(i);
+        } else {
+            _heads[i].knockedThreshold = std::min(_maxKnockedThreshold,
+                _heads[i].knockedThreshold + _knockedThresholdRegen * dt);
         }
     }
     if (_corrosiveActive) {
@@ -73,6 +81,16 @@ void Cerberus::update(float dt) {
 void Cerberus::takeDamage(float damage, int playerIndex) {
     float heal = damage * _lifeStealPercent;
     updateHealth(heal);
+
+    int relPos4 = (playerIndex - getTargetIndex() + 4) % 4;
+    if (relPos4 != 2) {  // back position has no head
+        int headIdx = (relPos4 == 3) ? 2 : relPos4;
+        if (!_heads[headIdx].knocked) {
+            _heads[headIdx].knockedThreshold -= damage;
+            if (_heads[headIdx].knockedThreshold < 0) knockHead(headIdx);
+        }
+    }
+
     Enemy::takeDamage(damage, playerIndex);
 }
 
@@ -80,17 +98,15 @@ void Cerberus::applyCorrosive() {
     // Stub: full corrosive inventory drain to be implemented with game scene integration
 }
 
-void Cerberus::stunHead(int headIndex) {
-    _heads[headIndex].stunned = true;
-    _heads[headIndex].stunTimer = HEAD_STUN_DURATION;
-
-    if (_heads[0].stunned && _heads[1].stunned && _heads[2].stunned) {
-        _isFullyStunned = true;
-    }
+void Cerberus::knockHead(int playerSlot) {
+    _heads[playerSlot].knocked = true;
+    _heads[playerSlot].knockedTimer = _knockedDuration;
+    _heads[playerSlot].knockedThreshold = _maxKnockedThreshold;
+    CULog("[Cerberus] Head %d knocked for %.1fs", playerSlot, _knockedDuration);
 }
 
-void Cerberus::unstunHead(int headIndex) {
-    _heads[headIndex].stunned = false;
-    _heads[headIndex].stunTimer = 0;
-    _isFullyStunned = false;
+void Cerberus::unKnockHead(int playerSlot) {
+    _heads[playerSlot].knocked = false;
+    _heads[playerSlot].knockedTimer = 0.0f;
+    CULog("[Cerberus] Head %d recovered", playerSlot);
 }

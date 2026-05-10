@@ -1876,9 +1876,29 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
             // for heads that participate, so they start the new animation from frame 0.
             const auto& participants = stateDef ? stateDef->headParticipants : std::vector<int>{};
             bool isRelative = stateDef && stateDef->headParticipantsRelative;
+            auto cerberusForTransition = std::dynamic_pointer_cast<Cerberus>(enemy);
+
+            // For attack_3 (single relative head): if the front head (absolute slot = targetIndex) is knocked,
+            // redirect the animation to an available side head instead.
+            // _heads[3]: 0=main, 1=right, 2=left; isHeadKnocked converts absolute slot internally.
+            int attack3RedirectHead = -1;
+            if (curState == EnemyLoader::State::ATTACK_3 && isRelative && cerberusForTransition) {
+                int targetSlot = enemy->getTargetIndex();
+                if (cerberusForTransition->isHeadKnocked(targetSlot)) {
+                    int altSlot = cerberusForTransition->getAlternateKnockedHead(targetSlot);
+                    if (altSlot >= 0) {
+                        attack3RedirectHead = (altSlot - targetSlot + direction + 4) % 4;
+                    }
+                    // If altSlot == -1, all knocked → no animation committed (damage also skipped in EnemyController)
+                }
+            }
+
             for (int i = 0; i < 4; i++) {
                 bool participates;
-                if (participants.empty()) {
+                if (attack3RedirectHead >= 0) {
+                    // Redirected single-head attack: only the alternate head plays
+                    participates = (i == attack3RedirectHead);
+                } else if (participants.empty()) {
                     participates = true;
                 } else if (isRelative) {
                     // Convert absolute head index to direction-relative index, then check
@@ -1891,12 +1911,18 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
                 // If it uses the idle head key (e.g. defensive_move), don't interrupt
                 // a currently-playing attack animation — let the completion check
                 // in the per-head loop switch to idle once the animation finishes.
+                // Also skip knocked heads — they show the knocked animation instead.
+                // isHeadKnocked takes absolute slot and maps internally to _heads[3] (0=main,1=right,2=left).
                 if (participates && curHeadAnimKey != _cerberusIdleHeadAnimKey) {
-                    _cerberusHeadAnimTime[i] = 0.0f;
-                    _cerberusSoundFired[i] = false;
-                    _cerberusHeadActiveAnimKey[i] = curHeadAnimKey;
-
-                    _cerberusHeadAnimBuildUpTime[i] = buildUpTime;
+                    int slotForHead = (enemy->getTargetIndex() + i - direction + 4) % 4;
+                    bool headKnocked = cerberusForTransition &&
+                                       cerberusForTransition->isHeadKnocked(slotForHead);
+                    if (!headKnocked) {
+                        _cerberusHeadAnimTime[i] = 0.0f;
+                        _cerberusSoundFired[i] = false;
+                        _cerberusHeadActiveAnimKey[i] = curHeadAnimKey;
+                        _cerberusHeadAnimBuildUpTime[i] = buildUpTime;
+                    }
                 }
             }
         }
@@ -1942,7 +1968,7 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
     static constexpr float PERSP_SCALE      = 0.95f;
     static constexpr float PERSP_SHIFT      = 5.0f;
     static constexpr float BACK_SIDE_SHIFT  = 35.0f;
-    static constexpr float BACK_VIEW_SPREAD = 15.0f;
+    static constexpr float BACK_VIEW_SPREAD = 10.0f;
     static constexpr float GLOBAL_SHIFT     = 15.0f;
     static constexpr float Y_DELTA_SIDE     = 20.0f;
     static constexpr float Y_DELTA_BACK     = 10.0f;
@@ -1976,6 +2002,15 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
         // Use committed key — may differ from state's curHeadAnimKey while bite is completing
         std::string headAnimKey = _cerberusHeadActiveAnimKey[i];
 
+        // Override to knocked animation when this head is knocked, immediately aborting any attack animation.
+        // headSlot is absolute; isHeadKnocked maps it to _heads[3] (0=main,1=right,2=left) internally.
+        auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
+        int headSlot = (enemy->getTargetIndex() + i - direction + 4) % 4;
+        if (cerberus && cerberus->isHeadKnocked(headSlot)) {
+            _cerberusHeadActiveAnimKey[i] = _cerberusIdleHeadAnimKey;  // abort any in-progress attack anim
+            headAnimKey = "cerberus_head_knocked_animation";
+        }
+
         // Set visibility: show only the correct sprite set for this head, hide all others
         for (auto& [key, sprites] : _cerberusHeadSpritesByAnim) {
             if (sprites[i]) sprites[i]->setVisible(show && key == headAnimKey);
@@ -1989,6 +2024,7 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
         // Perspective scale and position offsets
         int rel = (i - direction + 4) % 4;
         float scaleMult = (rel == 0) ? 1.0f : PERSP_SCALE;
+        if (direction == 2 && rel != 0) scaleMult *= 0.9f;  // side heads 10% smaller when facing back
 
         float perspX = 0.0f;
         if (rel != 0) {
@@ -2006,7 +2042,7 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
         float yAdjust = 0.0f;
         if (yDelta > 0.0f) {
             if (direction == 2) {
-                yAdjust = (rel == 0) ? -yDelta : -yDelta;
+                yAdjust = -yDelta;
             } else {
                 if (rel == 0)   yAdjust =  yDelta;
                 else if (i == 2) yAdjust = +yDelta;
@@ -2014,8 +2050,9 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
             }
         }
 
-        // Use the saved buildUpTime for the committed animation (state may already be idle)
-        float heBuTime = (headAnimKey != _cerberusIdleHeadAnimKey) ? _cerberusHeadAnimBuildUpTime[i] : 0.0f;
+        // Use the saved buildUpTime for the committed animation (state may already be idle).
+        // Always use the committed key here — knocked heads display as idle-phase loops.
+        float heBuTime = (_cerberusHeadActiveAnimKey[i] != _cerberusIdleHeadAnimKey) ? _cerberusHeadAnimBuildUpTime[i] : 0.0f;
         int frame = computeHeadFrame(he, _cerberusHeadAnimTime[i], heBuTime, i);
 
         auto& activeSprites = _cerberusHeadSpritesByAnim[headAnimKey];
@@ -2027,8 +2064,9 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
             activeSprites[i]->setFrame(frame);
         }
 
-        // Fire damage sound once per head per attack when animation crosses damageFrame
-        bool isAttackAnim = (headAnimKey != _cerberusIdleHeadAnimKey);
+        // Fire damage sound once per head per attack when animation crosses damageFrame.
+        // Use the committed key, not the display key — knocked heads must not count as attacking.
+        bool isAttackAnim = (_cerberusHeadActiveAnimKey[i] != _cerberusIdleHeadAnimKey);
         if (isAttackAnim && !_cerberusSoundFired[i] && he.damageFrame >= 0) {
             int frameInRow = frame - i * he.frameCount;
             if (frameInRow >= he.damageFrame) {

@@ -1,5 +1,6 @@
 #include <cugl/cugl.h>
 #include "GameState.h"
+#include "../bosses/Cerberus.h"
 #include <array>
 #include <cstdlib>
 
@@ -141,7 +142,7 @@ bool GameState::initEnemy() {
 
 /**
  * Creates an enemy instance of the appropriate type based on enemy ID.
- * Currently supports Cyclops (custom class) and Cerberus (generic Enemy).
+ * Currently supports Cyclops, Cerberus, and Gaia as custom subclasses.
  * 
  * @param enemyID The unique identifier for the enemy to create
  * @return A shared pointer to the newly created enemy instance
@@ -150,8 +151,7 @@ static std::shared_ptr<Enemy> createEnemyByID(const std::string& enemyID) {
     if (enemyID == "cyclops") {
         return std::make_shared<Cyclops>();
     } else if (enemyID == "cerberus") {
-        // TODO: Create a custom Cerberus class in a future PR
-        return std::make_shared<Enemy>();
+        return std::make_shared<Cerberus>();
     }
     else if (enemyID == "gaia") {
         return std::make_shared<Gaia>();
