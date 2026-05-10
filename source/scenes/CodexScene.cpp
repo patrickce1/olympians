@@ -11,7 +11,10 @@ using namespace std;
 #define SCENE_HEIGHT  852
 /** Max number of items per row */
 #define ITEMS_PER_ROW  3
-
+/** Interpolation smoothing factor*/
+#define SMOOTHING_FACTOR 0.2f
+/** Minimum vertical pixel distance to commit to a swipe direction. */
+static constexpr float SWIPE_THRESHOLD = 40.0f;
 
 #pragma mark -
 #pragma mark Provided Methods
@@ -199,7 +202,6 @@ void CodexScene::setupUI() {
  * Attaches input listeners to the codex buttons.
  */
 void CodexScene::setupListeners() {
-    
     _backButton->addListener([this](const std::string& name, bool down) {
         if (!down || !_active) return;
         if (down) {
@@ -215,19 +217,16 @@ void CodexScene::setupListeners() {
     int visibleRows = 6;
     _maxRow  = std::max(0, numRows - visibleRows);
     _currentRow = 0;
+    
+    // Capture the grid's Y position at row 0 so tracking and snapping
+    // can compute row positions as offsets from this base.
+    if (_codexGrid) {
+        _baseGridPositionY = _codexGrid->getPosition().y;
+    }
 
-    _scrollDown->addListener([this](const std::string& name, bool down) {
-        if (!down || !_active) return;
-        if (_selectedIndex == -1) scroll(_currentRow + 1);
-    });
-
-    _scrollUp->addListener([this](const std::string& name, bool down) {
-        if (!down || !_active) return;
-        if (_selectedIndex == -1) scroll(_currentRow - 1);
-    });
-
+    // Scroll buttons hidden — swiping handles scrolling instead.
     _scrollUp->setVisible(false);
-    _scrollDown->setVisible(_maxRow > 0);
+    _scrollDown->setVisible(false);
     
     _darkOverlay->addListener([this](const std::string& name, bool down) {
         if (!down || !_active) return;
@@ -296,10 +295,14 @@ void CodexScene::setActive(bool value) {
             _status = WAIT;
             
             updateButtonVisibility();
-            _scrollUp->activate();
-            _scrollDown->activate();
+            // Scroll buttons are replaced by swipe — keep deactivated.
+            _scrollUp->deactivate();
+            _scrollDown->deactivate();
             _backButton->activate();
             _darkOverlay->activate();
+            _swipeContainerStartY = 0.0f;
+            _isSnapping  = false;
+            _snapTarget = cugl::Vec2::ZERO;
             
         } else {
             for (auto& row : _itemNodes) {
@@ -328,9 +331,9 @@ void CodexScene::setActive(bool value) {
  * We need to update this method to constantly talk to the server
  *
  * @param timestep  The amount of time (in seconds) since the last frame
+ * @param input         The input controller instance
  */
-void CodexScene::update(float timestep) {
-    // Kick client if host terminated the session
+void CodexScene::update(float timestep, InputController& input) {
     if (!_network->isHost()) {
         if (_network->checkConnection() != NetworkController::Status::CONNECTED) {
             _status = Status::ABORT;
@@ -345,7 +348,6 @@ void CodexScene::update(float timestep) {
         }
     }
     
-    // Forward to pre game scene if host started while we were here
     if (_network->getHostsCurrentScene() == 0) {
         _status = Status::PRE_GAMESCENE_START;
         return;
@@ -360,8 +362,6 @@ void CodexScene::update(float timestep) {
                 button->deactivate();
             }
         }
-        _scrollUp->deactivate();
-        _scrollDown->deactivate();
         
         const CodexItem& item = _items[_pendingDetailIndex];
         _nameLabel->setText(item.name);
@@ -381,32 +381,48 @@ void CodexScene::update(float timestep) {
             _effectLabel->setForeground(cugl::Color4("#2000ACff"));
         }
         
-        // Adjust rarity label padding based on effect label length
         size_t effectLen = item.effectLabel.length();
-        auto typeNode = _effectLabel->getParent(); // "type" node
-        float totalWidth = 294.0f; // info node total width
-        float rarityWidth = 70.0f; // rarity node width + padding
-
-        // Clamp type width between rarity's leftover and full available space
+        auto typeNode = _effectLabel->getParent();
+        float totalWidth = 294.0f;
+        float rarityWidth = 70.0f;
         float desiredWidth = std::min((float)effectLen * 8.0f, totalWidth - rarityWidth);
-        desiredWidth = std::max(desiredWidth, 80.0f); // minimum width
-
+        desiredWidth = std::max(desiredWidth, 80.0f);
         typeNode->setContentSize(Size(desiredWidth, typeNode->getContentSize().height));
         typeNode->doLayout();
-
-        // Trigger info node to re-layout and re-center
         typeNode->getParent()->doLayout();
         
         auto texture = _assets->get<cugl::graphics::Texture>(item.imageLarge);
         _itemLarge->setTexture(texture);
         _itemLarge->setScale(0.5f);
-    
         _darkOverlay->setVisible(true);
         _itemLarge->setVisible(true);
         _detailPanel->setVisible(true);
     }
     
     hideDetailPanel();
+
+    // Only process swipes when not in detail view — swipes shouldn't
+    // scroll the grid while the detail panel is open.
+    if (_status != Status::INFO) {
+        handleSwipeBegin(input);
+        handleSwipeTracking(input);
+        handleSwipeRelease(input);
+    }
+    
+    // Lerp the grid toward the snap target after a swipe release,
+    // mirroring how BossSelectScene lerps its container to _slideTarget.
+    if (_isSnapping) {
+        Vec2 current = _codexGrid->getPosition();
+        Vec2 next    = current.lerp(_snapTarget, SMOOTHING_FACTOR);
+
+        if (current.distance(_snapTarget) < 1.0f) {
+            _codexGrid->setPosition(_snapTarget);
+            _isSnapping = false;
+            updateButtonVisibility();
+        } else {
+            _codexGrid->setPosition(next);
+        }
+    }
 }
 
 /**
@@ -417,38 +433,6 @@ void CodexScene::update(float timestep) {
 void CodexScene::showDetailPanel(const CodexItem& item) {
     _pendingShowDetail = true;
     _pendingDetailIndex = _selectedIndex;
-}
-
-/**
- * Scrolls the codex grid to a specified row.
- *
- * @param newRow Target row index
- */
-void CodexScene::scroll(int newRow) {
-    if (_isScrolling) return;
-    if (newRow < 0 || newRow > _maxRow) return;
-
-    _isScrolling = true;
-
-    // Deactivate ALL buttons before moving
-    for (auto& row : _itemNodes) {
-        for (auto& button : row) {
-            button->deactivate();
-        }
-    }
-    
-    int delta = newRow - _currentRow;
-    Vec2 currentPos = _codexGrid->getPosition();
-    _codexGrid->setPosition(currentPos.x, currentPos.y + (delta * _rowHeight));
-    _currentRow = newRow;
-
-    // Now reactivate — hit regions will be computed at new positions
-    updateButtonVisibility();
-
-    _scrollUp->setVisible(_currentRow > 0);
-    _scrollDown->setVisible(_currentRow < _maxRow);
-
-    _isScrolling = false;
 }
 
 /**
@@ -488,4 +472,116 @@ void CodexScene::updateButtonVisibility() {
             }
         }
     }
+}
+
+#pragma mark -
+#pragma mark Swipe Gesture Handling
+
+/**
+ * Records the touch-down position to begin tracking a potential vertical swipe.
+ * @param input  The input controller for this frame.
+ */
+void CodexScene::handleSwipeBegin(InputController& input) {
+    if (_isSwiping) return;
+
+    if (!input.isTouching() && !input.isMouseDown()) {
+        _swipeHoldFrames      = 0;
+        _swipeTouchInitialPos = cugl::Vec2::ZERO;
+        return;
+    }
+
+    if (_swipeHoldFrames == 0) {
+        _swipeTouchInitialPos = input.getTouchStart();
+    }
+
+    Vec2 worldCurrent = screenToWorldCoords(input.getDragPos());
+    Vec2 worldStart   = screenToWorldCoords(_swipeTouchInitialPos);
+
+    float horizontalDelta = std::abs(worldCurrent.x - worldStart.x);
+    float verticalDelta   = std::abs(worldCurrent.y - worldStart.y);
+
+    if (verticalDelta > horizontalDelta && verticalDelta > 5.0f) {
+        _swipeHoldFrames++;
+    } else {
+        _swipeHoldFrames = 0;
+    }
+
+    if (_swipeHoldFrames >= SWIPE_HOLD_FRAMES) {
+        // Store start positions in world space so tracking delta is correct.
+        _swipeTouchStartY     = screenToWorldCoords(_swipeTouchInitialPos).y;
+        _swipeContainerStartY = _codexGrid->getPosition().y;
+        _isSwiping            = true;
+        _swipeHoldFrames      = 0;
+
+        // Deactivate buttons while dragging so taps don't fire mid-swipe.
+        for (auto& row : _itemNodes) {
+            for (auto& button : row) {
+                button->deactivate();
+            }
+        }
+    }
+}
+
+/**
+ * Moves the grid container directly under the finger each frame,
+ * mirroring how BossSelectScene tracks its card container. Computes
+ * the vertical delta between the current drag position and the
+ * touch-down position (both in world space), then applies that delta
+ * to the grid's Y position at the start of the drag. Clamps so the
+ * grid cannot scroll past row 0 or the last scrollable row.
+ *
+ * @param input  The input controller for this frame.
+ */
+void CodexScene::handleSwipeTracking(InputController& input) {
+    if (!_isSwiping) return;
+    if (!input.isTouching() && !input.isMouseDown()) return;
+
+    Vec2  worldPos    = screenToWorldCoords(input.getDragPos());
+    float fingerDelta = worldPos.y - _swipeTouchStartY;
+    float rawY        = _swipeContainerStartY + fingerDelta;
+
+    // Grid starts at _baseGridPositionY (row 0, highest Y).
+    // Scrolling down shifts the grid up (Y decreases) to show later rows.
+    float maxY     = _baseGridPositionY + 1.5*(_maxRow * _rowHeight);
+    float minY     = _baseGridPositionY - 0.5*(_maxRow * _rowHeight); // last row
+    float clampedY = std::max(minY, std::min(maxY, rawY));
+    Vec2 pos = _codexGrid->getPosition();
+    _codexGrid->setPosition(Vec2(pos.x, clampedY));
+}
+
+/**
+ * On finger lift, reads the grid's current Y position and snaps to
+ * the nearest row boundary, mirroring how BossSelectScene's
+ * snapToNearestBoss reads the container's X and snaps to the nearest
+ * card. Re-activates visible item buttons after snapping.
+ *
+ * @param input  The input controller for this frame.
+ */
+void CodexScene::handleSwipeRelease(InputController& input) {
+    if (!input.touchEnded()) return;
+    if (!_isSwiping) {
+        _isSwiping = false;
+        return;
+    }
+
+    float currentGridY = _codexGrid->getPosition().y;
+
+    float traveled   = currentGridY - _baseGridPositionY;
+    float rawRow     = traveled / _rowHeight;
+    int nearestRow   = static_cast<int>(std::round(rawRow));
+    nearestRow       = std::max(0, std::min(_maxRow, nearestRow));
+
+    // Do not snap immediately — set a lerp target and let update()
+    // animate the grid smoothly to the nearest row boundary.
+    Vec2 currentPos = _codexGrid->getPosition();
+    _snapTarget  = Vec2(currentPos.x, _baseGridPositionY + (nearestRow * _rowHeight));
+    _isSnapping  = true;
+    _currentRow  = nearestRow;
+
+    // Buttons remain deactivated until the lerp settles in update().
+
+    _isSwiping            = false;
+    _swipeTouchStartY     = 0.0f;
+    _swipeContainerStartY = 0.0f;
+    _swipeTouchInitialPos = cugl::Vec2::ZERO;
 }
