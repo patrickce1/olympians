@@ -5,6 +5,8 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <map>
+#include "../InputController.h"
 #include "../EnemyLoader.h"
 #include "../NetworkController.h"
 
@@ -75,6 +77,41 @@ protected:
     
     /** The initial position of the boss carousel. */
     cugl::Vec2 _baseCarouselPosition;
+    
+    // --- Swipe gesture state ---
+
+    /** X position where the finger first touched down. */
+    float _swipeTouchStartX = 0.0f;
+
+    /** Whether a swipe gesture is currently being tracked. */
+    bool _isSwiping = false;
+    
+    /**
+     * Maps each card's local X position (from the JSON Float layout) to its
+     * card index. Keys are the exact X values from the scene asset file:
+     * 0, 216, 432, 648 for cards 0-3 respectively.
+     */
+    std::map<float, int> _xPosToBoss;
+    
+    /**
+     * Maps each card index to its target container X position (the negative
+     * of the card's local X). Used to look up the exact container position
+     * that centres a given card without iterating _xPosToBoss in reverse.
+     */
+    std::map<int, float> _bossToTargetX;
+    
+    /**
+     * The X position of the card container at the moment the current touch
+     * began. Combined with _swipeTouchStartX to compute drag deltas in
+     * handleSwipeTracking() without accumulated drift.
+     */
+    float _swipeContainerStartX = 0.0f;
+    
+    /** Position of the touch on the first frame it was detected. */
+    cugl::Vec2 _swipeTouchInitialPos = cugl::Vec2::ZERO;
+    
+    /** Number of frames the finger has been moving horizontally. */
+    int _swipeHoldFrames = 0;
 
 public:
 #pragma mark -
@@ -160,8 +197,9 @@ public:
      * The method called to update the scene.
      *
      * @param timestep  The amount of time (in seconds) since the last frame
+     * @param input         The input controller instance
      */
-    void update(float timestep) override;
+    void update(float timestep, InputController& input);
     
 
 private:
@@ -195,6 +233,49 @@ private:
     
     /** Loads boss definitions from the enemies JSON to use in selection. */
     bool loadBosses();
+    
+    /**
+     * Records the touch-down position to begin tracking a potential swipe.
+     *
+     * Called every frame from update(). On the first frame a touch is
+     * detected while no swipe is already in progress, stores the starting
+     * X coordinate (screen space) in _swipeTouchStartX and sets _isSwiping.
+     * No-op on subsequent frames or when a gesture is already active.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeBegin(InputController& input);
+
+    /**
+     * Moves the card container directly under the finger each frame while
+     * a swipe is active. Computes the delta from the touch-down position and
+     * applies it to the container's position at the start of the drag.
+     * Clamps the container so it cannot be dragged past the first or last card.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeTracking(InputController& input);
+
+    /**
+     * Called on finger lift. Delegates to snapToNearestBoss() to find and
+     * animate to the closest card to the current container position.
+     * Clears all swipe tracking state before returning.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeRelease(InputController& input);
+
+    /**
+     * Finds the card whose X position in _xPosToBoss is closest to
+     * `releaseContainerX`, updates _currentIndex to that card's index,
+     * updates the glow overlays and dot indicators, and initiates a lerp
+     * animation to that card's exact centred container position.
+     *
+     * @param releaseContainerX  The container's X position at the moment
+     *                           the finger lifted, in the container's
+     *                           parent's local space.
+     */
+    void snapToNearestBoss(float releaseContainerX);
 };
 
 #endif /* __BOSS_SELECT_SCENE_H__ */

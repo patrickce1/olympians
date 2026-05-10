@@ -73,6 +73,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
         out = ItemDef::EffectType::Forge;
         return true;
     }
+    if (value == "charm") {
+        out = ItemDef::EffectType::Charm;
+        return true;
+    }
     return false;
 }
 

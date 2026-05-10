@@ -1402,11 +1402,13 @@ public:
      * @param baseValue     Item's raw base heal value.
      * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
      * @param def           Item definition used to detect additional support effects such as regen.
+     * @param shouldShowEffectPopup Whether effect-specific popups should be shown.
+     * @param charmActive   Whether charm should modify effect-specific popup values.
      * @return Ordered list of FloatingPopupData for the sequence.
      */
     std::vector<FloatingPopupData> buildHealPopups(float baseValue, float resolvedHeal,
                                                    const std::shared_ptr<const ItemDef>& def,
-                                                   bool shouldShowEffectPopup) const;
+                                                   bool shouldShowEffectPopup, bool charmActive) const;
 
     /**
      * Fires visual popups for any shield or barrier effects on a support item.
@@ -1419,8 +1421,10 @@ public:
      * @param dropPos  Screen-space position where popups appear.
      * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
      * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
+     * @param charmActive Whether charm should modify effect-specific popup values.
      */
-    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos, bool shouldShowEffectPopup, bool hasHealingPopup);
+    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos,
+                                    bool shouldShowEffectPopup, bool hasHealingPopup, bool charmActive);
 
     /**
      * Handles the shared ally-target branch for attack items and returns whether it fully resolved the item use.
