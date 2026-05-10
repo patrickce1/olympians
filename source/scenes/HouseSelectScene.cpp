@@ -81,12 +81,18 @@ void HouseSelectScene::setupUI() {
 
     // Player and Teammate Icon Widgets
     _playerIcon = (_assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.playerSelectIcon"));
+    
     _leftPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((
-        _assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconLeft")));
+        _assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconLeft.icon")));
+    _leftPlayerIcon->setScale(0.5f);
+    
     _rightPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((
-        _assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconRight")));
+        _assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconRight.icon")));
+    _rightPlayerIcon->setScale(0.5f);
+    
     _upPlayerIcon = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>((
-        _assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconUp")));
+        _assets->get<scene2::SceneNode>("houseSelectScene.selectorIcons.teamSelectIconUp.icon")));
+    _upPlayerIcon->setScale(0.5f);
 
     if (_playerIcon) {
         _playerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
@@ -245,6 +251,8 @@ void HouseSelectScene::setActive(bool value) {
             // Jump carousel to the saved index (no animation on restore)
             _isAnimating = false;
             refreshLocalPlayerIcon();
+            _rightButton->setVisible(true);
+            _leftButton->setVisible(true);
             slideTo(getInitialCarouselIndex(_targetSlot));
             updateTeammateIcons();
 
@@ -374,6 +382,15 @@ void HouseSelectScene::slideTo(int newIndex) {
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
     
+    if (_currentIndex == 0) {
+        _leftButton->setVisible(false);
+    } else if (_currentIndex == _houseCards.size() - 1) {
+        _rightButton->setVisible(false);
+    } else {
+        _rightButton->setVisible(true);
+        _leftButton->setVisible(true);
+    }
+    
     for (int i = 0; i < _houseCards.size(); i++) {
         auto card = _houseCards[i];
         if (card) {
@@ -444,7 +461,7 @@ void HouseSelectScene::updateAIPreviewIcon(int currentIndex) {
         activeIcon->setTexture(texture != nullptr
             ? texture
             : _assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
-        activeIcon->setScale(0.92);
+        activeIcon->setScale(0.46);
         return;
     }
 }
@@ -470,6 +487,7 @@ void HouseSelectScene::updateSelectedIcon(int currentIndex, bool commitToGameSta
         _playerIconImage->setTexture(texture != nullptr
             ? texture
             : _assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
+        _playerIconImage->setScale(0.5f);
 
         if (commitToGameState && _gameState) {
             int localIndex = _network->getLocalPlayerNumber();
@@ -595,7 +613,7 @@ void HouseSelectScene::updateTeammateIcons() {
         } else {
             activeIcon->setTexture(_assets->get<cugl::graphics::Texture>("emptyLocalIcon"));
         }
-        activeIcon->setScale(0.92);
+        activeIcon->setScale(0.48);
     }
 }
 

@@ -360,6 +360,7 @@ static void testUseAttackItemDamagesEnemy(const HouseLoader& loader,
                                           Enemy& enemy,
                                           const std::string& attackDefId) {
     auto players   = makeTwoPlayers(loader, houseId);
+    enemy.setCurrentHealth(100.0f);
     float hpBefore = enemy.getCurrentHealth();
     players[0]->addItem(makeItem(attackDefId));
 
@@ -521,7 +522,7 @@ static void testMalletUpgradeScaling(const HouseLoader& loader,
     offAffinityPlayer->setMalletUseCount(2);
     offAffinityPlayer->addItem(makeItem("mallet"));
     const float offAffinityResolved = offAffinityPlayer->useItemById(offAffinityPlayer->getInventory()[0].getId(), enemy, db);
-    const float expectedOffAffinity = 22.5f * (1.0f + 1.0f);
+    const float expectedOffAffinity = 15.0f * (1.0f + 1.0f) * 1.5f;
     assertWithLabel(floatsEqualWithinTolerance(offAffinityResolved, expectedOffAffinity), "mallet upgrade: off-affinity mallet still uses existing streak damage");
     assertWithLabel(offAffinityPlayer->getMalletUseCount() == 2, "mallet upgrade: off-affinity mallet does not increment streak");
 }
@@ -643,6 +644,54 @@ static void testAIPassesWhenNoHealTarget(const HouseLoader& loader,
            "AI pass: item arrived at a neighbor");
 }
 
+/**
+ * Verifies that a dead AI player never attacks or heals —
+ * it should only pass items or remain idle.
+ *
+ * @param loader       House definitions used to construct the AI player and neighbors.
+ * @param houseId      The house id used to initialize all players in the fixture.
+ * @param db           The item database used to initialize the AI and resolve item types.
+ * @param enemy        The enemy instance passed to update() as required by the FSM.
+ * @param aiConfigPath Path to the AI config JSON (e.g. "assets/json/playerAI.json").
+ * @param attackDefId  DefId of an attack item to seed the AI's inventory with.
+ * @param supportDefId DefId of a support item to seed the AI's inventory with.
+ */
+static void testDeadAICanOnlyPassOrIdle(const HouseLoader& loader,
+                                   const std::string& houseId,
+                                   const ItemDatabase& db,
+                                   Enemy& enemy,
+                                   const std::string& aiConfigPath,
+                                   const std::string& attackDefId,
+                                   const std::string& supportDefId) {
+    auto players = makeFourPlayers(loader, houseId);
+
+    auto ai = std::make_shared<EasyPlayerAI>(houseId, 2, "Player 2", loader);
+    ai->setLeftPlayer (players[0].get());
+    ai->setRightPlayer(players[2].get());
+    if (!ai->init(db, aiConfigPath)) return;
+
+    // Kill the AI player
+    ai->updateHealth(-ai->getMaxHealth());
+
+    // Give it both item types so evaluate() has real options to choose from
+    ai->addItem(makeItem(attackDefId));
+    ai->addItem(makeItem(supportDefId));
+
+    float enemyHpBefore    = enemy.getCurrentHealth();
+    float neighborHpBefore = players[0]->getCurrentHealth();
+
+    ItemController items;
+    for (int i = 0; i < 20; i++) ai->update(0.5f, enemy, items);
+
+    assertWithLabel(enemy.getCurrentHealth() >= enemyHpBefore,
+           "Dead AI: enemy hp unchanged (no attack)");
+    assertWithLabel(players[0]->getCurrentHealth() >= neighborHpBefore,
+           "Dead AI: neighbor hp unchanged (no heal)");
+    assertWithLabel(ai->getState() == PlayerAI::State::PASS ||
+                    ai->getState() == PlayerAI::State::IDLE,
+           "Dead AI: final state is PASS or IDLE");
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point
 // ─────────────────────────────────────────────────────────────────────────────
@@ -664,8 +713,8 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     ItemDatabase    db     = loadDatabase(itemsJsonPath, housesJsonPath);
     Enemy           enemy  = loadEnemy(enemiesJsonPath, "cyclops");
 
-    const std::string attackDefId  = firstDefIdOfType(db, ItemDef::Type::Attack);
-    const std::string supportDefId = firstDefIdOfType(db, ItemDef::Type::Support);
+    const std::string attackDefId  = "sword";
+    const std::string supportDefId = "apple";
     const std::string houseId  = "poseidon";
 
     if (attackDefId.empty())  CULogError("PlayerTests: no Attack item found in '%s'",  itemsJsonPath.c_str());
@@ -704,6 +753,7 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     testAIActsOnAttackItem      (loader, houseId, db, enemy, aiConfigPath, attackDefId);
     testAIHealsInjuredNeighbor  (loader, houseId, db, enemy, aiConfigPath, supportDefId);
     testAIPassesWhenNoHealTarget(loader, houseId, db, enemy, aiConfigPath, supportDefId);
+    testDeadAICanOnlyPassOrIdle(loader, houseId, db, enemy, aiConfigPath, attackDefId, supportDefId);
 
     printSummary();
 }

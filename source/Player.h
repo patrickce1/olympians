@@ -62,6 +62,8 @@ private:
     float _regenAmountRemaining = 0.0f;
     /** The time left before the regen expires. */
     float _regenDuration = 0.0f;
+    /** The time left before educate expires. */
+    float _educateDuration = 0.0f;
     /** Number of prior mallet uses recorded for this player this round. */
     int _malletUseCount = 0;
 
@@ -153,6 +155,12 @@ public:
     /** Returns the remaining regen duration. */
     float getRegenDuration() const { return _regenDuration; }
 
+    /** Returns whether the educate effect is currently active on this player. */
+    bool hasEducate() const { return _educateDuration > 0.0f; }
+
+    /** Returns the remaining educate duration. */
+    float getEducateDuration() const { return _educateDuration; }
+
     /**
      * Returns the number of prior mallet uses recorded for this player this round.
      *
@@ -172,9 +180,10 @@ public:
      * @param barrierDuration   The remaining barrier duration in seconds.
      * @param regenAmountRemaining The remaining total healing to apply from regen.
      * @param regenDuration   The remaining regen duration in seconds.
+     * @param educateDuration The remaining educate duration in seconds.
      */
     void syncRuntimeEffects(float shieldHealth, float shieldDuration, float barrierMultiplier,
-        float barrierDuration, float regenAmountRemaining, float regenDuration) {
+        float barrierDuration, float regenAmountRemaining, float regenDuration, float educateDuration) {
         _hasShield = shieldDuration > 0.0f;
         _shieldHealth = _hasShield ? shieldHealth : 0.0f;
         _shieldDuration = _hasShield ? shieldDuration : 0.0f;
@@ -184,6 +193,7 @@ public:
         _hasRegen = regenDuration > 0.0f && regenAmountRemaining > 0.0f;
         _regenAmountRemaining = _hasRegen ? regenAmountRemaining : 0.0f;
         _regenDuration = _hasRegen ? regenDuration : 0.0f;
+        _educateDuration = std::max(0.0f, educateDuration);
     }
     
     /**
@@ -247,6 +257,13 @@ public:
      * @param duration  How long the regen lasts.
      */
     void applyRegen(float amount, float duration);
+
+    /**
+     * Applies a timed educate effect to this player.
+     *
+     * @param duration How long the educate effect should stay active.
+     */
+    void applyEducate(float duration);
     
     /**
      * Advances this player's active runtime support effects by the elapsed frame time.

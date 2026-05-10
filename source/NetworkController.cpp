@@ -36,6 +36,7 @@ void readPlayerRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage&
         effectState.barrierDuration = deserializer.readFloat();
         effectState.regenAmountRemaining = deserializer.readFloat();
         effectState.regenDuration = deserializer.readFloat();
+        effectState.educateDuration = deserializer.readFloat();
     }
 
     for (int ii = 0; ii < kMaxPlayers; ++ii) {
@@ -68,10 +69,12 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
             serializer.writeFloat(player->getBarrierDuration());
             serializer.writeFloat(player->getRegenAmountRemaining());
             serializer.writeFloat(player->getRegenDuration());
+            serializer.writeFloat(player->getEducateDuration());
         } else {
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(1.0f);
+            serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
@@ -377,11 +380,21 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             effectMsg.effectType = static_cast<SupportEffectType>(_deserializer.readSint32());
             effectMsg.magnitude = _deserializer.readFloat();
             effectMsg.duration = _deserializer.readFloat();
+            effectMsg.secondaryMagnitude = _deserializer.readFloat();
+            effectMsg.applyToAllPlayers = _deserializer.readBool();
             supportEffects.push_back(effectMsg);
             break;
         }
         case MessageType::ENEMY_EFFECT: {
             enemyEffects.push_back(readEnemyEffectMessage(_deserializer));
+            break;
+        }
+        case MessageType::FORGE_EFFECT: {
+            ForgeEffectMessage forgeMsg;
+            forgeMsg.divineChance = _deserializer.readFloat();
+            forgeMsg.seed = _deserializer.readSint32();
+            forgeMsg.authoritative = _deserializer.readBool();
+            forgeEffects.push_back(forgeMsg);
             break;
         }
         case MessageType::PLAYER_PASS: {
@@ -567,6 +580,7 @@ void NetworkController::clearQueues() {
 	heals.clear();
 	supportEffects.clear();
 	enemyEffects.clear();
+    forgeEffects.clear();
 	passes.clear();
     bossHeals.clear();
     gaiaSpawns = 0;
@@ -645,16 +659,20 @@ void NetworkController::broadcastGaiaSpawn(int playerID) {
  * Sends a support effect application to the host for authoritative processing.
  *
  * @param effectType The kind of support effect that was applied.
- * @param magnitude  The resolved magnitude of the effect.
+ * @param magnitude  The primary resolved magnitude of the effect.
  * @param duration   The timed duration of the effect, or 0 for instant effects.
- * @param playerID   The 0-based index of the player receiving the effect.
+ * @param playerID   The 0-based index of the player receiving the effect, or -1 for all-player effects.
+ * @param secondaryMagnitude Optional secondary magnitude used by multi-stage effects such as resurrect.
+ * @param applyToAllPlayers Whether the effect should be applied to every allied player slot instead of one target.
  */
-void NetworkController::broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID) {
+void NetworkController::broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID, float secondaryMagnitude, bool applyToAllPlayers) {
 	_serializer.writeSint32(MessageType::PLAYER_SUPPORT_EFFECT);
 	_serializer.writeSint32(playerID);
 	_serializer.writeSint32(static_cast<int>(effectType));
 	_serializer.writeFloat(magnitude);
 	_serializer.writeFloat(duration);
+	_serializer.writeFloat(secondaryMagnitude);
+	_serializer.writeBool(applyToAllPlayers);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
 }
@@ -680,6 +698,35 @@ void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float m
     writeEnemyEffectMessage(_serializer, effectMsg);
 	_network->sendToHost(_serializer.serialize());
 	_serializer.reset();
+}
+
+/**
+ * Sends a forge request to the host for authoritative seeding.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ */
+void NetworkController::requestForgeEffect(float chance) {
+    _serializer.writeSint32(MessageType::FORGE_EFFECT);
+    _serializer.writeFloat(chance);
+    _serializer.writeSint32(0);
+    _serializer.writeBool(false);
+    _network->sendToHost(_serializer.serialize());
+    _serializer.reset();
+}
+
+/**
+ * HOST ONLY. Broadcasts an authoritative forge seed to every connected client.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ * @param seed    Host-generated deterministic seed all clients should use for forge rolls.
+ */
+void NetworkController::broadcastForgeEffect(float chance, int seed) {
+    _serializer.writeSint32(MessageType::FORGE_EFFECT);
+    _serializer.writeFloat(chance);
+    _serializer.writeSint32(seed);
+    _serializer.writeBool(true);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
 }
 
 /**
