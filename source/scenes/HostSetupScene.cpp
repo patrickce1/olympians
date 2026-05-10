@@ -217,6 +217,12 @@ void HostSetupScene::setActive(bool value) {
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);
             
+            // Reset all glow overlays and illuminate only the starting card (index 1).
+            for (int i = 0; i < (int)_bossCards.size(); i++) {
+                auto glow = _bossCards[i]->getChildByName("glowOverlay");
+                if (glow) glow->setVisible(i == 1);
+            }
+            
             _leftButton->setVisible(true);
             _rightButton->setVisible(true);
             _startGame->activate();
