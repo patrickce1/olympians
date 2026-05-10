@@ -46,6 +46,7 @@ public:
         PASS_LEFT,      ///< Horizontal swipe left — passes item to the left neighbour.
         PASS_RIGHT,     ///< Horizontal swipe right — passes item to the right neighbour.
         PAUSE,          ///< Pause button tapped.
+        HOLD_FOR_TOOLTIP,///< Touch held long enough to display item tooltip.
     };
 
 #pragma mark - Constructors

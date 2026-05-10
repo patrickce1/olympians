@@ -123,7 +123,8 @@ StepType TutorialController::parseStepType(const std::string& str) const {
  * Converts a string token to its corresponding InputController::Action enum value.
  *
  * @param str  The string to parse. Expected values are "DROP_BOSS",
- *             "DROP_ALLY_LEFT", "DROP_ALLY_RIGHT", "PASS_LEFT", and "PASS_RIGHT".
+ *             "DROP_ALLY_LEFT", "DROP_ALLY_RIGHT", "PASS_LEFT", "PASS_RIGHT",
+ *             and "HOLD_FOR_TOOLTIP".
  *
  * @return The matching Action, or InputController::Action::NONE if the
  *         string is not recognized.
@@ -134,6 +135,7 @@ InputController::Action TutorialController::parseAction(const std::string& str) 
     if (str == "DROP_ALLY_RIGHT") return InputController::Action::DROP_ALLY_RIGHT;
     if (str == "PASS_LEFT")       return InputController::Action::PASS_LEFT;
     if (str == "PASS_RIGHT")      return InputController::Action::PASS_RIGHT;
+    if (str == "HOLD_FOR_TOOLTIP") return InputController::Action::HOLD_FOR_TOOLTIP;
     return InputController::Action::NONE;
 }
 
@@ -443,6 +445,7 @@ void TutorialController::applyZoneHighlight(InputController::Action action) {
         case InputController::Action::DROP_BOSS:
             _gameScene->setTutorialHighlight("attack");
             break;
+        case InputController::Action::HOLD_FOR_TOOLTIP:
         case InputController::Action::NONE:
         case InputController::Action::DROP_INVALID:
         default:

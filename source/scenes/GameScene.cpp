@@ -2941,6 +2941,11 @@ void GameScene::handleTooltipVisibility(float dt) {
                     _tooltipNode->setScale(0.4315);
                 }
                 _tooltipNode->setVisible(true);
+
+                // Notify tutorial if waiting for tooltip action
+                if (_tutorialController.isActive()) {
+                    _tutorialController.onAction(InputController::Action::HOLD_FOR_TOOLTIP);
+                }
             }
             // keep tooltip above the moving widget
             updateTooltipPosition();
@@ -3849,7 +3854,7 @@ void GameScene::spawnTutorialItem(const std::string& defId, int passDirection) {
     ItemInstance::ItemId itemId = _itemController.giveItemByID(localPlayer, defId);
     if (itemId == 0){
         CULog("spawnTutorialItem: failed to create item for defId '%s'", defId.c_str());
-                return;
+        return;
     }
     const auto& inv = localPlayer->getInventory();
     for (const ItemInstance& item : inv){
@@ -3867,7 +3872,11 @@ void GameScene::spawnTutorialItem(const std::string& defId, int passDirection) {
             }
             CULog("spawnTutorialItem: spawned item id=%llu defId=%s passDir=%d", (unsigned long long)item.getId(), defId.c_str(), passDirection);
             return;
-/**           
+        }
+    }
+}
+
+/**
  * Refreshes existing widget textures after item instances are redefined in place.
  *
  * Forge preserves item instance IDs, so the existing inventory widgets are kept and

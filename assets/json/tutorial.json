@@ -25,6 +25,11 @@
     },
     {
       "type": "wait_for_action",
+      "action": "HOLD_FOR_TOOLTIP",
+      "text": "Touch and hold the wheat to see its tooltip."
+    },
+    {
+      "type": "wait_for_action",
       "action": "PASS_LEFT",
       "text": "But you have some wheat in your hand. Pass it to your teammate!"
     },
