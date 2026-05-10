@@ -99,6 +99,8 @@ void LobbyScene::setupUI() {
     
     _bossLobbyButton = std::dynamic_pointer_cast<cugl::scene2::Button>(_assets->get<scene2::SceneNode>("lobbyScene.tableArea.bossCircle.bossLobbyButton"));
     
+    _lobbyDescriptionLabel = _assets->get<scene2::SceneNode>("lobbyScene.lobbyBottomLabel");
+    
     _playerInfoContainer = _assets->get<scene2::SceneNode>("lobbyScene.tableArea");
 
     if (_playerInfoContainer) {
@@ -111,6 +113,7 @@ void LobbyScene::setupUI() {
             auto image = std::dynamic_pointer_cast<scene2::Button>(
                 card->getChildByName("playerIcon")
             );
+            image->getChildByName("playerIconImg")->setScale(0.5f);
 
             _playerCards.push_back(card);
             _playerSlots.push_back(label);
@@ -210,6 +213,7 @@ void LobbyScene::dispose() {
         _bossLobbyButton = nullptr;
         _playerInfoContainer = nullptr;
         _itemsButton = nullptr;
+        _lobbyDescriptionLabel = nullptr;
         _active = false;
     }
     _network = nullptr;
@@ -297,6 +301,7 @@ void LobbyScene::updateLobbyPlayerIcons(std::vector<Player*> players) {
             } else {
                 image->setTexture(_assets->get<cugl::graphics::Texture>("emptySIcon"));
             }
+            image->setScale(0.5f);
         }
     }
 }
@@ -385,22 +390,38 @@ void LobbyScene::updateLocalPlayerSelectedHouse() {
  *
  * @param enemyID The identifier of the enemy whose background should be displayed.
  */
-void LobbyScene::updateLobbyBossImage(std::string enemyID) {
+void LobbyScene::updateLobbyBoss(std::string enemyID) {
     if (enemyID == "" && _currentBoss == "") {
         return;
     } else if (enemyID == _currentBoss) {
         return;
     }
     
+    auto nameLabel = std::dynamic_pointer_cast<scene2::Label>(
+        _lobbyDescriptionLabel->getChildByName("bossName")
+    );
+    auto descriptionLabel = std::dynamic_pointer_cast<scene2::Label>(
+        _lobbyDescriptionLabel->getChildByName("description")
+    );
+    
     _currentBoss = enemyID;
+    
+    std::string name = _currentBoss;
+    for (char &character : name) character = toupper(character);
+    nameLabel->setText(name);
+    
     if (_currentBoss == "cyclops") {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cyclopsLobbyImage"));
+        descriptionLabel->setText("The lone guardian of the cave, blinded by rage and hunger. Defeat it to escape its domain.");
     } else if (_currentBoss == "cerberus") {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("cerberusLobbyImage"));
+        descriptionLabel->setText("Hades’ companion gone rogue, defeat it and bring him back to Hell. Attacks.....Defenses....");
     } else if (_currentBoss == "circe") {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("circeLobbyImage"));
+        descriptionLabel->setText("The cunning enchantress who tests your resolve. Defeat her to break her spell.");
     } else if (_currentBoss == "gaia") {
         _bossImage->setTexture(_assets->get<cugl::graphics::Texture>("gaiaLobbyImage"));
+        descriptionLabel->setText("The primordial force of the earth. Defeat her to overcome nature itself.");
     }
     _bossImage->setContentSize(228,228);
 }
@@ -493,13 +514,17 @@ void LobbyScene::update(float timestep, InputController& input) {
     }
     
     // change boss icon to the currently chosen boss
-    updateLobbyBossImage(_network->getEnemy());
+    updateLobbyBoss(_network->getEnemy());
     
     // Only the host can start; only enable the button when all players have locked in a house.
     if (_network->isHost()) {
-            _enterGame->activate();
+        _enterGame->activate();
+        _enterGame->setVisible(true);
+        _lobbyDescriptionLabel->setVisible(false);
     } else {
         _enterGame->deactivate();
+        _enterGame->setVisible(false);
+        _lobbyDescriptionLabel->setVisible(true);
     }
     
     // Press logic

@@ -113,6 +113,15 @@ private:
      * @return the defId of the selected item, or "" if the bucket is empty
      */
     std::string rollFromBucket(const Bucket& bucket);
+
+    /**
+     * Rolls a random item definition ID from a bucket using the caller-provided RNG.
+     *
+     * @param bucket  The weighted rarity bucket to roll from.
+     * @param rng     The RNG instance that should supply the random roll.
+     * @return the defId of the selected item, or "" if the bucket is empty.
+     */
+    std::string rollFromBucket(const Bucket& bucket, cugl::Random& rng) const;
     
 public:
     ItemDatabase() = default;
@@ -158,6 +167,15 @@ public:
     
     /** Weighted roll within a specific rarity bucket (probably not needed) */
     std::string rollRandomDefId(ItemDef::Rarity rarity);
+
+    /**
+     * Rolls a random item definition ID within a rarity bucket using the caller-provided RNG.
+     *
+     * @param rarity  The rarity bucket to roll from.
+     * @param rng     The RNG instance that should supply the random roll.
+     * @return the defId of the selected item, or "" if the bucket is empty.
+     */
+    std::string rollRandomDefId(ItemDef::Rarity rarity, cugl::Random& rng) const;
     
     /** Serializable option */
     std::vector<std::string> getAllDefIds() const;

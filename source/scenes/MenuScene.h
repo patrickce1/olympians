@@ -2,32 +2,68 @@
 #define __MENU_SCENE_H__
 
 #include <cugl/cugl.h>
+#include "../SavedDataManager.h"
 
 /**
  * Main menu scene shown after loading completes.
  */
 class MenuScene : public cugl::scene2::Scene2 {
 public:
-    /** Menu actions consumed by SceneLoader for transitions. */
-    enum class Action {
+    /** Scene status for SceneLoader for transitions. */
+    enum class Status {
         NONE,
         START_GAME,
         OPEN_SETTINGS,
+        NAME_ONBOARDING,
+        PENDING_ONBOARDING,
+        PENDING_SAVE
     };
 
 protected:
+    /**
+     * Internal state of the first-launch onboarding overlay.
+     */
+    enum class OverlayState {
+        HIDDEN,             // No overlay is visible; normal menu interaction.
+        NAME_PROMPT,        // The name-entry popup is visible and accepting input.
+        CONFIRM,            // The confirmation popup is visible and counting down.
+    };
+    
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+    
     /** The root scene node for this scene graph. */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
 
-    /** Menu buttons. */
+    /** Play button. */
     std::shared_ptr<cugl::scene2::Button> _playButton;
+    
+    /** Settings button*/
     std::shared_ptr<cugl::scene2::Button> _settingsButton;
-//    std::shared_ptr<cugl::scene2::Button> _itemsButton;
+    
+    /** Root node of the name-entry modal shown on first launch. */
+    std::shared_ptr<cugl::scene2::SceneNode> _namePopup;
+
+    /** Text field inside the name-entry popup. */
+    std::shared_ptr<cugl::scene2::TextField> _nameField;
+
+    /** Save button inside the name-entry popup. */
+    std::shared_ptr<cugl::scene2::Button> _nameSaveButton;
+
+    /** Root node of the confirmation modal shown after name is saved. */
+    std::shared_ptr<cugl::scene2::SceneNode> _confirmPopup;
 
     /** The next action requested by menu input. */
-    Action _nextAction = Action::NONE;
+    Status _status = Status::NONE;
+    
+    /** Current state of the first-launch onboarding overlay. */
+    OverlayState _overlayState = OverlayState::HIDDEN;
+
+    /** Elapsed time (seconds) since the confirm popup became visible. */
+    float _confirmTimer = 0.0f;
+
+    /** Duration (seconds) before the confirm popup is auto-dismissed. */
+    static constexpr float CONFIRM_DISPLAY_TIME = 2.0f;
 
 public:
     /**
@@ -84,14 +120,22 @@ public:
     void update(float dt) override;
 
     /**
-     * Returns and clears the pending menu action.
+     * Returns the current menu status.
      *
-     * This allows `SceneLoader` to consume a one-shot transition request from
-     * this scene each frame.
+     * SceneLoader calls this each frame to check whether a scene transition
+     * has been requested.
      *
-     * @return the queued action, or Action::NONE if no action is pending
+     * @return the current Status value.
      */
-    Action consumeAction();
+    Status getStatus() const { return _status; }
+
+    /**
+     * Resets the menu status back to NONE.
+     *
+     * SceneLoader calls this after consuming a transition so the status
+     * does not fire again on the next frame.
+     */
+    void resetStatus() { _status = Status::NONE; }
 };
 
 #endif /* __MENU_SCENE_H__ */

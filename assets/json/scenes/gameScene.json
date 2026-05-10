@@ -219,6 +219,92 @@
                             "x_offset": 0,
                             "y_offset": 0.09
                         }
+                    },
+                    "playerDeath": {
+                        "type": "Node",
+                        "format": { "type": "Anchored" },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0
+                            ],
+                            "size": [
+                                680,
+                                652
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": false
+                        },
+                        "children": {
+                            "background": {
+                                "type": "Solid",
+                                "data": {
+                                    "polygon": [
+                                        680,
+                                        652,
+                                        0,
+                                        652,
+                                        0,
+                                        0,
+                                        680,
+                                        0
+                                    ],
+                                    "color": "#00000077",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true,
+                                    "angle": 0
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "middle",
+                                    "absolute": false,
+                                    "x_offset": 0,
+                                    "y_offset": 0
+                                }
+                            },
+                            "deathLabel": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "deathLabel",
+                                    "size": [207,96.5],
+                                    "anchor": [
+                                        0.5,
+                                        0
+                                    ],
+                                    "position": [
+                                        0,
+                                        0
+                                    ],
+                                    "visible": true,
+                                    "angle": 0
+                                },
+                                "layout": {
+                                    "x_anchor": "center",
+                                    "y_anchor": "bottom",
+                                    "absolute": false,
+                                    "x_offset": 0,
+                                    "y_offset": 0.2
+                                }
+                            }
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.09
+                        }
                     }
                 },
                 "layout": {
