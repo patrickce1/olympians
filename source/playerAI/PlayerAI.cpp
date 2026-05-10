@@ -68,6 +68,11 @@ void PlayerAI::update(float dt, Enemy& enemy, ItemController& items) {
           getCurrentHealth(),
           getMaxHealth());
     _state = evaluate(enemy);
+    
+    // Do not Attack or Support when AI is dead
+    if (!isAlive() && (_state == State::ATTACK || _state == State::SUPPORT)) {
+        _state = (rand() % 2 == 0) ? State::PASS : State::IDLE;
+    }
 
     switch (_state) {
         case State::ATTACK:

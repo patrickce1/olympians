@@ -87,9 +87,6 @@ void HostSetupScene::setupUI() {
     _settingsButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("hostSetupScene.settingsTab"));
 
-    _hostName = std::dynamic_pointer_cast<scene2::TextField>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
-
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.directionButtons.leftScroll"));
 
@@ -105,16 +102,6 @@ void HostSetupScene::setupUI() {
         }
         _baseCarouselPosition = _bossSelectionCardContainer->getPosition();
     }
-
-    std::shared_ptr<cugl::scene2::Label> placeName =
-        std::dynamic_pointer_cast<scene2::Label>(
-            _assets->get<scene2::SceneNode>("hostSetupScene.hostName.placeholder"));
-
-    placeName->setText("ENTER NAME");
-
-    _hostName->addTypeListener([placeName](const std::string& name, const std::string& value) {
-        placeName->setVisible(value.empty());
-    });
     
     auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossSelectionCarouselIcons");
     
@@ -135,15 +122,13 @@ void HostSetupScene::setupUI() {
 void HostSetupScene::setupListeners() {
     _startGame->addListener([this](const std::string& name, bool down) {
         if (down) {
-            if(_hostName->getText() != ""){
+            const std::string savedName = SavedDataManager::get().getPlayerName();
+            if (!savedName.empty()) {
                 _network->hostRoom();
-                _network->setPlayerName(_hostName->getText());
-                
-                // Get the selected boss using carousel index
+                _network->setPlayerName(savedName);
                 EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
                 _network->setEnemy(selectedBoss.id);
                 _network->broadcastBossSelection(selectedBoss.id);
-                
                 _status = Status::START;
             }
         }
@@ -184,7 +169,6 @@ void HostSetupScene::dispose() {
         _startGame = nullptr;
         _backButton = nullptr;
         _joinButton = nullptr;
-        _hostName = nullptr;
         _bossCards.clear();
         _leftButton = nullptr;
         _rightButton = nullptr;
@@ -217,10 +201,11 @@ void HostSetupScene::setActive(bool value) {
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);
             
+            _leftButton->setVisible(true);
+            _rightButton->setVisible(true);
             _startGame->activate();
             _leftButton->activate();
             _rightButton->activate();
-            _hostName->activate();
             _backButton->activate();
             _joinButton->activate();
             _settingsButton->activate();
@@ -229,7 +214,6 @@ void HostSetupScene::setActive(bool value) {
             _leftButton->deactivate();
             _rightButton->deactivate();
             _backButton->deactivate();
-            _hostName->deactivate();
             _joinButton->deactivate();
             _settingsButton->deactivate();
             
@@ -334,6 +318,15 @@ void HostSetupScene::slideTo(int newIndex) {
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
     
+    if (_currentIndex == 0) {
+        _leftButton->setVisible(false);
+    } else if (_currentIndex == _bossCards.size() - 1) {
+        _rightButton->setVisible(false);
+    } else {
+        _rightButton->setVisible(true);
+        _leftButton->setVisible(true);
+    }
+    
     // Set the visibility of all glow overlays to false and the currentIndex card's to true
     for (int i = 0; i < _bossCards.size(); i++) {
         auto card = _bossCards[i];
@@ -400,7 +393,6 @@ void HostSetupScene::setInputEnabled(bool enabled) {
         _startGame->activate();
         _leftButton->activate();
         _rightButton->activate();
-        _hostName->activate();
         _backButton->activate();
         _joinButton->activate();
         _settingsButton->activate();
@@ -408,7 +400,6 @@ void HostSetupScene::setInputEnabled(bool enabled) {
         _startGame->deactivate();
         _leftButton->deactivate();
         _rightButton->deactivate();
-        _hostName->deactivate();
         _backButton->deactivate();
         _joinButton->deactivate();
         _settingsButton->deactivate();

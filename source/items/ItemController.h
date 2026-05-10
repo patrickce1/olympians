@@ -1,6 +1,7 @@
 #ifndef __ITEM_CONTROLLER_H__
 #define __ITEM_CONTROLLER_H__
 #include <cstddef>
+#include <cstdint>
 #include <unordered_map>
 #include <cugl/cugl.h>
 #include <vector>
@@ -49,6 +50,16 @@ public:
      */
     void giveRandomItem(Player* player);
 
+    /**
+     * Restricts divine item rolls to items whose houseAffinity matches one of the given
+     * house IDs. Call once after the player roster is known. Forwards to ItemDatabase.
+     *
+     * @param houseIds  Player house ID strings (e.g. "zeus", "poseidon")
+     */
+    void setActiveHouses(const std::vector<std::string>& houseIds) {
+        _itemDb.setActiveHouses(houseIds);
+    }
+
     /*
     * Retrieves the item database
     * @return the item database
@@ -64,6 +75,17 @@ public:
      * @return            The ItemId of the newly created item, or 0 if creation failed
      */
     ItemInstance::ItemId giveItemByID(Player* player, const std::string& itemDefId);
+
+    /**
+     * Redefines qualifying item instances for the forge effect without changing item IDs or slots.
+     * Common items become random rare items; rare items may become random divine items.
+     *
+     * @param player        The player whose existing inventory should be transformed.
+     * @param divineChance  Chance in [0, 1] that each rare item upgrades to divine.
+     * @param seed          Host-authoritative seed used for deterministic local rolls.
+     * @return              Number of item instances redefined.
+     */
+    int applyForgeEffect(Player* player, float divineChance, std::uint32_t seed);
 };
 
 #endif // __ITEM_CONTROLLER_H__

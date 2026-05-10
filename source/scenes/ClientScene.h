@@ -3,6 +3,7 @@
 
 #include <cugl/cugl.h>
 #include "../NetworkController.h"
+#include "../SavedDataManager.h"
 
 /**
  * This class provides the interface to join an existing game.
@@ -57,8 +58,6 @@ protected:
     std::shared_ptr<cugl::scene2::TextField> _gameId;
     /** The game id placeholder label */
     std::shared_ptr<cugl::scene2::Label> _textFieldPlaceholder;
-    /** The game id label (for updating) */
-    std::shared_ptr<cugl::scene2::TextField> _playerName;
     /** The host game button for the client scene */
     std::shared_ptr<cugl::scene2::Button> _hostButton;
     /** The settings button to display settings menu */
