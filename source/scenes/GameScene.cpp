@@ -40,8 +40,12 @@ constexpr float ITEM_NORMAL_SCALE = 1.0f;
 constexpr float ITEM_SCALE_SPEED = 14.0f;
 //Defines how long it should take for an item that has been used (through the means of passing, attacking, or supporting)
 constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
+//Defines how long it takes for a corroded item to fully dissolve
+constexpr float ITEM_CORRODE_ANIMATION_DURATION = 1.5f;
 //Defines how large the item is once it has been used. So it shrinks to this size.
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
+//Defines how small corroded items shrink (smaller than consumed items)
+constexpr float ITEM_CORRODE_END_SCALE = 0.05f;
 
 #pragma mark HealthState
 
@@ -2134,8 +2138,47 @@ void GameScene::handleCorrosiveDrain(){
 
     auto& inventory = victim->getInventory();
     int randomIndex = rand() % inventory.size();
-    victim->removeItemById(inventory[randomIndex].getId());
-    CULog("  -> Item drained successfully (%d items remaining)", (int)victim->getInventory().size());
+    ItemInstance::ItemId itemIdToRemove = inventory[randomIndex].getId();
+
+    // Don't corrode if the item is currently being dragged
+    if (_draggedItemId == itemIdToRemove) {
+        CULog("  -> Skipping item being dragged");
+        return;
+    }
+
+    // Trigger a longer corrosion animation before removing the item
+    auto widgetIt = _itemWidgets.find(itemIdToRemove);
+    if (widgetIt != _itemWidgets.end() && widgetIt->second) {
+        auto itemDef = _itemController.getDatabase().getDef(inventory[randomIndex].getDefId());
+        if (itemDef) {
+            // Mark item as corroding (prevents scale updates, but keeps it usable)
+            _corrodingItemIds.insert(itemIdToRemove);
+
+            auto widget = widgetIt->second;
+
+            // Change anchor to center so it shrinks toward its center
+            // Use same approach as consumed items - getBoundingBox gives visual bounds
+            cugl::Rect sourceBounds = widget->getBoundingBox();
+            cugl::Vec2 sourceCenter = sourceBounds.origin + cugl::Vec2(sourceBounds.size.width * 0.5f, sourceBounds.size.height * 0.5f);
+
+            widget->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            widget->setPosition(sourceCenter);
+
+            // Create corrosion animation on the original widget (NOT a ghost)
+            CorrodedItemAnimation anim;
+            anim.node = widget;  // Animate the actual widget
+            anim.elapsed = 0.0f;
+            anim.duration = ITEM_CORRODE_ANIMATION_DURATION;
+            anim.startScale = widget->getScaleX();
+            anim.endScale = ITEM_CORRODE_END_SCALE;
+            anim.itemId = itemIdToRemove;
+            _corrodedItemAnimations.push_back(anim);
+
+            CULog("  -> Item marked as corroding (still usable during animation)");
+        }
+    }
+
+    CULog("  -> Item corrosion started (%d items remaining)", (int)inventory.size());
 }
 
 
@@ -2735,6 +2778,7 @@ void GameScene::update(float dt, InputController& input) {
     syncInventoryWidgets();
     updateItemWidgetScales(dt);
     updateConsumedItemAnimations(dt);
+    updateCorrodedItemAnimations(dt);
     syncItemWidgetsToBodies();
 
     _network->clearQueues();
@@ -2851,6 +2895,11 @@ void GameScene::syncItemWidgetsToBodies() {
             continue;
         }
 
+        // Skip corroding items - they don't have physics bodies and use center anchor
+        if (_corrodingItemIds.find(itemId) != _corrodingItemIds.end()) {
+            continue;
+        }
+
         Size widgetSize = widget->second->getContentSize();
         Vec2 bodyPosition = body->getPosition();
         Vec2 widgetPosition = bodyPosition - Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
@@ -2917,6 +2966,11 @@ void GameScene::updateItemWidgetScales(float dt) {
     const float lerpFactor = std::min(1.0f, dt * ITEM_SCALE_SPEED);
     for (const auto& [itemId, widget] : _itemWidgets) {
         if (!widget) continue;
+
+        // Skip corroding items - they have their own animation
+        if (_corrodingItemIds.find(itemId) != _corrodingItemIds.end()) {
+            continue;
+        }
 
         auto current = _itemWidgetScales.find(itemId);
         if (current == _itemWidgetScales.end()) {
@@ -3041,6 +3095,67 @@ void GameScene::updateConsumedItemAnimations(float dt) {
                            return finished;
                        }),
         _consumedItemAnimations.end());
+}
+
+/**
+ * Updates corroded item animations and removes items from inventory when animation completes.
+ * Unlike consumed items, these items are still in inventory during animation and only removed at the end.
+ */
+void GameScene::updateCorrodedItemAnimations(float dt) {
+    if (_corrodedItemAnimations.empty()) return;
+
+    // Collect finished items for cleanup
+    std::vector<ItemInstance::ItemId> finishedItems;
+
+    for (auto& anim : _corrodedItemAnimations) {
+        if (!anim.node || anim.duration <= 0.0f) continue;
+
+        anim.elapsed += dt;
+        float t = std::min(1.0f, anim.elapsed / anim.duration);
+        float scale = anim.startScale + (anim.endScale - anim.startScale) * t;
+        anim.node->setScale(scale);
+
+        // Check if animation finished
+        if (anim.elapsed >= anim.duration) {
+            finishedItems.push_back(anim.itemId);
+        }
+    }
+
+    // Clean up finished items (do this BEFORE erasing animations to avoid iterator issues)
+    for (ItemInstance::ItemId itemId : finishedItems) {
+        // Remove from corroding set
+        _corrodingItemIds.erase(itemId);
+
+        // Remove visual widget
+        auto widgetIt = _itemWidgets.find(itemId);
+        if (widgetIt != _itemWidgets.end()) {
+            if (_inventory && widgetIt->second) {
+                _inventory->removeChild(widgetIt->second);
+            }
+            _itemWidgets.erase(widgetIt);
+        }
+
+        // Remove physics body
+        auto bodyIt = _itemBodies.find(itemId);
+        if (bodyIt != _itemBodies.end() && bodyIt->second && _itemPhysicsWorld) {
+            _itemPhysicsWorld->removeObstacle(bodyIt->second);
+            _itemBodies.erase(bodyIt);
+        }
+
+        // Remove from player inventory
+        Player* localPlayer = _gameState.getLocalPlayer();
+        if (localPlayer) {
+            localPlayer->removeItemById(itemId);
+        }
+    }
+
+    // Now remove finished animations from the list
+    _corrodedItemAnimations.erase(
+        std::remove_if(_corrodedItemAnimations.begin(), _corrodedItemAnimations.end(),
+                       [](const CorrodedItemAnimation& anim) {
+                           return !anim.node || anim.elapsed >= anim.duration;
+                       }),
+        _corrodedItemAnimations.end());
 }
 
 /**
