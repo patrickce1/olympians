@@ -12,6 +12,8 @@ using namespace std;
 #define ROLE_CARD_WIDTH 300
 /** Interpolation smoothing factor*/
 #define SMOOTHING_FACTOR 0.2f
+/** Minimum number of frames for a swipe to be registered*/
+static constexpr int SWIPE_HOLD_FRAMES = 4;
 
 #pragma mark -
 #pragma mark Provided Methods
@@ -128,6 +130,19 @@ void HouseSelectScene::setupUI() {
     
     _backgroundImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(_assets->get<scene2::SceneNode>
                                                                             ("houseSelectScene.showroomImage"));
+    
+    // Capture the container's base position and build the position maps. Card 4 (_currentIndex default) is the starting card,
+    // so it maps to startX. All other cards are offset by multiples of ROLE_CARD_WIDTH from there.
+    if (_houseSelectionCardContainer) {
+        _baseCarouselPosition = _houseSelectionCardContainer->getPosition();
+        float startX = _baseCarouselPosition.x;
+        int numCards = (int)_houseCards.size();
+        for (int i = 0; i < numCards; i++) {
+            float containerX     = startX - ((i - 4) * ROLE_CARD_WIDTH);
+            _xPosToHouse[containerX] = i;
+            _houseToTargetX[i]       = containerX;
+        }
+    }
 }
 
 /**
@@ -226,6 +241,10 @@ void HouseSelectScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
         if (value) {
+            _isSwiping            = false;
+            _swipeContainerStartX = 0.0f;
+            _swipeTouchInitialPos = cugl::Vec2::ZERO;
+            _swipeHoldFrames      = 0;
             _status = WAITING;
 
             if (_pendingReset) {
@@ -261,6 +280,9 @@ void HouseSelectScene::setActive(bool value) {
             _rightButton->activate();
             _backButton->activate();
         } else {
+            _isSwiping            = false;
+            _swipeContainerStartX = 0.0f;
+            
             // Save current state before deactivating
             SlotState& state = _slotStates[_targetSlot];
             state.carouselIndex = _currentIndex;
@@ -301,8 +323,9 @@ void HouseSelectScene::updateText(const std::shared_ptr<scene2::Button>& button,
  * We need to update this method to constantly talk to the server
  *
  * @param timestep  The amount of time (in seconds) since the last frame
+ * @param input         The input controller instance
  */
-void HouseSelectScene::update(float timestep) {
+void HouseSelectScene::update(float timestep, InputController& input) {
     _network->getNetworkUpdates();
     
     // Check if host disconnected
@@ -343,6 +366,10 @@ void HouseSelectScene::update(float timestep) {
             _houseSelectionCardContainer->setPosition(next);
         }
     }
+    
+    handleSwipeBegin(input);
+    handleSwipeTracking(input);
+    handleSwipeRelease(input);
     
     updateBossBGImage(_network->getEnemy());
 }
@@ -782,4 +809,136 @@ int HouseSelectScene::getInitialCarouselIndex(int targetSlot) {
         }
     }
     return _slotStates[targetSlot].carouselIndex;
+}
+
+#pragma mark -
+#pragma mark Swipe Gesture Handling
+
+/**
+ * Records the touch-down position to begin tracking a potential swipe.
+ *
+ * Called every frame from update(). On the first frame a touch is
+ * detected while no swipe is already in progress, stores the starting
+ * X coordinate (screen space) in _swipeTouchStartX and sets _isSwiping.
+ * No-op on subsequent frames or when a gesture is already active.
+ *
+ * @param input  The input controller for this frame.
+ */
+void HouseSelectScene::handleSwipeBegin(InputController& input) {
+    if (_isSwiping) return;
+
+    if ((!input.isTouching() && !input.isMouseDown()) || _isAnimating) {
+        _swipeHoldFrames      = 0;
+        _swipeTouchInitialPos = cugl::Vec2::ZERO;
+        return;
+    }
+
+    if (_swipeHoldFrames == 0) {
+        _swipeTouchInitialPos = input.getTouchStart();
+    }
+
+    Vec2 worldCurrent = screenToWorldCoords(input.getDragPos());
+    Vec2 worldStart   = screenToWorldCoords(_swipeTouchInitialPos);
+
+    float horizontalDelta = std::abs(worldCurrent.x - worldStart.x);
+    float verticalDelta   = std::abs(worldCurrent.y - worldStart.y);
+
+    if (horizontalDelta > verticalDelta && horizontalDelta > 5.0f) {
+        _swipeHoldFrames++;
+    } else {
+        _swipeHoldFrames = 0;
+    }
+
+    if (_swipeHoldFrames >= SWIPE_HOLD_FRAMES) {
+        _swipeTouchStartX     = screenToWorldCoords(_swipeTouchInitialPos).x;
+        _swipeContainerStartX = _houseSelectionCardContainer->getPosition().x;
+        _isSwiping            = true;
+        _swipeHoldFrames      = 0;
+    }
+}
+
+/**
+ * Moves the card container directly under the finger each frame while
+ * a swipe is active. Computes the delta from the touch-down position and
+ * applies it to the container's position at the start of the drag.
+ * Clamps the container so it cannot be dragged past the first or last card.
+ *
+ * @param input  The input controller for this frame.
+ */
+void HouseSelectScene::handleSwipeTracking(InputController& input) {
+    if (!_isSwiping) return;
+    if (!input.isTouching() && !input.isMouseDown()) return;
+
+    Vec2 worldPos     = screenToWorldCoords(input.getDragPos());
+    float fingerDelta = worldPos.x - _swipeTouchStartX;
+    float rawX        = _swipeContainerStartX + fingerDelta;
+
+    // Clamp between the first and last card's target container X.
+    float maxX     = _houseToTargetX[0] + (ROLE_CARD_WIDTH * 2.0f);
+    float minX     = _houseToTargetX[(int)_houseCards.size() - 1] - ROLE_CARD_WIDTH;
+    float clampedX = std::max(minX, std::min(maxX, rawX));
+
+    Vec2 pos = _houseSelectionCardContainer->getPosition();
+    _houseSelectionCardContainer->setPosition(Vec2(clampedX, pos.y));
+}
+
+/**
+ * Called on finger lift. Delegates to snapToNearestHouse() to find and
+ * animate to the closest card to the current container position.
+ * Clears all swipe tracking state before returning.
+ *
+ * @param input  The input controller for this frame.
+ */
+void HouseSelectScene::handleSwipeRelease(InputController& input) {
+    if (!input.touchEnded()) return;
+    if (!_isSwiping) return;
+
+    float releaseContainerX = _houseSelectionCardContainer->getPosition().x;
+    snapToNearestHouse(releaseContainerX);
+
+    _isSwiping            = false;
+    _swipeTouchStartX     = 0.0f;
+    _swipeContainerStartX = 0.0f;
+}
+
+/**
+ * Finds the card whose X position in _xPosToHouse is closest to
+ * `releaseContainerX`, updates _currentIndex to that card's index,
+ * updates the glow overlays and dot indicators, and initiates a lerp
+ * animation to that card's exact centred container position.
+ *
+ * @param releaseContainerX  The container's X position at the moment
+ *                           the finger lifted, in the container's
+ *                           parent's local space.
+ */
+void HouseSelectScene::snapToNearestHouse(float releaseContainerX) {
+    int   nearestIndex = 0;
+    float nearestDist  = FLT_MAX;
+
+    for (auto& [containerX, index] : _xPosToHouse) {
+        float dist = std::abs(releaseContainerX - containerX);
+        if (dist < nearestDist) {
+            nearestDist  = dist;
+            nearestIndex = index;
+        }
+    }
+
+    _currentIndex = nearestIndex;
+    _isAnimating  = true;
+
+    Vec2 currentPos = _houseSelectionCardContainer->getPosition();
+    _slideTarget    = Vec2(_houseToTargetX[nearestIndex], currentPos.y);
+
+    _leftButton->setVisible(_currentIndex > 0);
+    _rightButton->setVisible(_currentIndex < (int)_houseCards.size() - 1);
+
+    for (int i = 0; i < (int)_houseCards.size(); i++) {
+        auto glow = _houseCards[i]->getChildByName("glowOverlayHero");
+        if (glow) glow->setVisible(i == nearestIndex);
+    }
+
+    updateCarouselDots(nearestIndex);
+    if (!_locked) {
+        updateSelectedIcon(nearestIndex);
+    }
 }

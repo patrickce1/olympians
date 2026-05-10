@@ -530,7 +530,7 @@ void SceneLoader::update(float dt) {
         }
         break;
     case State::HOUSESELECT:
-        _houseSelectScene.update(dt);
+        _houseSelectScene.update(dt, _input);
         switch (_houseSelectScene.getStatus())
         {
         case HouseSelectScene::Status::PRE_GAMESCENE_START:
