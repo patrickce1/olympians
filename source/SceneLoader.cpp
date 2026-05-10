@@ -625,7 +625,7 @@ void SceneLoader::update(float dt) {
         break;
             
     case State::CODEX:
-        _codexScene.update(dt);
+        _codexScene.update(dt, _input);
         switch (_codexScene.getStatus())
         {
         case CodexScene::Status::PRE_GAMESCENE_START:
