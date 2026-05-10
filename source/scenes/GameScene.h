@@ -1446,6 +1446,29 @@ public:
     void applyPendingPartyEffectSyncs();
 
     /**
+     * Applies queued frenzy support effects to item spawning and inventories.
+     *
+     * @param supportEffects Support-effect messages received during the current network update.
+     */
+    void processFrenzyEffects(const std::vector<SupportEffectMessage>& supportEffects);
+
+    /**
+     * Applies a frenzy item-spawn override and clears every player's inventory.
+     *
+     * @param itemInterval New item spawn interval while frenzy is active.
+     * @param duration Duration of the frenzy override in seconds.
+     */
+    void applyFrenzyEffect(float itemInterval, float duration);
+
+    /**
+     * Synchronizes local frenzy state from the latest host snapshot.
+     *
+     * @param itemInterval Host-authoritative item spawn interval.
+     * @param duration Remaining host-authoritative frenzy duration.
+     */
+    void syncFrenzyEffect(float itemInterval, float duration);
+
+    /**
      * Applies queued or requested forge effects using host-authoritative seeds.
      *
      * @param forgeEffects  The forge effect messages received during the current network update.

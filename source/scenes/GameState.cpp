@@ -395,6 +395,9 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
                 case SupportEffectType::Educate:
                     resolvedEffect.duration *= 2.0f;
                     break;
+                case SupportEffectType::Frenzy:
+                    resolvedEffect.magnitude *= 0.5f;
+                    break;
                 case SupportEffectType::Heal:
                 case SupportEffectType::Forge:
                 case SupportEffectType::Charm:
@@ -432,6 +435,7 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
                     target.applyCharm(resolvedEffect.duration);
                     break;
                 case SupportEffectType::Forge:
+                case SupportEffectType::Frenzy:
                     break;
             }
         };

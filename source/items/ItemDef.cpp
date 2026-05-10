@@ -77,6 +77,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
         out = ItemDef::EffectType::Charm;
         return true;
     }
+    if (value == "frenzy") {
+        out = ItemDef::EffectType::Frenzy;
+        return true;
+    }
     return false;
 }
 
@@ -224,6 +228,11 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
     out.chance = 0.0f;
     if (json->has("chance") && json->get("chance")->isNumber()) {
         out.chance = std::max(0.0f, std::min(1.0f, json->getFloat("chance")));
+    }
+
+    out.amount = 0.0f;
+    if (json->has("amount") && json->get("amount")->isNumber()) {
+        out.amount = std::max(0.0f, json->getFloat("amount"));
     }
 
     out.applyToAllSides = false;

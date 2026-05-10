@@ -1,4 +1,5 @@
 #include "ItemController.h"
+#include <algorithm>
 
 using namespace cugl;
 
@@ -88,6 +89,54 @@ bool ItemController::init(const std::shared_ptr<AssetManager>& assets,
  */
 void ItemController::reset() {
     _itemTimers.clear();
+    _frenzyItemInterval = 0.0f;
+    _frenzyDuration = 0.0f;
+}
+
+/**
+ * Advances timed item-spawn controller effects.
+ *
+ * @param dt Time elapsed in seconds.
+ */
+void ItemController::updateEffects(float dt) {
+    if (_frenzyDuration <= 0.0f) {
+        return;
+    }
+
+    _frenzyDuration = std::max(0.0f, _frenzyDuration - dt);
+    if (_frenzyDuration <= 0.0f) {
+        _frenzyItemInterval = 0.0f;
+    }
+}
+
+/**
+ * Applies a timed frenzy override to item spawning.
+ *
+ * @param itemInterval New item spawn interval for the duration.
+ * @param duration Duration of the override in seconds.
+ */
+void ItemController::applyFrenzy(float itemInterval, float duration) {
+    _frenzyItemInterval = std::max(0.0f, itemInterval);
+    _frenzyDuration = std::max(0.0f, duration);
+}
+
+/**
+ * Synchronizes frenzy state from the host.
+ *
+ * @param itemInterval Host-authoritative frenzy item interval.
+ * @param duration Remaining host-authoritative frenzy duration.
+ */
+void ItemController::syncFrenzy(float itemInterval, float duration) {
+    applyFrenzy(itemInterval, duration);
+}
+
+/**
+ * Returns the currently effective item spawn interval.
+ *
+ * @return The frenzy interval while active, otherwise the default item interval.
+ */
+float ItemController::getEffectiveItemInterval() const {
+    return hasFrenzy() ? _frenzyItemInterval : _itemInterval;
 }
 
 /**
@@ -97,7 +146,8 @@ void ItemController::reset() {
  * @param player   The player to give the item to
  */
 void ItemController::update(float dt, Player* player) {
-    if (!player || _itemInterval <= 0.0f) {
+    const float itemInterval = getEffectiveItemInterval();
+    if (!player || itemInterval <= 0.0f) {
         return;
     }
 
@@ -105,17 +155,19 @@ void ItemController::update(float dt, Player* player) {
     float& itemTimer = it->second;
     itemTimer += dt;
 
-    while (itemTimer >= _itemInterval) {
-        itemTimer -= _itemInterval;
+    while (itemTimer >= itemInterval) {
+        itemTimer -= itemInterval;
         giveRandomItem(player);
     }
 }
 
 /**
- * Give a random item to the player, only if the player has no more
- * than 5 items in their inventory.
+ * Gives a random item to the player.
  *
- * @param player   The player to give the item to
+ * Normal timer spawns respect the max inventory cap. During frenzy, the cap
+ * is ignored so the temporary faster spawn rate can continue adding items.
+ *
+ * @param player The player to give the item to.
  */
 void ItemController::giveRandomItem(Player* player) {
     if (!player) {
@@ -129,8 +181,8 @@ void ItemController::giveRandomItem(Player* player) {
         return;
     }
 
-    // Check if player has too many items
-    if (player->getInventory().size() >= _maxInventorySpawnItems) {
+    // Check if player has too many items, unless frenzy is overriding spawn rules.
+    if (!hasFrenzy() && player->getInventory().size() >= _maxInventorySpawnItems) {
         CULog("[ItemController] Spawn skipped: inventory size %zu is at or above cap %zu",
               player->getInventory().size(), _maxInventorySpawnItems);
         return;
