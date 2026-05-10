@@ -111,15 +111,23 @@ void BossSelectScene::setupUI() {
     }
     
     float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
-    _xPosToBoss[startX] = 0;
-    _bossToTargetX[0]= startX;
-    for (int i = 1; i < (int)_bossCards.size(); i++) {
-        float containerX     = startX - (i * ROLE_CARD_WIDTH);
-        _xPosToBoss[containerX] = i;
-        _bossToTargetX[i]       = containerX;
-        CULog("Card %d (%s): containerX=%.1f",
-              i, _bossCards[i]->getName().c_str(), containerX);
-    }
+    _xPosToBoss[startX] = 1;
+    _bossToTargetX[1]= startX;
+    _xPosToBoss[startX+ ROLE_CARD_WIDTH] = 0;
+    _bossToTargetX[0]= startX+ ROLE_CARD_WIDTH;
+    _xPosToBoss[startX - ROLE_CARD_WIDTH] = 2;
+    _bossToTargetX[2]= startX- ROLE_CARD_WIDTH;
+    _xPosToBoss[startX-(2* ROLE_CARD_WIDTH)] = 3;
+    _bossToTargetX[3]= startX- (2*ROLE_CARD_WIDTH);
+    
+    
+//    for (int i = 1; i < (int)_bossCards.size(); i++) {
+//        float containerX     = startX - (i * ROLE_CARD_WIDTH);
+//        _xPosToBoss[containerX] = i;
+//        _bossToTargetX[i]       = containerX;
+//        CULog("Card %d (%s): containerX=%.1f",
+//              i, _bossCards[i]->getName().c_str(), containerX);
+//    }
 }
 
 /**
@@ -448,7 +456,7 @@ void BossSelectScene::handleSwipeTracking(InputController& input) {
     float rawX        = _swipeContainerStartX + fingerDelta;
 
     float maxX     = _bossToTargetX[0] + ROLE_CARD_WIDTH * 2.0f;
-    float minX     = _bossToTargetX[(int)_bossCards.size() - 1] + ROLE_CARD_WIDTH;
+    float minX     = _bossToTargetX[(int)_bossCards.size() - 1];
     float clampedX = std::max(minX, std::min(maxX, rawX));
 
     Vec2 pos = _bossSelectionCardContainer->getPosition();
