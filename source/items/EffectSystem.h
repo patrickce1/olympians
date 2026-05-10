@@ -115,11 +115,14 @@ public:
                 return applyBarrierToPlayer(effect, target);
             case ItemDef::EffectType::Regen:
                 return applyRegenToPlayer(effect, target);
+            case ItemDef::EffectType::Resurrect:
+            case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Slow:
             case ItemDef::EffectType::Vulnerable:
             case ItemDef::EffectType::Upgrade:
+            case ItemDef::EffectType::Forge:
                 break;
         }
 
@@ -152,7 +155,10 @@ public:
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
             case ItemDef::EffectType::Regen:
+            case ItemDef::EffectType::Resurrect:
+            case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Upgrade:
+            case ItemDef::EffectType::Forge:
                 break;
         }
 

@@ -19,9 +19,6 @@ using namespace std;
 
 /** Constant to define Box2D obstacle physics base unit */
 constexpr float ITEM_SPEED_UNITS = 1.0f;
-
-#pragma mark Sliding Item Physics Constants
-
 /** Deceleration rate for sliding items per second (units/sec²) */
 constexpr float ITEM_SLIDE_FRICTION_DECELERATION = 2500.0f;
 /** Velocity threshold below which a sliding item is considered to have settled (units/sec) */
@@ -42,6 +39,8 @@ constexpr float ITEM_SCALE_SPEED = 14.0f;
 constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
 //Defines how large the item is once it has been used. So it shrinks to this size.
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
+//Defines the gap between the item and its tooltip
+constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 
 #pragma mark HealthState
 
@@ -54,6 +53,13 @@ constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
  * - DEAD: Player has zero health.
  */
 enum class HealthState { FULL, HALF, DEAD };
+
+/**
+ * Generates a positive host-authoritative seed for one forge effect application.
+ *
+ * @return A non-negative integer seed used to derive deterministic forge rolls.
+ */
+static int makeForgeSeed();
 
 /**
  * Determines the health state of a player based on current and maximum health.
@@ -83,8 +89,9 @@ static HealthState getHealthState(float current, float max) {
  * @param resolvedMagnitude   The resolved support magnitude calculated for this item use.
  * @param targetPlayerID     The 0-based slot index of the player receiving the effect.
  * @param shouldApplyEffects  Whether the effect should be broadcasted or not
+ * @param applyToAllPlayers Whether the effect should be applied to every allied player slot.
  */
-static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int targetPlayerID, bool shouldApplyEffects) {
+static void broadcastSupportEffects(NetworkController& network, const ItemDef& def, float resolvedMagnitude, int targetPlayerID, bool shouldApplyEffects, bool applyToAllPlayers = false) {
     if (!shouldApplyEffects) {
         return;
     }
@@ -95,19 +102,43 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                 network.broadcastSupportEffect(SupportEffectType::Shield,
                     effect.mitigation,
                     effect.duration,
-                    targetPlayerID);
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
                 break;
             case ItemDef::EffectType::Barrier:
                 network.broadcastSupportEffect(SupportEffectType::Barrier,
                     effect.multiplier,
                     effect.duration,
-                    targetPlayerID);
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
                 break;
             case ItemDef::EffectType::Regen:
                 network.broadcastSupportEffect(SupportEffectType::Regen,
                     effect.regenAmount,
                     effect.duration,
-                    targetPlayerID);
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
+                break;
+            case ItemDef::EffectType::Resurrect:
+                network.broadcastSupportEffect(SupportEffectType::Resurrect,
+                    effect.reviveHealth,
+                    effect.duration,
+                    targetPlayerID,
+                    effect.regenAmount,
+                    applyToAllPlayers);
+                break;
+            case ItemDef::EffectType::Educate:
+                network.broadcastSupportEffect(SupportEffectType::Educate,
+                    0.0f,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
+                break;
+            case ItemDef::EffectType::Forge:
                 break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
@@ -117,6 +148,25 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                 break;
         }
     }
+}
+
+/**
+ * Returns the player slots that are currently dead in the replicated game state.
+ *
+ * Scans the current player roster stored on `GameState` and records only the player
+ * numbers of members who are dead at the time of the query.
+ *
+ * @param gameState The replicated game state containing the player roster.
+ * @return A vector of player slot indices for party members who are currently dead.
+ */
+static std::vector<int> collectDeadPartyPlayerSlots(const GameState& gameState) {
+    std::vector<int> deadSlots;
+    for (const auto& player : gameState.getPlayers()) {
+        if (player && !player->isAlive()) {
+            deadSlots.push_back(player->getPlayerNumber());
+        }
+    }
+    return deadSlots;
 }
 
 /**
@@ -170,6 +220,9 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Shield:
             case ItemDef::EffectType::Barrier:
             case ItemDef::EffectType::Regen:
+            case ItemDef::EffectType::Resurrect:
+            case ItemDef::EffectType::Educate:
+            case ItemDef::EffectType::Forge:
                 break;
         }
     }
@@ -199,6 +252,10 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
  * @return Whether an item effect should be applied
  */
 static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
+    if (player.hasEducate()) {
+        return true;
+    }
+
     if (def.getHouseAffinity() == ItemDef::House::None) {
         return true;
     }
@@ -332,11 +389,23 @@ bool GameScene::initSceneGraph() {
         _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
              _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.username"));
         
+        _leftPlayerHouse = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.playerHouse.label"));
+        
+        _rightPlayerHouse = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.playerHouse.label"));
+        
         _leftPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.fill"));
         
         _rightPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.fill"));
+        
+        _leftPHealthShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.shield"));
+        
+        _rightPHealthShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.shield"));
         
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
@@ -359,8 +428,17 @@ bool GameScene::initSceneGraph() {
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
         
+        _playerHealthBarGlow = std::dynamic_pointer_cast<scene2::PolygonNode>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.effectGlow"));
+        
+        _playerHealthBarShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarShield"));
+        
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
+        
+        _bossHealthBarIcon = std::dynamic_pointer_cast<scene2::PolygonNode>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.barIcon"));
         
         _bossName = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.bossName.label"));
@@ -377,6 +455,9 @@ bool GameScene::initSceneGraph() {
         _passLeftArea = _inventory->getChildByName("passZoneLeft");
         _passRightArea = _inventory->getChildByName("passZoneRight");
     }
+    
+    _tooltipNode = std::dynamic_pointer_cast<scene2::PolygonNode>(
+        _assets->get<scene2::SceneNode>("gameScene.tooltip"));
     
     addChild(_scene);
     return true;
@@ -474,8 +555,8 @@ void GameScene::initInputZones(){
     _attackArea->setVisible(false);
     
     _supportZones = {
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.45f, w * 0.399f, h * 0.40f)},
-        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.75f,   h * 0.45f, w * 0.399f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.39f, w * 0.36f, h * 0.52f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.79f,   h * 0.39f, w * 0.399f, h * 0.52f)},
     };
       
     _inventoryZones = {
@@ -552,6 +633,7 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     _assets->loadDirectory("json/itemTextures.json");
     _assets->loadDirectory("json/itemAnimations.json");
     _assets->loadDirectory("json/houseInGameIcons.json");
+    _assets->loadDirectory("json/itemTooltips.json");
 
     // Load animation registry from the already-registered enemyAnimations JSON asset
     loadAnimationRegistry();
@@ -604,9 +686,13 @@ void GameScene::dispose() {
         _playerHealthBar = nullptr;
         _leftPHealthBar = nullptr;
         _rightPHealthBar = nullptr;
+        _leftPHealthShield = nullptr;
+        _rightPHealthShield = nullptr;
         _playerName = nullptr;
         _bossName = nullptr;
         _playerHouseName = nullptr;
+        _leftPlayerHouse = nullptr;
+        _rightPlayerHouse = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
         _enemyAnimationSpriteNodes.clear();
@@ -617,6 +703,8 @@ void GameScene::dispose() {
         _consumedItemAnimations.clear();
         _activeFloatingPopups.clear();
         _pendingFloatingPopups.clear();
+        _pendingResurrectionSync = PendingResurrectionSync{};
+        _pendingPartyEffectSyncs.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
             _itemPhysicsWorld->dispose();
@@ -676,6 +764,14 @@ void GameScene::updateNetworkOrder() {
 
     _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
     _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
+    
+    std::string leftName = _gameState.getLocalPlayer()->getLeftPlayer()->getHouseName();
+    for (char &character : leftName) character = toupper(character);
+    _leftPlayerHouse->setText(leftName);
+    
+    std::string rightName = _gameState.getLocalPlayer()->getRightPlayer()->getHouseName();
+    for (char &character : rightName) character = toupper(character);
+    _rightPlayerHouse->setText(rightName);
 
     _gameState.setEnemy(_network->getEnemy(), _assets);
 
@@ -693,7 +789,19 @@ void GameScene::setActive(bool value) {
             reset();
             _enemyController.enterIdle(_gameState.getEnemy(), _gameState.getPlayers());
             updateNetworkOrder();
-            
+
+            // Sync divine item filter from _gameState, which PreGameEntryScene has
+            // already kept up-to-date every frame from the network. Reading from
+            // _gameState here (not the network directly) means the filter is set
+            // even if updateNetworkOrder() returned early due to connection state.
+            {
+                std::vector<std::string> activeHouses;
+                for (const auto& player : _gameState.getPlayers()) {
+                    activeHouses.push_back(player->getHouseName());
+                }
+                _itemController.setActiveHouses(activeHouses);
+            }
+
             // Re-initialize AI players after updateNetworkOrder() rebuilds
             // AI slots via demoteToAI(). demoteToAI() creates EasyPlayerAI
             // objects but cannot call init() since it has no ItemController.
@@ -808,6 +916,8 @@ void GameScene::reset() {
     _status = Status::PLAYING;
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
+    _pendingResurrectionSync = PendingResurrectionSync{};
+    _pendingPartyEffectSyncs.clear();
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
@@ -915,18 +1025,31 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         return false;
     }
 
+    const auto& animConfig = def->getItemUseAnimation();
+    const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
+
+    if (handleAllyTargetAttack(itemId, def, local, resolvedMagnitude, shouldApplyEffects)) {
+        startItemUseAnimation(animConfig, 0.0f, animPos, 0);
+        if (!_activeItemUseAnimations.empty()) {
+            _activeItemUseAnimations.back().popupPosition = dropPos;
+            _activeItemUseAnimations.back().baseValue = baseValue;
+            _activeItemUseAnimations.back().houseAffinityMultiplier = houseAffinityMultiplier;
+            _activeItemUseAnimations.back().upgradeMultiplier = upgradeMultiplier;
+            _activeItemUseAnimations.back().itemDefID = def->getId();
+        }
+        return true;
+    }
+
     // Host snapshots are authoritative for slow timing, so non-host clients
     // clear their speculative local slow until the host state arrives.
     if (!_network->isHost() && def->hasEffectType(ItemDef::EffectType::Slow)) {
         enemy->syncSlow(1.0f, 0.0f);
     }
 
-    const auto& animConfig = def->getItemUseAnimation();
     CULog("Player attacked enemy with item (animation queued, damage deferred to resolution: %.1f)",
           resolvedMagnitude);
 
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
-    const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
     const std::vector<EnemyEffectMessage> enemyEffects =
         (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects)
                               : std::vector<EnemyEffectMessage>{};
@@ -971,6 +1094,10 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         return false;
     }
 
+    if (handleAllyTargetAttack(itemId, def, local, resolvedMagnitude, shouldApplyEffects)) {
+        return true;
+    }
+
     // Host snapshots are authoritative for slow timing, so non-host clients
     // clear their speculative local slow until the host state arrives.
     if (!_network->isHost() && def->hasEffectType(ItemDef::EffectType::Slow)) {
@@ -1001,12 +1128,102 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         return true;
     }
 
-    const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
-    const float finalDamage     = resolvedMagnitude * sideMultiplier;
-    createFloatingPopup(dropPos, buildAttackDamagePopups(
-        baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
-        resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+    if (baseValue > 0.0f) {
+        const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
+        const float finalDamage     = resolvedMagnitude * sideMultiplier;
+        createFloatingPopup(dropPos, buildAttackDamagePopups(
+            baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
+            resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+    }
 
+    return true;
+}
+
+/**
+ * Handles the shared ally-target branch for attack items and returns whether it fully resolved the item use.
+ *
+ * @param itemId The item instance ID being used.
+ * @param def The item definition that controls attack target routing and effects.
+ * @param local The local player performing the attack.
+ * @param resolvedMagnitude The resolved attack magnitude returned by `useItemById`.
+ * @param shouldApplyEffects Whether the item's configured effects should be dispatched.
+ * @return True if the item targeted all allies and was fully handled here; false if enemy-target attack handling should continue.
+ */
+bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::shared_ptr<const ItemDef>& def, Player* local, float resolvedMagnitude, bool shouldApplyEffects) {
+    if (def->getAttackTarget() != ItemDef::AttackTarget::AllAllies) {
+        return false;
+    }
+
+    if (shouldApplyEffects) {
+        for (const ItemDef::Effect& effect : def->getEffects()) {
+            if (effect.type != ItemDef::EffectType::Forge) {
+                continue;
+            }
+            if (_network->isHost()) {
+                const int seed = makeForgeSeed();
+                applyForgeEffect(effect.chance, seed);
+                _network->broadcastForgeEffect(effect.chance, seed);
+            } else {
+                _network->requestForgeEffect(effect.chance);
+            }
+        }
+    }
+
+    if (!_network->isHost()) {
+        for (const ItemDef::Effect& effect : def->getEffects()) {
+            if (!shouldApplyEffects) {
+                break;
+            }
+
+            switch (effect.type) {
+                case ItemDef::EffectType::Resurrect: {
+                    const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(_gameState);
+                    _pendingResurrectionSync.playerSlots = resurrectedSlots;
+                    _pendingResurrectionSync.reviveHealth = effect.reviveHealth;
+                    _pendingResurrectionSync.regenAmount = effect.regenAmount;
+                    _pendingResurrectionSync.regenDuration = effect.duration;
+                    _pendingResurrectionSync.active = !resurrectedSlots.empty();
+                    break;
+                }
+                case ItemDef::EffectType::Educate: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Educate;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.duration = effect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
+                case ItemDef::EffectType::Forge:
+                    break;
+                case ItemDef::EffectType::Shield:
+                case ItemDef::EffectType::Barrier:
+                case ItemDef::EffectType::Regen:
+                case ItemDef::EffectType::Stun:
+                case ItemDef::EffectType::Love:
+                case ItemDef::EffectType::Slow:
+                case ItemDef::EffectType::Vulnerable:
+                case ItemDef::EffectType::Upgrade:
+                    break;
+            }
+        }
+        broadcastSupportEffects(*_network, *def, resolvedMagnitude, -1, shouldApplyEffects, true);
+    }
+
+    CULog("Player used ally-target attack item %llu", (unsigned long long)itemId);
     return true;
 }
 
@@ -1031,7 +1248,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -1072,7 +1289,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f);
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -1315,13 +1532,33 @@ void GameScene::updateEnemyHealthBarEffect(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
     
-    if (enemy->isStunned()){
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillYellow"));
+    auto applyBossBar = [&](const std::string& barTex,
+                            const std::string& iconTex,
+                            bool showIcon) {
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>(barTex));
+
+        if (showIcon) {
+            _bossHealthBarIcon->setTexture(_assets->get<cugl::graphics::Texture>(iconTex));
+            _bossHealthBarIcon->setScale(0.5f);
+            _bossHealthBarIcon->setVisible(true);
+        } else {
+            _bossHealthBarIcon->setVisible(false);
+        }
+    };
+
+    std::string bar = "healthFillRed";
+    std::string icon = "";
+    bool show = false;
+
+    if (enemy->isStunned()) {
+        bar = "healthFillYellow"; icon = "stunIcon"; show = true;
     } else if (enemy->isLoved()) {
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillPink"));
-    } else {
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillRed"));
+        bar = "healthFillPink"; icon = "loveIcon"; show = true;
+    } else if (enemy->isSlowed()) {
+        bar = "healthFillBlue"; icon = "slowIcon"; show = true;
     }
+
+    applyBossBar(bar, icon, show);
 }
 
 /**
@@ -2145,17 +2382,102 @@ void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
     if (_playerHealthBar->getProgress() <= 0) {
         _playerHealthBar->setVisible(false);
+        _gameArea->getChildByName("playerDeath")->setVisible(true);
     } else {
         _playerHealthBar->setVisible(true);
+        _gameArea->getChildByName("playerDeath")->setVisible(false);
     }
     
     auto leftPlayer = player->getLeftPlayer();
-    _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+    if (leftPlayer->hasShield()) {
+        float maxHealth = (float)leftPlayer->getMaxHealth();
+        float health    = (float)leftPlayer->getCurrentHealth();
+        float shield    = (float)leftPlayer->getShieldHealth();
+
+        float total = health + shield;
+
+        if (total >= maxHealth) {
+            _leftPHealthShield->setProgress(1.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _leftPHealthBar->setProgress(visibleHealth / maxHealth);
+        }
+        else {
+            _leftPHealthShield->setProgress(total / maxHealth);
+            _leftPHealthBar->setProgress(health / maxHealth);
+        }
+        _leftPHealthShield->setVisible(true);
+    } else {
+        _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+        _leftPHealthShield->setVisible(false);
+    }
     
     auto rightPlayer = player->getRightPlayer();
-    _rightPHealthBar->setProgress(
-        1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth())
-    );
+    if (rightPlayer->hasShield()) {
+        float maxHealth = (float)rightPlayer->getMaxHealth();
+        float health    = (float)rightPlayer->getCurrentHealth();
+        float shield    = (float)rightPlayer->getShieldHealth();
+        
+        float total = health + shield;
+        
+        if (total >= maxHealth) {
+            _rightPHealthBar->setProgress(0.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _rightPHealthShield->setProgress(1.0f - (visibleHealth / maxHealth));
+        } else {
+            _rightPHealthShield->setProgress(1.0f - (health / maxHealth));
+            _rightPHealthBar->setProgress(1.0f - (total / maxHealth));
+        }
+        _rightPHealthShield->setVisible(true);
+    } else {
+        _rightPHealthBar->setProgress(
+            1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth()));
+        _rightPHealthShield->setVisible(false);
+    }
+}
+
+/**
+ * Updates the local player's progress bar with the current effects that have been applied
+ * onto them.
+ *
+ * @param dt Delta time in seconds
+ */
+void GameScene::updatePlayerHealthBarEffect(float dt) {
+    auto player = _gameState.getLocalPlayer();
+    if (!player || !player->isAlive()) return;
+    
+    if (player->hasBarrier() && player->getBarrierMultiplier() == 0) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("helmBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else if (player->hasBarrier() && player->getBarrierMultiplier() > 0) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("aegisBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else {
+        _playerHealthBarGlow->setVisible(false);
+    }
+    
+    if (player->hasShield()) {
+        float maxHealth = (float)player->getMaxHealth();
+        float health    = (float)player->getCurrentHealth();
+        float shield    = (float)player->getShieldHealth();
+
+        float total = health + shield;
+
+        if (total >= maxHealth) {
+            _playerHealthBarShield->setProgress(1.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _playerHealthBar->setProgress(visibleHealth / maxHealth);
+        }
+        else {
+            _playerHealthBarShield->setProgress(total / maxHealth);
+            _playerHealthBar->setProgress(health / maxHealth);
+        }
+        _playerHealthBarShield->setVisible(true);
+    } else {
+        _playerHealthBarShield->setVisible(false);
+    }
 }
 
 /**
@@ -2230,14 +2552,19 @@ void GameScene::updateTeammateBlink(const std::shared_ptr<cugl::scene2::PolygonN
         }
     }
 
+    const bool hasActiveRegen = player->hasRegen();
+
     if (!isAlive) {
         damageBlinkTimer = 0.0f;
         healBlinkTimer = 0.0f;
         slot->setColor(Color4(255, 255, 255, 255));
-    } else if (healBlinkTimer > 0.0f) {
-        slot->setColor(Color4(176, 224, 176, 255));
     } else if (damageBlinkTimer > 0.0f && shouldShowDamageBlink(damageBlinkTimer, _blinkInterval)) {
         slot->setColor(Color4(224, 160, 160, 255));
+    } else if (hasActiveRegen) {
+        // Regen applies small heals every frame, so keep a visible green tint up while it is active.
+        slot->setColor(Color4(120, 220, 120, 255));
+    } else if (healBlinkTimer > 0.0f) {
+        slot->setColor(Color4(176, 224, 176, 255));
     } else {
         slot->setColor(Color4(255, 255, 255, 255));
     }
@@ -2372,6 +2699,11 @@ void GameScene::handlePlayerInput(InputController& input) {
         _audio->playSoundUnique("deselect");
 
     }
+    
+    // Tooltip cleanup
+    _tooltipNode->setVisible(false);
+    _holdTimer        = 0.0f;
+    _holdAnchorPos    = Vec2::ZERO;
 
     _draggedIcon = nullptr;
     if (_draggedItemId != 0) {
@@ -2436,6 +2768,11 @@ void GameScene::handleDragInitiation(InputController& input) {
             _itemWidgetScaleTargets[id] = ITEM_PICKUP_SCALE;
             _dragOffset = widget->getPosition() - touchPosScreen;
 
+            // Reset tooltip
+            _holdTimer        = 0.0f;
+            _holdAnchorPos    = touchPosScreen;
+            _tooltipNode->setVisible(false);
+            
             // Bring item to front of render order when picked up
             if (_inventory) {
                 _inventory->removeChild(widget);
@@ -2465,6 +2802,16 @@ void GameScene::handleDragTracking(InputController& input) {
 
     Vec2 dragScene = screenToWorldCoords(input.getDragPos());
     Vec2 widgetPosition = dragScene + _dragOffset;
+    
+    // dismiss tooltip movement
+    if (_tooltipNode) {
+        if (dragScene.distance(_holdAnchorPos) > _tooltipMoveLimit) {
+            _holdAnchorPos = dragScene;
+            _holdTimer        = 0.0f;
+            _tooltipNode->setVisible(false);
+        }
+    }
+    
     auto body = _itemBodies.find(_draggedItemId);
     if (body != _itemBodies.end() && body->second) {
         _dragPreviousFrameItemBodyPos = body->second->getPosition(); // Store current position for velocity calculation
@@ -2507,6 +2854,7 @@ void GameScene::handleNetworkUpdates(float dt) {
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
         _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
+        processForgeEffects(_network->getForgeEffectUpdates());
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
 
         for (auto& player : _gameState.getPlayers()) {
@@ -2521,6 +2869,9 @@ void GameScene::handleNetworkUpdates(float dt) {
     else {
         // clients just apply the latest state from host
         _gameState.networkUpdate(_network->getStateUpdate());
+        processForgeEffects(_network->getForgeEffectUpdates());
+        applyPendingResurrectionSync();
+        applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
     }
     
@@ -2549,6 +2900,139 @@ void GameScene::handleNetworkUpdates(float dt) {
     }
 
     processNetworkedPasses(_network->getPassUpdates());
+}
+
+/**
+ * Reapplies a pending client-side resurrection after stale host snapshots, until host sync catches up.
+ *
+ * Each queued slot is checked against the latest replicated game state. Slots that are
+ * still dead are restored locally using the cached revive and regen values; once all
+ * tracked slots are alive in the authoritative snapshot, the pending cache is cleared.
+ */
+void GameScene::applyPendingResurrectionSync() {
+    if (!_pendingResurrectionSync.active) {
+        return;
+    }
+
+    bool waitingForHost = false;
+    for (int slot : _pendingResurrectionSync.playerSlots) {
+        Player* player = _gameState.getPlayerBySlot(slot);
+        if (!player) {
+            continue;
+        }
+        if (player->isAlive()) {
+            continue;
+        }
+
+        player->setCurrentHealth(_pendingResurrectionSync.reviveHealth);
+        if (_pendingResurrectionSync.regenAmount > 0.0f && _pendingResurrectionSync.regenDuration > 0.0f) {
+            player->applyRegen(_pendingResurrectionSync.regenAmount, _pendingResurrectionSync.regenDuration);
+        }
+        waitingForHost = true;
+    }
+
+    if (!waitingForHost) {
+        _pendingResurrectionSync = PendingResurrectionSync{};
+    }
+}
+
+/**
+ * Reapplies a pending client-side educate buff after stale host snapshots, until host sync catches up.
+ */
+void GameScene::applyPendingPartyEffectSyncs() {
+    auto shouldKeepPendingEffect = [&](PendingPartyEffectSync& pendingEffect) {
+        bool waitingForHost = false;
+
+        for (int slot : pendingEffect.playerSlots) {
+            Player* player = _gameState.getPlayerBySlot(slot);
+            if (!player) {
+                continue;
+            }
+
+            switch (pendingEffect.effectType) {
+                case ItemDef::EffectType::Educate:
+                    if (player->hasEducate()) {
+                        continue;
+                    }
+                    player->applyEducate(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return waitingForHost;
+    };
+
+    _pendingPartyEffectSyncs.erase(
+        std::remove_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+            [&](PendingPartyEffectSync& pendingEffect) {
+                if (!pendingEffect.active) {
+                    return true;
+                }
+                return !shouldKeepPendingEffect(pendingEffect);
+            }),
+        _pendingPartyEffectSyncs.end());
+}
+
+/**
+ * Generates a positive host-authoritative seed for one forge effect application.
+ *
+ * @return A non-negative integer seed used to derive deterministic forge rolls.
+ */
+static int makeForgeSeed() {
+    cugl::Random rng;
+    if (rng.init()) {
+        return static_cast<int>(rng.getUint32() & 0x7fffffffu);
+    }
+    return 0x13572468;
+}
+
+/**
+ * Applies queued or requested forge effects using host-authoritative seeds.
+ *
+ * The host processes only non-authoritative client requests, applies forge locally once,
+ * and broadcasts an authoritative seeded message. Clients apply only authoritative
+ * seeded messages from the host.
+ *
+ * @param forgeEffects  The forge effect messages received during the current network update.
+ */
+void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forgeEffects) {
+    for (const ForgeEffectMessage& forgeEffect : forgeEffects) {
+        if (_network->isHost()) {
+            if (forgeEffect.authoritative) {
+                continue;
+            }
+
+            const int seed = makeForgeSeed();
+            applyForgeEffect(forgeEffect.divineChance, seed);
+            _network->broadcastForgeEffect(forgeEffect.divineChance, seed);
+        } else if (forgeEffect.authoritative) {
+            applyForgeEffect(forgeEffect.divineChance, forgeEffect.seed);
+        }
+    }
+}
+
+/**
+ * Redefines existing local item instances for forge and refreshes any visible widgets.
+ *
+ * Each player's roll uses a deterministic seed derived from the shared base seed and
+ * that player's slot number so all machines resolve matching local inventories the same way.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ * @param seed    Deterministic base seed used to derive per-player forge rolls.
+ */
+void GameScene::applyForgeEffect(float chance, int seed) {
+    const std::uint32_t baseSeed = static_cast<std::uint32_t>(seed);
+    for (const auto& player : _gameState.getPlayers()) {
+        if (!player) {
+            continue;
+        }
+        const std::uint32_t playerSeed = baseSeed ^ (0x9e3779b9u + static_cast<std::uint32_t>(player->getPlayerNumber()));
+        _itemController.applyForgeEffect(player.get(), chance, playerSeed);
+    }
+    refreshInventoryWidgetTextures();
 }
 
 /** 
@@ -2852,6 +3336,32 @@ bool GameScene::handleSettledItem(ItemInstance* item, std::shared_ptr<cugl::phys
 }
 
 /**
+ * Handles tooltip visibility during drag: after holding long enough,
+ * shows the tooltip (once) and keeps it aligned with the dragged item.
+ *
+ * @param dt  Delta time in seconds.
+ */
+void GameScene::handleTooltipVisibility(float dt) {
+    if (_draggedIcon && _tooltipNode) {
+        _holdTimer += dt;
+        if (_holdTimer >= _holdThreshold) {
+            if (!_tooltipNode->isVisible()) {
+                // First frame threshold crossed — swap texture for this item
+                if (_draggedItemDef) {
+                    const std::string tooltipKey = _draggedItemDef->getTooltipKey();
+                    auto tex = _assets->get<cugl::graphics::Texture>(tooltipKey);
+                    if (tex) _tooltipNode->setTexture(tex);
+                    _tooltipNode->setScale(0.4315);
+                }
+                _tooltipNode->setVisible(true);
+            }
+            // keep tooltip above the moving widget
+            updateTooltipPosition();
+        }
+    }
+}
+
+/**
  * Checks if a settled item should be removed due to being off-screen.
  * Only applies to spawned and passed items; dropped items are exempted.
  *
@@ -3149,6 +3659,22 @@ void GameScene::updateDropZoneVisibility(){
     }
 }
 
+/**
+ * Repositions the tooltip node above the currently dragged icon.
+ * Must only be called while _draggedIcon and _tooltipNode are valid.
+ */
+void GameScene::updateTooltipPosition() {
+    Size widgetSize = _draggedIcon->getContentSize();
+
+    Vec2 widgetPos = _draggedIcon->getPosition();
+
+    // Center tooltip horizontally over the widget, place it just above
+    float x = widgetPos.x + (widgetSize.width  - _tooltipNode->getWidth()) * 0.5f;
+    float y = widgetPos.y +  widgetSize.height + ITEM_TOOLTIP_GAP;
+
+    _tooltipNode->setPosition(Vec2(x, y));
+}
+
 #pragma mark -
 #pragma mark Update
 
@@ -3189,6 +3715,7 @@ void GameScene::update(float dt, InputController& input) {
     updateDebugPointer(input);
     handleDragInitiation(input);
     handleDragTracking(input);
+    handleTooltipVisibility(dt);
 
     if (_itemPhysicsWorld) {
         _itemPhysicsWorld->update(dt);
@@ -3204,6 +3731,7 @@ void GameScene::update(float dt, InputController& input) {
     _network->clearQueues();
     updateAllPlayersAndEnemyHealthUI(dt);
     updatePlayerAndTeammateIcons(dt);
+    updatePlayerHealthBarEffect(dt);
 }
 
 #pragma mark -
@@ -3583,7 +4111,36 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     startItemSliding(id, spawnVelocity, slideOrigin);
 }
 
-/** Synchronises on-screen item widgets with the local player's current inventory. */
+/**
+ * Refreshes existing widget textures after item instances are redefined in place.
+ *
+ * Forge preserves item instance IDs, so the existing inventory widgets are kept and
+ * only their textures are swapped to match the new item definitions.
+ */
+void GameScene::refreshInventoryWidgetTextures() {
+    Player* local = _gameState.getLocalPlayer();
+    if (!local || !_assets) return;
+
+    for (const ItemInstance& item : local->getInventory()) {
+        auto widgetIt = _itemWidgets.find(item.getId());
+        if (widgetIt == _itemWidgets.end() || !widgetIt->second) {
+            continue;
+        }
+
+        auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
+        if (!itemDef) {
+            continue;
+        }
+
+        auto texture = _assets->get<cugl::graphics::Texture>(itemDef->getIconKey());
+        auto polygon = std::dynamic_pointer_cast<scene2::PolygonNode>(widgetIt->second);
+        if (texture && polygon) {
+            polygon->setTexture(texture);
+            polygon->setContentSize(Size(100, 100));
+        }
+    }
+}
+
 void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();
     if (!_inventory || !local) return;
@@ -3726,8 +4283,8 @@ void GameScene::render() {
         renderItemWidgetDebug(batch.get());
         renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
+        renderDropZonesDebug(batch.get());
     }
-//    renderDropZonesDebug(batch.get());
     batch->end();
 }
 
@@ -4095,16 +4652,18 @@ void GameScene::updateItemUseAnimations(float dt) {
             if (activeAnim.damageAmount > 0.0f) {
                 auto enemy = _gameState.getEnemy();
                 if (enemy) {
-                    const int   playerNum      = _gameState.getLocalPlayer()->getPlayerNumber();
-                    const float sideMultiplier = enemy->getSideMultiplier(playerNum);
-                    const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
+                    const int playerNum = _gameState.getLocalPlayer()->getPlayerNumber();
 
                     // Apply pre-calculated damage and show the popup sequence.
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
-                    createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
-                        activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
-                        activeAnim.upgradeMultiplier, sideMultiplier,
-                        activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
+                    if (activeAnim.baseValue > 0.0f) {
+                        const float sideMultiplier = enemy->getSideMultiplier(playerNum);
+                        const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
+                        createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
+                            activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
+                            activeAnim.upgradeMultiplier, sideMultiplier,
+                            activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
+                    }
 
                     // Non-hosts broadcast so the host applies it on the same frame.
                     if (_network && !_network->isHost()) {
@@ -4437,18 +4996,22 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
  * @param def      The item definition whose effects to scan.
  * @param dropPos  Screen-space position where popups appear.
  * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
+ * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
  */
-void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos, bool shouldShowEffectPopup) {
+void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos,
+                                           bool shouldShowEffectPopup, bool hasHealingPopup) {
+    const bool hasRegenPopup = shouldShowEffectPopup && def && def->hasEffectType(ItemDef::EffectType::Regen);
+    const float popupYOffset = hasHealingPopup ? (hasRegenPopup ? -56.0f : -28.0f) : 0.0f;
     for (const auto& effect : def->getEffects()) {
         if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
             char text[32];
             std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
-            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, popupYOffset), true}});
         } else if (shouldShowEffectPopup && effect.type == ItemDef::EffectType::Barrier && effect.multiplier < 1.0f) {
             char text[32];
             const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
             std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);
-            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2::ZERO, true}});
+            createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, popupYOffset), true}});
         }
     }
 }

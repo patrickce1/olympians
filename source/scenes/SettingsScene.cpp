@@ -103,13 +103,16 @@ void SettingsScene::setupUI() {
 void SettingsScene::setupListeners() {
     // Back button — hide the overlay
     _backButton->addListener([this](const std::string& name, bool down) {
+        // Revert audio to last saved values without touching SavedDataManager
+        if (_onMusicVolumeChange) _onMusicVolumeChange(SavedDataManager::get().getMusicVolume());
+        if (_onSFXVolumeChange)   _onSFXVolumeChange(SavedDataManager::get().getSFXVolume());
         if (!down) _pendingClose = true;
     });
 
-    // Save button — persist settings
+    // Persist all current settings to disk then close the scene
     _saveButton->addListener([this](const std::string& name, bool down) {
         if (!down) {
-//            saveSettings();
+            saveSettings();
             _pendingClose = true;
         }
     });
@@ -155,18 +158,38 @@ void SettingsScene::dispose() {
 /**
  * Sets whether the scene is currently active.
  *
- * This method should be used to toggle all the UI elements. Buttons
- * should be activated when it is made active and deactivated when
- * it is not.
+ * When activated, pre-populates the username field with the player name
+ * currently stored in SavedDataManager so returning players always see
+ * their existing name. When deactivated, resets button states and
+ * disables all input controls.
  *
- * @param value whether the scene is currently active
+ * @param value whether the scene is currently active.
  */
 void SettingsScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
         setInputEnabled(value);
-        if (!value) {
-            // Reset any buttons that may have been held down
+        if (value) {
+            // Pre-populate the name field with the currently saved name
+            // so the player can see and edit their existing value
+            const std::string& saved = SavedDataManager::get().getPlayerName();
+            // Restore persisted values to the UI
+            _sfxVolume      = SavedDataManager::get().getSFXVolume();
+            _musicVolume    = SavedDataManager::get().getMusicVolume();
+            _effectsEnabled = SavedDataManager::get().getEffectsEnabled();
+            _hapticsEnabled = SavedDataManager::get().getHapticsEnabled();
+
+            if (_usernameField && !saved.empty()) {
+                _usernameField->setText(saved);
+                auto placeholder = std::dynamic_pointer_cast<scene2::Label>(
+                    _assets->get<scene2::SceneNode>("settingsScene.username.placeholder"));
+                if (placeholder) placeholder->setVisible(false);
+            }
+            if (_sfxSlider)     _sfxSlider->setValue(_sfxVolume);
+            if (_musicSlider)   _musicSlider->setValue(_musicVolume);
+            if (_effectsButton) _effectsButton->setDown(_effectsEnabled);
+            if (_hapticsButton) _hapticsButton->setDown(_hapticsEnabled);
+        } else {
             _saveButton->setDown(false);
             _backButton->setDown(false);
         }
@@ -213,4 +236,28 @@ void SettingsScene::setInputEnabled(bool enabled) {
         _hapticsButton->deactivate();
         _saveButton->deactivate();
     }
+}
+
+/**
+ * Persists the current settings to disk via SavedDataManager.
+ *
+ * Reads the current text from the username field and stores it in
+ * SavedDataManager, then calls save() to write savedData.json. Called
+ * by the save button listener immediately before closing the scene.
+ *
+ * Extend this method to persist slider values and toggle states once
+ * those fields are added to the SavedDataManager schema.
+ */
+void SettingsScene::saveSettings() {
+    if (_usernameField) {
+        const std::string name = _usernameField->getText();
+        if (!name.empty()) {
+            SavedDataManager::get().setPlayerName(name);
+        }
+    }
+    SavedDataManager::get().setSFXVolume(_sfxVolume);
+    SavedDataManager::get().setMusicVolume(_musicVolume);
+    SavedDataManager::get().setEffectsEnabled(_effectsEnabled);
+    SavedDataManager::get().setHapticsEnabled(_hapticsEnabled);
+    SavedDataManager::get().save();
 }

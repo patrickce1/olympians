@@ -1,0 +1,77 @@
+{
+    "textures": {
+        "tooltip_sword": {
+            "file": "textures/items/tooltips/swordTip.png"
+        },
+        "tooltip_apple": {
+            "file": "textures/items/tooltips/appleTip.png"
+        },
+        "tooltip_nectar": {
+            "file": "textures/items/tooltips/nectarTip.png"
+        },
+        "tooltip_arrow": {
+            "file": "textures/items/tooltips/arrowTip.png"
+        },
+        "tooltip_shield": {
+            "file": "textures/items/tooltips/shieldTip.png"
+        },
+        "tooltip_lightning": {
+            "file": "textures/items/tooltips/lightningTip.png"
+        },
+        "tooltip_trident": {
+            "file": "textures/items/tooltips/tridentTip.png"
+        },
+        "tooltip_helm": {
+            "file": "textures/items/tooltips/helmTip.png"
+        },
+        "tooltip_wheat": {
+            "file": "textures/items/tooltips/wheatTip.png"
+        },
+        "tooltip_mallet": {
+            "file": "textures/items/tooltips/malletTip.png"
+        },
+        "tooltip_aegis": {
+            "file": "textures/items/tooltips/aegisTip.png"
+        },
+        "tooltip_spear": {
+            "file": "textures/items/tooltips/spearTip.png"
+        },
+        "tooltip_wings": {
+            "file": "textures/items/tooltips/wingsTip.png"
+        },
+        "tooltip_potion": {
+            "file": "textures/items/tooltips/potionTip.png"
+        },
+        "tooltip_poseidon_tsunami": {
+            "file": "textures/items/tooltips/tsunamiTip.png"
+        },
+        "tooltip_zeus_thunderstorm": {
+            "file": "textures/items/tooltips/thunderstormTip.png"
+        },
+        "tooltip_hades_resurrection": {
+            "file": "textures/items/tooltips/resurrectionTip.png"
+        },
+        "tooltip_demeter_harvest": {
+            "file": "textures/items/tooltips/harvestTip.png"
+        },
+        "tooltip_aphrodite_charm": {
+            "file": "textures/items/tooltips/charmTip.png"
+        },
+        "tooltip_athena_educate": {
+            "file": "textures/items/tooltips/educateTip.png"
+        },
+        "tooltip_ares_rage": {
+            "file": "textures/items/tooltips/rageTip.png"
+        },
+        "tooltip_hermes_treasure": {
+            "file": "textures/items/tooltips/treasureTip.png"
+        },
+        "tooltip_hephaestus_forge": {
+            "file": "textures/items/tooltips/forgeTip.png"
+        },
+        "tooltip_gaia_rock": {
+            "file": "textures/items/tooltips/rockTip.png"
+        }
+    }
+}
+

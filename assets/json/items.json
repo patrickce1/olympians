@@ -1,9 +1,9 @@
 {
     "rarityWeights": {
-        "common": 0.45,
-        "rare": 0.15,
-        "divine": 0.01,
-        "special": 0.0
+        "common": 70,
+        "rare": 25,
+        "divine": 5,
+        "special": 0
     },
     "items": [
         {
@@ -11,10 +11,13 @@
             "name": "Sword",
             "description": "Just a plain set of swords.",
             "icon": "item_sword",
+            "tooltip": "tooltip_sword",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 20.0,
+            "weight": 12.0,
             "effects": [],
             "itemUseSound": "attack_slash",
             "itemUseAnimation": {
@@ -31,10 +34,12 @@
             "name": "Apple",
             "description": "Just a plain apple.",
             "icon": "item_apple",
+            "tooltip": "tooltip_apple",
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 10.0,
+            "weight": 7.0,
             "effects": []
         },
         {
@@ -42,10 +47,12 @@
             "name": "Nectar",
             "description": "The god's dessert.",
             "icon": "item_nectar",
+            "tooltip": "tooltip_nectar",
             "type": "support",
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 15.0,
+            "weight": 7.0,
             "effects": []
         },
         {
@@ -53,10 +60,13 @@
             "name": "Bow and Arrow",
             "description": "For long range shots.",
             "icon": "item_arrow",
+            "tooltip": "tooltip_arrow",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 23.0,
+            "weight": 10.0,
             "effects": [],
             "itemUseSound": "attack_thrust",
             "itemUseAnimation": {
@@ -73,10 +83,12 @@
             "name": "Shield",
             "description": "Help a brother out.",
             "icon": "item_shield",
+            "tooltip": "tooltip_shield",
             "type": "support",
-            "rarity": "rare",
+            "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 0.0,
+            "weight": 2.0,
             "effects": [
                 {
                     "type": "shield",
@@ -90,10 +102,13 @@
             "name": "Lightning Bolt",
             "description": "A crackling bolt of lightning sent from the king of the gods himself.",
             "icon": "item_lightning",
+            "tooltip": "tooltip_lightning",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "rare",
             "houseAffinity": "zeus",
             "baseValue": 27.0,
+            "weight": 13.0,
             "effects": [
                 {
                     "type": "stun",
@@ -115,10 +130,13 @@
             "name": "Trident",
             "description": " ",
             "icon": "item_trident",
+            "tooltip": "tooltip_trident",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "rare",
             "houseAffinity": "poseidon",
             "baseValue": 27.0,
+            "weight": 13.0,
             "effects": [
                 {
                     "type": "vulnerable",
@@ -143,10 +161,12 @@
             "name": "Helm",
             "description": " ",
             "icon": "item_helm",
+            "tooltip": "tooltip_helm",
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "hades",
             "baseValue": 10.0,
+            "weight": 6.0,
             "effects": [
                 {
                     "type": "barrier",
@@ -160,10 +180,12 @@
             "name": "Wheat",
             "description": " ",
             "icon": "item_wheat",
+            "tooltip": "tooltip_wheat",
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "demeter",
             "baseValue": 25.0,
+            "weight": 10.0,
             "effects": [
                 {
                     "type": "regen",
@@ -177,10 +199,13 @@
             "name": "Mallet",
             "description": " ",
             "icon": "item_mallet",
+            "tooltip": "tooltip_mallet",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "rare",
             "houseAffinity": "hephaestus",
             "baseValue": 10.0,
+            "weight": 13.0,
             "effects": [
                 {
                     "type": "upgrade",
@@ -202,10 +227,12 @@
             "name": "Aegis Shield",
             "description": " ",
             "icon": "item_aegis",
+            "tooltip": "tooltip_aegis",
             "type": "support",
             "rarity": "rare",
             "houseAffinity": "athena",
             "baseValue": 10.0,
+            "weight": 6.0,
             "effects": [
                 {
                     "type": "barrier",
@@ -219,10 +246,13 @@
             "name": "Spear",
             "description": " ",
             "icon": "item_spear",
+            "tooltip": "tooltip_spear",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "rare",
             "houseAffinity": "ares",
             "baseValue": 27.0,
+            "weight": 12.0,
             "effects": [
                 {
                     "type": "vulnerable",
@@ -246,10 +276,13 @@
             "name": "Winged Sandals",
             "description": " ",
             "icon": "item_wings",
+            "tooltip": "tooltip_wings",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "rare",
             "houseAffinity": "hermes",
             "baseValue": 10.0,
+            "weight": 7.0,
             "effects": [
                 {
                     "type": "slow",
@@ -269,10 +302,13 @@
             "name": "Love Potion",
             "description": " ",
             "icon": "item_potion",
+            "tooltip": "tooltip_potion",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "rare",
             "houseAffinity": "aphrodite",
             "baseValue": 10.0,
+            "weight": 11.0,
             "effects": [
                 {
                     "type": "love",
@@ -285,10 +321,13 @@
             "name": "Thunderstorm",
             "description": " ",
             "icon": "item_zeus_thunderstorm",
+            "tooltip": "tooltip_zeus_thunderstorm",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "divine",
             "houseAffinity": "zeus",
             "baseValue": 10.0,
+            "weight": 10.0,
             "effects": [],
             "itemUseAnimation": {
                 "spriteSheetId": "storm_animation",
@@ -305,10 +344,13 @@
             "name": "Tide",
             "description": " ",
             "icon": "item_poseidon_tide",
+            "tooltip": "tooltip_poseidon_tsunami",
             "type": "attack",
+            "attackTarget": "all_allies",
             "rarity": "divine",
             "houseAffinity": "poseidon",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": [],
             "itemUseAnimation": {
                 "spriteSheetId": "tide_animation",
@@ -324,7 +366,9 @@
             "name": "Gaia's Rock",
             "description": " ",
             "icon": "item_gaia_rock",
+            "tooltip": "tooltip_gaia_rock",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "special",
             "houseAffinity": "none",
             "baseValue": 30.0,
@@ -335,21 +379,35 @@
             "name": "Resurrection",
             "description": " ",
             "icon": "item_hades_resurrection",
-            "type": "support",
+            "tooltip": "tooltip_hades_resurrection",
+            "type": "attack",
+            "attackTarget": "all_allies",
             "rarity": "divine",
             "houseAffinity": "hades",
             "baseValue": 0.0,
-            "effects": []
+            "weight": 10.0,
+            "effects": [
+                {
+                    "type": "resurrect",
+                    "target": "all_allies",
+                    "reviveHealth": 25.0,
+                    "amount": 25.0,
+                    "duration": 5.0
+                }
+            ]
         },
         {
             "id": "abundance",
             "name": "Abundance",
             "description": " ",
             "icon": "item_demeter_abundance",
-            "type": "support",
+            "tooltip": "tooltip_demeter_harvest",
+            "type": "attack",
+            "attackTarget": "all_allies",
             "rarity": "divine",
             "houseAffinity": "demeter",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": []
         },
         {
@@ -357,32 +415,51 @@
             "name": "Forge",
             "description": " ",
             "icon": "item_hephaestus_forge",
-            "type": "support",
-            "rarity": "attack",
+            "tooltip": "tooltip_hephaestus_forge",
+            "type": "attack",
+            "attackTarget": "all_allies",
+            "rarity": "divine",
             "houseAffinity": "hephaestus",
             "baseValue": 0.0,
-            "effects": []
+            "weight": 10.0,
+            "effects": [
+                {
+                    "type": "forge",
+                    "chance": 0.1
+                }
+            ]
         },
         {
             "id": "educate",
             "name": "Educate",
             "description": " ",
             "icon": "item_athena_educate",
-            "type": "support",
+            "tooltip": "tooltip_athena_educate",
+            "type": "attack",
+            "attackTarget": "all_allies",
             "rarity": "divine",
             "houseAffinity": "athena",
             "baseValue": 0.0,
-            "effects": []
+            "weight": 10.0,
+            "effects": [
+                {
+                    "type": "educate",
+                    "duration": 10.0
+                }
+            ]
         },
         {
             "id": "rage",
             "name": "Rage",
             "description": " ",
             "icon": "item_ares_rage",
+            "tooltip": "tooltip_ares_rage",
             "type": "attack",
+            "attackTarget": "enemy",
             "rarity": "divine",
-            "houseAffinity": "demeter",
+            "houseAffinity": "ares",
             "baseValue": 60.0,
+            "weight": 10.0,
             "effects": []
         },
         {
@@ -390,10 +467,13 @@
             "name": "Treasure",
             "description": " ",
             "icon": "item_hermes_treasure",
-            "type": "support",
+            "tooltip": "tooltip_hermes_treasure",
+            "type": "attack",
+            "attackTarget": "all_allies",
             "rarity": "divine",
             "houseAffinity": "hermes",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": []
         },
         {
@@ -401,10 +481,13 @@
             "name": "Beauty",
             "description": " ",
             "icon": "item_aphrodite_beauty",
+            "tooltip": "tooltip_aphrodite_charm",
             "type": "attack",
+            "attackTarget": "all_allies",
             "rarity": "divine",
             "houseAffinity": "aphrodite",
             "baseValue": 0.0,
+            "weight": 10.0,
             "effects": []
         }
     ],

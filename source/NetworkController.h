@@ -146,11 +146,13 @@ public:
      * Sends a support effect application to the host for authoritative processing.
      *
      * @param effectType The kind of support effect that was applied.
-     * @param magnitude  The resolved magnitude of the effect.
+     * @param magnitude  The primary resolved magnitude of the effect.
      * @param duration   The timed duration of the effect, or 0 for instant effects.
-     * @param playerID   The 0-based index of the player receiving the effect.
+     * @param playerID   The 0-based index of the player receiving the effect, or -1 for all-player effects.
+     * @param secondaryMagnitude Optional secondary magnitude used by multi-stage effects such as resurrect.
+     * @param applyToAllPlayers Whether the effect should be applied to every allied player slot instead of one target.
      */
-    void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID);
+    void broadcastSupportEffect(SupportEffectType effectType, float magnitude, float duration, int playerID, float secondaryMagnitude = 0.0f, bool applyToAllPlayers = false);
     
     /**
      * Sends an enemy-affecting attack effect to the host for authoritative processing.
@@ -162,6 +164,21 @@ public:
      * @param applyToAllSides Whether the enemy effect should be applied to all four boss sides.
      */
     void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides);
+
+    /**
+     * Sends a forge request to the host for authoritative seeding.
+     *
+     * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+     */
+    void requestForgeEffect(float chance);
+
+    /**
+     * HOST ONLY. Broadcasts an authoritative forge seed to every connected client.
+     *
+     * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+     * @param seed    Host-generated deterministic seed all clients should use for forge rolls.
+     */
+    void broadcastForgeEffect(float chance, int seed);
 
     /** The following are USED ONLY BY THE HOST */
     /** Send the GameState state as the new authoritative version of the game to all players */
@@ -220,6 +237,9 @@ public:
 
     /** Returns all enemy effect messages received after calling getNetworkUpdate(). */
     const std::vector<EnemyEffectMessage>& getEnemyEffectUpdates() const { return enemyEffects; }
+
+    /** Returns all forge effect messages received after calling getNetworkUpdate(). */
+    const std::vector<ForgeEffectMessage>& getForgeEffectUpdates() const { return forgeEffects; }
 
     /** Returns the number of Gaia item spawn messages we received after calling getNetworkUpdate() */
     int getNumGaiaSpawns() const { return gaiaSpawns; }
@@ -438,7 +458,8 @@ protected:
         ENEMY_EFFECT = 15,
         SWAP_SLOTS = 16,
         BOSS_HEAL = 17,
-        GAIA_SPAWN = 18
+        GAIA_SPAWN = 18,
+        FORGE_EFFECT = 19
     };
 
     /** Our network connection */
@@ -465,6 +486,7 @@ private:
     std::vector<HealMessage> heals;
     std::vector<SupportEffectMessage> supportEffects;
     std::vector<EnemyEffectMessage> enemyEffects;
+    std::vector<ForgeEffectMessage> forgeEffects;
 
     /** Integer that keeps track of how many messages a client received to spawn in Gaia rocks */
     int gaiaSpawns;

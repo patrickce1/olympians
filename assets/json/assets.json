@@ -284,7 +284,11 @@
             "file": "textures/houseSelect/playerIconBorder.png"
         },
         "emptyLocalIcon": {
-            "file": "textures/houseSelect/emptyLocalIcon.png"
+            "file": "textures/houseSelect/emptyLocalIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "teamSelectIconEmpty": {
             "file": "textures/houseSelect/teamSelectIconEmpty.png"
@@ -300,7 +304,11 @@
             "wrapT": "clamp"
         },
         "poseidonSIcon": {
-            "file": "textures/houseSelect/poseidonSIcon.png"
+            "file": "textures/houseSelect/poseidonSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "aresSIcon": {
             "file": "textures/houseSelect/aresSIcon.png",
@@ -310,22 +318,46 @@
             "wrapT": "clamp"
         },
         "demeterSIcon": {
-            "file": "textures/houseSelect/demeterSIcon.png"
+            "file": "textures/houseSelect/demeterSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "hadesSIcon": {
-            "file": "textures/houseSelect/hadesSIcon.png"
+            "file": "textures/houseSelect/hadesSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "hermesSIcon": {
-            "file": "textures/houseSelect/hermesSIcon.png"
+            "file": "textures/houseSelect/hermesSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "zeusSIcon": {
-            "file": "textures/houseSelect/zeusSIcon.png"
+            "file": "textures/houseSelect/zeusSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "aphroditeSIcon": {
-            "file": "textures/houseSelect/aphroditeSIcon.png"
+            "file": "textures/houseSelect/aphroditeSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "hephaestusSIcon": {
-            "file": "textures/houseSelect/hephaestusSIcon.png"
+            "file": "textures/houseSelect/hephaestusSIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "glowOverlayBoss": {
             "file": "textures/hostScene/glowOverlayBoss.png"
@@ -375,14 +407,29 @@
         "gaiaLobbyImage": {
             "file": "textures/lobbyScene/gaiaLobbyImage.png"
         },
+        "lobbyBottomLabelBG": {
+            "file": "textures/lobbyScene/lobbyBottomLabelBG.png"
+        },
         "glowBorder": {
-            "file": "textures/lobbyScene/glowBorder.png"
+            "file": "textures/lobbyScene/glowBorder.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "playerIconBG": {
-            "file": "textures/lobbyScene/playerIconBG.png"
+            "file": "textures/lobbyScene/playerIconBG.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "emptySIcon": {
-            "file": "textures/lobbyScene/emptySIcon.png"
+            "file": "textures/lobbyScene/emptySIcon.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "key1": {
             "file": "textures/keypad/key1.png"
@@ -420,6 +467,12 @@
         "centerPopup": {
             "file": "textures/elements/errorPopupFrame.png"
         },
+        "namePopupBG": {
+            "file": "textures/elements/namePopupBG.png"
+        },
+        "subPopupBG": {
+            "file": "textures/elements/subPopupBG.png"
+        },
         "loadingCircle": {
             "file": "textures/elements/loadingCircle.png"
         },
@@ -433,7 +486,11 @@
             "file": "textures/elements/sideIconBG.png"
         },
         "backArrow": {
-            "file": "textures/backArrow.png"
+            "file": "textures/backArrow.png",
+            "minfilter": "linear",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "menuBG": {
             "file": "textures/menuBG.png"
@@ -474,8 +531,32 @@
         "healthFillYellow": {
             "file": "textures/gameScene/healthFillYellow.png"
         },
+        "healthFillGray": {
+            "file": "textures/gameScene/healthFillGray.png"
+        },
+        "healthFillBlue": {
+            "file": "textures/gameScene/healthFillBlue.png"
+        },
         "healthFillPink": {
             "file": "textures/gameScene/healthFillPink.png"
+        },
+        "stunIcon": {
+            "file": "textures/gameScene/stunIcon.png"
+        },
+        "loveIcon": {
+            "file": "textures/gameScene/loveIcon.png"
+        },
+        "slowIcon": {
+            "file": "textures/gameScene/slowIcon.png"
+        },
+        "helmBar": {
+            "file": "textures/gameScene/helmBar.png"
+        },
+        "aegisBar": {
+            "file": "textures/gameScene/aegisBar.png"
+        },
+        "shieldBar": {
+            "file": "textures/gameScene/shieldBar.png"
         },
         "playerUsernameBG": {
             "file": "textures/gameScene/playerNameBG.png"
@@ -483,8 +564,14 @@
         "playerHouseBG": {
           "file": "textures/gameScene/playerHouseBG.png"
         },
+        "playerHouseFBG": {
+          "file": "textures/gameScene/playerHouseFBG.png"
+        },
         "teamLeftFill": {
           "file": "textures/gameScene/teamLeftFill.png"
+        },
+        "teamLeftShield": {
+          "file": "textures/gameScene/teamLeftShield.png"
         },
         "teamLeftFrame": {
           "file": "textures/gameScene/teamLeftFrame.png"
@@ -492,8 +579,14 @@
         "teamRightFill": {
           "file": "textures/gameScene/teamRightFrame.png"
         },
+        "teamRightShield": {
+          "file": "textures/gameScene/teamRightShield.png"
+        },
         "teamRightFrame": {
           "file": "textures/gameScene/teamRightFill.png"
+        },
+        "deathLabel": {
+          "file": "textures/gameScene/deathLabel.png"
         },
         "winSign": {
             "file": "textures/winLoseScene/winSign.png"
@@ -584,6 +677,9 @@
         },
         "bottomFade": {
             "file": "textures/codexScene/bottomFade.png"
+        },
+        "exampleTooltip": {
+            "file": "textures/items/tooltips/exampleTooltip.png"
         }
         
     },

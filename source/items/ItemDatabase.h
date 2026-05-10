@@ -2,6 +2,7 @@
 #define __ITEM_DATABASE_H__
 #include <cugl/cugl.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -44,22 +45,36 @@ private:
             return static_cast<std::size_t>(r);
         }
     };
+
+    /** Struct to hash house enums stored in sets/maps */
+    struct HouseHash {
+        std::size_t operator()(ItemDef::House h) const noexcept {
+            return static_cast<std::size_t>(h);
+        }
+    };
     
     /** Collection of ItemDef defs based on their defIds */
     std::unordered_map<std::string, std::shared_ptr<ItemDef>> _defs;
 
     /** Runtime per-house multipliers keyed by normalized house ID */
     std::unordered_map<std::string, HouseMultipliers> _houseMultipliers;
-    
-    /** Bucket to contain all defIds so that they may be rolled */
-    Bucket _allDefIds;
-    
-    /** The collection of buckets categorized by rarity */
+
+    /** Per-rarity item buckets; each bucket holds items weighted by their individual weight field */
     std::unordered_map<ItemDef::Rarity, Bucket, RarityHash> _bucketsByRarity;
-    
-    /** Data-driven rarity weights */
+
+    /** Normalized rarity tier weights (always sum to 1.0 after loading) */
     std::unordered_map<ItemDef::Rarity, double, RarityHash> _rarityWeights;
-    
+
+    /** Set of player house enums currently in the game; empty means no filter is active */
+    std::unordered_set<ItemDef::House, HouseHash> _activeHouses;
+
+    /** Pre-filtered divine bucket containing only items whose houseAffinity is in _activeHouses
+     *  (or None). Rebuilt whenever setActiveHouses() is called. */
+    Bucket _filteredDivineBucket;
+
+    /** True once setActiveHouses() has been called with at least one valid house */
+    bool _hasActiveHouseFilter = false;
+
     /** Random value holder */
     cugl::Random _rng;
     
@@ -76,8 +91,9 @@ private:
     /** Load rarity weights from a JSON */
     void loadRarityWeights(const std::shared_ptr<cugl::JsonValue>& json);
     
-    /** Returns the probability weight of the given rarity */
-    double rarityBaseWeight(ItemDef::Rarity r) const;
+    /** Rebuilds _filteredDivineBucket from the divine rarity bucket, keeping only items
+     *  whose houseAffinity is in _activeHouses (or House::None). No-ops if no filter is set. */
+    void rebuildFilteredDivineBucket();
 
     /** Add item with the given defId to the corresponding bucket with effectiveWeight
      *  Total = sum of effective weights of all the defIds addet to the bucket
@@ -97,6 +113,15 @@ private:
      * @return the defId of the selected item, or "" if the bucket is empty
      */
     std::string rollFromBucket(const Bucket& bucket);
+
+    /**
+     * Rolls a random item definition ID from a bucket using the caller-provided RNG.
+     *
+     * @param bucket  The weighted rarity bucket to roll from.
+     * @param rng     The RNG instance that should supply the random roll.
+     * @return the defId of the selected item, or "" if the bucket is empty.
+     */
+    std::string rollFromBucket(const Bucket& bucket, cugl::Random& rng) const;
     
 public:
     ItemDatabase() = default;
@@ -127,11 +152,30 @@ public:
     std::shared_ptr<ItemInstance> createInstance(const std::string& defId,
                                                      ItemInstance::ItemId id) const;
     
+    /**
+     * Restricts divine item rolls to items whose houseAffinity matches one of the given house IDs.
+     * Items with House::None affinity are always included. Call once after the player roster is
+     * known; the filter persists until clear() is called.
+     *
+     * @param houseIds  Player house ID strings (e.g. "zeus", "poseidon"). Unrecognized strings
+     *                  are silently ignored. Pass an empty vector to clear the filter.
+     */
+    void setActiveHouses(const std::vector<std::string>& houseIds);
+
     /** Rarity-driven weighted roll across all spawnable items */
     std::string rollRandomDefId();
     
     /** Weighted roll within a specific rarity bucket (probably not needed) */
     std::string rollRandomDefId(ItemDef::Rarity rarity);
+
+    /**
+     * Rolls a random item definition ID within a rarity bucket using the caller-provided RNG.
+     *
+     * @param rarity  The rarity bucket to roll from.
+     * @param rng     The RNG instance that should supply the random roll.
+     * @return the defId of the selected item, or "" if the bucket is empty.
+     */
+    std::string rollRandomDefId(ItemDef::Rarity rarity, cugl::Random& rng) const;
     
     /** Serializable option */
     std::vector<std::string> getAllDefIds() const;
