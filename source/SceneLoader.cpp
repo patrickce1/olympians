@@ -419,7 +419,7 @@ void SceneLoader::update(float dt) {
         }
         break;
     case State::HOSTSETUP:
-        _hostSetupScene.update(dt);
+        _hostSetupScene.update(dt, _input);
         if (_hostSetupScene.shouldOpenSettings()) {
             _hostSetupScene.setInputEnabled(false);
             _settingsScene.setActive(true);
@@ -530,7 +530,7 @@ void SceneLoader::update(float dt) {
         }
         break;
     case State::HOUSESELECT:
-        _houseSelectScene.update(dt);
+        _houseSelectScene.update(dt, _input);
         switch (_houseSelectScene.getStatus())
         {
         case HouseSelectScene::Status::PRE_GAMESCENE_START:
@@ -571,7 +571,7 @@ void SceneLoader::update(float dt) {
         }
         break;
     case State::BOSSSELECT:
-        _bossSelectScene.update(dt);
+        _bossSelectScene.update(dt, _input);
         switch (_bossSelectScene.getStatus())
         {
         case BossSelectScene::Status::PRE_GAMESCENE_START:
@@ -625,7 +625,7 @@ void SceneLoader::update(float dt) {
         break;
             
     case State::CODEX:
-        _codexScene.update(dt);
+        _codexScene.update(dt, _input);
         switch (_codexScene.getStatus())
         {
         case CodexScene::Status::PRE_GAMESCENE_START:

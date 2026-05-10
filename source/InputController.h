@@ -219,6 +219,28 @@ public:
         _action = Action::NONE;
         _touchEnded = false;
     }
+    
+    /**
+     * Returns true for when a new touch contact begins,
+     * before the gesture has been promoted to a drag. Use this to perform
+     * a touch-down without polling every frame.
+     *
+     * @return true on the first frame of a new touch contact; false otherwise.
+     */
+    bool justTouched() const {
+        return !_touchEnded && !_dragging && _activeTouchID != -1;
+    }
+
+    /**
+     * Returns true for when a new mouse click begins,
+     * before the gesture has been promoted to a drag. Use this to perform
+     * a click without polling every frame.
+     *
+     * @return true on the first frame of a new mouse press; false otherwise.
+     */
+    bool justMouseDown() const {
+        return !_touchEnded && !_dragging && _mouseDown;
+    }
 
 private:
 
