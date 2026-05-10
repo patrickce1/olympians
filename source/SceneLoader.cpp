@@ -419,7 +419,7 @@ void SceneLoader::update(float dt) {
         }
         break;
     case State::HOSTSETUP:
-        _hostSetupScene.update(dt);
+        _hostSetupScene.update(dt, _input);
         if (_hostSetupScene.shouldOpenSettings()) {
             _hostSetupScene.setInputEnabled(false);
             _settingsScene.setActive(true);

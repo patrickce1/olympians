@@ -105,11 +105,7 @@ void BossSelectScene::setupUI() {
         }
     }
     
-    CULog("=== Boss Cards ===");
-    for (int i = 0; i < (int)_bossCards.size(); i++) {
-        CULog("Card %d (%s): localX=%.1f", i, _bossCards[i]->getName().c_str(), _bossCards[i]->getPosition().x);
-    }
-    
+    // Manual setup for Card Mappings to Boss Indexes
     float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
     _xPosToBoss[startX] = 1;
     _bossToTargetX[1]= startX;
@@ -117,17 +113,8 @@ void BossSelectScene::setupUI() {
     _bossToTargetX[0]= startX+ ROLE_CARD_WIDTH;
     _xPosToBoss[startX - ROLE_CARD_WIDTH] = 2;
     _bossToTargetX[2]= startX- ROLE_CARD_WIDTH;
-    _xPosToBoss[startX-(2* ROLE_CARD_WIDTH)] = 3;
-    _bossToTargetX[3]= startX- (2*ROLE_CARD_WIDTH);
-    
-    
-//    for (int i = 1; i < (int)_bossCards.size(); i++) {
-//        float containerX     = startX - (i * ROLE_CARD_WIDTH);
-//        _xPosToBoss[containerX] = i;
-//        _bossToTargetX[i]       = containerX;
-//        CULog("Card %d (%s): containerX=%.1f",
-//              i, _bossCards[i]->getName().c_str(), containerX);
-//    }
+    _xPosToBoss[startX-(2 * ROLE_CARD_WIDTH)] = 3;
+    _bossToTargetX[3]= startX- (2 * ROLE_CARD_WIDTH);
 }
 
 /**
@@ -199,7 +186,6 @@ void BossSelectScene::setActive(bool value) {
             _isAnimating = false;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
             float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
-            CULog("setActive startX=%.1f  _baseCarouselPosition.x=%.1f", startX, _baseCarouselPosition.x);
             _bossSelectionCardContainer->setPosition(Vec2(startX, pos.y));
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);
@@ -271,8 +257,7 @@ void BossSelectScene::update(float timestep, InputController& input) {
         Vec2 interpolatedPos = bossCardContainerPos.lerp(_slideTarget, SMOOTHING_FACTOR); // 0.2 = smoothing factor
 
         // Compare only X distance since we only slide horizontally.
-        float xDist = std::abs(bossCardContainerPos.x - _slideTarget.x);
-        if (xDist < 1.0f) {
+        if (bossCardContainerPos.distance(_slideTarget) < 1.0f) {
             _bossSelectionCardContainer->setPosition(_slideTarget);
             _isAnimating = false;
         } else {
@@ -455,8 +440,8 @@ void BossSelectScene::handleSwipeTracking(InputController& input) {
     float fingerDelta = worldPos.x - _swipeTouchStartX;
     float rawX        = _swipeContainerStartX + fingerDelta;
 
-    float maxX     = _bossToTargetX[0] + ROLE_CARD_WIDTH * 2.0f;
-    float minX     = _bossToTargetX[(int)_bossCards.size() - 1];
+    float maxX     = _bossToTargetX[0] + (ROLE_CARD_WIDTH * 2.0f);
+    float minX     = _bossToTargetX[(int)_bossCards.size() - 1] - (ROLE_CARD_WIDTH);
     float clampedX = std::max(minX, std::min(maxX, rawX));
 
     Vec2 pos = _bossSelectionCardContainer->getPosition();
@@ -478,7 +463,6 @@ void BossSelectScene::handleSwipeRelease(InputController& input) {
     }
 
     float releaseContainerX = _bossSelectionCardContainer->getPosition().x;
-    CULog("handleSwipeRelease: containerX=%.1f", releaseContainerX);
     snapToNearestBoss(releaseContainerX);
 
     _isSwiping            = false;
@@ -500,20 +484,7 @@ void BossSelectScene::handleSwipeRelease(InputController& input) {
  *                           lifted, in the container parent's local space.
  */
 void BossSelectScene::snapToNearestBoss(float releaseContainerX) {
-    CULog("=== snapToNearestBoss ===");
-    CULog("releaseContainerX=%.1f", releaseContainerX);
-    CULog("_bossToTargetX[0] (Circe)    = %.1f", _bossToTargetX[0]);
-    CULog("_bossToTargetX[1] (Cyclops)  = %.1f", _bossToTargetX[1]);
-    CULog("_bossToTargetX[2] (Cerberus) = %.1f", _bossToTargetX[2]);
-    CULog("_bossToTargetX[3] (Gaia)     = %.1f", _bossToTargetX[3]);
-    CULog("maxX (clamp) = %.1f", _bossToTargetX[0]);
-    CULog("minX (clamp) = %.1f", _bossToTargetX[(int)_bossCards.size() - 1]);
-
-    for (auto& [containerX, index] : _xPosToBoss) {
-        CULog("  _xPosToBoss key=%.1f -> index=%d  dist=%.1f",
-              containerX, index, std::abs(releaseContainerX - containerX));
-    }
-    int   nearestIndex = 0;
+    int nearestIndex = 0;
     float nearestDist  = FLT_MAX;
 
     for (auto& [containerX, index] : _xPosToBoss) {
@@ -526,8 +497,6 @@ void BossSelectScene::snapToNearestBoss(float releaseContainerX) {
 
     _currentIndex = nearestIndex;
     _isAnimating  = true;
-    
-    CULog(" Index swiped to index=%d ", nearestIndex);
 
     Vec2 currentPos = _bossSelectionCardContainer->getPosition();
     _slideTarget    = Vec2(_bossToTargetX[nearestIndex], currentPos.y);
