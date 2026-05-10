@@ -837,9 +837,8 @@ void HouseSelectScene::handleSwipeBegin(InputController& input) {
         _swipeTouchInitialPos = input.getTouchStart();
     }
 
-    Vec2 worldCurrent = screenToWorldCoords(input.getDragPos());
-    Vec2 worldStart   = screenToWorldCoords(_swipeTouchInitialPos);
-
+    Vec2 worldCurrent     = screenToWorldCoords(input.getDragPos());
+    Vec2 worldStart       = screenToWorldCoords(_swipeTouchInitialPos);
     float horizontalDelta = std::abs(worldCurrent.x - worldStart.x);
     float verticalDelta   = std::abs(worldCurrent.y - worldStart.y);
 
@@ -923,9 +922,8 @@ void HouseSelectScene::snapToNearestHouse(float releaseContainerX) {
         }
     }
 
-    _currentIndex = nearestIndex;
-    _isAnimating  = true;
-
+    _currentIndex   = nearestIndex;
+    _isAnimating    = true;
     Vec2 currentPos = _houseSelectionCardContainer->getPosition();
     _slideTarget    = Vec2(_houseToTargetX[nearestIndex], currentPos.y);
 

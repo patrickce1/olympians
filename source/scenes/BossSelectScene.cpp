@@ -439,7 +439,6 @@ void BossSelectScene::handleSwipeTracking(InputController& input) {
     Vec2 worldPos     = screenToWorldCoords(input.getDragPos());
     float fingerDelta = worldPos.x - _swipeTouchStartX;
     float rawX        = _swipeContainerStartX + fingerDelta;
-
     float maxX     = _bossToTargetX[0] + (ROLE_CARD_WIDTH * 2.0f);
     float minX     = _bossToTargetX[(int)_bossCards.size() - 1] - (ROLE_CARD_WIDTH);
     float clampedX = std::max(minX, std::min(maxX, rawX));
@@ -495,9 +494,8 @@ void BossSelectScene::snapToNearestBoss(float releaseContainerX) {
         }
     }
 
-    _currentIndex = nearestIndex;
-    _isAnimating  = true;
-
+    _currentIndex   = nearestIndex;
+    _isAnimating    = true;
     Vec2 currentPos = _bossSelectionCardContainer->getPosition();
     _slideTarget    = Vec2(_bossToTargetX[nearestIndex], currentPos.y);
 
