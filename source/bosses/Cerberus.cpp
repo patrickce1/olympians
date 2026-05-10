@@ -10,13 +10,16 @@
  */
 bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath) {
     bool success = Enemy::init("cerberus", jsonPath);
-    _lifeStealPercent     = _customData->getFloat("lifeStealPercent");
+    _lifeStealPercent       = _customData->getFloat("lifeStealPercent");
     _maxKnockedThreshold    = _customData->getFloat("knockedThreshold", 50.0f);
     _knockedDuration        = _customData->getFloat("knockedDuration", 4.0f);
     _knockedThresholdRegen  = _customData->getFloat("knockedThresholdRegen", 10.0f);
+    _frantic1Threshold      = getMaxHealth() * _customData->getFloat("frantic1Threshold", 1.0f);
+    _frantic2Threshold      = getMaxHealth() * _customData->getFloat("frantic2Threshold", 1.0f);
+    _franticRate            = _customData->getFloat("franticRate", 0.0f);
     for (int i = 0; i < 3; i++) _heads[i].knockedThreshold = _maxKnockedThreshold;
-    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f knockedThreshold=%.1f knockedDuration=%.1f regen=%.1f",
-                      _lifeStealPercent, _maxKnockedThreshold, _knockedDuration, _knockedThresholdRegen);
+    if (_debug) CULog("[Cerberus]: LifeStealPercent=%.2f knockedThreshold=%.1f knockedDuration=%.1f regen=%.1f franticRate=%.2f",
+                      _lifeStealPercent, _maxKnockedThreshold, _knockedDuration, _knockedThresholdRegen, _franticRate);
     return success;
 }
 
@@ -51,6 +54,10 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, con
  * @param dt  Elapsed time in seconds since the last update
  */
 void Cerberus::update(float dt) {
+    float franticDt = 0.0f;
+    if (getCurrentHealth() < _frantic1Threshold) franticDt += dt * _franticRate;
+    if (getCurrentHealth() < _frantic2Threshold) franticDt += dt * _franticRate;
+
     for (int i = 0; i < 3; i++) {
         if (_heads[i].knocked) {
             _heads[i].knockedTimer -= dt;
@@ -75,6 +82,11 @@ void Cerberus::update(float dt) {
         }
     }
     Enemy::update(dt);
+
+    // Shorten IDLE cooldowns when frantic — attack and defense durations are unaffected
+    if (getCurrentState() == EnemyLoader::State::IDLE) {
+        advanceStateTime(franticDt);
+    }
 }
 
 
@@ -101,12 +113,12 @@ void Cerberus::applyCorrosive() {
 void Cerberus::knockHead(int playerSlot) {
     _heads[playerSlot].knocked = true;
     _heads[playerSlot].knockedTimer = _knockedDuration;
-    _heads[playerSlot].knockedThreshold = _maxKnockedThreshold;
     CULog("[Cerberus] Head %d knocked for %.1fs", playerSlot, _knockedDuration);
 }
 
 void Cerberus::unKnockHead(int playerSlot) {
     _heads[playerSlot].knocked = false;
     _heads[playerSlot].knockedTimer = 0.0f;
+    _heads[playerSlot].knockedThreshold = _maxKnockedThreshold;
     CULog("[Cerberus] Head %d recovered", playerSlot);
 }

@@ -1859,8 +1859,17 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
         _cerberusLastDirection = direction;
     }
 
-    _cerberusBodyAnimTime += dt;
-    for (int i = 0; i < 4; i++) _cerberusHeadAnimTime[i] += dt;
+    // Pause animation timers while stunned, freezing all sprites in place.
+    // During idle, scale dt by the frantic multiplier so animations visually speed up.
+    if (!enemy->isStunned()) {
+        float animDt = dt;
+        auto cerberusForAnim = std::dynamic_pointer_cast<Cerberus>(enemy);
+        if (cerberusForAnim && enemy->getCurrentState() == EnemyLoader::State::IDLE) {
+            animDt *= cerberusForAnim->getFranticSpeedMultiplier();
+        }
+        _cerberusBodyAnimTime += animDt;
+        for (int i = 0; i < 4; i++) _cerberusHeadAnimTime[i] += animDt;
+    }
 
     // --- State-transition detection ---
     EnemyLoader::State curState = enemy->getCurrentState();
@@ -2002,11 +2011,11 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
         // Use committed key — may differ from state's curHeadAnimKey while bite is completing
         std::string headAnimKey = _cerberusHeadActiveAnimKey[i];
 
-        // Override to knocked animation when this head is knocked, immediately aborting any attack animation.
+        // Override to knocked animation when this head is knocked or Cerberus is loved (all heads go down).
         // headSlot is absolute; isHeadKnocked maps it to _heads[3] (0=main,1=right,2=left) internally.
         auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
         int headSlot = (enemy->getTargetIndex() + i - direction + 4) % 4;
-        if (cerberus && cerberus->isHeadKnocked(headSlot)) {
+        if (cerberus && (cerberus->isHeadKnocked(headSlot) || enemy->isLoved())) {
             _cerberusHeadActiveAnimKey[i] = _cerberusIdleHeadAnimKey;  // abort any in-progress attack anim
             headAnimKey = "cerberus_head_knocked_animation";
         }

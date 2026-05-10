@@ -42,6 +42,15 @@ private:
     /** HP/sec the threshold regenerates when a head is not knocked */
     float _knockedThresholdRegen = 10.0f;
 
+    /** Absolute HP below which the first frantic tier activates */
+    float _frantic1Threshold = 0.0f;
+
+    /** Absolute HP below which the second frantic tier activates (stacks with first) */
+    float _frantic2Threshold = 0.0f;
+
+    /** Extra time multiplier added per active frantic tier during IDLE */
+    float _franticRate = 0.0f;
+
     /** True when the corrosive debuff is active on the targeted player */
     bool _corrosiveActive = false;
 
@@ -97,6 +106,14 @@ public:
 
     /** Returns true if the corrosive debuff is currently active */
     bool isCorrosiveActive() const { return _corrosiveActive; }
+
+    /** Returns the cumulative animation speed multiplier from active frantic tiers (1.0 = normal). */
+    float getFranticSpeedMultiplier() const {
+        float mult = 1.0f;
+        if (getCurrentHealth() < _frantic1Threshold) mult += _franticRate;
+        if (getCurrentHealth() < _frantic2Threshold) mult += _franticRate;
+        return mult;
+    }
 
     /**
      * Returns true if the head facing the given absolute player slot is knocked.

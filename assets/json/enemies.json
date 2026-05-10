@@ -249,9 +249,12 @@
             },
             "customData": {
                 "lifeStealPercent": 0.8,
-                "knockedThreshold": 50.0,
+                "knockedThreshold": 100.0,
                 "knockedDuration": 2.0,
                 "knockedThresholdRegen": 5.0,
+                "frantic1Threshold": 0.75,
+                "frantic2Threshold": 0.25,
+                "franticRate": 0.75,
                 "headAnimationId": "cerberus_head_idle_animation",
                 "heads": {
                     "front": { "offsetX":   0.0, "offsetY":  60.0, "phaseOffset": 0.00 },
