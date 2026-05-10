@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <map>
 #include "../InputController.h"
 #include "../EnemyLoader.h"
 #include "../NetworkController.h"
@@ -86,17 +87,31 @@ protected:
     bool _isSwiping = false;
     
     /**
+     * Maps each card's local X position (from the JSON Float layout) to its
+     * card index. Keys are the exact X values from the scene asset file:
+     * 0, 216, 432, 648 for cards 0-3 respectively.
+     */
+    std::map<float, int> _xPosToBoss;
+    
+    /**
+     * Maps each card index to its target container X position (the negative
+     * of the card's local X). Used to look up the exact container position
+     * that centres a given card without iterating _xPosToBoss in reverse.
+     */
+    std::map<int, float> _bossToTargetX;
+    
+    /**
      * The X position of the card container at the moment the current touch
      * began. Combined with _swipeTouchStartX to compute drag deltas in
      * handleSwipeTracking() without accumulated drift.
      */
     float _swipeContainerStartX = 0.0f;
     
-    /**
-     * Minimum horizontal pixel distance the finger must travel before
-     * the gesture is committed as a swipe and a slide is triggered.
-     */
-    static constexpr float SWIPE_THRESHOLD = 80.0f;
+    /** Position of the touch on the first frame it was detected. */
+    cugl::Vec2 _swipeTouchInitialPos = cugl::Vec2::ZERO;
+    
+    /** Number of frames the finger has been moving horizontally. */
+    int _swipeHoldFrames = 0;
 
 public:
 #pragma mark -
@@ -232,33 +247,35 @@ private:
     void handleSwipeBegin(InputController& input);
 
     /**
-     * Drags the card container live under the finger while a swipe is in
-     * progress, giving immediate tactile feedback before the gesture commits.
-     *
-     * Called every frame from update(). Reads the current drag position,
-     * computes how far the finger has moved from _swipeTouchStartX, and
-     * repositions the card container by that delta. The container is clamped
-     * to prevent dragging more than one card-width past either end of the
-     * carousel. No-op when _isSwiping is false or a lerp animation is
-     * already running.
+     * Moves the card container directly under the finger each frame while
+     * a swipe is active. Computes the delta from the touch-down position and
+     * applies it to the container's position at the start of the drag.
+     * Clamps the container so it cannot be dragged past the first or last card.
      *
      * @param input  The input controller for this frame.
      */
     void handleSwipeTracking(InputController& input);
 
     /**
-     * Resolves a completed swipe gesture into a carousel slide or a snap-back.
-     *
-     * Called every frame from update(). When touchEnded() is true, measures
-     * total horizontal travel from _swipeTouchStartX to the release position.
-     * If the distance exceeds SWIPE_THRESHOLD the carousel advances one card
-     * in the swipe direction via slideTo(). Otherwise the container is snapped
-     * back to the current slide target with no index change. Always clears
-     * _isSwiping and _swipeTouchStartX before returning.
+     * Called on finger lift. Delegates to snapToNearestBoss() to find and
+     * animate to the closest card to the current container position.
+     * Clears all swipe tracking state before returning.
      *
      * @param input  The input controller for this frame.
      */
     void handleSwipeRelease(InputController& input);
+
+    /**
+     * Finds the card whose X position in _xPosToBoss is closest to
+     * `releaseContainerX`, updates _currentIndex to that card's index,
+     * updates the glow overlays and dot indicators, and initiates a lerp
+     * animation to that card's exact centred container position.
+     *
+     * @param releaseContainerX  The container's X position at the moment
+     *                           the finger lifted, in the container's
+     *                           parent's local space.
+     */
+    void snapToNearestBoss(float releaseContainerX);
 };
 
 #endif /* __BOSS_SELECT_SCENE_H__ */
