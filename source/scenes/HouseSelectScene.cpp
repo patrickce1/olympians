@@ -180,13 +180,14 @@ void HouseSelectScene::setupListeners() {
             updateSelectedIcon(_currentIndex, false);
             updateText(_lockButton, "UNLOCK");
             _playerIconGlow->setVisible(true);
-            _status = Status::LOCKED;
+            _status = Status::ABORT;
             commitHouseLock(selectedHouse);
         } else {
             updateText(_lockButton, "LOCK");
             _playerIconGlow->setVisible(false);
             _status = Status::WAITING;
             commitHouseUnlock();
+            updateSelectedIcon(_currentIndex);
         }
     });
 
