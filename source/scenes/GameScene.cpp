@@ -2355,8 +2355,8 @@ void GameScene::updateDebugPointer(InputController& input) {
  * Hit-tests item widgets against the initial touch position.
  */
 void GameScene::handleDragInitiation(InputController& input) {
-    if (_draggedIcon || !input.isDragging()) return;
-
+    if (_draggedIcon || (!input.isDragging() && !input.justTouched() && !input.justMouseDown())) return;
+    
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
 
     for (auto& [id, widget] : _itemWidgets) {

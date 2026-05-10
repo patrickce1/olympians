@@ -88,15 +88,15 @@
         {
             "id": "cyclops",
             "name": "cyclops",
-            "maxHealth": 15000.0,
+            "maxHealth": 17000.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
                 "retargetLikelihood": 0.5,
                 "defenseLikelihood": 0.25
             },
             "customData": {
-                "frantic1Threshold": 0.75,
-                "frantic2Threshold": 0.25,
+                "frantic1Threshold": 0.66,
+                "frantic2Threshold": 0.33,
                 "boulderTossReductionAmount": 1.0,
                 "franticRate": 0.75
             },
@@ -201,7 +201,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 70.0
+                            "amount": 60.0
                         }
                     ],
                     "nextState": "idle"
