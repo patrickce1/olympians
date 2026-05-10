@@ -1248,6 +1248,8 @@ void GameScene::updateEnemyAndAI(float dt) {
 
     if (_enemyController.didFireScrambleEvent()) {
         handleGaiaScramble();
+        refreshTeammateNameLabels();
+        resetTeammateBlinkState();
     }
 }
 
