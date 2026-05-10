@@ -250,7 +250,7 @@
             "customData": {
                 "lifeStealPercent": 0.8,
                 "knockedThreshold": 100.0,
-                "knockedDuration": 2.0,
+                "knockedDuration": 12.0,
                 "knockedThresholdRegen": 5.0,
                 "frantic1Threshold": 0.75,
                 "frantic2Threshold": 0.25,

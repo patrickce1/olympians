@@ -1838,262 +1838,292 @@ void GameScene::reorderCerberusHeads(int direction) {
     }
 }
 
-void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
-    // dir 0→hide back(2), dir 1→hide left(3), dir 2→hide front(0), dir 3→hide right(1)
-    static const int HIDDEN_HEAD[4] = {2, 3, 0, 1};
+// ─── Cerberus animation helpers ──────────────────────────────────────────────
 
-    auto enemy = _gameState.getEnemy();
-    if (_bossSprite) _bossSprite->setVisible(true);
-    if (_gameArea) {
-        auto s = _gameArea->getChildByName("bossIdle");
-        if (s) s->setVisible(false);
+// Sprite index of the head hidden for each facing direction (0–3).
+// dir 0 (facing player) → hide back-position sprite (2)
+// dir 1 (facing right)  → hide left-position sprite (3)
+// dir 2 (facing away)   → hide front-position sprite (0)
+// dir 3 (facing left)   → hide right-position sprite (1)
+static constexpr int CERBERUS_HIDDEN_HEAD[4] = {2, 3, 0, 1};
+
+// Perspective rendering constants for Cerberus head sprites
+static constexpr float CERBERUS_PERSP_SCALE      = 0.95f;  ///< Scale applied to non-front heads for depth
+static constexpr float CERBERUS_PERSP_SHIFT      = 5.0f;   ///< Lateral pixel shift for side-view depth
+static constexpr float CERBERUS_BACK_SIDE_SHIFT  = 35.0f;  ///< Lateral shift for the back-position sprite in side view
+static constexpr float CERBERUS_BACK_VIEW_SPREAD = 10.0f;  ///< Spread for side heads when enemy faces fully away
+static constexpr float CERBERUS_GLOBAL_SHIFT     = 15.0f;  ///< Overall lateral shift applied to all heads in side view
+static constexpr float CERBERUS_Y_DELTA_SIDE     = 20.0f;  ///< Vertical depth offset in side view
+static constexpr float CERBERUS_Y_DELTA_BACK     = 10.0f;  ///< Vertical depth offset in back view
+
+/**
+ * Computes the linear sprite sheet frame index for a Cerberus head or body animation.
+ *
+ * Supports two animation modes:
+ *   - Pure loop: loopEndFrame covers the last frame; the animation loops
+ *     [loopStartFrame, loopEndFrame] indefinitely.
+ *   - Two-phase: loopEndFrame < frameCount-1; the animation loops during the build-up
+ *     phase, then plays the remaining frames linearly as the attack executes.
+ *
+ * @param animEntry     Metadata for the animation to compute the frame for.
+ * @param animTime      Seconds elapsed since this animation started playing.
+ * @param buildUpTime   Duration of the looping build-up phase (0 for pure loops).
+ * @param directionRow  Sprite sheet row (0-3) corresponding to the current facing direction.
+ * @return Linear frame index into the sprite sheet.
+ */
+static int computeCerberusAnimFrame(const AnimationEntry& animEntry, float animTime, float buildUpTime, int directionRow) {
+    bool isPureLoop = (animEntry.loopEndFrame < 0 || animEntry.loopEndFrame >= animEntry.frameCount - 1);
+    int loopFrameCount = animEntry.loopEndFrame - animEntry.loopStartFrame + 1;
+    int frameWithinRow;
+    if (isPureLoop || animTime < buildUpTime) {
+        if (loopFrameCount <= 0) return directionRow * animEntry.frameCount;  // malformed data guard
+        frameWithinRow = animEntry.loopStartFrame + static_cast<int>(animTime / animEntry.frameDuration) % loopFrameCount;
+    } else {
+        float timeIntoAttackPhase = animTime - buildUpTime;
+        int maxAttackFrame = animEntry.frameCount - (animEntry.loopEndFrame + 2);
+        frameWithinRow = animEntry.loopEndFrame + 1 +
+                         std::min(static_cast<int>(timeIntoAttackPhase / animEntry.frameDuration), maxAttackFrame);
+    }
+    return directionRow * animEntry.frameCount + std::clamp(frameWithinRow, 0, animEntry.frameCount - 1);
+}
+
+void GameScene::advanceCerberusAnimationTimers(float dt, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus) {
+    if (enemy->isStunned()) return;
+
+    // During IDLE, scale elapsed time by the frantic multiplier so animations speed up.
+    float scaledDt = dt;
+    if (cerberus && enemy->getCurrentState() == EnemyLoader::State::IDLE) {
+        scaledDt *= cerberus->getFranticSpeedMultiplier();
+    }
+    _cerberusBodyAnimTime += scaledDt;
+    for (int headIndex = 0; headIndex < 4; headIndex++) {
+        _cerberusHeadAnimTime[headIndex] += scaledDt;
+    }
+}
+
+void GameScene::handleCerberusStateTransition(EnemyLoader::State currentState, const EnemyLoader::StateDef* stateDef, int direction, const std::shared_ptr<Cerberus>& cerberus) {
+    // Idle transitions are handled lazily per-head via the completion check in updateSingleCerberusHead.
+    if (currentState == EnemyLoader::State::IDLE || !cerberus) return;
+
+    const std::vector<int> participants = stateDef ? stateDef->headParticipants : std::vector<int>{};
+    bool participantsAreRelative = stateDef && stateDef->headParticipantsRelative;
+    std::string newHeadAnimKey = (stateDef && !stateDef->headAnimationKey.empty())
+        ? stateDef->headAnimationKey : _cerberusIdleHeadAnimKey;
+    float buildUpTime = stateDef ? stateDef->buildUpTime : 0.0f;
+
+    // For attack_3: if the front head is knocked, redirect the single-head animation
+    // to an available side head. If all side heads are also knocked, nothing is committed
+    // (EnemyController similarly skips the damage in that case).
+    int redirectedHeadIndex = -1;
+    if (currentState == EnemyLoader::State::ATTACK_3 && participantsAreRelative) {
+        int targetPlayerSlot = cerberus->getTargetIndex();
+        if (cerberus->isHeadKnocked(targetPlayerSlot)) {
+            int alternatePlayerSlot = cerberus->getAlternateKnockedHead(targetPlayerSlot);
+            if (alternatePlayerSlot >= 0) {
+                redirectedHeadIndex = (alternatePlayerSlot - targetPlayerSlot + direction + 4) % 4;
+            }
+        }
     }
 
-    int direction = EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex);
-    direction = std::clamp(direction, 0, 3);
-    _enemyAnimationCurrentDirection = direction;
-    int hiddenHead = HIDDEN_HEAD[direction];
+    for (int headIndex = 0; headIndex < 4; headIndex++) {
+        bool headParticipates;
+        if (redirectedHeadIndex >= 0) {
+            headParticipates = (headIndex == redirectedHeadIndex);
+        } else if (participants.empty()) {
+            headParticipates = true;
+        } else if (participantsAreRelative) {
+            int relativePosition = (headIndex - direction + 4) % 4;
+            headParticipates = std::find(participants.begin(), participants.end(), relativePosition) != participants.end();
+        } else {
+            headParticipates = std::find(participants.begin(), participants.end(), headIndex) != participants.end();
+        }
 
+        // Only commit if the new state has a distinct attack animation key. Defensive moves
+        // that reuse the idle head key must not interrupt a bite that is still completing.
+        if (!headParticipates || newHeadAnimKey == _cerberusIdleHeadAnimKey) continue;
+
+        // Skip knocked heads — they display the knocked animation regardless.
+        int headPlayerSlot = (cerberus->getTargetIndex() + headIndex - direction + 4) % 4;
+        if (cerberus->isHeadKnocked(headPlayerSlot)) continue;
+
+        _cerberusHeadAnimTime[headIndex] = 0.0f;
+        _cerberusSoundFired[headIndex] = false;
+        _cerberusHeadActiveAnimKey[headIndex] = newHeadAnimKey;
+        _cerberusHeadAnimBuildUpTime[headIndex] = buildUpTime;
+    }
+}
+
+void GameScene::updateCerberusBodySprite(int direction) {
+    auto bodyAnimSearch = _animationRegistry.find(_cerberusAnimConfig.bodyAnimId);
+    if (bodyAnimSearch == _animationRegistry.end()) return;
+
+    // When facing fully away, show the top-layer body sprite that renders above the heads.
+    bool isFacingAway = (direction == 2);
+    if (_cerberusBodySprite)    _cerberusBodySprite->setVisible(!isFacingAway);
+    if (_cerberusBodySpriteTop) _cerberusBodySpriteTop->setVisible(isFacingAway);
+
+    // Body always uses pure-loop mode, so buildUpTime is 0.
+    int bodyFrameIndex = computeCerberusAnimFrame(bodyAnimSearch->second, _cerberusBodyAnimTime, 0.0f, direction);
+    if (!isFacingAway && _cerberusBodySprite)    _cerberusBodySprite->setFrame(bodyFrameIndex);
+    if (isFacingAway  && _cerberusBodySpriteTop) _cerberusBodySpriteTop->setFrame(bodyFrameIndex);
+}
+
+void GameScene::updateSingleCerberusHead(int headIndex, bool isVisible, int direction, float globalXShift, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus, bool& outFrameCounterUpdated) {
+    // Completion check: once a two-phase attack animation's linear frames are exhausted,
+    // revert to idle so the head is ready for the next attack. This allows a bite to
+    // finish playing even after the enemy state has already returned to idle.
+    if (_cerberusHeadActiveAnimKey[headIndex] != _cerberusIdleHeadAnimKey) {
+        auto committedAnimSearch = _animationRegistry.find(_cerberusHeadActiveAnimKey[headIndex]);
+        if (committedAnimSearch != _animationRegistry.end()) {
+            const AnimationEntry& committedAnimEntry = committedAnimSearch->second;
+            bool committedIsPureLoop = (committedAnimEntry.loopEndFrame < 0 ||
+                                        committedAnimEntry.loopEndFrame >= committedAnimEntry.frameCount - 1);
+            if (!committedIsPureLoop) {
+                int attackFrameCount = committedAnimEntry.frameCount - committedAnimEntry.loopEndFrame - 1;
+                float totalAnimDuration = _cerberusHeadAnimBuildUpTime[headIndex] + attackFrameCount * committedAnimEntry.frameDuration;
+                if (_cerberusHeadAnimTime[headIndex] >= totalAnimDuration) {
+                    _cerberusHeadActiveAnimKey[headIndex] = _cerberusIdleHeadAnimKey;
+                }
+            }
+        }
+    }
+
+    // Default to the committed animation key; override with the knocked animation
+    // when this head is knocked or when Aphrodite's love is active (all heads go down).
+    std::string displayAnimKey = _cerberusHeadActiveAnimKey[headIndex];
+    int headPlayerSlot = (enemy->getTargetIndex() + headIndex - direction + 4) % 4;
+    if (cerberus && (cerberus->isHeadKnocked(headPlayerSlot) || enemy->isLoved())) {
+        _cerberusHeadActiveAnimKey[headIndex] = _cerberusIdleHeadAnimKey;  // abort any in-progress attack anim
+        displayAnimKey = "cerberus_head_knocked_animation";
+    }
+
+    // Show only the sprite set matching the display animation; hide all others.
+    for (auto& [animKey, spriteSet] : _cerberusHeadSpritesByAnim) {
+        if (spriteSet[headIndex]) {
+            spriteSet[headIndex]->setVisible(isVisible && animKey == displayAnimKey);
+        }
+    }
+    if (!isVisible) return;
+
+    auto headAnimSearch = _animationRegistry.find(displayAnimKey);
+    if (headAnimSearch == _animationRegistry.end()) return;
+    const AnimationEntry& headAnimEntry = headAnimSearch->second;
+
+    // Perspective scale: front head is full-size; side/back heads are slightly smaller.
+    int relativePosition = (headIndex - direction + 4) % 4;
+    float perspectiveScale = (relativePosition == 0) ? 1.0f : CERBERUS_PERSP_SCALE;
+    if (direction == 2 && relativePosition != 0) perspectiveScale *= 0.9f;  // extra-small when facing away
+
+    // Lateral perspective offset.
+    float facingSign = (direction == 1) ? 1.0f : (direction == 3) ? -1.0f : 0.0f;
+    float perspectiveOffsetX = 0.0f;
+    if (relativePosition != 0) {
+        if (headIndex == 2 && (direction == 1 || direction == 3)) {
+            // Back-position sprite shifts strongly to the side in left/right view.
+            perspectiveOffsetX = facingSign * CERBERUS_BACK_SIDE_SHIFT;
+        } else if (direction == 2) {
+            // When facing away, spread side heads symmetrically.
+            float headLateralSign = (headIndex == 1) ? 1.0f : (headIndex == 3) ? -1.0f : 0.0f;
+            perspectiveOffsetX = headLateralSign * CERBERUS_BACK_VIEW_SPREAD;
+        } else {
+            perspectiveOffsetX = facingSign * CERBERUS_PERSP_SHIFT;
+        }
+    }
+
+    // Vertical depth adjustment for perspective.
+    float yDepthDelta = (direction == 2) ? CERBERUS_Y_DELTA_BACK : (direction != 0) ? CERBERUS_Y_DELTA_SIDE : 0.0f;
+    float yDepthAdjustment = 0.0f;
+    if (yDepthDelta > 0.0f) {
+        if (direction == 2) {
+            yDepthAdjustment = -yDepthDelta;
+        } else {
+            if (relativePosition == 0) yDepthAdjustment =  yDepthDelta;
+            else if (headIndex == 2)   yDepthAdjustment = +yDepthDelta;
+            else                       yDepthAdjustment = -yDepthDelta;
+        }
+    }
+
+    // Knocked/loved heads use pure-loop mode (no build-up phase).
+    float committedBuildUpTime = (_cerberusHeadActiveAnimKey[headIndex] != _cerberusIdleHeadAnimKey)
+        ? _cerberusHeadAnimBuildUpTime[headIndex] : 0.0f;
+    int frameIndex = computeCerberusAnimFrame(headAnimEntry, _cerberusHeadAnimTime[headIndex], committedBuildUpTime, headIndex);
+
+    auto& activeHeadSprites = _cerberusHeadSpritesByAnim[displayAnimKey];
+    if (activeHeadSprites[headIndex]) {
+        activeHeadSprites[headIndex]->setScale(headAnimEntry.scale * perspectiveScale);
+        activeHeadSprites[headIndex]->setPosition(cugl::Vec2(
+            headAnimEntry.positionX + _cerberusAnimConfig.headOffsets[headIndex].offsetX + globalXShift + perspectiveOffsetX,
+            headAnimEntry.positionY + _cerberusAnimConfig.headOffsets[headIndex].offsetY + yDepthAdjustment));
+        activeHeadSprites[headIndex]->setFrame(frameIndex);
+    }
+
+    // Fire the damage sound exactly once when the animation crosses its designated damage frame.
+    // Guard with the committed key so knocked heads never trigger attack sounds.
+    bool isPlayingAttackAnimation = (_cerberusHeadActiveAnimKey[headIndex] != _cerberusIdleHeadAnimKey);
+    if (isPlayingAttackAnimation && !_cerberusSoundFired[headIndex] && headAnimEntry.damageFrame >= 0) {
+        int frameWithinRow = frameIndex - headIndex * headAnimEntry.frameCount;
+        if (frameWithinRow >= headAnimEntry.damageFrame) {
+            _cerberusSoundFired[headIndex] = true;
+            if (!headAnimEntry.sound.empty() && _audio) {
+                _audio->playSoundUnique(headAnimEntry.sound);
+            }
+        }
+    }
+
+    // Drive the enemy's animation frame counter from the first attacking head so that
+    // readyToFire() uses frame-based damage triggering instead of time-based.
+    if (isPlayingAttackAnimation && !outFrameCounterUpdated) {
+        int frameWithinRow = frameIndex - headIndex * headAnimEntry.frameCount;
+        enemy->setCurrentAnimationFrame(frameWithinRow);
+        outFrameCounterUpdated = true;
+    }
+}
+
+void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
+    auto enemy = _gameState.getEnemy();
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
+
+    // Show the animated boss sprite hierarchy and hide the static fallback.
+    if (_bossSprite) _bossSprite->setVisible(true);
+    if (_gameArea) {
+        auto staticFallbackSprite = _gameArea->getChildByName("bossIdle");
+        if (staticFallbackSprite) staticFallbackSprite->setVisible(false);
+    }
+
+    // Compute facing direction; reorder head z-ordering when it changes.
+    int direction = std::clamp(
+        EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex), 0, 3);
+    _enemyAnimationCurrentDirection = direction;
     if (direction != _cerberusLastDirection) {
         reorderCerberusHeads(direction);
         _cerberusLastDirection = direction;
     }
 
-    // Pause animation timers while stunned, freezing all sprites in place.
-    // During idle, scale dt by the frantic multiplier so animations visually speed up.
-    if (!enemy->isStunned()) {
-        float animDt = dt;
-        auto cerberusForAnim = std::dynamic_pointer_cast<Cerberus>(enemy);
-        if (cerberusForAnim && enemy->getCurrentState() == EnemyLoader::State::IDLE) {
-            animDt *= cerberusForAnim->getFranticSpeedMultiplier();
-        }
-        _cerberusBodyAnimTime += animDt;
-        for (int i = 0; i < 4; i++) _cerberusHeadAnimTime[i] += animDt;
-    }
+    advanceCerberusAnimationTimers(dt, enemy, cerberus);
 
-    // --- State-transition detection ---
-    EnemyLoader::State curState = enemy->getCurrentState();
+    // Detect state transitions and commit head animations for the new state.
+    EnemyLoader::State currentState = enemy->getCurrentState();
     const auto* stateDef = enemy->getCurrentStateDef();
-
-    std::string curHeadAnimKey = (stateDef && !stateDef->headAnimationKey.empty())
-        ? stateDef->headAnimationKey : _cerberusIdleHeadAnimKey;
-    float buildUpTime = stateDef ? stateDef->buildUpTime : 0.0f;
-
-    if (curState != _cerberusLastState) {
-        if (curState != EnemyLoader::State::IDLE) {
-            // Entering an attack/defensive state: commit the new animation and reset timers
-            // for heads that participate, so they start the new animation from frame 0.
-            const auto& participants = stateDef ? stateDef->headParticipants : std::vector<int>{};
-            bool isRelative = stateDef && stateDef->headParticipantsRelative;
-            auto cerberusForTransition = std::dynamic_pointer_cast<Cerberus>(enemy);
-
-            // For attack_3 (single relative head): if the front head (absolute slot = targetIndex) is knocked,
-            // redirect the animation to an available side head instead.
-            // _heads[3]: 0=main, 1=right, 2=left; isHeadKnocked converts absolute slot internally.
-            int attack3RedirectHead = -1;
-            if (curState == EnemyLoader::State::ATTACK_3 && isRelative && cerberusForTransition) {
-                int targetSlot = enemy->getTargetIndex();
-                if (cerberusForTransition->isHeadKnocked(targetSlot)) {
-                    int altSlot = cerberusForTransition->getAlternateKnockedHead(targetSlot);
-                    if (altSlot >= 0) {
-                        attack3RedirectHead = (altSlot - targetSlot + direction + 4) % 4;
-                    }
-                    // If altSlot == -1, all knocked → no animation committed (damage also skipped in EnemyController)
-                }
-            }
-
-            for (int i = 0; i < 4; i++) {
-                bool participates;
-                if (attack3RedirectHead >= 0) {
-                    // Redirected single-head attack: only the alternate head plays
-                    participates = (i == attack3RedirectHead);
-                } else if (participants.empty()) {
-                    participates = true;
-                } else if (isRelative) {
-                    // Convert absolute head index to direction-relative index, then check
-                    int rel = (i - direction + 4) % 4;
-                    participates = std::find(participants.begin(), participants.end(), rel) != participants.end();
-                } else {
-                    participates = std::find(participants.begin(), participants.end(), i) != participants.end();
-                }
-                // Only commit if the new state actually has an attack animation.
-                // If it uses the idle head key (e.g. defensive_move), don't interrupt
-                // a currently-playing attack animation — let the completion check
-                // in the per-head loop switch to idle once the animation finishes.
-                // Also skip knocked heads — they show the knocked animation instead.
-                // isHeadKnocked takes absolute slot and maps internally to _heads[3] (0=main,1=right,2=left).
-                if (participates && curHeadAnimKey != _cerberusIdleHeadAnimKey) {
-                    int slotForHead = (enemy->getTargetIndex() + i - direction + 4) % 4;
-                    bool headKnocked = cerberusForTransition &&
-                                       cerberusForTransition->isHeadKnocked(slotForHead);
-                    if (!headKnocked) {
-                        _cerberusHeadAnimTime[i] = 0.0f;
-                        _cerberusSoundFired[i] = false;
-                        _cerberusHeadActiveAnimKey[i] = curHeadAnimKey;
-                        _cerberusHeadAnimBuildUpTime[i] = buildUpTime;
-                    }
-                }
-            }
-        }
-        // For idle transitions: don't reset timers or committed keys.
-        // The completion check in the per-head loop will switch each head to idle
-        // once its attack animation's linear phase finishes naturally.
-        _cerberusLastState = curState;
+    if (currentState != _cerberusLastState) {
+        handleCerberusStateTransition(currentState, stateDef, direction, cerberus);
+        _cerberusLastState = currentState;
     }
 
-    // Computes the linear frame index for a head sprite sheet.
-    // Handles two modes driven by the animation entry:
-    //   - Pure loop (loopEndFrame covers the last frame): loops [loopStart, loopEnd] forever.
-    //   - Two-phase (loopEndFrame < frameCount-1): loops during build-up, then plays attack frames linearly.
-    auto computeHeadFrame = [](const AnimationEntry& e, float t, float buTime, int dir) -> int {
-        bool pureLoop = (e.loopEndFrame < 0 || e.loopEndFrame >= e.frameCount - 1);
-        int loopCount = e.loopEndFrame - e.loopStartFrame + 1;
-        int frameInRow;
-        if (pureLoop || t < buTime) {
-            if (loopCount <= 0) return dir * e.frameCount;  // malformed data guard
-            frameInRow = e.loopStartFrame + static_cast<int>(t / e.frameDuration) % loopCount;
-        } else {
-            float t2 = t - buTime;
-            int attackMax = e.frameCount - (e.loopEndFrame + 2);
-            frameInRow = e.loopEndFrame + 1 +
-                         std::min(static_cast<int>(t2 / e.frameDuration), attackMax);
-        }
-        return dir * e.frameCount + std::clamp(frameInRow, 0, e.frameCount - 1);
-    };
+    updateCerberusBodySprite(direction);
 
-    // --- Body ---
-    auto bodyIt = _animationRegistry.find(_cerberusAnimConfig.bodyAnimId);
-    if (_cerberusBodySprite && bodyIt != _animationRegistry.end()) {
-        bool backFacing = (direction == 2);
-        if (_cerberusBodySprite)    _cerberusBodySprite->setVisible(!backFacing);
-        if (_cerberusBodySpriteTop) _cerberusBodySpriteTop->setVisible(backFacing);
-        // Body uses pure-loop logic: pass buildUpTime=0 so it always loops
-        int bodyFrame = computeHeadFrame(bodyIt->second, _cerberusBodyAnimTime, 0.0f, direction);
-        if (!backFacing && _cerberusBodySprite)    _cerberusBodySprite->setFrame(bodyFrame);
-        if (backFacing  && _cerberusBodySpriteTop) _cerberusBodySpriteTop->setFrame(bodyFrame);
-    }
-
-    // --- Per-head perspective constants ---
-    static constexpr float PERSP_SCALE      = 0.95f;
-    static constexpr float PERSP_SHIFT      = 5.0f;
-    static constexpr float BACK_SIDE_SHIFT  = 35.0f;
-    static constexpr float BACK_VIEW_SPREAD = 10.0f;
-    static constexpr float GLOBAL_SHIFT     = 15.0f;
-    static constexpr float Y_DELTA_SIDE     = 20.0f;
-    static constexpr float Y_DELTA_BACK     = 10.0f;
-
-    float facingSign   = (direction == 1) ? 1.0f : (direction == 3) ? -1.0f : 0.0f;
-    float globalXShift = facingSign * GLOBAL_SHIFT;
-
-    // --- Per-head loop ---
+    float facingSign = (direction == 1) ? 1.0f : (direction == 3) ? -1.0f : 0.0f;
+    float globalXShift = facingSign * CERBERUS_GLOBAL_SHIFT;
+    int hiddenHeadSpriteIndex = CERBERUS_HIDDEN_HEAD[direction];
     bool frameCounterUpdated = false;
-    for (int i = 0; i < 4; i++) {
-        bool show = (i != hiddenHead);
-
-        // Completion check: if this head is playing a two-phase attack animation and its
-        // linear frames have fully played out, switch it back to the idle animation.
-        // This lets the bite animation finish even after the enemy state returns to idle.
-        if (_cerberusHeadActiveAnimKey[i] != _cerberusIdleHeadAnimKey) {
-            auto completionIt = _animationRegistry.find(_cerberusHeadActiveAnimKey[i]);
-            if (completionIt != _animationRegistry.end()) {
-                const auto& ce = completionIt->second;
-                bool pureLoop = (ce.loopEndFrame < 0 || ce.loopEndFrame >= ce.frameCount - 1);
-                if (!pureLoop) {
-                    int attackFrames = ce.frameCount - ce.loopEndFrame - 1;
-                    float totalDuration = _cerberusHeadAnimBuildUpTime[i] + attackFrames * ce.frameDuration;
-                    if (_cerberusHeadAnimTime[i] >= totalDuration) {
-                        _cerberusHeadActiveAnimKey[i] = _cerberusIdleHeadAnimKey;
-                    }
-                }
-            }
-        }
-
-        // Use committed key — may differ from state's curHeadAnimKey while bite is completing
-        std::string headAnimKey = _cerberusHeadActiveAnimKey[i];
-
-        // Override to knocked animation when this head is knocked or Cerberus is loved (all heads go down).
-        // headSlot is absolute; isHeadKnocked maps it to _heads[3] (0=main,1=right,2=left) internally.
-        auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
-        int headSlot = (enemy->getTargetIndex() + i - direction + 4) % 4;
-        if (cerberus && (cerberus->isHeadKnocked(headSlot) || enemy->isLoved())) {
-            _cerberusHeadActiveAnimKey[i] = _cerberusIdleHeadAnimKey;  // abort any in-progress attack anim
-            headAnimKey = "cerberus_head_knocked_animation";
-        }
-
-        // Set visibility: show only the correct sprite set for this head, hide all others
-        for (auto& [key, sprites] : _cerberusHeadSpritesByAnim) {
-            if (sprites[i]) sprites[i]->setVisible(show && key == headAnimKey);
-        }
-        if (!show) continue;
-
-        auto entryIt = _animationRegistry.find(headAnimKey);
-        if (entryIt == _animationRegistry.end()) continue;
-        const auto& he = entryIt->second;
-
-        // Perspective scale and position offsets
-        int rel = (i - direction + 4) % 4;
-        float scaleMult = (rel == 0) ? 1.0f : PERSP_SCALE;
-        if (direction == 2 && rel != 0) scaleMult *= 0.9f;  // side heads 10% smaller when facing back
-
-        float perspX = 0.0f;
-        if (rel != 0) {
-            if (i == 2 && (direction == 1 || direction == 3)) {
-                perspX = facingSign * BACK_SIDE_SHIFT;
-            } else if (direction == 2) {
-                float headSign = (i == 1) ? 1.0f : (i == 3) ? -1.0f : 0.0f;
-                perspX = headSign * BACK_VIEW_SPREAD;
-            } else {
-                perspX = facingSign * PERSP_SHIFT;
-            }
-        }
-
-        float yDelta  = (direction == 2) ? Y_DELTA_BACK : (direction != 0) ? Y_DELTA_SIDE : 0.0f;
-        float yAdjust = 0.0f;
-        if (yDelta > 0.0f) {
-            if (direction == 2) {
-                yAdjust = -yDelta;
-            } else {
-                if (rel == 0)   yAdjust =  yDelta;
-                else if (i == 2) yAdjust = +yDelta;
-                else             yAdjust = -yDelta;
-            }
-        }
-
-        // Use the saved buildUpTime for the committed animation (state may already be idle).
-        // Always use the committed key here — knocked heads display as idle-phase loops.
-        float heBuTime = (_cerberusHeadActiveAnimKey[i] != _cerberusIdleHeadAnimKey) ? _cerberusHeadAnimBuildUpTime[i] : 0.0f;
-        int frame = computeHeadFrame(he, _cerberusHeadAnimTime[i], heBuTime, i);
-
-        auto& activeSprites = _cerberusHeadSpritesByAnim[headAnimKey];
-        if (activeSprites[i]) {
-            activeSprites[i]->setScale(he.scale * scaleMult);
-            activeSprites[i]->setPosition(cugl::Vec2(
-                he.positionX + _cerberusAnimConfig.headOffsets[i].offsetX + globalXShift + perspX,
-                he.positionY + _cerberusAnimConfig.headOffsets[i].offsetY + yAdjust));
-            activeSprites[i]->setFrame(frame);
-        }
-
-        // Fire damage sound once per head per attack when animation crosses damageFrame.
-        // Use the committed key, not the display key — knocked heads must not count as attacking.
-        bool isAttackAnim = (_cerberusHeadActiveAnimKey[i] != _cerberusIdleHeadAnimKey);
-        if (isAttackAnim && !_cerberusSoundFired[i] && he.damageFrame >= 0) {
-            int frameInRow = frame - i * he.frameCount;
-            if (frameInRow >= he.damageFrame) {
-                _cerberusSoundFired[i] = true;
-                if (!he.sound.empty() && _audio) {
-                    _audio->playSoundUnique(he.sound);
-                }
-            }
-        }
-
-        // Drive enemy's animation frame counter from the first attacking head so
-        // readyToFire() uses frame-based triggering (damageFrame) instead of time-based.
-        if (isAttackAnim && !frameCounterUpdated) {
-            int frameInRow = frame - i * he.frameCount;
-            auto enemy2 = _gameState.getEnemy();
-            if (enemy2) enemy2->setCurrentAnimationFrame(frameInRow);
-            frameCounterUpdated = true;
-        }
+    for (int headIndex = 0; headIndex < 4; headIndex++) {
+        updateSingleCerberusHead(
+            headIndex,
+            headIndex != hiddenHeadSpriteIndex,
+            direction,
+            globalXShift,
+            enemy,
+            cerberus,
+            frameCounterUpdated);
     }
 }
 

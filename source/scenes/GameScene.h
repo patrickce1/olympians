@@ -776,11 +776,66 @@ public:
      */
     void updateEnemyAnimation(float dt, int localPlayerIndex);
 
-    /** Handles body + 4-head animation logic exclusively for Cerberus. */
+    /**
+     * Orchestrates all body and head sprite updates for Cerberus each frame.
+     *
+     * @param dt               Elapsed time in seconds since the last frame.
+     * @param localPlayerIndex Slot index of the local player, used to determine facing direction.
+     */
     void updateCerberusAnimation(float dt, int localPlayerIndex);
 
-    /** Reorders cerberus head sprites in _bossSprite so the head facing the local player renders on top. Called when direction changes. */
+    /**
+     * Reorders Cerberus head sprites in _bossSprite so the head facing the local
+     * player renders on top. Called whenever the facing direction changes.
+     *
+     * @param direction  New facing direction (0=front, 1=right, 2=back, 3=left).
+     */
     void reorderCerberusHeads(int direction);
+
+    /**
+     * Advances cerberus body and head animation timers. Pauses all timers while stunned.
+     * During IDLE, scales elapsed time by the frantic speed multiplier so animations
+     * visually speed up as Cerberus's health drops.
+     *
+     * @param dt        Elapsed time since the last frame in seconds.
+     * @param enemy     The enemy whose stun and state are checked.
+     * @param cerberus  The Cerberus instance queried for the frantic speed multiplier.
+     */
+    void advanceCerberusAnimationTimers(float dt, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus);
+
+    /**
+     * Commits a new head attack animation to all participating heads when a non-idle
+     * state is first entered. For attack_3, redirects to a side head if the front head
+     * is knocked. Has no effect on idle transitions (those resolve lazily per-head).
+     *
+     * @param currentState  The state that was just entered.
+     * @param stateDef      Definition of the new state (may be null).
+     * @param direction     Current facing direction (0-3).
+     * @param cerberus      The Cerberus instance queried for head-knock state.
+     */
+    void handleCerberusStateTransition(EnemyLoader::State currentState, const EnemyLoader::StateDef* stateDef, int direction, const std::shared_ptr<Cerberus>& cerberus);
+
+    /**
+     * Sets the correct frame and visibility for the Cerberus body sprites
+     * based on the current facing direction.
+     *
+     * @param direction  Current facing direction (0=front, 1=right, 2=back, 3=left).
+     */
+    void updateCerberusBodySprite(int direction);
+
+    /**
+     * Updates frame, position, scale, visibility, and damage sound for a single
+     * Cerberus head sprite.
+     *
+     * @param headIndex               Sprite index (0-3) of the head to update.
+     * @param isVisible               False for the hidden back-position head.
+     * @param direction               Current facing direction (0-3).
+     * @param globalXShift            Lateral shift applied to all heads for directional perspective.
+     * @param enemy                   The enemy for target-index and frame-counter updates.
+     * @param cerberus                The Cerberus instance queried for head-knock and love state.
+     * @param outFrameCounterUpdated  Set to true once the first attacking head drives the frame counter.
+     */
+    void updateSingleCerberusHead(int headIndex, bool isVisible, int direction, float globalXShift, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus, bool& outFrameCounterUpdated);
 
     /**
      * Pre-creates all enemy animation sprite nodes with their textures and layouts.
