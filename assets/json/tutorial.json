@@ -20,18 +20,18 @@
     },
     {
       "type": "spawn_item",
-      "defId": "wheat",
+      "defId": "apple",
       "passDirection": 0
     },
     {
       "type": "wait_for_action",
       "action": "HOLD_FOR_TOOLTIP",
-      "text": "Touch and hold the wheat to see its tooltip."
+      "text": "Touch and hold the apple to see its tooltip."
     },
     {
-      "type": "wait_for_action",
-      "action": "PASS_LEFT",
-      "text": "But you have some wheat in your hand. Pass it to your teammate!"
+        "type": "wait_for_action",
+        "action": "PASS_LEFT",
+        "text": "You're low! Pass the apple so your teammate can heal you."
     },
     {
       "type": "show_message",
@@ -51,12 +51,12 @@
     },
     {
       "type": "show_message",
-      "text": "Circe hits your teammate. They drop below 50% health!",
+      "text": "Circe hit your teammate!",
       "delay": 6.0
     },
     {
       "type": "show_message",
-      "text": "Notice the teammate icon is red. They are below 50%.",
+      "text": "Notice your teammate's icon is red. They are below 50%.",
       "delay": 6.0
     },
     {
@@ -66,7 +66,7 @@
     },
     {
       "type": "show_message",
-      "text": "Items enter your inventory and can be heals or attacks.",
+      "text": "Items enter your inventory and can be supports or attacks.",
       "delay": 6.0
     },
     { "type": "delay", "delay": 0.6 },
@@ -78,7 +78,7 @@
     {
       "type": "wait_for_action",
       "action": "DROP_ALLY_RIGHT",
-      "text": "Drag the heal to your right teammate to heal them."
+      "text": "Drag the heal item to your right teammate to heal them."
     },
     {
       "type": "show_message",

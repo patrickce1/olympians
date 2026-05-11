@@ -619,7 +619,7 @@ protected:
     Status _status;
     
 #pragma mark - Tutorial
-    /**True is this is the tutorial. Currently Circe **/
+    /** Whether we are currently doing the tutorial with the respective boss, Circe. **/
     bool _isTutorial;
 
 public:
@@ -1631,6 +1631,7 @@ public:
         * @param passDirection the nature in which the item should spawn. (0 = Spawn, 1 = Passed from left, 2 = Passed from right).
         */
     void spawnTutorialItem(const std::string& defId, int passDirection);
+    
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
 
@@ -1669,6 +1670,7 @@ public:
     
     /**
      * Updates the visibility of all drop zones based on the current interaction.
+     * 
      * This function evaluates which drop zones should be visible at the current moment
      * (e.g., during drag-and-drop interactions or based on item/type compatibility)
      * and toggles their visibility accordingly.
