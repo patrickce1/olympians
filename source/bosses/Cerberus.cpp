@@ -162,7 +162,7 @@ void Cerberus::endCorrosive() {
     _corrosiveTarget = -1;
     _corrosiveDrainAccum = 0.0f;
     _shouldDrain = false;
-    CULog("Cerberus: endCorrosive called - corrosive terminated early");
+    CULog("Cerberus: endCorrosive called");
 }
 
 bool Cerberus::shouldDrainItem() {

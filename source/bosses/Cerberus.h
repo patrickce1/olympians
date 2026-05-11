@@ -61,7 +61,7 @@ public:
     static constexpr float HEAD_STUN_DURATION = 3.0f;
 
     /** Duration in seconds that the corrosive debuff lasts */
-    static constexpr float CORROSIVE_DURATION = 100.0f;
+    static constexpr float CORROSIVE_DURATION = 25.0f;
     
     Cerberus() {}
 

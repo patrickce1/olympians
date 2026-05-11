@@ -2707,9 +2707,9 @@ void GameScene::handleCorrosiveDrain(){
     int targetIndex = cerberus->getCorrosiveTarget();
 
     Player* victim = _gameState.getPlayerBySlot(targetIndex);
-    if (!victim || victim->getInventory().empty()) {
-        CULog("No victim or empty inventory, ending corrosive");
-        // End corrosive early since player has no items left
+    if (!victim || !victim->isAlive() || victim->getInventory().empty()) {
+        CULog("No victim, victim dead, or empty inventory - ending corrosive (target=%d)", targetIndex);
+        // End corrosive early since player is dead or has no items left
         cerberus->endCorrosive();
         return;
     }
