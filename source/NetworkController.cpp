@@ -36,6 +36,8 @@ void readPlayerRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage&
         effectState.barrierDuration = deserializer.readFloat();
         effectState.regenAmountRemaining = deserializer.readFloat();
         effectState.regenDuration = deserializer.readFloat();
+        effectState.educateDuration = deserializer.readFloat();
+        effectState.charmDuration = deserializer.readFloat();
     }
 
     for (int ii = 0; ii < kMaxPlayers; ++ii) {
@@ -68,10 +70,14 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
             serializer.writeFloat(player->getBarrierDuration());
             serializer.writeFloat(player->getRegenAmountRemaining());
             serializer.writeFloat(player->getRegenDuration());
+            serializer.writeFloat(player->getEducateDuration());
+            serializer.writeFloat(player->getCharmDuration());
         } else {
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(1.0f);
+            serializer.writeFloat(0.0f);
+            serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
@@ -385,6 +391,14 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             enemyEffects.push_back(readEnemyEffectMessage(_deserializer));
             break;
         }
+        case MessageType::FORGE_EFFECT: {
+            ForgeEffectMessage forgeMsg;
+            forgeMsg.divineChance = _deserializer.readFloat();
+            forgeMsg.seed = _deserializer.readSint32();
+            forgeMsg.authoritative = _deserializer.readBool();
+            forgeEffects.push_back(forgeMsg);
+            break;
+        }
         case MessageType::PLAYER_PASS: {
             std::string itemID = _deserializer.readString();
             int passRecieverID = _deserializer.readSint32();
@@ -467,6 +481,8 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             stateMsg.bossState = _deserializer.readSint32();
             stateMsg.stateTime = _deserializer.readFloat();
             readEnemyRuntimeState(_deserializer, stateMsg);
+            stateMsg.frenzyItemInterval = _deserializer.readFloat();
+            stateMsg.frenzyDuration = _deserializer.readFloat();
             readPlayerRuntimeState(_deserializer, stateMsg);
             
 			_latestGameState = stateMsg;
@@ -559,6 +575,7 @@ void NetworkController::clearQueues() {
 	heals.clear();
 	supportEffects.clear();
 	enemyEffects.clear();
+    forgeEffects.clear();
 	passes.clear();
     bossHeals.clear();
     gaiaSpawns = 0;
@@ -679,6 +696,35 @@ void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float m
 }
 
 /**
+ * Sends a forge request to the host for authoritative seeding.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ */
+void NetworkController::requestForgeEffect(float chance) {
+    _serializer.writeSint32(MessageType::FORGE_EFFECT);
+    _serializer.writeFloat(chance);
+    _serializer.writeSint32(0);
+    _serializer.writeBool(false);
+    _network->sendToHost(_serializer.serialize());
+    _serializer.reset();
+}
+
+/**
+ * HOST ONLY. Broadcasts an authoritative forge seed to every connected client.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ * @param seed    Host-generated deterministic seed all clients should use for forge rolls.
+ */
+void NetworkController::broadcastForgeEffect(float chance, int seed) {
+    _serializer.writeSint32(MessageType::FORGE_EFFECT);
+    _serializer.writeFloat(chance);
+    _serializer.writeSint32(seed);
+    _serializer.writeBool(true);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
+}
+
+/**
  * Returns whether a given player index corresponds to a real (human) player.
  * A player is considered real if their index falls within the online players list.
  *
@@ -733,14 +779,18 @@ void NetworkController::broadcastJoinedLobby() {
  * incoming attack and heal messages for that frame.
  *
  * @param state     The current authoritative game state.
+ * @param frenzyItemInterval Active frenzy item interval, or 0 when inactive.
+ * @param frenzyDuration Remaining frenzy duration in seconds, or 0 when inactive.
  */
-void NetworkController::broadcastGameState(const GameState& state) {
+void NetworkController::broadcastGameState(const GameState& state, float frenzyItemInterval, float frenzyDuration) {
 	_serializer.writeSint32(MessageType::GAME_UPDATE);
 	_serializer.writeFloat(state.getEnemy()->getCurrentHealth());
 	_serializer.writeSint32(state.getEnemy()->getTargetIndex());
 	_serializer.writeSint32(state.getEnemy()->getCurrentState());
 	_serializer.writeFloat(state.getEnemy()->getStateTime());
     writeEnemyRuntimeState(_serializer, state.getEnemy());
+    _serializer.writeFloat(frenzyItemInterval);
+    _serializer.writeFloat(frenzyDuration);
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
     writePlayerRuntimeState(_serializer, players);
 	_network->broadcast(_serializer.serialize());

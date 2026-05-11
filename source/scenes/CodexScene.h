@@ -135,6 +135,38 @@ protected:
     /** The current status */
     Status _status;
     
+    // --- Swipe gesture state ---
+
+    /** X position where the finger first touched down. */
+    float _swipeTouchStartX = 0.0f;
+
+    /** Y position where the finger first touched down. */
+    float _swipeTouchStartY = 0.0f;
+
+    /** Whether a swipe gesture is currently being tracked. */
+    bool _isSwiping = false;
+
+    /** Position of the touch on the first frame it was detected. */
+    cugl::Vec2 _swipeTouchInitialPos = cugl::Vec2::ZERO;
+
+    /** Number of frames the finger has been moving vertically. */
+    int _swipeHoldFrames = 0;
+
+    /** Number of frames of continuous vertical movement required
+     *  before a swipe gesture is committed. */
+    static constexpr int SWIPE_HOLD_FRAMES = 4;
+    
+    /** The Y position of the grid container at the moment the current touch began. */
+    float _swipeContainerStartY = 0.0f;
+
+    /** The base Y position of the grid container at row 0. */
+    float _baseGridPositionY = 0.0f;
+    
+    /** Whether the grid is currently lerping to a snap target row. */
+    bool _isSnapping = false;
+
+    /** The position the grid is lerping toward after a swipe release. */
+    cugl::Vec2 _snapTarget = cugl::Vec2::ZERO;
 
 public:
 #pragma mark -
@@ -218,8 +250,9 @@ public:
      * The method called to update the scene.
      *
      * @param timestep  The amount of time (in seconds) since the last frame
+     * @param input         The input controller instance
      */
-    void update(float timestep) override;
+    void update(float timestep, InputController& input);
     
 private:
     
@@ -260,7 +293,28 @@ private:
      * Updates which item buttons are visible based on scroll position.
      */
     void updateButtonVisibility();
+    
+    /**
+     * Records the touch-down position to begin tracking a potential vertical swipe.
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeBegin(InputController& input);
+    
+    /**
+     * Moves the grid container directly under the finger each frame while
+     * a swipe is active. Clamps so the grid cannot scroll past the first
+     * or last row.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeTracking(InputController& input);
 
+    /**
+     * Called on finger lift. Determines swipe direction from total vertical
+     * travel and scrolls the grid up or down accordingly.
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeRelease(InputController& input);
 };
 
 #endif /* __CODEX_SCENE_H__ */

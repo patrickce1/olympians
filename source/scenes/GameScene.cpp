@@ -55,6 +55,13 @@ constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 enum class HealthState { FULL, HALF, DEAD };
 
 /**
+ * Generates a positive host-authoritative seed for one forge effect application.
+ *
+ * @return A non-negative integer seed used to derive deterministic forge rolls.
+ */
+static int makeForgeSeed();
+
+/**
  * Determines the health state of a player based on current and maximum health.
  *
  * @param current Current health value of the player.
@@ -122,6 +129,32 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                     targetPlayerID,
                     effect.regenAmount,
                     applyToAllPlayers);
+                break;
+            case ItemDef::EffectType::Educate:
+                network.broadcastSupportEffect(SupportEffectType::Educate,
+                    0.0f,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
+                break;
+            case ItemDef::EffectType::Charm:
+                network.broadcastSupportEffect(SupportEffectType::Charm,
+                    0.0f,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
+                break;
+            case ItemDef::EffectType::Frenzy:
+                network.broadcastSupportEffect(SupportEffectType::Frenzy,
+                    effect.amount,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    true);
+                break;
+            case ItemDef::EffectType::Forge:
                 break;
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
@@ -204,6 +237,10 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Barrier:
             case ItemDef::EffectType::Regen:
             case ItemDef::EffectType::Resurrect:
+            case ItemDef::EffectType::Educate:
+            case ItemDef::EffectType::Forge:
+            case ItemDef::EffectType::Charm:
+            case ItemDef::EffectType::Frenzy:
                 break;
         }
     }
@@ -233,12 +270,73 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
  * @return Whether an item effect should be applied
  */
 static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
+    if (player.hasEducate()) {
+        return true;
+    }
+
     if (def.getHouseAffinity() == ItemDef::House::None) {
         return true;
     }
 
     return def.getHouseAffinity() ==
            ItemDef::houseFromString(player.getHouseName(), ItemDef::House::None);
+}
+
+/**
+ * Returns an effect copy adjusted for local charm-only presentation paths.
+ *
+ * @param effect       The original item effect definition.
+ * @param charmActive  Whether charm should modify the effect.
+ * @return The original effect, or a charm-boosted copy when charm is active.
+ */
+static ItemDef::Effect resolveEffectForCharm(const ItemDef::Effect& effect, bool charmActive) {
+    ItemDef::Effect resolved = effect;
+    if (!charmActive || effect.type == ItemDef::EffectType::Charm) {
+        return resolved;
+    }
+
+    switch (effect.type) {
+        case ItemDef::EffectType::Shield:
+            resolved.mitigation *= 2.0f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Barrier:
+            resolved.multiplier *= 0.5f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Regen:
+            resolved.regenAmount *= 2.0f;
+            break;
+        case ItemDef::EffectType::Resurrect:
+            resolved.reviveHealth *= 2.0f;
+            resolved.regenAmount *= 2.0f;
+            break;
+        case ItemDef::EffectType::Educate:
+        case ItemDef::EffectType::Stun:
+        case ItemDef::EffectType::Love:
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Slow:
+            resolved.multiplier *= 0.5f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Vulnerable:
+            resolved.multiplier *= 2.0f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Upgrade:
+            break;
+        case ItemDef::EffectType::Forge:
+            resolved.chance = std::min(1.0f, resolved.chance * 2.0f);
+            break;
+        case ItemDef::EffectType::Charm:
+            break;
+        case ItemDef::EffectType::Frenzy:
+            resolved.amount *= 0.5f;
+            break;
+    }
+
+    return resolved;
 }
 
 /**
@@ -286,8 +384,9 @@ static float computeHouseAffinityMultiplier(const Player& player, const ItemDef&
 static float computeUpgradeMultiplier(const Player& player, const ItemDef& def) {
     float upgradeMultiplier = 1.0f;
     for (const ItemDef::Effect& effect : def.getEffects()) {
-        if (effect.type == ItemDef::EffectType::Upgrade) {
-            upgradeMultiplier *= std::pow(effect.multiplier, static_cast<float>(player.getMalletUseCount()));
+        const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, player.hasCharm());
+        if (resolvedEffect.type == ItemDef::EffectType::Upgrade) {
+            upgradeMultiplier *= std::pow(resolvedEffect.multiplier, static_cast<float>(player.getMalletUseCount()));
         }
     }
     return upgradeMultiplier;
@@ -366,11 +465,23 @@ bool GameScene::initSceneGraph() {
         _rightPlayerName = std::dynamic_pointer_cast<scene2::Label>(
              _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.username"));
         
+        _leftPlayerHouse = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.playerHouse.label"));
+        
+        _rightPlayerHouse = std::dynamic_pointer_cast<scene2::Label>(
+               _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.playerHouse.label"));
+        
         _leftPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.fill"));
         
         _rightPHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.fill"));
+        
+        _leftPHealthShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.leftIcon.leftHealth.shield"));
+        
+        _rightPHealthShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.gameArea.rightIcon.rightHealth.shield"));
         
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
@@ -393,8 +504,17 @@ bool GameScene::initSceneGraph() {
         _playerHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarFill"));
         
+        _playerHealthBarGlow = std::dynamic_pointer_cast<scene2::PolygonNode>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.effectGlow"));
+        
+        _playerHealthBarShield = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            _assets->get<scene2::SceneNode>("gameScene.inventory.playerHealth.healthBarShield"));
+        
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
+        
+        _bossHealthBarIcon = std::dynamic_pointer_cast<scene2::PolygonNode>(
+               _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.barIcon"));
         
         _bossName = std::dynamic_pointer_cast<scene2::Label>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.bossName.label"));
@@ -511,8 +631,8 @@ void GameScene::initInputZones(){
     _attackArea->setVisible(false);
     
     _supportZones = {
-        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.45f, w * 0.399f, h * 0.40f)},
-        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.75f,   h * 0.45f, w * 0.399f, h * 0.40f)},
+        {InputController::Action::DROP_ALLY_LEFT,  Rect(-w * 0.149f, h * 0.39f, w * 0.36f, h * 0.52f)},
+        {InputController::Action::DROP_ALLY_RIGHT, Rect(w * 0.79f,   h * 0.39f, w * 0.399f, h * 0.52f)},
     };
       
     _inventoryZones = {
@@ -642,9 +762,13 @@ void GameScene::dispose() {
         _playerHealthBar = nullptr;
         _leftPHealthBar = nullptr;
         _rightPHealthBar = nullptr;
+        _leftPHealthShield = nullptr;
+        _rightPHealthShield = nullptr;
         _playerName = nullptr;
         _bossName = nullptr;
         _playerHouseName = nullptr;
+        _leftPlayerHouse = nullptr;
+        _rightPlayerHouse = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
         _enemyAnimationSpriteNodes.clear();
@@ -656,6 +780,7 @@ void GameScene::dispose() {
         _activeFloatingPopups.clear();
         _pendingFloatingPopups.clear();
         _pendingResurrectionSync = PendingResurrectionSync{};
+        _pendingPartyEffectSyncs.clear();
         _itemBodies.clear();
         if (_itemPhysicsWorld) {
             _itemPhysicsWorld->dispose();
@@ -715,6 +840,14 @@ void GameScene::updateNetworkOrder() {
 
     _leftPlayerName->setText(_gameState.getLocalPlayer()->getLeftPlayer()->getPlayerName());
     _rightPlayerName->setText(_gameState.getLocalPlayer()->getRightPlayer()->getPlayerName());
+    
+    std::string leftName = _gameState.getLocalPlayer()->getLeftPlayer()->getHouseName();
+    for (char &character : leftName) character = toupper(character);
+    _leftPlayerHouse->setText(leftName);
+    
+    std::string rightName = _gameState.getLocalPlayer()->getRightPlayer()->getHouseName();
+    for (char &character : rightName) character = toupper(character);
+    _rightPlayerHouse->setText(rightName);
 
     _gameState.setEnemy(_network->getEnemy(), _assets);
 
@@ -780,6 +913,7 @@ void GameScene::reset() {
     _glowTimer  = 0;
     _slotsDemotedToAI.clear();
     _pendingResurrectionSync = PendingResurrectionSync{};
+    _pendingPartyEffectSyncs.clear();
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
@@ -1041,15 +1175,114 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
         return false;
     }
 
+    if (shouldApplyEffects) {
+        for (const ItemDef::Effect& effect : def->getEffects()) {
+            const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, local->hasCharm());
+            switch (effect.type) {
+                case ItemDef::EffectType::Forge:
+                    if (_network->isHost()) {
+                        const int seed = makeForgeSeed();
+                        applyForgeEffect(resolvedEffect.chance, seed);
+                        _network->broadcastForgeEffect(resolvedEffect.chance, seed);
+                    } else {
+                        _network->requestForgeEffect(effect.chance);
+                    }
+                    break;
+                case ItemDef::EffectType::Frenzy:
+                    if (_network->isHost()) {
+                        applyFrenzyEffect(resolvedEffect.amount, resolvedEffect.duration);
+                    }
+                    break;
+                case ItemDef::EffectType::Shield:
+                case ItemDef::EffectType::Barrier:
+                case ItemDef::EffectType::Regen:
+                case ItemDef::EffectType::Resurrect:
+                case ItemDef::EffectType::Educate:
+                case ItemDef::EffectType::Stun:
+                case ItemDef::EffectType::Love:
+                case ItemDef::EffectType::Slow:
+                case ItemDef::EffectType::Vulnerable:
+                case ItemDef::EffectType::Upgrade:
+                case ItemDef::EffectType::Charm:
+                    break;
+            }
+        }
+    }
+
     if (!_network->isHost()) {
-        const ItemDef::Effect* resurrectEffect = def->getEffect(ItemDef::EffectType::Resurrect);
-        if (resurrectEffect && shouldApplyEffects) {
-            const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(_gameState);
-            _pendingResurrectionSync.playerSlots = resurrectedSlots;
-            _pendingResurrectionSync.reviveHealth = resurrectEffect->reviveHealth;
-            _pendingResurrectionSync.regenAmount = resurrectEffect->regenAmount;
-            _pendingResurrectionSync.regenDuration = resurrectEffect->duration;
-            _pendingResurrectionSync.active = !resurrectedSlots.empty();
+        for (const ItemDef::Effect& effect : def->getEffects()) {
+            if (!shouldApplyEffects) {
+                break;
+            }
+
+            const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, local->hasCharm());
+            switch (effect.type) {
+                case ItemDef::EffectType::Resurrect: {
+                    const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(_gameState);
+                    _pendingResurrectionSync.playerSlots = resurrectedSlots;
+                    _pendingResurrectionSync.reviveHealth = resolvedEffect.reviveHealth;
+                    _pendingResurrectionSync.regenAmount = resolvedEffect.regenAmount;
+                    _pendingResurrectionSync.regenDuration = resolvedEffect.duration;
+                    _pendingResurrectionSync.active = !resurrectedSlots.empty();
+                    break;
+                }
+                case ItemDef::EffectType::Educate: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Educate;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.duration = resolvedEffect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
+                case ItemDef::EffectType::Charm: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Charm;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.duration = resolvedEffect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
+                case ItemDef::EffectType::Forge:
+                case ItemDef::EffectType::Frenzy:
+                    break;
+                case ItemDef::EffectType::Shield:
+                case ItemDef::EffectType::Barrier:
+                case ItemDef::EffectType::Regen:
+                case ItemDef::EffectType::Stun:
+                case ItemDef::EffectType::Love:
+                case ItemDef::EffectType::Slow:
+                case ItemDef::EffectType::Vulnerable:
+                case ItemDef::EffectType::Upgrade:
+                    break;
+            }
         }
         broadcastSupportEffects(*_network, *def, resolvedMagnitude, -1, shouldApplyEffects, true);
     }
@@ -1079,7 +1312,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f, local->hasCharm());
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -1093,7 +1326,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup, local->hasCharm()));
         return true;
     }
     return false;
@@ -1120,7 +1353,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f, local->hasCharm());
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -1133,7 +1366,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup, local->hasCharm()));
         return true;
     }
     return false;
@@ -1437,13 +1670,33 @@ void GameScene::updateEnemyHealthBarEffect(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
     
-    if (enemy->isStunned()){
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillYellow"));
+    auto applyBossBar = [&](const std::string& barTex,
+                            const std::string& iconTex,
+                            bool showIcon) {
+        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>(barTex));
+
+        if (showIcon) {
+            _bossHealthBarIcon->setTexture(_assets->get<cugl::graphics::Texture>(iconTex));
+            _bossHealthBarIcon->setScale(0.5f);
+            _bossHealthBarIcon->setVisible(true);
+        } else {
+            _bossHealthBarIcon->setVisible(false);
+        }
+    };
+
+    std::string bar = "healthFillRed";
+    std::string icon = "";
+    bool show = false;
+
+    if (enemy->isStunned()) {
+        bar = "healthFillYellow"; icon = "stunIcon"; show = true;
     } else if (enemy->isLoved()) {
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillPink"));
-    } else {
-        _bossHealthBar->setTexture(_assets->get<cugl::graphics::Texture>("healthFillRed"));
+        bar = "healthFillPink"; icon = "loveIcon"; show = true;
+    } else if (enemy->isSlowed()) {
+        bar = "healthFillBlue"; icon = "slowIcon"; show = true;
     }
+
+    applyBossBar(bar, icon, show);
 }
 
 /**
@@ -1830,17 +2083,102 @@ void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     _playerHealthBar->setProgress(player->getCurrentHealth()/player->getMaxHealth());
     if (_playerHealthBar->getProgress() <= 0) {
         _playerHealthBar->setVisible(false);
+        _gameArea->getChildByName("playerDeath")->setVisible(true);
     } else {
         _playerHealthBar->setVisible(true);
+        _gameArea->getChildByName("playerDeath")->setVisible(false);
     }
     
     auto leftPlayer = player->getLeftPlayer();
-    _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+    if (leftPlayer->hasShield()) {
+        float maxHealth = (float)leftPlayer->getMaxHealth();
+        float health    = (float)leftPlayer->getCurrentHealth();
+        float shield    = (float)leftPlayer->getShieldHealth();
+
+        float total = health + shield;
+
+        if (total >= maxHealth) {
+            _leftPHealthShield->setProgress(1.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _leftPHealthBar->setProgress(visibleHealth / maxHealth);
+        }
+        else {
+            _leftPHealthShield->setProgress(total / maxHealth);
+            _leftPHealthBar->setProgress(health / maxHealth);
+        }
+        _leftPHealthShield->setVisible(true);
+    } else {
+        _leftPHealthBar->setProgress(leftPlayer->getCurrentHealth()/leftPlayer->getMaxHealth());
+        _leftPHealthShield->setVisible(false);
+    }
     
     auto rightPlayer = player->getRightPlayer();
-    _rightPHealthBar->setProgress(
-        1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth())
-    );
+    if (rightPlayer->hasShield()) {
+        float maxHealth = (float)rightPlayer->getMaxHealth();
+        float health    = (float)rightPlayer->getCurrentHealth();
+        float shield    = (float)rightPlayer->getShieldHealth();
+        
+        float total = health + shield;
+        
+        if (total >= maxHealth) {
+            _rightPHealthBar->setProgress(0.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _rightPHealthShield->setProgress(1.0f - (visibleHealth / maxHealth));
+        } else {
+            _rightPHealthShield->setProgress(1.0f - (health / maxHealth));
+            _rightPHealthBar->setProgress(1.0f - (total / maxHealth));
+        }
+        _rightPHealthShield->setVisible(true);
+    } else {
+        _rightPHealthBar->setProgress(
+            1.0f - (rightPlayer->getCurrentHealth() / rightPlayer->getMaxHealth()));
+        _rightPHealthShield->setVisible(false);
+    }
+}
+
+/**
+ * Updates the local player's progress bar with the current effects that have been applied
+ * onto them.
+ *
+ * @param dt Delta time in seconds
+ */
+void GameScene::updatePlayerHealthBarEffect(float dt) {
+    auto player = _gameState.getLocalPlayer();
+    if (!player || !player->isAlive()) return;
+    
+    if (player->hasBarrier() && player->getBarrierMultiplier() == 0) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("helmBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else if (player->hasBarrier() && player->getBarrierMultiplier() > 0) {
+        _playerHealthBarGlow->setTexture(_assets->get<cugl::graphics::Texture>("aegisBar"));
+        _playerHealthBarGlow->setVisible(true);
+    } else {
+        _playerHealthBarGlow->setVisible(false);
+    }
+    
+    if (player->hasShield()) {
+        float maxHealth = (float)player->getMaxHealth();
+        float health    = (float)player->getCurrentHealth();
+        float shield    = (float)player->getShieldHealth();
+
+        float total = health + shield;
+
+        if (total >= maxHealth) {
+            _playerHealthBarShield->setProgress(1.0f);
+            
+            float visibleHealth = std::max(0.0f, maxHealth - shield);
+            _playerHealthBar->setProgress(visibleHealth / maxHealth);
+        }
+        else {
+            _playerHealthBarShield->setProgress(total / maxHealth);
+            _playerHealthBar->setProgress(health / maxHealth);
+        }
+        _playerHealthBarShield->setVisible(true);
+    } else {
+        _playerHealthBarShield->setVisible(false);
+    }
 }
 
 /**
@@ -2116,8 +2454,8 @@ void GameScene::updateDebugPointer(InputController& input) {
  * Hit-tests item widgets against the initial touch position.
  */
 void GameScene::handleDragInitiation(InputController& input) {
-    if (_draggedIcon || !input.isDragging()) return;
-
+    if (_draggedIcon || (!input.isDragging() && !input.justTouched() && !input.justMouseDown())) return;
+    
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
 
     for (auto& [id, widget] : _itemWidgets) {
@@ -2212,12 +2550,16 @@ void GameScene::handleNetworkUpdates(float dt) {
 
     if (_network->isHost()) {
         // handle incoming attack/heal messages from clients
+        const auto& supportEffects = _network->getSupportEffectUpdates();
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
-        _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
+        processFrenzyEffects(supportEffects);
+        _gameState.supportEffectUpdates(supportEffects);
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
+        processForgeEffects(_network->getForgeEffectUpdates());
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
+        _itemController.updateEffects(dt);
 
         for (auto& player : _gameState.getPlayers()) {
             if (player) {
@@ -2226,12 +2568,16 @@ void GameScene::handleNetworkUpdates(float dt) {
         }
 
         // broadcast authoritative state to all clients
-        _network->broadcastGameState(_gameState);
+        _network->broadcastGameState(_gameState, _itemController.getFrenzyItemInterval(), _itemController.getFrenzyDuration());
     }
     else {
         // clients just apply the latest state from host
-        _gameState.networkUpdate(_network->getStateUpdate());
+        GameStateMessage stateUpdate = _network->getStateUpdate();
+        _gameState.networkUpdate(stateUpdate);
+        syncFrenzyEffect(stateUpdate.frenzyItemInterval, stateUpdate.frenzyDuration);
+        processForgeEffects(_network->getForgeEffectUpdates());
         applyPendingResurrectionSync();
+        applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
     }
     
@@ -2294,6 +2640,201 @@ void GameScene::applyPendingResurrectionSync() {
     if (!waitingForHost) {
         _pendingResurrectionSync = PendingResurrectionSync{};
     }
+}
+
+/**
+ * Reapplies a pending client-side educate buff after stale host snapshots, until host sync catches up.
+ */
+void GameScene::applyPendingPartyEffectSyncs() {
+    auto shouldKeepPendingEffect = [&](PendingPartyEffectSync& pendingEffect) {
+        bool waitingForHost = false;
+
+        for (int slot : pendingEffect.playerSlots) {
+            Player* player = _gameState.getPlayerBySlot(slot);
+            if (!player) {
+                continue;
+            }
+
+            switch (pendingEffect.effectType) {
+                case ItemDef::EffectType::Educate:
+                    if (player->hasEducate()) {
+                        continue;
+                    }
+                    player->applyEducate(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                case ItemDef::EffectType::Charm:
+                    if (player->hasCharm()) {
+                        continue;
+                    }
+                    player->applyCharm(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return waitingForHost;
+    };
+
+    _pendingPartyEffectSyncs.erase(
+        std::remove_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+            [&](PendingPartyEffectSync& pendingEffect) {
+                if (!pendingEffect.active) {
+                    return true;
+                }
+                return !shouldKeepPendingEffect(pendingEffect);
+            }),
+        _pendingPartyEffectSyncs.end());
+}
+
+/**
+ * Applies queued frenzy support effects to item spawning and inventories.
+ *
+ * @param supportEffects Support-effect messages received during the current network update.
+ */
+void GameScene::processFrenzyEffects(const std::vector<SupportEffectMessage>& supportEffects) {
+    if (!_network || !_network->isHost()) {
+        return;
+    }
+
+    auto isPartyCharmActive = [&]() {
+        for (const auto& player : _gameState.getPlayers()) {
+            if (player && player->hasCharm()) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const bool charmActive = isPartyCharmActive();
+    for (const SupportEffectMessage& effect : supportEffects) {
+        if (effect.effectType != SupportEffectType::Frenzy) {
+            continue;
+        }
+
+        float itemInterval = effect.magnitude;
+        if (charmActive) {
+            itemInterval *= 0.5f;
+        }
+        applyFrenzyEffect(itemInterval, effect.duration);
+    }
+}
+
+/**
+ * Applies a frenzy item-spawn override and clears every player's inventory.
+ *
+ * @param itemInterval New item spawn interval while frenzy is active.
+ * @param duration Duration of the frenzy override in seconds.
+ */
+void GameScene::applyFrenzyEffect(float itemInterval, float duration) {
+    if (itemInterval <= 0.0f || duration <= 0.0f) {
+        return;
+    }
+
+    for (const auto& player : _gameState.getPlayers()) {
+        if (player) {
+            player->clearInventory();
+        }
+    }
+
+    _itemController.applyFrenzy(itemInterval, duration);
+    _passedItemIds.clear();
+    syncInventoryWidgets();
+}
+
+/**
+ * Synchronizes local frenzy state from the latest host snapshot.
+ *
+ * @param itemInterval Host-authoritative item spawn interval.
+ * @param duration Remaining host-authoritative frenzy duration.
+ */
+void GameScene::syncFrenzyEffect(float itemInterval, float duration) {
+    const bool incomingActive = itemInterval > 0.0f && duration > 0.0f;
+    const bool shouldClearInventories = incomingActive &&
+        (!_itemController.hasFrenzy() ||
+         duration > _itemController.getFrenzyDuration() + 0.25f ||
+         std::abs(itemInterval - _itemController.getFrenzyItemInterval()) > 0.001f);
+
+    if (shouldClearInventories) {
+        for (const auto& player : _gameState.getPlayers()) {
+            if (player) {
+                player->clearInventory();
+            }
+        }
+        _passedItemIds.clear();
+        syncInventoryWidgets();
+    }
+
+    _itemController.syncFrenzy(itemInterval, duration);
+}
+
+/**
+ * Generates a positive host-authoritative seed for one forge effect application.
+ *
+ * @return A non-negative integer seed used to derive deterministic forge rolls.
+ */
+static int makeForgeSeed() {
+    cugl::Random rng;
+    if (rng.init()) {
+        return static_cast<int>(rng.getUint32() & 0x7fffffffu);
+    }
+    return 0x13572468;
+}
+
+/**
+ * Applies queued or requested forge effects using host-authoritative seeds.
+ *
+ * The host processes only non-authoritative client requests, applies forge locally once,
+ * and broadcasts an authoritative seeded message. Clients apply only authoritative
+ * seeded messages from the host.
+ *
+ * @param forgeEffects  The forge effect messages received during the current network update.
+ */
+void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forgeEffects) {
+    for (const ForgeEffectMessage& forgeEffect : forgeEffects) {
+        if (_network->isHost()) {
+            if (forgeEffect.authoritative) {
+                continue;
+            }
+
+            float resolvedChance = forgeEffect.divineChance;
+            for (const auto& player : _gameState.getPlayers()) {
+                if (player && player->hasCharm()) {
+                    resolvedChance = std::min(1.0f, resolvedChance * 2.0f);
+                    break;
+                }
+            }
+
+            const int seed = makeForgeSeed();
+            applyForgeEffect(resolvedChance, seed);
+            _network->broadcastForgeEffect(resolvedChance, seed);
+        } else if (forgeEffect.authoritative) {
+            applyForgeEffect(forgeEffect.divineChance, forgeEffect.seed);
+        }
+    }
+}
+
+/**
+ * Redefines existing local item instances for forge and refreshes any visible widgets.
+ *
+ * Each player's roll uses a deterministic seed derived from the shared base seed and
+ * that player's slot number so all machines resolve matching local inventories the same way.
+ *
+ * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+ * @param seed    Deterministic base seed used to derive per-player forge rolls.
+ */
+void GameScene::applyForgeEffect(float chance, int seed) {
+    const std::uint32_t baseSeed = static_cast<std::uint32_t>(seed);
+    for (const auto& player : _gameState.getPlayers()) {
+        if (!player) {
+            continue;
+        }
+        const std::uint32_t playerSeed = baseSeed ^ (0x9e3779b9u + static_cast<std::uint32_t>(player->getPlayerNumber()));
+        _itemController.applyForgeEffect(player.get(), chance, playerSeed);
+    }
+    refreshInventoryWidgetTextures();
 }
 
 /** 
@@ -2993,6 +3534,7 @@ void GameScene::update(float dt, InputController& input) {
     _network->clearQueues();
     updateAllPlayersAndEnemyHealthUI(dt);
     updatePlayerAndTeammateIcons(dt);
+    updatePlayerHealthBarEffect(dt);
 }
 
 #pragma mark -
@@ -3372,7 +3914,36 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     startItemSliding(id, spawnVelocity, slideOrigin);
 }
 
-/** Synchronises on-screen item widgets with the local player's current inventory. */
+/**
+ * Refreshes existing widget textures after item instances are redefined in place.
+ *
+ * Forge preserves item instance IDs, so the existing inventory widgets are kept and
+ * only their textures are swapped to match the new item definitions.
+ */
+void GameScene::refreshInventoryWidgetTextures() {
+    Player* local = _gameState.getLocalPlayer();
+    if (!local || !_assets) return;
+
+    for (const ItemInstance& item : local->getInventory()) {
+        auto widgetIt = _itemWidgets.find(item.getId());
+        if (widgetIt == _itemWidgets.end() || !widgetIt->second) {
+            continue;
+        }
+
+        auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
+        if (!itemDef) {
+            continue;
+        }
+
+        auto texture = _assets->get<cugl::graphics::Texture>(itemDef->getIconKey());
+        auto polygon = std::dynamic_pointer_cast<scene2::PolygonNode>(widgetIt->second);
+        if (texture && polygon) {
+            polygon->setTexture(texture);
+            polygon->setContentSize(Size(100, 100));
+        }
+    }
+}
+
 void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();
     if (!_inventory || !local) return;
@@ -3515,8 +4086,8 @@ void GameScene::render() {
         renderItemWidgetDebug(batch.get());
         renderItemBodyDebug(batch.get());
         renderPointerDebug(batch.get());
+        renderDropZonesDebug(batch.get());
     }
-//    renderDropZonesDebug(batch.get());
     batch->end();
 }
 
@@ -4171,11 +4742,14 @@ void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
  *
  * @param baseValue     Item's raw base heal value from the item definition.
  * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
+ * @param def           Item definition used to detect additional support effects such as regen.
+ * @param shouldShowEffectPopup Whether effect-specific popups should be shown.
+ * @param charmActive   Whether charm should modify effect-specific popup values.
  * @return Ordered list of FloatingPopupData for the sequence (1 or 3 entries).
  */
 std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal,
                                                          const std::shared_ptr<const ItemDef>& def,
-                                                         bool shouldShowEffectPopup) const {
+                                                         bool shouldShowEffectPopup, bool charmActive) const {
     // Back-calculate the house multiplier from the resolved heal so we can show it in the sequence.
     const float totalMultiplier = (baseValue > 0.0f) ? resolvedHeal / baseValue : 1.0f;
     const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
@@ -4183,8 +4757,9 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
     float regenAmount = 0.0f;
     if (def) {
         for (const auto& effect : def->getEffects()) {
-            if (effect.type == ItemDef::EffectType::Regen && effect.regenAmount > 0.0f) {
-                regenAmount = effect.regenAmount;
+            const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, charmActive);
+            if (resolvedEffect.type == ItemDef::EffectType::Regen && resolvedEffect.regenAmount > 0.0f) {
+                regenAmount = resolvedEffect.regenAmount;
                 break;
             }
         }
@@ -4229,19 +4804,21 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
  * @param dropPos  Screen-space position where popups appear.
  * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
  * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
+ * @param charmActive Whether charm should modify effect-specific popup values.
  */
 void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos,
-                                           bool shouldShowEffectPopup, bool hasHealingPopup) {
+                                           bool shouldShowEffectPopup, bool hasHealingPopup, bool charmActive) {
     const bool hasRegenPopup = shouldShowEffectPopup && def && def->hasEffectType(ItemDef::EffectType::Regen);
     const float popupYOffset = hasHealingPopup ? (hasRegenPopup ? -56.0f : -28.0f) : 0.0f;
     for (const auto& effect : def->getEffects()) {
-        if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
+        const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, charmActive);
+        if (resolvedEffect.type == ItemDef::EffectType::Shield && resolvedEffect.mitigation > 0.0f) {
             char text[32];
-            std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
+            std::snprintf(text, sizeof(text), "[%.1f]", resolvedEffect.mitigation);
             createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, popupYOffset), true}});
-        } else if (shouldShowEffectPopup && effect.type == ItemDef::EffectType::Barrier && effect.multiplier < 1.0f) {
+        } else if (shouldShowEffectPopup && resolvedEffect.type == ItemDef::EffectType::Barrier && resolvedEffect.multiplier < 1.0f) {
             char text[32];
-            const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
+            const float reductionPct = (1.0f - resolvedEffect.multiplier) * 100.0f;
             std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);
             createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, popupYOffset), true}});
         }

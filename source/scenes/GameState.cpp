@@ -364,34 +364,83 @@ void GameState::bossHealUpdates(std::vector<BossHealMessage> bossHeals) {
  * @param supportEffects  The queued support-effect updates to apply this frame.
  */
 void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEffects) {
+    auto isPartyCharmActive = [&]() {
+        for (const auto& player : _players) {
+            if (player && player->hasCharm()) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     for (const SupportEffectMessage& effect : supportEffects) {
-        auto applySupportEffect = [&](Player& target) {
+        SupportEffectMessage resolvedEffect = effect;
+        if (isPartyCharmActive() && effect.effectType != SupportEffectType::Charm) {
             switch (effect.effectType) {
-                case SupportEffectType::Heal:
-                    target.updateHealth(effect.magnitude);
-                    break;
                 case SupportEffectType::Shield:
-                    target.applyShield(effect.magnitude, effect.duration);
+                    resolvedEffect.magnitude *= 2.0f;
+                    resolvedEffect.duration *= 2.0f;
                     break;
                 case SupportEffectType::Barrier:
-                    target.applyBarrier(effect.magnitude, effect.duration);
+                    resolvedEffect.magnitude *= 0.5f;
+                    resolvedEffect.duration *= 2.0f;
                     break;
                 case SupportEffectType::Regen:
-                    target.applyRegen(effect.magnitude, effect.duration);
+                    resolvedEffect.magnitude *= 2.0f;
+                    break;
+                case SupportEffectType::Resurrect:
+                    resolvedEffect.magnitude *= 2.0f;
+                    resolvedEffect.secondaryMagnitude *= 2.0f;
+                    break;
+                case SupportEffectType::Educate:
+                    resolvedEffect.duration *= 2.0f;
+                    break;
+                case SupportEffectType::Frenzy:
+                    resolvedEffect.magnitude *= 0.5f;
+                    break;
+                case SupportEffectType::Heal:
+                case SupportEffectType::Forge:
+                case SupportEffectType::Charm:
+                    break;
+            }
+        }
+
+        auto applySupportEffect = [&](Player& target) {
+            switch (resolvedEffect.effectType) {
+                case SupportEffectType::Heal:
+                    target.updateHealth(resolvedEffect.magnitude);
+                    break;
+                case SupportEffectType::Shield:
+                    target.applyShield(resolvedEffect.magnitude, resolvedEffect.duration);
+                    break;
+                case SupportEffectType::Barrier:
+                    target.applyBarrier(resolvedEffect.magnitude, resolvedEffect.duration);
+                    break;
+                case SupportEffectType::Regen:
+                    target.applyRegen(resolvedEffect.magnitude, resolvedEffect.duration);
                     break;
                 case SupportEffectType::Resurrect:
                     if (target.isAlive()) {
                         break;
                     }
-                    target.setCurrentHealth(effect.magnitude);
-                    if (effect.secondaryMagnitude > 0.0f && effect.duration > 0.0f) {
-                        target.applyRegen(effect.secondaryMagnitude, effect.duration);
+                    target.setCurrentHealth(resolvedEffect.magnitude);
+                    if (resolvedEffect.secondaryMagnitude > 0.0f && resolvedEffect.duration > 0.0f) {
+                        target.applyRegen(resolvedEffect.secondaryMagnitude, resolvedEffect.duration);
                     }
+                    break;
+                case SupportEffectType::Educate:
+                    target.applyEducate(resolvedEffect.duration);
+                    break;
+                case SupportEffectType::Charm:
+                    target.applyCharm(resolvedEffect.duration);
+                    break;
+                case SupportEffectType::Forge:
+                case SupportEffectType::Frenzy:
                     break;
             }
         };
 
-        if (effect.applyToAllPlayers) {
+        if (resolvedEffect.applyToAllPlayers) {
             for (const auto& player : _players) {
                 if (!player) {
                     continue;
@@ -401,9 +450,9 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
             continue;
         }
 
-        if (effect.playerID < 0 || effect.playerID >= (int)_players.size()) continue;
+        if (resolvedEffect.playerID < 0 || resolvedEffect.playerID >= (int)_players.size()) continue;
 
-        Player* target = _players[effect.playerID].get();
+        Player* target = _players[resolvedEffect.playerID].get();
         if (!target) continue;
         applySupportEffect(*target);
     }
@@ -417,7 +466,32 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
 void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects) {
     if (!_enemy) return;
 
-    for (const EnemyEffectMessage& effect : enemyEffects) {
+    bool partyCharmActive = false;
+    for (const auto& player : _players) {
+        if (player && player->hasCharm()) {
+            partyCharmActive = true;
+            break;
+        }
+    }
+
+    for (EnemyEffectMessage effect : enemyEffects) {
+        if (partyCharmActive) {
+            switch (effect.effectType) {
+                case EnemyEffectType::Stun:
+                case EnemyEffectType::Love:
+                    effect.duration *= 2.0f;
+                    break;
+                case EnemyEffectType::Slow:
+                    effect.magnitude *= 0.5f;
+                    effect.duration *= 2.0f;
+                    break;
+                case EnemyEffectType::Vulnerable:
+                    effect.magnitude *= 2.0f;
+                    effect.duration *= 2.0f;
+                    break;
+            }
+        }
+
         switch (effect.effectType) {
             case EnemyEffectType::Stun:
                 _enemy->applyStun(effect.duration);
@@ -472,26 +546,31 @@ void GameState::networkUpdate(GameStateMessage newState) {
         newState.player3HP,
         newState.player4HP
     };
-    std::vector<std::array<float, 6>> runtimeEffects = {
-        std::array<float, 6>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
+    std::vector<std::array<float, 8>> runtimeEffects = {
+        std::array<float, 8>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
                              newState.player1BarrierMultiplier, newState.player1BarrierDuration,
-                             newState.player1RegenAmountRemaining, newState.player1RegenDuration},
-        std::array<float, 6>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
+                             newState.player1RegenAmountRemaining, newState.player1RegenDuration,
+                             newState.player1EducateDuration, newState.player1CharmDuration},
+        std::array<float, 8>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
                              newState.player2BarrierMultiplier, newState.player2BarrierDuration,
-                             newState.player2RegenAmountRemaining, newState.player2RegenDuration},
-        std::array<float, 6>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
+                             newState.player2RegenAmountRemaining, newState.player2RegenDuration,
+                             newState.player2EducateDuration, newState.player2CharmDuration},
+        std::array<float, 8>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
                              newState.player3BarrierMultiplier, newState.player3BarrierDuration,
-                             newState.player3RegenAmountRemaining, newState.player3RegenDuration},
-        std::array<float, 6>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
+                             newState.player3RegenAmountRemaining, newState.player3RegenDuration,
+                             newState.player3EducateDuration, newState.player3CharmDuration},
+        std::array<float, 8>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
                              newState.player4BarrierMultiplier, newState.player4BarrierDuration,
-                             newState.player4RegenAmountRemaining, newState.player4RegenDuration}
+                             newState.player4RegenAmountRemaining, newState.player4RegenDuration,
+                             newState.player4EducateDuration, newState.player4CharmDuration}
     };
 
     for (int i = 0; i < _players.size(); i++) {
         _players[i]->setCurrentHealth(healths[i]);
         _players[i]->syncRuntimeEffects(runtimeEffects[i][0], runtimeEffects[i][1],
                                         runtimeEffects[i][2], runtimeEffects[i][3],
-                                        runtimeEffects[i][4], runtimeEffects[i][5]);
+                                        runtimeEffects[i][4], runtimeEffects[i][5],
+                                        runtimeEffects[i][6], runtimeEffects[i][7]);
         _players[i]->setMalletUseCount(newState.playerMalletUseCounts[i]);
     }
 }

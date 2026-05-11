@@ -48,6 +48,18 @@ private:
     }
 
     /**
+     * Applies a charm effect to a player and returns the charm duration.
+     *
+     * @param effect  The serialized effect definition to apply.
+     * @param target  The player receiving the charm.
+     * @return The applied charm duration.
+     */
+    static float applyCharmToPlayer(const ItemDef::Effect& effect, Player& target) {
+        target.applyCharm(effect.duration);
+        return effect.duration;
+    }
+
+    /**
      * Applies a stun effect to an enemy and returns the stun duration.
      *
      * @param effect  The serialized effect definition to apply.
@@ -115,12 +127,17 @@ public:
                 return applyBarrierToPlayer(effect, target);
             case ItemDef::EffectType::Regen:
                 return applyRegenToPlayer(effect, target);
+            case ItemDef::EffectType::Charm:
+                return applyCharmToPlayer(effect, target);
             case ItemDef::EffectType::Resurrect:
+            case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Stun:
             case ItemDef::EffectType::Love:
             case ItemDef::EffectType::Slow:
             case ItemDef::EffectType::Vulnerable:
             case ItemDef::EffectType::Upgrade:
+            case ItemDef::EffectType::Forge:
+            case ItemDef::EffectType::Frenzy:
                 break;
         }
 
@@ -154,7 +171,11 @@ public:
             case ItemDef::EffectType::Barrier:
             case ItemDef::EffectType::Regen:
             case ItemDef::EffectType::Resurrect:
+            case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Upgrade:
+            case ItemDef::EffectType::Forge:
+            case ItemDef::EffectType::Charm:
+            case ItemDef::EffectType::Frenzy:
                 break;
         }
 

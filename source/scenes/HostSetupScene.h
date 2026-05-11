@@ -6,7 +6,9 @@
 #include <sstream>
 #include <vector>
 #include "../EnemyLoader.h"
+#include "../InputController.h"
 #include "../NetworkController.h"
+#include "../SavedDataManager.h"
 
 /**
  * This class provides the interface to make a new game.
@@ -51,9 +53,6 @@ protected:
     
     /** The settings button to display settings menu */
     std::shared_ptr<cugl::scene2::Button> _settingsButton;
-    
-    /** The player label (for updating) */
-    std::shared_ptr<cugl::scene2::TextField> _hostName;
     
     /** The boss selection node list */
     std::vector<std::shared_ptr<cugl::scene2::SceneNode>> _bossCards;
@@ -102,6 +101,27 @@ protected:
 
     /** The initial position of the boss carousel. */
     cugl::Vec2 _baseCarouselPosition;
+    
+    /** Maps each card's container X position to its card index. */
+    std::map<float, int> _xPosToBoss;
+
+    /** Maps each card index to its target container X position. */
+    std::map<int, float> _bossToTargetX;
+
+    /** X position (world space) where the finger first touched down. */
+    float _swipeTouchStartX = 0.0f;
+
+    /** Whether a swipe gesture is currently being tracked. */
+    bool _isSwiping = false;
+
+    /** The X position of the card container at the moment the current touch began. */
+    float _swipeContainerStartX = 0.0f;
+
+    /** Position of the touch on the first frame it was detected. */
+    cugl::Vec2 _swipeTouchInitialPos = cugl::Vec2::ZERO;
+
+    /** Number of frames the finger has been moving horizontally. */
+    int _swipeHoldFrames = 0;
 
 public:
 #pragma mark -
@@ -186,11 +206,10 @@ public:
     /**
      * The method called to update the scene.
      *
-     * We need to update this method to constantly talk to the server
-     *
      * @param timestep  The amount of time (in seconds) since the last frame
+     * @param input         The input controller instance
      */
-    void update(float timestep) override;
+    void update(float timestep, InputController& input);
     
     /**
      * Returns true if the user has requested to open settings, then resets the flag.
@@ -212,6 +231,49 @@ public:
      * player on a clean, interactive HostSetupScene to host or join a fresh session.
      */
     void showHostDisconnectedError();
+    
+    /**
+     * Records the touch-down position to begin tracking a potential swipe.
+     *
+     * Called every frame from update(). On the first frame a touch is
+     * detected while no swipe is already in progress, stores the starting
+     * X coordinate (screen space) in _swipeTouchStartX and sets _isSwiping.
+     * No-op on subsequent frames or when a gesture is already active.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeBegin(InputController& input);
+
+    /**
+     * Moves the card container directly under the finger each frame while
+     * a swipe is active. Computes the delta from the touch-down position and
+     * applies it to the container's position at the start of the drag.
+     * Clamps the container so it cannot be dragged past the first or last card.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeTracking(InputController& input);
+
+    /**
+     * Called on finger lift. Delegates to snapToNearestBoss() to find and
+     * animate to the closest card to the current container position.
+     * Clears all swipe tracking state before returning.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeRelease(InputController& input);
+
+    /**
+     * Finds the card whose X position in _xPosToBoss is closest to
+     * `releaseContainerX`, updates _currentIndex to that card's index,
+     * updates the glow overlays and dot indicators, and initiates a lerp
+     * animation to that card's exact centred container position.
+     *
+     * @param releaseContainerX  The container's X position at the moment
+     *                           the finger lifted, in the container's
+     *                           parent's local space.
+     */
+    void snapToNearestBoss(float releaseContainerX);
 
 private:
     /**

@@ -49,19 +49,77 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
         return false;
     }
 
-    // Give play button a function
-    _playButton->addListener([this](const std::string&, bool down) {
-        if (!down) {
-            CULog("MenuScene: Play pressed");
-            _nextAction = Action::START_GAME;
-        }
-    });
-
-    // Give settings button a function
     _settingsButton->addListener([this](const std::string&, bool down) {
         if (!down) {
             CULog("MenuScene: Settings pressed (placeholder)");
-            _nextAction = Action::OPEN_SETTINGS;
+            _status = Status::OPEN_SETTINGS;
+        }
+    });
+    
+    // Enter name pop up
+    _namePopup = _scene->getChildByName("namePopup");
+    if (!_namePopup) {
+        CULog("MenuScene: missing 'namePopup' node — onboarding disabled");
+    } else {
+        _namePopup->setVisible(false);
+
+        auto contents = _namePopup->getChildByName("contents");
+        auto nameFieldContainer = contents ? contents->getChildByName("nameField") : nullptr;
+        if (nameFieldContainer) {
+            _nameField = std::dynamic_pointer_cast<scene2::TextField>(
+                nameFieldContainer->getChildByName("text"));
+
+            auto placeholder = std::dynamic_pointer_cast<scene2::Label>(
+                nameFieldContainer->getChildByName("placeholder"));
+            if (placeholder) {
+                placeholder->setText("ENTER NAME");
+                // Hide the placeholder label as soon as the user starts typing
+                if (_nameField) {
+                    _nameField->addTypeListener([placeholder](const std::string&, const std::string& value) {
+                        placeholder->setVisible(value.empty());
+                    });
+                }
+            }
+        }
+
+        _nameSaveButton = std::dynamic_pointer_cast<scene2::Button>(contents ? contents->getChildByName("save") : nullptr);
+
+        if (_nameSaveButton) {
+            _nameSaveButton->addListener([this](const std::string&, bool down) {
+                if (!down) {
+                    std::string name = _nameField ? _nameField->getText() : "";
+
+                    // Require a non-empty name before proceeding
+                    if (name.empty()) return;
+
+                    // Persist immediately — safe, no UI changes here
+                    SavedDataManager::get().setPlayerName(name);
+                    SavedDataManager::get().save();
+
+                    // Defer all UI deactivation to update() via PENDING_SAVE.
+                    // Calling deactivate() here corrupts the mouse release listener
+                    // iterator we are currently inside, causing EXC_BAD_ACCESS.
+                    _status = Status::PENDING_SAVE;
+                }
+            });
+        }
+    }
+
+    // Confirm pop up
+    _confirmPopup = _scene->getChildByName("confirmPopup");
+    if (!_confirmPopup) {
+        CULog("MenuScene: missing 'confirmPopup' node");
+    } else {
+        _confirmPopup->setVisible(false);
+    }
+    
+    _playButton->addListener([this](const std::string&, bool down) {
+        if (!down) {
+            if (SavedDataManager::get().hasPlayerName()) {
+                _status = Status::START_GAME;
+            } else {
+                _status = Status::PENDING_ONBOARDING;
+            }
         }
     });
 
@@ -78,12 +136,17 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
  */
 void MenuScene::dispose() {
     removeAllChildren();
-    _playButton = nullptr;
-    _settingsButton = nullptr;
-    _scene = nullptr;
-    _assets = nullptr;
-    _nextAction = Action::NONE;
-    _active = false;
+    _playButton        = nullptr;
+    _settingsButton    = nullptr;
+    _namePopup         = nullptr;
+    _nameField         = nullptr;
+    _nameSaveButton    = nullptr;
+    _confirmPopup      = nullptr;
+    _scene             = nullptr;
+    _assets            = nullptr;
+    _status            = Status::NONE;
+    _overlayState      = OverlayState::HIDDEN;
+    _active            = false;
 }
 
 /**
@@ -101,13 +164,26 @@ void MenuScene::setActive(bool value) {
 
     Scene2::setActive(value);
     if (value) {
-        if (_playButton) {
-            _playButton->activate();
+        _status = Status::NONE;
+        _overlayState = OverlayState::HIDDEN;
+        _confirmTimer = 0.0f;
+
+        // Always hide both popups and deactivate their inputs on
+        // re-activation so no stale listener state carries over
+        if (_namePopup)    _namePopup->setVisible(false);
+        if (_confirmPopup) _confirmPopup->setVisible(false);
+        if (_nameField)    _nameField->deactivate();
+        if (_nameSaveButton) {
+            _nameSaveButton->deactivate();
+            _nameSaveButton->setDown(false);
         }
-        if (_settingsButton) {
-            _settingsButton->activate();
-        }
+
+        // Only activate the main menu buttons
+        if (_playButton)     _playButton->activate();
+        if (_settingsButton) _settingsButton->activate();
+
     } else {
+        // Deactivate everything — main menu and any open overlay inputs
         if (_playButton) {
             _playButton->deactivate();
             _playButton->setDown(false);
@@ -115,6 +191,13 @@ void MenuScene::setActive(bool value) {
         if (_settingsButton) {
             _settingsButton->deactivate();
             _settingsButton->setDown(false);
+        }
+        if (_nameField) {
+            _nameField->deactivate();
+        }
+        if (_nameSaveButton) {
+            _nameSaveButton->deactivate();
+            _nameSaveButton->setDown(false);
         }
     }
 }
@@ -128,22 +211,39 @@ void MenuScene::setActive(bool value) {
  * @param dt    The elapsed time since the previous frame, in seconds
  */
 void MenuScene::update(float dt) {
-    if (!_active) {
-        return;
-    }
-    (void)dt;
-}
+    if (!_active) return;
 
-/**
- * Returns and clears the pending menu action.
- *
- * This allows `SceneLoader` to consume a one-shot transition request from
- * this scene each frame.
- *
- * @return the queued action, or Action::NONE if no action is pending
- */
-MenuScene::Action MenuScene::consumeAction() {
-    Action action = _nextAction;
-    _nextAction = Action::NONE;
-    return action;
+    if (_status == Status::PENDING_ONBOARDING) {
+        if (!_namePopup || !_nameField || !_nameSaveButton) {
+            CULog("MenuScene: popup nodes missing, skipping onboarding");
+            _status = Status::START_GAME;
+        } else {
+            _namePopup->setVisible(true);
+            _nameField->activate();
+            _nameSaveButton->activate();
+            _overlayState = OverlayState::NAME_PROMPT;
+            _status       = Status::NAME_ONBOARDING;
+            _playButton->deactivate();
+            _settingsButton->deactivate();
+        }
+    }
+
+    if (_status == Status::PENDING_SAVE) {
+        _namePopup->setVisible(false);
+        _nameField->deactivate();
+        _nameSaveButton->deactivate();
+        if (_confirmPopup) _confirmPopup->setVisible(true);
+        _confirmTimer = 0.0f;
+        _overlayState = OverlayState::CONFIRM;
+        _status       = Status::NAME_ONBOARDING;
+    }
+
+    if (_overlayState == OverlayState::CONFIRM) {
+        _confirmTimer += dt;
+        if (_confirmTimer >= CONFIRM_DISPLAY_TIME) {
+            if (_confirmPopup) _confirmPopup->setVisible(false);
+            _overlayState = OverlayState::HIDDEN;
+            _status       = Status::START_GAME;
+        }
+    }
 }

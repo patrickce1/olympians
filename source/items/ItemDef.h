@@ -75,11 +75,15 @@ public:
         Barrier,
         Regen,
         Resurrect,
+        Educate,
         Stun,
         Love,
         Slow,
         Vulnerable,
-        Upgrade
+        Upgrade,
+        Forge,
+        Charm,
+        Frenzy
     };
 
     /**
@@ -106,6 +110,10 @@ public:
         bool applyToAllSides = false;
         /** Whether an item effect should target every allied player slot. */
         bool targetAllAllies = false;
+        /** Chance for probabilistic effects, expressed as a value in [0, 1]. */
+        float chance = 0.0f;
+        /** Generic amount value used by utility effects such as frenzy. */
+        float amount = 0.0f;
     };
 
 private:

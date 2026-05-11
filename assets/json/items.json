@@ -422,7 +422,12 @@
             "houseAffinity": "hephaestus",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "forge",
+                    "chance": 0.1
+                }
+            ]
         },
         {
             "id": "educate",
@@ -436,7 +441,12 @@
             "houseAffinity": "athena",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "educate",
+                    "duration": 10.0
+                }
+            ]
         },
         {
             "id": "rage",
@@ -447,7 +457,7 @@
             "type": "attack",
             "attackTarget": "enemy",
             "rarity": "divine",
-            "houseAffinity": "demeter",
+            "houseAffinity": "ares",
             "baseValue": 60.0,
             "weight": 10.0,
             "effects": []
@@ -464,13 +474,19 @@
             "houseAffinity": "hermes",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "frenzy",
+                    "amount": 1.0,
+                    "duration": 12.0
+                }
+            ]
         },
         {
-            "id": "beauty",
-            "name": "Beauty",
+            "id": "charm",
+            "name": "Charm",
             "description": " ",
-            "icon": "item_aphrodite_beauty",
+            "icon": "item_aphrodite_charm",
             "tooltip": "tooltip_aphrodite_charm",
             "type": "attack",
             "attackTarget": "all_allies",
@@ -478,7 +494,12 @@
             "houseAffinity": "aphrodite",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "charm",
+                    "duration": 10.0
+                }
+            ]
         }
     ],
     "itemInterval": 2.5,
