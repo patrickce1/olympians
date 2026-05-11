@@ -6,12 +6,10 @@
 /**
  * Cerberus boss subclass.
  *
- * Adds three behaviours on top of the base Enemy:
+ * Adds two behaviours on top of the base Enemy:
  *   - Head stun: each of Cerberus's 3 heads can be individually stunned.
  *     Stunning all 3 simultaneously triggers a full stun, playing the
  *     heads-lowered animation and leaving Cerberus vulnerable.
- *   - Life steal (passive): 80% of all damage dealt to Cerberus is
- *     converted into healing, making sustained burst damage critical.
  *   - Corrosive spit (Attack #3): applies a lasting corrosive debuff to
  *     the targeted player's inventory — tokens fade (lower opacity),
  *     the inventory displays a corrosive outline, and the player cannot
@@ -19,9 +17,6 @@
  */
 class Cerberus : public Enemy {
 private:
-    /** Fraction of damage converted to healing (from customData) */
-    float _lifeStealPercent;
-    
     /** Accumulates elapsed time between corrosive inventory drains */
     float _corrosiveDrainAccum;
 
@@ -52,6 +47,9 @@ private:
     /** Player slot index currently afflicted by the corrosive debuff */
     int _corrosiveTarget = -1;
 
+    /** Previous state for detecting state transitions */
+    EnemyLoader::State _previousState;
+
 public:
     
     /** seconds between inventory drains. i.e. how long in time for the next item to start corroding */
@@ -61,7 +59,7 @@ public:
     static constexpr float HEAD_STUN_DURATION = 3.0f;
 
     /** Duration in seconds that the corrosive debuff lasts */
-    static constexpr float CORROSIVE_DURATION = 25.0f;
+    static constexpr float CORROSIVE_DURATION = 20.0f;
     
     Cerberus() {}
 
@@ -94,8 +92,8 @@ public:
     void update(float dt) override;
 
     /**
-     * Applies damage with life steal. A defined percent of the raw damage value is
-     * added back as healing before side multipliers are applied.
+     * Applies damage to the boss from the given playerIndex. 
+     * If we have used our defensive attack (lifesteal), we instead heal by 0.8(damage)
      *
      * @param damage       Raw damage before side multipliers
      * @param playerIndex  Slot index of the attacking player
@@ -119,6 +117,15 @@ public:
      */
     void unstunHead(int headIndex);
 
+
+
+    /**Determines if corrosive should drain an item for the player.
+     * Makes sure there are items left to take, and sufficent time (CORROSIVE_DRAIN_INTERVAL) has passed.
+     * 
+     * @return true if the draining should be active. False otherwise.
+     * */
+    bool shouldDrainItem();
+
     /**
      * Applies the corrosive debuff to a player for the specified duration.
      * GameScene will fade tokens, show the corrosive outline, and block
@@ -129,13 +136,6 @@ public:
      */
     void startCorrosive(int playerIndex, float duration);
 
-    /**Determines if corrosive should drain an item for the player.
-     * Makes sure there are items, and that time has passed.*/
-    bool shouldDrainItem();
-
-    /**Returns the target to be applied corrosion, or is currently corroded */
-    int getCorrosiveTarget() const { return _corrosiveTarget; }
-
     /** Ends the corrosive effect early (e.g., when player runs out of items) */
     void endCorrosive();
 
@@ -144,5 +144,8 @@ public:
 
     /** Returns true if the corrosive debuff is currently active */
     bool isCorrosiveActive() const { return _corrosiveActive; }
+
+    /** Returns the player index currently afflicted by corrosive, or -1 if none */
+    int getCorrosiveTarget() const { return _corrosiveTarget; }
 };
 #endif // __CERBERUS__

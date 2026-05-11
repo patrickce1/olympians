@@ -2729,7 +2729,8 @@ void GameScene::handleCorrosiveDrain(){
     if (widgetIt != _itemWidgets.end() && widgetIt->second) {
         auto itemDef = _itemController.getDatabase().getDef(inventory[randomIndex].getDefId());
         if (itemDef) {
-            // Mark item as corroding (prevents scale updates, but keeps it usable)
+
+            // Mark item as corroding.
             _corrodingItemIds.insert(itemIdToRemove);
 
             auto widget = widgetIt->second;
@@ -2750,7 +2751,7 @@ void GameScene::handleCorrosiveDrain(){
 
             // Create corrosion animation on the original widget (NOT a ghost)
             CorrodedItemAnimation anim;
-            anim.node = widget;  // Animate the actual widget
+            anim.node = widget;
             anim.elapsed = 0.0f;
             anim.duration = ITEM_CORRODE_ANIMATION_DURATION;
             anim.startScale = widget->getScaleX();
@@ -2770,10 +2771,13 @@ void GameScene::handleCorrosiveDrain(){
  * Spawns items for the local player every frame, and for all AI-controlled
  * players if this machine is the host. AI item spawning is host-only since
  * the host is the authoritative source for all AI state.
+ * 
+ * Corrosive players do not get items.
  *
  * @param dt  Delta time in seconds.
  */
 void GameScene::handleItemSpawn(float dt) {
+
     // Check if local player is affected by corrosive (which prevents item spawning)
     bool localPlayerCorrosive = false;
     auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
@@ -3317,6 +3321,8 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
  * This function evaluates which drop zones should be visible at the current moment
  * (e.g., during drag-and-drop interactions or based on item/type compatibility)
  * and toggles their visibility accordingly.
+ * 
+ * Corrosive players can not see pass zones
  */
 void GameScene::updateDropZoneVisibility(){
     if (_draggedItemId != 0) {
@@ -4093,6 +4099,7 @@ void GameScene::render() {
  * If any item is held, the pass zones are added to _inputZones.
  * If an attack item is held, the attack zone is added to _inputZones.
  * If a support item is held, the support zones are added to _inputZones.
+ * If we are being corroded by Cerberus, we should not have pass zones active
  */
 void GameScene::updateInputZones(){
     Player* local = _gameState.getLocalPlayer();
