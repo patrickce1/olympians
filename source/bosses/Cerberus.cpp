@@ -135,6 +135,7 @@ void Cerberus::applyCorrosive() {
 void Cerberus::knockHead(int headArrayIndex) {
     _heads[headArrayIndex].knocked = true;
     _heads[headArrayIndex].knockedTimer = _knockedDuration;
+    _headKnockSoundPending = true;
     CULog("[Cerberus] Head %d knocked for %.1fs", headArrayIndex, _knockedDuration);
 
     if (allHeadsKnocked()) {

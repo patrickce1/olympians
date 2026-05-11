@@ -831,6 +831,24 @@
             "stream": false,
             "volume": 0.45
         },
+        "cerberus_spit": {
+            "type": "sample",
+            "file": "sounds/cerberus_spit.wav",
+            "stream": false,
+            "volume": 0.5
+        },
+        "cerberus_defense": {
+            "type": "sample",
+            "file": "sounds/cerberus_defense.wav",
+            "stream": false,
+            "volume": 0.5
+        },
+        "cerberus_head_knock": {
+            "type": "sample",
+            "file": "sounds/cerberus_head_knock.wav",
+            "stream": false,
+            "volume": 0.6
+        },
         "shield_block": {
             "type": "sample",
             "file": "sounds/shield_block.wav",

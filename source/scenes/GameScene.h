@@ -906,15 +906,19 @@ public:
     void updateSingleCerberusHead(int headIndex, bool isVisible, int direction, float globalXShift, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus, bool& outFrameCounterUpdated);
 
     /**
-     * Pre-creates all enemy animation sprite nodes with their textures and layouts.
-     * 
-     * Called during init() to load all animations upfront. This eliminates stuttering
-     * when switching between animations since all sprites are pre-allocated and we only
-     * swap visibility instead of creating/destroying sprites at runtime.
+     * Creates sprite nodes only for the selected enemy's animations.
+     * Called from setActive(true) once the enemy is known.
      *
+     * @param enemyId  The enemy identifier (e.g. "cyclops", "cerberus").
      * @return true if all animations were successfully initialized, false on error
      */
-    bool initializeAllEnemyAnimations();
+    bool initializeEnemyAnimations(const std::string& enemyId);
+
+    /**
+     * Destroys all pre-created enemy animation sprite nodes and resets related state.
+     * Called from setActive(false) and before loading a new enemy in setActive(true).
+     */
+    void destroyEnemyAnimations();
     
     /**
      * Switches the visible animation sprite by hiding the current one and showing the new one.

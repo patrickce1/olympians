@@ -638,12 +638,6 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     // Load animation registry from the already-registered enemyAnimations JSON asset
     loadAnimationRegistry();
     
-    // Pre-create all animation sprites to eliminate runtime stuttering
-    if (!initializeAllEnemyAnimations()) {
-        CULogError("Failed to initialize enemy animations");
-        return false;
-    }
-    
     // Pass animation registry to EnemyController for attack phase detection
     _enemyController.setAnimationRegistry(&_animationRegistry);
 
@@ -811,18 +805,12 @@ void GameScene::setActive(bool value) {
             // Reset enemy animation state for clean start
             _enemyAnimationCurrentDirection = 0;
 
-            // Hide animation sprite and clear the cached ID so the next call
-            // to updateEnemyAnimation() unconditionally calls switchVisibleAnimation().
-            // Without this reset a repeat game with the same enemy never calls
-            // switchVisibleAnimation(), leaving the sprite permanently invisible.
-            if (_currentVisibleAnimationSprite) {
-                _currentVisibleAnimationSprite->setVisible(false);
-            }
-            _currentAnimationId = "";
-            _currentVisibleAnimationSprite = nullptr;
+            // Destroy previous enemy's sprites and load only the selected enemy's animations.
+            auto enemy = _gameState.getEnemy();
+            destroyEnemyAnimations();
+            if (enemy) initializeEnemyAnimations(enemy->getId());
 
             // Cerberus: load head config from customData and reset animation state
-            auto enemy = _gameState.getEnemy();
             if (enemy && enemy->getId() == "cerberus") {
                 // Apply correct position/scale to body sprite (bypasses switchVisibleAnimation)
                 auto bodyEntryIt = _animationRegistry.find(_cerberusAnimConfig.bodyAnimId);
@@ -895,6 +883,8 @@ void GameScene::setActive(bool value) {
                     if (sprites[i]) sprites[i]->setVisible(false);
                 }
             }
+        } else {
+            destroyEnemyAnimations();
         }
     }
 }
@@ -1602,7 +1592,17 @@ void GameScene::hideEnemyAnimationAndShowStatic() {
  * @param animationEntry  The animation metadata containing texture path and frame info
  * @return true if sprite node was successfully initialized, false on error
  */
-bool GameScene::initializeAllEnemyAnimations() {
+void GameScene::destroyEnemyAnimations() {
+    if (_bossSprite) _bossSprite->removeAllChildren();
+    _enemyAnimationSpriteNodes.clear();
+    _cerberusHeadSpritesByAnim.clear();
+    _cerberusBodySprite      = nullptr;
+    _cerberusBodySpriteTop   = nullptr;
+    _currentVisibleAnimationSprite = nullptr;
+    _currentAnimationId      = "";
+}
+
+bool GameScene::initializeEnemyAnimations(const std::string& enemyId) {
     // Ensure we have the animation container
     if (!_bossSprite) {
         CULogError("Boss animation space not found");
@@ -1613,6 +1613,7 @@ bool GameScene::initializeAllEnemyAnimations() {
     // Cerberus head animations are skipped here — they are created separately below
     // as 4 per-head SpriteNodes with correct scale and Z-order.
     for (const auto& [animationId, animationEntry] : _animationRegistry) {
+        if (animationId.rfind(enemyId + "_", 0) != 0) continue;
         if (animationId.rfind("cerberus_head_", 0) == 0) continue;
 
         // Allocate texture from file
@@ -1673,7 +1674,7 @@ bool GameScene::initializeAllEnemyAnimations() {
     // Collect all cerberus head animations from the registry.
     // Done by scanning the registry rather than the enemy instance because at init() time the
     // default enemy is Cyclops — the actual boss choice isn't known until setActive(true).
-    if (_animationRegistry.count("cerberus_body_idle_animation") > 0) {
+    if (enemyId == "cerberus") {
         std::vector<std::string> orderedHeadKeys;
         for (const auto& [key, entry] : _animationRegistry) {
             if (key.rfind("cerberus_head_", 0) == 0) {
@@ -2157,7 +2158,9 @@ void GameScene::handleCerberusStateTransition(EnemyLoader::State currentState, c
     // to an available side head. If all side heads are also knocked, nothing is committed
     // (EnemyController similarly skips the damage in that case).
     int redirectedHeadIndex = -1;
-    if (currentState == EnemyLoader::State::ATTACK_3 && participantsAreRelative) {
+    bool isSingleHeadAttack = (currentState == EnemyLoader::State::ATTACK_2 ||
+                               currentState == EnemyLoader::State::ATTACK_3);
+    if (isSingleHeadAttack && participantsAreRelative) {
         int targetPlayerSlot = cerberus->getTargetIndex();
         if (cerberus->isHeadKnocked(targetPlayerSlot)) {
             int alternatePlayerSlot = cerberus->getAlternateKnockedHead(targetPlayerSlot);
@@ -2368,8 +2371,17 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
     EnemyLoader::State currentState = enemy->getCurrentState();
     const auto* stateDef = enemy->getCurrentStateDef();
     if (currentState != _cerberusLastState) {
+        // Play defense sound once on entry.
+        if (currentState == EnemyLoader::State::DEFENSE_MOVE) {
+            if (_audio) _audio->playSoundUnique("cerberus_defense", false);
+        }
         handleCerberusStateTransition(currentState, stateDef, direction, cerberus);
         _cerberusLastState = currentState;
+    }
+
+    // Play the knock sound once whenever a head transitions to knocked.
+    if (cerberus && cerberus->consumeHeadKnockSound() && _audio) {
+        _audio->playSoundUnique("cerberus_head_knock");
     }
 
     updateCerberusBodySprite(direction);

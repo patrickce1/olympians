@@ -59,6 +59,9 @@ private:
      *  Loaded from customData "franticRate". */
     float _franticRate = 0.0f;
 
+    /** Set by knockHead(); consumed once by GameScene to play the knock sound. */
+    bool _headKnockSoundPending = false;
+
     /** True when the corrosive debuff is currently draining the targeted player's inventory. */
     bool _corrosiveActive = false;
 
@@ -133,6 +136,13 @@ public:
 
     /** Returns true if the corrosive debuff is currently active on any player. */
     bool isCorrosiveActive() const { return _corrosiveActive; }
+
+    /** Returns true (and clears the flag) if a head was knocked since the last call. */
+    bool consumeHeadKnockSound() {
+        bool pending = _headKnockSoundPending;
+        _headKnockSoundPending = false;
+        return pending;
+    }
 
     /** Damage multiplier applied when a player strikes any non-back head while all three heads are knocked simultaneously. */
     static constexpr float ALL_HEADS_KNOCKED_MULTIPLIER = 5.0f;

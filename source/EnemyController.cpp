@@ -238,8 +238,10 @@ void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, st
     if (enemy->getId() == "cerberus") {
         auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
         if (cerberus && cerberus->isHeadKnocked(victim)) {
-            if (fe.state == EnemyLoader::State::ATTACK_3) {
-                // Single-head attack: try to redirect to an un-knocked side head
+            bool isSingleHeadAttack = (fe.state == EnemyLoader::State::ATTACK_2 ||
+                                       fe.state == EnemyLoader::State::ATTACK_3);
+            if (isSingleHeadAttack) {
+                // Front-head attack: try to redirect to an un-knocked side head
                 int alt = cerberus->getAlternateKnockedHead(enemy->getTargetIndex());
                 if (alt < 0) return; // all knocked, skip
                 victim = alt;

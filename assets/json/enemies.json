@@ -302,15 +302,17 @@
                     "nextState": "idle"
                 },
                 "attack_2": {
-                    "name": "Tail",
-                    "buildUpTime": 1.0,
+                    "name": "Venom Spit",
+                    "buildUpTime": 3.0,
                     "cooldownTime": 2.0,
-                    "headAnimationKey": "cerberus_head_idle_animation",
+                    "headAnimationKey": "cerberus_head_spit_animation",
+                    "headParticipants": [0],
+                    "headParticipantsRelative": true,
                     "events": [
                         {
                             "type": "DAMAGE",
-                            "target": 2,
-                            "amount": 50
+                            "target": 0,
+                            "amount": 50.0
                         }
                     ],
                     "nextState": "idle"

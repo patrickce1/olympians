@@ -84,7 +84,7 @@
             "loopEndFrame": 7,
             "positionX": 196.5,
             "positionY": 206.0,
-            "scale": 0.32,
+            "scale": 0.85,
             "offsetX": 0,
             "offsetY": 0
         },
@@ -98,7 +98,7 @@
             "loopEndFrame": 5,
             "positionX": 196.5,
             "positionY": 286.0,
-            "scale": 0.25,
+            "scale": 0.5,
             "offsetX": 0,
             "offsetY": 0
         },
@@ -112,7 +112,7 @@
             "loopEndFrame": 3,
             "positionX": 196.5,
             "positionY": 286.0,
-            "scale": 0.18,
+            "scale": 0.54,
             "offsetX": 0,
             "offsetY": 0
         },
@@ -126,7 +126,23 @@
             "loopEndFrame": 5,
             "positionX": 196.5,
             "positionY": 286.0,
-            "scale": 0.18,
+            "scale": 0.54,
+            "offsetX": 0,
+            "offsetY": 0
+        },
+        {
+            "id": "cerberus_head_spit_animation",
+            "texture": "textures/gameScene/cerberus/cerberus_head_spit_animation.png",
+            "frameCount": 13,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "loopStartFrame": 3,
+            "loopEndFrame": 8,
+            "damageFrame": 9,
+            "sound": "cerberus_spit",
+            "positionX": 196.5,
+            "positionY": 260.0,
+            "scale": 0.72,
             "offsetX": 0,
             "offsetY": 0
         },
@@ -142,7 +158,7 @@
             "sound": "cerberus_bite",
             "positionX": 196.5,
             "positionY": 280.0,
-            "scale": 0.35,
+            "scale": 0.68,
             "offsetX": 0,
             "offsetY": 0
         }
