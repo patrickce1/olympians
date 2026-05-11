@@ -300,6 +300,12 @@ public:
     void commitHouseLock(const HouseLoader::HouseDef& selectedHouse);
     
     /**
+     * Clears the house selection for the current target slot and broadcasts
+     * the change. Only has an effect in AI slot mode (_targetSlot != -1).
+     */
+    void commitHouseUnlock();
+    
+    /**
      * Updates the teammate icon diamond for _targetSlot with the house at
      * the given carousel index. Called during AI slot mode so the host can
      * preview the selection without modifying their own icon.
@@ -362,6 +368,16 @@ public:
      *                           parent's local space.
      */
     void snapToNearestHouse(float releaseContainerX);
+    
+    /**
+     * Returns true if the house currently shown in the carousel matches
+     * the house committed by the player in the active slot. Used to
+     * determine whether the select button should display "CLEAR" instead
+     * of "SELECT" when the player is facing their own selection.
+     *
+     * @return true if the current carousel house matches the committed house.
+     */
+    bool isCurrentHouseSelected() const;
 
 private:
     /**

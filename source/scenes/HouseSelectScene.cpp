@@ -156,16 +156,27 @@ void HouseSelectScene::setupListeners() {
     _selectButton->addListener([this](const std::string& name, bool down) {
         if (!down) return;
 
-        HouseLoader::HouseDef selectedHouse = _houseLoader.getAllOrdered()[_currentIndex];
+        HouseLoader::HouseDef currentHouse = _houseLoader.getAllOrdered()[_currentIndex];
 
-        bool taken = _network->isHouseTaken(selectedHouse.id);
+        // If a house is selected and we're facing it, clear the selection
+        if (_selectedHouse && isCurrentHouseSelected()) {
+            _selectedHouse = false;
+            _playerIconGlow->setVisible(false);
+            updateText(_selectButton, "SELECT");
+            updateSelectedIcon(_currentIndex);
+            commitHouseUnlock();
+            return;
+        }
+
+        // Otherwise, check if the house is taken and select it
+        bool taken = _network->isHouseTaken(currentHouse.id);
 
         if (!taken && _targetSlot != -1) {
             int localIndex = _network->getLocalPlayerNumber();
             const auto& slotToPlayer = _network->getNetworkedPlayers();
             auto pair = slotToPlayer.find(localIndex);
             if (pair != slotToPlayer.end()) {
-                taken = (pair->second.houseID == selectedHouse.id);
+                taken = (pair->second.houseID == currentHouse.id);
             }
         }
 
@@ -175,7 +186,7 @@ void HouseSelectScene::setupListeners() {
         updateSelectedIcon(_currentIndex, false);
         _playerIconGlow->setVisible(true);
         _status = Status::ABORT;
-        commitHouseLock(selectedHouse);
+        commitHouseLock(currentHouse);
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
@@ -410,6 +421,7 @@ void HouseSelectScene::slideTo(int newIndex) {
     
     updateCarouselDots(newIndex);
     updateSelectedIcon(newIndex);
+    updateText(_selectButton, (_selectedHouse && isCurrentHouseSelected()) ? "CLEAR" : "SELECT");
 }
 
 /**
@@ -712,6 +724,30 @@ void HouseSelectScene::commitHouseLock(const HouseLoader::HouseDef& selectedHous
 }
 
 /**
+ * Clears the house selection for the current target slot and broadcasts
+ * the change. Only has an effect in AI slot mode (_targetSlot != -1).
+ */
+void HouseSelectScene::commitHouseUnlock() {
+    if (_targetSlot == -1) {
+        // Normal mode: clear local player's house
+        _network->broadcastSelectedHouse(std::string(""));
+        if (_network->isHost()) {
+            _network->setLocalHouse("");
+        }
+    } else {
+        // AI slot mode: clear the AI slot
+        if (_gameState) {
+            _gameState->setRealPlayer(
+                _targetSlot,
+                _gameState->getPlayerBySlot(_targetSlot)->getPlayerName(),
+                ""
+            );
+        }
+        _network->broadcastAIHouseSelection(_targetSlot, "");
+    }
+}
+
+/**
  * Refreshes the local player's icon diamond to reflect their actual
  * committed house selection when the scene activates. Prevents a stale
  * carousel preview texture from persisting across activations.
@@ -894,5 +930,22 @@ void HouseSelectScene::snapToNearestHouse(float releaseContainerX) {
 
     updateCarouselDots(nearestIndex);
     updateSelectedIcon(nearestIndex);
-    
+    updateText(_selectButton, (_selectedHouse && isCurrentHouseSelected()) ? "CLEAR" : "SELECT");
+}
+
+/**
+ * Returns true if the house currently shown in the carousel matches
+ * the house committed by the player in the active slot. Used to
+ * determine whether the select button should display "CLEAR" instead
+ * of "SELECT" when the player is facing their own selection.
+ *
+ * @return true if the current carousel house matches the committed house.
+ */
+bool HouseSelectScene::isCurrentHouseSelected() const {
+    int slot = (_targetSlot == -1) ? _network->getLocalPlayerNumber() : _targetSlot;
+    Player* player = _gameState->getPlayerBySlot(slot);
+    if (!player || player->getHouseName().empty()) return false;
+    const auto& allHouses = _houseLoader.getAllOrdered();
+    if (_currentIndex < 0 || _currentIndex >= (int)allHouses.size()) return false;
+    return allHouses[_currentIndex].id == player->getHouseName();
 }
