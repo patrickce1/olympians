@@ -294,23 +294,17 @@
                     "nextState": "idle"
                 },
                 "attack_3": {
-                    "name": "Lifesteal Attack",
-                    "buildUpTime": 5.0,
+                    "name": "Corrosive Spit Attack",
+                    "buildUpTime": 20.0,
                     "cooldownTime": 5.0,
                     "events": [
                     ],
-                    "nextState": "defensive_move"
+                    "nextState": "idle"
                 },
                 "defensive_move" : {
-                    "name": "Lifesteal Heal",
+                    "name": "Regenerate",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
-                    "events": [
-                        {
-                            "type": "HEAL",
-                            "amount": 100.0
-                        }
-                    ],
                     "nextState": "idle"
                 }
             }

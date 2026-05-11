@@ -78,8 +78,8 @@ struct CorrodedItemAnimation {
     /** Scale at animation start (typically 1.0). */
     float startScale = 1.0f;
 
-    /** Target scale at animation end (e.g. 0.15 for shrink effect). */
-    float endScale = 0.15f;
+    /** Target scale at animation end. */
+    float endScale = 0.001f;
 
     /** Item ID to remove from inventory after animation completes. */
     ItemInstance::ItemId itemId;

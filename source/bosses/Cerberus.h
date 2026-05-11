@@ -55,13 +55,13 @@ private:
 public:
     
     /** seconds between inventory drains. i.e. how long in time for the next item to start corroding */
-    static constexpr float CORROSIVE_DRAIN_INTERVAL = 0.5f;  // Changed from 1.0 to 0.5 for faster draining
+    static constexpr float CORROSIVE_DRAIN_INTERVAL = 3.0f;
 
     /** Duration in seconds that a head stays stunned after being hit */
     static constexpr float HEAD_STUN_DURATION = 3.0f;
 
     /** Duration in seconds that the corrosive debuff lasts */
-    static constexpr float CORROSIVE_DURATION = 20.0f;  // Changed from 10.0 to 20.0 for longer duration
+    static constexpr float CORROSIVE_DURATION = 100.0f;
     
     Cerberus() {}
 

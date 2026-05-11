@@ -40,7 +40,6 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath) {
  */
 bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) {
     bool success = Enemy::init("cerberus", jsonPath, assets);
-    _lifeStealPercent        =  _customData->getFloat("lifeStealPercent");
     float headHp = _customData -> getFloat("headHealth");
     for (int i = 0; i < 3; i++){
         _headMaxHealth[i] = headHp;
@@ -77,6 +76,7 @@ void Cerberus::update(float dt) {
         startCorrosive(0, CORROSIVE_DURATION);
         CULog("Cerberus: ATTACK_3 started, triggering corrosive on player 0 (YOU)");
     }
+
     previousState = currentState;
 
     //Tick the head stun timers
@@ -167,7 +167,6 @@ bool Cerberus::shouldDrainItem() {
 }
 
 void Cerberus::takeDamage(float damage, int playerIndex){
-    // TODO: Implement life steal logic (80% of damage converted to healing)
     Enemy::takeDamage(damage, playerIndex);
 }
 

@@ -2389,8 +2389,18 @@ void GameScene::handleDragTracking(InputController& input) {
     auto body = _itemBodies.find(_draggedItemId);
     if (body != _itemBodies.end() && body->second) {
         _dragPreviousFrameItemBodyPos = body->second->getPosition(); // Store current position for velocity calculation
-        Size widgetSize = _draggedIcon->getContentSize();
-        Vec2 center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+
+        // Corroding items use center anchor, so their position IS the center
+        // Normal items use bottom-left anchor, so we need to add half-size to get center
+        bool isCorroding = (_corrodingItemIds.find(_draggedItemId) != _corrodingItemIds.end());
+        Vec2 center;
+        if (isCorroding) {
+            center = widgetPosition;
+        } else {
+            Size widgetSize = _draggedIcon->getContentSize();
+            center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+        }
+
         body->second->setPosition(center);
         body->second->setLinearVelocity(Vec2::ZERO);
     }
@@ -2683,41 +2693,22 @@ void GameScene::handleGaiaSpawn() {
  * Host handles this authoritative logic; clients receive updates via game state broadcasts.
  */
 void GameScene::handleCorrosiveDrain(){
-    CULog("handleCorrosiveDrain called");
-
-    if (!_gameState.getEnemy()) {
-        CULog("  -> No enemy exists");
-        return;
-    }
-
-    CULog("  -> Enemy exists, ID: %s", _gameState.getEnemy()->getId().c_str());
-
-    if (_gameState.getEnemy()->getId() != "cerberus") {
-        CULog("  -> Not Cerberus, returning");
-        return;
-    }
-
-    CULog("  -> Is Cerberus, attempting cast");
     auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
 
-    if (!cerberus) {
-        CULog("  -> Cast FAILED");
+    // Only proceed if corrosive is active and it's time to drain
+    if (!cerberus || !cerberus->isCorrosiveActive()) {
         return;
     }
 
-    CULog("  -> Cast succeeded, checking shouldDrainItem");
     if (!cerberus->shouldDrainItem()) {
-        CULog("  -> shouldDrainItem returned false");
         return;
     }
-
-    CULog("  -> DRAINING ITEM NOW");
 
     int targetIndex = cerberus->getCorrosiveTarget();
 
-    Player* victim = _gameState.getPlayerBySlot(targetIndex);
+    Player* victim = _gameState.getPlayerBySlot(0);
     if (!victim || victim->getInventory().empty()) {
-        CULog("  -> No victim or empty inventory, ending corrosive");
+        CULog("No victim or empty inventory, ending corrosive");
         // End corrosive early since player has no items left
         cerberus->endCorrosive();
         return;
@@ -2750,6 +2741,12 @@ void GameScene::handleCorrosiveDrain(){
 
             widget->setAnchor(cugl::Vec2::ANCHOR_CENTER);
             widget->setPosition(sourceCenter);
+
+            // Update physics body to match new center position
+            auto bodyIt = _itemBodies.find(itemIdToRemove);
+            if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                bodyIt->second->setPosition(sourceCenter);
+            }
 
             // Create corrosion animation on the original widget (NOT a ghost)
             CorrodedItemAnimation anim;
@@ -3314,8 +3311,18 @@ void GameScene::updateDropZoneVisibility(){
         Player* local = _gameState.getLocalPlayer();
         bool localAlive = local && local->isAlive();
 
-        _passLeftArea->setVisible(true);
-        _passRightArea->setVisible(true);
+        // Check if local player is affected by corrosive
+        bool isCorrosiveActive = false;
+        auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+        if (cerberus && cerberus->isCorrosiveActive()) {
+            int corrosiveTarget = cerberus->getCorrosiveTarget();
+            int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+            isCorrosiveActive = (corrosiveTarget == localPlayerSlot);
+        }
+
+        // Hide pass zones if corrosive is active
+        _passLeftArea->setVisible(!isCorrosiveActive);
+        _passRightArea->setVisible(!isCorrosiveActive);
 
         if (localAlive) {
             auto itemDef = getHeldItemDef(_draggedItemId);
@@ -3526,15 +3533,16 @@ void GameScene::syncItemWidgetsToBodies() {
             continue;
         }
 
-        // Skip corroding items - they don't have physics bodies and use center anchor
-        if (_corrodingItemIds.find(itemId) != _corrodingItemIds.end()) {
-            continue;
-        }
-
         Size widgetSize = widget->second->getContentSize();
         Vec2 bodyPosition = body->getPosition();
-        Vec2 widgetPosition = bodyPosition - Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
-        widget->second->setPosition(widgetPosition);
+
+        // Corroding items use center anchor, so position differently
+        if (_corrodingItemIds.find(itemId) != _corrodingItemIds.end()) {
+            widget->second->setPosition(bodyPosition);
+        } else {
+            Vec2 widgetPosition = bodyPosition - Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+            widget->second->setPosition(widgetPosition);
+        }
     }
 
     for (ItemInstance::ItemId itemId : staleIds) {
@@ -3754,6 +3762,21 @@ void GameScene::updateCorrodedItemAnimations(float dt) {
 
     // Clean up finished items (do this BEFORE erasing animations to avoid iterator issues)
     for (ItemInstance::ItemId itemId : finishedItems) {
+        // If this item is being dragged, reset drag state
+        if (_draggedItemId == itemId) {
+            _draggedIcon = nullptr;
+            _draggedItemId = 0;
+            _draggedItemDef = nullptr;
+            _dragStartBodyPosition = Vec2::ZERO;
+
+            // Hide tooltip
+            if (_tooltipNode) {
+                _tooltipNode->setVisible(false);
+            }
+
+            CULog("  -> Corroded item was being dragged, resetting drag state and hiding tooltip");
+        }
+
         // Remove from corroding set
         _corrodingItemIds.erase(itemId);
 
@@ -4051,17 +4074,36 @@ void GameScene::render() {
  */
 void GameScene::updateInputZones(){
     Player* local = _gameState.getLocalPlayer();
-    
+
+    // Check if local player is affected by corrosive
+    bool isCorrosiveActive = false;
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+    if (cerberus && cerberus->isCorrosiveActive()) {
+        int corrosiveTarget = cerberus->getCorrosiveTarget();
+        int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+        isCorrosiveActive = (corrosiveTarget == localPlayerSlot);
+    }
+
     // Dead players can only pass items or put them in inventory
     // They cannot attack or support
     if (local && !local->isAlive()) {
-        _inputZones = _passZones;
+        // If corrosive is active on this player, they can't pass either
+        if (!isCorrosiveActive) {
+            _inputZones = _passZones;
+        } else {
+            _inputZones.clear();
+        }
         _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
     } else {
         // Alive players have access to all zones
         _inputZones = _attackZones;
         _inputZones.insert(_inputZones.end(), _supportZones.begin(), _supportZones.end());
-        _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
+
+        // Only add pass zones if not affected by corrosive
+        if (!isCorrosiveActive) {
+            _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
+        }
+
         _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
     }
 }
