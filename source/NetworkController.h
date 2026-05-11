@@ -181,8 +181,14 @@ public:
     void broadcastForgeEffect(float chance, int seed);
 
     /** The following are USED ONLY BY THE HOST */
-    /** Send the GameState state as the new authoritative version of the game to all players */
-    void broadcastGameState(const GameState& state);
+    /**
+     * Sends the GameState state as the new authoritative version of the game to all players.
+     *
+     * @param state The current authoritative game state.
+     * @param frenzyItemInterval Active frenzy item interval, or 0 when inactive.
+     * @param frenzyDuration Remaining frenzy duration in seconds, or 0 when inactive.
+     */
+    void broadcastGameState(const GameState& state, float frenzyItemInterval = 0.0f, float frenzyDuration = 0.0f);
 
     /** Send a message to all clients that the game has been lost */
     void broadcastLostGame();

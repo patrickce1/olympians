@@ -146,6 +146,14 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                     0.0f,
                     applyToAllPlayers);
                 break;
+            case ItemDef::EffectType::Frenzy:
+                network.broadcastSupportEffect(SupportEffectType::Frenzy,
+                    effect.amount,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    true);
+                break;
             case ItemDef::EffectType::Forge:
                 break;
             case ItemDef::EffectType::Stun:
@@ -232,6 +240,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Forge:
             case ItemDef::EffectType::Charm:
+            case ItemDef::EffectType::Frenzy:
                 break;
         }
     }
@@ -321,6 +330,9 @@ static ItemDef::Effect resolveEffectForCharm(const ItemDef::Effect& effect, bool
             resolved.chance = std::min(1.0f, resolved.chance * 2.0f);
             break;
         case ItemDef::EffectType::Charm:
+            break;
+        case ItemDef::EffectType::Frenzy:
+            resolved.amount *= 0.5f;
             break;
     }
 
@@ -1143,16 +1155,34 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
 
     if (shouldApplyEffects) {
         for (const ItemDef::Effect& effect : def->getEffects()) {
-            if (effect.type != ItemDef::EffectType::Forge) {
-                continue;
-            }
             const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, local->hasCharm());
-            if (_network->isHost()) {
-                const int seed = makeForgeSeed();
-                applyForgeEffect(resolvedEffect.chance, seed);
-                _network->broadcastForgeEffect(resolvedEffect.chance, seed);
-            } else {
-                _network->requestForgeEffect(effect.chance);
+            switch (effect.type) {
+                case ItemDef::EffectType::Forge:
+                    if (_network->isHost()) {
+                        const int seed = makeForgeSeed();
+                        applyForgeEffect(resolvedEffect.chance, seed);
+                        _network->broadcastForgeEffect(resolvedEffect.chance, seed);
+                    } else {
+                        _network->requestForgeEffect(effect.chance);
+                    }
+                    break;
+                case ItemDef::EffectType::Frenzy:
+                    if (_network->isHost()) {
+                        applyFrenzyEffect(resolvedEffect.amount, resolvedEffect.duration);
+                    }
+                    break;
+                case ItemDef::EffectType::Shield:
+                case ItemDef::EffectType::Barrier:
+                case ItemDef::EffectType::Regen:
+                case ItemDef::EffectType::Resurrect:
+                case ItemDef::EffectType::Educate:
+                case ItemDef::EffectType::Stun:
+                case ItemDef::EffectType::Love:
+                case ItemDef::EffectType::Slow:
+                case ItemDef::EffectType::Vulnerable:
+                case ItemDef::EffectType::Upgrade:
+                case ItemDef::EffectType::Charm:
+                    break;
             }
         }
     }
@@ -1219,6 +1249,7 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                     break;
                 }
                 case ItemDef::EffectType::Forge:
+                case ItemDef::EffectType::Frenzy:
                     break;
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
@@ -2437,13 +2468,16 @@ void GameScene::handleNetworkUpdates(float dt) {
 
     if (_network->isHost()) {
         // handle incoming attack/heal messages from clients
+        const auto& supportEffects = _network->getSupportEffectUpdates();
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
-        _gameState.supportEffectUpdates(_network->getSupportEffectUpdates());
+        processFrenzyEffects(supportEffects);
+        _gameState.supportEffectUpdates(supportEffects);
         _gameState.enemyEffectUpdates(_network->getEnemyEffectUpdates());
         processForgeEffects(_network->getForgeEffectUpdates());
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
+        _itemController.updateEffects(dt);
 
         for (auto& player : _gameState.getPlayers()) {
             if (player) {
@@ -2452,7 +2486,7 @@ void GameScene::handleNetworkUpdates(float dt) {
         }
 
         // broadcast authoritative state to all clients
-        _network->broadcastGameState(_gameState);
+        _network->broadcastGameState(_gameState, _itemController.getFrenzyItemInterval(), _itemController.getFrenzyDuration());
     }
     else {
         // clients just apply the latest state from host
@@ -2461,6 +2495,9 @@ void GameScene::handleNetworkUpdates(float dt) {
             _gameState.applyPlayerScramble(_network->getPlayerScrambleMapping());
             setLocalPlayer(_network->getLocalPlayerNumber());
         }
+        GameStateMessage stateUpdate = _network->getStateUpdate();
+        _gameState.networkUpdate(stateUpdate);
+        syncFrenzyEffect(stateUpdate.frenzyItemInterval, stateUpdate.frenzyDuration);
         processForgeEffects(_network->getForgeEffectUpdates());
         applyPendingResurrectionSync();
         applyPendingPartyEffectSyncs();
@@ -2573,6 +2610,87 @@ void GameScene::applyPendingPartyEffectSyncs() {
                 return !shouldKeepPendingEffect(pendingEffect);
             }),
         _pendingPartyEffectSyncs.end());
+}
+
+/**
+ * Applies queued frenzy support effects to item spawning and inventories.
+ *
+ * @param supportEffects Support-effect messages received during the current network update.
+ */
+void GameScene::processFrenzyEffects(const std::vector<SupportEffectMessage>& supportEffects) {
+    if (!_network || !_network->isHost()) {
+        return;
+    }
+
+    auto isPartyCharmActive = [&]() {
+        for (const auto& player : _gameState.getPlayers()) {
+            if (player && player->hasCharm()) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const bool charmActive = isPartyCharmActive();
+    for (const SupportEffectMessage& effect : supportEffects) {
+        if (effect.effectType != SupportEffectType::Frenzy) {
+            continue;
+        }
+
+        float itemInterval = effect.magnitude;
+        if (charmActive) {
+            itemInterval *= 0.5f;
+        }
+        applyFrenzyEffect(itemInterval, effect.duration);
+    }
+}
+
+/**
+ * Applies a frenzy item-spawn override and clears every player's inventory.
+ *
+ * @param itemInterval New item spawn interval while frenzy is active.
+ * @param duration Duration of the frenzy override in seconds.
+ */
+void GameScene::applyFrenzyEffect(float itemInterval, float duration) {
+    if (itemInterval <= 0.0f || duration <= 0.0f) {
+        return;
+    }
+
+    for (const auto& player : _gameState.getPlayers()) {
+        if (player) {
+            player->clearInventory();
+        }
+    }
+
+    _itemController.applyFrenzy(itemInterval, duration);
+    _passedItemIds.clear();
+    syncInventoryWidgets();
+}
+
+/**
+ * Synchronizes local frenzy state from the latest host snapshot.
+ *
+ * @param itemInterval Host-authoritative item spawn interval.
+ * @param duration Remaining host-authoritative frenzy duration.
+ */
+void GameScene::syncFrenzyEffect(float itemInterval, float duration) {
+    const bool incomingActive = itemInterval > 0.0f && duration > 0.0f;
+    const bool shouldClearInventories = incomingActive &&
+        (!_itemController.hasFrenzy() ||
+         duration > _itemController.getFrenzyDuration() + 0.25f ||
+         std::abs(itemInterval - _itemController.getFrenzyItemInterval()) > 0.001f);
+
+    if (shouldClearInventories) {
+        for (const auto& player : _gameState.getPlayers()) {
+            if (player) {
+                player->clearInventory();
+            }
+        }
+        _passedItemIds.clear();
+        syncInventoryWidgets();
+    }
+
+    _itemController.syncFrenzy(itemInterval, duration);
 }
 
 /**
