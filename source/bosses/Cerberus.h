@@ -19,9 +19,6 @@
  */
 class Cerberus : public Enemy {
 private:
-    /** Fraction of raw incoming player damage that is immediately converted to healing. */
-    float _lifeStealPercent = 0.0f;
-
     /** Accumulates elapsed time between corrosive inventory drain ticks. */
     float _corrosiveDrainAccum = 0.0f;
 
@@ -143,6 +140,11 @@ public:
     /** Returns true if all three heads (main, right, left) are simultaneously knocked. */
     bool allHeadsKnocked() const {
         return _heads[0].knocked && _heads[1].knocked && _heads[2].knocked;
+    }
+
+    /** Blocks the defense state while any head is knocked — the drain shield requires all heads active. */
+    bool canEnterDefenseState() const override {
+        return !_heads[0].knocked && !_heads[1].knocked && !_heads[2].knocked;
     }
 
     /**

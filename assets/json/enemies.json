@@ -248,7 +248,6 @@
                 "defenseLikelihood": 0.3
             },
             "customData": {
-                "lifeStealPercent": 0.8,
                 "knockedThreshold": 100.0,
                 "knockedDuration": 12.0,
                 "knockedThresholdRegen": 5.0,
@@ -317,7 +316,7 @@
                     "nextState": "idle"
                 },
                 "attack_3": {
-                    "name": "Lifesteal Attack",
+                    "name": "Single Bite",
                     "buildUpTime": 1.0,
                     "cooldownTime": 2.0,
                     "headAnimationKey": "cerberus_head_bite_animation",
@@ -330,19 +329,20 @@
                             "amount": 50.0
                         }
                     ],
-                    "nextState": "defensive_move"
+                    "nextState": "idle"
                 },
                 "defensive_move" : {
-                    "name": "Lifesteal Heal",
-                    "buildUpTime": 1.0,
+                    "name": "Defense",
+                    "buildUpTime": 6.0,
                     "cooldownTime": 2.0,
-                    "headAnimationKey": "cerberus_head_idle_animation",
-                    "events": [
-                        {
-                            "type": "HEAL",
-                            "amount": 100.0
-                        }
+                    "headAnimationKey": "cerberus_head_defend_animation",
+                    "entryEvents": [
+                        { "type": "SIDE_MODIFIER", "target": 0, "amount": -0.8 },
+                        { "type": "SIDE_MODIFIER", "target": 1, "amount": -0.8 },
+                        { "type": "SIDE_MODIFIER", "target": 2, "amount":  0.5 },
+                        { "type": "SIDE_MODIFIER", "target": 3, "amount": -0.8 }
                     ],
+                    "events": [],
                     "nextState": "idle"
                 }
             }

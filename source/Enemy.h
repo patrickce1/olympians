@@ -366,6 +366,14 @@ public:
     bool virtual shouldDefend();
 
     /**
+     * Returns false to veto entering the defense state regardless of the AI random roll.
+     * Override in boss subclasses to add preconditions for defensive behavior.
+     *
+     * @return true if defense is currently allowed, false to block it.
+     */
+    virtual bool canEnterDefenseState() const { return true; }
+
+    /**
      * Returns the damage multiplier for a given absolute side index.
      * Index 0 corresponds to the side facing the host (east), regardless of the boss' direction.
      * 

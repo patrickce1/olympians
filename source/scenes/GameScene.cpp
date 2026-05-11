@@ -1129,11 +1129,16 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     }
 
     if (baseValue > 0.0f) {
-        const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
-        const float finalDamage     = resolvedMagnitude * sideMultiplier;
-        createFloatingPopup(dropPos, buildAttackDamagePopups(
-            baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
-            resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+        const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
+        const float finalDamage    = resolvedMagnitude * sideMultiplier;
+        if (sideMultiplier < 0.0f) {
+            createFloatingPopup(dropPos, buildCerberusDefenseHealPopup(
+                resolvedMagnitude, sideMultiplier, 26.0f, 17.0f));
+        } else {
+            createFloatingPopup(dropPos, buildAttackDamagePopups(
+                baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
+                resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+        }
     }
 
     return true;
@@ -2221,6 +2226,10 @@ void GameScene::updateSingleCerberusHead(int headIndex, bool isVisible, int dire
                 if (_cerberusHeadAnimTime[headIndex] >= totalAnimDuration) {
                     _cerberusHeadActiveAnimKey[headIndex] = _cerberusIdleHeadAnimKey;
                 }
+            } else if (enemy->getCurrentState() == EnemyLoader::State::IDLE) {
+                // Pure-loop non-idle animations (e.g. defend) must not outlive the
+                // state that commissioned them; reset to idle once the enemy is idle.
+                _cerberusHeadActiveAnimKey[headIndex] = _cerberusIdleHeadAnimKey;
             }
         }
     }
@@ -2232,6 +2241,23 @@ void GameScene::updateSingleCerberusHead(int headIndex, bool isVisible, int dire
     if (cerberus && (cerberus->isHeadKnocked(headPlayerSlot) || enemy->isLoved())) {
         _cerberusHeadActiveAnimKey[headIndex] = _cerberusIdleHeadAnimKey;  // abort any in-progress attack anim
         displayAnimKey = "cerberus_head_knocked_animation";
+    } else if (_cerberusHeadActiveAnimKey[headIndex] == _cerberusIdleHeadAnimKey &&
+               enemy->getCurrentState() != EnemyLoader::State::IDLE) {
+        // Head just recovered from knocked while in a non-idle state (e.g. defense), or was
+        // skipped in handleCerberusStateTransition because it was knocked at state entry.
+        // Restore the state's looping head animation if it has one.
+        const auto* stateDef = enemy->getCurrentStateDef();
+        if (stateDef && !stateDef->headAnimationKey.empty() &&
+            stateDef->headAnimationKey != _cerberusIdleHeadAnimKey) {
+            auto animIt = _animationRegistry.find(stateDef->headAnimationKey);
+            if (animIt != _animationRegistry.end()) {
+                bool isPureLoop = (animIt->second.loopEndFrame < 0 ||
+                                   animIt->second.loopEndFrame >= animIt->second.frameCount - 1);
+                if (isPureLoop) {
+                    _cerberusHeadActiveAnimKey[headIndex] = stateDef->headAnimationKey;
+                }
+            }
+        }
     }
 
     // Show only the sprite set matching the display animation; hide all others.
@@ -4659,10 +4685,15 @@ void GameScene::updateItemUseAnimations(float dt) {
                     if (activeAnim.baseValue > 0.0f) {
                         const float sideMultiplier = enemy->getSideMultiplier(playerNum);
                         const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
-                        createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
-                            activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
-                            activeAnim.upgradeMultiplier, sideMultiplier,
-                            activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
+                        if (sideMultiplier < 0.0f) {
+                            createFloatingPopup(activeAnim.popupPosition, buildCerberusDefenseHealPopup(
+                                activeAnim.damageAmount, sideMultiplier, 22.0f, 14.0f));
+                        } else {
+                            createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
+                                activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
+                                activeAnim.upgradeMultiplier, sideMultiplier,
+                                activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
+                        }
                     }
 
                     // Non-hosts broadcast so the host applies it on the same frame.
@@ -4817,23 +4848,37 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
 
     // Format each value as a fixed one-decimal string.
     char baseText[32], upgradeText[32], houseText[32], preText[32], sideText[32], finalText[32];
-    std::snprintf(baseText,  sizeof(baseText),  "-%.1f", baseValue);
-    std::snprintf(upgradeText, sizeof(upgradeText), "%.1fx", upgradeMultiplier);
-    std::snprintf(houseText, sizeof(houseText), "%.1fx", houseAffinityMultiplier);
-    std::snprintf(preText,   sizeof(preText),   "-%.1f", preSideDamage);
-    std::snprintf(sideText,  sizeof(sideText),  "%.1fx", sideMultiplier);
-    std::snprintf(finalText, sizeof(finalText), "-%.1f", finalDamage);
+    std::snprintf(baseText,    sizeof(baseText),    "-%.1f",  baseValue);
+    std::snprintf(upgradeText, sizeof(upgradeText), "%.1fx",  upgradeMultiplier);
+    std::snprintf(houseText,   sizeof(houseText),   "%.1fx",  houseAffinityMultiplier);
+    std::snprintf(preText,     sizeof(preText),     "-%.1f",  preSideDamage);
+    std::snprintf(sideText,    sizeof(sideText),    "%.1fx",  sideMultiplier);
+
+    // Final value format and color depend on sign: damage (red/orange), blocked (blue), heal (green).
+    cugl::Color4 finalColor;
+    if (finalDamage > 0.01f) {
+        std::snprintf(finalText, sizeof(finalText), "-%.1f", finalDamage);
+        finalColor = damageColor(finalDamage);
+    } else if (finalDamage < -0.01f) {
+        std::snprintf(finalText, sizeof(finalText), "+%.1f", -finalDamage);
+        finalColor = cugl::Color4(80, 220, 80, 255);
+    } else {
+        std::snprintf(finalText, sizeof(finalText), "0.0");
+        finalColor = cugl::Color4(140, 180, 255, 255);
+    }
 
     // Log-scale the multiplier font size so larger multipliers get proportionally bigger text.
     const float upgradeLog  = 0.2f * std::log(std::max(1.0f, upgradeMultiplier));
     const float houseLog    = 0.2f * std::log(std::max(1.0f, houseAffinityMultiplier));
-    const float sideLog     = 0.2f * std::log(std::max(1.0f, sideMultiplier));
-    const float combinedLog = 0.2f * std::log(std::max(1.0f, houseAffinityMultiplier * upgradeMultiplier * sideMultiplier));
+    const float sideLog     = 0.2f * std::log(std::max(1.0f, std::abs(sideMultiplier)));
+    const float combinedLog = 0.2f * std::log(std::max(1.0f, std::abs(houseAffinityMultiplier * upgradeMultiplier * sideMultiplier)));
 
-    // Green for a bonus side, blue for a penalty side.
-    const cugl::Color4 sideColor = (sideMultiplier >= 1.0f)
+    // Green for bonus, teal for drain/reverse, blue for penalty/block.
+    const cugl::Color4 sideColor = (sideMultiplier > 1.0f)
         ? cugl::Color4(150, 220,  80, 255)
-        : cugl::Color4(120, 160, 255, 255);
+        : (sideMultiplier < 0.0f)
+            ? cugl::Color4( 60, 210, 200, 255)
+            : cugl::Color4(120, 160, 255, 255);
 
     std::vector<FloatingPopupData> popups;
     popups.push_back({
@@ -4902,7 +4947,7 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
         popups.push_back({
             finalText,
             valueFontSize * (1.0f + combinedLog),
-            damageColor(finalDamage),
+            finalColor,
             cugl::Color4::BLACK,
             nextDelay + 0.3f,
             0.5f,
@@ -4912,6 +4957,32 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
     }
 
     return popups;
+}
+
+/**
+ * Builds the popup for Cerberus's drain-shield defense: shows the raw hit value, then
+ * the negative drain multiplier badge in teal, then the resulting heal in green.
+ */
+std::vector<FloatingPopupData> GameScene::buildCerberusDefenseHealPopup(
+    float preSideDamage, float sideMultiplier,
+    float valueFontSize, float multiplierFontSize) const
+{
+    float healAmount = preSideDamage * std::abs(sideMultiplier);
+
+    char damageText[32], multText[32], healText[32];
+    std::snprintf(damageText, sizeof(damageText), "-%.1f", preSideDamage);
+    std::snprintf(multText,   sizeof(multText),   "%.1fx", sideMultiplier);
+    std::snprintf(healText,   sizeof(healText),   "+%.1f", healAmount);
+
+    // Teal badge to distinguish from the normal green (bonus) or blue (penalty) multipliers.
+    const cugl::Color4 drainColor(60, 210, 200, 255);
+    const cugl::Color4 healColor(80, 220, 80, 255);
+
+    return {
+        { damageText, valueFontSize,       cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,       true  },
+        { multText,   multiplierFontSize,  drainColor,                       cugl::Color4::BLACK, 0.05f, 0.2f,  cugl::Vec2(20.f, 15.f), false },
+        { healText,   valueFontSize,       healColor,                        cugl::Color4::BLACK, 0.2f,  0.5f,  cugl::Vec2::ZERO,       true  },
+    };
 }
 
 /**

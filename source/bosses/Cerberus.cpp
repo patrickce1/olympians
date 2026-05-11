@@ -5,7 +5,6 @@
  * Called by both init() overloads immediately after the base Enemy is fully initialized.
  */
 void Cerberus::loadCustomData() {
-    _lifeStealPercent      = _customData->getFloat("lifeStealPercent");
     _maxKnockedThreshold   = _customData->getFloat("knockedThreshold", 100.0f);
     _knockedDuration       = _customData->getFloat("knockedDuration", 4.0f);
     _knockedThresholdRegen = _customData->getFloat("knockedThresholdRegen", 10.0f);
@@ -16,8 +15,8 @@ void Cerberus::loadCustomData() {
         _heads[headIndex].knockedThreshold = _maxKnockedThreshold;
     }
     if (_debug) {
-        CULog("[Cerberus] lifeSteal=%.2f knockThresh=%.1f knockDur=%.1f regen=%.1f franticRate=%.2f",
-              _lifeStealPercent, _maxKnockedThreshold, _knockedDuration, _knockedThresholdRegen, _franticRate);
+        CULog("[Cerberus] knockThresh=%.1f knockDur=%.1f regen=%.1f franticRate=%.2f",
+              _maxKnockedThreshold, _knockedDuration, _knockedThresholdRegen, _franticRate);
     }
 }
 
@@ -80,15 +79,15 @@ void Cerberus::update(float dt) {
 }
 
 /**
- * Handles incoming player damage. Heals Cerberus by the life-steal fraction, then
- * reduces the struck head's knock threshold. If the threshold reaches zero the head
- * is knocked. Delegates to Enemy::takeDamage for side-multiplier application and
- * health reduction.
+ * Handles incoming player damage. Reduces the struck head's knock threshold and delegates
+ * to Enemy::takeDamage for side-multiplier application and health reduction.
  *
- * Special case — all-heads-knocked window: if all three heads are simultaneously
- * knocked and the attacker hits any non-back position, the hit deals
- * ALL_HEADS_KNOCKED_MULTIPLIER times the normal damage and immediately wakes all
- * heads. Hits to the back position during this window have no special effect.
+ * Special case — all-heads-knocked window: if all three heads are simultaneously knocked
+ * and the attacker hits any non-back position, the 5x side multiplier (set by knockHead)
+ * applies naturally, then all heads are woken and the boss returns to idle.
+ *
+ * Special case — drain-shield defense: the negative side multiplier set by the defense
+ * state's entryEvents converts incoming damage into healing inside Enemy::takeDamage.
  *
  * @param damage       Raw damage before side multipliers are applied.
  * @param playerIndex  Slot index of the attacking player.
@@ -102,7 +101,6 @@ void Cerberus::takeDamage(float damage, int playerIndex) {
         // All-heads-knocked window: the 5x side multiplier was already set by knockHead,
         // so Enemy::takeDamage applies it naturally and the popup shows it automatically.
         // After the hit: reset all sides to 1.0, wake all heads, and return to idle.
-        updateHealth(damage * _lifeStealPercent);
         Enemy::takeDamage(damage, playerIndex);
         for (int side = 0; side < 4; side++) setSideMultiplier(side, 1.0f);
         for (int headIndex = 0; headIndex < 3; headIndex++) unKnockHead(headIndex);
@@ -111,9 +109,9 @@ void Cerberus::takeDamage(float damage, int playerIndex) {
         return;
     }
 
-    updateHealth(damage * _lifeStealPercent);
-
-    if (attackerRelativeSlot != 2) {
+    // The drain-shield state reverses damage to healing, so head knock thresholds
+    // are not reduced — players are not actually dealing damage during this state.
+    if (attackerRelativeSlot != 2 && getCurrentState() != EnemyLoader::State::DEFENSE_MOVE) {
         int headArrayIndex = (attackerRelativeSlot == 3) ? 2 : attackerRelativeSlot;
         if (!_heads[headArrayIndex].knocked) {
             _heads[headArrayIndex].knockedThreshold -= damage;

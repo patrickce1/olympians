@@ -293,6 +293,7 @@ void EnemyController::resolveHealEvent(const std::shared_ptr<Enemy>& enemy, cons
  * @param enemy the enemy used to evaluate whether the defense condition applies
  */
 bool EnemyController::shouldDefend(const std::shared_ptr<Enemy>& enemy) {
+    if (!enemy->canEnterDefenseState()) return false;
     float random = _rng.getClosedFloat(0, 1);
     if (random <= enemy->getDefenseLikelihood()) {
         return true;

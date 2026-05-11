@@ -1475,6 +1475,22 @@ public:
     ) const;
 
     /**
+     * Builds the popup sequence shown when Cerberus's drain-shield absorbs and reverses
+     * incoming damage into a heal. Shows the raw hit, the negative drain multiplier badge,
+     * and the resulting heal amount.
+     *
+     * @param preSideDamage    Damage before the side multiplier (what the player would have dealt).
+     * @param sideMultiplier   The negative side multiplier (e.g. -0.8).
+     * @param valueFontSize    Base font size for the damage/heal values.
+     * @param multiplierFontSize Base font size for the multiplier badge.
+     * @return Ordered list of FloatingPopupData for the sequence.
+     */
+    std::vector<FloatingPopupData> buildCerberusDefenseHealPopup(
+        float preSideDamage, float sideMultiplier,
+        float valueFontSize, float multiplierFontSize
+    ) const;
+
+    /**
      * Builds the ordered popup sequence for a heal support item use.
      *
      * Returns a 3-entry sequence when a house multiplier is active:
