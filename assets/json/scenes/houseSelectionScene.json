@@ -82,7 +82,7 @@
                     "y_offset": 0
                 }
             },
-            "lock": {
+            "select": {
                 "type": "Button",
                 "format": {
                     "type": "Anchored"
@@ -150,7 +150,7 @@
                             "angle": 0,
                             "visible": true,
                             "font": "mainFont",
-                            "text": "LOCK",
+                            "text": "SELECT",
                             "foreground": "#ffd9a9ff",
                             "background": "#00000000",
                             "padding": [

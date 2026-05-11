@@ -75,8 +75,8 @@ bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
  */
 void HouseSelectScene::setupUI() {
 
-    _lockButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("houseSelectScene.lock"));
+    _selectButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("houseSelectScene.select"));
 
     _backButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("houseSelectScene.back"));
@@ -153,42 +153,29 @@ void HouseSelectScene::setupUI() {
  */
 void HouseSelectScene::setupListeners() {
     
-    _lockButton->addListener([this](const std::string& name, bool down) {
+    _selectButton->addListener([this](const std::string& name, bool down) {
         if (!down) return;
 
         HouseLoader::HouseDef selectedHouse = _houseLoader.getAllOrdered()[_currentIndex];
 
-        if (!_locked) {
-            bool taken = _network->isHouseTaken(selectedHouse.id);
+        bool taken = _network->isHouseTaken(selectedHouse.id);
 
-            // In AI slot mode, also block the host's own locked house
-            if (!taken && _targetSlot != -1) {
-                int localIndex = _network->getLocalPlayerNumber();
-                const auto& slotToPlayer = _network->getNetworkedPlayers();
-                auto pair = slotToPlayer.find(localIndex);
-                if (pair != slotToPlayer.end()) {
-                    taken = (pair->second.houseID == selectedHouse.id);
-                }
+        if (!taken && _targetSlot != -1) {
+            int localIndex = _network->getLocalPlayerNumber();
+            const auto& slotToPlayer = _network->getNetworkedPlayers();
+            auto pair = slotToPlayer.find(localIndex);
+            if (pair != slotToPlayer.end()) {
+                taken = (pair->second.houseID == selectedHouse.id);
             }
-
-            if (taken) return;
         }
 
-        _locked = !_locked;
+        if (taken) return;
 
-        if (_locked) {
-            updateSelectedIcon(_currentIndex, false);
-            updateText(_lockButton, "UNLOCK");
-            _playerIconGlow->setVisible(true);
-            _status = Status::ABORT;
-            commitHouseLock(selectedHouse);
-        } else {
-            updateText(_lockButton, "LOCK");
-            _playerIconGlow->setVisible(false);
-            _status = Status::WAITING;
-            commitHouseUnlock();
-            updateSelectedIcon(_currentIndex);
-        }
+        _selectedHouse = true;
+        updateSelectedIcon(_currentIndex, false);
+        _playerIconGlow->setVisible(true);
+        _status = Status::ABORT;
+        commitHouseLock(selectedHouse);
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
@@ -212,7 +199,7 @@ void HouseSelectScene::setupListeners() {
 void HouseSelectScene::dispose() {
     if (_active){
         removeAllChildren();
-        _lockButton = nullptr;
+        _selectButton = nullptr;
         _backButton = nullptr;
         _playerIcon = nullptr;
         _playerIconImage = nullptr;
@@ -261,12 +248,12 @@ void HouseSelectScene::setActive(bool value) {
             // manually locked, so we derive it from the player's actual house.
             int slot = (_targetSlot == -1) ? _network->getLocalPlayerNumber() : _targetSlot;
             Player* player = _gameState->getPlayerBySlot(slot);
-            _locked = (player && !player->getHouseName().empty());
-            state.locked = _locked;
+            _selectedHouse = (player && !player->getHouseName().empty());
+            state.selectedHouse = _selectedHouse;
 
             // Restore lock button label and glow
-            updateText(_lockButton, _locked ? "UNLOCK" : "LOCK");
-            _playerIconGlow->setVisible(_locked);
+            updateText(_selectButton, "SELECT");
+            _playerIconGlow->setVisible(_selectedHouse);
 
             // Jump carousel to the saved index (no animation on restore)
             _isAnimating = false;
@@ -276,7 +263,7 @@ void HouseSelectScene::setActive(bool value) {
             slideTo(getInitialCarouselIndex(_targetSlot));
             updateTeammateIcons();
 
-            _lockButton->activate();
+            _selectButton->activate();
             _leftButton->activate();
             _rightButton->activate();
             _backButton->activate();
@@ -285,16 +272,16 @@ void HouseSelectScene::setActive(bool value) {
             _swipeContainerStartX = 0.0f;
             
             // Save current state before deactivating
-            SlotState& state = _slotStates[_targetSlot];
+            SlotState& state    = _slotStates[_targetSlot];
             state.carouselIndex = _currentIndex;
-            state.locked        = _locked;
+            state.selectedHouse = _selectedHouse;
 
             _targetSlot = -1;
-            _lockButton->deactivate();
+            _selectButton->deactivate();
             _leftButton->deactivate();
             _rightButton->deactivate();
             _backButton->deactivate();
-            _lockButton->setDown(false);
+            _selectButton->setDown(false);
             _backButton->setDown(false);
             _leftButton->setDown(false);
             _rightButton->setDown(false);
@@ -376,17 +363,6 @@ void HouseSelectScene::update(float timestep, InputController& input) {
 }
 
 /**
- * Reconfigures the lock button for this scene
- *
- * This is necessary because what the buttons do depends on the state of the
- * networking.
- */
-void HouseSelectScene::configureLockButton() {
-    updateText(_lockButton,"Lock");
-    _lockButton->activate();
-}
-
-/**
  * Initiates a slide animation to center the house card at `newIndex`.
  *
  * Does nothing if an animation is already in progress or if the
@@ -433,9 +409,7 @@ void HouseSelectScene::slideTo(int newIndex) {
     }
     
     updateCarouselDots(newIndex);
-    if (!_locked){
-        updateSelectedIcon(newIndex);
-    }
+    updateSelectedIcon(newIndex);
 }
 
 /**
@@ -505,6 +479,12 @@ void HouseSelectScene::updateAIPreviewIcon(int currentIndex) {
  */
 void HouseSelectScene::updateSelectedIcon(int currentIndex, bool commitToGameState) {
     if (!_playerIconImage) return;
+    
+    // If a house is already selected, always show the committed house, not the carousel position
+    if (_selectedHouse) {
+        refreshLocalPlayerIcon();
+        return;
+    }
 
     const HouseLoader::HouseDef& selectedHouse = _houseLoader.getAllOrdered()[currentIndex];
     std::string key = selectedHouse.id + "SIcon";
@@ -732,30 +712,6 @@ void HouseSelectScene::commitHouseLock(const HouseLoader::HouseDef& selectedHous
 }
 
 /**
- * Clears the house selection for the current target slot and broadcasts
- * the change. Only has an effect in AI slot mode (_targetSlot != -1).
- */
-void HouseSelectScene::commitHouseUnlock() {
-    if (_targetSlot == -1) {
-        // Normal mode: clear local player's house
-        _network->broadcastSelectedHouse(std::string(""));
-        if (_network->isHost()) {
-            _network->setLocalHouse("");
-        }
-    } else {
-        // AI slot mode: clear the AI slot
-        if (_gameState) {
-            _gameState->setRealPlayer(
-                _targetSlot,
-                _gameState->getPlayerBySlot(_targetSlot)->getPlayerName(),
-                ""
-            );
-        }
-        _network->broadcastAIHouseSelection(_targetSlot, "");
-    }
-}
-
-/**
  * Refreshes the local player's icon diamond to reflect their actual
  * committed house selection when the scene activates. Prevents a stale
  * carousel preview texture from persisting across activations.
@@ -937,7 +893,6 @@ void HouseSelectScene::snapToNearestHouse(float releaseContainerX) {
     }
 
     updateCarouselDots(nearestIndex);
-    if (!_locked) {
-        updateSelectedIcon(nearestIndex);
-    }
+    updateSelectedIcon(nearestIndex);
+    
 }
