@@ -2774,8 +2774,20 @@ void GameScene::handleCorrosiveDrain(){
  * @param dt  Delta time in seconds.
  */
 void GameScene::handleItemSpawn(float dt) {
-    // Always spawn items for the local human player.
-    _itemController.update(dt, _gameState.getLocalPlayer());
+    // Check if local player is affected by corrosive (which prevents item spawning)
+    bool localPlayerCorrosive = false;
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+    if (cerberus && cerberus->isCorrosiveActive()) {
+        Player* local = _gameState.getLocalPlayer();
+        int corrosiveTarget = cerberus->getCorrosiveTarget();
+        int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+        localPlayerCorrosive = (corrosiveTarget == localPlayerSlot);
+    }
+
+    // Don't spawn items for local player if they're being corroded
+    if (!localPlayerCorrosive) {
+        _itemController.update(dt, _gameState.getLocalPlayer());
+    }
 
     //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
     handleGaiaSpawn();
