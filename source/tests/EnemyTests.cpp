@@ -20,6 +20,7 @@
 #include "../EnemyController.h"
 #include "../Player.h"
 #include "../HouseLoader.h"
+#include "../bosses/Cerberus.h"
 #include <cugl/cugl.h>
 #include <fstream>
 #include <cstdio>
@@ -270,33 +271,83 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
 // SECTION 5 — Boss specific mechanics
 // ─────────────────────────────────────────────────────────────────────────────
 
-static void testCerberusHealMove(const std::string& enemiesJsonPath,
+static void testCerberusCorrosiveActivation(const std::string& enemiesJsonPath,
     const std::string& housesJsonPath) {
-    auto enemy = makeEnemy(enemiesJsonPath, "cerberus");
-    if (!enemy) return;
+    auto cerberus = std::make_shared<Cerberus>();
+    bool ok = cerberus->init("cerberus", enemiesJsonPath);
+    expect(ok, "Enemy::init succeeds for 'cerberus'");
+    if (!ok) return;
 
-    // Lower health so there's room to heal
-    enemy->updateHealth(-50.0f);
-    float healthBeforeHeal = enemy->getCurrentHealth();
-    expect(healthBeforeHeal < enemy->getMaxHealth(), "cerberus heal: health lowered before heal");
+    // Initially, corrosive should not be active
+    expect(!cerberus->isCorrosiveActive(), "cerberus corrosive: initially not active");
+    expect(cerberus->getCorrosiveTarget() == -1, "cerberus corrosive: initially no target");
 
-    EnemyController controller;
-    HouseLoader loader = loadHouses(housesJsonPath);
-    auto players = makePlayersRing(loader, "poseidon", 4);
+    // Start corrosive on player 0
+    cerberus->startCorrosive(0, Cerberus::CORROSIVE_DURATION);
 
-    // Force defense so heal fires
-    enemy->setDefenseLikelihood(1.0f);
+    expect(cerberus->isCorrosiveActive(), "cerberus corrosive: active after startCorrosive");
+    expect(cerberus->getCorrosiveTarget() == 0, "cerberus corrosive: target set to player 0");
+}
 
-    bool healed = false;
-    for (int i = 0; i < 240; i++) {
-        controller.update(0.5f, enemy, players);
-        if (enemy->getCurrentHealth() > healthBeforeHeal) {
-            healed = true;
-            break;
-        }
-    }
+static void testCerberusCorrosiveDrainInterval(const std::string& enemiesJsonPath,
+    const std::string& housesJsonPath) {
+    auto cerberus = std::make_shared<Cerberus>();
+    bool ok = cerberus->init("cerberus", enemiesJsonPath);
+    expect(ok, "Enemy::init succeeds for 'cerberus'");
+    if (!ok) return;
 
-    expect(healed, "cerberus heal: health increased after heal move fired");
+    // Start corrosive
+    cerberus->startCorrosive(0, Cerberus::CORROSIVE_DURATION);
+
+    // Initially should not drain (interval not elapsed)
+    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: no drain before interval");
+
+    // Update for the drain interval duration
+    cerberus->update(Cerberus::CORROSIVE_DRAIN_INTERVAL);
+
+    // Now it should be ready to drain
+    expect(cerberus->shouldDrainItem(), "cerberus corrosive: ready to drain after interval");
+
+    // shouldDrainItem consumes the flag, so next call should return false
+    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain flag consumed");
+}
+
+static void testCerberusCorrosiveExpiration(const std::string& enemiesJsonPath,
+    const std::string& housesJsonPath) {
+    auto cerberus = std::make_shared<Cerberus>();
+    bool ok = cerberus->init("cerberus", enemiesJsonPath);
+    expect(ok, "Enemy::init succeeds for 'cerberus'");
+    if (!ok) return;
+
+    // Start corrosive with short duration
+    float shortDuration = 2.0f;
+    cerberus->startCorrosive(0, shortDuration);
+
+    expect(cerberus->isCorrosiveActive(), "cerberus corrosive expiration: active after start");
+
+    // Update for duration + a bit extra
+    cerberus->update(shortDuration + 0.5f);
+
+    expect(!cerberus->isCorrosiveActive(), "cerberus corrosive expiration: expired after duration");
+    expect(cerberus->getCorrosiveTarget() == -1, "cerberus corrosive expiration: target cleared");
+}
+
+static void testCerberusCorrosiveEarlyEnd(const std::string& enemiesJsonPath,
+    const std::string& housesJsonPath) {
+    auto cerberus = std::make_shared<Cerberus>();
+    bool ok = cerberus->init("cerberus", enemiesJsonPath);
+    expect(ok, "Enemy::init succeeds for 'cerberus'");
+    if (!ok) return;
+
+    // Start corrosive
+    cerberus->startCorrosive(0, Cerberus::CORROSIVE_DURATION);
+    expect(cerberus->isCorrosiveActive(), "cerberus corrosive early end: active after start");
+
+    // End corrosive early
+    cerberus->endCorrosive();
+
+    expect(!cerberus->isCorrosiveActive(), "cerberus corrosive early end: not active after endCorrosive");
+    expect(cerberus->getCorrosiveTarget() == -1, "cerberus corrosive early end: target cleared");
 }
 
 static void testCyclopsMultiplierScalesDamage(const std::string& enemiesJsonPath,
@@ -407,9 +458,14 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
     testControllerDoesNotAttackWhenAllPlayersDead(enemiesJsonPath, housesJsonPath);
 
     CULog("── Section 5: Defensive mechanics ────────────");
-    testCerberusHealMove(enemiesJsonPath, housesJsonPath);
     testCyclopsMultiplierScalesDamage(enemiesJsonPath, housesJsonPath);
     testCyclopsDefensiveMove(enemiesJsonPath, housesJsonPath);
+
+    CULog("── Section 6: Cerberus corrosive mechanics ───");
+    testCerberusCorrosiveActivation(enemiesJsonPath, housesJsonPath);
+    testCerberusCorrosiveDrainInterval(enemiesJsonPath, housesJsonPath);
+    testCerberusCorrosiveExpiration(enemiesJsonPath, housesJsonPath);
+    testCerberusCorrosiveEarlyEnd(enemiesJsonPath, housesJsonPath);
 
     printSummary();
     

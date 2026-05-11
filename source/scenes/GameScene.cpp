@@ -37,8 +37,12 @@ constexpr float ITEM_NORMAL_SCALE = 1.0f;
 constexpr float ITEM_SCALE_SPEED = 14.0f;
 //Defines how long it should take for an item that has been used (through the means of passing, attacking, or supporting)
 constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
+//Defines how long it takes for a corroded item to fully dissolve
+constexpr float ITEM_CORRODE_ANIMATION_DURATION = 1.5f;
 //Defines how large the item is once it has been used. So it shrinks to this size.
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
+//Defines how small corroded items shrink (smaller than consumed items)
+constexpr float ITEM_CORRODE_END_SCALE = 0.05f;
 //Defines the gap between the item and its tooltip
 constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 
@@ -138,6 +142,14 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                     0.0f,
                     applyToAllPlayers);
                 break;
+            case ItemDef::EffectType::Charm:
+                network.broadcastSupportEffect(SupportEffectType::Charm,
+                    0.0f,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    applyToAllPlayers);
+                break;
             case ItemDef::EffectType::Forge:
                 break;
             case ItemDef::EffectType::Stun:
@@ -223,6 +235,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Resurrect:
             case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Forge:
+            case ItemDef::EffectType::Charm:
                 break;
         }
     }
@@ -262,6 +275,60 @@ static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
 
     return def.getHouseAffinity() ==
            ItemDef::houseFromString(player.getHouseName(), ItemDef::House::None);
+}
+
+/**
+ * Returns an effect copy adjusted for local charm-only presentation paths.
+ *
+ * @param effect       The original item effect definition.
+ * @param charmActive  Whether charm should modify the effect.
+ * @return The original effect, or a charm-boosted copy when charm is active.
+ */
+static ItemDef::Effect resolveEffectForCharm(const ItemDef::Effect& effect, bool charmActive) {
+    ItemDef::Effect resolved = effect;
+    if (!charmActive || effect.type == ItemDef::EffectType::Charm) {
+        return resolved;
+    }
+
+    switch (effect.type) {
+        case ItemDef::EffectType::Shield:
+            resolved.mitigation *= 2.0f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Barrier:
+            resolved.multiplier *= 0.5f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Regen:
+            resolved.regenAmount *= 2.0f;
+            break;
+        case ItemDef::EffectType::Resurrect:
+            resolved.reviveHealth *= 2.0f;
+            resolved.regenAmount *= 2.0f;
+            break;
+        case ItemDef::EffectType::Educate:
+        case ItemDef::EffectType::Stun:
+        case ItemDef::EffectType::Love:
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Slow:
+            resolved.multiplier *= 0.5f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Vulnerable:
+            resolved.multiplier *= 2.0f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Upgrade:
+            break;
+        case ItemDef::EffectType::Forge:
+            resolved.chance = std::min(1.0f, resolved.chance * 2.0f);
+            break;
+        case ItemDef::EffectType::Charm:
+            break;
+    }
+
+    return resolved;
 }
 
 /**
@@ -309,8 +376,9 @@ static float computeHouseAffinityMultiplier(const Player& player, const ItemDef&
 static float computeUpgradeMultiplier(const Player& player, const ItemDef& def) {
     float upgradeMultiplier = 1.0f;
     for (const ItemDef::Effect& effect : def.getEffects()) {
-        if (effect.type == ItemDef::EffectType::Upgrade) {
-            upgradeMultiplier *= std::pow(effect.multiplier, static_cast<float>(player.getMalletUseCount()));
+        const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, player.hasCharm());
+        if (resolvedEffect.type == ItemDef::EffectType::Upgrade) {
+            upgradeMultiplier *= std::pow(resolvedEffect.multiplier, static_cast<float>(player.getMalletUseCount()));
         }
     }
     return upgradeMultiplier;
@@ -1154,10 +1222,11 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
             if (effect.type != ItemDef::EffectType::Forge) {
                 continue;
             }
+            const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, local->hasCharm());
             if (_network->isHost()) {
                 const int seed = makeForgeSeed();
-                applyForgeEffect(effect.chance, seed);
-                _network->broadcastForgeEffect(effect.chance, seed);
+                applyForgeEffect(resolvedEffect.chance, seed);
+                _network->broadcastForgeEffect(resolvedEffect.chance, seed);
             } else {
                 _network->requestForgeEffect(effect.chance);
             }
@@ -1170,13 +1239,14 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                 break;
             }
 
+            const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, local->hasCharm());
             switch (effect.type) {
                 case ItemDef::EffectType::Resurrect: {
                     const std::vector<int> resurrectedSlots = collectDeadPartyPlayerSlots(_gameState);
                     _pendingResurrectionSync.playerSlots = resurrectedSlots;
-                    _pendingResurrectionSync.reviveHealth = effect.reviveHealth;
-                    _pendingResurrectionSync.regenAmount = effect.regenAmount;
-                    _pendingResurrectionSync.regenDuration = effect.duration;
+                    _pendingResurrectionSync.reviveHealth = resolvedEffect.reviveHealth;
+                    _pendingResurrectionSync.regenAmount = resolvedEffect.regenAmount;
+                    _pendingResurrectionSync.regenDuration = resolvedEffect.duration;
                     _pendingResurrectionSync.active = !resurrectedSlots.empty();
                     break;
                 }
@@ -1188,7 +1258,29 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                             pendingEffect.playerSlots.push_back(player->getPlayerNumber());
                         }
                     }
-                    pendingEffect.duration = effect.duration;
+                    pendingEffect.duration = resolvedEffect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
+                case ItemDef::EffectType::Charm: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Charm;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.duration = resolvedEffect.duration;
                     pendingEffect.active = !pendingEffect.playerSlots.empty();
 
                     auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
@@ -1243,7 +1335,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f, local->hasCharm());
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -1257,7 +1349,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         CULog("handleSupportLeft: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup, local->hasCharm()));
         return true;
     }
     return false;
@@ -1284,7 +1376,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         // Shield/barrier popups must fire before useItemById because shield-only
         // items return 0 and would be filtered by the magnitude guard below.
-        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f);
+        spawnDefensiveEffectPopups(def, dropPos, shouldShowEffectPopup, def->getBaseValue() > 0.0f, local->hasCharm());
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
@@ -1297,7 +1389,7 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
         
         if (resolvedMagnitude == 0.0f) return true;
-        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup));
+        createFloatingPopup(dropPos, buildHealPopups(def->getBaseValue(), resolvedMagnitude, def, shouldShowEffectPopup, local->hasCharm()));
         return true;
     }
     return false;
@@ -2648,7 +2740,6 @@ void GameScene::handleResetButton(InputController& input) {
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
     if (_resetBtn->getBoundingBox().contains(touchPosScreen)) {
-        CULog("Reset button tapped!");
         reset();
     }
 }
@@ -2791,8 +2882,8 @@ void GameScene::updateDebugPointer(InputController& input) {
  * Hit-tests item widgets against the initial touch position.
  */
 void GameScene::handleDragInitiation(InputController& input) {
-    if (_draggedIcon || !input.isDragging()) return;
-
+    if (_draggedIcon || (!input.isDragging() && !input.justTouched() && !input.justMouseDown())) return;
+    
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
 
     for (auto& [id, widget] : _itemWidgets) {
@@ -2853,8 +2944,18 @@ void GameScene::handleDragTracking(InputController& input) {
     auto body = _itemBodies.find(_draggedItemId);
     if (body != _itemBodies.end() && body->second) {
         _dragPreviousFrameItemBodyPos = body->second->getPosition(); // Store current position for velocity calculation
-        Size widgetSize = _draggedIcon->getContentSize();
-        Vec2 center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+
+        // Corroding items use center anchor, so their position IS the center
+        // Normal items use bottom-left anchor, so we need to add half-size to get center
+        bool isCorroding = (_corrodingItemIds.find(_draggedItemId) != _corrodingItemIds.end());
+        Vec2 center;
+        if (isCorroding) {
+            center = widgetPosition;
+        } else {
+            Size widgetSize = _draggedIcon->getContentSize();
+            center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+        }
+
         body->second->setPosition(center);
         body->second->setLinearVelocity(Vec2::ZERO);
     }
@@ -2995,6 +3096,13 @@ void GameScene::applyPendingPartyEffectSyncs() {
                     player->applyEducate(pendingEffect.duration);
                     waitingForHost = true;
                     break;
+                case ItemDef::EffectType::Charm:
+                    if (player->hasCharm()) {
+                        continue;
+                    }
+                    player->applyCharm(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
                 default:
                     break;
             }
@@ -3043,9 +3151,17 @@ void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forge
                 continue;
             }
 
+            float resolvedChance = forgeEffect.divineChance;
+            for (const auto& player : _gameState.getPlayers()) {
+                if (player && player->hasCharm()) {
+                    resolvedChance = std::min(1.0f, resolvedChance * 2.0f);
+                    break;
+                }
+            }
+
             const int seed = makeForgeSeed();
-            applyForgeEffect(forgeEffect.divineChance, seed);
-            _network->broadcastForgeEffect(forgeEffect.divineChance, seed);
+            applyForgeEffect(resolvedChance, seed);
+            _network->broadcastForgeEffect(resolvedChance, seed);
         } else if (forgeEffect.authoritative) {
             applyForgeEffect(forgeEffect.divineChance, forgeEffect.seed);
         }
@@ -3127,15 +3243,110 @@ void GameScene::handleGaiaSpawn() {
 }
 
 /**
+ * Checks if Cerberus's corrosive debuff should drain an item from the affected player.
+ * If the drain timer has elapsed, removes a random item from the target player's inventory.
+ * Host handles this authoritative logic; clients receive updates via game state broadcasts.
+ */
+void GameScene::handleCorrosiveDrain(){
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+
+    // Only proceed if corrosive is active and it's time to drain
+    if (!cerberus || !cerberus->isCorrosiveActive()) {
+        return;
+    }
+
+    if (!cerberus->shouldDrainItem()) {
+        return;
+    }
+
+    int targetIndex = cerberus->getCorrosiveTarget();
+
+    Player* victim = _gameState.getPlayerBySlot(targetIndex);
+    if (!victim || !victim->isAlive() || victim->getInventory().empty()) {
+        if (_debugMode) CULog("No victim, victim dead, or empty inventory - ending corrosive (target=%d)", targetIndex);
+        // End corrosive early since player is dead or has no items left
+        cerberus->endCorrosive();
+        return;
+    }
+
+    auto& inventory = victim->getInventory();
+    int randomIndex = rand() % inventory.size();
+    ItemInstance::ItemId itemIdToRemove = inventory[randomIndex].getId();
+
+    // Don't corrode if the item is currently being dragged
+    if (_draggedItemId == itemIdToRemove) {
+        CULog("  -> Skipping item being dragged");
+        return;
+    }
+
+    // Trigger a longer corrosion animation before removing the item
+    auto widgetIt = _itemWidgets.find(itemIdToRemove);
+    if (widgetIt != _itemWidgets.end() && widgetIt->second) {
+        auto itemDef = _itemController.getDatabase().getDef(inventory[randomIndex].getDefId());
+        if (itemDef) {
+
+            // Mark item as corroding.
+            _corrodingItemIds.insert(itemIdToRemove);
+
+            auto widget = widgetIt->second;
+
+            // Change anchor to center so it shrinks toward its center
+            // Use same approach as consumed items - getBoundingBox gives visual bounds
+            cugl::Rect sourceBounds = widget->getBoundingBox();
+            cugl::Vec2 sourceCenter = sourceBounds.origin + cugl::Vec2(sourceBounds.size.width * 0.5f, sourceBounds.size.height * 0.5f);
+
+            widget->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            widget->setPosition(sourceCenter);
+
+            // Update physics body to match new center position
+            auto bodyIt = _itemBodies.find(itemIdToRemove);
+            if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                bodyIt->second->setPosition(sourceCenter);
+            }
+
+            // Create corrosion animation on the original widget (NOT a ghost)
+            CorrodedItemAnimation anim;
+            anim.node = widget;
+            anim.elapsed = 0.0f;
+            anim.duration = ITEM_CORRODE_ANIMATION_DURATION;
+            anim.startScale = widget->getScaleX();
+            anim.endScale = ITEM_CORRODE_END_SCALE;
+            anim.itemId = itemIdToRemove;
+            _corrodedItemAnimations.push_back(anim);
+
+            if (_debugMode) CULog("  -> Item marked as corroding (still usable during animation)");
+        }
+    }
+
+    if (_debugMode) CULog("  -> Item corrosion started (%d items remaining)", (int)inventory.size());
+}
+
+
+/**
  * Spawns items for the local player every frame, and for all AI-controlled
  * players if this machine is the host. AI item spawning is host-only since
  * the host is the authoritative source for all AI state.
+ * 
+ * Corrosive players do not get items.
  *
  * @param dt  Delta time in seconds.
  */
 void GameScene::handleItemSpawn(float dt) {
-    // Always spawn items for the local human player.
-    _itemController.update(dt, _gameState.getLocalPlayer());
+
+    // Check if local player is affected by corrosive (which prevents item spawning)
+    bool localPlayerCorrosive = false;
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+    if (cerberus && cerberus->isCorrosiveActive()) {
+        Player* local = _gameState.getLocalPlayer();
+        int corrosiveTarget = cerberus->getCorrosiveTarget();
+        int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+        localPlayerCorrosive = (corrosiveTarget == localPlayerSlot);
+    }
+
+    // Don't spawn items for local player if they're being corroded
+    if (!localPlayerCorrosive) {
+        _itemController.update(dt, _gameState.getLocalPlayer());
+    }
 
     //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
     handleGaiaSpawn();
@@ -3665,14 +3876,26 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
  * This function evaluates which drop zones should be visible at the current moment
  * (e.g., during drag-and-drop interactions or based on item/type compatibility)
  * and toggles their visibility accordingly.
+ * 
+ * Corrosive players can not see pass zones
  */
 void GameScene::updateDropZoneVisibility(){
     if (_draggedItemId != 0) {
         Player* local = _gameState.getLocalPlayer();
         bool localAlive = local && local->isAlive();
 
-        _passLeftArea->setVisible(true);
-        _passRightArea->setVisible(true);
+        // Check if local player is affected by corrosive
+        bool isCorrosiveActive = false;
+        auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+        if (cerberus && cerberus->isCorrosiveActive()) {
+            int corrosiveTarget = cerberus->getCorrosiveTarget();
+            int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+            isCorrosiveActive = (corrosiveTarget == localPlayerSlot);
+        }
+
+        // Hide pass zones if corrosive is active
+        _passLeftArea->setVisible(!isCorrosiveActive);
+        _passRightArea->setVisible(!isCorrosiveActive);
 
         if (localAlive) {
             auto itemDef = getHeldItemDef(_draggedItemId);
@@ -3703,12 +3926,22 @@ void GameScene::updateDropZoneVisibility(){
  */
 void GameScene::updateTooltipPosition() {
     Size widgetSize = _draggedIcon->getContentSize();
-
     Vec2 widgetPos = _draggedIcon->getPosition();
 
-    // Center tooltip horizontally over the widget, place it just above
-    float x = widgetPos.x + (widgetSize.width  - _tooltipNode->getWidth()) * 0.5f;
-    float y = widgetPos.y +  widgetSize.height + ITEM_TOOLTIP_GAP;
+    // Corroding items use CENTER anchor for proper shrinking animation
+    // Normal items use BOTTOM_LEFT anchor
+    bool isCorroding = (_corrodingItemIds.find(_draggedItemId) != _corrodingItemIds.end());
+
+    float x, y;
+    if (isCorroding) {
+        // Center anchor: position is at widget center
+        x = widgetPos.x - _tooltipNode->getWidth() * 0.5f;
+        y = widgetPos.y + widgetSize.height * 0.5f + ITEM_TOOLTIP_GAP;
+    } else {
+        // Bottom-left anchor: position is at widget bottom-left
+        x = widgetPos.x + (widgetSize.width - _tooltipNode->getWidth()) * 0.5f;
+        y = widgetPos.y + widgetSize.height + ITEM_TOOLTIP_GAP;
+    }
 
     _tooltipNode->setPosition(Vec2(x, y));
 }
@@ -3740,6 +3973,7 @@ void GameScene::update(float dt, InputController& input) {
     handleItemSpawn(dt);
     updateEnemyAnimation(dt, _network->getLocalPlayerNumber());
     updateEnemyAndAI(dt);
+    handleCorrosiveDrain();
     updateEnemyHealthBarEffect(dt);
     updateDropZoneVisibility();
 
@@ -3764,6 +3998,7 @@ void GameScene::update(float dt, InputController& input) {
     syncInventoryWidgets();
     updateItemWidgetScales(dt);
     updateConsumedItemAnimations(dt);
+    updateCorrodedItemAnimations(dt);
     syncItemWidgetsToBodies();
 
     _network->clearQueues();
@@ -3883,8 +4118,14 @@ void GameScene::syncItemWidgetsToBodies() {
 
         Size widgetSize = widget->second->getContentSize();
         Vec2 bodyPosition = body->getPosition();
-        Vec2 widgetPosition = bodyPosition - Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
-        widget->second->setPosition(widgetPosition);
+
+        // Corroding items use center anchor, so position differently
+        if (_corrodingItemIds.find(itemId) != _corrodingItemIds.end()) {
+            widget->second->setPosition(bodyPosition);
+        } else {
+            Vec2 widgetPosition = bodyPosition - Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+            widget->second->setPosition(widgetPosition);
+        }
     }
 
     for (ItemInstance::ItemId itemId : staleIds) {
@@ -3947,6 +4188,11 @@ void GameScene::updateItemWidgetScales(float dt) {
     const float lerpFactor = std::min(1.0f, dt * ITEM_SCALE_SPEED);
     for (const auto& [itemId, widget] : _itemWidgets) {
         if (!widget) continue;
+
+        // Skip corroding items - they have their own animation
+        if (_corrodingItemIds.find(itemId) != _corrodingItemIds.end()) {
+            continue;
+        }
 
         auto current = _itemWidgetScales.find(itemId);
         if (current == _itemWidgetScales.end()) {
@@ -4071,6 +4317,82 @@ void GameScene::updateConsumedItemAnimations(float dt) {
                            return finished;
                        }),
         _consumedItemAnimations.end());
+}
+
+/**
+ * Updates corroded item animations and removes items from inventory when animation completes.
+ * Unlike consumed items, these items are still in inventory during animation and only removed at the end.
+ */
+void GameScene::updateCorrodedItemAnimations(float dt) {
+    if (_corrodedItemAnimations.empty()) return;
+
+    // Collect finished items for cleanup
+    std::vector<ItemInstance::ItemId> finishedItems;
+
+    for (auto& anim : _corrodedItemAnimations) {
+        if (!anim.node || anim.duration <= 0.0f) continue;
+
+        anim.elapsed += dt;
+        float t = std::min(1.0f, anim.elapsed / anim.duration);
+        float scale = anim.startScale + (anim.endScale - anim.startScale) * t;
+        anim.node->setScale(scale);
+
+        // Check if animation finished
+        if (anim.elapsed >= anim.duration) {
+            finishedItems.push_back(anim.itemId);
+        }
+    }
+
+    // Clean up finished items (do this BEFORE erasing animations to avoid iterator issues)
+    for (ItemInstance::ItemId itemId : finishedItems) {
+        // If this item is being dragged, reset drag state
+        if (_draggedItemId == itemId) {
+            _draggedIcon = nullptr;
+            _draggedItemId = 0;
+            _draggedItemDef = nullptr;
+            _dragStartBodyPosition = Vec2::ZERO;
+
+            // Hide tooltip
+            if (_tooltipNode) {
+                _tooltipNode->setVisible(false);
+            }
+
+            CULog("  -> Corroded item was being dragged, resetting drag state and hiding tooltip");
+        }
+
+        // Remove from corroding set
+        _corrodingItemIds.erase(itemId);
+
+        // Remove visual widget
+        auto widgetIt = _itemWidgets.find(itemId);
+        if (widgetIt != _itemWidgets.end()) {
+            if (_inventory && widgetIt->second) {
+                _inventory->removeChild(widgetIt->second);
+            }
+            _itemWidgets.erase(widgetIt);
+        }
+
+        // Remove physics body
+        auto bodyIt = _itemBodies.find(itemId);
+        if (bodyIt != _itemBodies.end() && bodyIt->second && _itemPhysicsWorld) {
+            _itemPhysicsWorld->removeObstacle(bodyIt->second);
+            _itemBodies.erase(bodyIt);
+        }
+
+        // Remove from player inventory
+        Player* localPlayer = _gameState.getLocalPlayer();
+        if (localPlayer) {
+            localPlayer->removeItemById(itemId);
+        }
+    }
+
+    // Now remove finished animations from the list
+    _corrodedItemAnimations.erase(
+        std::remove_if(_corrodedItemAnimations.begin(), _corrodedItemAnimations.end(),
+                       [](const CorrodedItemAnimation& anim) {
+                           return !anim.node || anim.elapsed >= anim.duration;
+                       }),
+        _corrodedItemAnimations.end());
 }
 
 /**
@@ -4332,20 +4654,40 @@ void GameScene::render() {
  * If any item is held, the pass zones are added to _inputZones.
  * If an attack item is held, the attack zone is added to _inputZones.
  * If a support item is held, the support zones are added to _inputZones.
+ * If we are being corroded by Cerberus, we should not have pass zones active
  */
 void GameScene::updateInputZones(){
     Player* local = _gameState.getLocalPlayer();
-    
+
+    // Check if local player is affected by corrosive
+    bool isCorrosiveActive = false;
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+    if (cerberus && cerberus->isCorrosiveActive()) {
+        int corrosiveTarget = cerberus->getCorrosiveTarget();
+        int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+        isCorrosiveActive = (corrosiveTarget == localPlayerSlot);
+    }
+
     // Dead players can only pass items or put them in inventory
     // They cannot attack or support
     if (local && !local->isAlive()) {
-        _inputZones = _passZones;
+        // If corrosive is active on this player, they can't pass either
+        if (!isCorrosiveActive) {
+            _inputZones = _passZones;
+        } else {
+            _inputZones.clear();
+        }
         _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
     } else {
         // Alive players have access to all zones
         _inputZones = _attackZones;
         _inputZones.insert(_inputZones.end(), _supportZones.begin(), _supportZones.end());
-        _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
+
+        // Only add pass zones if not affected by corrosive
+        if (!isCorrosiveActive) {
+            _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
+        }
+
         _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
     }
 }
@@ -5022,11 +5364,14 @@ void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
  *
  * @param baseValue     Item's raw base heal value from the item definition.
  * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
+ * @param def           Item definition used to detect additional support effects such as regen.
+ * @param shouldShowEffectPopup Whether effect-specific popups should be shown.
+ * @param charmActive   Whether charm should modify effect-specific popup values.
  * @return Ordered list of FloatingPopupData for the sequence (1 or 3 entries).
  */
 std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float resolvedHeal,
                                                          const std::shared_ptr<const ItemDef>& def,
-                                                         bool shouldShowEffectPopup) const {
+                                                         bool shouldShowEffectPopup, bool charmActive) const {
     // Back-calculate the house multiplier from the resolved heal so we can show it in the sequence.
     const float totalMultiplier = (baseValue > 0.0f) ? resolvedHeal / baseValue : 1.0f;
     const float houseLog        = 0.2f * std::log(std::max(1.0f, totalMultiplier));
@@ -5034,8 +5379,9 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
     float regenAmount = 0.0f;
     if (def) {
         for (const auto& effect : def->getEffects()) {
-            if (effect.type == ItemDef::EffectType::Regen && effect.regenAmount > 0.0f) {
-                regenAmount = effect.regenAmount;
+            const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, charmActive);
+            if (resolvedEffect.type == ItemDef::EffectType::Regen && resolvedEffect.regenAmount > 0.0f) {
+                regenAmount = resolvedEffect.regenAmount;
                 break;
             }
         }
@@ -5080,19 +5426,21 @@ std::vector<FloatingPopupData> GameScene::buildHealPopups(float baseValue, float
  * @param dropPos  Screen-space position where popups appear.
  * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
  * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
+ * @param charmActive Whether charm should modify effect-specific popup values.
  */
 void GameScene::spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos,
-                                           bool shouldShowEffectPopup, bool hasHealingPopup) {
+                                           bool shouldShowEffectPopup, bool hasHealingPopup, bool charmActive) {
     const bool hasRegenPopup = shouldShowEffectPopup && def && def->hasEffectType(ItemDef::EffectType::Regen);
     const float popupYOffset = hasHealingPopup ? (hasRegenPopup ? -56.0f : -28.0f) : 0.0f;
     for (const auto& effect : def->getEffects()) {
-        if (effect.type == ItemDef::EffectType::Shield && effect.mitigation > 0.0f) {
+        const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, charmActive);
+        if (resolvedEffect.type == ItemDef::EffectType::Shield && resolvedEffect.mitigation > 0.0f) {
             char text[32];
-            std::snprintf(text, sizeof(text), "[%.1f]", effect.mitigation);
+            std::snprintf(text, sizeof(text), "[%.1f]", resolvedEffect.mitigation);
             createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(80, 200, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, popupYOffset), true}});
-        } else if (shouldShowEffectPopup && effect.type == ItemDef::EffectType::Barrier && effect.multiplier < 1.0f) {
+        } else if (shouldShowEffectPopup && resolvedEffect.type == ItemDef::EffectType::Barrier && resolvedEffect.multiplier < 1.0f) {
             char text[32];
-            const float reductionPct = (1.0f - effect.multiplier) * 100.0f;
+            const float reductionPct = (1.0f - resolvedEffect.multiplier) * 100.0f;
             std::snprintf(text, sizeof(text), "[%.0f%%]", reductionPct);
             createFloatingPopup(dropPos, {{text, 26.0f, cugl::Color4(180, 80, 255, 255), cugl::Color4::BLACK, 0.0f, 0.5f, cugl::Vec2(0.0f, popupYOffset), true}});
         }

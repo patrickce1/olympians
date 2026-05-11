@@ -34,8 +34,8 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, con
 
 /**
  * Per-frame update. Ticks knocked timers (recovering heads when expired), regenerates
- * knock thresholds for active heads, ticks the corrosive debuff, and accelerates the
- * IDLE state cooldown when one or both frantic thresholds are crossed.
+ * knock thresholds for active heads, triggers corrosive on spit attack entry, ticks the
+ * corrosive debuff, and accelerates the IDLE state cooldown when frantic thresholds are crossed.
  *
  * @param dt  Elapsed time in seconds since the last update.
  */
@@ -56,16 +56,26 @@ void Cerberus::update(float dt) {
         }
     }
 
+    // Trigger corrosive debuff on the first frame of the spit attack (ATTACK_2)
+    EnemyLoader::State currentState = getCurrentState();
+    if (currentState == EnemyLoader::State::ATTACK_2 && _previousState != EnemyLoader::State::ATTACK_2) {
+        if (_targetIndex >= 0) {
+            startCorrosive(_targetIndex, CORROSIVE_DURATION);
+        }
+    }
+    _previousState = currentState;
+
     if (_corrosiveActive) {
         _corrosiveTimer -= dt;
         if (_corrosiveTimer <= 0.0f) {
             _corrosiveTimer = 0.0f;
             _corrosiveActive = false;
+            _corrosiveTarget = -1;
         } else {
             _corrosiveDrainAccum -= dt;
             if (_corrosiveDrainAccum <= 0.0f) {
                 _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL;
-                applyCorrosive();
+                _shouldDrain = true;
             }
         }
     }
@@ -122,9 +132,36 @@ void Cerberus::takeDamage(float damage, int playerIndex) {
     Enemy::takeDamage(damage, playerIndex);
 }
 
-/** Placeholder: drains one item from the corrosive target's inventory. Not yet implemented. */
-void Cerberus::applyCorrosive() {
-    // Stub: full corrosive inventory drain to be implemented with game scene integration
+/**
+ * Starts the corrosive debuff on the given player for the given duration.
+ * GameScene polls shouldDrainItem() each frame to remove one item per drain tick.
+ */
+void Cerberus::startCorrosive(int playerIndex, float duration) {
+    _corrosiveTarget     = playerIndex;
+    _corrosiveTimer      = duration;
+    _corrosiveActive     = true;
+    _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL;
+    _shouldDrain         = false;
+    if (_debug) CULog("[Cerberus] startCorrosive: player=%d, duration=%.1f", playerIndex, duration);
+}
+
+/** Ends the corrosive effect early (e.g., when the player runs out of items). */
+void Cerberus::endCorrosive() {
+    _corrosiveActive     = false;
+    _corrosiveTimer      = 0.0f;
+    _corrosiveTarget     = -1;
+    _corrosiveDrainAccum = 0.0f;
+    _shouldDrain         = false;
+    if (_debug) CULog("[Cerberus] endCorrosive called");
+}
+
+/** Returns true (and clears the flag) if a drain tick fired this frame. */
+bool Cerberus::shouldDrainItem() {
+    if (_shouldDrain) {
+        _shouldDrain = false;
+        return true;
+    }
+    return false;
 }
 
 /**

@@ -14,6 +14,8 @@
 #include "../NetworkMessage.h"
 #include "../bosses/Cyclops.h"
 #include "../bosses/Gaia.h"
+#include "../bosses/Cerberus.h"
+
 
 /**
  * Pure data model for the game world.

@@ -198,6 +198,26 @@ void Player::applyEducate(float duration) {
 }
 
 /**
+ * Applies a timed charm effect to this player.
+ *
+ * @param duration How long the charm effect should stay active.
+ */
+void Player::applyCharm(float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    _charmDuration = duration;
+
+    if (_debug) {
+        CULog("Charm applied: player='%s' house='%s' duration=%.3f",
+            _playerName.c_str(),
+            _houseId.c_str(),
+            _charmDuration);
+    }
+}
+
+/**
  * Advances this player's active runtime support effects by the elapsed frame time.
  *
  * Both shield and barrier durations are reduced by `dt` and clamped to `0.0f` so
@@ -264,6 +284,15 @@ void Player::updateEffects(float dt) {
                 _houseId.c_str());
         }
     }
+
+    if (_charmDuration > 0.0f) {
+        _charmDuration = std::max(0.0f, _charmDuration - dt);
+        if (_charmDuration <= 0.0f && _debug) {
+            CULog("Charm expired: player='%s' house='%s'",
+                _playerName.c_str(),
+                _houseId.c_str());
+        }
+    }
 }
 
 /** Clears runtime-only combat effects. */
@@ -278,6 +307,64 @@ void Player::clearRuntimeEffects() {
     _regenAmountRemaining = 0.0f;
     _regenDuration = 0.0f;
     _educateDuration = 0.0f;
+    _charmDuration = 0.0f;
+}
+
+/**
+ * Returns an effect copy adjusted by charm if charm is active.
+ *
+ * Charm only affects effects that are applied while it is active. Regen duration
+ * is intentionally unchanged, including resurrect's regen duration.
+ *
+ * @param effect       The original item effect definition.
+ * @param charmActive  Whether charm should modify the effect.
+ * @return The original effect, or a charm-boosted copy when charm is active.
+ */
+static ItemDef::Effect resolveEffectForCharm(const ItemDef::Effect& effect, bool charmActive) {
+    ItemDef::Effect resolved = effect;
+    if (!charmActive || effect.type == ItemDef::EffectType::Charm) {
+        return resolved;
+    }
+
+    switch (effect.type) {
+        case ItemDef::EffectType::Shield:
+            resolved.mitigation *= 2.0f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Barrier:
+            resolved.multiplier *= 0.5f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Regen:
+            resolved.regenAmount *= 2.0f;
+            break;
+        case ItemDef::EffectType::Resurrect:
+            resolved.reviveHealth *= 2.0f;
+            resolved.regenAmount *= 2.0f;
+            break;
+        case ItemDef::EffectType::Educate:
+        case ItemDef::EffectType::Stun:
+        case ItemDef::EffectType::Love:
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Slow:
+            resolved.multiplier *= 0.5f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Vulnerable:
+            resolved.multiplier *= 2.0f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Upgrade:
+            break;
+        case ItemDef::EffectType::Forge:
+            resolved.chance = std::min(1.0f, resolved.chance * 2.0f);
+            break;
+        case ItemDef::EffectType::Charm:
+            break;
+    }
+
+    return resolved;
 }
 
 /**
@@ -320,8 +407,9 @@ static float computeResolvedItemMagnitude(const Player& player,
 
     float itemMultiplier = 1.0f;
     for (const ItemDef::Effect& effect : def.getEffects()) {
-        if (effect.type == ItemDef::EffectType::Upgrade) {
-            itemMultiplier *= std::pow(effect.multiplier, static_cast<float>(player.getMalletUseCount()));
+        const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, player.hasCharm());
+        if (resolvedEffect.type == ItemDef::EffectType::Upgrade) {
+            itemMultiplier *= std::pow(resolvedEffect.multiplier, static_cast<float>(player.getMalletUseCount()));
         }
     }
 
@@ -389,7 +477,7 @@ float Player::resolveItemMagnitude(const ItemDef& def, const ItemDatabase& db) c
  */
 void Player::recordItemUse(const ItemDef& def) {
     if (itemConsumesUpgradeStreak(def) && canApplyItemEffects(*this, def)) {
-        _malletUseCount += 1;
+        _malletUseCount += hasCharm() ? 2 : 1;
     }
 }
 
@@ -475,20 +563,22 @@ static void applyResurrectEffectToParty(const ItemDef::Effect& effect, Player& s
  * @param source The player whose party links define the connected ally set.
  */
 static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolvedMagnitude, Player& source) {
-    if (effect.type == ItemDef::EffectType::Resurrect) {
-        applyResurrectEffectToParty(effect, source);
+    const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, source.hasCharm());
+
+    if (resolvedEffect.type == ItemDef::EffectType::Resurrect) {
+        applyResurrectEffectToParty(resolvedEffect, source);
         return;
     }
-    if (effect.type == ItemDef::EffectType::Educate) {
+    if (resolvedEffect.type == ItemDef::EffectType::Educate) {
         for (Player* player : collectPartyMembers(source)) {
             if (!player) {
                 continue;
             }
-            player->applyEducate(effect.duration);
+            player->applyEducate(resolvedEffect.duration);
         }
         return;
     }
-    if (effect.type == ItemDef::EffectType::Forge) {
+    if (resolvedEffect.type == ItemDef::EffectType::Forge) {
         return;
     }
 
@@ -496,7 +586,7 @@ static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolv
         if (!player) {
             continue;
         }
-        EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, *player);
+        EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, *player);
     }
 }
 
@@ -533,12 +623,14 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
             returnedMagnitude = resolvedMagnitude;
             if (shouldApplyEffects) {
                 for (const ItemDef::Effect& effect : def->getEffects()) {
-                    EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, target);
+                    const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
+                    EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, target);
                 }
             }
         } else if (shouldApplyEffects && !def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, target);
+                const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
+                EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, target);
             }
         }
 
@@ -589,7 +681,8 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
                 returnedMagnitude = resolvedMagnitude;
                 if (shouldApplyEffects) {
                     for (const ItemDef::Effect& effect : def->getEffects()) {
-                        applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                        const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
+                        applyAttackEffectToEnemy(resolvedEffect, resolvedMagnitude, target, getPlayerNumber());
                     }
                 }
             } else if (shouldApplyEffects) {
@@ -599,7 +692,8 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             }
         } else if (shouldApplyEffects && !def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
+                applyAttackEffectToEnemy(resolvedEffect, resolvedMagnitude, target, getPlayerNumber());
             }
         }
 

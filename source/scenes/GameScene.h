@@ -60,6 +60,30 @@ struct ConsumedItemAnimation {
     /** Ending scale at animation completion. */
     float endScale = 0.0f;
 };
+
+/**
+ * Represents a corroded item animation that removes the item after completion.
+ * Unlike consumed items, corroded items are removed from inventory AFTER animation finishes.
+ */
+struct CorrodedItemAnimation {
+    /** Transient visual node shown while the corrode animation plays. */
+    std::shared_ptr<cugl::scene2::SceneNode> node;
+
+    /** Elapsed animation time in seconds. */
+    float elapsed = 0.0f;
+
+    /** Total animation duration in seconds. */
+    float duration = 0.0f;
+
+    /** Scale at animation start (typically 1.0). */
+    float startScale = 1.0f;
+
+    /** Target scale at animation end. */
+    float endScale = 0.001f;
+
+    /** Item ID to remove from inventory after animation completes. */
+    ItemInstance::ItemId itemId;
+};
 /*
  * Represents a single item use animation currently playing on screen.
  * 
@@ -240,6 +264,9 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
+    /** Set of ItemIds currently corroding (prevents scale updates during corrosion animation). */
+    std::unordered_set<ItemInstance::ItemId> _corrodingItemIds;
+
     /** Current visual scale for each inventory item widget (for smooth pickup/release animation). */
     std::unordered_map<ItemInstance::ItemId, float> _itemWidgetScales;
 
@@ -395,6 +422,8 @@ protected:
 
     /** Active short-lived consumed-item ghost animations. */
     std::vector<ConsumedItemAnimation> _consumedItemAnimations;
+    /** Active corrode animations for items being destroyed by corrosion. */
+    std::vector<CorrodedItemAnimation> _corrodedItemAnimations;
     /** Vector of currently active item use animations. Multiple animations can play concurrently. */
     std::vector<ItemUseAnimation> _activeItemUseAnimations;
 
@@ -1136,6 +1165,13 @@ public:
       * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well
       */
     void handleGaiaSpawn();
+
+    /**
+     * Checks if Cerberus's corrosive debuff should drain an item from the affected player.
+     * If the drain timer has elapsed, removes a random item from the target player's inventory.
+     * Host handles this authoritative logic; clients receive updates via game state broadcasts.
+     */
+    void handleCorrosiveDrain();
     
     /**
      * Spawns items for the local player every frame, and for all AI-controlled
@@ -1506,11 +1542,13 @@ public:
      * @param baseValue     Item's raw base heal value.
      * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
      * @param def           Item definition used to detect additional support effects such as regen.
+     * @param shouldShowEffectPopup Whether effect-specific popups should be shown.
+     * @param charmActive   Whether charm should modify effect-specific popup values.
      * @return Ordered list of FloatingPopupData for the sequence.
      */
     std::vector<FloatingPopupData> buildHealPopups(float baseValue, float resolvedHeal,
                                                    const std::shared_ptr<const ItemDef>& def,
-                                                   bool shouldShowEffectPopup) const;
+                                                   bool shouldShowEffectPopup, bool charmActive) const;
 
     /**
      * Fires visual popups for any shield or barrier effects on a support item.
@@ -1523,8 +1561,10 @@ public:
      * @param dropPos  Screen-space position where popups appear.
      * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
      * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
+     * @param charmActive Whether charm should modify effect-specific popup values.
      */
-    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos, bool shouldShowEffectPopup, bool hasHealingPopup);
+    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos,
+                                    bool shouldShowEffectPopup, bool hasHealingPopup, bool charmActive);
 
     /**
      * Handles the shared ally-target branch for attack items and returns whether it fully resolved the item use.
@@ -1626,6 +1666,9 @@ public:
 
     /** Advances and cleans up active consumed-item ghost animations. */
     void updateConsumedItemAnimations(float dt);
+
+    /** Updates active corrode animations and removes items when animation completes. */
+    void updateCorrodedItemAnimations(float dt);
 
     /** Removes and clears all consumed-item ghost animations. */
     void clearConsumedItemAnimations();

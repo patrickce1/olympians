@@ -11,8 +11,8 @@
  *     from its corresponding side. When a head's accumulated damage exceeds the knock
  *     threshold it is knocked, plays a downed animation, and blocks incoming attacks
  *     from that side. It recovers with a full threshold reset after knockedDuration seconds.
- *   - Life steal (passive): a fraction of all incoming player damage is immediately
- *     converted to healing, making sustained burst damage critical to overcome.
+ *   - Corrosive spit: the Venom Spit attack (attack_2) applies a corrosive debuff to the
+ *     targeted player, draining one item per interval for CORROSIVE_DURATION seconds.
  *   - Frantic mode: once health falls below configurable thresholds, IDLE cooldowns
  *     shorten and idle animations speed up so Cerberus attacks more frequently.
  *     Both thresholds stack independently.
@@ -24,7 +24,6 @@ private:
 
     /** Seconds between successive corrosive inventory drain ticks. */
     static constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
-
 
     /**
      * Per-head state tracking for the knock mechanic.
@@ -71,6 +70,12 @@ private:
     /** Player slot currently afflicted by the corrosive debuff, or -1 if none. */
     int _corrosiveTarget = -1;
 
+    /** Set each drain tick; consumed once by GameScene to remove one item from the target. */
+    bool _shouldDrain = false;
+
+    /** Tracks the previous state to detect the transition into the spit attack. */
+    EnemyLoader::State _previousState = EnemyLoader::State::IDLE;
+
     /**
      * Reads all boss-specific configuration from _customData and initializes head thresholds.
      * Called by both init() overloads after the base Enemy is fully set up.
@@ -92,6 +97,9 @@ private:
     void unKnockHead(int headArrayIndex);
 
 public:
+    /** Duration in seconds that the corrosive debuff lasts. */
+    static constexpr float CORROSIVE_DURATION = 20.0f;
+
     Cerberus() {}
 
     /**
@@ -114,28 +122,46 @@ public:
     bool init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) override;
 
     /**
-     * Per-frame update. Ticks knocked timers, regenerates knock thresholds, ticks the
-     * corrosive debuff, and accelerates the IDLE cooldown when frantic tiers are active.
+     * Per-frame update. Ticks knocked timers, regenerates knock thresholds, triggers
+     * corrosive on spit attack entry, ticks the corrosive debuff, and accelerates
+     * the IDLE cooldown when frantic tiers are active.
      *
      * @param dt  Elapsed time in seconds since the last update.
      */
     void update(float dt) override;
 
     /**
-     * Handles incoming player damage. Heals Cerberus by the life-steal fraction, reduces
-     * the struck head's knock threshold, then delegates to Enemy::takeDamage for
-     * side-multiplier application and health reduction.
+     * Handles incoming player damage. Reduces the struck head's knock threshold and delegates
+     * to Enemy::takeDamage for side-multiplier application and health reduction.
      *
      * @param damage       Raw damage before side multipliers are applied.
      * @param playerIndex  Slot index of the attacking player.
      */
     void takeDamage(float damage, int playerIndex) override;
 
-    /** Placeholder: drains one item from the corrosive target's inventory. Not yet implemented. */
-    void applyCorrosive();
+    /**
+     * Applies the corrosive debuff to a player for the specified duration.
+     * GameScene should poll shouldDrainItem() each frame to remove items.
+     *
+     * @param playerIndex  Slot index of the player to afflict.
+     * @param duration     How long the debuff lasts in seconds.
+     */
+    void startCorrosive(int playerIndex, float duration);
+
+    /** Ends the corrosive effect early (e.g., when the player runs out of items). */
+    void endCorrosive();
+
+    /**
+     * Returns true (and clears the flag) if a corrosive drain tick fired this frame.
+     * GameScene should call this once per frame and drain one item when it returns true.
+     */
+    bool shouldDrainItem();
 
     /** Returns true if the corrosive debuff is currently active on any player. */
     bool isCorrosiveActive() const { return _corrosiveActive; }
+
+    /** Returns the player slot currently afflicted by corrosive, or -1 if none. */
+    int getCorrosiveTarget() const { return _corrosiveTarget; }
 
     /** Returns true (and clears the flag) if a head was knocked since the last call. */
     bool consumeHeadKnockSound() {
@@ -160,8 +186,6 @@ public:
     /**
      * Returns the cumulative animation speed multiplier contributed by active frantic tiers.
      * Returns 1.0 at full health; each crossed threshold adds _franticRate to the result.
-     *
-     * @return Speed multiplier >= 1.0.
      */
     float getFranticSpeedMultiplier() const {
         float speedMultiplier = 1.0f;
@@ -173,12 +197,7 @@ public:
     /**
      * Returns true if the head facing the given absolute player slot is currently knocked.
      *
-     * Converts the absolute slot to a relative position (0=main, 1=right, 2=back, 3=left)
-     * using the current target index. The back position (relativeSlot == 2) has no physical
-     * head and always returns false.
-     *
      * @param playerSlot  Absolute slot index (0-3) of the player whose side to check.
-     * @return True if that side's head is knocked, false otherwise.
      */
     bool isHeadKnocked(int playerSlot) const {
         int relativeSlot = (playerSlot - getTargetIndex() + 4) % 4;
@@ -188,11 +207,10 @@ public:
     }
 
     /**
-     * For attack_3 redirect: finds the absolute player slot of the first non-knocked side
+     * For attack redirect: finds the absolute player slot of the first non-knocked side
      * head (checks right then left). Returns -1 if both side heads are knocked.
      *
      * @param targetIndex  The enemy's current target player slot.
-     * @return Absolute player slot of an available side head, or -1 if none exists.
      */
     int getAlternateKnockedHead(int targetIndex) const {
         if (!_heads[1].knocked) return (targetIndex + 1) % 4;  // right head
