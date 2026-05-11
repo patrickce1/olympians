@@ -737,28 +737,35 @@ void GameState::applyPlayerScramble(const std::array<int, 4>& newMapping) {
         reordered[newSlot] = _players[oldSlot];
     }
 
-    // Commit reordered array back and track whether _localPlayer moved.
-    Player* localBefore = _localPlayer;
+    // Hold a shared_ptr to the local player so it cannot be destroyed
+    // while we overwrite _players[] entries below.
+    std::shared_ptr<Player> localShared;
+    for (int i = 0; i < n; i++) {
+        if (_players[i].get() == _localPlayer) {
+            localShared = _players[i];
+            break;
+        }
+    }
+
     for (int i = 0; i < n; i++) {
         _players[i] = reordered[i];
         _playerIdMap[i] = _players[i].get();
     }
 
-    // Re-wire circular neighbour ring.
     for (int i = 0; i < n; i++) {
         _players[i]->setLeftPlayer(_players[(i - 1 + n) % n].get());
         _players[i]->setRightPlayer(_players[(i + 1) % n].get());
     }
 
-    // Update each player's internal slot number to match their new position
     for (int i = 0; i < n; i++) {
         _players[i]->setPlayerNumber(i);
     }
 
-    // Keep _localPlayer pointing at the same player object, now at its new slot.
-    if (localBefore) {
+    // Re-find _localPlayer by pointer identity — safe because localShared
+    // kept the object alive through the entire reorder above.
+    if (localShared) {
         for (int i = 0; i < n; i++) {
-            if (_players[i].get() == localBefore) {
+            if (_players[i].get() == localShared.get()) {
                 _localPlayer = _players[i].get();
                 break;
             }

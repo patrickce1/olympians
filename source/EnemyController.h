@@ -68,7 +68,7 @@ private:
     bool _debug = false;
 
     /** Keeps track of if a scramble event was fired this frame. Should be reset after being extracted */
-    bool _scrambleFired;
+    bool _scrambleFired = false;
 
     /** Random number generator for decision making. */
     cugl::Random _rng;

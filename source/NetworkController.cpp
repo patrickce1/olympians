@@ -553,6 +553,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             }
             applyPlayerScramble(_playerScrambleMapping);
             _midGameScramblePending = true;
+            break;
         }
 
 	}

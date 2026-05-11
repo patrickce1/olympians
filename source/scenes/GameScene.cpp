@@ -2459,6 +2459,7 @@ void GameScene::handleNetworkUpdates(float dt) {
         _gameState.networkUpdate(_network->getStateUpdate());
         if (_network->checkMidGameScramble()) {
             _gameState.applyPlayerScramble(_network->getPlayerScrambleMapping());
+            setLocalPlayer(_network->getLocalPlayerNumber());
         }
         processForgeEffects(_network->getForgeEffectUpdates());
         applyPendingResurrectionSync();
@@ -2698,12 +2699,21 @@ void GameScene::handleGaiaScramble() {
     // Build identity list [0,1,2,3]
     std::array<int, 4> mapping = { 0, 1, 2, 3 };
 
-    // Shuffle atomically (single final result)
+    //// Shuffle atomically (single final result)
     std::shuffle(mapping.begin(), mapping.end(), _rng);
 
-    _network->applyPlayerScramble(mapping);
+    CULog("My old number was %d, my new number is %d", _gameState.getLocalPlayer()->getPlayerNumber(), mapping[_network->getLocalPlayerNumber()]);
+
     _gameState.applyPlayerScramble(mapping);
+    _network->applyPlayerScramble(mapping);
     _network->broadcastPlayerScramble(mapping);
+
+    CULog("My new number on game state is %d", _gameState.getLocalPlayer()->getPlayerNumber());
+    CULog("My new number on the network is %d", _network->getLocalPlayerNumber());
+
+    refreshTeammateNameLabels();
+    resetTeammateBlinkState();
+    updatePlayerAndTeammateIcons(0.0f); // reset icons
 }
 
 
@@ -4007,17 +4017,41 @@ void GameScene::refreshTeammateNameLabels() {
     Player* local = _gameState.getLocalPlayer();
     if (!local) return;
 
-    if (_leftPlayerName && local->getLeftPlayer()) {
-        _leftPlayerName->setText(
-            local->getLeftPlayer()->isAI()
-                ? "AI Player " + std::to_string(local->getLeftPlayer()->getPlayerNumber())
-                : local->getLeftPlayer()->getPlayerName());
+    // Local player labels
+    if (_playerName)
+        _playerName->setText(local->getPlayerName());
+    if (_playerHouseName) {
+        std::string house = local->getHouseName();
+        for (char& c : house) c = toupper(c);
+        _playerHouseName->setText(house);
     }
-    if (_rightPlayerName && local->getRightPlayer()) {
+
+    // Left neighbor
+    Player* left = local->getLeftPlayer();
+    if (_leftPlayerName && left) {
+        _leftPlayerName->setText(
+            left->isAI()
+            ? "AI Player " + std::to_string(left->getPlayerNumber())
+            : left->getPlayerName());
+    }
+    if (_leftPlayerHouse && left) {
+        std::string house = left->getHouseName();
+        for (char& c : house) c = toupper(c);
+        _leftPlayerHouse->setText(house);
+    }
+
+    // Right neighbor
+    Player* right = local->getRightPlayer();
+    if (_rightPlayerName && right) {
         _rightPlayerName->setText(
-            local->getRightPlayer()->isAI()
-                ? "AI Player " + std::to_string(local->getRightPlayer()->getPlayerNumber())
-                : local->getRightPlayer()->getPlayerName());
+            right->isAI()
+            ? "AI Player " + std::to_string(right->getPlayerNumber())
+            : right->getPlayerName());
+    }
+    if (_rightPlayerHouse && right) {
+        std::string house = right->getHouseName();
+        for (char& c : house) c = toupper(c);
+        _rightPlayerHouse->setText(house);
     }
 }
 
