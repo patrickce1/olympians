@@ -72,9 +72,7 @@ void Cerberus::update(float dt) {
 
     // Trigger corrosive when entering ATTACK_3 state
     if (currentState == EnemyLoader::State::ATTACK_3 && previousState != EnemyLoader::State::ATTACK_3) {
-        // Always target player 0 (local player) for testing
-        startCorrosive(0, CORROSIVE_DURATION);
-        CULog("Cerberus: ATTACK_3 started, triggering corrosive on player 0 (YOU)");
+        startCorrosive(_corrosiveTarget, CORROSIVE_DURATION);
     }
 
     previousState = currentState;
@@ -100,11 +98,9 @@ void Cerberus::update(float dt) {
         }
         else {
             _corrosiveDrainAccum -= dt;
-            CULog("Cerberus: Accum ticking: %.3f (will drain at 0)", _corrosiveDrainAccum);
             if (_corrosiveDrainAccum <= 0) {
                 _shouldDrain = true;
-                _corrosiveDrainAccum += CORROSIVE_DRAIN_INTERVAL; // reset by adding interval (more accurate)
-                CULog("Cerberus: Setting _shouldDrain to TRUE, resetting accum to %.3f", _corrosiveDrainAccum);
+                _corrosiveDrainAccum += CORROSIVE_DRAIN_INTERVAL;
             }
         }
     }

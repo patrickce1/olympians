@@ -3365,12 +3365,22 @@ void GameScene::updateDropZoneVisibility(){
  */
 void GameScene::updateTooltipPosition() {
     Size widgetSize = _draggedIcon->getContentSize();
-
     Vec2 widgetPos = _draggedIcon->getPosition();
 
-    // Center tooltip horizontally over the widget, place it just above
-    float x = widgetPos.x + (widgetSize.width  - _tooltipNode->getWidth()) * 0.5f;
-    float y = widgetPos.y +  widgetSize.height + ITEM_TOOLTIP_GAP;
+    // Corroding items use CENTER anchor for proper shrinking animation
+    // Normal items use BOTTOM_LEFT anchor
+    bool isCorroding = (_corrodingItemIds.find(_draggedItemId) != _corrodingItemIds.end());
+
+    float x, y;
+    if (isCorroding) {
+        // Center anchor: position is at widget center
+        x = widgetPos.x - _tooltipNode->getWidth() * 0.5f;
+        y = widgetPos.y + widgetSize.height * 0.5f + ITEM_TOOLTIP_GAP;
+    } else {
+        // Bottom-left anchor: position is at widget bottom-left
+        x = widgetPos.x + (widgetSize.width - _tooltipNode->getWidth()) * 0.5f;
+        y = widgetPos.y + widgetSize.height + ITEM_TOOLTIP_GAP;
+    }
 
     _tooltipNode->setPosition(Vec2(x, y));
 }
