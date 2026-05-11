@@ -360,6 +360,9 @@ protected:
 #pragma mark - Item Timers UI
     std::vector<ActiveEffectIcon> _enemyEffectIcons;
     
+    /** The scene node representing the animated timers for special effects to be populated in the scene based on the used items. */
+    std::shared_ptr<cugl::scene2::SceneNode> _timers;
+    
 #pragma mark - Drag State
 
     /** The scene node currently being dragged by the player, or nullptr. */
