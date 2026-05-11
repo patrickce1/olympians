@@ -300,6 +300,9 @@ protected:
     /** The boss health bar */
     std::shared_ptr<cugl::scene2::ProgressBar> _bossHealthBar;
     
+    /** The boss health bar icon */
+    std::shared_ptr<cugl::scene2::PolygonNode> _bossHealthBarIcon;
+     
     /** The boss health bar text showing amount of health left */
     std::shared_ptr<cugl::scene2::Label> _bossHealthBarText;
     
@@ -311,6 +314,12 @@ protected:
     
     /** The player's health bar text showing amount of health left */
     std::shared_ptr<cugl::scene2::Label> _playerHealthBarText;
+    
+    /** The player's health bar glow representing the current effect applied on the player */
+    std::shared_ptr<cugl::scene2::PolygonNode> _playerHealthBarGlow;
+    
+    /** The player's shield bar under the actual health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _playerHealthBarShield;
     
     /** The player's name label showing username */
     std::shared_ptr<cugl::scene2::Label> _playerName;
@@ -327,11 +336,23 @@ protected:
     /** Right teammate username label */
     std::shared_ptr<cugl::scene2::Label> _rightPlayerName;
     
+    /** The left player's label showing house name  */
+    std::shared_ptr<cugl::scene2::Label> _leftPlayerHouse;
+    
+    /** The right player's label showing house name  */
+    std::shared_ptr<cugl::scene2::Label> _rightPlayerHouse;
+    
     /** Left teammate's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _leftPHealthBar;
     
     /** Right teammate's health bar*/
     std::shared_ptr<cugl::scene2::ProgressBar> _rightPHealthBar;
+    
+    /** The left player's shield bar under the actual health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _leftPHealthShield;
+    
+    /** The right player's shield bar under the actual health bar */
+    std::shared_ptr<cugl::scene2::ProgressBar> _rightPHealthShield;
     
     /** Slots already demoted to Easy AI this session; prevents re-demoting each frame. */
     std::unordered_set<int> _slotsDemotedToAI;
@@ -341,6 +362,21 @@ protected:
     
     /** The scene node representing the animated special effects to be populated in the scene based on the spritesheets. */
     std::shared_ptr<cugl::scene2::SceneNode> _specialEffectsLayer;
+    
+    /** The respective tooltip from the item being held down. */
+    std::shared_ptr<cugl::scene2::PolygonNode> _tooltipNode;
+    
+    /** The timer for holding an item to acrivate tooltip */
+    float _holdTimer = 0.0f;
+    
+    /** The amount of seconds before the tooltip appears */
+    float _holdThreshold = 0.6f;
+    
+    /** The world-coordinate pixels before the tooltip is dismissed */
+    float _tooltipMoveLimit = 20.0f;
+    
+    /** The world position when drag begins */
+    Vec2 _holdAnchorPos = Vec2::ZERO;
 
 #pragma mark - Drag State
 
@@ -434,6 +470,38 @@ protected:
     
     /** Vector of pending floating popups that have been queued but not yet spawned. */
     std::vector<PendingFloatingPopup> _pendingFloatingPopups;
+
+    /** Tracks a client-predicted resurrection until the authoritative host snapshot catches up. */
+    struct PendingResurrectionSync {
+        /** Party slots that were dead when the resurrection item was used locally. */
+        std::vector<int> playerSlots;
+        /** Health each revived slot should be restored to. */
+        float reviveHealth = 0.0f;
+        /** Total regen to arm on each revived slot. */
+        float regenAmount = 0.0f;
+        /** Regen duration to arm on each revived slot. */
+        float regenDuration = 0.0f;
+        /** Whether there is an active pending resurrection prediction. */
+        bool active = false;
+    };
+
+    /** Client-side predicted resurrection state waiting for host confirmation. */
+    PendingResurrectionSync _pendingResurrectionSync;
+
+    /** Tracks one client-predicted duration-only party effect until the authoritative host snapshot catches up. */
+    struct PendingPartyEffectSync {
+        /** The effect being predicted. */
+        ItemDef::EffectType effectType = ItemDef::EffectType::Educate;
+        /** Party slots that should receive the effect. */
+        std::vector<int> playerSlots;
+        /** Effect duration to apply until host state arrives. */
+        float duration = 0.0f;
+        /** Whether there is an active pending party-effect prediction. */
+        bool active = false;
+    };
+
+    /** Client-side predicted party-effect states waiting for host confirmation. */
+    std::vector<PendingPartyEffectSync> _pendingPartyEffectSyncs;
 
 #pragma mark - Glow Effect State
 
@@ -870,6 +938,14 @@ public:
     void updateAllPlayersAndEnemyHealthUI(float dt);
     
     /**
+     * Updates the local player's progress bar with the current effects that have been applied
+     * onto them.
+     *
+     * @param dt Delta time in seconds
+     */
+    void updatePlayerHealthBarEffect(float dt);
+    
+    /**
      * Updates the player and teammate UI icons to reflect their current health.
      *
      * @param dt Delta time in seconds.
@@ -961,6 +1037,14 @@ public:
      * @param input  The active input controller.
      */
     void handleDragTracking(InputController& input);
+    
+    /**
+     * Handles tooltip visibility during drag: after holding long enough,
+     * shows the tooltip (once) and keeps it aligned with the dragged item.
+     *
+     * @param dt  Delta time in seconds.
+     */
+    void handleTooltipVisibility(float dt);
 
     /**
     * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory.
@@ -1345,11 +1429,13 @@ public:
      * @param baseValue     Item's raw base heal value.
      * @param resolvedHeal  Final resolved heal after house/affinity multipliers.
      * @param def           Item definition used to detect additional support effects such as regen.
+     * @param shouldShowEffectPopup Whether effect-specific popups should be shown.
+     * @param charmActive   Whether charm should modify effect-specific popup values.
      * @return Ordered list of FloatingPopupData for the sequence.
      */
     std::vector<FloatingPopupData> buildHealPopups(float baseValue, float resolvedHeal,
                                                    const std::shared_ptr<const ItemDef>& def,
-                                                   bool shouldShowEffectPopup) const;
+                                                   bool shouldShowEffectPopup, bool charmActive) const;
 
     /**
      * Fires visual popups for any shield or barrier effects on a support item.
@@ -1361,10 +1447,55 @@ public:
      * @param def      The item definition whose effects to scan.
      * @param dropPos  Screen-space position where popups appear.
      * @param shouldShowEffectPopup  Whether the effect popup should appear or not.
+     * @param hasHealingPopup Whether a primary heal popup will also be shown for this item use.
+     * @param charmActive Whether charm should modify effect-specific popup values.
      */
-    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def,
-                                    const cugl::Vec2& dropPos,
-                                    bool shouldShowEffectPopup);
+    void spawnDefensiveEffectPopups(const std::shared_ptr<const ItemDef>& def, const cugl::Vec2& dropPos,
+                                    bool shouldShowEffectPopup, bool hasHealingPopup, bool charmActive);
+
+    /**
+     * Handles the shared ally-target branch for attack items and returns whether it fully resolved the item use.
+     *
+     * Applies any client-side pending resurrection cache needed to mask stale host snapshots,
+     * broadcasts ally-target support effects to the host on non-host clients, and early-outs
+     * the attack pipeline when the item is configured to target all allies instead of the enemy.
+     *
+     * @param itemId The item instance ID being used.
+     * @param def The item definition that controls attack target routing and effects.
+     * @param local The local player performing the attack.
+     * @param resolvedMagnitude The resolved attack magnitude returned by `useItemById`.
+     * @param shouldApplyEffects Whether the item's configured effects should be dispatched.
+     * @return True if the item targeted all allies and was fully handled here; false if enemy-target attack handling should continue.
+     */
+    bool handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::shared_ptr<const ItemDef>& def, Player* local, float resolvedMagnitude, bool shouldApplyEffects);
+
+    /**
+     * Reapplies a pending client-side resurrection after stale host snapshots, until host sync catches up.
+     *
+     * Used only on non-host clients after `GameState::networkUpdate()` so a just-used
+     * resurrection item is not visually reverted by an older authoritative snapshot.
+     */
+    void applyPendingResurrectionSync();
+
+    /**
+     * Reapplies pending client-side duration-only party effects after stale host snapshots, until host sync catches up.
+     */
+    void applyPendingPartyEffectSyncs();
+
+    /**
+     * Applies queued or requested forge effects using host-authoritative seeds.
+     *
+     * @param forgeEffects  The forge effect messages received during the current network update.
+     */
+    void processForgeEffects(const std::vector<ForgeEffectMessage>& forgeEffects);
+
+    /**
+     * Redefines existing local item instances for forge and refreshes any visible widgets.
+     *
+     * @param chance  Chance in [0, 1] that each rare item upgrades to divine.
+     * @param seed    Deterministic base seed used to derive per-player forge rolls.
+     */
+    void applyForgeEffect(float chance, int seed);
 
     /**
      * Plays the item's defined use sound, or the generic "support" sound if none is set.
@@ -1447,6 +1578,11 @@ public:
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
 
+    /**
+     * Refreshes existing widget textures after item instances are redefined in place.
+     */
+    void refreshInventoryWidgetTextures();
+
 #pragma mark - Update & Render
 
     /**
@@ -1483,6 +1619,12 @@ public:
      * and toggles their visibility accordingly.
      */
     void updateDropZoneVisibility();
+    
+    /**
+     * Repositions the tooltip node above the currently dragged icon.
+     * Must only be called while _draggedIcon and _tooltipNode are valid.
+     */
+    void updateTooltipPosition();
 
     /**
      * Draws a green debug outline around the reset button's bounding box.

@@ -385,14 +385,10 @@
                                                 0.5
                                             ],
                                             "size": [
-                                                80.5,
-                                                80.5
+                                                161,
+                                                161
                                             ],
                                             "angle": 0,
-                                            "position": [
-                                                2,
-                                                2.35
-                                            ],
                                             "visible": true
                                         },
                                         "layout": {
@@ -545,14 +541,10 @@
                                                 0.5
                                             ],
                                             "size": [
-                                                80.5,
-                                                80.5
+                                                161,
+                                                161
                                             ],
                                             "angle": 0,
-                                            "position": [
-                                                2.07,
-                                                2.35
-                                            ],
                                             "visible": true
                                         },
                                         "layout": {
@@ -751,14 +743,10 @@
                                                 0.5
                                             ],
                                             "size": [
-                                                80.5,
-                                                80.5
+                                                161,
+                                                161
                                             ],
                                             "angle": 0,
-                                            "position": [
-                                                2.07,
-                                                2.35
-                                            ],
                                             "visible": true
                                         },
                                         "layout": {
@@ -873,14 +861,10 @@
                                                 0.5
                                             ],
                                             "size": [
-                                                80.5,
-                                                80.5
+                                                161,
+                                                161
                                             ],
                                             "angle": 0,
-                                            "position": [
-                                                2.07,
-                                                2.35
-                                            ],
                                             "visible": true
                                         },
                                         "layout": {
@@ -960,6 +944,145 @@
                     "absolute": false,
                     "x_offset": 0,
                     "y_offset": -0.26
+                }
+            },
+            "lobbyBottomLabel": {
+                "type": "Node",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        0
+                    ],
+                    "size": [
+                        460,
+                        266
+                    ],
+                    "angle": 0,
+                    "position": [
+                        -32,
+                        -26
+                    ],
+                    "visible": false
+                },
+                "children": {
+                    "lobbyBottomLabelBG": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "lobbyBottomLabelBG",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                460,
+                                266
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "description": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                900,
+                                228
+                            ],
+                            "position": [
+                                117,
+                                94
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "The lone guardian of the cave, blinded by rage and hunger. Defeat it to escape its domain.",
+                            "foreground": "#ffcd8aff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center",
+                            "wrap": true,
+                            "scale": 0.25
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.04
+                        }
+                    },
+                    "bossName": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                1
+                            ],
+                            "size": [
+                                336,
+                                76
+                            ],
+                            "position": [
+                                193,
+                                165
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "CYCLOPS",
+                            "foreground": "#31271aff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center",
+                            "scale": 0.25
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.30
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.03
                 }
             },
             "header": {

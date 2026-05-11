@@ -360,6 +360,7 @@ static void testUseAttackItemDamagesEnemy(const HouseLoader& loader,
                                           Enemy& enemy,
                                           const std::string& attackDefId) {
     auto players   = makeTwoPlayers(loader, houseId);
+    enemy.setCurrentHealth(100.0f);
     float hpBefore = enemy.getCurrentHealth();
     players[0]->addItem(makeItem(attackDefId));
 
@@ -521,9 +522,83 @@ static void testMalletUpgradeScaling(const HouseLoader& loader,
     offAffinityPlayer->setMalletUseCount(2);
     offAffinityPlayer->addItem(makeItem("mallet"));
     const float offAffinityResolved = offAffinityPlayer->useItemById(offAffinityPlayer->getInventory()[0].getId(), enemy, db);
-    const float expectedOffAffinity = 15.0f * (1.0f + 1.0f);
+    const float expectedOffAffinity = 15.0f * (1.0f + 1.0f) * 1.5f;
     assertWithLabel(floatsEqualWithinTolerance(offAffinityResolved, expectedOffAffinity), "mallet upgrade: off-affinity mallet still uses existing streak damage");
     assertWithLabel(offAffinityPlayer->getMalletUseCount() == 2, "mallet upgrade: off-affinity mallet does not increment streak");
+}
+
+/** Verifies that using charm applies the timed buff to every connected party member. */
+static void testCharmAppliesToParty(const HouseLoader& loader,
+                                    const ItemDatabase& db,
+                                    Enemy& enemy) {
+    auto players = makeFourPlayers(loader, "aphrodite");
+    players[0]->addItem(makeItem("charm"));
+
+    const float resolved = players[0]->useItemById(players[0]->getInventory()[0].getId(), enemy, db);
+
+    bool allCharmed = true;
+    for (const auto& player : players) {
+        allCharmed = allCharmed && player->hasCharm() &&
+            floatsEqualWithinTolerance(player->getCharmDuration(), 10.0f);
+    }
+
+    assertWithLabel(floatsEqualWithinTolerance(resolved, 0.0f), "charm: ally-target attack resolves zero damage");
+    assertWithLabel(allCharmed, "charm: applies 10 second buff to every party member");
+}
+
+/** Verifies charm buffs newly applied support effects without modifying regen duration. */
+static void testCharmSupportEffectAmplification(const HouseLoader& loader,
+                                                const ItemDatabase& db) {
+    {
+        auto players = makeTwoPlayers(loader, "zeus");
+        players[0]->applyCharm(10.0f);
+        players[0]->addItem(makeItem("shield"));
+        const float resolved = players[0]->useItemById(players[0]->getInventory()[0].getId(), *players[1], db);
+
+        assertWithLabel(floatsEqualWithinTolerance(resolved, 0.0f), "charm support: shield use resolves zero base heal");
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getShieldHealth(), 40.0f), "charm support: shield mitigation doubles");
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getShieldDuration(), 10.0f), "charm support: shield duration doubles");
+    }
+
+    {
+        auto players = makeTwoPlayers(loader, "athena");
+        players[0]->applyCharm(10.0f);
+        players[0]->addItem(makeItem("aegis"));
+        players[0]->useItemById(players[0]->getInventory()[0].getId(), *players[1], db);
+
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getBarrierMultiplier(), 0.25f), "charm support: barrier multiplier halves");
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getBarrierDuration(), 20.0f), "charm support: barrier duration doubles");
+    }
+
+    {
+        auto players = makeTwoPlayers(loader, "demeter");
+        players[0]->applyCharm(10.0f);
+        players[0]->addItem(makeItem("wheat"));
+        players[0]->useItemById(players[0]->getInventory()[0].getId(), *players[1], db);
+
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getRegenAmountRemaining(), 50.0f), "charm support: regen amount doubles");
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getRegenDuration(), 5.0f), "charm support: regen duration stays unchanged");
+    }
+}
+
+/** Verifies charm makes mallet advance its use counter twice without changing the multiplier itself. */
+static void testCharmMalletUseCounterScaling(const HouseLoader& loader,
+                                             const ItemDatabase& db,
+                                             Enemy& enemy) {
+    auto player = std::make_shared<Player>("hephaestus", 1, "Charmed Hephaestus", loader);
+    player->applyCharm(10.0f);
+
+    player->addItem(makeItem("mallet"));
+    const float firstResolved = player->useItemById(player->getInventory()[0].getId(), enemy, db);
+    const float expectedFirst = 10.0f * (1.0f + 0.55f) * 1.5f;
+    assertWithLabel(floatsEqualWithinTolerance(firstResolved, expectedFirst), "charm mallet: first use keeps normal 1.5x multiplier");
+    assertWithLabel(player->getMalletUseCount() == 2, "charm mallet: first use advances counter twice");
+
+    player->addItem(makeItem("mallet"));
+    const float secondResolved = player->useItemById(player->getInventory()[0].getId(), enemy, db);
+    const float expectedSecond = 10.0f * std::pow(1.5f, 2.0f) * (1.0f + 0.55f) * 1.5f;
+    assertWithLabel(floatsEqualWithinTolerance(secondResolved, expectedSecond), "charm mallet: next use reads doubled counter from previous use");
+    assertWithLabel(player->getMalletUseCount() == 4, "charm mallet: second use advances counter twice again");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -643,6 +718,54 @@ static void testAIPassesWhenNoHealTarget(const HouseLoader& loader,
            "AI pass: item arrived at a neighbor");
 }
 
+/**
+ * Verifies that a dead AI player never attacks or heals —
+ * it should only pass items or remain idle.
+ *
+ * @param loader       House definitions used to construct the AI player and neighbors.
+ * @param houseId      The house id used to initialize all players in the fixture.
+ * @param db           The item database used to initialize the AI and resolve item types.
+ * @param enemy        The enemy instance passed to update() as required by the FSM.
+ * @param aiConfigPath Path to the AI config JSON (e.g. "assets/json/playerAI.json").
+ * @param attackDefId  DefId of an attack item to seed the AI's inventory with.
+ * @param supportDefId DefId of a support item to seed the AI's inventory with.
+ */
+static void testDeadAICanOnlyPassOrIdle(const HouseLoader& loader,
+                                   const std::string& houseId,
+                                   const ItemDatabase& db,
+                                   Enemy& enemy,
+                                   const std::string& aiConfigPath,
+                                   const std::string& attackDefId,
+                                   const std::string& supportDefId) {
+    auto players = makeFourPlayers(loader, houseId);
+
+    auto ai = std::make_shared<EasyPlayerAI>(houseId, 2, "Player 2", loader);
+    ai->setLeftPlayer (players[0].get());
+    ai->setRightPlayer(players[2].get());
+    if (!ai->init(db, aiConfigPath)) return;
+
+    // Kill the AI player
+    ai->updateHealth(-ai->getMaxHealth());
+
+    // Give it both item types so evaluate() has real options to choose from
+    ai->addItem(makeItem(attackDefId));
+    ai->addItem(makeItem(supportDefId));
+
+    float enemyHpBefore    = enemy.getCurrentHealth();
+    float neighborHpBefore = players[0]->getCurrentHealth();
+
+    ItemController items;
+    for (int i = 0; i < 20; i++) ai->update(0.5f, enemy, items);
+
+    assertWithLabel(enemy.getCurrentHealth() >= enemyHpBefore,
+           "Dead AI: enemy hp unchanged (no attack)");
+    assertWithLabel(players[0]->getCurrentHealth() >= neighborHpBefore,
+           "Dead AI: neighbor hp unchanged (no heal)");
+    assertWithLabel(ai->getState() == PlayerAI::State::PASS ||
+                    ai->getState() == PlayerAI::State::IDLE,
+           "Dead AI: final state is PASS or IDLE");
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point
 // ─────────────────────────────────────────────────────────────────────────────
@@ -664,8 +787,8 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     ItemDatabase    db     = loadDatabase(itemsJsonPath, housesJsonPath);
     Enemy           enemy  = loadEnemy(enemiesJsonPath, "cyclops");
 
-    const std::string attackDefId  = firstDefIdOfType(db, ItemDef::Type::Attack);
-    const std::string supportDefId = firstDefIdOfType(db, ItemDef::Type::Support);
+    const std::string attackDefId  = "sword";
+    const std::string supportDefId = "apple";
     const std::string houseId  = "poseidon";
 
     if (attackDefId.empty())  CULogError("PlayerTests: no Attack item found in '%s'",  itemsJsonPath.c_str());
@@ -698,12 +821,16 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     testUseAttackItemOnAllyIsNoop  (loader, houseId, db, attackDefId);
     testUseSupportItemOnEnemyIsNoop(loader, houseId, db, enemy, supportDefId);
     testMalletUpgradeScaling       (loader, db, enemy);
+    testCharmAppliesToParty        (loader, db, enemy);
+    testCharmSupportEffectAmplification(loader, db);
+    testCharmMalletUseCounterScaling(loader, db, enemy);
 
     CULog("── Section 5: AI behavior ───────────────");
     testAIIdleWithEmptyInventory(loader, houseId, db, enemy, aiConfigPath);
     testAIActsOnAttackItem      (loader, houseId, db, enemy, aiConfigPath, attackDefId);
     testAIHealsInjuredNeighbor  (loader, houseId, db, enemy, aiConfigPath, supportDefId);
     testAIPassesWhenNoHealTarget(loader, houseId, db, enemy, aiConfigPath, supportDefId);
+    testDeadAICanOnlyPassOrIdle(loader, houseId, db, enemy, aiConfigPath, attackDefId, supportDefId);
 
     printSummary();
 }

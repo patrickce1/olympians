@@ -220,6 +220,33 @@
                             "x_offset": 0.05,
                             "y_offset": -0.45
                         }
+                    },
+                    "barIcon": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "stunIcon",
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                44,
+                                36
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": false
+                        },
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "middle",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.1
+                        }
                     }
                 },
                 "layout": {
@@ -620,6 +647,61 @@
                             "absolute": false,
                             "x_offset": 0,
                             "y_offset": 0
+                        }
+                    },
+                    "effectGlow": {
+                        "type": "Image",
+                        "data": {
+                        "texture": "helmBar",
+                        "anchor": [
+                            0,
+                            1
+                        ],
+                        "size": [
+                            266,
+                            35
+                        ],
+                        "angle": 0,
+                        "position": [
+                            -9.5,
+                            -8.5
+                        ],
+                        "visible": false
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": -0.04,
+                            "y_offset": 0.2
+                        }
+                    },
+                    "healthBarShield": {
+                        "type": "Progress",
+                        "data": {
+                            "texture": "healthFillGray",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                242,
+                                11
+                            ],
+                            "angle": 0,
+                            "position": [
+                                2.5,
+                                3.5
+                            ],
+                            "interior": [0, 233],
+                            "visible": false
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0.01,
+                            "y_offset": -0.34
                         }
                     },
                     "healthBarFill": {

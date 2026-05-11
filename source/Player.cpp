@@ -178,6 +178,46 @@ void Player::applyRegen(float amount, float duration) {
 }
 
 /**
+ * Applies a timed educate effect to this player.
+ *
+ * @param duration How long the educate effect should stay active.
+ */
+void Player::applyEducate(float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    _educateDuration = duration;
+
+    if (_debug) {
+        CULog("Educate applied: player='%s' house='%s' duration=%.3f",
+            _playerName.c_str(),
+            _houseId.c_str(),
+            _educateDuration);
+    }
+}
+
+/**
+ * Applies a timed charm effect to this player.
+ *
+ * @param duration How long the charm effect should stay active.
+ */
+void Player::applyCharm(float duration) {
+    if (duration <= 0.0f) {
+        return;
+    }
+
+    _charmDuration = duration;
+
+    if (_debug) {
+        CULog("Charm applied: player='%s' house='%s' duration=%.3f",
+            _playerName.c_str(),
+            _houseId.c_str(),
+            _charmDuration);
+    }
+}
+
+/**
  * Advances this player's active runtime support effects by the elapsed frame time.
  *
  * Both shield and barrier durations are reduced by `dt` and clamped to `0.0f` so
@@ -235,6 +275,24 @@ void Player::updateEffects(float dt) {
             }
         }
     }
+
+    if (_educateDuration > 0.0f) {
+        _educateDuration = std::max(0.0f, _educateDuration - dt);
+        if (_educateDuration <= 0.0f && _debug) {
+            CULog("Educate expired: player='%s' house='%s'",
+                _playerName.c_str(),
+                _houseId.c_str());
+        }
+    }
+
+    if (_charmDuration > 0.0f) {
+        _charmDuration = std::max(0.0f, _charmDuration - dt);
+        if (_charmDuration <= 0.0f && _debug) {
+            CULog("Charm expired: player='%s' house='%s'",
+                _playerName.c_str(),
+                _houseId.c_str());
+        }
+    }
 }
 
 /** Clears runtime-only combat effects. */
@@ -248,6 +306,65 @@ void Player::clearRuntimeEffects() {
     _hasRegen = false;
     _regenAmountRemaining = 0.0f;
     _regenDuration = 0.0f;
+    _educateDuration = 0.0f;
+    _charmDuration = 0.0f;
+}
+
+/**
+ * Returns an effect copy adjusted by charm if charm is active.
+ *
+ * Charm only affects effects that are applied while it is active. Regen duration
+ * is intentionally unchanged, including resurrect's regen duration.
+ *
+ * @param effect       The original item effect definition.
+ * @param charmActive  Whether charm should modify the effect.
+ * @return The original effect, or a charm-boosted copy when charm is active.
+ */
+static ItemDef::Effect resolveEffectForCharm(const ItemDef::Effect& effect, bool charmActive) {
+    ItemDef::Effect resolved = effect;
+    if (!charmActive || effect.type == ItemDef::EffectType::Charm) {
+        return resolved;
+    }
+
+    switch (effect.type) {
+        case ItemDef::EffectType::Shield:
+            resolved.mitigation *= 2.0f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Barrier:
+            resolved.multiplier *= 0.5f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Regen:
+            resolved.regenAmount *= 2.0f;
+            break;
+        case ItemDef::EffectType::Resurrect:
+            resolved.reviveHealth *= 2.0f;
+            resolved.regenAmount *= 2.0f;
+            break;
+        case ItemDef::EffectType::Educate:
+        case ItemDef::EffectType::Stun:
+        case ItemDef::EffectType::Love:
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Slow:
+            resolved.multiplier *= 0.5f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Vulnerable:
+            resolved.multiplier *= 2.0f;
+            resolved.duration *= 2.0f;
+            break;
+        case ItemDef::EffectType::Upgrade:
+            break;
+        case ItemDef::EffectType::Forge:
+            resolved.chance = std::min(1.0f, resolved.chance * 2.0f);
+            break;
+        case ItemDef::EffectType::Charm:
+            break;
+    }
+
+    return resolved;
 }
 
 /**
@@ -290,8 +407,9 @@ static float computeResolvedItemMagnitude(const Player& player,
 
     float itemMultiplier = 1.0f;
     for (const ItemDef::Effect& effect : def.getEffects()) {
-        if (effect.type == ItemDef::EffectType::Upgrade) {
-            itemMultiplier *= std::pow(effect.multiplier, static_cast<float>(player.getMalletUseCount()));
+        const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, player.hasCharm());
+        if (resolvedEffect.type == ItemDef::EffectType::Upgrade) {
+            itemMultiplier *= std::pow(resolvedEffect.multiplier, static_cast<float>(player.getMalletUseCount()));
         }
     }
 
@@ -314,6 +432,10 @@ static float computeResolvedItemMagnitude(const Player& player,
  * @return True when the item's effects should be dispatched.
  */
 static bool canApplyItemEffects(const Player& player, const ItemDef& def) {
+    if (player.hasEducate()) {
+        return true;
+    }
+
     if (def.getHouseAffinity() == ItemDef::House::None) {
         return true;
     }
@@ -355,7 +477,7 @@ float Player::resolveItemMagnitude(const ItemDef& def, const ItemDatabase& db) c
  */
 void Player::recordItemUse(const ItemDef& def) {
     if (itemConsumesUpgradeStreak(def) && canApplyItemEffects(*this, def)) {
-        _malletUseCount += 1;
+        _malletUseCount += hasCharm() ? 2 : 1;
     }
 }
 
@@ -377,6 +499,95 @@ static float applyAttackEffectToEnemy(const ItemDef::Effect& effect, float resol
     }
 
     return EffectSystem::applyEffectToEnemy(effect, resolvedMagnitude, target, playerIndex);
+}
+
+/**
+ * Collects the connected party members reachable from the given source player's links.
+ *
+ * @param source The player whose left/right party links should be traversed.
+ * @return A vector containing each reachable party member at most once.
+ */
+static std::vector<Player*> collectPartyMembers(Player& source) {
+    std::vector<Player*> party;
+    party.push_back(&source);
+    for (size_t index = 0; index < party.size() && party.size() < Enemy::NUM_PLAYERS; ++index) {
+        Player* player = party[index];
+        if (!player) {
+            continue;
+        }
+
+        Player* neighbors[2] = { player->getLeftPlayer(), player->getRightPlayer() };
+        for (Player* neighbor : neighbors) {
+            if (!neighbor) {
+                continue;
+            }
+            if (std::find(party.begin(), party.end(), neighbor) == party.end()) {
+                party.push_back(neighbor);
+            }
+        }
+    }
+
+    return party;
+}
+
+/**
+ * Applies a resurrect effect to every dead player reachable from the source player's party links.
+ *
+ * Traverses the party ring connected to `source` and revives only players who are
+ * currently dead. Living players are left unchanged.
+ *
+ * @param effect The resurrect effect definition containing revive and regen tuning values.
+ * @param source The player whose party links define the connected ally set.
+ */
+static void applyResurrectEffectToParty(const ItemDef::Effect& effect, Player& source) {
+    if (!effect.targetAllAllies) {
+        return;
+    }
+
+    for (Player* player : collectPartyMembers(source)) {
+        if (!player || player->isAlive()) {
+            continue;
+        }
+        player->setCurrentHealth(effect.reviveHealth);
+        if (effect.regenAmount > 0.0f && effect.duration > 0.0f) {
+            player->applyRegen(effect.regenAmount, effect.duration);
+        }
+    }
+}
+
+/**
+ * Applies one attack-item effect to every connected allied party member.
+ *
+ * @param effect The ally-targeted effect definition to apply.
+ * @param resolvedMagnitude The resolved attack magnitude associated with the item.
+ * @param source The player whose party links define the connected ally set.
+ */
+static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolvedMagnitude, Player& source) {
+    const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, source.hasCharm());
+
+    if (resolvedEffect.type == ItemDef::EffectType::Resurrect) {
+        applyResurrectEffectToParty(resolvedEffect, source);
+        return;
+    }
+    if (resolvedEffect.type == ItemDef::EffectType::Educate) {
+        for (Player* player : collectPartyMembers(source)) {
+            if (!player) {
+                continue;
+            }
+            player->applyEducate(resolvedEffect.duration);
+        }
+        return;
+    }
+    if (resolvedEffect.type == ItemDef::EffectType::Forge) {
+        return;
+    }
+
+    for (Player* player : collectPartyMembers(source)) {
+        if (!player) {
+            continue;
+        }
+        EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, *player);
+    }
 }
 
 /**
@@ -412,12 +623,14 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
             returnedMagnitude = resolvedMagnitude;
             if (shouldApplyEffects) {
                 for (const ItemDef::Effect& effect : def->getEffects()) {
-                    EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, target);
+                    const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
+                    EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, target);
                 }
             }
         } else if (shouldApplyEffects && !def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                EffectSystem::applyEffectToPlayer(effect, resolvedMagnitude, target);
+                const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
+                EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, target);
             }
         }
 
@@ -460,16 +673,27 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             target.updateHealth(resolvedMagnitude);
             returnedMagnitude = resolvedMagnitude;
         } else if (def->getType() == ItemDef::Type::Attack) {
-            target.takeDamage(resolvedMagnitude, getPlayerNumber());
-            returnedMagnitude = resolvedMagnitude;
-            if (shouldApplyEffects) {
+            const bool targetsAllAllies = def->getAttackTarget() == ItemDef::AttackTarget::AllAllies;
+            const bool appliesToEnemy = !targetsAllAllies;
+
+            if (appliesToEnemy) {
+                target.takeDamage(resolvedMagnitude, getPlayerNumber());
+                returnedMagnitude = resolvedMagnitude;
+                if (shouldApplyEffects) {
+                    for (const ItemDef::Effect& effect : def->getEffects()) {
+                        const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
+                        applyAttackEffectToEnemy(resolvedEffect, resolvedMagnitude, target, getPlayerNumber());
+                    }
+                }
+            } else if (shouldApplyEffects) {
                 for (const ItemDef::Effect& effect : def->getEffects()) {
-                    applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                    applyAttackEffectToParty(effect, resolvedMagnitude, *this);
                 }
             }
         } else if (shouldApplyEffects && !def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
-                applyAttackEffectToEnemy(effect, resolvedMagnitude, target, getPlayerNumber());
+                const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
+                applyAttackEffectToEnemy(resolvedEffect, resolvedMagnitude, target, getPlayerNumber());
             }
         }
 

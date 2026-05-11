@@ -13,7 +13,8 @@ using namespace std;
 #define ROLE_CARD_WIDTH 251
 /** Interpolation smoothing factor*/
 #define SMOOTHING_FACTOR 0.2f
-
+/** Minimum number of frames for a swipe to be registered*/
+static constexpr int SWIPE_HOLD_FRAMES = 4;
 
 #pragma mark -
 #pragma mark Provided Methods
@@ -87,9 +88,6 @@ void HostSetupScene::setupUI() {
     _settingsButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("hostSetupScene.settingsTab"));
 
-    _hostName = std::dynamic_pointer_cast<scene2::TextField>(
-        _assets->get<scene2::SceneNode>("hostSetupScene.hostName.text"));
-
     _leftButton = std::dynamic_pointer_cast<scene2::Button>(
         _assets->get<scene2::SceneNode>("hostSetupScene.bossCarousel.directionButtons.leftScroll"));
 
@@ -105,16 +103,6 @@ void HostSetupScene::setupUI() {
         }
         _baseCarouselPosition = _bossSelectionCardContainer->getPosition();
     }
-
-    std::shared_ptr<cugl::scene2::Label> placeName =
-        std::dynamic_pointer_cast<scene2::Label>(
-            _assets->get<scene2::SceneNode>("hostSetupScene.hostName.placeholder"));
-
-    placeName->setText("ENTER NAME");
-
-    _hostName->addTypeListener([placeName](const std::string& name, const std::string& value) {
-        placeName->setVisible(value.empty());
-    });
     
     auto bossCarouselDotsContainer = _assets->get<scene2::SceneNode>("hostSetupScene.bossSelectionCarouselIcons");
     
@@ -124,6 +112,17 @@ void HostSetupScene::setupUI() {
             _bossCarouselDotIndicators.push_back(bossCarouselDotsContainer->getChild(i));
         }
     }
+    
+    // Manual setup for Card Mappings to Boss Indexes
+    float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
+    _xPosToBoss[startX] = 1;
+    _bossToTargetX[1]   = startX;
+    _xPosToBoss[startX + ROLE_CARD_WIDTH] = 0;
+    _bossToTargetX[0]   = startX + ROLE_CARD_WIDTH;
+    _xPosToBoss[startX - ROLE_CARD_WIDTH] = 2;
+    _bossToTargetX[2]   = startX - ROLE_CARD_WIDTH;
+    _xPosToBoss[startX - (2 * ROLE_CARD_WIDTH)] = 3;
+    _bossToTargetX[3]   = startX - (2 * ROLE_CARD_WIDTH);
 }
 
 /**
@@ -135,15 +134,13 @@ void HostSetupScene::setupUI() {
 void HostSetupScene::setupListeners() {
     _startGame->addListener([this](const std::string& name, bool down) {
         if (down) {
-            if(_hostName->getText() != ""){
+            const std::string savedName = SavedDataManager::get().getPlayerName();
+            if (!savedName.empty()) {
                 _network->hostRoom();
-                _network->setPlayerName(_hostName->getText());
-                
-                // Get the selected boss using carousel index
+                _network->setPlayerName(savedName);
                 EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
                 _network->setEnemy(selectedBoss.id);
                 _network->broadcastBossSelection(selectedBoss.id);
-                
                 _status = Status::START;
             }
         }
@@ -184,7 +181,6 @@ void HostSetupScene::dispose() {
         _startGame = nullptr;
         _backButton = nullptr;
         _joinButton = nullptr;
-        _hostName = nullptr;
         _bossCards.clear();
         _leftButton = nullptr;
         _rightButton = nullptr;
@@ -211,25 +207,37 @@ void HostSetupScene::setActive(bool value) {
             _status = WAIT;
             _currentIndex = 1;
             _isAnimating = false;
+            _isSwiping            = false;
+            _swipeContainerStartX = 0.0f;
+            _swipeTouchInitialPos = cugl::Vec2::ZERO;
+            _swipeHoldFrames      = 0;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
             float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
             _bossSelectionCardContainer->setPosition(Vec2(startX, pos.y));
             _slideTarget = Vec2(startX, pos.y);
             updateCarouselDots(1);
             
+            // Reset all glow overlays and illuminate only the starting card (index 1).
+            for (int i = 0; i < (int)_bossCards.size(); i++) {
+                auto glow = _bossCards[i]->getChildByName("glowOverlay");
+                if (glow) glow->setVisible(i == 1);
+            }
+            
+            _leftButton->setVisible(true);
+            _rightButton->setVisible(true);
             _startGame->activate();
             _leftButton->activate();
             _rightButton->activate();
-            _hostName->activate();
             _backButton->activate();
             _joinButton->activate();
             _settingsButton->activate();
         } else {
+            _isSwiping            = false;
+            _swipeContainerStartX = 0.0f;
             _startGame->deactivate();
             _leftButton->deactivate();
             _rightButton->deactivate();
             _backButton->deactivate();
-            _hostName->deactivate();
             _joinButton->deactivate();
             _settingsButton->deactivate();
             
@@ -266,8 +274,9 @@ void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, c
  * We need to update this method to constantly talk to the server
  *
  * @param timestep  The amount of time (in seconds) since the last frame
+ * @param input         The input controller instance
  */
-void HostSetupScene::update(float timestep) {
+void HostSetupScene::update(float timestep, InputController& input) {
     // Auto-dismiss the error popup after ERROR_DISPLAY_TIME seconds.
     if (_errorPopup && _errorPopup->isVisible()) {
         _errorTimer += timestep;
@@ -288,6 +297,9 @@ void HostSetupScene::update(float timestep) {
             _bossSelectionCardContainer->setPosition(next);
         }
     }
+    handleSwipeBegin(input);
+    handleSwipeTracking(input);
+    handleSwipeRelease(input);
 }
 
 /**
@@ -333,6 +345,15 @@ void HostSetupScene::slideTo(int newIndex) {
     
     _slideTarget = Vec2(targetX, currentPos.y);
     _currentIndex = newIndex;
+    
+    if (_currentIndex == 0) {
+        _leftButton->setVisible(false);
+    } else if (_currentIndex == _bossCards.size() - 1) {
+        _rightButton->setVisible(false);
+    } else {
+        _rightButton->setVisible(true);
+        _leftButton->setVisible(true);
+    }
     
     // Set the visibility of all glow overlays to false and the currentIndex card's to true
     for (int i = 0; i < _bossCards.size(); i++) {
@@ -400,7 +421,6 @@ void HostSetupScene::setInputEnabled(bool enabled) {
         _startGame->activate();
         _leftButton->activate();
         _rightButton->activate();
-        _hostName->activate();
         _backButton->activate();
         _joinButton->activate();
         _settingsButton->activate();
@@ -408,7 +428,6 @@ void HostSetupScene::setInputEnabled(bool enabled) {
         _startGame->deactivate();
         _leftButton->deactivate();
         _rightButton->deactivate();
-        _hostName->deactivate();
         _backButton->deactivate();
         _joinButton->deactivate();
         _settingsButton->deactivate();
@@ -432,4 +451,146 @@ void HostSetupScene::showHostDisconnectedError() {
         _errorPopup->setVisible(true);
         _errorTimer = 0.0f;
     }
+}
+
+#pragma mark -
+#pragma mark Swipe Gesture Handling
+
+/**
+ * Records the touch-down position to begin tracking a swipe gesture.
+ *
+ * Captures both the finger's starting X and the container's current X
+ * so handleSwipeTracking() can offset from both without drift.
+ *
+ * @param input  The input controller for this frame.
+ */
+void HostSetupScene::handleSwipeBegin(InputController& input) {
+    if (_isSwiping) return;
+
+    if ((!input.isTouching() && !input.isMouseDown()) || _isAnimating) {
+        _swipeHoldFrames      = 0;
+        _swipeTouchInitialPos = cugl::Vec2::ZERO;
+        return;
+    }
+
+    if (_swipeHoldFrames == 0) {
+        _swipeTouchInitialPos = input.getTouchStart();
+    }
+
+    // Convert to world space for consistent coordinate comparison.
+    Vec2 worldCurrent = screenToWorldCoords(input.getDragPos());
+    Vec2 worldStart   = screenToWorldCoords(_swipeTouchInitialPos);
+
+    float horizontalDelta = std::abs(worldCurrent.x - worldStart.x);
+    float verticalDelta   = std::abs(worldCurrent.y - worldStart.y);
+
+    if (horizontalDelta > verticalDelta && horizontalDelta > 5.0f) {
+        _swipeHoldFrames++;
+    } else {
+        _swipeHoldFrames = 0;
+    }
+
+    if (_swipeHoldFrames >= SWIPE_HOLD_FRAMES) {
+        // Store the touch start X in screen space — tracking converts it
+        // to world space each frame so the delta stays correct.
+        _swipeTouchStartX     = screenToWorldCoords(_swipeTouchInitialPos).x;
+        _swipeContainerStartX = _bossSelectionCardContainer->getPosition().x;
+        _isSwiping            = true;
+        _swipeHoldFrames      = 0;
+    }
+}
+
+/**
+ * Moves the card container directly under the finger each frame.
+ *
+ * Computes the horizontal delta between the finger's current position
+ * and its touch-down position, then applies that delta to the
+ * container's position at the start of the drag. This keeps the strip
+ * locked exactly to the finger with no smoothing or lag.
+ *
+ * Clamps the container so it cannot travel past the first or last card,
+ * preventing empty space from appearing at either end.
+ *
+ * No-op when no swipe is active or no touch contact exists this frame.
+ *
+ * @param input  The input controller for this frame.
+ */
+void HostSetupScene::handleSwipeTracking(InputController& input) {
+    if (!_isSwiping) return;
+    if (!input.isTouching() && !input.isMouseDown()) return;
+
+    // Both _swipeTouchStartX and getDragPos() are now in world space,
+    // so the delta is correct without any further coordinate conversion.
+    Vec2 worldPos     = screenToWorldCoords(input.getDragPos());
+    float fingerDelta = worldPos.x - _swipeTouchStartX;
+    float rawX        = _swipeContainerStartX + fingerDelta;
+    float maxX     = _bossToTargetX[0] + (ROLE_CARD_WIDTH * 2.0f);
+    float minX     = _bossToTargetX[(int)_bossCards.size() - 1] - (ROLE_CARD_WIDTH);
+    float clampedX = std::max(minX, std::min(maxX, rawX));
+
+    Vec2 pos = _bossSelectionCardContainer->getPosition();
+    _bossSelectionCardContainer->setPosition(Vec2(clampedX, pos.y));
+}
+
+/**
+ * Called on finger lift. Reads the container's current X and delegates
+ * to snapToNearestBoss() to animate to the closest card.
+ * Clears all swipe tracking state before returning.
+ *
+ * @param input  The input controller for this frame.
+ */
+void HostSetupScene::handleSwipeRelease(InputController& input) {
+    if (!input.touchEnded()) return;
+
+    if (!_isSwiping) {
+        return;
+    }
+
+    float releaseContainerX = _bossSelectionCardContainer->getPosition().x;
+    snapToNearestBoss(releaseContainerX);
+
+    _isSwiping            = false;
+    _swipeTouchStartX     = 0.0f;
+    _swipeContainerStartX = 0.0f;
+}
+
+/**
+ * Finds the card whose X position in _xPosToBoss is closest to the
+ * given container X, then animates the container to that card's centred
+ * position and updates _currentIndex, glow overlays, and dot indicators.
+ *
+ * The container's current X is compared against each key in _xPosToBoss
+ * (which stores each card's raw local X). The closest key wins. The
+ * container's target position is then computed as the offset needed to
+ * bring that card's local X to the centre of the viewport.
+ *
+ * @param releaseContainerX  The container's X at the moment the finger
+ *                           lifted, in the container parent's local space.
+ */
+void HostSetupScene::snapToNearestBoss(float releaseContainerX) {
+    int nearestIndex = 0;
+    float nearestDist  = FLT_MAX;
+
+    for (auto& [containerX, index] : _xPosToBoss) {
+        float dist = std::abs(releaseContainerX - containerX);
+        if (dist < nearestDist) {
+            nearestDist  = dist;
+            nearestIndex = index;
+        }
+    }
+
+    _currentIndex   = nearestIndex;
+    _isAnimating    = true;
+    Vec2 currentPos = _bossSelectionCardContainer->getPosition();
+    _slideTarget    = Vec2(_bossToTargetX[nearestIndex], currentPos.y);
+
+    _leftButton->setVisible(_currentIndex > 0);
+    _rightButton->setVisible(_currentIndex < (int)_bossCards.size() - 1);
+
+    for (int i = 0; i < (int)_bossCards.size(); i++) {
+        auto glow = _bossCards[i]->getChildByName("glowOverlay");
+        if (glow) glow->setVisible(i == nearestIndex);
+    }
+
+    updateCarouselDots(nearestIndex);
 }

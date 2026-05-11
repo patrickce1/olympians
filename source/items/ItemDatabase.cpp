@@ -34,7 +34,6 @@ static float clamp01(float value) {
 
 /** Clears items from buckets and reinitializes them; buckets contain items of the corresponding rarity */
 void ItemDatabase::clearBuckets() {
-    _allDefIds = Bucket();
     _bucketsByRarity.clear();
     _bucketsByRarity[ItemDef::Rarity::Common]    = Bucket();
     _bucketsByRarity[ItemDef::Rarity::Rare]      = Bucket();
@@ -47,6 +46,9 @@ void ItemDatabase::clear() {
     _defs.clear();
     _houseMultipliers.clear();
     clearBuckets();
+    _activeHouses.clear();
+    _filteredDivineBucket = Bucket();
+    _hasActiveHouseFilter = false;
 }
 
 /** Seed options; seed acts as the starting point for the RNG. The game's seed is generated at random, so it is unlikely
@@ -83,9 +85,12 @@ void ItemDatabase::resetRarityWeights() {
     _rarityWeights[ItemDef::Rarity::Common]    = 0.45;
     _rarityWeights[ItemDef::Rarity::Rare]      = 0.40;
     _rarityWeights[ItemDef::Rarity::Divine]    = 0.15;
+    // Fallbacks already sum to 1.0, so normalization is a no-op for them
 }
 
-/** Load rarity weights from a JSON */
+/** Load rarity weights from a JSON and normalize so they sum to 1.0 
+ * @param json The JSON object containing rarityWeights configuration
+*/
 void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     resetRarityWeights();
 
@@ -98,8 +103,7 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     auto loadOne = [&](const char* key, ItemDef::Rarity rarity) {
         if (rarityWeightsJson->has(key) && rarityWeightsJson->get(key)->isNumber()) {
             double weight = rarityWeightsJson->get(key)->asDouble();
-            if (weight < 0.0) weight = 0.0;
-            _rarityWeights[rarity] = weight;
+            _rarityWeights[rarity] = (weight > 0.0) ? weight : 0.0;
         }
     };
 
@@ -107,13 +111,13 @@ void ItemDatabase::loadRarityWeights(const std::shared_ptr<JsonValue>& json) {
     loadOne("rare",      ItemDef::Rarity::Rare);
     loadOne("divine",    ItemDef::Rarity::Divine);
     loadOne("special",   ItemDef::Rarity::Special);
-}
 
-/** Returns the probability weight of the given rarity */
-double ItemDatabase::rarityBaseWeight(ItemDef::Rarity r) const {
-    auto rarity = _rarityWeights.find(r);
-    if (rarity != _rarityWeights.end()) return rarity->second;
-    return 1.0;
+    // Normalize so weights sum to 1.0 — values can be any positive numbers in JSON
+    double total = 0.0;
+    for (const auto& rarityWeight : _rarityWeights) total += rarityWeight.second;
+    if (total > 0.0) {
+        for (auto& rarityWeight : _rarityWeights) rarityWeight.second /= total;
+    }
 }
 
 /** Add item with the given defId to the corresponding bucket with effectiveWeight
@@ -141,15 +145,25 @@ void ItemDatabase::addToBucket(Bucket& bucket, const std::string& defId, double 
  * @return the defId of the selected item, or "" if the bucket is empty
  */
 std::string ItemDatabase::rollFromBucket(const Bucket& bucket) {
-    if (bucket.defIds.empty() || bucket.total <= 0.0) return "";
-
     if (!_rngReady) {
         // Lazy seed if user forgot to seed explicitly
         const_cast<ItemDatabase*>(this)->setStartingPointWithTime();
     }
+    return rollFromBucket(bucket, _rng);
+}
+
+/**
+ * Rolls a random item definition ID from a bucket using the caller-provided RNG.
+ *
+ * @param bucket  The weighted rarity bucket to roll from.
+ * @param rng     The RNG instance that should supply the random roll.
+ * @return the defId of the selected item, or "" if the bucket is empty.
+ */
+std::string ItemDatabase::rollFromBucket(const Bucket& bucket, cugl::Random& rng) const {
+    if (bucket.defIds.empty() || bucket.total <= 0.0) return "";
 
     // Pick a random value in [0, total) — this is our "dart throw" into the weight space
-    double randVal = _rng.getRightOpenDouble(0.0, bucket.total);
+    double randVal = rng.getRightOpenDouble(0.0, bucket.total);
 
     // Binary search the prefix sum array for the first entry greater than r (std::upper_bound).
     auto bucketItem = std::upper_bound(bucket.prefix.begin(), bucket.prefix.end(), randVal);
@@ -194,15 +208,10 @@ bool ItemDatabase::loadFromJson(const std::shared_ptr<JsonValue>& json) {
         }
         _defs[defID] = itemDef;
 
-        // Rarity-driven spawn weights
-        double rarityWeight = rarityBaseWeight(itemDef->getRarity());
-
-        // Add to spawn buckets if spawnable
-        addToBucket(_allDefIds, defID, rarityWeight);
-        addToBucket(_bucketsByRarity[itemDef->getRarity()], defID, rarityWeight);
+        // Add to the per-rarity bucket weighted by the item's own weight field
+        addToBucket(_bucketsByRarity[itemDef->getRarity()], defID, (double)itemDef->getWeight());
     }
 
-    // Note: _defs may be non-empty even if _allDefs is empty (e.g. all weights 0)
     return !_defs.empty();
 }
 
@@ -290,16 +299,123 @@ const ItemDatabase::HouseMultipliers* ItemDatabase::getHouseMultipliers(const st
     return &multipliersIterator->second;
 }
 
-/** Rarity-driven weighted roll across all spawnable items */
+/**
+ * Filters the divine bucket to items whose houseAffinity is in _activeHouses (or None).
+ * Called automatically by setActiveHouses().
+ */
+void ItemDatabase::rebuildFilteredDivineBucket() {
+    _filteredDivineBucket = Bucket();
+    if (!_hasActiveHouseFilter) return;
+
+    auto bucket = _bucketsByRarity.find(ItemDef::Rarity::Divine);
+    if (bucket == _bucketsByRarity.end()) return;
+
+    for (const auto& defId : bucket->second.defIds) {
+        auto def = getDef(defId);
+        if (!def) continue;
+        ItemDef::House affinity = def->getHouseAffinity();
+        if (affinity == ItemDef::House::None || _activeHouses.count(affinity) > 0) {
+            addToBucket(_filteredDivineBucket, defId, (double)def->getWeight());
+        }
+    }
+}
+
+/**
+ * Sets the active player houses used to filter divine item rolls.
+ * Rebuilds the filtered divine bucket immediately.
+ * @param houseIds Vector of house ID strings to set as active; IDs are normalized for case-insensitive matching.
+ */
+void ItemDatabase::setActiveHouses(const std::vector<std::string>& houseIds) {
+    _activeHouses.clear();
+    for (const auto& id : houseIds) {
+        ItemDef::House house = ItemDef::houseFromString(id, ItemDef::House::None);
+        if (house != ItemDef::House::None) {
+            _activeHouses.insert(house);
+        }
+    }
+    _hasActiveHouseFilter = !_activeHouses.empty();
+    rebuildFilteredDivineBucket();
+}
+
+/**
+ * Two-phase weighted roll:
+ *   Phase 1 — pick a rarity tier using the normalized _rarityWeights.
+ *   Phase 2 — pick an item from that tier's bucket using per-item weights.
+ *
+ * Falls back to any non-empty tier if the selected tier has no items.
+ */
 std::string ItemDatabase::rollRandomDefId() {
-    return rollFromBucket(_allDefIds);
+    if (!_rngReady) {
+        const_cast<ItemDatabase*>(this)->setStartingPointWithTime();
+    }
+
+    static const ItemDef::Rarity rarityOrder[] = {
+        ItemDef::Rarity::Common,
+        ItemDef::Rarity::Rare,
+        ItemDef::Rarity::Divine
+    };
+
+    // Phase 1: pick a tier
+    double roll = _rng.getRightOpenDouble(0.0, 1.0);
+    double cumulative = 0.0;
+    ItemDef::Rarity selected = rarityOrder[0];
+    for (auto rarity : rarityOrder) {
+        auto rarityWeight = _rarityWeights.find(rarity);
+        if (rarityWeight == _rarityWeights.end()) continue;
+        cumulative += rarityWeight->second;
+        selected = rarity;
+        if (roll < cumulative) break;
+    }
+
+    // Phase 2: pick an item from the selected tier.
+    // For divine, use the house-filtered bucket if a filter is active.
+    if (selected == ItemDef::Rarity::Divine && _hasActiveHouseFilter) {
+        if (!_filteredDivineBucket.defIds.empty()) {
+            return rollFromBucket(_filteredDivineBucket);
+        }
+        // Filter is active but no divine items match the active houses — skip divine entirely
+        // and fall through to the fallback below.
+    } else {
+        auto bucketIt = _bucketsByRarity.find(selected);
+        if (bucketIt != _bucketsByRarity.end() && !bucketIt->second.defIds.empty()) {
+            return rollFromBucket(bucketIt->second);
+        }
+    }
+
+    // Fallback: selected tier is empty — try other tiers in order
+    for (auto rarity : rarityOrder) {
+        auto bucket = _bucketsByRarity.find(rarity);
+        if (bucket != _bucketsByRarity.end() && !bucket->second.defIds.empty()) {
+            return rollFromBucket(bucket->second);
+        }
+    }
+    return "";
 }
 
 /** Weighted roll within a specific rarity bucket (probably not needed) */
 std::string ItemDatabase::rollRandomDefId(ItemDef::Rarity rarity) {
     auto bucket = _bucketsByRarity.find(rarity);
     if (bucket == _bucketsByRarity.end()) return "";
+    if (rarity == ItemDef::Rarity::Divine && _hasActiveHouseFilter && !_filteredDivineBucket.defIds.empty()) {
+        return rollFromBucket(_filteredDivineBucket);
+    }
     return rollFromBucket(bucket->second);
+}
+
+/**
+ * Rolls a random item definition ID within a rarity bucket using the caller-provided RNG.
+ *
+ * @param rarity  The rarity bucket to roll from.
+ * @param rng     The RNG instance that should supply the random roll.
+ * @return the defId of the selected item, or "" if the bucket is empty.
+ */
+std::string ItemDatabase::rollRandomDefId(ItemDef::Rarity rarity, cugl::Random& rng) const {
+    auto bucket = _bucketsByRarity.find(rarity);
+    if (bucket == _bucketsByRarity.end()) return "";
+    if (rarity == ItemDef::Rarity::Divine && _hasActiveHouseFilter && !_filteredDivineBucket.defIds.empty()) {
+        return rollFromBucket(_filteredDivineBucket, rng);
+    }
+    return rollFromBucket(bucket->second, rng);
 }
 
 /** Just for potential usage */
