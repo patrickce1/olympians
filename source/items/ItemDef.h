@@ -81,7 +81,8 @@ public:
         Slow,
         Vulnerable,
         Upgrade,
-        Forge
+        Forge,
+        Charm
     };
 
     /**

@@ -3,6 +3,7 @@
 
 #include <cugl/cugl.h>
 #include "../HouseLoader.h"
+#include "../InputController.h"
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 #include <iostream>
@@ -22,8 +23,6 @@ public:
     enum Status {
         /** Player is browsing and has not locked in a house yet */
         WAITING,
-        /** Player has locked in a house; ready to proceed */
-        LOCKED,
         /** Player canceled or left house select; back to lobby */
         ABORT,
         /** Game scene has been started by host*/
@@ -48,8 +47,8 @@ protected:
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
 
-    /** The button for locking/unlocking chosen house */
-    std::shared_ptr<cugl::scene2::Button> _lockButton;
+    /** The button for selecting a house */
+    std::shared_ptr<cugl::scene2::Button> _selectButton;
     
     /** The back button for the houseSelect scene */
     std::shared_ptr<cugl::scene2::Button> _backButton;
@@ -73,7 +72,7 @@ protected:
     std::shared_ptr<cugl::scene2::SceneNode> _playerIconGlow;
     
     /** Whether the played has locked down a house.*/
-    bool _locked = false;
+    bool _selectedHouse = false;
     
     /**
      * Whether the scene should perform a full UI reset on its next activation.
@@ -144,12 +143,38 @@ protected:
      * when the host or player reopens house select for that slot.
      */
     struct SlotState {
-        int  carouselIndex = 4;   // which card was showing
-        bool locked        = false;
+        int  carouselIndex = 4;
+        bool selectedHouse = false;
     };
 
     /** Per-slot persisted state, keyed by game slot index. -1 = local player. */
     std::unordered_map<int, SlotState> _slotStates;
+    
+    /** The initial position of the house carousel container. */
+    cugl::Vec2 _baseCarouselPosition;
+
+    // --- Swipe gesture state ---
+
+    /** X position (world space) where the finger first touched down. */
+    float _swipeTouchStartX = 0.0f;
+
+    /** Whether a swipe gesture is currently being tracked. */
+    bool _isSwiping = false;
+
+    /** The X position of the card container at the moment the current touch began. */
+    float _swipeContainerStartX = 0.0f;
+
+    /** Position of the touch on the first frame it was detected. */
+    cugl::Vec2 _swipeTouchInitialPos = cugl::Vec2::ZERO;
+
+    /** Number of frames the finger has been moving horizontally. */
+    int _swipeHoldFrames = 0;
+
+    /** Maps each card's container X position to its card index. */
+    std::map<float, int> _xPosToHouse;
+
+    /** Maps each card index to its target container X position. */
+    std::map<int, float> _houseToTargetX;
 
 public:
 #pragma mark -
@@ -240,8 +265,9 @@ public:
      * We need to update this method to constantly talk to the server
      *
      * @param timestep  The amount of time (in seconds) since the last frame
+     * @param input         The input controller instance
      */
-    void update(float timestep) override;
+    void update(float timestep, InputController& input);
     
     /**
      * Sets the game slot this scene should configure on its next activation.
@@ -261,8 +287,18 @@ public:
      *
      * @param selectedHouse  The house definition the player locked in.
      */
+    void selectHouse(const HouseLoader::HouseDef& selectedHouse);
+    
+    /**
+     * Commits a house lock for the current carousel selection. Writes the
+     * chosen house to the correct slot in GameState and broadcasts it over
+     * the network. If _targetSlot is -1, writes to the local player's slot;
+     * otherwise writes to the AI slot the host is configuring.
+     *
+     * @param selectedHouse  The house definition the player locked in.
+     */
     void commitHouseLock(const HouseLoader::HouseDef& selectedHouse);
-
+    
     /**
      * Clears the house selection for the current target slot and broadcasts
      * the change. Only has an effect in AI slot mode (_targetSlot != -1).
@@ -289,6 +325,59 @@ public:
      * @return            The carousel index to slide to on activation.
      */
     int getInitialCarouselIndex(int targetSlot);
+    
+    /**
+     * Records the touch-down position to begin tracking a potential swipe.
+     *
+     * Called every frame from update(). On the first frame a touch is
+     * detected while no swipe is already in progress, stores the starting
+     * X coordinate (screen space) in _swipeTouchStartX and sets _isSwiping.
+     * No-op on subsequent frames or when a gesture is already active.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeBegin(InputController& input);
+
+    /**
+     * Moves the card container directly under the finger each frame while
+     * a swipe is active. Computes the delta from the touch-down position and
+     * applies it to the container's position at the start of the drag.
+     * Clamps the container so it cannot be dragged past the first or last card.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeTracking(InputController& input);
+
+    /**
+     * Called on finger lift. Delegates to snapToNearestHouse() to find and
+     * animate to the closest card to the current container position.
+     * Clears all swipe tracking state before returning.
+     *
+     * @param input  The input controller for this frame.
+     */
+    void handleSwipeRelease(InputController& input);
+
+    /**
+     * Finds the card whose X position in _xPosToHouse is closest to
+     * `releaseContainerX`, updates _currentIndex to that card's index,
+     * updates the glow overlays and dot indicators, and initiates a lerp
+     * animation to that card's exact centred container position.
+     *
+     * @param releaseContainerX  The container's X position at the moment
+     *                           the finger lifted, in the container's
+     *                           parent's local space.
+     */
+    void snapToNearestHouse(float releaseContainerX);
+    
+    /**
+     * Returns true if the house currently shown in the carousel matches
+     * the house committed by the player in the active slot. Used to
+     * determine whether the select button should display "DESELECT" instead
+     * of "SELECT" when the player is facing their own selection.
+     *
+     * @return true if the current carousel house matches the committed house.
+     */
+    bool isCurrentHouseSelected() const;
 
 private:
     /**
@@ -303,13 +392,6 @@ private:
      * @param text      The new text value
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
-    
-    /**
-     * Reconfigures the lock button for this scene
-     *
-     * This is necessary because what the buttons do depends on the state the player's choice
-     */
-    void configureLockButton();
     
     /**
      * Initiates a slide animation to center the item at `newIndex`.

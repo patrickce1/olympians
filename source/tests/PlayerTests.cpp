@@ -527,6 +527,80 @@ static void testMalletUpgradeScaling(const HouseLoader& loader,
     assertWithLabel(offAffinityPlayer->getMalletUseCount() == 2, "mallet upgrade: off-affinity mallet does not increment streak");
 }
 
+/** Verifies that using charm applies the timed buff to every connected party member. */
+static void testCharmAppliesToParty(const HouseLoader& loader,
+                                    const ItemDatabase& db,
+                                    Enemy& enemy) {
+    auto players = makeFourPlayers(loader, "aphrodite");
+    players[0]->addItem(makeItem("charm"));
+
+    const float resolved = players[0]->useItemById(players[0]->getInventory()[0].getId(), enemy, db);
+
+    bool allCharmed = true;
+    for (const auto& player : players) {
+        allCharmed = allCharmed && player->hasCharm() &&
+            floatsEqualWithinTolerance(player->getCharmDuration(), 10.0f);
+    }
+
+    assertWithLabel(floatsEqualWithinTolerance(resolved, 0.0f), "charm: ally-target attack resolves zero damage");
+    assertWithLabel(allCharmed, "charm: applies 10 second buff to every party member");
+}
+
+/** Verifies charm buffs newly applied support effects without modifying regen duration. */
+static void testCharmSupportEffectAmplification(const HouseLoader& loader,
+                                                const ItemDatabase& db) {
+    {
+        auto players = makeTwoPlayers(loader, "zeus");
+        players[0]->applyCharm(10.0f);
+        players[0]->addItem(makeItem("shield"));
+        const float resolved = players[0]->useItemById(players[0]->getInventory()[0].getId(), *players[1], db);
+
+        assertWithLabel(floatsEqualWithinTolerance(resolved, 0.0f), "charm support: shield use resolves zero base heal");
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getShieldHealth(), 40.0f), "charm support: shield mitigation doubles");
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getShieldDuration(), 10.0f), "charm support: shield duration doubles");
+    }
+
+    {
+        auto players = makeTwoPlayers(loader, "athena");
+        players[0]->applyCharm(10.0f);
+        players[0]->addItem(makeItem("aegis"));
+        players[0]->useItemById(players[0]->getInventory()[0].getId(), *players[1], db);
+
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getBarrierMultiplier(), 0.25f), "charm support: barrier multiplier halves");
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getBarrierDuration(), 20.0f), "charm support: barrier duration doubles");
+    }
+
+    {
+        auto players = makeTwoPlayers(loader, "demeter");
+        players[0]->applyCharm(10.0f);
+        players[0]->addItem(makeItem("wheat"));
+        players[0]->useItemById(players[0]->getInventory()[0].getId(), *players[1], db);
+
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getRegenAmountRemaining(), 50.0f), "charm support: regen amount doubles");
+        assertWithLabel(floatsEqualWithinTolerance(players[1]->getRegenDuration(), 5.0f), "charm support: regen duration stays unchanged");
+    }
+}
+
+/** Verifies charm makes mallet advance its use counter twice without changing the multiplier itself. */
+static void testCharmMalletUseCounterScaling(const HouseLoader& loader,
+                                             const ItemDatabase& db,
+                                             Enemy& enemy) {
+    auto player = std::make_shared<Player>("hephaestus", 1, "Charmed Hephaestus", loader);
+    player->applyCharm(10.0f);
+
+    player->addItem(makeItem("mallet"));
+    const float firstResolved = player->useItemById(player->getInventory()[0].getId(), enemy, db);
+    const float expectedFirst = 10.0f * (1.0f + 0.55f) * 1.5f;
+    assertWithLabel(floatsEqualWithinTolerance(firstResolved, expectedFirst), "charm mallet: first use keeps normal 1.5x multiplier");
+    assertWithLabel(player->getMalletUseCount() == 2, "charm mallet: first use advances counter twice");
+
+    player->addItem(makeItem("mallet"));
+    const float secondResolved = player->useItemById(player->getInventory()[0].getId(), enemy, db);
+    const float expectedSecond = 10.0f * std::pow(1.5f, 2.0f) * (1.0f + 0.55f) * 1.5f;
+    assertWithLabel(floatsEqualWithinTolerance(secondResolved, expectedSecond), "charm mallet: next use reads doubled counter from previous use");
+    assertWithLabel(player->getMalletUseCount() == 4, "charm mallet: second use advances counter twice again");
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 5 — AI behavior
 // ─────────────────────────────────────────────────────────────────────────────
@@ -747,6 +821,9 @@ void PlayerTests::runAll(const std::string& housesJsonPath,
     testUseAttackItemOnAllyIsNoop  (loader, houseId, db, attackDefId);
     testUseSupportItemOnEnemyIsNoop(loader, houseId, db, enemy, supportDefId);
     testMalletUpgradeScaling       (loader, db, enemy);
+    testCharmAppliesToParty        (loader, db, enemy);
+    testCharmSupportEffectAmplification(loader, db);
+    testCharmMalletUseCounterScaling(loader, db, enemy);
 
     CULog("── Section 5: AI behavior ───────────────");
     testAIIdleWithEmptyInventory(loader, houseId, db, enemy, aiConfigPath);

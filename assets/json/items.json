@@ -477,10 +477,10 @@
             "effects": []
         },
         {
-            "id": "beauty",
-            "name": "Beauty",
+            "id": "charm",
+            "name": "Charm",
             "description": " ",
-            "icon": "item_aphrodite_beauty",
+            "icon": "item_aphrodite_charm",
             "tooltip": "tooltip_aphrodite_charm",
             "type": "attack",
             "attackTarget": "all_allies",
@@ -488,7 +488,12 @@
             "houseAffinity": "aphrodite",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "charm",
+                    "duration": 10.0
+                }
+            ]
         }
     ],
     "itemInterval": 2.5,
