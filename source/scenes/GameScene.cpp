@@ -154,6 +154,14 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                     0.0f,
                     true);
                 break;
+            case ItemDef::EffectType::Lifesteal:
+                network.broadcastSupportEffect(SupportEffectType::Lifesteal,
+                    effect.multiplier,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    true);
+                break;
             case ItemDef::EffectType::Forge:
                 break;
             case ItemDef::EffectType::Stun:
@@ -241,6 +249,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Forge:
             case ItemDef::EffectType::Charm:
             case ItemDef::EffectType::Frenzy:
+            case ItemDef::EffectType::Lifesteal:
                 break;
         }
     }
@@ -333,6 +342,9 @@ static ItemDef::Effect resolveEffectForCharm(const ItemDef::Effect& effect, bool
             break;
         case ItemDef::EffectType::Frenzy:
             resolved.amount *= 0.5f;
+            break;
+        case ItemDef::EffectType::Lifesteal:
+            resolved.multiplier *= 2.0f;
             break;
     }
 
@@ -1168,6 +1180,8 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                         applyFrenzyEffect(resolvedEffect.amount, resolvedEffect.duration);
                     }
                     break;
+                case ItemDef::EffectType::Lifesteal:
+                    break;
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
                 case ItemDef::EffectType::Regen:
@@ -1248,6 +1262,29 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                 case ItemDef::EffectType::Forge:
                 case ItemDef::EffectType::Frenzy:
                     break;
+                case ItemDef::EffectType::Lifesteal: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Lifesteal;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.magnitude = resolvedEffect.multiplier;
+                    pendingEffect.duration = resolvedEffect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
                 case ItemDef::EffectType::Regen:
@@ -2569,6 +2606,13 @@ void GameScene::applyPendingPartyEffectSyncs() {
                         continue;
                     }
                     player->applyCharm(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                case ItemDef::EffectType::Lifesteal:
+                    if (player->hasLifesteal()) {
+                        continue;
+                    }
+                    player->applyLifesteal(pendingEffect.magnitude, pendingEffect.duration);
                     waitingForHost = true;
                     break;
                 default:

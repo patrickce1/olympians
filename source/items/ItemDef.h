@@ -83,7 +83,8 @@ public:
         Upgrade,
         Forge,
         Charm,
-        Frenzy
+        Frenzy,
+        Lifesteal
     };
 
     /**

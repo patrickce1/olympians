@@ -155,6 +155,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto treasureDef = db.getDef("treasure");
     auto spearDef = db.getDef("spear");
     auto wingsDef = db.getDef("wings");
+    auto tsunamiDef = db.getDef("tsunami");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
            "items: lightning_bolt affinity parses as Zeus");
     assertWithLabel(lightningBoltDef && lightningBoltDef->hasEffectType(ItemDef::EffectType::Stun),
@@ -230,6 +231,14 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
                     floatsEqualWithinTolerance(wingsDef->getEffects()[0].multiplier, 0.5f) &&
                     floatsEqualWithinTolerance(wingsDef->getEffects()[0].duration, 5.0f),
            "items: wings slow values parse");
+    assertWithLabel(tsunamiDef && tsunamiDef->hasEffectType(ItemDef::EffectType::Lifesteal),
+           "items: tsunami parses lifesteal effect");
+    assertWithLabel(tsunamiDef && tsunamiDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
+           "items: tsunami attack target parses as all allies");
+    assertWithLabel(tsunamiDef && !tsunamiDef->getEffects().empty() &&
+                    floatsEqualWithinTolerance(tsunamiDef->getEffects()[0].multiplier, 0.4f) &&
+                    floatsEqualWithinTolerance(tsunamiDef->getEffects()[0].duration, 10.0f),
+           "items: tsunami lifesteal values parse");
 }
 
 /**
