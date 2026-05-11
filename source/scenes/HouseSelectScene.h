@@ -372,7 +372,7 @@ public:
     /**
      * Returns true if the house currently shown in the carousel matches
      * the house committed by the player in the active slot. Used to
-     * determine whether the select button should display "CLEAR" instead
+     * determine whether the select button should display "DESELECT" instead
      * of "SELECT" when the player is facing their own selection.
      *
      * @return true if the current carousel house matches the committed house.
