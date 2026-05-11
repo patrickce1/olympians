@@ -362,6 +362,9 @@ static ItemDef::Effect resolveEffectForCharm(const ItemDef::Effect& effect, bool
             break;
         case ItemDef::EffectType::Charm:
             break;
+        case ItemDef::EffectType::Frenzy:
+            resolved.amount *= 0.5f;
+            break;
     }
 
     return resolved;
@@ -579,6 +582,9 @@ static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolv
         return;
     }
     if (resolvedEffect.type == ItemDef::EffectType::Forge) {
+        return;
+    }
+    if (resolvedEffect.type == ItemDef::EffectType::Frenzy) {
         return;
     }
 

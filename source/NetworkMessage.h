@@ -52,7 +52,8 @@ enum class SupportEffectType : int32_t {
     Resurrect = 4,
     Educate = 5,
     Forge = 6,
-    Charm = 7
+    Charm = 7,
+    Frenzy = 8
 };
 
 /** Attack effect categories sent from clients to the host. */
@@ -169,6 +170,12 @@ struct GameStateMessage {
 
     /** Active authoritative state-time multiplier while slow is active. */
     float bossSlowMultiplier = 1.0f;
+
+    /** Remaining authoritative frenzy time for item spawning, in seconds. */
+    float frenzyDuration = 0.0f;
+
+    /** Active authoritative item spawn interval while frenzy is active. */
+    float frenzyItemInterval = 0.0f;
     
     /** Remaining authoritative vulnerable time for each relative boss side, in seconds. */
     std::array<float, kMaxPlayers> bossVulnerableDurations = {0.0f, 0.0f, 0.0f, 0.0f};

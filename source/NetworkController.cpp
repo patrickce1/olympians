@@ -481,6 +481,8 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             stateMsg.bossState = _deserializer.readSint32();
             stateMsg.stateTime = _deserializer.readFloat();
             readEnemyRuntimeState(_deserializer, stateMsg);
+            stateMsg.frenzyItemInterval = _deserializer.readFloat();
+            stateMsg.frenzyDuration = _deserializer.readFloat();
             readPlayerRuntimeState(_deserializer, stateMsg);
             
 			_latestGameState = stateMsg;
@@ -777,14 +779,18 @@ void NetworkController::broadcastJoinedLobby() {
  * incoming attack and heal messages for that frame.
  *
  * @param state     The current authoritative game state.
+ * @param frenzyItemInterval Active frenzy item interval, or 0 when inactive.
+ * @param frenzyDuration Remaining frenzy duration in seconds, or 0 when inactive.
  */
-void NetworkController::broadcastGameState(const GameState& state) {
+void NetworkController::broadcastGameState(const GameState& state, float frenzyItemInterval, float frenzyDuration) {
 	_serializer.writeSint32(MessageType::GAME_UPDATE);
 	_serializer.writeFloat(state.getEnemy()->getCurrentHealth());
 	_serializer.writeSint32(state.getEnemy()->getTargetIndex());
 	_serializer.writeSint32(state.getEnemy()->getCurrentState());
 	_serializer.writeFloat(state.getEnemy()->getStateTime());
     writeEnemyRuntimeState(_serializer, state.getEnemy());
+    _serializer.writeFloat(frenzyItemInterval);
+    _serializer.writeFloat(frenzyDuration);
 	std::vector<shared_ptr<Player>> players = state.getPlayers();
     writePlayerRuntimeState(_serializer, players);
 	_network->broadcast(_serializer.serialize());
