@@ -2708,7 +2708,7 @@ void GameScene::handleCorrosiveDrain(){
 
     Player* victim = _gameState.getPlayerBySlot(targetIndex);
     if (!victim || !victim->isAlive() || victim->getInventory().empty()) {
-        CULog("No victim, victim dead, or empty inventory - ending corrosive (target=%d)", targetIndex);
+        if (_debugMode) CULog("No victim, victim dead, or empty inventory - ending corrosive (target=%d)", targetIndex);
         // End corrosive early since player is dead or has no items left
         cerberus->endCorrosive();
         return;
@@ -2758,11 +2758,11 @@ void GameScene::handleCorrosiveDrain(){
             anim.itemId = itemIdToRemove;
             _corrodedItemAnimations.push_back(anim);
 
-            CULog("  -> Item marked as corroding (still usable during animation)");
+            if (_debugMode) CULog("  -> Item marked as corroding (still usable during animation)");
         }
     }
 
-    CULog("  -> Item corrosion started (%d items remaining)", (int)inventory.size());
+    if (_debugMode) CULog("  -> Item corrosion started (%d items remaining)", (int)inventory.size());
 }
 
 

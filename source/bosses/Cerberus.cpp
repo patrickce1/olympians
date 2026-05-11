@@ -74,7 +74,7 @@ void Cerberus::update(float dt) {
     if (currentState == EnemyLoader::State::ATTACK_3 && previousState != EnemyLoader::State::ATTACK_3) {
         // Use the enemy's current target as the corrosive victim
         startCorrosive(_targetIndex, CORROSIVE_DURATION);
-        CULog("Cerberus: ATTACK_3 started, triggering corrosive on player %d", _targetIndex);
+        if (_debug) CULog("Cerberus: ATTACK_3 started, triggering corrosive on player %d", _targetIndex);
     }
 
     previousState = currentState;
@@ -89,21 +89,21 @@ void Cerberus::update(float dt) {
         }
     }
     if (_corrosiveActive) {
-        CULog("Cerberus: Corrosive active, target=%d, timer=%.2f, accum=%.2f", _corrosiveTarget, _corrosiveTimer, _corrosiveDrainAccum);
+        if (_debug) CULog("Cerberus: Corrosive active, target=%d, timer=%.2f, accum=%.2f", _corrosiveTarget, _corrosiveTimer, _corrosiveDrainAccum);
         _corrosiveTimer -= dt;
         if (_corrosiveTimer <= 0){
             _corrosiveTimer = 0;
             _corrosiveActive = false;
             _corrosiveTarget = -1;
             _corrosiveDrainAccum = 0;
-            CULog("Cerberus: Corrosive ended naturally (timer expired)");
+            if (_debug) CULog("Cerberus: Corrosive ended naturally (timer expired)");
         }
         else {
             _corrosiveDrainAccum -= dt;
             if (_corrosiveDrainAccum <= 0) {
                 _shouldDrain = true;
                 _corrosiveDrainAccum += CORROSIVE_DRAIN_INTERVAL;
-                CULog("Cerberus: Drain ready! shouldDrain=true, target=%d", _corrosiveTarget);
+                if (_debug) CULog("Cerberus: Drain ready! shouldDrain=true, target=%d", _corrosiveTarget);
             }
         }
     }
@@ -152,7 +152,7 @@ void Cerberus::startCorrosive(int playerIndex, float duration) {
     _corrosiveActive = true;
     _corrosiveDrainAccum = CORROSIVE_DRAIN_INTERVAL;
     _shouldDrain = false;
-    CULog("Cerberus: startCorrosive called - player=%d, duration=%.1f", playerIndex, duration);
+    if (_debug) CULog("Cerberus: startCorrosive called - player=%d, duration=%.1f", playerIndex, duration);
 }
 
 /** Ends the corrosive effect early (e.g., when player runs out of items) */
@@ -162,14 +162,14 @@ void Cerberus::endCorrosive() {
     _corrosiveTarget = -1;
     _corrosiveDrainAccum = 0.0f;
     _shouldDrain = false;
-    CULog("Cerberus: endCorrosive called");
+    if (_debug) CULog("Cerberus: endCorrosive called");
 }
 
 bool Cerberus::shouldDrainItem() {
-    CULog("Cerberus: shouldDrainItem called - _shouldDrain=%d, _corrosiveActive=%d", _shouldDrain, _corrosiveActive);
+    if (_debug) CULog("Cerberus: shouldDrainItem called - _shouldDrain=%d, _corrosiveActive=%d", _shouldDrain, _corrosiveActive);
     if (_shouldDrain){
         _shouldDrain = false;
-        CULog("Cerberus: Returning TRUE, consuming drain flag");
+        if (_debug) CULog("Cerberus: Returning TRUE, consuming drain flag");
         return true;
     }
     return false;
