@@ -421,7 +421,7 @@ void HouseSelectScene::slideTo(int newIndex) {
     
     updateCarouselDots(newIndex);
     updateSelectedIcon(newIndex);
-    updateText(_selectButton, (_selectedHouse && isCurrentHouseSelected()) ? "CLEAR" : "SELECT");
+    updateText(_selectButton, (_selectedHouse && isCurrentHouseSelected()) ? "DESELECT" : "SELECT");
 }
 
 /**
@@ -936,7 +936,7 @@ void HouseSelectScene::snapToNearestHouse(float releaseContainerX) {
 /**
  * Returns true if the house currently shown in the carousel matches
  * the house committed by the player in the active slot. Used to
- * determine whether the select button should display "CLEAR" instead
+ * determine whether the select button should display "DESELECT" instead
  * of "SELECT" when the player is facing their own selection.
  *
  * @return true if the current carousel house matches the committed house.
