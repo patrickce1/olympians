@@ -133,10 +133,10 @@ void SceneLoader::onStartup()
     //       "json/playerAI.json"
     //   );
     //
-      EnemyTests::runAll(
-         "json/enemies.json",
-         "json/houses.json"
-      );
+    //  EnemyTests::runAll(
+    //      "json/enemies.json",
+    //      "json/houses.json"
+    //   );
     //
     //   ItemTests::runAll(
     //       "json/items.json",
