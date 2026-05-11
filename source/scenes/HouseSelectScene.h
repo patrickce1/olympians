@@ -23,8 +23,6 @@ public:
     enum Status {
         /** Player is browsing and has not locked in a house yet */
         WAITING,
-        /** Player has locked in a house; ready to proceed */
-        LOCKED,
         /** Player canceled or left house select; back to lobby */
         ABORT,
         /** Game scene has been started by host*/
@@ -49,8 +47,8 @@ protected:
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
 
-    /** The button for locking/unlocking chosen house */
-    std::shared_ptr<cugl::scene2::Button> _lockButton;
+    /** The button for selecting a house */
+    std::shared_ptr<cugl::scene2::Button> _selectButton;
     
     /** The back button for the houseSelect scene */
     std::shared_ptr<cugl::scene2::Button> _backButton;
@@ -74,7 +72,7 @@ protected:
     std::shared_ptr<cugl::scene2::SceneNode> _playerIconGlow;
     
     /** Whether the played has locked down a house.*/
-    bool _locked = false;
+    bool _selectedHouse = false;
     
     /**
      * Whether the scene should perform a full UI reset on its next activation.
@@ -145,8 +143,8 @@ protected:
      * when the host or player reopens house select for that slot.
      */
     struct SlotState {
-        int  carouselIndex = 4;   // which card was showing
-        bool locked        = false;
+        int  carouselIndex = 4;
+        bool selectedHouse = false;
     };
 
     /** Per-slot persisted state, keyed by game slot index. -1 = local player. */
@@ -289,8 +287,18 @@ public:
      *
      * @param selectedHouse  The house definition the player locked in.
      */
+    void selectHouse(const HouseLoader::HouseDef& selectedHouse);
+    
+    /**
+     * Commits a house lock for the current carousel selection. Writes the
+     * chosen house to the correct slot in GameState and broadcasts it over
+     * the network. If _targetSlot is -1, writes to the local player's slot;
+     * otherwise writes to the AI slot the host is configuring.
+     *
+     * @param selectedHouse  The house definition the player locked in.
+     */
     void commitHouseLock(const HouseLoader::HouseDef& selectedHouse);
-
+    
     /**
      * Clears the house selection for the current target slot and broadcasts
      * the change. Only has an effect in AI slot mode (_targetSlot != -1).
@@ -360,6 +368,16 @@ public:
      *                           parent's local space.
      */
     void snapToNearestHouse(float releaseContainerX);
+    
+    /**
+     * Returns true if the house currently shown in the carousel matches
+     * the house committed by the player in the active slot. Used to
+     * determine whether the select button should display "DESELECT" instead
+     * of "SELECT" when the player is facing their own selection.
+     *
+     * @return true if the current carousel house matches the committed house.
+     */
+    bool isCurrentHouseSelected() const;
 
 private:
     /**
@@ -374,13 +392,6 @@ private:
      * @param text      The new text value
      */
     void updateText(const std::shared_ptr<cugl::scene2::Button>& button, const std::string text);
-    
-    /**
-     * Reconfigures the lock button for this scene
-     *
-     * This is necessary because what the buttons do depends on the state the player's choice
-     */
-    void configureLockButton();
     
     /**
      * Initiates a slide animation to center the item at `newIndex`.
