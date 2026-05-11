@@ -930,7 +930,7 @@ void HouseSelectScene::snapToNearestHouse(float releaseContainerX) {
 
     updateCarouselDots(nearestIndex);
     updateSelectedIcon(nearestIndex);
-    updateText(_selectButton, (_selectedHouse && isCurrentHouseSelected()) ? "CLEAR" : "SELECT");
+    updateText(_selectButton, (_selectedHouse && isCurrentHouseSelected()) ? "DESELECT" : "SELECT");
 }
 
 /**
