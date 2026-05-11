@@ -51,7 +51,7 @@
     },
     {
       "type": "show_message",
-      "text": "Circe hits your teammate. They drop below 50% health!",
+      "text": "Circe hits your teammate. They've dropped below 50% health!",
       "delay": 6.0
     },
     {
