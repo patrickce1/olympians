@@ -176,16 +176,11 @@
                     },
                     "timers": {
                         "type": "Node",
-                        "format": {
-                            "type": "Float",
-                            "x_alignment": "center",
-                            "y_alignment": "middle",
-                            "orientation": "vertical"
-                        },
+                        "format": { "type": "Anchored" },
                         "data": {
                             "anchor": [
                                 0,
-                                1
+                                0
                             ],
                             "size": [
                                 42,
@@ -201,10 +196,10 @@
                         "children": {},
                         "layout": {
                             "x_anchor": "left",
-                            "y_anchor": "top",
+                            "y_anchor": "bottom",
                             "absolute": false,
                             "x_offset": 0.02,
-                            "y_offset": -0.68
+                            "y_offset": 0.13
                         }
                     },
                     "supportLeft": {

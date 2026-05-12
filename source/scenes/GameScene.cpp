@@ -43,9 +43,14 @@ constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
 constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 
 static const float ICON_SIZE = 40.0f;
-static const float ICON_SPACING = 10.0f;
-static const float START_X = 50.0f;
-static const float START_Y = 100.0f;
+static const float SLOT_X    = 20.0f;
+static const float ICON_GAP  = 9.0f;
+
+static const std::array<float, 3> SLOT_Y = {
+    0.0f,
+    ICON_SIZE + ICON_GAP,
+    (ICON_SIZE + ICON_GAP) * 2.0f
+};
 
 #pragma mark HealthState
 
@@ -1536,26 +1541,80 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
     }
 }
 
+/**
+ * Recomputes which up to 3 effect icons are visible based on priority:
+ * 1. Player's divine item (if active)
+ * 2. Player's rare item (if active)
+ * 3. Highest remaining duration among everything else
+ *
+ * All icons not in the visible set are hidden but kept alive in _effectIcons
+ * so they can resurface if a higher-priority slot expires.
+ */
+void GameScene::recomputeVisibleTimers() {
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) return;
+
+    const auto& db = _itemController.getDatabase();
+
+    // Classify each active icon by rarity
+    ActiveEffectIcon* divineSlot = nullptr;
+    ActiveEffectIcon* rareSlot   = nullptr;
+    std::vector<ActiveEffectIcon*> others;
+
+    for (auto& e : _effectIcons) {
+        auto def = db.getDef(e.textureKey);
+        if (!def) {
+            others.push_back(&e);
+            continue;
+        }
+        auto rarity = def->getRarity();
+        auto house = def->getHouseAffinity();
+        if (house == ItemDef::houseFromString(local->getHouseName())) {
+            if (rarity == ItemDef::Rarity::Divine) {
+                divineSlot = &e;
+            } else if (rarity == ItemDef::Rarity::Rare) {
+                rareSlot = &e;
+            }
+        } else {
+            others.push_back(&e);
+        }
+    }
+
+    // Sort others by remaining duration descending
+    std::sort(others.begin(), others.end(), [](const ActiveEffectIcon* a, const ActiveEffectIcon* b) {
+        return a->remainingDuration > b->remainingDuration;
+    });
+
+    // Build the visible set in priority order
+    std::vector<ActiveEffectIcon*> visible;
+    if (divineSlot) visible.push_back(divineSlot);
+    if (rareSlot)   visible.push_back(rareSlot);
+    
+    for (int i = 0; i < others.size() && visible.size() < 3; i++) {
+        visible.push_back(others[i]);
+    }
+
+    // Show/hide accordingly
+    for (auto& e : _effectIcons) {
+        bool shouldShow = std::find(visible.begin(), visible.end(), &e) != visible.end();
+        if (e.icon) e.icon->setVisible(shouldShow);
+    }
+
+    rebuildTimerLayout();
+}
+
 void GameScene::rebuildTimerLayout() {
     if (!_timers) return;
 
-    auto floatLayout = std::dynamic_pointer_cast<cugl::scene2::FloatLayout>(
-        _timers->getLayout()
-    );
-    if (!floatLayout) return;
-
-    for (auto& e : _effectIcons) {
-        floatLayout->remove(e.icon->getName());
-    }
     _timers->removeAllChildren();
 
+    int slot = 0;
     for (auto it = _effectIcons.rbegin(); it != _effectIcons.rend(); ++it) {
+        if (!it->icon || !it->icon->isVisible()) continue;
+        it->icon->setPosition(SLOT_X, SLOT_Y[slot]);
         _timers->addChild(it->icon);
-        auto emptyData = cugl::JsonValue::allocObject();
-        floatLayout->add(it->icon->getName(), emptyData);
+        slot++;
     }
-
-    _timers->doLayout();
 }
 
 /**
@@ -1603,24 +1662,17 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
         }
     }
     
-    rebuildTimerLayout();
+    recomputeVisibleTimers();
 }
 
 void GameScene::updateEffectTimerIcons(float dt) {
     if (!_timers) return;
-
-    auto floatLayout = std::dynamic_pointer_cast<cugl::scene2::FloatLayout>(
-        _timers->getLayout()
-    );
 
     bool changed = false;
 
     for (auto it = _effectIcons.begin(); it != _effectIcons.end(); ) {
         it->remainingDuration -= dt;
         if (it->remainingDuration <= 0.0f) {
-            if (floatLayout && it->icon) {
-                floatLayout->remove(it->icon->getName());
-            }
             if (it->icon) {
                 it->icon->removeFromParent();
             }
@@ -1632,7 +1684,7 @@ void GameScene::updateEffectTimerIcons(float dt) {
     }
 
     if (changed) {
-        rebuildTimerLayout();
+        recomputeVisibleTimers();
     }
 }
 

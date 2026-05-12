@@ -1525,6 +1525,8 @@ public:
     /** Rebuilds the _timers scene graph children in newest-first order and triggers layout. */
     void rebuildTimerLayout();
     
+    /** Recomputes which icons are visible based on priority rules. */
+    void recomputeVisibleTimers();
 
     
 #pragma mark - Inventory UI
