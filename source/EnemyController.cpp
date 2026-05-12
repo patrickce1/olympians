@@ -227,6 +227,8 @@ void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, st
             case EnemyLoader::EventType::PLAYER_SCRAMBLE:
                 _scrambleFired = true;
                 break;
+            case EnemyLoader::EventType::VINE:
+                resolveVineEvent(enemy, players, event);
             default:
                 if (_debug) CULog("[EnemyController] Event: Unhandled event type in state '%s' for enemy '%s'", enemy->getStates().at(event.state).name.c_str(), enemy->getId().c_str());
                 break;
@@ -281,6 +283,55 @@ void EnemyController::resolveHealEvent(const std::shared_ptr<Enemy>& enemy, cons
     //we can only heal if we haven't died yet
     if (enemy->getCurrentHealth() > 0) {
         enemy->updateHealth(event.def.amount);
+    }
+}
+
+/**
+ * Resolves a vine event fired by the enemy.
+ *
+ * Selects a target player and applies a Gaia vine bind to a randomly chosen
+ * side (left or right) using the corresponding applyVine function.
+ * If the selected side is already bound, the vine effect refreshes the timer
+ * instead of stacking.
+ *
+ * @param enemy   The enemy that fired the vine event
+ * @param players The list of active player instances
+ * @param event   The fired vine event to resolve
+ */
+void EnemyController::resolveVineEvent(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players, const Enemy::FiredEvent& event) {
+    int n = (int)players.size();
+    if (n <= 0) {
+        if (_debug) CULog("[EnemyController] Event: VINE fired but players list is empty");
+        return;
+    }
+
+    int targetIndex = wrapIndex(event.def.target, n);
+    if (targetIndex < 0 || targetIndex >= n) {
+        if (_debug) CULog("[EnemyController] Event: VINE fired with invalid target index %d", event.def.target);
+        return;
+    }
+
+    auto& target = players[targetIndex];
+    if (!target || !target->isAlive()) {
+        if (_debug) CULog("[EnemyController] Event: VINE fired but Player[%d] is dead or null",
+            targetIndex);
+        return;
+    }
+
+    float duration = event.def.duration;
+    float dps = event.def.amount;
+
+    // Randomly choose left or right vine
+    bool applyLeft = (_rng.getUint32() % 2) == 0;
+    if (applyLeft) {
+        target->applyVineLeft(duration);
+        if (_debug) CULog("[EnemyController] Event: VINE applied to Player[%d] LEFT for %.2f seconds",
+            targetIndex, duration);
+    }
+    else {
+        target->applyVineRight(duration);
+        if (_debug) CULog("[EnemyController] Event: VINE applied to Player[%d] RIGHT for %.2f seconds",
+            targetIndex, duration);
     }
 }
 

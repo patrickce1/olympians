@@ -18,7 +18,14 @@ public:
         DEFENSE_MOVE,
     };
 
-    enum class EventType { DAMAGE, HEAL, SIDE_MODIFIER, PLAYER_SCRAMBLE, UNKNOWN };
+    enum class EventType { 
+        DAMAGE, 
+        HEAL, 
+        SIDE_MODIFIER, 
+        PLAYER_SCRAMBLE, 
+        VINE,
+        UNKNOWN 
+    };
 
     // Enum that tracks which boss this is
     enum Boss {
@@ -88,8 +95,9 @@ private:
     static EventType parseEventType(const std::string& s) {
         if (s == "DAMAGE")           return EventType::DAMAGE;
         if (s == "HEAL")             return EventType::HEAL;
-        if (s == "SIDE_MODIFIER")  return EventType::SIDE_MODIFIER;
-        if (s == "PLAYER_SCRAMBLE") return EventType::PLAYER_SCRAMBLE;
+        if (s == "SIDE_MODIFIER")    return EventType::SIDE_MODIFIER;
+        if (s == "PLAYER_SCRAMBLE")  return EventType::PLAYER_SCRAMBLE;
+        if (s == "VINE")             return EventType::VINE;
         return EventType::UNKNOWN;
     }
 
@@ -235,7 +243,7 @@ public:
                         EventDef eventDef;
                         eventDef.type   = parseEventType(eventJson->getString("type", ""));
                         // "target" is a relative player-index offset; only meaningful for DAMAGE and SIDE_MODIFIER
-                        if (eventDef.type == EventType::DAMAGE || eventDef.type == EventType::SIDE_MODIFIER) {
+                        if (eventDef.type == EventType::DAMAGE || eventDef.type == EventType::SIDE_MODIFIER || eventDef.type == EventType::VINE) {
                             eventDef.target = eventJson->getInt("target", 0);
                         }
                         //player scramble has no amount or duration, it just happens

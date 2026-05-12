@@ -199,9 +199,9 @@ void EasyPlayerAI::actPass() {
     }
 
     std::vector<Player*> targets;
-    if (getLeftPlayer()  && getLeftPlayer()->isAlive())
+    if (getLeftPlayer()  && getLeftPlayer()->isAlive() && !hasLeftVine())
         targets.push_back(getLeftPlayer());
-    if (getRightPlayer() && getRightPlayer()->isAlive())
+    if (getRightPlayer() && getRightPlayer()->isAlive() && !hasRightVine())
         targets.push_back(getRightPlayer());
 
     if (targets.empty()) {

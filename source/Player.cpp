@@ -293,6 +293,21 @@ void Player::updateEffects(float dt) {
                 _houseId.c_str());
         }
     }
+
+    /* Gaia timers */
+    if (_leftVineDuration > 0.0f) {
+        _leftVineDuration = std::max(0.0f, _leftVineDuration - dt);
+        if (_leftVineDuration <= 0.0f) {
+            _hasLeftVine = false;
+        }
+    }
+
+    if (_rightVineDuration > 0.0f) {
+        _rightVineDuration = std::max(0.0f, _rightVineDuration - dt);
+        if (_rightVineDuration <= 0.0f) {
+            _hasRightVine = false;
+        }
+    }
 }
 
 /** Clears runtime-only combat effects. */
@@ -735,4 +750,28 @@ void Player::addItem(const ItemInstance& item) {
  */
 bool Player::isAlive() const {
     return _currentHealth > 0.0f;
+}
+
+/**
+ * Applies a Gaia vine bind to the player's left side.
+ * Sets the left vine flag and initializes the timer.
+ * If the left vine is already active, the timer is RESET to the new value.
+ *
+ * @param timer Duration (in seconds) for the left vine bind
+ */
+void Player::applyVineLeft(float timer) {
+    _hasLeftVine = true;
+    _leftVineDuration = timer;
+}
+
+/**
+ * Applies a Gaia vine bind to the player's left side.
+ * Sets the left vine flag and initializes the timer.
+ * If the left vine is already active, the timer is RESET to the new value.
+ *
+ * @param timer Duration (in seconds) for the left vine bind
+ */
+void Player::applyVineRight(float timer) {
+    _hasRightVine = true;
+    _rightVineDuration = timer;
 }

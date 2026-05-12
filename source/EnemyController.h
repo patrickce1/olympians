@@ -137,6 +137,22 @@ private:
      */
     void resolveHealEvent(const std::shared_ptr<Enemy>& enemy,
         const Enemy::FiredEvent& fe);
+
+    /**
+     * Resolves a vine event fired by the enemy.
+     *
+     * Selects a target player and applies a Gaia vine bind to a randomly chosen
+     * side (left or right) using the corresponding applyVine function.
+     * If the selected side is already bound, the vine effect refreshes the timer
+     * instead of stacking.
+     *
+     * @param enemy   The enemy that fired the vine event
+     * @param players The list of active player instances
+     * @param event   The fired vine event to resolve
+     */
+    void resolveVineEvent(const std::shared_ptr<Enemy>& enemy,
+        std::vector<std::shared_ptr<Player>>& players,
+        const Enemy::FiredEvent& event);
 };
 
 #endif /* __ENEMY_CONTROLLER_H__ */
