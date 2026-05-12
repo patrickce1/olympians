@@ -1,6 +1,5 @@
 #include "TutorialController.h"
-#include "GameScene.h"
-#include "InputController.h"
+#include "scenes/GameScene.h"
 
 using namespace cugl;
 
@@ -281,18 +280,18 @@ void TutorialController::onAction(InputController::Action action) {
  * timer instead).
  */
 void TutorialController::dismissMessage() {
-    //Inactive controller
+    // Inactive controller
     if (!_active) return;
     
-    //Instruction out of bound
+    // Instruction out of bound
     if (_index < 0 || _index >= (int)_steps.size()) return;
     
     const TutorialStep& step = _steps[_index];
     
-    //Only Steps that are SHOW_MESSAGE should be dismissible.
+    // Only Steps that are SHOW_MESSAGE should be dismissible.
     if (step.type != StepType::SHOW_MESSAGE) return;
     
-    //Only steps that had delays of 0.0 can be tapped to dismiss.
+    // Only steps that had delays of 0.0 can be tapped to dismiss.
     if (step.delay > 0.0f) return;
     CULog("Tutorial: message dismissed by tap");
     _index++;
@@ -348,7 +347,6 @@ void TutorialController::advanceStep() {
  *         completed immediately and the next step should be processed.
  */
 bool TutorialController::executeStep(const TutorialStep& step) {
-
     // Reset per-step state.
     _waitingForAction = false;
     _timer = 0.0f;
@@ -415,7 +413,7 @@ bool TutorialController::executeStep(const TutorialStep& step) {
 /**
  * Highlights the drop zone in the game scene corresponding to the given action.
  *
- * Maps each action to its associated highlight zone name:
+ * Maps each action to its associated highlight zone name
  *
  * Does nothing if the game scene is null.
  *

@@ -226,7 +226,7 @@ private:
     /**
      * Highlights the drop zone in the game scene corresponding to the given action.
      *
-     * Maps each action to its associated highlight zone name:
+     * Maps each action to its associated highlight zone name
      * Does nothing if the game scene is null.
      *
      * @param action  The action whose corresponding zone should be highlighted.
