@@ -152,6 +152,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto educateDef = db.getDef("educate");
     auto forgeDef = db.getDef("forge");
     auto charmDef = db.getDef("charm");
+    auto treasureDef = db.getDef("treasure");
     auto spearDef = db.getDef("spear");
     auto wingsDef = db.getDef("wings");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
@@ -211,6 +212,14 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     assertWithLabel(charmDef && !charmDef->getEffects().empty() &&
                     floatsEqualWithinTolerance(charmDef->getEffects()[0].duration, 10.0f),
            "items: charm duration parses");
+    assertWithLabel(treasureDef && treasureDef->hasEffectType(ItemDef::EffectType::Frenzy),
+           "items: treasure parses frenzy effect");
+    assertWithLabel(treasureDef && treasureDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
+           "items: treasure attack target parses as all allies");
+    assertWithLabel(treasureDef && !treasureDef->getEffects().empty() &&
+                    floatsEqualWithinTolerance(treasureDef->getEffects()[0].amount, 1.0f) &&
+                    floatsEqualWithinTolerance(treasureDef->getEffects()[0].duration, 12.0f),
+           "items: treasure frenzy amount and duration parse");
     assertWithLabel(spearDef && spearDef->hasEffectType(ItemDef::EffectType::Vulnerable),
            "items: spear parses vulnerable effect");
     assertWithLabel(spearDef && !spearDef->getEffects().empty() && floatsEqualWithinTolerance(spearDef->getEffects()[0].multiplier, 2.0f),
@@ -1441,6 +1450,65 @@ void testForgeEffect(const std::string& housesJsonPath) {
                     "forge: same seed produces the same replacement definitions");
 }
 
+/**
+ * Tests frenzy item-spawn timing and inventory-cap behavior.
+ *
+ * @param housesJsonPath Path to houses.json fixture data.
+ */
+void testFrenzyEffect(const std::string& housesJsonPath) {
+    ItemController controller;
+    std::shared_ptr<cugl::AssetManager> assets;
+    bool controllerOk = controller.init(assets);
+    assertWithLabel(controllerOk, "frenzy: item controller init succeeds");
+    if (!controllerOk) return;
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "frenzy: house loader init succeeds");
+    if (!housesOk) return;
+
+    assertWithLabel(!controller.hasFrenzy(), "frenzy: starts inactive");
+    assertWithLabel(floatsEqualWithinTolerance(controller.getEffectiveItemInterval(), 2.5f),
+                    "frenzy: default effective interval comes from JSON");
+
+    controller.applyFrenzy(1.0f, 12.0f);
+    assertWithLabel(controller.hasFrenzy(), "frenzy: applyFrenzy activates timed override");
+    assertWithLabel(floatsEqualWithinTolerance(controller.getFrenzyItemInterval(), 1.0f),
+                    "frenzy: stores override item interval");
+    assertWithLabel(floatsEqualWithinTolerance(controller.getFrenzyDuration(), 12.0f),
+                    "frenzy: stores override duration");
+    assertWithLabel(floatsEqualWithinTolerance(controller.getEffectiveItemInterval(), 1.0f),
+                    "frenzy: effective interval uses override while active");
+
+    controller.updateEffects(5.0f);
+    assertWithLabel(controller.hasFrenzy(), "frenzy: remains active before duration expires");
+    assertWithLabel(floatsEqualWithinTolerance(controller.getFrenzyDuration(), 7.0f),
+                    "frenzy: updateEffects reduces remaining duration");
+
+    controller.updateEffects(7.0f);
+    assertWithLabel(!controller.hasFrenzy(), "frenzy: expires after full duration");
+    assertWithLabel(floatsEqualWithinTolerance(controller.getEffectiveItemInterval(), 2.5f),
+                    "frenzy: effective interval returns to default after expiry");
+
+    Player cappedPlayer("zeus", 0, "Frenzy Cap Tester", loader);
+    for (int spawnCount = 0; spawnCount < 7; spawnCount++) {
+        controller.giveRandomItem(&cappedPlayer);
+    }
+    assertWithLabel(cappedPlayer.getInventory().size() == 5,
+                    "frenzy: normal random spawns respect max inventory cap");
+
+    controller.applyFrenzy(1.0f, 12.0f);
+    controller.giveRandomItem(&cappedPlayer);
+    controller.giveRandomItem(&cappedPlayer);
+    assertWithLabel(cappedPlayer.getInventory().size() == 7,
+                    "frenzy: active random spawns ignore max inventory cap");
+
+    controller.updateEffects(12.0f);
+    controller.giveRandomItem(&cappedPlayer);
+    assertWithLabel(cappedPlayer.getInventory().size() == 7,
+                    "frenzy: expired random spawns respect max inventory cap again");
+}
+
 } // namespace
 
 void ItemTests::runAll(const std::string& itemsJsonPath,
@@ -1483,6 +1551,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testResurrectionEffect(itemsJson, housesJsonPath, enemiesJsonPath);
     testEducateEffect(itemsJson, housesJsonPath, enemiesJsonPath);
     testForgeEffect(housesJsonPath);
-    
+    testFrenzyEffect(housesJsonPath);
+
     printSummary();
 }

@@ -82,7 +82,8 @@ public:
         Vulnerable,
         Upgrade,
         Forge,
-        Charm
+        Charm,
+        Frenzy
     };
 
     /**
@@ -111,6 +112,8 @@ public:
         bool targetAllAllies = false;
         /** Chance for probabilistic effects, expressed as a value in [0, 1]. */
         float chance = 0.0f;
+        /** Generic amount value used by utility effects such as frenzy. */
+        float amount = 0.0f;
     };
 
 private:

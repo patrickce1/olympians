@@ -474,7 +474,13 @@
             "houseAffinity": "hermes",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "frenzy",
+                    "amount": 1.0,
+                    "duration": 12.0
+                }
+            ]
         },
         {
             "id": "charm",

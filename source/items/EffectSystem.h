@@ -137,6 +137,7 @@ public:
             case ItemDef::EffectType::Vulnerable:
             case ItemDef::EffectType::Upgrade:
             case ItemDef::EffectType::Forge:
+            case ItemDef::EffectType::Frenzy:
                 break;
         }
 
@@ -174,6 +175,7 @@ public:
             case ItemDef::EffectType::Upgrade:
             case ItemDef::EffectType::Forge:
             case ItemDef::EffectType::Charm:
+            case ItemDef::EffectType::Frenzy:
                 break;
         }
 
