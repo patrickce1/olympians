@@ -1577,20 +1577,30 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
 
         auto texture = _assets->get<cugl::graphics::Texture>(def->getIconKey());
         if (!texture) continue;
+        
+        // Check for duplicate — refresh duration if already active
+        auto existing = std::find_if(_effectIcons.begin(), _effectIcons.end(),
+            [&](const ActiveEffectIcon& icon) {
+                return icon.textureKey == def->getIconKey();
+            });
 
-        auto icon = cugl::scene2::PolygonNode::allocWithTexture(texture);
-        icon->setContentSize(40,40);
-        icon->setAnchor(cugl::Vec2::ANCHOR_CENTER);
-        
-        std::string iconName = "effect_icon_" + std::to_string(_nextEffectIconId++);
-        icon->setName(iconName);
-        
-        _effectIcons.push_back({
-            def->getIconKey(),
-            icon,
-            e.duration,
-            0   // slotIndex unused; _timers owns layout
-        });
+        if (existing != _effectIcons.end()) {
+            existing->remainingDuration = e.duration;
+        } else {
+            
+            auto icon = cugl::scene2::PolygonNode::allocWithTexture(texture);
+            icon->setContentSize(40,40);
+            icon->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            
+            std::string iconName = "effect_icon_" + std::to_string(_nextEffectIconId++);
+            icon->setName(iconName);
+            
+            _effectIcons.push_back({
+                def->getIconKey(),
+                icon,
+                e.duration
+            });
+        }
     }
     
     rebuildTimerLayout();
