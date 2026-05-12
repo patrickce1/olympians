@@ -1452,9 +1452,6 @@ bool GameScene::handlePassLeft(ItemInstance::ItemId itemId) {
     Player* target = local ? local->getLeftPlayer() : nullptr;
     if (!local || !target || itemId == 0) return false;
 
-    CULog("Our friends' ID is %d, ", target->getPlayerNumber());
-    CULog("Our number is %d", local->getPlayerNumber());
-
     // For real players, verify they're still in the networked players list
     if (!target->isAI()) {
         int targetSlot = target->getPlayerNumber();
@@ -1503,9 +1500,6 @@ bool GameScene::handlePassRight(ItemInstance::ItemId itemId) {
     Player* local  = _gameState.getLocalPlayer();
     Player* target = local ? local->getRightPlayer() : nullptr;
     if (!local || !target || itemId == 0) return false;
-
-    CULog("Our friends' ID is %d, ", target->getPlayerNumber());
-    CULog("Our number is %d", local->getPlayerNumber());
 
     // For real players, verify they're still in the networked players list
     if (!target->isAI()) {
@@ -1647,8 +1641,6 @@ void GameScene::updateEnemyAndAI(float dt) {
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
-
-
     // Play shield block sound if local player's shield absorbed damage this update
     if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
         _audio->playSoundUnique("shield_block");
@@ -1666,8 +1658,6 @@ void GameScene::updateEnemyAndAI(float dt) {
 
     if (_network->isHost() && _enemyController.didFireScrambleEvent()) {
         handleGaiaScramble();
-        refreshTeammateNameLabels();
-        resetTeammateBlinkState();
     }
 }
 

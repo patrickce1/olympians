@@ -296,22 +296,22 @@ public:
      * circular ring are re-wired and the player ID map is rebuilt.
      *
      * The permutation is expressed as a "where does slot i go?" mapping:
-     *   newSlot = permutation[oldSlot]
-     * e.g. permutation = {2, 0, 3, 1} moves
+     *   newMapping[oldSlot] = newSlot
+     * e.g. newMapping = {2, 0, 3, 1} moves
      *   old slot 0 → new slot 2
      *   old slot 1 → new slot 0
      *   old slot 2 → new slot 3
      *   old slot 3 → new slot 1
      *
-     * Host only — clients must receive the permutation over the network and
-     * call this with the same array so all peers stay in sync.
+     * Clients must receive the permutation over the network and
+     * call this with the same array as the hosts' so all peers stay in sync.
      *
-     * @param permutation  A length-4 array where permutation[i] is the new
+     * @param newMapping  A length-4 array where permutation[i] is the new
      *                     slot index that the player currently at slot i
      *                     should occupy.  Must be a valid permutation of
      *                     {0, 1, 2, 3}; behaviour is undefined otherwise.
      */
-    void applyPlayerScramble(const std::array<int, 4>& mapping);
+    void applyPlayerScramble(const std::array<int, 4>& newMapping);
 
 private:
 

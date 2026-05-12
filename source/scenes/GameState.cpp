@@ -714,15 +714,15 @@ void GameState::swapPlayers(int slotA, int slotB) {
  * circular ring are re-wired and the player ID map is rebuilt.
  *
  * The permutation is expressed as a "where does slot i go?" mapping:
- *   newSlot = permutation[oldSlot]
- * e.g. permutation = {2, 0, 3, 1} moves
+ *   newMapping[oldSlot] = newSlot 
+ * e.g. newMapping = {2, 0, 3, 1} moves
  *   old slot 0 → new slot 2
  *   old slot 1 → new slot 0
  *   old slot 2 → new slot 3
  *   old slot 3 → new slot 1
  *
- * Host only — clients must receive the permutation over the network and
- * call this with the same array so all peers stay in sync.
+ * Clients must receive the permutation over the network and
+ * call this with the same array as the hosts' so all peers stay in sync.
  *
  * @param newMapping  A length-4 array where permutation[i] is the new
  *                     slot index that the player currently at slot i
@@ -742,21 +742,24 @@ void GameState::applyPlayerScramble(const std::array<int, 4>& newMapping) {
         reordered[newSlot] = _players[oldSlot];
     }
 
+    // Apply the reordering to _players and _playerIdMap
     for (int i = 0; i < n; i++) {
         _players[i] = reordered[i];
         _playerIdMap[i] = _players[i].get();
     }
 
+    // Relink left/right neighbors
     for (int i = 0; i < n; i++) {
         _players[i]->setLeftPlayer(_players[(i - 1 + n) % n].get());
         _players[i]->setRightPlayer(_players[(i + 1) % n].get());
     }
 
+    // Make sure all players reset their player numbers
     for (int i = 0; i < n; i++) {
         _players[i]->setPlayerNumber(i);
     }
 
-
+    // Set local player
     int newSlot = newMapping[originalLocalPlayerNumber];
     _localPlayer = _players[newSlot].get();
 }

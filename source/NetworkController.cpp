@@ -764,10 +764,6 @@ void NetworkController::broadcastPass(const std::string& itemDefID, int playerID
 	
 	CULog("Sending broadcasting message to player %d", playerID);
 
-    //// NetworkController
-    //CULog("[NC] Slot %d UUID=%s", playerID,
-    //    _slotToPlayer.at(playerID).networkID.c_str());
-
     if (checkRealPlayer(playerID)) {
         std::string playerNetworkID = _slotToPlayer.at(playerID).networkID;
         _network->sendTo(playerNetworkID, _serializer.serialize());
@@ -1221,7 +1217,12 @@ void NetworkController::swapSlots(int slotA, int slotB) {
 }
 
 
-// NetworkController.cpp
+/**
+* HOST ONLY. Broadcasts the new player order.
+* @param newMapping represents the new order, where newMapping[i] is the new slot that
+* player i ended up in. For example, if newMapping[0] = 1, that means that the player
+* at slot 0 ended up at slot 1 after the scramble
+*/
 void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& mapping) {
     if (!_network->isHost()) {
         return;
@@ -1239,6 +1240,18 @@ void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& mappin
     _serializer.reset();
 }
 
+/**
+* Applies a complete slot remapping in one atomic operation.
+* Rebuilds the internal _slotToPlayer and _uuidToSlot maps using the
+* provided old-slot -> new-slot mapping.
+* Preserves player identity and runtime state; only the slot indices
+* are reassigned.
+* Safe to call on both host and clients when handling a
+* MID_GAME_SCRAMBLE message.
+* @param newMapping represents the new order, where newMapping[i] is the new slot that
+*        player i ended up in. For example, if newMapping[0] = 1, that means that the player
+*        at slot 0 ended up at slot 1 after the scramble
+*/
 void NetworkController::applyPlayerScramble(const std::array<int, 4>& newMapping) {
     std::unordered_map<int, NetworkedPlayer> newSlotToPlayer;
     std::unordered_map<std::string, int> newUuidToSlot;
@@ -1259,6 +1272,9 @@ void NetworkController::applyPlayerScramble(const std::array<int, 4>& newMapping
     _uuidToSlot = std::move(newUuidToSlot);
 }
 
+/** CLIENT ONLY. Checks if we recieved a message that player order has been scrambled.
+    If yes, it returns true and sets _midGameScramblePending to false to ensure the scramble is
+    only applied once */
 bool NetworkController::checkMidGameScramble() {
     bool value = _midGameScramblePending;
     _midGameScramblePending = false;
