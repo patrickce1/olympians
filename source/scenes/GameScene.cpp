@@ -2383,7 +2383,7 @@ void GameScene::handlePlayerInput(InputController& input) {
             }
 
             if (_isTutorial){
-                _tutorialController.onAction(finalAction);
+                _tutorialController.handlePlayerAction(finalAction);
             }
         } else {
             // Item action failed - slide the item back
@@ -3164,7 +3164,7 @@ void GameScene::handleTooltipVisibility(float dt) {
 
                 // Notify tutorial if waiting for tooltip action
                 if (_tutorialController.isActive()) {
-                    _tutorialController.onAction(InputController::Action::HOLD_FOR_TOOLTIP);
+                    _tutorialController.handlePlayerAction(InputController::Action::HOLD_FOR_TOOLTIP);
                 }
             }
             // keep tooltip above the moving widget
@@ -3421,7 +3421,7 @@ void GameScene::processZoneInteractionsForSlidingItems() {
                     }
                 }
                 if (_isTutorial) {
-                        _tutorialController.onAction(action);
+                        _tutorialController.handlePlayerAction(action);
                     }
                 markItemAsUsed(itemId);
                 itemsToRemove.insert(itemId);
@@ -3505,55 +3505,42 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
  * and toggles their visibility accordingly.
  */
 void GameScene::updateDropZoneVisibility(){
+    // Helper lambda to hide all zones
+    auto hideAllZones = [this]() {
+        _passLeftArea->setVisible(false);
+        _passRightArea->setVisible(false);
+        _supportLeftArea->setVisible(false);
+        _supportRightArea->setVisible(false);
+        _attackArea->setVisible(false);
+    };
+
     // If the tutorial has explicitly requested a highlight, keep those
     // zones visible regardless of drag state.
     if (!_tutorialHighlightZone.empty() && _tutorialHighlightZone != "none") {
+        hideAllZones();
         if (_tutorialHighlightZone == "left_support") {
-            _passLeftArea->setVisible(false);
-            _passRightArea->setVisible(false);
             _supportLeftArea->setVisible(true);
-            _supportRightArea->setVisible(false);
-            _attackArea->setVisible(false);
-            return;
         } else if (_tutorialHighlightZone == "right_support") {
-            _passLeftArea->setVisible(false);
-            _passRightArea->setVisible(false);
-            _supportLeftArea->setVisible(false);
             _supportRightArea->setVisible(true);
-            _attackArea->setVisible(false);
-            return;
         } else if (_tutorialHighlightZone == "attack") {
-            _passLeftArea->setVisible(false);
-            _passRightArea->setVisible(false);
-            _supportLeftArea->setVisible(false);
-            _supportRightArea->setVisible(false);
             _attackArea->setVisible(true);
-            return;
         } else if (_tutorialHighlightZone == "pass_left") {
             _passLeftArea->setVisible(true);
-            _passRightArea->setVisible(false);
-            _supportLeftArea->setVisible(false);
-            _supportRightArea->setVisible(false);
-            _attackArea->setVisible(false);
-            return;
         } else if (_tutorialHighlightZone == "pass_right") {
-            _passLeftArea->setVisible(false);
             _passRightArea->setVisible(true);
-            _supportLeftArea->setVisible(false);
-            _supportRightArea->setVisible(false);
-            _attackArea->setVisible(false);
-            return;
-        } else if (_tutorialHighlightZone == "none") {
-            return;
         }
+        return;
     }
 
     if (_draggedItemId != 0) {
-        Player* local = _gameState.getLocalPlayer();
+        auto local = _gameState.getLocalPlayer();
         bool localAlive = local && local->isAlive();
 
         _passLeftArea->setVisible(true);
         _passRightArea->setVisible(true);
+        _attackArea->setVisible(false);
+        _supportLeftArea->setVisible(false);
+        _supportRightArea->setVisible(false);
 
         if (localAlive) {
             auto itemDef = getHeldItemDef(_draggedItemId);
@@ -3562,19 +3549,15 @@ void GameScene::updateDropZoneVisibility(){
                     _attackArea->setVisible(true);
                 } else {
                     // Only show each support zone if that ally is alive
-                    Player* leftAlly  = local->getLeftPlayer();
-                    Player* rightAlly = local->getRightPlayer();
+                    auto leftAlly  = local->getLeftPlayer();
+                    auto rightAlly = local->getRightPlayer();
                     _supportLeftArea->setVisible(leftAlly  && leftAlly->isAlive() && !_tutorialDisableSupportZones);
                     _supportRightArea->setVisible(rightAlly && rightAlly->isAlive() && !_tutorialDisableSupportZones);
                 }
             }
         }
     } else {
-        _passLeftArea->setVisible(false);
-        _passRightArea->setVisible(false);
-        _attackArea->setVisible(false);
-        _supportLeftArea->setVisible(false);
-        _supportRightArea->setVisible(false);
+        hideAllZones();
     }
 }
 

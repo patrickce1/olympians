@@ -210,7 +210,7 @@ bool TutorialController::isWaitingForActionMatch(InputController::Action action)
  *
  * Steps the internal timer by dt and advances to the next step once the
  * timer expires. WAIT_FOR_ACTION steps are skipped by the timer and may
- * only be advanced by onAction(). Does nothing if the tutorial is
+ * only be advanced by handlePlayerAction(). Does nothing if the tutorial is
  * inactive or the current index is out of bounds.
  *
  * @param dt  Elapsed time in seconds since the last frame.
@@ -218,7 +218,7 @@ bool TutorialController::isWaitingForActionMatch(InputController::Action action)
 void TutorialController::update(float dt) {
     if (!_active || _index < 0 || _index >= (int)_steps.size()) return;
     
-    // wait_for_action steps never auto-advance — only onAction() can advance them.
+    // wait_for_action steps never auto-advance — only handlePlayerAction() can advance them.
     if (_waitingForAction) {
         
         return;
@@ -247,8 +247,8 @@ void TutorialController::update(float dt) {
  *
  * @param action  The action performed by the player.
  */
-void TutorialController::onAction(InputController::Action action) {
-    CULog("Tutorial: onAction called action=%d active=%d waiting=%d expected=%d",
+void TutorialController::handlePlayerAction(InputController::Action action) {
+    CULog("Tutorial: handlePlayerAction called action=%d active=%d waiting=%d expected=%d",
         (int)action, _active ? 1 : 0, _waitingForAction ? 1 : 0, (int)_steps[_index].action);
 
     if (!_active || !_waitingForAction) return;

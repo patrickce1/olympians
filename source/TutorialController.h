@@ -129,7 +129,7 @@ public:
      *
      * Steps the internal timer by dt and advances to the next step once the
      * timer expires. WAIT_FOR_ACTION steps are skipped by the timer and may
-     * only be advanced by onAction(). Does nothing if the tutorial is
+     * only be advanced by handlePlayerAction(). Does nothing if the tutorial is
      * inactive or the current index is out of bounds.
      *
      * @param dt  Elapsed time in seconds since the last frame.
@@ -148,7 +148,7 @@ public:
      *
      * @param action  The action performed by the player.
      */
-    void onAction(InputController::Action action);
+    void handlePlayerAction(InputController::Action action);
     
     /**
      * Dismisses the current tutorial message on player tap.
