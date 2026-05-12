@@ -1106,7 +1106,8 @@ public:
     /**
      * Spawns items for the local player every frame, and for all AI-controlled
      * players if this machine is the host. AI item spawning is host-only since
-     * the host is the authoritative source for all AI state. Should be off if playing Tutorial.
+     * the host is the authoritative source for all AI state. Should be off if 
+     * playing Tutorial.
      *
      * @param dt  Delta time in seconds.
      */
