@@ -631,12 +631,27 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
                 for (const ItemDef::Effect& effect : def->getEffects()) {
                     const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
                     EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, target);
+                    
+                    if (effect.duration > 0) {
+                        _effectEvents.push_back({
+                            def->getId(),
+                            effect.duration
+                        });
+                    }
+                    
                 }
             }
         } else if (shouldApplyEffects && !def->getEffects().empty()) {
             for (const ItemDef::Effect& effect : def->getEffects()) {
                 const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
                 EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, target);
+
+                if (effect.duration > 0) {
+                    _effectEvents.push_back({
+                        def->getId(),
+                        effect.duration
+                    });
+                }
             }
         }
 
@@ -688,23 +703,27 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
                 if (shouldApplyEffects) {
                     for (const ItemDef::Effect& effect : def->getEffects()) {
                         const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
-                        float duration = applyAttackEffectToEnemy(resolvedEffect, resolvedMagnitude, target, getPlayerNumber());
+                        applyAttackEffectToEnemy(resolvedEffect, resolvedMagnitude, target, getPlayerNumber());
                         
-                        _effectEvents.push_back({
-                            effect,
-                            duration
-                        });
+                        if (effect.duration > 0) {
+                            _effectEvents.push_back({
+                                def->getId(),
+                                effect.duration
+                            });
+                        }
+                    
                     }
                 }
             } else if (shouldApplyEffects) {
                 for (const ItemDef::Effect& effect : def->getEffects()) {
                     applyAttackEffectToParty(effect, resolvedMagnitude, *this);
-                    
-                    // record ONLY data, no UI
-                    _effectEvents.push_back({
-                        effect,
-                        effect.duration
-                    });
+
+                    if (effect.duration > 0) {
+                        _effectEvents.push_back({
+                            def->getId(),
+                            effect.duration
+                        });
+                    }
                 }
             }
         } else if (shouldApplyEffects && !def->getEffects().empty()) {
@@ -712,11 +731,12 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
                 const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
                 applyAttackEffectToEnemy(resolvedEffect, resolvedMagnitude, target, getPlayerNumber());
                 
-                // record ONLY data, no UI
-                _effectEvents.push_back({
-                    effect,
-                    effect.duration
-                });
+                if (effect.duration > 0) {
+                    _effectEvents.push_back({
+                        def->getId(),
+                        effect.duration
+                    });
+                }
             }
         }
 

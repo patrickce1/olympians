@@ -170,10 +170,10 @@ struct FloatingPopupData {
 };
 
 struct ActiveEffectIcon {
-    ItemDef::EffectType effectId;
     std::string textureKey;
     std::shared_ptr<cugl::scene2::PolygonNode> icon;
     float remainingDuration;
+    int slotIndex;
 };
 
 /**
@@ -358,10 +358,13 @@ protected:
     Vec2 _holdAnchorPos = Vec2::ZERO;
     
 #pragma mark - Item Timers UI
-    std::vector<ActiveEffectIcon> _enemyEffectIcons;
+    std::vector<ActiveEffectIcon> _effectIcons;
     
     /** The scene node representing the animated timers for special effects to be populated in the scene based on the used items. */
     std::shared_ptr<cugl::scene2::SceneNode> _timers;
+    
+    int _nextEffectIconId = 0;
+    
     
 #pragma mark - Drag State
 
@@ -1505,8 +1508,20 @@ public:
     
     
     void showEnemyEffectIcon(const std::string& effectId,const std::string& textureKey, const float duration);
+    
+    /**
+     * Spawns a timer icon into the `_timers` container for each effect event.
+     *
+     * Looks up the item definition by the event's itemId to get the correct
+     * icon texture, then adds the icon as a child of `_timers` (which handles
+     * vertical layout automatically). Each spawned icon is tracked in
+     * `_effectIcons` so its duration can be ticked down each frame.
+     *
+     * @param events  The effect events drained from the local player this frame.
+     */
+    void spawnEffectIcons(const std::vector<Player::EffectEvent>& events);
 
-    void updateEnemyEffectIcons(float dt);
+    void updateEffectTimerIcons(float dt);
 
     
 #pragma mark - Inventory UI

@@ -16,6 +16,16 @@
  * Model Class representing the Player
  */
 class Player {
+public:
+    /**
+     * Describes a single timed effect applied this frame.
+     * Used by GameScene to spawn a corresponding timer icon.
+     */
+    struct EffectEvent {
+        std::string itemId;
+        float duration;
+    };
+    
 private:
     
     /** The inventory of the player stored as a vector of ItemInstance objects*/
@@ -68,11 +78,6 @@ private:
     float _charmDuration = 0.0f;
     /** Number of prior mallet uses recorded for this player this round. */
     int _malletUseCount = 0;
-    
-    struct EffectEvent {
-        ItemDef::Effect effectId;
-        float duration;
-    };
     
     std::vector<EffectEvent> _effectEvents;
 

@@ -42,6 +42,11 @@ constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
 //Defines the gap between the item and its tooltip
 constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 
+static const float ICON_SIZE = 40.0f;
+static const float ICON_SPACING = 10.0f;
+static const float START_X = 50.0f;
+static const float START_Y = 100.0f;
+
 #pragma mark HealthState
 
 /**
@@ -1022,30 +1027,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         return false;
     }
     
-    auto events = local->getEffectEvents();
-    
-    for (const auto& e : events) {
-
-        if (e.effectId.type == ItemDef::EffectType::Stun) {
-            auto texture =
-                _assets->get<cugl::graphics::Texture>(def->getIconKey());
-
-            auto icon =
-                cugl::scene2::PolygonNode::allocWithTexture(texture);
-
-            icon->setScale(0.15f);
-            icon->setPosition(100, 100);
-            
-            _gameArea->addChild(icon);
-
-            _enemyEffectIcons.push_back({
-                e.effectId.type,
-                def->getIconKey(),
-                icon,
-                e.duration
-            });
-        }
-    }
+    spawnEffectIcons(local->getEffectEvents());
 
     const auto& animConfig = def->getItemUseAnimation();
     const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
@@ -1317,6 +1299,8 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
+        
+        spawnEffectIcons(local->getEffectEvents());
 
         if (!_network->isHost()) {
             _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
@@ -1358,6 +1342,8 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
+        
+        spawnEffectIcons(local->getEffectEvents());
 
         if (!_network->isHost()) {
             _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
@@ -1550,79 +1536,80 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
     }
 }
 
-void GameScene::updateEnemyEffectIcons(float dt) {
-    for (auto it = _enemyEffectIcons.begin();
-         it != _enemyEffectIcons.end(); ) {
+/**
+ * Spawns one timer icon per effect event into the `_timers` container.
+ *
+ * Each icon is sized to ICON_SIZE and added as a child of `_timers`, which
+ * handles vertical stacking automatically. The `ActiveEffectIcon` entry
+ * stores the icon node and the remaining duration so `updateEnemyEffectIcons`
+ * can tick it down and remove it when it expires.
+ *
+ * @param events  The effect events drained from the player this frame.
+ */
+void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events) {
+    if (!_timers) return;
+    
+    auto floatLayout = std::dynamic_pointer_cast<cugl::scene2::FloatLayout>(
+        _timers->getLayout()
+    );
 
+    for (const auto& e : events) {
+        auto def = _itemController.getDatabase().getDef(e.itemId);
+        if (!def) continue;
+
+        auto texture = _assets->get<cugl::graphics::Texture>(def->getIconKey());
+        if (!texture) continue;
+
+        auto icon = cugl::scene2::PolygonNode::allocWithTexture(texture);
+        // Size the icon to the slot size the container expects.
+//        const float scale = ICON_SIZE / std::max(texture->getWidth(), texture->getHeight());
+//        icon->setScale(scale);
+        icon->setContentSize(40,40);
+        icon->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+        
+        std::string iconName = "effect_icon_" + std::to_string(_nextEffectIconId++);
+        icon->setName(iconName);
+
+        _timers->addChild(icon);
+
+        // Register with the layout manager so it gets positioned.
+        if (floatLayout) {
+            auto emptyData = cugl::JsonValue::allocObject();
+            floatLayout->add(iconName, emptyData);
+        }
+        _timers->doLayout();
+
+        _effectIcons.push_back({
+            def->getIconKey(),
+            icon,
+            e.duration,
+            0   // slotIndex unused; _timers owns layout
+        });
+    }
+}
+
+void GameScene::updateEffectTimerIcons(float dt) {
+    for (auto it = _effectIcons.begin(); it != _effectIcons.end(); ) {
         it->remainingDuration -= dt;
 
         if (it->remainingDuration <= 0.0f) {
-
             if (it->icon) {
+                auto floatLayout = std::dynamic_pointer_cast<cugl::scene2::FloatLayout>(
+                    _timers->getLayout()
+                );
+                if (floatLayout) {
+                    floatLayout->remove(it->icon->getName());
+                }
                 it->icon->removeFromParent();
             }
-
-            it = _enemyEffectIcons.erase(it);
-        }
-        else {
+            it = _effectIcons.erase(it);
+            if (_timers) _timers->doLayout();
+        } else {
             ++it;
         }
     }
+    // No manual repositioning needed: _timers lays out its children automatically.
 }
-//void GameScene::showEnemyEffectIcon(
-//    const std::string& effectId,
-//    const std::string& textureKey)
-//{
-//    // Remove existing icon for this effect type
-//    for (auto it = _enemyEffectIcons.begin();
-//         it != _enemyEffectIcons.end(); ) {
-//
-//        if (it->effectId == effectId) {
-//
-//            if (it->icon) {
-//                it->icon->removeFromParent();
-//            }
-//
-//            it = _enemyEffectIcons.erase(it);
-//        }
-//        else {
-//            ++it;
-//        }
-//    }
-//
-//    // Load texture
-//    auto texture =
-//        _assets->get<cugl::graphics::Texture>(textureKey);
-//
-//    if (!texture) {
-//        CULog("Missing effect icon texture: %s",
-//              textureKey.c_str());
-//        return;
-//    }
-//
-//    // Create icon
-//    auto node =
-//        cugl::scene2::PolygonNode::allocWithTexture(texture);
-//
-//    node->setScale(0.15f);
-//
-//    // TEMP positioning
-//    node->setAnchor(cugl::Vec2::ANCHOR_CENTER);
-//    node->setPosition(100, 100);
-//
-//    // Add to HUD
-//    _gameArea->addChild(node);
-//
-//    // Store reference
-//    _enemyEffectIcons.push_back({
-//        effectId,
-//        textureKey,
-//        node
-//    });
-//
-//    CULog("Showing enemy effect icon: %s",
-//          effectId.c_str());
-//}
 
 #pragma mark -
 #pragma mark Update Helpers
@@ -3513,7 +3500,7 @@ void GameScene::update(float dt, InputController& input) {
     updateSnapbackAnimations(dt);
     updateItemUseAnimations(dt);
     updatePopupAnimations(dt);
-    updateEnemyEffectIcons(dt);
+    updateEffectTimerIcons(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);
