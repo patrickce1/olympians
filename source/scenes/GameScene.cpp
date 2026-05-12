@@ -1567,7 +1567,7 @@ void GameScene::updateEnemyAndAI(float dt) {
     // Play sounds for LOCAL player and enemy health changes after all updates
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
 
-    if (_enemyController.didFireScrambleEvent()) {
+    if (_network->isHost() && _enemyController.didFireScrambleEvent()) {
         handleGaiaScramble();
         refreshTeammateNameLabels();
         resetTeammateBlinkState();
@@ -2819,6 +2819,9 @@ void GameScene::handleGaiaScramble() {
 
     //// Shuffle atomically (single final result)
     std::shuffle(mapping.begin(), mapping.end(), _rng);
+
+    CULog("Scramble mapping: [%d->%d, %d->%d, %d->%d, %d->%d]",
+        0, mapping[0], 1, mapping[1], 2, mapping[2], 3, mapping[3]);
 
     CULog("My old number was %d, my new number is %d", _gameState.getLocalPlayer()->getPlayerNumber(), mapping[_network->getLocalPlayerNumber()]);
 

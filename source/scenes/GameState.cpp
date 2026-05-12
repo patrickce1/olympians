@@ -3,6 +3,28 @@
 #include <array>
 #include <cstdlib>
 
+
+static void logPlayerSlots(const std::vector<std::shared_ptr<Player>>& players,
+    const std::string& context) {
+    CULog("---- Player slot dump (%s) ----", context.c_str());
+    for (int i = 0; i < (int)players.size(); i++) {
+        Player* p = players[i].get();
+        if (!p) {
+            CULog("  slot %d: <null>", i);
+        }
+        else {
+            CULog("  slot %d: name='%s' playerNumber=%d ptr=%p",
+                i,
+                p->getPlayerName().c_str(),
+                p->getPlayerNumber(),
+                (void*)p);
+        }
+    }
+    CULog("--------------------------------");
+}
+
+
+
 /**
  * Loads house definitions from JSON into the house loader.
  * Must be called first in init() since player construction depends on it.
@@ -79,6 +101,8 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
 
     const bool replacedLocalPlayer = (_localPlayer == _players[playerNumber].get());
 
+    //logPlayerSlots(_players, "before setRealPlayer");
+
     if (houseName.empty()) {
         // Always reconstruct with no house to guarantee house is cleared,
         // regardless of whether the slot was previously AI or real
@@ -119,6 +143,9 @@ void GameState::setRealPlayer(int playerNumber, const std::string& playerName, c
     if (replacedLocalPlayer) {
         _localPlayer = _players[playerNumber].get();
     }
+
+    //logPlayerSlots(_players, "after setRealPlayer");
+
 }
 
 /**
@@ -730,7 +757,9 @@ void GameState::swapPlayers(int slotA, int slotB) {
  *                     {0, 1, 2, 3}; behaviour is undefined otherwise.
  */
 void GameState::applyPlayerScramble(const std::array<int, 4>& newMapping) {
+    logPlayerSlots(_players, "before applyPlayerScramble");
     const int n = (int)_players.size();
+    const int originalLocalPlayerNumber = _localPlayer->getPlayerNumber();
     CUAssertLog(n == 4, "applyScramble expects exactly 4 players");
 
     // Build the reordered array without mutating _players mid-loop.
@@ -741,15 +770,15 @@ void GameState::applyPlayerScramble(const std::array<int, 4>& newMapping) {
         reordered[newSlot] = _players[oldSlot];
     }
 
-    // Hold a shared_ptr to the local player so it cannot be destroyed
-    // while we overwrite _players[] entries below.
-    std::shared_ptr<Player> localShared;
-    for (int i = 0; i < n; i++) {
-        if (_players[i].get() == _localPlayer) {
-            localShared = _players[i];
-            break;
-        }
-    }
+    //// Hold a shared_ptr to the local player so it cannot be destroyed
+    //// while we overwrite _players[] entries below.
+    //std::shared_ptr<Player> localShared;
+    //for (int i = 0; i < n; i++) {
+    //    if (_players[i].get() == _localPlayer) {
+    //        localShared = _players[i];
+    //        break;
+    //    }
+    //}
 
     for (int i = 0; i < n; i++) {
         _players[i] = reordered[i];
@@ -765,14 +794,9 @@ void GameState::applyPlayerScramble(const std::array<int, 4>& newMapping) {
         _players[i]->setPlayerNumber(i);
     }
 
-    // Re-find _localPlayer by pointer identity — safe because localShared
-    // kept the object alive through the entire reorder above.
-    if (localShared) {
-        for (int i = 0; i < n; i++) {
-            if (_players[i].get() == localShared.get()) {
-                _localPlayer = _players[i].get();
-                break;
-            }
-        }
-    }
+
+    int newSlot = newMapping[originalLocalPlayerNumber];
+    _localPlayer = _players[newSlot].get();
+
+    logPlayerSlots(_players, "after applyPlayerScramble");
 }
