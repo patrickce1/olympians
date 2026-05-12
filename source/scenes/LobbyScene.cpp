@@ -449,6 +449,22 @@ void LobbyScene::update(float timestep, InputController& input) {
         _network->broadcastHostsCurrentScene(2);
     }
     
+    if (_network->getEnemy() == "circe" && _network->isHost()) {
+        _network->setLocalHouse("athena");
+
+        // Sync the house to GameState before starting the game so AI doesn't pick Athena
+        int localIndex = _network->getLocalPlayerNumber();
+        Player* localPlayer = _gameState->getPlayerBySlot(localIndex);
+        if (localPlayer) {
+            _gameState->setRealPlayer(localIndex, localPlayer->getPlayerName(), "athena");
+        }
+
+        //Start game and set the bots' houses
+        _enterGame->setDown(true);
+        _enterGame->setDown(false);
+        return;
+    }
+    
     //get the room once we are fully connected
     if (_network->checkConnection() == NetworkController::Status::CONNECTED) {
         std::string roomNum = _network->getRoom();
