@@ -588,6 +588,9 @@
         "deathLabel": {
           "file": "textures/gameScene/deathLabel.png"
         },
+        "pieTimer": {
+          "file": "textures/gameScene/pieTimer.png"
+        },
         "winSign": {
             "file": "textures/winLoseScene/winSign.png"
         },

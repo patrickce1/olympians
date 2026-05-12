@@ -1102,6 +1102,8 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
+    
+    spawnEffectIcons(local->getEffectEvents());
 
     if (handleAllyTargetAttack(itemId, def, local, resolvedMagnitude, shouldApplyEffects)) {
         return true;
@@ -1654,9 +1656,19 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
             std::string iconName = "effect_icon_" + std::to_string(_nextEffectIconId++);
             icon->setName(iconName);
             
+            // Create the pie overlay
+            auto pie = cugl::scene2::SpriteNode::allocWithSheet(_assets->get<cugl::graphics::Texture>("pieTimer"), 1, 5);
+            pie->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            pie->setPosition(icon->getContentSize() / 2.0f);
+            pie->setFrame(0);
+            icon->addChild(pie);
+            icon->doLayout();
+            
             _effectIcons.push_back({
                 def->getIconKey(),
                 icon,
+                pie,
+                e.duration,
                 e.duration
             });
         }
@@ -1679,6 +1691,11 @@ void GameScene::updateEffectTimerIcons(float dt) {
             it = _effectIcons.erase(it);
             changed = true;
         } else {
+            if (it->pie) {
+                int frame = (int)((1.0f - it->remainingDuration / it->totalDuration) * 5);
+                frame = std::clamp(frame, 0, 4);
+                it->pie->setFrame(frame);
+            }
             ++it;
         }
     }
