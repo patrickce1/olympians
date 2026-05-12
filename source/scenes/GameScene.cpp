@@ -1639,7 +1639,9 @@ void GameScene::updateEnemyAndAI(float dt) {
     float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
     float enemyHealthBefore = enemy->getCurrentHealth();
 
-    _enemyController.update(dt, enemy, _gameState.getPlayers());
+    if (_network->isHost()) {
+        _enemyController.update(dt, enemy, _gameState.getPlayers());
+    }
 
     // Play shield block sound if local player's shield absorbed damage this update
     if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
