@@ -632,7 +632,9 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
                     const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
                     EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, target);
                     
-                    if (effect.duration > 0) {
+                    if (effect.duration > 0 &&
+                        effect.type != ItemDef::EffectType::Shield &&
+                        effect.type != ItemDef::EffectType::Barrier) {
                         _effectEvents.push_back({
                             def->getId(),
                             effect.duration
@@ -646,7 +648,9 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
                 const ItemDef::Effect resolvedEffect = resolveEffectForCharm(effect, hasCharm());
                 EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, target);
 
-                if (effect.duration > 0) {
+                if (effect.duration > 0 &&
+                    effect.type != ItemDef::EffectType::Shield &&
+                    effect.type != ItemDef::EffectType::Barrier) {
                     _effectEvents.push_back({
                         def->getId(),
                         effect.duration
