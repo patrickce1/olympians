@@ -139,6 +139,9 @@
         "cloudBottom": {
             "file": "textures/clientCloud.png"
         },
+        "dialogueBox": {
+                    "file": "textures/gameScene/dialogueBox.png"
+                },
         "cyclopsShowroom": {
             "file": "textures/houseSelect/cyclopsShowroom.png"
         },
@@ -862,6 +865,7 @@
         "playerSlot": "widgets/playerSlot.json",
         "leftIcon": "widgets/leftIcon.json",
         "rightIcon": "widgets/rightIcon.json",
+        "dialogueBox": "widgets/dialogueBox.json",
         "ability":     "widgets/ability.json",
         "codexGrid": "widgets/codexGrid.json",
         "codexSlot":     "widgets/codexSlot.json",
