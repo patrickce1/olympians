@@ -1028,7 +1028,16 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
-    const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+    float resolvedMagnitude = 0.0f;
+    if (def->getAttackTarget() == ItemDef::AttackTarget::AllAllies) {
+        resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+    } else {
+        resolvedMagnitude = local->resolveItemMagnitude(*def, _itemController.getDatabase());
+        local->recordItemUse(*def);
+        if (!removeItemFromInventory(local, item.getId())) {
+            return false;
+        }
+    }
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
@@ -1059,8 +1068,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
 
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
     const std::vector<EnemyEffectMessage> enemyEffects =
-        (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects)
-                              : std::vector<EnemyEffectMessage>{};
+        collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects);
 
     startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
     if (!_activeItemUseAnimations.empty()) {
@@ -4401,8 +4409,13 @@ void GameScene::updateItemUseAnimations(float dt) {
                 if (enemy) {
                     const int playerNum = _gameState.getLocalPlayer()->getPlayerNumber();
 
-                    // Apply pre-calculated damage and show the popup sequence.
+                    // Apply pre-calculated damage before any item effects update enemy side multipliers.
+                    const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
+                    Player* localPlayer = _gameState.getLocalPlayer();
+                    if (localPlayer) {
+                        localPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - enemy->getCurrentHealth()));
+                    }
                     if (activeAnim.baseValue > 0.0f) {
                         const float sideMultiplier = enemy->getSideMultiplier(playerNum);
                         const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
@@ -4416,6 +4429,8 @@ void GameScene::updateItemUseAnimations(float dt) {
                     if (_network && !_network->isHost()) {
                         _network->broadcastDamage(activeAnim.damageAmount, playerNum, activeAnim.itemDefID);
                         broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
+                    } else if (_network && _network->isHost()) {
+                        _gameState.enemyEffectUpdates(activeAnim.enemyEffects);
                     }
                 }
             }
