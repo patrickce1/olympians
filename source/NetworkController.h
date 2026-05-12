@@ -462,14 +462,7 @@ public:
      * @return A length-4 array where index i contains the new slot that
      *         the player originally at slot i should occupy.
      */
-    std::array<int, 4> getPlayerScrambleMapping() { 
-        CULog("[CLINET] extracting scramble: %d %d %d %d",
-            _playerScrambleMapping[0],
-            _playerScrambleMapping[1],
-            _playerScrambleMapping[2],
-            _playerScrambleMapping[3]);
-        return _playerScrambleMapping; 
-    }
+    std::array<int, 4> getPlayerScrambleMapping() { return _playerScrambleMapping; }
 
     /**
     * Applies a complete slot remapping in one atomic operation.

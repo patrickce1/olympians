@@ -553,13 +553,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
                 // Read old-slot -> new-slot mapping from the network
                 for (int i = 0; i < 4; i++) {
                     _playerScrambleMapping[i] = _deserializer.readSint32();
-                    CULog("[RECIEVED SCRAMBLE] The number for %d -> %d", i, _playerScrambleMapping[i]);
                 }
-                CULog("[CLINET] recieved scramble: %d %d %d %d",
-                    _playerScrambleMapping[0],
-                    _playerScrambleMapping[1],
-                    _playerScrambleMapping[2],
-                    _playerScrambleMapping[3]);
                 applyPlayerScramble(_playerScrambleMapping);
                 _midGameScramblePending = true;
             }
@@ -1240,12 +1234,6 @@ void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& mappin
     for (int i = 0; i < 4; ++i) {
         _serializer.writeSint32(mapping[i]);
     }
-
-    CULog("[HOST] sent scramble: %d %d %d %d",
-        mapping[0],
-        mapping[1],
-        mapping[2],
-        mapping[3]);
 
     _network->broadcast(_serializer.serialize());
     _serializer.reset();
