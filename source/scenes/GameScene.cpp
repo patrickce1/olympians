@@ -1536,6 +1536,28 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
     }
 }
 
+void GameScene::rebuildTimerLayout() {
+    if (!_timers) return;
+
+    auto floatLayout = std::dynamic_pointer_cast<cugl::scene2::FloatLayout>(
+        _timers->getLayout()
+    );
+    if (!floatLayout) return;
+
+    for (auto& e : _effectIcons) {
+        floatLayout->remove(e.icon->getName());
+    }
+    _timers->removeAllChildren();
+
+    for (auto it = _effectIcons.rbegin(); it != _effectIcons.rend(); ++it) {
+        _timers->addChild(it->icon);
+        auto emptyData = cugl::JsonValue::allocObject();
+        floatLayout->add(it->icon->getName(), emptyData);
+    }
+
+    _timers->doLayout();
+}
+
 /**
  * Spawns one timer icon per effect event into the `_timers` container.
  *
@@ -1549,10 +1571,6 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
 void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events) {
     if (!_timers) return;
     
-    auto floatLayout = std::dynamic_pointer_cast<cugl::scene2::FloatLayout>(
-        _timers->getLayout()
-    );
-
     for (const auto& e : events) {
         auto def = _itemController.getDatabase().getDef(e.itemId);
         if (!def) continue;
@@ -1561,24 +1579,12 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
         if (!texture) continue;
 
         auto icon = cugl::scene2::PolygonNode::allocWithTexture(texture);
-        // Size the icon to the slot size the container expects.
-//        const float scale = ICON_SIZE / std::max(texture->getWidth(), texture->getHeight());
-//        icon->setScale(scale);
         icon->setContentSize(40,40);
         icon->setAnchor(cugl::Vec2::ANCHOR_CENTER);
         
         std::string iconName = "effect_icon_" + std::to_string(_nextEffectIconId++);
         icon->setName(iconName);
-
-        _timers->addChild(icon);
-
-        // Register with the layout manager so it gets positioned.
-        if (floatLayout) {
-            auto emptyData = cugl::JsonValue::allocObject();
-            floatLayout->add(iconName, emptyData);
-        }
-        _timers->doLayout();
-
+        
         _effectIcons.push_back({
             def->getIconKey(),
             icon,
@@ -1586,29 +1592,38 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
             0   // slotIndex unused; _timers owns layout
         });
     }
+    
+    rebuildTimerLayout();
 }
 
 void GameScene::updateEffectTimerIcons(float dt) {
+    if (!_timers) return;
+
+    auto floatLayout = std::dynamic_pointer_cast<cugl::scene2::FloatLayout>(
+        _timers->getLayout()
+    );
+
+    bool changed = false;
+
     for (auto it = _effectIcons.begin(); it != _effectIcons.end(); ) {
         it->remainingDuration -= dt;
-
         if (it->remainingDuration <= 0.0f) {
+            if (floatLayout && it->icon) {
+                floatLayout->remove(it->icon->getName());
+            }
             if (it->icon) {
-                auto floatLayout = std::dynamic_pointer_cast<cugl::scene2::FloatLayout>(
-                    _timers->getLayout()
-                );
-                if (floatLayout) {
-                    floatLayout->remove(it->icon->getName());
-                }
                 it->icon->removeFromParent();
             }
             it = _effectIcons.erase(it);
-            if (_timers) _timers->doLayout();
+            changed = true;
         } else {
             ++it;
         }
     }
-    // No manual repositioning needed: _timers lays out its children automatically.
+
+    if (changed) {
+        rebuildTimerLayout();
+    }
 }
 
 #pragma mark -

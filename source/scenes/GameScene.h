@@ -1522,6 +1522,10 @@ public:
     void spawnEffectIcons(const std::vector<Player::EffectEvent>& events);
 
     void updateEffectTimerIcons(float dt);
+    
+    /** Rebuilds the _timers scene graph children in newest-first order and triggers layout. */
+    void rebuildTimerLayout();
+    
 
     
 #pragma mark - Inventory UI
