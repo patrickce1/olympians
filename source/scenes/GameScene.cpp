@@ -3666,7 +3666,6 @@ void GameScene::update(float dt, InputController& input) {
             slideDialogueIn();
         }
     }
-
 }
 
 #pragma mark -
