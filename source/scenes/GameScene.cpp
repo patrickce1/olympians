@@ -2106,25 +2106,80 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
     auto localPlayer = _gameState.getLocalPlayer();
     if (!localPlayer) return;
 
-    // Given each player and their respective slot, set the texture depending on their health state.
+    // Check if Gaia is in ATTACK_3 — teammate identities should be concealed
+    auto enemy = _gameState.getEnemy();
+    const auto* stateDef = enemy ? enemy->getCurrentStateDef() : nullptr;
+    bool concealIdentity = false; //make sure hosts icon doesn't conceal
+
     auto applyTexture = [&](auto slot, auto player) {
         if (!slot || !player) return;
-        slot->setTexture(_assets->get<cugl::graphics::Texture>(
-            getHealthTexture(
-                getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
-                             player->getHouseName()
-            ))
-        );
+
+        if (concealIdentity) {
+            slot->setTexture(_assets->get<cugl::graphics::Texture>("basicTeammateIcon"));
+        }
+        else {
+            slot->setTexture(_assets->get<cugl::graphics::Texture>(
+                getHealthTexture(
+                    getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
+                    player->getHouseName()
+                ))
+            );
+        }
         slot->setScale(0.5f);
-    };
+        };
 
     applyTexture(_localPlayerSlot, localPlayer);
-    applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
+
+    //for left/right check if we need to conceal for gaia
+    concealIdentity = enemy
+        && enemy->getId() == "gaia"
+        && enemy->getCurrentState() == EnemyLoader::State::ATTACK_3;
+
+    applyTexture(_leftPlayerSlot, localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
+
+    // Conceal or restore left neighbor name + house
+    if (_leftPlayerName && _leftPlayerHouse) {
+        if (concealIdentity) {
+            _leftPlayerName->setText("???");
+            _leftPlayerHouse->setText("???");
+        }
+        else {
+            Player* left = localPlayer->getLeftPlayer();
+            if (left) {
+                _leftPlayerName->setText(left->isAI()
+                    ? "AI Player " + std::to_string(left->getPlayerNumber())
+                    : left->getPlayerName());
+                std::string house = left->getHouseName();
+                for (char& c : house) c = toupper(c);
+                _leftPlayerHouse->setText(house);
+            }
+        }
+    }
+
+    // Conceal or restore right neighbor name + house
+    if (_rightPlayerName && _rightPlayerHouse) {
+        if (concealIdentity) {
+            _rightPlayerName->setText("???");
+            _rightPlayerHouse->setText("???");
+        }
+        else {
+            Player* right = localPlayer->getRightPlayer();
+            if (right) {
+                _rightPlayerName->setText(right->isAI()
+                    ? "AI Player " + std::to_string(right->getPlayerNumber())
+                    : right->getPlayerName());
+                std::string house = right->getHouseName();
+                for (char& c : house) c = toupper(c);
+                _rightPlayerHouse->setText(house);
+            }
+        }
+    }
+
     updateTeammateBlink(_leftPlayerSlot, localPlayer->getLeftPlayer(),
-                        _lastLeftPlayerHealth, _leftPlayerDamageBlinkTimer, _leftPlayerHealBlinkTimer, dt);
+        _lastLeftPlayerHealth, _leftPlayerDamageBlinkTimer, _leftPlayerHealBlinkTimer, dt);
     updateTeammateBlink(_rightPlayerSlot, localPlayer->getRightPlayer(),
-                        _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer, _rightPlayerHealBlinkTimer, dt);
+        _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer, _rightPlayerHealBlinkTimer, dt);
 }
 
 /**
