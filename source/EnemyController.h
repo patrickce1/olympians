@@ -25,7 +25,10 @@ struct AnimationEntry;
 class EnemyController {
 public:
     EnemyController();
-
+    
+    /** Enable or disable automatic attack selection. Tutorial Specific */
+    void setAttacksEnabled(bool enabled) { _attacksEnabled = enabled; }
+    
     void enterIdle(const std::shared_ptr<Enemy>& enemy,
                    std::vector<std::shared_ptr<Player>>& players);
 
@@ -65,6 +68,9 @@ private:
 
     /** Random number generator for decision making. */
     cugl::Random _rng;
+    
+    /** Represents whether the boss can attack*/
+    bool _attacksEnabled = true;
 
     /** Seconds to wait in idle before turning to face the new target. */
     static constexpr float IDLE_RETARGET_DELAY = 0.5f;
