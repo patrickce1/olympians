@@ -1239,7 +1239,7 @@ void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& newMap
     // Broadcast final mapping to all clients
     _serializer.writeSint32(MessageType::MID_GAME_SCRAMBLE);
     for (int i = 0; i < 4; ++i) {
-        _serializer.writeSint32(mapping[i]);
+        _serializer.writeSint32(newMapping[i]);
     }
 
     _network->broadcast(_serializer.serialize());
