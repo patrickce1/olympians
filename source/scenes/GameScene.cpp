@@ -2450,7 +2450,7 @@ void GameScene::slideReleasedItem(ItemInstance::ItemId itemId) {
 
 /**
  * Spawns a Gaia vine SpriteNode over both ally icon widgets.
- * Creates two SpriteNodes from the 4x3 sprite sheet, positions each over
+ * Creates two SpriteNodes from the 3x4 sprite sheet, positions each over
  * the left/right icon's playerIcon node, and adds them as children so they
  * render in the same coordinate space as the icon. Called once on ATTACK_3
  * state entry; frames are driven each update by the boss's own state time.
@@ -2472,9 +2472,7 @@ void GameScene::startGaiaVineAnimation() {
     anim.frameCount = frameCount;
     anim.currentFrame = -1;
 
-    //
-    // ================= LEFT =================
-    //
+    // Left ally overlay
     if (_leftPlayerSlot) {
         auto node = cugl::scene2::SpriteNode::allocWithSheet(texture, rows, cols, frameCount);
         if (node) {
@@ -2483,13 +2481,13 @@ void GameScene::startGaiaVineAnimation() {
 
             cugl::Size iconSize = _leftPlayerSlot->getContentSize();
 
-            // ✅ center exactly on icon
+            // center on icon
             node->setPosition({
                 iconSize.width * 0.5f,
                 iconSize.height * 0.65f
                 });
 
-            // ✅ scale to icon WIDTH (cleanest look)
+            // scale to width of icon
             float frameW = texture->getWidth() / (float)cols;
             float scale = iconSize.width / frameW;
 
@@ -2500,9 +2498,7 @@ void GameScene::startGaiaVineAnimation() {
         }
     }
 
-    //
-    // ================= RIGHT =================
-    //
+    // Right ally overlay, same logic as left side
     if (_rightPlayerSlot) {
         auto node = cugl::scene2::SpriteNode::allocWithSheet(texture, rows, cols, frameCount);
         if (node) {
@@ -2529,7 +2525,18 @@ void GameScene::startGaiaVineAnimation() {
     _gaiaVineAnim = anim;
 }
 
-
+/**
+ * Detects entry into Gaia's ATTACK_3 state and triggers the vine overlay animation.
+ *
+ * This function compares the enemy's current state to the previously observed state
+ * to detect a state transition. When Gaia enters ATTACK_3, it calls
+ * startGaiaVineAnimation() exactly once for that transition.
+ *
+ * IMPORTANT:
+ * - This is a purely visual trigger and does not affect gameplay state.
+ * - The animation itself is fully driven by enemy state time (see updateGaiaVineAnimation()).
+ * - Must be called once per frame before updateGaiaVineAnimation().
+ */
 void GameScene::detectGaiaVineStateEntry() {
     static EnemyLoader::State lastState = EnemyLoader::State::IDLE;
 
@@ -2555,14 +2562,14 @@ void GameScene::detectGaiaVineStateEntry() {
 /**
  * Advances the Gaia vine overlay animation, driven by the boss's own ATTACK_3
  * state time rather than a separate elapsed timer. Frames advance proportionally
- * across buildUpTime, then the nodes are removed when the state exits ATTACK_3.
+ * across buildUpTime, then the nodes are removed when the state exits ATTACK_3, even if it was disrupted.
  *
  * @param dt  Delta time in seconds (unused for frame calc, kept for signature consistency)
  */
 void GameScene::updateGaiaVineAnimation(float dt) {
     auto enemy = _gameState.getEnemy();
 
-    // if not Gaia or not in ATTACK_3 → cleanup
+    // if not Gaia or not in ATTACK_3, then cleanup
     if (!_gaiaVineAnim ||
         !enemy ||
         enemy->getId() != "gaia" ||
@@ -2581,7 +2588,7 @@ void GameScene::updateGaiaVineAnimation(float dt) {
 
     float stateTime = enemy->getStateTime();
 
-    // normalized 0 → 1
+    // percentage progress through the animation
     float progress = std::min(1.0f, stateTime / stateDef->buildUpTime);
 
     int frameIndex = std::min(

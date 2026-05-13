@@ -160,7 +160,7 @@ struct AnimationEntry {
  * Tracks the Gaia vine overlay animation displayed over both ally icons
  * during ATTACK_3 buildup. Duration is driven by stateDef->buildUpTime so
  * the animation expires exactly when the attack phase begins.
- * Sheet layout: 4 rows x 3 cols, 12 frames total.
+ * Sheet layout: 3 rows x 4 cols, 12 frames total.
  */
 struct GaiaVineAnimation {
     std::shared_ptr<cugl::scene2::SpriteNode> leftNode;
@@ -1371,7 +1371,6 @@ public:
      * - This is a purely visual trigger and does not affect gameplay state.
      * - The animation itself is fully driven by enemy state time (see updateGaiaVineAnimation()).
      * - Must be called once per frame before updateGaiaVineAnimation().
-     * - Assumes the enemy instance does not change during gameplay.
      */
     void detectGaiaVineStateEntry();
     
