@@ -4389,6 +4389,12 @@ void GameScene::updateInputZones(){
     // They cannot attack or support
     if (local && !local->isAlive()) {
         _inputZones = _passZones;
+        if (!local->hasLeftVine()) {
+            //insert left
+        }
+        if (!local->hasRightVine()) {
+            //insert right
+        }
         _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
     } else {
         // Alive players have access to all zones
