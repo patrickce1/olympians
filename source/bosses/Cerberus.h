@@ -79,7 +79,12 @@ private:
     /** Player slot currently afflicted by the corrosive debuff, or -1 if none. */
     int _corrosiveTarget = -1;
 
-    /** Player slot locked in at single-head attack entry (ATTACK_2/3); -1 means use live head state. */
+    /**
+     * Player slot committed at the start of a single-head attack (ATTACK_2/3).
+     * -1 means no lock is active and cerberusRedirectVictim evaluates head state live.
+     * Set by lockVictim() in EnemyController when the attack is chosen; cleared on
+     * IDLE entry so the next attack re-evaluates from scratch.
+     */
     int _lockedVictim = -1;
 
     /** Set each drain tick; consumed once by GameScene to remove one item from the target. */
@@ -166,14 +171,26 @@ public:
     /** Ends the corrosive effect early (e.g., when the player runs out of items). */
     void endCorrosive();
 
-    /** Locks the victim player slot for the current single-head attack so the target
-     *  doesn't shift if a head recovers between attack entry and the damage frame. */
+    /**
+     * Locks in the victim player slot for the current single-head attack.
+     * Call this when the attack state is chosen so the damage frame cannot
+     * silently retarget to the front head if a knocked head recovers mid-buildup.
+     *
+     * @param playerSlot  Absolute player slot (0–3) to lock as the attack target.
+     */
     void lockVictim(int playerSlot) { _lockedVictim = playerSlot; }
 
-    /** Returns the locked victim slot, or -1 if none is set. */
+    /**
+     * Returns the locked victim player slot, or -1 if no lock is currently set.
+     *
+     * @return Locked player slot (0–3), or -1.
+     */
     int getLockedVictim() const { return _lockedVictim; }
 
-    /** Clears the locked victim (call when the attack ends and Cerberus returns to idle). */
+    /**
+     * Clears the locked victim so the next attack re-evaluates head state live.
+     * Called by EnemyController when Cerberus returns to IDLE.
+     */
     void clearLockedVictim() { _lockedVictim = -1; }
 
     /**

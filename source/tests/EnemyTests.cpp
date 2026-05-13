@@ -296,20 +296,17 @@ static void testCerberusCorrosiveDrainInterval(const std::string& enemiesJsonPat
     expect(ok, "Enemy::init succeeds for 'cerberus'");
     if (!ok) return;
 
-    // Start corrosive
     cerberus->startCorrosive(0, Cerberus::CORROSIVE_DURATION);
 
-    // Initially should not drain (interval not elapsed)
-    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: no drain before interval");
+    // First drain fires immediately on startCorrosive so GameScene can kick off
+    // all item animations on the same frame the attack lands.
+    expect(cerberus->shouldDrainItem(), "cerberus corrosive: first drain fires immediately on start");
+    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain flag consumed after first check");
 
-    // Update for the drain interval duration
+    // Subsequent drains fire once per interval.
     cerberus->update(Cerberus::CORROSIVE_DRAIN_INTERVAL);
-
-    // Now it should be ready to drain
-    expect(cerberus->shouldDrainItem(), "cerberus corrosive: ready to drain after interval");
-
-    // shouldDrainItem consumes the flag, so next call should return false
-    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain flag consumed");
+    expect(cerberus->shouldDrainItem(), "cerberus corrosive: drain fires again after one interval");
+    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain flag consumed after second check");
 }
 
 static void testCerberusCorrosiveExpiration(const std::string& enemiesJsonPath,
@@ -429,6 +426,131 @@ static void testCyclopsDefensiveMove(const std::string& enemiesJsonPath,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SECTION 6 — Cerberus head-knock mechanics
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Creates and initialises a Cerberus instance, logging success/failure.
+ * @param enemiesJsonPath  Path to enemies.json
+ * @return Initialised Cerberus, or nullptr on failure
+ */
+static std::shared_ptr<Cerberus> makeCerberus(const std::string& enemiesJsonPath) {
+    auto cerberus = std::make_shared<Cerberus>();
+    bool ok = cerberus->init("cerberus", enemiesJsonPath);
+    expect(ok, "Cerberus::init succeeds");
+    return ok ? cerberus : nullptr;
+}
+
+/**
+ * Deals enough damage from playerSlot to push the corresponding head's knock
+ * threshold below zero, causing it to become knocked.
+ *
+ * @param cerberus    The cerberus instance to damage
+ * @param playerSlot  Absolute player slot delivering the hit (0-3)
+ * @param threshold   The knockedThreshold value loaded from JSON (200.0 by default)
+ */
+static void knockHeadFromSlot(const std::shared_ptr<Cerberus>& cerberus,
+                               int playerSlot, float threshold) {
+    cerberus->takeDamage(threshold + 1.0f, playerSlot);
+}
+
+static void testCerberusHeadKnockFromDamage(const std::string& enemiesJsonPath) {
+    auto cerberus = makeCerberus(enemiesJsonPath);
+    if (!cerberus) return;
+
+    // Target player 0 so relative slot 0 maps to the front head (array index 0).
+    cerberus->setTargetIndex(0);
+    const float threshold = 200.0f;  // matches knockedThreshold in enemies.json
+
+    expect(!cerberus->isHeadKnocked(0), "head knock: front head not knocked initially");
+
+    // Damage just below threshold should NOT knock the head.
+    cerberus->takeDamage(threshold - 1.0f, 0);
+    expect(!cerberus->isHeadKnocked(0), "head knock: below threshold does not knock");
+
+    // One more point pushes it over.
+    cerberus->takeDamage(2.0f, 0);
+    expect(cerberus->isHeadKnocked(0), "head knock: exceeding threshold knocks the head");
+
+    // The back position (relative slot 2) has no physical head — never knocked.
+    expect(!cerberus->isHeadKnocked(2), "head knock: back position always unblocked");
+}
+
+static void testCerberusAllHeadsKnockedMultiplier(const std::string& enemiesJsonPath) {
+    auto cerberus = makeCerberus(enemiesJsonPath);
+    if (!cerberus) return;
+
+    cerberus->setTargetIndex(0);
+    const float threshold = 200.0f;
+
+    // Knock front (player 0), right (player 1), and left (player 3) heads.
+    knockHeadFromSlot(cerberus, 0, threshold);
+    knockHeadFromSlot(cerberus, 1, threshold);
+    knockHeadFromSlot(cerberus, 3, threshold);
+
+    expect(cerberus->allHeadsKnocked(), "all-heads-knocked: allHeadsKnocked() true");
+    expect(std::abs(cerberus->getSideMultiplier(0) - Cerberus::ALL_HEADS_KNOCKED_MULTIPLIER) < 0.01f,
+        "all-heads-knocked: side 0 set to 5x multiplier");
+    expect(std::abs(cerberus->getSideMultiplier(1) - Cerberus::ALL_HEADS_KNOCKED_MULTIPLIER) < 0.01f,
+        "all-heads-knocked: side 1 set to 5x multiplier");
+    expect(std::abs(cerberus->getSideMultiplier(3) - Cerberus::ALL_HEADS_KNOCKED_MULTIPLIER) < 0.01f,
+        "all-heads-knocked: side 3 set to 5x multiplier");
+
+    // Attacking a non-back side during this window should deal 5x damage.
+    float healthBefore = cerberus->getCurrentHealth();
+    float rawDamage = 10.0f;
+    cerberus->takeDamage(rawDamage, 0);
+    float actualDamage = healthBefore - cerberus->getCurrentHealth();
+    expect(std::abs(actualDamage - rawDamage * Cerberus::ALL_HEADS_KNOCKED_MULTIPLIER) < 0.01f,
+        "all-heads-knocked: attack deals 5x damage");
+
+    // After the window is consumed, all heads wake and multipliers reset to 1x.
+    expect(!cerberus->allHeadsKnocked(), "all-heads-knocked: heads woken after window hit");
+    expect(std::abs(cerberus->getSideMultiplier(0) - 1.0f) < 0.01f,
+        "all-heads-knocked: side multipliers reset to 1x after window");
+}
+
+static void testCerberusDefenseBlockedWhenHeadKnocked(const std::string& enemiesJsonPath) {
+    auto cerberus = makeCerberus(enemiesJsonPath);
+    if (!cerberus) return;
+
+    cerberus->setTargetIndex(0);
+    expect(cerberus->canEnterDefenseState(), "cerberus defense: allowed when no heads are knocked");
+
+    knockHeadFromSlot(cerberus, 0, 200.0f);
+    expect(!cerberus->canEnterDefenseState(), "cerberus defense: blocked while any head is knocked");
+}
+
+static void testCerberusHeadRecovery(const std::string& enemiesJsonPath) {
+    auto cerberus = makeCerberus(enemiesJsonPath);
+    if (!cerberus) return;
+
+    cerberus->setTargetIndex(0);
+    const float knockedDuration = 12.0f;  // matches knockedDuration in enemies.json
+
+    knockHeadFromSlot(cerberus, 0, 200.0f);
+    expect(cerberus->isHeadKnocked(0), "head recovery: head is knocked before timer expires");
+
+    // Advance just past the recovery duration.
+    cerberus->update(knockedDuration + 0.1f);
+    expect(!cerberus->isHeadKnocked(0), "head recovery: head recovers after knockedDuration");
+    expect(cerberus->canEnterDefenseState(), "head recovery: defense re-enabled after head recovers");
+}
+
+static void testCerberusLockedVictim(const std::string& enemiesJsonPath) {
+    auto cerberus = makeCerberus(enemiesJsonPath);
+    if (!cerberus) return;
+
+    expect(cerberus->getLockedVictim() == -1, "locked victim: initially -1 (no lock)");
+
+    cerberus->lockVictim(2);
+    expect(cerberus->getLockedVictim() == 2, "locked victim: lockVictim stores the slot");
+
+    cerberus->clearLockedVictim();
+    expect(cerberus->getLockedVictim() == -1, "locked victim: clearLockedVictim resets to -1");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -461,7 +583,14 @@ void EnemyTests::runAll(const std::string& enemiesJsonPath,
     testCyclopsMultiplierScalesDamage(enemiesJsonPath, housesJsonPath);
     testCyclopsDefensiveMove(enemiesJsonPath, housesJsonPath);
 
-    CULog("── Section 6: Cerberus corrosive mechanics ───");
+    CULog("── Section 6: Cerberus head-knock mechanics ──");
+    testCerberusHeadKnockFromDamage(enemiesJsonPath);
+    testCerberusAllHeadsKnockedMultiplier(enemiesJsonPath);
+    testCerberusDefenseBlockedWhenHeadKnocked(enemiesJsonPath);
+    testCerberusHeadRecovery(enemiesJsonPath);
+    testCerberusLockedVictim(enemiesJsonPath);
+
+    CULog("── Section 7: Cerberus corrosive mechanics ───");
     testCerberusCorrosiveActivation(enemiesJsonPath, housesJsonPath);
     testCerberusCorrosiveDrainInterval(enemiesJsonPath, housesJsonPath);
     testCerberusCorrosiveExpiration(enemiesJsonPath, housesJsonPath);
