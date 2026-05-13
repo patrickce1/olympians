@@ -172,7 +172,6 @@ struct AnimationEntry {
 struct GaiaVineAnimation {
     std::shared_ptr<cugl::scene2::SpriteNode> leftNode;
     std::shared_ptr<cugl::scene2::SpriteNode> rightNode;
-
     int frameCount = 12;
     int currentFrame = -1;
     float duration = 0.5f;     // default value for now, should match the build up time
