@@ -176,8 +176,13 @@ public:
     /** Returns the index of the player this enemy is currently targeting */
     int getTargetIndex() const { return _targetIndex; }
 
-    /** Sets the index of the player this enemy is currently targeting */
-    void setTargetIndex(int index) { _targetIndex = index; }
+    /** Sets the index of the player this enemy is currently targeting, unless the enemy is stunned. */
+    void setTargetIndex(int index) {
+        if (_stunDuration > 0.0f) {
+            return;
+        }
+        _targetIndex = index;
+    }
 
     /** Returns the current state of this enemy */
     EnemyLoader::State getCurrentState() const { return _currentState; }
