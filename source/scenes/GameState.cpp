@@ -505,7 +505,7 @@ void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects)
 
         switch (effect.effectType) {
             case EnemyEffectType::Stun:
-                _enemy->applyStun(effect.duration);
+                _enemy->scheduleStun(effect.duration, effect.magnitude, effect.delay, effect.playerIndex);
                 break;
             case EnemyEffectType::Love:
                 _enemy->applyLove(effect.duration, effect.playerIndex);
