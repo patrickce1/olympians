@@ -60,6 +60,18 @@ private:
     }
 
     /**
+     * Applies a lifesteal effect to a player and returns the healing multiplier.
+     *
+     * @param effect  The serialized effect definition to apply.
+     * @param target  The player receiving the lifesteal.
+     * @return The applied lifesteal multiplier.
+     */
+    static float applyLifestealToPlayer(const ItemDef::Effect& effect, Player& target) {
+        target.applyLifesteal(effect.multiplier, effect.duration);
+        return effect.multiplier;
+    }
+
+    /**
      * Applies a stun effect to an enemy and returns the stun duration.
      *
      * @param effect  The serialized effect definition to apply.
@@ -129,6 +141,8 @@ public:
                 return applyRegenToPlayer(effect, target);
             case ItemDef::EffectType::Charm:
                 return applyCharmToPlayer(effect, target);
+            case ItemDef::EffectType::Lifesteal:
+                return applyLifestealToPlayer(effect, target);
             case ItemDef::EffectType::Resurrect:
             case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Stun:
@@ -176,6 +190,7 @@ public:
             case ItemDef::EffectType::Forge:
             case ItemDef::EffectType::Charm:
             case ItemDef::EffectType::Frenzy:
+            case ItemDef::EffectType::Lifesteal:
                 break;
         }
 
