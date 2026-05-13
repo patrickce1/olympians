@@ -168,6 +168,11 @@ struct GaiaVineAnimation {
 
     int frameCount = 12;
     int currentFrame = -1;
+
+    float duration = 0.5f;     // default value for now, should match the block animation
+    float currentTime = 0.0f;  // keeps track of how long we've been in it for
+
+    bool reversing = false; // if the attack got cancelled or it finished and we have new neighbors
 };
 
 /**
@@ -1360,19 +1365,26 @@ public:
      */
     void updateGaiaVineAnimation(float dt);
 
+
     /**
-     * Detects entry into Gaia's ATTACK_3 state and triggers the vine overlay animation.
+     * Handles Gaia vine animation triggers based on enemy state changes.
      *
-     * This function compares the enemy's current state to the previously observed state
-     * to detect a state transition. When Gaia enters ATTACK_3, it calls
-     * startGaiaVineAnimation() exactly once for that transition.
+     * This function starts the vine animation when Gaia enters ATTACK_3,
+     * and initiates the reverse (retraction) phase when Gaia leaves ATTACK_3
+     * or when Aphrodite’s love effect is applied to Gaia.
      *
      * IMPORTANT:
-     * - This is a purely visual trigger and does not affect gameplay state.
-     * - The animation itself is fully driven by enemy state time (see updateGaiaVineAnimation()).
+     * - This is purely visual and does not affect gameplay logic.
+     * - Forward animation follows enemy buildup progress (stateTime / buildUpTime).
+     * - Reverse animation is handled locally using currentTime and dt.
      * - Must be called once per frame before updateGaiaVineAnimation().
+     *
+     * Behavior summary:
+     * - Enter ATTACK_3 -> start vine growth animation.
+     * - Exit ATTACK_3 or Aphrodite love effect -> trigger reverse animation.
+     * - Reverse completes -> animation cleans itself up in update.
      */
-    void detectGaiaVineStateEntry();
+    void detectGaiaAnimationTriggers();
     
     /**
      * Returns whether there are any active item use animations currently playing.

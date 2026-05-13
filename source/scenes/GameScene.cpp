@@ -2273,9 +2273,26 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
     applyTexture(_leftPlayerSlot, localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
 
-    const bool concealIdentity = enemy
-        && enemy->getId() == "gaia"
-        && enemy->getCurrentState() == EnemyLoader::State::ATTACK_3;
+    bool concealIdentity = false;
+    if (enemy &&
+        enemy->getId() == "gaia" &&
+        _gaiaVineAnim)
+    {
+        float progress = 0.0f;
+
+        if (_gaiaVineAnim->duration > 0.0f) {
+            progress = _gaiaVineAnim->currentTime / _gaiaVineAnim->duration;
+        }
+
+        if (!_gaiaVineAnim->reversing) {
+            // Forward: conceal AFTER halfway
+            concealIdentity = (progress >= 0.5f);
+        }
+        else {
+            // Reverse: conceal UNTIL halfway (then reveal)
+            concealIdentity = (progress > 0.5f);
+        }
+    }
 
     if (_leftPlayerName && _leftPlayerHouse) {
         if (concealIdentity) {
@@ -2521,42 +2538,49 @@ void GameScene::startGaiaVineAnimation() {
             anim.rightNode = node;
         }
     }
-
+    anim.reversing = false; //when the animation is created this should always be false
+    anim.duration = _gameState.getEnemy()->getCurrentStateDef()->buildUpTime;
     _gaiaVineAnim = anim;
 }
 
 /**
- * Detects entry into Gaia's ATTACK_3 state and triggers the vine overlay animation.
+ * Handles Gaia vine animation triggers based on enemy state changes.
  *
- * This function compares the enemy's current state to the previously observed state
- * to detect a state transition. When Gaia enters ATTACK_3, it calls
- * startGaiaVineAnimation() exactly once for that transition.
+ * This function starts the vine animation when Gaia enters ATTACK_3,
+ * and initiates the reverse (retraction) phase when Gaia leaves ATTACK_3
+ * or when Aphrodite’s love effect is applied to Gaia.
  *
  * IMPORTANT:
- * - This is a purely visual trigger and does not affect gameplay state.
- * - The animation itself is fully driven by enemy state time (see updateGaiaVineAnimation()).
+ * - This is purely visual and does not affect gameplay logic.
+ * - Forward animation follows enemy buildup progress (stateTime / buildUpTime).
+ * - Reverse animation is handled locally using currentTime and dt.
  * - Must be called once per frame before updateGaiaVineAnimation().
+ *
+ * Behavior summary:
+ * - Enter ATTACK_3 -> start vine growth animation.
+ * - Exit ATTACK_3 unexpectedly -> trigger reverse animation.
+ * - Reverse completes -> animation cleans itself up in update.
  */
-void GameScene::detectGaiaVineStateEntry() {
-    static EnemyLoader::State lastState = EnemyLoader::State::IDLE;
-
+void GameScene::detectGaiaAnimationTriggers() {
     auto enemy = _gameState.getEnemy();
-    if (!enemy) {
-        return;
+    if (!enemy) return;
+
+    // If we're in ATTACK_3 start the animation if it hasn't started
+    if (enemy->getId() == "gaia" &&
+        enemy->getCurrentState() == EnemyLoader::State::ATTACK_3 &&
+        !_gaiaVineAnim)
+    {
+        startGaiaVineAnimation();
     }
 
-    EnemyLoader::State currentState = enemy->getCurrentState();
-
-    // Detect state transition into ATTACK_3
-    if (currentState != lastState) {
-        if (enemy->getId() == "gaia" &&
-            currentState == EnemyLoader::State::ATTACK_3)
-        {
-            startGaiaVineAnimation();
-        }
+    // If we entered another state mid-way
+    // Most likely means stun but this is scalable for other things too
+    if (_gaiaVineAnim &&
+        !_gaiaVineAnim->reversing &&
+        enemy->getCurrentState() != EnemyLoader::State::ATTACK_3)
+    {
+        _gaiaVineAnim->reversing = true;
     }
-
-    lastState = currentState;
 }
 
 /**
@@ -2567,44 +2591,54 @@ void GameScene::detectGaiaVineStateEntry() {
  * @param dt  Delta time in seconds (unused for frame calc, kept for signature consistency)
  */
 void GameScene::updateGaiaVineAnimation(float dt) {
-    auto enemy = _gameState.getEnemy();
+    if (!_gaiaVineAnim) return;
 
-    // if not Gaia or not in ATTACK_3, then cleanup
-    if (!_gaiaVineAnim ||
-        !enemy ||
-        enemy->getId() != "gaia" ||
-        enemy->getCurrentState() != EnemyLoader::State::ATTACK_3)
-    {
-        if (_gaiaVineAnim) {
-            if (_gaiaVineAnim->leftNode)  _gaiaVineAnim->leftNode->removeFromParent();
-            if (_gaiaVineAnim->rightNode) _gaiaVineAnim->rightNode->removeFromParent();
-            _gaiaVineAnim.reset();
-        }
-        return;
+    auto& anim = *_gaiaVineAnim;
+
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return;
+
+    // Forward (follow enemy state) OR reverse (manual)
+    if (!anim.reversing) {
+        const auto* stateDef = enemy->getCurrentStateDef();
+        if (!stateDef || stateDef->buildUpTime <= 0.0f) return;
+
+        float t = std::min(1.0f,
+            enemy->getStateTime() / stateDef->buildUpTime);
+
+        anim.currentTime = t * anim.duration;
+    }
+    else {
+        // Reverse, goes at a faster rate than normal animation
+        anim.currentTime -= dt * 2;
     }
 
-    const auto* stateDef = enemy->getCurrentStateDef();
-    if (!stateDef || stateDef->buildUpTime <= 0.0f) return;
+    // Clamp time
+    anim.currentTime = std::max(0.0f,
+        std::min(anim.currentTime, anim.duration));
 
-    float stateTime = enemy->getStateTime();
+    // Compute normalized progress
+    float progress = (anim.duration > 0.0f)
+        ? (anim.currentTime / anim.duration)
+        : 0.0f;
 
-    // percentage progress through the animation
-    float progress = std::min(1.0f, stateTime / stateDef->buildUpTime);
-
+    // Convert to frame
     int frameIndex = std::min(
-        static_cast<int>(progress * _gaiaVineAnim->frameCount),
-        _gaiaVineAnim->frameCount - 1
+        (int)(progress * anim.frameCount),
+        anim.frameCount - 1
     );
 
-    // only update if frame changed
-    if (frameIndex != _gaiaVineAnim->currentFrame) {
-        _gaiaVineAnim->currentFrame = frameIndex;
+    // Apply frame if changed
+    if (frameIndex != anim.currentFrame) {
+        anim.currentFrame = frameIndex;
+        if (anim.leftNode)  anim.leftNode->setFrame(frameIndex);
+        if (anim.rightNode) anim.rightNode->setFrame(frameIndex);
+    }
 
-        if (_gaiaVineAnim->leftNode)
-            _gaiaVineAnim->leftNode->setFrame(frameIndex);
-
-        if (_gaiaVineAnim->rightNode)
-            _gaiaVineAnim->rightNode->setFrame(frameIndex);
+    if (anim.reversing && anim.currentTime <= 0.0f) {
+        if (anim.leftNode)  anim.leftNode->removeFromParent();
+        if (anim.rightNode) anim.rightNode->removeFromParent();
+        _gaiaVineAnim.reset();
     }
 }
 
@@ -2850,6 +2884,8 @@ void GameScene::handleNetworkUpdates(float dt) {
         if (_network->checkMidGameScramble()) {
             _gameState.applyPlayerScramble(_network->getPlayerScrambleMapping());
             setLocalPlayer(_network->getLocalPlayerNumber());
+            _gaiaVineAnim->reversing = true;
+            _gaiaVineAnim->currentTime = _gaiaVineAnim->duration; //duration of the original animation
         }
         GameStateMessage stateUpdate = _network->getStateUpdate();
         _gameState.networkUpdate(stateUpdate);
@@ -3194,6 +3230,8 @@ void GameScene::handleGaiaScramble() {
     refreshTeammateNameLabels();
     resetTeammateBlinkState();
     updatePlayerAndTeammateIcons(0.0f); // reset icons
+    _gaiaVineAnim->reversing = true;
+    _gaiaVineAnim->currentTime = _gaiaVineAnim->duration; //duration of the original animation
 }
 
 
@@ -3920,7 +3958,7 @@ void GameScene::update(float dt, InputController& input) {
     updateSlidingItems(dt);
     updateSnapbackAnimations(dt);
     updateItemUseAnimations(dt);
-    detectGaiaVineStateEntry();
+    detectGaiaAnimationTriggers();
     updateGaiaVineAnimation(dt);
     updatePopupAnimations(dt);
 
