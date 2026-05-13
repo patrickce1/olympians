@@ -1229,7 +1229,7 @@ void NetworkController::swapSlots(int slotA, int slotB) {
 * player i ended up in. For example, if newMapping[0] = 1, that means that the player
 * at slot 0 ended up at slot 1 after the scramble
 */
-void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& mapping) {
+void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& newMapping) {
     if (!_network->isHost()) {
         return;
     }
@@ -1239,7 +1239,7 @@ void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& mappin
     // Broadcast final mapping to all clients
     _serializer.writeSint32(MessageType::MID_GAME_SCRAMBLE);
     for (int i = 0; i < 4; ++i) {
-        _serializer.writeSint32(mapping[i]);
+        _serializer.writeSint32(newMapping[i]);
     }
 
     _network->broadcast(_serializer.serialize());
@@ -1254,6 +1254,7 @@ void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& mappin
 * are reassigned.
 * Safe to call on both host and clients when handling a
 * MID_GAME_SCRAMBLE message.
+* 
 * @param newMapping represents the new order, where newMapping[i] is the new slot that
 *        player i ended up in. For example, if newMapping[0] = 1, that means that the player
 *        at slot 0 ended up at slot 1 after the scramble
