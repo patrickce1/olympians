@@ -2255,9 +2255,9 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
     auto localPlayer = _gameState.getLocalPlayer();
     if (!localPlayer) return;
 
+    // Given each player and their respective slot, set the texture depending on their health state.
     auto enemy = _gameState.getEnemy();
 
-    // Given each player and their respective slot, set the texture depending on their health state.
     auto applyTexture = [&](auto slot, auto player) {
         if (!slot || !player) return;
         slot->setTexture(_assets->get<cugl::graphics::Texture>(
@@ -3169,6 +3169,10 @@ void GameScene::handleGaiaSpawn() {
     return;
 }
 
+/** HOST ONLY. Custom method used by Gaia. This creates a new ordering for the players.
+  * This new ordering is sent to the GameState to be applied to the local machine
+  * This also broadcasts the new ordering over the network for clients to apply respectively as well
+  */
 void GameScene::handleGaiaScramble() {
     // Build identity list [0,1,2,3]
     std::array<int, 4> mapping = { 0, 1, 2, 3 };
