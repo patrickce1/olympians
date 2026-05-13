@@ -2257,6 +2257,7 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
 
     auto enemy = _gameState.getEnemy();
 
+    // Given each player and their respective slot, set the texture depending on their health state.
     auto applyTexture = [&](auto slot, auto player) {
         if (!slot || !player) return;
         slot->setTexture(_assets->get<cugl::graphics::Texture>(
