@@ -807,6 +807,12 @@
             "stream": false,
             "volume": 0.4
         },
+        "enemy_block": {
+            "type": "sample",
+            "file": "sounds/enemy_block.wav",
+            "stream": false,
+            "volume": 0.4
+        },
         "cyclops_boulder": {
             "type": "sample",
             "file": "sounds/cyclops_boulder.wav",

@@ -18,7 +18,7 @@ public:
         DEFENSE_MOVE,
     };
 
-    enum class EventType { DAMAGE, HEAL, SIDE_MODIFIER, UNKNOWN };
+    enum class EventType { DAMAGE, HEAL, SIDE_MODIFIER, CORROSIVE, UNKNOWN };
 
     // Enum that tracks which boss this is
     enum Boss {
@@ -32,7 +32,10 @@ public:
         EventType type = EventType::UNKNOWN;
         int target = 0;                            // relative index offset. What player to attack or what side to modify. Heal ignores this and self targets
         float amount = 0.0f;                       // damage amount, heal amount, or multiplier change
-        float duration = 0.0f;
+        float interval     = 0.0f;    // seconds between ticks (CORROSIVE only; 0 = use default)
+        float fadeDuration   = 0.0f;  // base fade duration per item (CORROSIVE only; 0 = use default)
+        float fadeVariance   = 0.0f;  // ±fraction of fadeDuration applied randomly per item (e.g. 0.3 = ±30%)
+        int   maxAffected    = 0;     // max items corroded per hit (CORROSIVE only; 0 = no limit)
     };
 
     struct StateDef {
@@ -89,9 +92,10 @@ private:
 private:
     /** Parses an event type string from JSON into an EventType enum. */
     static EventType parseEventType(const std::string& s) {
-        if (s == "DAMAGE")           return EventType::DAMAGE;
-        if (s == "HEAL")             return EventType::HEAL;
-        if (s == "SIDE_MODIFIER")  return EventType::SIDE_MODIFIER;
+        if (s == "DAMAGE")        return EventType::DAMAGE;
+        if (s == "HEAL")          return EventType::HEAL;
+        if (s == "SIDE_MODIFIER") return EventType::SIDE_MODIFIER;
+        if (s == "CORROSIVE")     return EventType::CORROSIVE;
         return EventType::UNKNOWN;
     }
 
@@ -260,12 +264,17 @@ public:
                         if (!eventJson) continue;
                         EventDef eventDef;
                         eventDef.type   = parseEventType(eventJson->getString("type", ""));
-                        // "target" is a relative player-index offset; only meaningful for DAMAGE and SIDE_MODIFIER
-                        if (eventDef.type == EventType::DAMAGE || eventDef.type == EventType::SIDE_MODIFIER) {
+                        // "target" is a relative player-index offset
+                        if (eventDef.type == EventType::DAMAGE ||
+                            eventDef.type == EventType::SIDE_MODIFIER ||
+                            eventDef.type == EventType::CORROSIVE) {
                             eventDef.target = eventJson->getInt("target", 0);
                         }
-                        eventDef.amount   = eventJson->getFloat("amount", 0.0f);
-                        eventDef.duration = eventJson->getFloat("duration", 0.0f);
+                        eventDef.amount       = eventJson->getFloat("amount", 0.0f);
+                        eventDef.interval     = eventJson->getFloat("interval", 0.0f);
+                        eventDef.fadeDuration = eventJson->getFloat("fadeDuration", 0.0f);
+                        eventDef.fadeVariance = eventJson->getFloat("fadeVariance", 0.0f);
+                        eventDef.maxAffected  = eventJson->getInt("maxAffectedItems", 0);
                         out.push_back(eventDef);
                     }
                 };

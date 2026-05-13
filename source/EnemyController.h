@@ -11,6 +11,7 @@
 
 // Forward declarations
 struct AnimationEntry;
+class Cerberus;
 
 /**
  * EnemyController
@@ -82,6 +83,21 @@ private:
     int randomIndex(int n);
     int wrapIndex(int i, int n) const;
 
+    /** Resolves a target offset into an absolute player index. Returns -1 if players is empty. */
+    int computeVictim(const std::shared_ptr<Enemy>& enemy,
+                      const std::vector<std::shared_ptr<Player>>& players,
+                      int targetOffset) const;
+
+    /**
+     * Applies Cerberus head-knock redirect to a victim index.
+     * For single-head attacks (ATTACK_2, ATTACK_3): redirects to an alternate head if knocked.
+     * For multi-head attacks: returns -1 (skip) if that head is knocked.
+     * Returns the (possibly redirected) victim, or -1 if the hit should be skipped.
+     */
+    int cerberusRedirectVictim(const std::shared_ptr<Cerberus>& cerberus,
+                               int victim,
+                               EnemyLoader::State state) const;
+
     /** Checks whether the enemy has just entered idle on this frame. */
     void handleIdleEntryIfNeeded(EnemyLoader::State prevState,
                                  EnemyLoader::State curState,
@@ -123,6 +139,11 @@ private:
      * @param event is event that was fired by the enemy AI that is meant to heal the boss
      */
     void resolveHealEvent(const std::shared_ptr<Enemy>& enemy,
+        const Enemy::FiredEvent& fe);
+
+    /** Starts the corrosive debuff on the targeted player (Cerberus only). */
+    void resolveCorrosiveEvent(const std::shared_ptr<Enemy>& enemy,
+        std::vector<std::shared_ptr<Player>>& players,
         const Enemy::FiredEvent& fe);
 };
 

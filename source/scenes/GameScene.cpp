@@ -37,8 +37,6 @@ constexpr float ITEM_NORMAL_SCALE = 1.0f;
 constexpr float ITEM_SCALE_SPEED = 14.0f;
 //Defines how long it should take for an item that has been used (through the means of passing, attacking, or supporting)
 constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
-//Defines how long it takes for a corroded item to fully dissolve
-constexpr float ITEM_CORRODE_ANIMATION_DURATION = 1.5f;
 //Defines how large the item is once it has been used. So it shrinks to this size.
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
 //Defines how small corroded items shrink (smaller than consumed items)
@@ -1176,8 +1174,9 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects));
     }
     if (_network->isHost() && _audio) {
-        _audio->playSoundUnique("enemy_hurt");
-        CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
+        const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
+        const float finalDamage    = resolvedMagnitude * sideMultiplier;
+        _audio->playSoundUnique(finalDamage <= 0.0f ? "enemy_block" : "enemy_hurt");
     }
 
     //Since Gaia's rock heals unlike other attacks, we need a custom popup for it
@@ -3014,9 +3013,10 @@ void GameScene::handleNetworkUpdates(float dt) {
         refreshTeammateNameLabels();
     }
     
-    // Play sounds for LOCAL player and enemy health changes after all updates
-    playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
-    
+    // Player heal sounds (ally heals, regen) are tracked here; player hurt is tracked in
+    // updateEnemyAndAI where attacks actually land, to avoid false positives from network corrections.
+    playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore, /*playerHurtEnabled=*/false);
+
     // Check if we won or lost (common to both host and client)
     if (_network->isHost()) {
         if (_gameState.didWin()) {
@@ -3194,14 +3194,14 @@ void GameScene::applyForgeEffect(float chance, int seed) {
  * Should be called after processing all enemy and AI updates, so we capture all 
  * health changes in one place and avoid playing multiple overlapping sounds for the same health change.
  */
-void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore) {
+void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore, bool playerHurtEnabled) {
     auto player = _gameState.getLocalPlayer();
     auto enemy = _gameState.getEnemy();
-    
+
     // Only play sounds for non-AI local players
     if (player && !dynamic_cast<PlayerAI*>(player)) {
         const float playerHealthDelta = player->getCurrentHealth() - playerHealthBefore;
-        if (playerHealthDelta < 0.0f && _audio) {
+        if (playerHurtEnabled && playerHealthDelta < 0.0f && _audio) {
             std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
             _audio->playSoundUnique(soundKey);
         } else if (playerHealthDelta >= 1.0f && _audio) {
@@ -3211,6 +3211,8 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
     
     if (enemy->getCurrentHealth() < enemyHealthBefore && _audio) {
         _audio->playSoundUnique("enemy_hurt");
+    } else if (enemy->getCurrentHealth() > enemyHealthBefore && _audio) {
+        _audio->playSoundUnique("enemy_block");
     }
 }
 
@@ -3250,75 +3252,82 @@ void GameScene::handleGaiaSpawn() {
 void GameScene::handleCorrosiveDrain(){
     auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
 
-    // Only proceed if corrosive is active and it's time to drain
-    if (!cerberus || !cerberus->isCorrosiveActive()) {
-        return;
-    }
-
-    if (!cerberus->shouldDrainItem()) {
+    if (!cerberus || !cerberus->isCorrosiveActive() || !cerberus->shouldDrainItem()) {
         return;
     }
 
     int targetIndex = cerberus->getCorrosiveTarget();
-
     Player* victim = _gameState.getPlayerBySlot(targetIndex);
     if (!victim || !victim->isAlive() || victim->getInventory().empty()) {
         if (_debugMode) CULog("No victim, victim dead, or empty inventory - ending corrosive (target=%d)", targetIndex);
-        // End corrosive early since player is dead or has no items left
         cerberus->endCorrosive();
         return;
     }
 
+    // Pop and start fading items simultaneously. Each item gets a randomized
+    // fade duration. If maxAffected > 0, pick that many at random.
     auto& inventory = victim->getInventory();
-    int randomIndex = rand() % inventory.size();
-    ItemInstance::ItemId itemIdToRemove = inventory[randomIndex].getId();
+    std::vector<int> indices;
+    indices.reserve(inventory.size());
+    for (int i = 0; i < (int)inventory.size(); i++) indices.push_back(i);
 
-    // Don't corrode if the item is currently being dragged
-    if (_draggedItemId == itemIdToRemove) {
-        CULog("  -> Skipping item being dragged");
-        return;
-    }
-
-    // Trigger a longer corrosion animation before removing the item
-    auto widgetIt = _itemWidgets.find(itemIdToRemove);
-    if (widgetIt != _itemWidgets.end() && widgetIt->second) {
-        auto itemDef = _itemController.getDatabase().getDef(inventory[randomIndex].getDefId());
-        if (itemDef) {
-
-            // Mark item as corroding.
-            _corrodingItemIds.insert(itemIdToRemove);
-
-            auto widget = widgetIt->second;
-
-            // Change anchor to center so it shrinks toward its center
-            // Use same approach as consumed items - getBoundingBox gives visual bounds
-            cugl::Rect sourceBounds = widget->getBoundingBox();
-            cugl::Vec2 sourceCenter = sourceBounds.origin + cugl::Vec2(sourceBounds.size.width * 0.5f, sourceBounds.size.height * 0.5f);
-
-            widget->setAnchor(cugl::Vec2::ANCHOR_CENTER);
-            widget->setPosition(sourceCenter);
-
-            // Update physics body to match new center position
-            auto bodyIt = _itemBodies.find(itemIdToRemove);
-            if (bodyIt != _itemBodies.end() && bodyIt->second) {
-                bodyIt->second->setPosition(sourceCenter);
-            }
-
-            // Create corrosion animation on the original widget (NOT a ghost)
-            CorrodedItemAnimation anim;
-            anim.node = widget;
-            anim.elapsed = 0.0f;
-            anim.duration = ITEM_CORRODE_ANIMATION_DURATION;
-            anim.startScale = widget->getScaleX();
-            anim.endScale = ITEM_CORRODE_END_SCALE;
-            anim.itemId = itemIdToRemove;
-            _corrodedItemAnimations.push_back(anim);
-
-            if (_debugMode) CULog("  -> Item marked as corroding (still usable during animation)");
+    int maxAffected = cerberus->getCorrosiveMaxAffected();
+    if (maxAffected > 0 && (int)indices.size() > maxAffected) {
+        for (int i = 0; i < maxAffected; i++) {
+            int j = i + rand() % ((int)indices.size() - i);
+            std::swap(indices[i], indices[j]);
         }
+        indices.resize(maxAffected);
     }
 
-    if (_debugMode) CULog("  -> Item corrosion started (%d items remaining)", (int)inventory.size());
+    for (int idx : indices) {
+        const auto& item = inventory[idx];
+        ItemInstance::ItemId itemId = item.getId();
+
+        if (_corrodingItemIds.count(itemId)) continue;  // already animating
+        if (_draggedItemId == itemId) continue;          // skip dragged item
+
+        auto widgetIt = _itemWidgets.find(itemId);
+        if (widgetIt == _itemWidgets.end() || !widgetIt->second) continue;
+
+        auto widget = widgetIt->second;
+        _corrodingItemIds.insert(itemId);
+
+        cugl::Rect bounds = widget->getBoundingBox();
+        cugl::Vec2 center = bounds.origin + cugl::Vec2(bounds.size.width * 0.5f, bounds.size.height * 0.5f);
+        widget->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+        widget->setPosition(center);
+
+        auto bodyIt = _itemBodies.find(itemId);
+        if (bodyIt != _itemBodies.end() && bodyIt->second) {
+            bodyIt->second->setPosition(center);
+        }
+
+        float startScale   = widget->getScaleX();
+        float base         = cerberus->getCorrosiveFadeDuration();
+        float variance     = cerberus->getCorrosiveFadeVariance();
+        float jitter       = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;  // [-1, 1]
+        float fadeDuration = base * (1.0f + jitter * variance);
+
+        CorrodedItemAnimation anim;
+        anim.node        = widget;
+        anim.elapsed     = 0.0f;
+        anim.popDuration = 0.1f;
+        anim.popScale    = startScale * 1.15f;
+        anim.duration    = anim.popDuration + fadeDuration;
+        anim.startScale  = startScale;
+        anim.endScale    = ITEM_CORRODE_END_SCALE;
+        anim.itemId      = itemId;
+        _corrodedItemAnimations.push_back(anim);
+    }
+
+    // Record visual target so pass zones and spawning stay blocked until animations finish.
+    _corrosiveVisualTarget = targetIndex;
+
+    // End the drain cycle — restrictions lift when the last animation completes.
+    cerberus->endCorrosive();
+
+    if (_debugMode) CULog("Corrosive: started %d simultaneous item animations", (int)inventory.size());
 }
 
 
@@ -3333,15 +3342,10 @@ void GameScene::handleCorrosiveDrain(){
  */
 void GameScene::handleItemSpawn(float dt) {
 
-    // Check if local player is affected by corrosive (which prevents item spawning)
-    bool localPlayerCorrosive = false;
-    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
-    if (cerberus && cerberus->isCorrosiveActive()) {
-        Player* local = _gameState.getLocalPlayer();
-        int corrosiveTarget = cerberus->getCorrosiveTarget();
-        int localPlayerSlot = local ? local->getPlayerNumber() : -1;
-        localPlayerCorrosive = (corrosiveTarget == localPlayerSlot);
-    }
+    // Block item spawning while corrosive animations are still running on this player
+    Player* local = _gameState.getLocalPlayer();
+    int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+    bool localPlayerCorrosive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
 
     // Don't spawn items for local player if they're being corroded
     if (!localPlayerCorrosive) {
@@ -3884,16 +3888,9 @@ void GameScene::updateDropZoneVisibility(){
         Player* local = _gameState.getLocalPlayer();
         bool localAlive = local && local->isAlive();
 
-        // Check if local player is affected by corrosive
-        bool isCorrosiveActive = false;
-        auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
-        if (cerberus && cerberus->isCorrosiveActive()) {
-            int corrosiveTarget = cerberus->getCorrosiveTarget();
-            int localPlayerSlot = local ? local->getPlayerNumber() : -1;
-            isCorrosiveActive = (corrosiveTarget == localPlayerSlot);
-        }
-
-        // Hide pass zones if corrosive is active
+        // Hide pass zones while corrosive animations are still running on this player
+        int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+        bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
         _passLeftArea->setVisible(!isCorrosiveActive);
         _passRightArea->setVisible(!isCorrosiveActive);
 
@@ -4333,11 +4330,20 @@ void GameScene::updateCorrodedItemAnimations(float dt) {
         if (!anim.node || anim.duration <= 0.0f) continue;
 
         anim.elapsed += dt;
-        float t = std::min(1.0f, anim.elapsed / anim.duration);
-        float scale = anim.startScale + (anim.endScale - anim.startScale) * t;
+
+        float scale;
+        if (anim.elapsed < anim.popDuration) {
+            // Pop phase: scale up from startScale to popScale
+            float t = anim.elapsed / anim.popDuration;
+            scale = anim.startScale + (anim.popScale - anim.startScale) * t;
+        } else {
+            // Decay phase: scale down from popScale to endScale
+            float decayDuration = anim.duration - anim.popDuration;
+            float t = std::min(1.0f, (anim.elapsed - anim.popDuration) / decayDuration);
+            scale = anim.popScale + (anim.endScale - anim.popScale) * t;
+        }
         anim.node->setScale(scale);
 
-        // Check if animation finished
         if (anim.elapsed >= anim.duration) {
             finishedItems.push_back(anim.itemId);
         }
@@ -4393,6 +4399,11 @@ void GameScene::updateCorrodedItemAnimations(float dt) {
                            return !anim.node || anim.elapsed >= anim.duration;
                        }),
         _corrodedItemAnimations.end());
+
+    // Lift visual restrictions once all animations have finished
+    if (_corrodedItemAnimations.empty()) {
+        _corrosiveVisualTarget = -1;
+    }
 }
 
 /**
@@ -4659,14 +4670,9 @@ void GameScene::render() {
 void GameScene::updateInputZones(){
     Player* local = _gameState.getLocalPlayer();
 
-    // Check if local player is affected by corrosive
-    bool isCorrosiveActive = false;
-    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
-    if (cerberus && cerberus->isCorrosiveActive()) {
-        int corrosiveTarget = cerberus->getCorrosiveTarget();
-        int localPlayerSlot = local ? local->getPlayerNumber() : -1;
-        isCorrosiveActive = (corrosiveTarget == localPlayerSlot);
-    }
+    // Block passing while corrosive animations are still running on this player
+    int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+    bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
 
     // Dead players can only pass items or put them in inventory
     // They cannot attack or support
@@ -5058,9 +5064,13 @@ void GameScene::updateItemUseAnimations(float dt) {
                 }
             }
 
-            // Host plays enemy_hurt immediately; clients hear it via network sync.
+            // Host plays enemy_hurt or enemy_block depending on whether damage landed.
             if (_network && _network->isHost() && _audio) {
-                _audio->playSoundUnique("enemy_hurt");
+                auto en = _gameState.getEnemy();
+                const int playerNum = _gameState.getLocalPlayer()->getPlayerNumber();
+                const float sideMultiplier = en ? en->getSideMultiplier(playerNum) : 1.0f;
+                const float finalDmg = activeAnim.damageAmount * sideMultiplier;
+                _audio->playSoundUnique(finalDmg <= 0.0f ? "enemy_block" : "enemy_hurt");
             }
         }
 
@@ -5208,17 +5218,17 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
     std::snprintf(preText,     sizeof(preText),     "-%.1f",  preSideDamage);
     std::snprintf(sideText,    sizeof(sideText),    "%.1fx",  sideMultiplier);
 
-    // Final value format and color depend on sign: damage (red/orange), blocked (blue), heal (green).
+    // Final value format and color: damage (red/orange), zero or enemy-heal (gray).
     cugl::Color4 finalColor;
     if (finalDamage > 0.01f) {
         std::snprintf(finalText, sizeof(finalText), "-%.1f", finalDamage);
         finalColor = damageColor(finalDamage);
     } else if (finalDamage < -0.01f) {
         std::snprintf(finalText, sizeof(finalText), "+%.1f", -finalDamage);
-        finalColor = cugl::Color4(80, 220, 80, 255);
+        finalColor = cugl::Color4(160, 160, 160, 255);
     } else {
         std::snprintf(finalText, sizeof(finalText), "0.0");
-        finalColor = cugl::Color4(140, 180, 255, 255);
+        finalColor = cugl::Color4(160, 160, 160, 255);
     }
 
     // Log-scale the multiplier font size so larger multipliers get proportionally bigger text.
@@ -5330,7 +5340,7 @@ std::vector<FloatingPopupData> GameScene::buildCerberusDefenseHealPopup(
 
     // Teal badge to distinguish from the normal green (bonus) or blue (penalty) multipliers.
     const cugl::Color4 drainColor(60, 210, 200, 255);
-    const cugl::Color4 healColor(80, 220, 80, 255);
+    const cugl::Color4 healColor(160, 160, 160, 255);
 
     return {
         { damageText, valueFontSize,       cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,       true  },

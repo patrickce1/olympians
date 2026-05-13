@@ -245,14 +245,14 @@
             "spritesheetPath": "textures/cerberus.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.3
+                "defenseLikelihood": 0.2
             },
             "customData": {
-                "knockedThreshold": 100.0,
+                "knockedThreshold": 200.0,
                 "knockedDuration": 12.0,
                 "knockedThresholdRegen": 5.0,
-                "frantic1Threshold": 0.75,
-                "frantic2Threshold": 0.25,
+                "frantic1Threshold": 0.66,
+                "frantic2Threshold": 0.33,
                 "franticRate": 0.75,
                 "headAnimationId": "cerberus_head_idle_animation",
                 "heads": {
@@ -274,7 +274,7 @@
                     ]
                 },
                 "attack_1": {
-                    "name": "Bite",
+                    "name": "Triple Bite",
                     "buildUpTime": 2.0,
                     "cooldownTime": 2.0,
                     "headAnimationKey": "cerberus_head_bite_animation",
@@ -313,6 +313,14 @@
                             "type": "DAMAGE",
                             "target": 0,
                             "amount": 50.0
+                        },
+                        {
+                            "type": "CORROSIVE",
+                            "target": 0,
+                            "interval": 0.4,
+                            "fadeDuration": 3.8,
+                            "fadeVariance": 0.7,
+                            "maxAffectedItems": 10
                         }
                     ],
                     "nextState": "idle"

@@ -72,7 +72,13 @@ struct CorrodedItemAnimation {
     /** Elapsed animation time in seconds. */
     float elapsed = 0.0f;
 
-    /** Total animation duration in seconds. */
+    /** Duration of the initial pop (scale-up) phase in seconds. */
+    float popDuration = 0.0f;
+
+    /** Peak scale reached at the end of the pop phase. */
+    float popScale = 1.0f;
+
+    /** Total animation duration in seconds (pop + decay). */
     float duration = 0.0f;
 
     /** Scale at animation start (typically 1.0). */
@@ -266,6 +272,11 @@ protected:
 
     /** Set of ItemIds currently corroding (prevents scale updates during corrosion animation). */
     std::unordered_set<ItemInstance::ItemId> _corrodingItemIds;
+
+    /** Player slot whose corrosive animations are still running (-1 if none).
+     *  Stays set until all corroding animations complete so pass zones and
+     *  item spawning remain blocked for the full visual duration. */
+    int _corrosiveVisualTarget = -1;
 
     /** Current visual scale for each inventory item widget (for smooth pickup/release animation). */
     std::unordered_map<ItemInstance::ItemId, float> _itemWidgetScales;
@@ -1018,7 +1029,7 @@ public:
      * @param playerHealthBefore  The player's health before state updates
      * @param enemyHealthBefore   The enemy's health before state updates
      */
-    void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore);
+    void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore, bool playerHurtEnabled = true);
     
     /**
      * Checks if the current enemy attack animation has finished playing (both buildup and attack phases).

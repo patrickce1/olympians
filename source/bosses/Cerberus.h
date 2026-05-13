@@ -22,8 +22,17 @@ private:
     /** Accumulates elapsed time between corrosive inventory drain ticks. */
     float _corrosiveDrainAccum = 0.0f;
 
-    /** Seconds between successive corrosive inventory drain ticks. */
-    static constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
+    /** Active drain interval; set by startCorrosive, falls back to CORROSIVE_DRAIN_INTERVAL. */
+    float _corrosiveDrainInterval = CORROSIVE_DRAIN_INTERVAL;
+
+    /** Base fade duration per item for the corrosive animation. */
+    float _corrosiveFadeDuration = 0.9f;
+
+    /** ±fraction of _corrosiveFadeDuration applied randomly per item (e.g. 0.3 = ±30%). */
+    float _corrosiveFadeVariance = 0.3f;
+
+    /** Maximum number of items corroded per hit (0 = no limit). */
+    int _corrosiveMaxAffected = 0;
 
     /**
      * Per-head state tracking for the knock mechanic.
@@ -70,11 +79,11 @@ private:
     /** Player slot currently afflicted by the corrosive debuff, or -1 if none. */
     int _corrosiveTarget = -1;
 
+    /** Player slot locked in at single-head attack entry (ATTACK_2/3); -1 means use live head state. */
+    int _lockedVictim = -1;
+
     /** Set each drain tick; consumed once by GameScene to remove one item from the target. */
     bool _shouldDrain = false;
-
-    /** Tracks the previous state to detect the transition into the spit attack. */
-    EnemyLoader::State _previousState = EnemyLoader::State::IDLE;
 
     /**
      * Reads all boss-specific configuration from _customData and initializes head thresholds.
@@ -97,6 +106,9 @@ private:
     void unKnockHead(int headArrayIndex);
 
 public:
+    /** Seconds between successive corrosive inventory drain ticks. */
+    static constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
+
     /** Duration in seconds that the corrosive debuff lasts. */
     static constexpr float CORROSIVE_DURATION = 20.0f;
 
@@ -145,11 +157,24 @@ public:
      *
      * @param playerIndex  Slot index of the player to afflict.
      * @param duration     How long the debuff lasts in seconds.
+     * @param interval     Seconds between drain ticks (0 = use CORROSIVE_DRAIN_INTERVAL default).
      */
-    void startCorrosive(int playerIndex, float duration);
+    void startCorrosive(int playerIndex, float duration, float interval = 0.0f,
+                        float fadeDuration = 0.0f, float fadeVariance = 0.0f,
+                        int maxAffected = 0);
 
     /** Ends the corrosive effect early (e.g., when the player runs out of items). */
     void endCorrosive();
+
+    /** Locks the victim player slot for the current single-head attack so the target
+     *  doesn't shift if a head recovers between attack entry and the damage frame. */
+    void lockVictim(int playerSlot) { _lockedVictim = playerSlot; }
+
+    /** Returns the locked victim slot, or -1 if none is set. */
+    int getLockedVictim() const { return _lockedVictim; }
+
+    /** Clears the locked victim (call when the attack ends and Cerberus returns to idle). */
+    void clearLockedVictim() { _lockedVictim = -1; }
 
     /**
      * Returns true (and clears the flag) if a corrosive drain tick fired this frame.
@@ -159,6 +184,18 @@ public:
 
     /** Returns true if the corrosive debuff is currently active on any player. */
     bool isCorrosiveActive() const { return _corrosiveActive; }
+
+    /** Returns the active drain interval in seconds. */
+    float getCorrosiveDrainInterval() const { return _corrosiveDrainInterval; }
+
+    /** Returns the base fade duration for corrosive item animations. */
+    float getCorrosiveFadeDuration() const { return _corrosiveFadeDuration; }
+
+    /** Returns the ±variance fraction applied randomly per item (e.g. 0.3 = ±30%). */
+    float getCorrosiveFadeVariance() const { return _corrosiveFadeVariance; }
+
+    /** Returns the max items corroded per hit (0 = no limit). */
+    int getCorrosiveMaxAffected() const { return _corrosiveMaxAffected; }
 
     /** Returns the player slot currently afflicted by corrosive, or -1 if none. */
     int getCorrosiveTarget() const { return _corrosiveTarget; }
