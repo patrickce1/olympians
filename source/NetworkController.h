@@ -440,7 +440,6 @@ public:
     void setPlayerNameOnly(const std::string& name) { _playerName = name; }
 
 
-
     /**
     * HOST ONLY. Broadcasts the new player order.
     * @param newMapping represents the new order, where newMapping[i] is the new slot that
