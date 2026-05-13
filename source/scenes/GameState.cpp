@@ -456,6 +456,9 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
                 if (!player) {
                     continue;
                 }
+                if (resolvedEffect.effectType != SupportEffectType::Resurrect && !player->isAlive()) {
+                    continue;
+                }
                 applySupportEffect(*player);
             }
             continue;

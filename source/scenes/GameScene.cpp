@@ -1359,6 +1359,29 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                     }
                     break;
                 }
+                case ItemDef::EffectType::Regen: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Regen;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.magnitude = resolvedEffect.regenAmount;
+                    pendingEffect.duration = resolvedEffect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
                 case ItemDef::EffectType::Forge:
                 case ItemDef::EffectType::Frenzy:
                     break;
@@ -1387,7 +1410,6 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                 }
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
-                case ItemDef::EffectType::Regen:
                 case ItemDef::EffectType::Stun:
                 case ItemDef::EffectType::Love:
                 case ItemDef::EffectType::Slow:
@@ -2690,7 +2712,7 @@ void GameScene::applyPendingResurrectionSync() {
 }
 
 /**
- * Reapplies a pending client-side educate buff after stale host snapshots, until host sync catches up.
+ * Reapplies pending client-side timed party effects after stale host snapshots, until host sync catches up.
  */
 void GameScene::applyPendingPartyEffectSyncs() {
     auto shouldKeepPendingEffect = [&](PendingPartyEffectSync& pendingEffect) {
@@ -2715,6 +2737,13 @@ void GameScene::applyPendingPartyEffectSyncs() {
                         continue;
                     }
                     player->applyCharm(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                case ItemDef::EffectType::Regen:
+                    if (player->hasRegen()) {
+                        continue;
+                    }
+                    player->applyRegen(pendingEffect.magnitude, pendingEffect.duration);
                     waitingForHost = true;
                     break;
                 case ItemDef::EffectType::Lifesteal:
