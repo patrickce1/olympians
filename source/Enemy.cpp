@@ -642,7 +642,7 @@ void Enemy::applyLove(float duration, int playerIndex) {
     const bool wasLoved = isLoved();
     _loveDuration = std::max(_loveDuration, duration);
     if (validPlayerIndex) {
-        _targetIndex = playerIndex;
+        setTargetIndex(playerIndex);
     }
     forceIdle(duration);
 
