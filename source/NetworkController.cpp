@@ -1222,7 +1222,6 @@ void NetworkController::swapSlots(int slotA, int slotB) {
     broadcastLobbyState();
 }
 
-
 /**
 * HOST ONLY. Broadcasts the new player order.
 * @param newMapping represents the new order, where newMapping[i] is the new slot that
