@@ -2227,29 +2227,43 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
     applyTexture(_leftPlayerSlot, localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
 
-    // Update left neighbor name + house
+    const bool concealIdentity = enemy
+        && enemy->getId() == "gaia"
+        && enemy->getCurrentState() == EnemyLoader::State::ATTACK_3;
+
     if (_leftPlayerName && _leftPlayerHouse) {
-        Player* left = localPlayer->getLeftPlayer();
-        if (left) {
-            _leftPlayerName->setText(left->isAI()
-                ? "AI Player " + std::to_string(left->getPlayerNumber())
-                : left->getPlayerName());
-            std::string house = left->getHouseName();
-            for (char& c : house) c = toupper(c);
-            _leftPlayerHouse->setText(house);
+        if (concealIdentity) {
+            _leftPlayerName->setText("???");
+            _leftPlayerHouse->setText("???");
+        }
+        else {
+            Player* left = localPlayer->getLeftPlayer();
+            if (left) {
+                _leftPlayerName->setText(left->isAI()
+                    ? "AI Player " + std::to_string(left->getPlayerNumber())
+                    : left->getPlayerName());
+                std::string house = left->getHouseName();
+                for (char& c : house) c = toupper(c);
+                _leftPlayerHouse->setText(house);
+            }
         }
     }
 
-    // Update right neighbor name + house
     if (_rightPlayerName && _rightPlayerHouse) {
-        Player* right = localPlayer->getRightPlayer();
-        if (right) {
-            _rightPlayerName->setText(right->isAI()
-                ? "AI Player " + std::to_string(right->getPlayerNumber())
-                : right->getPlayerName());
-            std::string house = right->getHouseName();
-            for (char& c : house) c = toupper(c);
-            _rightPlayerHouse->setText(house);
+        if (concealIdentity) {
+            _rightPlayerName->setText("???");
+            _rightPlayerHouse->setText("???");
+        }
+        else {
+            Player* right = localPlayer->getRightPlayer();
+            if (right) {
+                _rightPlayerName->setText(right->isAI()
+                    ? "AI Player " + std::to_string(right->getPlayerNumber())
+                    : right->getPlayerName());
+                std::string house = right->getHouseName();
+                for (char& c : house) c = toupper(c);
+                _rightPlayerHouse->setText(house);
+            }
         }
     }
 
