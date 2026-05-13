@@ -1254,6 +1254,7 @@ void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& mappin
 * are reassigned.
 * Safe to call on both host and clients when handling a
 * MID_GAME_SCRAMBLE message.
+* 
 * @param newMapping represents the new order, where newMapping[i] is the new slot that
 *        player i ended up in. For example, if newMapping[0] = 1, that means that the player
 *        at slot 0 ended up at slot 1 after the scramble
