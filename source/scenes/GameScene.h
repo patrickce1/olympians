@@ -155,6 +155,21 @@ struct AnimationEntry {
     float offsetX = 0.0f;       /** X offset from base position */
     float offsetY = 0.0f;       /** Y offset from base position */
 };
+
+/**
+ * Tracks the Gaia vine overlay animation displayed over both ally icons
+ * during ATTACK_3 buildup. Duration is driven by stateDef->buildUpTime so
+ * the animation expires exactly when the attack phase begins.
+ * Sheet layout: 4 rows x 3 cols, 12 frames total.
+ */
+struct GaiaVineAnimation {
+    std::shared_ptr<cugl::scene2::SpriteNode> leftNode;
+    std::shared_ptr<cugl::scene2::SpriteNode> rightNode;
+
+    int frameCount = 12;
+    int currentFrame = -1;
+};
+
 /**
  * Data for a single popup in a sequence.
  * General-purpose for any game event: damage, heals, buffs, status effects, health popups, etc.
@@ -588,6 +603,9 @@ protected:
     
     /** Flag tracking if damage has been dealt during the current enemy state. Resets when state changes. */
     bool _enemyAttackDamageDealtThisState = false;
+
+    /** Active Gaia vine overlay animation, if any. Empty when no animation is playing. */
+    std::optional<GaiaVineAnimation> _gaiaVineAnim;
 
 #pragma mark - Controllers
 
@@ -1321,6 +1339,39 @@ public:
      * Called when the game ends or resets.
      */
     void clearItemUseAnimations();
+
+    /**
+     * Spawns a Gaia vine SpriteNode over both ally icon widgets.
+     * Creates two SpriteNodes from the 4x3 sprite sheet, positions each over
+     * the left/right icon's playerIcon node, and adds them as children so they
+     * render in the same coordinate space as the icon. Called once on ATTACK_3
+     * state entry; frames are driven each update by the boss's own state time.
+     */
+    void startGaiaVineAnimation();
+
+    /**
+     * Advances the Gaia vine overlay animation, driven by the boss's own ATTACK_3
+     * state time rather than a separate elapsed timer. Frames advance proportionally
+     * across buildUpTime, then the nodes are removed when the state exits ATTACK_3.
+     *
+     * @param dt  Delta time in seconds (unused for frame calc, kept for signature consistency)
+     */
+    void updateGaiaVineAnimation(float dt);
+
+    /**
+     * Detects entry into Gaia's ATTACK_3 state and triggers the vine overlay animation.
+     *
+     * This function compares the enemy's current state to the previously observed state
+     * to detect a state transition. When Gaia enters ATTACK_3, it calls
+     * startGaiaVineAnimation() exactly once for that transition.
+     *
+     * IMPORTANT:
+     * - This is a purely visual trigger and does not affect gameplay state.
+     * - The animation itself is fully driven by enemy state time (see updateGaiaVineAnimation()).
+     * - Must be called once per frame before updateGaiaVineAnimation().
+     * - Assumes the enemy instance does not change during gameplay.
+     */
+    void detectGaiaVineStateEntry();
     
     /**
      * Returns whether there are any active item use animations currently playing.

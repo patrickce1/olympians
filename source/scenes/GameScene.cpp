@@ -1015,6 +1015,14 @@ void GameScene::reset() {
 
     // Clear any active animations before resetting
     clearItemUseAnimations();
+
+    // Clean up Gaia vine overlay if it was active when the scene disposed
+    if (_gaiaVineAnim) {
+        if (_gaiaVineAnim->leftNode)  _gaiaVineAnim->leftNode->removeFromParent();
+        if (_gaiaVineAnim->rightNode) _gaiaVineAnim->rightNode->removeFromParent();
+        _gaiaVineAnim.reset();
+    }
+
     for (auto& popupAnim : _activeFloatingPopups) {
         if (popupAnim.node) popupAnim.node->removeFromParent();
     }
@@ -2059,6 +2067,13 @@ void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
         
         CULog("State animation changed to: %s", stateDef->animationKey.c_str());
         switchVisibleAnimation(stateDef->animationKey);
+
+        // Gaia vine overlay
+        if (enemy->getId() == "gaia"
+            && enemy->getCurrentState() == EnemyLoader::State::ATTACK_3
+            && stateDef->buildUpTime > 0.0f) {
+            startGaiaVineAnimation();
+        }
     }
     
     // Ensure sprite exists
@@ -2195,73 +2210,46 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
     auto localPlayer = _gameState.getLocalPlayer();
     if (!localPlayer) return;
 
-    // Check if Gaia is in ATTACK_3 — teammate identities should be concealed
     auto enemy = _gameState.getEnemy();
-    const auto* stateDef = enemy ? enemy->getCurrentStateDef() : nullptr;
-    bool concealIdentity = false; //make sure hosts icon doesn't conceal
 
     auto applyTexture = [&](auto slot, auto player) {
         if (!slot || !player) return;
-
-        if (concealIdentity) {
-            slot->setTexture(_assets->get<cugl::graphics::Texture>("basicTeammateIcon"));
-        }
-        else {
-            slot->setTexture(_assets->get<cugl::graphics::Texture>(
-                getHealthTexture(
-                    getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
-                    player->getHouseName()
-                ))
-            );
-        }
+        slot->setTexture(_assets->get<cugl::graphics::Texture>(
+            getHealthTexture(
+                getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
+                player->getHouseName()
+            ))
+        );
         slot->setScale(0.5f);
         };
 
     applyTexture(_localPlayerSlot, localPlayer);
-
-    //for left/right check if we need to conceal for gaia
-    concealIdentity = enemy
-        && enemy->getId() == "gaia"
-        && enemy->getCurrentState() == EnemyLoader::State::ATTACK_3;
-
     applyTexture(_leftPlayerSlot, localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
 
-    // Conceal or restore left neighbor name + house
+    // Update left neighbor name + house
     if (_leftPlayerName && _leftPlayerHouse) {
-        if (concealIdentity) {
-            _leftPlayerName->setText("???");
-            _leftPlayerHouse->setText("???");
-        }
-        else {
-            Player* left = localPlayer->getLeftPlayer();
-            if (left) {
-                _leftPlayerName->setText(left->isAI()
-                    ? "AI Player " + std::to_string(left->getPlayerNumber())
-                    : left->getPlayerName());
-                std::string house = left->getHouseName();
-                for (char& c : house) c = toupper(c);
-                _leftPlayerHouse->setText(house);
-            }
+        Player* left = localPlayer->getLeftPlayer();
+        if (left) {
+            _leftPlayerName->setText(left->isAI()
+                ? "AI Player " + std::to_string(left->getPlayerNumber())
+                : left->getPlayerName());
+            std::string house = left->getHouseName();
+            for (char& c : house) c = toupper(c);
+            _leftPlayerHouse->setText(house);
         }
     }
 
-    // Conceal or restore right neighbor name + house
+    // Update right neighbor name + house
     if (_rightPlayerName && _rightPlayerHouse) {
-        if (concealIdentity) {
-            _rightPlayerName->setText("???");
-            _rightPlayerHouse->setText("???");
-        }
-        else {
-            Player* right = localPlayer->getRightPlayer();
-            if (right) {
-                _rightPlayerName->setText(right->isAI()
-                    ? "AI Player " + std::to_string(right->getPlayerNumber())
-                    : right->getPlayerName());
-                std::string house = right->getHouseName();
-                for (char& c : house) c = toupper(c);
-                _rightPlayerHouse->setText(house);
-            }
+        Player* right = localPlayer->getRightPlayer();
+        if (right) {
+            _rightPlayerName->setText(right->isAI()
+                ? "AI Player " + std::to_string(right->getPlayerNumber())
+                : right->getPlayerName());
+            std::string house = right->getHouseName();
+            for (char& c : house) c = toupper(c);
+            _rightPlayerHouse->setText(house);
         }
     }
 
@@ -2397,6 +2385,159 @@ void GameScene::slideReleasedItem(ItemInstance::ItemId itemId) {
         }
         
         startItemSliding(itemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
+    }
+}
+
+/**
+ * Spawns a Gaia vine SpriteNode over both ally icon widgets.
+ * Creates two SpriteNodes from the 4x3 sprite sheet, positions each over
+ * the left/right icon's playerIcon node, and adds them as children so they
+ * render in the same coordinate space as the icon. Called once on ATTACK_3
+ * state entry; frames are driven each update by the boss's own state time.
+ */
+void GameScene::startGaiaVineAnimation() {
+    if (_gaiaVineAnim) return;
+
+    const int rows = 3;
+    const int cols = 4;
+    const int frameCount = 12;
+
+    auto texture = _assets->get<cugl::graphics::Texture>("gaiaVine");
+    if (!texture) {
+        CULog("ERROR: gaiaVine texture not found");
+        return;
+    }
+
+    GaiaVineAnimation anim;
+    anim.frameCount = frameCount;
+    anim.currentFrame = -1;
+
+    //
+    // ================= LEFT =================
+    //
+    if (_leftPlayerSlot) {
+        auto node = cugl::scene2::SpriteNode::allocWithSheet(texture, rows, cols, frameCount);
+        if (node) {
+            node->setFrame(0);
+            node->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+
+            cugl::Size iconSize = _leftPlayerSlot->getContentSize();
+
+            // ✅ center exactly on icon
+            node->setPosition({
+                iconSize.width * 0.5f,
+                iconSize.height * 0.65f
+                });
+
+            // ✅ scale to icon WIDTH (cleanest look)
+            float frameW = texture->getWidth() / (float)cols;
+            float scale = iconSize.width / frameW;
+
+            node->setScale(scale);
+
+            _leftPlayerSlot->addChild(node);
+            anim.leftNode = node;
+        }
+    }
+
+    //
+    // ================= RIGHT =================
+    //
+    if (_rightPlayerSlot) {
+        auto node = cugl::scene2::SpriteNode::allocWithSheet(texture, rows, cols, frameCount);
+        if (node) {
+            node->setFrame(0);
+            node->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+
+            cugl::Size iconSize = _rightPlayerSlot->getContentSize();
+
+            node->setPosition({
+                iconSize.width * 0.5f,
+                iconSize.height * 0.65f
+                });
+
+            float frameW = texture->getWidth() / (float)cols;
+            float scale = iconSize.width / frameW;
+
+            node->setScale(scale);
+
+            _rightPlayerSlot->addChild(node);
+            anim.rightNode = node;
+        }
+    }
+
+    _gaiaVineAnim = anim;
+}
+
+
+void GameScene::detectGaiaVineStateEntry() {
+    static EnemyLoader::State lastState = EnemyLoader::State::IDLE;
+
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) {
+        return;
+    }
+
+    EnemyLoader::State currentState = enemy->getCurrentState();
+
+    // Detect state transition into ATTACK_3
+    if (currentState != lastState) {
+        if (enemy->getId() == "gaia" &&
+            currentState == EnemyLoader::State::ATTACK_3)
+        {
+            startGaiaVineAnimation();
+        }
+    }
+
+    lastState = currentState;
+}
+
+/**
+ * Advances the Gaia vine overlay animation, driven by the boss's own ATTACK_3
+ * state time rather than a separate elapsed timer. Frames advance proportionally
+ * across buildUpTime, then the nodes are removed when the state exits ATTACK_3.
+ *
+ * @param dt  Delta time in seconds (unused for frame calc, kept for signature consistency)
+ */
+void GameScene::updateGaiaVineAnimation(float dt) {
+    auto enemy = _gameState.getEnemy();
+
+    // if not Gaia or not in ATTACK_3 → cleanup
+    if (!_gaiaVineAnim ||
+        !enemy ||
+        enemy->getId() != "gaia" ||
+        enemy->getCurrentState() != EnemyLoader::State::ATTACK_3)
+    {
+        if (_gaiaVineAnim) {
+            if (_gaiaVineAnim->leftNode)  _gaiaVineAnim->leftNode->removeFromParent();
+            if (_gaiaVineAnim->rightNode) _gaiaVineAnim->rightNode->removeFromParent();
+            _gaiaVineAnim.reset();
+        }
+        return;
+    }
+
+    const auto* stateDef = enemy->getCurrentStateDef();
+    if (!stateDef || stateDef->buildUpTime <= 0.0f) return;
+
+    float stateTime = enemy->getStateTime();
+
+    // normalized 0 → 1
+    float progress = std::min(1.0f, stateTime / stateDef->buildUpTime);
+
+    int frameIndex = std::min(
+        static_cast<int>(progress * _gaiaVineAnim->frameCount),
+        _gaiaVineAnim->frameCount - 1
+    );
+
+    // only update if frame changed
+    if (frameIndex != _gaiaVineAnim->currentFrame) {
+        _gaiaVineAnim->currentFrame = frameIndex;
+
+        if (_gaiaVineAnim->leftNode)
+            _gaiaVineAnim->leftNode->setFrame(frameIndex);
+
+        if (_gaiaVineAnim->rightNode)
+            _gaiaVineAnim->rightNode->setFrame(frameIndex);
     }
 }
 
@@ -3701,6 +3842,8 @@ void GameScene::update(float dt, InputController& input) {
     updateSlidingItems(dt);
     updateSnapbackAnimations(dt);
     updateItemUseAnimations(dt);
+    detectGaiaVineStateEntry();
+    updateGaiaVineAnimation(dt);
     updatePopupAnimations(dt);
 
     tickGlowTimer(dt);

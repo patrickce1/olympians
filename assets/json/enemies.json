@@ -336,7 +336,7 @@
                 },
                 "attack_3": {
                     "name": "Shift the Ground",
-                    "buildUpTime": 3.0,
+                    "buildUpTime": 1.0,
                     "cooldownTime": 1.0,
                     "events": [
                         {

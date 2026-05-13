@@ -82,6 +82,9 @@
         "gaia": {
             "file": "textures/gameScene/gaia/gaia.png"
         },
+        "gaiaVine": {
+            "file": "textures/gameScene/gaia/vine_animation.png"
+        },
         "healthFrame": {
             "file": "textures/gameScene/healthFrame.png"
         },
