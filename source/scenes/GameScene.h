@@ -1365,12 +1365,7 @@ public:
      * @param houseAffinityMultiplier House-role and affinity multiplier used to resolve stun damage.
      * @param upgradeMultiplier Upgrade streak multiplier used to resolve stun damage.
      */
-    void scheduleStunDamagePopups(
-        const std::vector<EnemyEffectMessage>& enemyEffects,
-        const cugl::Vec2& position,
-        float houseAffinityMultiplier,
-        float upgradeMultiplier
-    );
+    void scheduleStunDamagePopups(const std::vector<EnemyEffectMessage>& enemyEffects, const cugl::Vec2& position, float houseAffinityMultiplier, float upgradeMultiplier);
 
     /**
      * Spawns a floating popup showing the heal amount when Gaia's rock is used on the boss.

@@ -5182,12 +5182,7 @@ void GameScene::createFloatingPopup(
  * @param houseAffinityMultiplier House-role and affinity multiplier used to resolve stun damage.
  * @param upgradeMultiplier Upgrade streak multiplier used to resolve stun damage.
  */
-void GameScene::scheduleStunDamagePopups(
-    const std::vector<EnemyEffectMessage>& enemyEffects,
-    const cugl::Vec2& position,
-    float houseAffinityMultiplier,
-    float upgradeMultiplier
-) {
+void GameScene::scheduleStunDamagePopups(const std::vector<EnemyEffectMessage>& enemyEffects, const cugl::Vec2& position, float houseAffinityMultiplier, float upgradeMultiplier) {
     const float combinedMultiplier = houseAffinityMultiplier * upgradeMultiplier;
     for (const EnemyEffectMessage& effect : enemyEffects) {
         if (effect.effectType != EnemyEffectType::Stun || effect.magnitude <= 0.0f) {
