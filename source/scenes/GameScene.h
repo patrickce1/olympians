@@ -156,10 +156,17 @@ struct AnimationEntry {
     float offsetY = 0.0f;       /** Y offset from base position */
 };
 
+
 /**
- * Tracks the Gaia vine overlay animation displayed over both ally icons
- * during ATTACK_3 buildup. Duration is driven by stateDef->buildUpTime so
- * the animation expires exactly when the attack phase begins.
+ * Tracks the Gaia vine overlay animation displayed over both ally icons.
+ *
+ * The animation has two phases:
+ * - Forward (growth): follows enemy ATTACK_3 buildup progress (stateTime / buildUpTime)
+ * - Reverse (retraction): runs locally using currentTime and dt, independent of enemy state
+ *
+ * Duration is initialized from the ATTACK_3 buildUpTime but is then used as a
+ * standalone timeline for both forward and reverse playback.
+ *
  * Sheet layout: 3 rows x 4 cols, 12 frames total.
  */
 struct GaiaVineAnimation {
@@ -169,8 +176,8 @@ struct GaiaVineAnimation {
     int frameCount = 12;
     int currentFrame = -1;
 
-    float duration = 0.5f;     // default value for now, should match the block animation
-    float currentTime = 0.0f;  // keeps track of how long we've been in it for
+    float duration = 0.5f;     // default value for now, should match the build up time
+    float currentTime = 0.0f;  // keeps track of how long we've been in the state for
 
     bool reversing = false; // if the attack got cancelled or it finished and we have new neighbors
 };
@@ -1352,26 +1359,29 @@ public:
      * Creates two SpriteNodes from the 4x3 sprite sheet, positions each over
      * the left/right icon's playerIcon node, and adds them as children so they
      * render in the same coordinate space as the icon. Called once on ATTACK_3
-     * state entry; frames are driven each update by the boss's own state time.
+     * state entry
      */
     void startGaiaVineAnimation();
 
     /**
-     * Advances the Gaia vine overlay animation, driven by the boss's own ATTACK_3
-     * state time rather than a separate elapsed timer. Frames advance proportionally
-     * across buildUpTime, then the nodes are removed when the state exits ATTACK_3.
+     * Advances the Gaia vine overlay animation.
      *
-     * @param dt  Delta time in seconds (unused for frame calc, kept for signature consistency)
+     * When boss is in ATTACK_3, we use the enemy current state time to dermine the progress of the animation
+     *
+     * If the boss is not in ATTACK_3 but the animation is still active, it means it is reversing.
+     * Reversal ticks down its timer using dt and _gaiaVineAnim -> currentTime
+     *
+     * Animation done when the reversal part of the animation is done (because a reversal is guaranteed)
+     *
+     * @param dt  Delta time in seconds (used for reversal)
      */
     void updateGaiaVineAnimation(float dt);
-
 
     /**
      * Handles Gaia vine animation triggers based on enemy state changes.
      *
      * This function starts the vine animation when Gaia enters ATTACK_3,
      * and initiates the reverse (retraction) phase when Gaia leaves ATTACK_3
-     * or when Aphrodite’s love effect is applied to Gaia.
      *
      * IMPORTANT:
      * - This is purely visual and does not affect gameplay logic.

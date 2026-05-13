@@ -2467,10 +2467,10 @@ void GameScene::slideReleasedItem(ItemInstance::ItemId itemId) {
 
 /**
  * Spawns a Gaia vine SpriteNode over both ally icon widgets.
- * Creates two SpriteNodes from the 3x4 sprite sheet, positions each over
+ * Creates two SpriteNodes from the 4x3 sprite sheet, positions each over
  * the left/right icon's playerIcon node, and adds them as children so they
  * render in the same coordinate space as the icon. Called once on ATTACK_3
- * state entry; frames are driven each update by the boss's own state time.
+ * state entry
  */
 void GameScene::startGaiaVineAnimation() {
     if (_gaiaVineAnim) return;
@@ -2548,7 +2548,6 @@ void GameScene::startGaiaVineAnimation() {
  *
  * This function starts the vine animation when Gaia enters ATTACK_3,
  * and initiates the reverse (retraction) phase when Gaia leaves ATTACK_3
- * or when Aphrodite’s love effect is applied to Gaia.
  *
  * IMPORTANT:
  * - This is purely visual and does not affect gameplay logic.
@@ -2558,7 +2557,7 @@ void GameScene::startGaiaVineAnimation() {
  *
  * Behavior summary:
  * - Enter ATTACK_3 -> start vine growth animation.
- * - Exit ATTACK_3 unexpectedly -> trigger reverse animation.
+ * - Exit ATTACK_3 or Aphrodite love effect -> trigger reverse animation.
  * - Reverse completes -> animation cleans itself up in update.
  */
 void GameScene::detectGaiaAnimationTriggers() {
@@ -2584,11 +2583,16 @@ void GameScene::detectGaiaAnimationTriggers() {
 }
 
 /**
- * Advances the Gaia vine overlay animation, driven by the boss's own ATTACK_3
- * state time rather than a separate elapsed timer. Frames advance proportionally
- * across buildUpTime, then the nodes are removed when the state exits ATTACK_3, even if it was disrupted.
+ * Advances the Gaia vine overlay animation.
  *
- * @param dt  Delta time in seconds (unused for frame calc, kept for signature consistency)
+ * When boss is in ATTACK_3, we use the enemy current state time to dermine the progress of the animation
+ *
+ * If the boss is not in ATTACK_3 but the animation is still active, it means it is reversing.
+ * Reversal ticks down its timer using dt and _gaiaVineAnim -> currentTime
+ *
+ * Animation done when the reversal part of the animation is done (because a reversal is guaranteed)
+ *
+ * @param dt  Delta time in seconds (used for reversal)
  */
 void GameScene::updateGaiaVineAnimation(float dt) {
     if (!_gaiaVineAnim) return;
