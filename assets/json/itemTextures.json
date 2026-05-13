@@ -42,7 +42,7 @@
         "item_potion": {
             "file": "textures/items/potion_r.png"
         },
-        "item_poseidon_tide": {
+        "item_poseidon_tsunami": {
             "file": "textures/items/poseidon_tide_d.png"
         },
         "item_zeus_thunderstorm": {

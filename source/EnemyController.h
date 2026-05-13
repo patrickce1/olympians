@@ -27,6 +27,9 @@ class EnemyController {
 public:
     EnemyController();
 
+    /** Enable or disable automatic attack selection. Tutorial Specific */
+    void setAttacksEnabled(bool enabled) { _attacksEnabled = enabled; }
+
     /**
      * Forces the enemy into IDLE and schedules a deferred retarget.
      *
@@ -81,6 +84,9 @@ private:
 
     /** Random number generator for decision making. */
     cugl::Random _rng;
+    
+    /** Represents whether the boss can attack*/
+    bool _attacksEnabled = true;
 
     /** Seconds to wait in idle before turning to face the new target. */
     static constexpr float IDLE_RETARGET_DELAY = 0.5f;

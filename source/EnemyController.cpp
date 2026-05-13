@@ -180,13 +180,13 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
         resolveEnemyEvents(enemy, players, events);
     }
 
-    EnemyLoader::State cur = enemy->getCurrentState();
-    if (cur != prev) { if (_debug) CULog("[EnemyController] State: '%s' -> '%s'", enemy->getStates().at(prev).name.c_str(), enemy->getStates().at(cur).name.c_str()); }
+    EnemyLoader::State currentState = enemy->getCurrentState();
+    if (currentState != prev) { if (_debug) CULog("[EnemyController] State: '%s' -> '%s'", enemy->getStates().at(prev).name.c_str(), enemy->getStates().at(currentState).name.c_str()); }
 
-    handleIdleEntryIfNeeded(prev, cur, enemy, players);
+    handleIdleEntryIfNeeded(prev, currentState, enemy, players);
 
-    // Tick the deferred retarget timer; fire once it expires
-    if (_pendingRetarget && cur == EnemyLoader::State::IDLE) {
+    // Tick deferred retarget timer; only fires when idle and attacks enabled
+    if (_pendingRetarget && currentState == EnemyLoader::State::IDLE) {
         _retargetTimer -= dt;
         if (_retargetTimer <= 0.0f) {
             _pendingRetarget = false;
@@ -194,32 +194,35 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
         }
     }
 
-    // If idle and not locked out, pick an attack by tag and start it
-    if (cur == EnemyLoader::State::IDLE && enemy->canStartNonIdleState() && anyPlayersAlive(players)) {
-        if (shouldDefend(enemy)) {
-            enemy->requestState(EnemyLoader::State::DEFENSE_MOVE);
-        }
-        else {
-            EnemyLoader::State nextAttack = chooseNextAttackState(enemy);
-            enemy->requestState(nextAttack);
-            cur = enemy->getCurrentState();
+    if (_attacksEnabled) {
+        // If idle and not locked out, pick an attack by tag and start it
+        if (currentState == EnemyLoader::State::IDLE && enemy->canStartNonIdleState() && anyPlayersAlive(players)) {
+            if (shouldDefend(enemy)) {
+                enemy->requestState(EnemyLoader::State::DEFENSE_MOVE);
+            }
+            else {
+                EnemyLoader::State nextAttack = chooseNextAttackState(enemy);
+                enemy->requestState(nextAttack);
+                currentState = enemy->getCurrentState();
 
-            // For single-head Cerberus attacks, lock in the redirected victim now so
-            // the damage/corrosive event stays consistent if a head recovers mid-buildup.
-            bool isSingleHead = (nextAttack == EnemyLoader::State::ATTACK_2 ||
-                                 nextAttack == EnemyLoader::State::ATTACK_3);
-            if (isSingleHead && enemy->getId() == "cerberus") {
-                auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
-                if (cerberus) {
-                    int primaryVictim = computeVictim(enemy, players, 0);
-                    int lockedVictim  = cerberus->isHeadKnocked(primaryVictim)
-                                            ? cerberus->getAlternateKnockedHead(cerberus->getTargetIndex())
-                                            : primaryVictim;
-                    cerberus->lockVictim(lockedVictim);
+                // For single-head Cerberus attacks, lock in the redirected victim now so
+                // the damage/corrosive event stays consistent if a head recovers mid-buildup.
+                bool isSingleHead = (nextAttack == EnemyLoader::State::ATTACK_2 ||
+                                     nextAttack == EnemyLoader::State::ATTACK_3);
+                if (isSingleHead && enemy->getId() == "cerberus") {
+                    auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
+                    if (cerberus) {
+                        int primaryVictim = computeVictim(enemy, players, 0);
+                        int lockedVictim  = cerberus->isHeadKnocked(primaryVictim)
+                                                ? cerberus->getAlternateKnockedHead(cerberus->getTargetIndex())
+                                                : primaryVictim;
+                        cerberus->lockVictim(lockedVictim);
+                    }
                 }
             }
         }
     }
+
 }
 
 /** Resolves the fired events (if any) of the enemy on this frame. Removes the processed events from the buffer. */

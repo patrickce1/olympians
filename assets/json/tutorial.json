@@ -1,0 +1,137 @@
+{
+  "steps": [
+    {
+      "type": "show_message",
+      "text": "Tutorial: Boss Attacks and Passing",
+      "bossActive": false,
+      "delay": 6.0
+    },
+    {
+      "type": "boss_attack",
+      "text": "Circe is attacking!",
+      "bossTarget": 0,
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "You can't heal yourself, your teammates must heal you!",
+      "bossActive": false,
+      "delay": 6.0
+    },
+    {
+      "type": "spawn_item",
+      "defId": "apple",
+      "passDirection": 0
+    },
+    {
+      "type": "wait_for_action",
+      "action": "HOLD_FOR_TOOLTIP",
+      "text": "Touch and hold the apple to see its tooltip."
+    },
+    {
+        "type": "wait_for_action",
+        "action": "PASS_LEFT",
+        "text": "You're low! Pass the apple so your teammate can heal you."
+    },
+    {
+      "type": "show_message",
+      "text": "Nice, your teammate healed you!",
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "Tutorial: Healing Teammates, Boss Direction, and Item Drops",
+      "delay": 6.0
+    },
+    {
+      "type": "boss_attack",
+      "text": "Circe turns toward your other teammate.",
+      "bossTarget": 1,
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "Circe hit your teammate!",
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "Notice your teammate's icon is red. They are below 50%.",
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "A gray icon means they're dead and need special items to revive.",
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "Items enter your inventory and can be supports or attacks.",
+      "delay": 6.0
+    },
+    { "type": "delay", "delay": 0.6 },
+    {
+      "type": "spawn_item",
+      "defId": "nectar",
+      "passDirection": 0
+    },
+    {
+      "type": "wait_for_action",
+      "action": "DROP_ALLY_RIGHT",
+      "text": "Drag the heal item to your right teammate to heal them."
+    },
+    {
+      "type": "show_message",
+      "text": "Great! Your teammate was healed.",
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "Tutorial: Shielding and Damage",
+      "delay": 6.0
+    },
+    {
+      "type": "boss_defend",
+      "bossTarget": 2,
+      "text": "Circe shields her front. Allies attacks are less effective.",
+      "delay": 5.0
+    },
+    { "type": "delay", "delay": 0.8 },
+    {
+      "type": "show_message",
+      "text": "Your teammate just passed you their sword.",
+      "delay": 6.0
+    },
+    {
+      "type": "spawn_item",
+      "defId": "sword",
+      "passDirection": 2
+    },
+    {
+      "type": "wait_for_action",
+      "action": "DROP_BOSS",
+      "text": "Use the attack item on the boss now."
+    },
+    {
+      "type": "spawn_item",
+      "defId": "shield",
+      "passDirection": 1
+    },
+    {
+      "type": "wait_for_action",
+      "action": "DROP_ALLY_LEFT",
+      "text": "Drag the shield to give allies protection."
+    },
+    {
+      "type": "show_message",
+      "text": "That covers shields, heals, passing, and boss direction.",
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "DEFEAT CIRCE",
+      "delay": 4.0
+    },
+    { "type": "end" }
+  ]
+}

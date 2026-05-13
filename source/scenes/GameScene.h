@@ -12,6 +12,7 @@
 #include "../Enemy.h"
 #include "../EnemyLoader.h"
 #include "../EnemyController.h"
+#include "../TutorialController.h"
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 #include "../bosses/Gaia.h"
@@ -230,6 +231,13 @@ protected:
     /** Network controller. Responsible for sending networking messages and process messages sent
      * over the network. */
     std::shared_ptr<NetworkController> _network;
+    
+    /** The animation controller dedicated to the dialogue UI.
+        This timeline manages the playback of slide transitions for the dialogue box.
+        By using a dedicated timeline, dialogue animations can be updated or
+        interrupted independently of other game world animations.
+     */
+    std::shared_ptr<cugl::ActionTimeline> _tutorialTimeline;
 
     /** Audio controller. Manages all audio playback (music and sound effects). */
     AudioController* _audio;
@@ -258,6 +266,9 @@ protected:
     /** The node representing the boss character in the scene. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossNode;
 
+    /** Whether the boss is allowed to perform attacks; Specific to the tutorial. */
+    bool _tutorialBossCanAttack = false;
+    
     /** UI slot used to display left teammate's avatar. */
     std::shared_ptr<cugl::scene2::PolygonNode> _leftPlayerSlot;
     
@@ -302,7 +313,7 @@ protected:
     /** Zones used for inventory on screen. */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _inventoryZones;
     
-    /** IZones used for pass on screen. . */
+    /** Zones used for pass on screen. . */
     std::vector<std::pair<InputController::Action, cugl::Rect>> _passZones;
 
     /** The reset button node. */
@@ -374,6 +385,14 @@ protected:
     /** The scene node representing the animated special effects to be populated in the scene based on the spritesheets. */
     std::shared_ptr<cugl::scene2::SceneNode> _specialEffectsLayer;
     
+    /** The Current zone to highlight*/
+    std::string _tutorialHighlightZone = "none";
+    
+    /** The Current zone that can be dropped on. Should match the above*/
+    InputController::Action _allowedTutorialZone = InputController::Action::NONE;
+
+    /** Whether support zones may be disabled*/
+    bool _tutorialDisableSupportZones = false;
     /** The respective tooltip from the item being held down. */
     std::shared_ptr<cugl::scene2::PolygonNode> _tooltipNode;
     
@@ -482,6 +501,26 @@ protected:
     /** Vector of pending floating popups that have been queued but not yet spawned. */
     std::vector<PendingFloatingPopup> _pendingFloatingPopups;
 
+#pragma mark - Tutorial Dialogue
+    /** The root node of the dialogue UI, used for animations and visibility. Specific to tutorial */
+    std::shared_ptr<cugl::scene2::SceneNode> _tutorialDialogueBox;
+    
+    /** The label component inside the dialogue box that displays the actual text. Specific to tutorial */
+    std::shared_ptr<cugl::scene2::Label> _tutorialDialogueLabel;
+    
+    /** The target on-screen position where the dialogue box rests when active. Specific to tutorial */
+    cugl::Vec2 _tutorialDialogueBoxPos;
+    
+    /** Buffer to hold the next string to display while the box is performing its "slide out" transition. Specific to tutorial*/
+    std::string _tutorialPendingDialogueText = "";
+    
+    /** Timer to track the transition delay between sliding out old dialogue and sliding in the new message. Specific to tutorial */
+    float _tutorialDialogueOutTimer = 0.0f;
+    
+    /** Flag indicating the dialogue box is currently offscreen and ready to perform the "slide in" animation. Specific to tutorial*/
+    bool _tutorialDialogueWaitingToSlideIn = false;
+
+#pragma mark - Ressurection Tracking
     /** Tracks a client-predicted resurrection until the authoritative host snapshot catches up. */
     struct PendingResurrectionSync {
         /** Party slots that were dead when the resurrection item was used locally. */
@@ -507,6 +546,8 @@ protected:
         std::vector<int> playerSlots;
         /** Effect duration to apply until host state arrives. */
         float duration = 0.0f;
+        /** Primary effect magnitude to apply until host state arrives. */
+        float magnitude = 0.0f;
         /** Whether there is an active pending party-effect prediction. */
         bool active = false;
     };
@@ -631,6 +672,9 @@ protected:
     /** Drives enemy behaviour and resolves enemy attacks against players. */
     EnemyController _enemyController;
 
+   /** Defines the tutorial actions*/
+   TutorialController _tutorialController;
+
 #pragma mark - World State
 
     /**
@@ -648,6 +692,10 @@ protected:
     bool _host;
 
     Status _status;
+    
+#pragma mark - Tutorial
+    /** Whether we are currently doing the tutorial with the respective boss, Circe. **/
+    bool _isTutorial;
 
 public:
 #pragma mark - Constructors
@@ -982,7 +1030,25 @@ public:
      * @param localPlayerIndex  The local player's index (0-3) for direction calculation
      */
     void updateEnemyAnimationFrame(float dt, int localPlayerIndex);
-
+    
+    /**
+     * Forces the enemy into the first attack state, targeting a specific player slot.
+     * If a valid target slot is provided, the enemy will face that player before
+     * attacking.
+     *
+     * @param targetSlot The 0-based slot index of the player the enemy should face. If out of bounds, no change in direction.
+     */
+    void triggerBossAttack(int targetSlot);
+    
+    /**
+     * Forces the enemy into a defense state,  targeting a specific player slot.
+     * If a valid target slot is provided, the enemy will face that player before
+     * entering the defense move.
+     *
+     * @param targetSlot The 0-based slot index of the player the enemy should face. If out of bounds, no change in direction.
+     */
+    void triggerBossDefense(int targetSlot);
+    
     /**
      * Calculates which animation frame to display based on state time and animation phase.
      * Handles three phases: optional intro (plays once), loop (cycles for buildUpTime), optional outro (plays once).
@@ -1187,11 +1253,18 @@ public:
     /**
      * Spawns items for the local player every frame, and for all AI-controlled
      * players if this machine is the host. AI item spawning is host-only since
-     * the host is the authoritative source for all AI state.
+     * the host is the authoritative source for all AI state. Should be off if 
+     * playing Tutorial.
      *
      * @param dt  Delta time in seconds.
      */
     void handleItemSpawn(float dt);
+    
+    /**
+     * Enable or disable boss activity. Tutorial Specific.
+     * @param active What the boss should be set to in terms of activity.
+     */
+    void setTutorialBossActive(bool active);
     
     /**
      * Initializes a sliding item with the given velocity and origin type.
@@ -1211,6 +1284,26 @@ public:
      */
     void updateSlidingItems(float dt);
     
+    /**
+     * Represents the animation to slide the dialogue in from the side of the screen in the tutorial only.
+     */
+    void slideDialogueIn();
+    
+    /**
+     * Represents the animation to slide the dialogue out to the side of the screen in the tutorial only.
+     */
+    void slideDialogueOut();
+    
+    /**
+     * Shows the dialogue box with the specified message..
+     */
+    void showDialogue(const std::string& message);
+    
+    /**
+     * Retracts the dialogue box.
+     */
+    void hideDialogue();
+        
     /**
      * Updates friction deceleration for a sliding item and its body position.
      * Called each frame to slow down items based on ITEM_SLIDE_FRICTION_DECELERATION.
@@ -1607,6 +1700,29 @@ public:
     void applyPendingPartyEffectSyncs();
 
     /**
+     * Applies queued frenzy support effects to item spawning and inventories.
+     *
+     * @param supportEffects Support-effect messages received during the current network update.
+     */
+    void processFrenzyEffects(const std::vector<SupportEffectMessage>& supportEffects);
+
+    /**
+     * Applies a frenzy item-spawn override and clears every player's inventory.
+     *
+     * @param itemInterval New item spawn interval while frenzy is active.
+     * @param duration Duration of the frenzy override in seconds.
+     */
+    void applyFrenzyEffect(float itemInterval, float duration);
+
+    /**
+     * Synchronizes local frenzy state from the latest host snapshot.
+     *
+     * @param itemInterval Host-authoritative item spawn interval.
+     * @param duration Remaining host-authoritative frenzy duration.
+     */
+    void syncFrenzyEffect(float itemInterval, float duration);
+
+    /**
      * Applies queued or requested forge effects using host-authoritative seeds.
      *
      * @param forgeEffects  The forge effect messages received during the current network update.
@@ -1699,6 +1815,13 @@ public:
      */
     void _spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spawnPos, ItemInstance::SlideOriginType slideOrigin);
 
+    /**
+        * Helper function to spawn an item within the tutorial
+        * @param defID       The id of the item to spawn
+        * @param passDirection the nature in which the item should spawn. (0 = Spawn, 1 = Passed from left, 2 = Passed from right).
+        */
+    void spawnTutorialItem(const std::string& defId, int passDirection);
+    
     /** Sync player inventory and item widgets displayed on screen */
     void syncInventoryWidgets();
 
@@ -1737,7 +1860,7 @@ public:
     
     /**
      * Updates the visibility of all drop zones based on the current interaction.
-     *
+     * 
      * This function evaluates which drop zones should be visible at the current moment
      * (e.g., during drag-and-drop interactions or based on item/type compatibility)
      * and toggles their visibility accordingly.
@@ -1749,6 +1872,37 @@ public:
      * Must only be called while _draggedIcon and _tooltipNode are valid.
      */
     void updateTooltipPosition();
+
+#pragma mark -
+#pragma mark Tutorial
+
+    /**
+     * This method ensures that only the specified zone is visible at any given time,
+     * effectively guiding the player's attention to a specific interaction area.
+     * @param zone The string identifier for the area to highlight.
+     * Accepted values: "attack", "left_support", "right_support", "pass_left", "pass_right".
+     */
+    void setTutorialHighlight(const std::string& zone);
+    
+    /**
+     * Deactivates all tutorial highlights.
+     * Resets the tutorial state to "none" and hides all highlight area nodes.
+     */
+    void clearTutorialHighlight();
+    
+    /**
+     * Toggles the visibility of the support zone highlights.
+     * Used during specific tutorial segments where support mechanics are either
+     * introduced or restricted.
+     * @param disable If true, hides support zones; if false, reveals them.
+     */
+    void setTutorialDisableSupportZonesVisibility(bool disable);
+    
+    /**
+     * Sets a singular zone to be active.
+     * @param zone The input zone that should be active, treating all others as inactive.
+     */
+    void setTutorialAllowedDropZone(InputController::Action zone);
 
     /**
      * Draws a green debug outline around the reset button's bounding box.
