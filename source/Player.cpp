@@ -627,7 +627,7 @@ static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolv
     }
     if (resolvedEffect.type == ItemDef::EffectType::Educate) {
         for (Player* player : collectPartyMembers(source)) {
-            if (!player) {
+            if (!player || !player->isAlive()) {
                 continue;
             }
             player->applyEducate(resolvedEffect.duration);
@@ -642,15 +642,16 @@ static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolv
     }
     if (resolvedEffect.type == ItemDef::EffectType::Lifesteal) {
         for (Player* player : collectPartyMembers(source)) {
-            if (player) {
-                player->applyLifesteal(resolvedEffect.multiplier, resolvedEffect.duration);
+            if (!player || !player->isAlive()) {
+                continue;
             }
+            player->applyLifesteal(resolvedEffect.multiplier, resolvedEffect.duration);
         }
         return;
     }
 
     for (Player* player : collectPartyMembers(source)) {
-        if (!player) {
+        if (!player || !player->isAlive()) {
             continue;
         }
         EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, *player);

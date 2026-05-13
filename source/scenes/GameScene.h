@@ -524,7 +524,7 @@ protected:
     /** Client-side predicted resurrection state waiting for host confirmation. */
     PendingResurrectionSync _pendingResurrectionSync;
 
-    /** Tracks one client-predicted duration-only party effect until the authoritative host snapshot catches up. */
+    /** Tracks one client-predicted timed party effect until the authoritative host snapshot catches up. */
     struct PendingPartyEffectSync {
         /** The effect being predicted. */
         ItemDef::EffectType effectType = ItemDef::EffectType::Educate;
@@ -1616,7 +1616,7 @@ public:
     void applyPendingResurrectionSync();
 
     /**
-     * Reapplies pending client-side duration-only party effects after stale host snapshots, until host sync catches up.
+     * Reapplies pending client-side timed party effects after stale host snapshots, until host sync catches up.
      */
     void applyPendingPartyEffectSyncs();
 
