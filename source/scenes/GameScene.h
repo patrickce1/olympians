@@ -176,7 +176,6 @@ struct GaiaVineAnimation {
     int currentFrame = -1;
     float duration = 0.5f;     // default value for now, should match the build up time
     float currentTime = 0.0f;  // keeps track of how long we've been in the state for
-
     bool reversing = false; // if the attack got cancelled or it finished and we have new neighbors
 };
 
