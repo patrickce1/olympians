@@ -1375,6 +1375,54 @@ void testEducateEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 }
 
 /**
+ * Tests that party-wide ally effects skip dead party members.
+ */
+void testPartyWideEffectsSkipDeadAllies(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+    const std::string& housesJsonPath,
+    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "party-wide skip dead: item db load succeeds");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "party-wide skip dead: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "party-wide skip dead: enemy init succeeds");
+    if (!enemyOk) return;
+
+    Player athena("athena", 0, "Athena Tester", loader);
+    Player zeus("zeus", 1, "Zeus Ally", loader);
+    Player hades("hades", 2, "Dead Hades Ally", loader);
+    Player demeter("demeter", 3, "Demeter Ally", loader);
+
+    athena.setLeftPlayer(&demeter);
+    athena.setRightPlayer(&zeus);
+    zeus.setLeftPlayer(&athena);
+    zeus.setRightPlayer(&hades);
+    hades.setLeftPlayer(&zeus);
+    hades.setRightPlayer(&demeter);
+    demeter.setLeftPlayer(&hades);
+    demeter.setRightPlayer(&athena);
+
+    hades.updateHealth(-999999.0f);
+    assertWithLabel(!hades.isAlive(), "party-wide skip dead: test ally is dead before use");
+
+    auto instEducate = ItemInstance::alloc("educate", 3003);
+    assertWithLabel(instEducate != nullptr, "party-wide skip dead: create educate instance");
+    if (!instEducate) return;
+
+    athena.addItem(*instEducate);
+    athena.useItemById(instEducate->getId(), enemy, db);
+
+    assertWithLabel(athena.hasEducate() && zeus.hasEducate() && demeter.hasEducate(),
+        "party-wide skip dead: living allies receive educate buff");
+    assertWithLabel(!hades.hasEducate(),
+        "party-wide skip dead: dead ally does not receive educate buff");
+}
+
+/**
  * Tests that harvest applies its regen effect to every party member.
  *
  * @param itemsJson Parsed JSON object containing item definitions.
@@ -1633,6 +1681,7 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testGaiaRockHealsEnemy(itemsJson, housesJsonPath, enemiesJsonPath);
     testResurrectionEffect(itemsJson, housesJsonPath, enemiesJsonPath);
     testEducateEffect(itemsJson, housesJsonPath, enemiesJsonPath);
+    testPartyWideEffectsSkipDeadAllies(itemsJson, housesJsonPath, enemiesJsonPath);
     testHarvestRegenAppliesToAllPlayers(itemsJson, housesJsonPath, enemiesJsonPath);
     testForgeEffect(housesJsonPath);
     testFrenzyEffect(housesJsonPath);
