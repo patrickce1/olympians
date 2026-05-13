@@ -2397,8 +2397,8 @@ static int computeCerberusAnimFrame(const AnimationEntry& animEntry, float animT
 void GameScene::advanceCerberusAnimationTimers(float dt, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus) {
     if (enemy->isStunned()) return;
 
-    // During IDLE, scale elapsed time by the frantic multiplier so animations speed up.
-    float scaledDt = dt;
+    // Apply slow multiplier first, then frantic on top during IDLE.
+    float scaledDt = dt * enemy->getSlowMultiplier();
     if (cerberus && enemy->getCurrentState() == EnemyLoader::State::IDLE) {
         scaledDt *= cerberus->getFranticSpeedMultiplier();
     }
