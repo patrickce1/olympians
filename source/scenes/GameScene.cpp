@@ -154,6 +154,14 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                     0.0f,
                     true);
                 break;
+            case ItemDef::EffectType::Lifesteal:
+                network.broadcastSupportEffect(SupportEffectType::Lifesteal,
+                    effect.multiplier,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    true);
+                break;
             case ItemDef::EffectType::Forge:
                 break;
             case ItemDef::EffectType::Stun:
@@ -241,6 +249,7 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Forge:
             case ItemDef::EffectType::Charm:
             case ItemDef::EffectType::Frenzy:
+            case ItemDef::EffectType::Lifesteal:
                 break;
         }
     }
@@ -377,6 +386,9 @@ static ItemDef::Effect resolveEffectForCharm(const ItemDef::Effect& effect, bool
             break;
         case ItemDef::EffectType::Frenzy:
             resolved.amount *= 0.5f;
+            break;
+        case ItemDef::EffectType::Lifesteal:
+            resolved.multiplier *= 2.0f;
             break;
     }
 
@@ -1119,7 +1131,16 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
-    const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+    float resolvedMagnitude = 0.0f;
+    if (def->getAttackTarget() == ItemDef::AttackTarget::AllAllies) {
+        resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+    } else {
+        resolvedMagnitude = local->resolveItemMagnitude(*def, _itemController.getDatabase());
+        local->recordItemUse(*def);
+        if (!removeItemFromInventory(local, item.getId())) {
+            return false;
+        }
+    }
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
@@ -1150,8 +1171,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
 
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
     const std::vector<EnemyEffectMessage> enemyEffects =
-        (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects)
-                              : std::vector<EnemyEffectMessage>{};
+        collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects);
 
     startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
     if (!_activeItemUseAnimations.empty()) {
@@ -1271,6 +1291,8 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                         applyFrenzyEffect(resolvedEffect.amount, resolvedEffect.duration);
                     }
                     break;
+                case ItemDef::EffectType::Lifesteal:
+                    break;
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
                 case ItemDef::EffectType::Regen:
@@ -1351,6 +1373,29 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                 case ItemDef::EffectType::Forge:
                 case ItemDef::EffectType::Frenzy:
                     break;
+                case ItemDef::EffectType::Lifesteal: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Lifesteal;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.magnitude = resolvedEffect.multiplier;
+                    pendingEffect.duration = resolvedEffect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
                 case ItemDef::EffectType::Regen:
@@ -2894,6 +2939,13 @@ void GameScene::applyPendingPartyEffectSyncs() {
                         continue;
                     }
                     player->applyCharm(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                case ItemDef::EffectType::Lifesteal:
+                    if (player->hasLifesteal()) {
+                        continue;
+                    }
+                    player->applyLifesteal(pendingEffect.magnitude, pendingEffect.duration);
                     waitingForHost = true;
                     break;
                 default:
@@ -4922,8 +4974,13 @@ void GameScene::updateItemUseAnimations(float dt) {
                 if (enemy) {
                     const int playerNum = _gameState.getLocalPlayer()->getPlayerNumber();
 
-                    // Apply pre-calculated damage and show the popup sequence.
+                    // Apply pre-calculated damage before any item effects update enemy side multipliers.
+                    const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
+                    Player* localPlayer = _gameState.getLocalPlayer();
+                    if (localPlayer) {
+                        localPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - enemy->getCurrentHealth()));
+                    }
                     if (activeAnim.baseValue > 0.0f) {
                         const float sideMultiplier = enemy->getSideMultiplier(playerNum);
                         const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
@@ -4937,6 +4994,8 @@ void GameScene::updateItemUseAnimations(float dt) {
                     if (_network && !_network->isHost()) {
                         _network->broadcastDamage(activeAnim.damageAmount, playerNum, activeAnim.itemDefID);
                         broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
+                    } else if (_network && _network->isHost()) {
+                        _gameState.enemyEffectUpdates(activeAnim.enemyEffects);
                     }
                 }
             }

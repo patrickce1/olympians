@@ -332,7 +332,12 @@ void GameState::attackUpdates(std::vector<AttackMessage> attacks) {
             }
         }
 
+        const float enemyHealthBefore = _enemy->getCurrentHealth();
         _enemy->takeDamage(authoritativeDamage, attack.damageDirection);
+        Player* attackingPlayer = getPlayerBySlot(attack.damageDirection);
+        if (attackingPlayer) {
+            attackingPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - _enemy->getCurrentHealth()));
+        }
     }
 }
 
@@ -398,6 +403,9 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
                 case SupportEffectType::Frenzy:
                     resolvedEffect.magnitude *= 0.5f;
                     break;
+                case SupportEffectType::Lifesteal:
+                    resolvedEffect.magnitude *= 2.0f;
+                    break;
                 case SupportEffectType::Heal:
                 case SupportEffectType::Forge:
                 case SupportEffectType::Charm:
@@ -433,6 +441,9 @@ void GameState::supportEffectUpdates(std::vector<SupportEffectMessage> supportEf
                     break;
                 case SupportEffectType::Charm:
                     target.applyCharm(resolvedEffect.duration);
+                    break;
+                case SupportEffectType::Lifesteal:
+                    target.applyLifesteal(resolvedEffect.magnitude, resolvedEffect.duration);
                     break;
                 case SupportEffectType::Forge:
                 case SupportEffectType::Frenzy:
@@ -546,23 +557,27 @@ void GameState::networkUpdate(GameStateMessage newState) {
         newState.player3HP,
         newState.player4HP
     };
-    std::vector<std::array<float, 8>> runtimeEffects = {
-        std::array<float, 8>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
+    std::vector<std::array<float, 10>> runtimeEffects = {
+        std::array<float, 10>{newState.player1ShieldMitigation, newState.player1ShieldDuration,
                              newState.player1BarrierMultiplier, newState.player1BarrierDuration,
                              newState.player1RegenAmountRemaining, newState.player1RegenDuration,
-                             newState.player1EducateDuration, newState.player1CharmDuration},
-        std::array<float, 8>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
+                             newState.player1EducateDuration, newState.player1CharmDuration,
+                             newState.player1LifestealMultiplier, newState.player1LifestealDuration},
+        std::array<float, 10>{newState.player2ShieldMitigation, newState.player2ShieldDuration,
                              newState.player2BarrierMultiplier, newState.player2BarrierDuration,
                              newState.player2RegenAmountRemaining, newState.player2RegenDuration,
-                             newState.player2EducateDuration, newState.player2CharmDuration},
-        std::array<float, 8>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
+                             newState.player2EducateDuration, newState.player2CharmDuration,
+                             newState.player2LifestealMultiplier, newState.player2LifestealDuration},
+        std::array<float, 10>{newState.player3ShieldMitigation, newState.player3ShieldDuration,
                              newState.player3BarrierMultiplier, newState.player3BarrierDuration,
                              newState.player3RegenAmountRemaining, newState.player3RegenDuration,
-                             newState.player3EducateDuration, newState.player3CharmDuration},
-        std::array<float, 8>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
+                             newState.player3EducateDuration, newState.player3CharmDuration,
+                             newState.player3LifestealMultiplier, newState.player3LifestealDuration},
+        std::array<float, 10>{newState.player4ShieldMitigation, newState.player4ShieldDuration,
                              newState.player4BarrierMultiplier, newState.player4BarrierDuration,
                              newState.player4RegenAmountRemaining, newState.player4RegenDuration,
-                             newState.player4EducateDuration, newState.player4CharmDuration}
+                             newState.player4EducateDuration, newState.player4CharmDuration,
+                             newState.player4LifestealMultiplier, newState.player4LifestealDuration}
     };
 
     for (int i = 0; i < _players.size(); i++) {
@@ -570,7 +585,8 @@ void GameState::networkUpdate(GameStateMessage newState) {
         _players[i]->syncRuntimeEffects(runtimeEffects[i][0], runtimeEffects[i][1],
                                         runtimeEffects[i][2], runtimeEffects[i][3],
                                         runtimeEffects[i][4], runtimeEffects[i][5],
-                                        runtimeEffects[i][6], runtimeEffects[i][7]);
+                                        runtimeEffects[i][6], runtimeEffects[i][7],
+                                        runtimeEffects[i][8], runtimeEffects[i][9]);
         _players[i]->setMalletUseCount(newState.playerMalletUseCounts[i]);
     }
 }

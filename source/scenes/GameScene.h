@@ -520,6 +520,8 @@ protected:
         std::vector<int> playerSlots;
         /** Effect duration to apply until host state arrives. */
         float duration = 0.0f;
+        /** Primary effect magnitude to apply until host state arrives. */
+        float magnitude = 0.0f;
         /** Whether there is an active pending party-effect prediction. */
         bool active = false;
     };

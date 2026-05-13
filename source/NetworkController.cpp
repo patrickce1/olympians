@@ -38,6 +38,8 @@ void readPlayerRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage&
         effectState.regenDuration = deserializer.readFloat();
         effectState.educateDuration = deserializer.readFloat();
         effectState.charmDuration = deserializer.readFloat();
+        effectState.lifestealMultiplier = deserializer.readFloat();
+        effectState.lifestealDuration = deserializer.readFloat();
     }
 
     for (int ii = 0; ii < kMaxPlayers; ++ii) {
@@ -72,10 +74,14 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
             serializer.writeFloat(player->getRegenDuration());
             serializer.writeFloat(player->getEducateDuration());
             serializer.writeFloat(player->getCharmDuration());
+            serializer.writeFloat(player->getLifestealMultiplier());
+            serializer.writeFloat(player->getLifestealDuration());
         } else {
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(1.0f);
+            serializer.writeFloat(0.0f);
+            serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
