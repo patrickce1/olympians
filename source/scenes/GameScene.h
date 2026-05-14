@@ -155,6 +155,30 @@ struct AnimationEntry {
     float offsetX = 0.0f;       /** X offset from base position */
     float offsetY = 0.0f;       /** Y offset from base position */
 };
+
+
+/**
+ * Tracks the Gaia vine overlay animation displayed over both ally icons.
+ *
+ * The animation has two phases:
+ * - Forward (growth): follows enemy ATTACK_3 buildup progress (stateTime / buildUpTime)
+ * - Reverse (retraction): runs locally using currentTime and dt, independent of enemy state
+ *
+ * Duration is initialized from the ATTACK_3 buildUpTime but is then used as a
+ * standalone timeline for both forward and reverse playback.
+ *
+ * Sheet layout: 3 rows x 4 cols, 12 frames total.
+ */
+struct GaiaVineAnimation {
+    std::shared_ptr<cugl::scene2::SpriteNode> leftNode;
+    std::shared_ptr<cugl::scene2::SpriteNode> rightNode;
+    int frameCount = 12;
+    int currentFrame = -1;
+    float duration = 0.5f;     // default value for now, should match the build up time
+    float currentTime = 0.0f;  // keeps track of how long we've been in the state for
+    bool reversing = false; // if the attack got cancelled or it finished and we have new neighbors
+};
+
 /**
  * Data for a single popup in a sequence.
  * General-purpose for any game event: damage, heals, buffs, status effects, health popups, etc.
@@ -610,6 +634,9 @@ protected:
     /** Flag tracking if damage has been dealt during the current enemy state. Resets when state changes. */
     bool _enemyAttackDamageDealtThisState = false;
 
+    /** Active Gaia vine overlay animation, if any. Empty when no animation is playing. */
+    std::optional<GaiaVineAnimation> _gaiaVineAnim;
+
 #pragma mark - Controllers
 
     /** Manages item spawning, timers, and the item definition database. */
@@ -642,6 +669,10 @@ protected:
 #pragma mark - Tutorial
     /** Whether we are currently doing the tutorial with the respective boss, Circe. **/
     bool _isTutorial;
+
+ #pragma mark - Gaia Variables
+    /* RNG for host - authoritative slot shuffling during gameplay. **/
+    std::mt19937 _rng;
 
 public:
 #pragma mark - Constructors
@@ -1123,6 +1154,19 @@ public:
       * Clients handle the logic for unwrapping the networked Gaia spawn messages inside of this method as well
       */
     void handleGaiaSpawn();
+
+    /** HOST ONLY. Custom method used by Gaia. This creates a new ordering for the players.
+      * This new ordering is sent to the GameState to be applied to the local machine.
+      * This also broadcasts the new ordering over the network for clients to apply respectively as well
+      */
+    void handleGaiaScramble();
+
+    /** Checks if we are in a state where 
+      * the house and names of the current player's neighbors should be concealed
+      *
+      * @return     true if we should conceal neighbor house and name
+      */
+    bool gaiaShouldConcealIdentity();
     
     /**
      * Spawns items for the local player every frame, and for all AI-controlled
@@ -1332,6 +1376,48 @@ public:
      * Called when the game ends or resets.
      */
     void clearItemUseAnimations();
+
+    /**
+     * Spawns a Gaia vine SpriteNode over both ally icon widgets.
+     * Creates two SpriteNodes from the 4x3 sprite sheet, positions each over
+     * the left/right icon's playerIcon node, and adds them as children so they
+     * render in the same coordinate space as the icon. Called once on ATTACK_3
+     * state entry
+     */
+    void startGaiaVineAnimation();
+
+    /**
+     * Advances the Gaia vine overlay animation.
+     *
+     * When boss is in ATTACK_3, we use the enemy current state time to dermine the progress of the animation
+     *
+     * If the boss is not in ATTACK_3 but the animation is still active, it means it is reversing.
+     * Reversal ticks down its timer using dt and _gaiaVineAnim -> currentTime
+     *
+     * Animation done when the reversal part of the animation is done (because a reversal is guaranteed)
+     *
+     * @param dt  Delta time in seconds (used for reversal)
+     */
+    void updateGaiaVineAnimation(float dt);
+
+    /**
+     * Handles Gaia vine animation triggers based on enemy state changes.
+     *
+     * This function starts the vine animation when Gaia enters ATTACK_3,
+     * and initiates the reverse (retraction) phase when Gaia leaves ATTACK_3
+     *
+     * IMPORTANT:
+     * - This is purely visual and does not affect gameplay logic.
+     * - Forward animation follows enemy buildup progress (stateTime / buildUpTime).
+     * - Reverse animation is handled locally using currentTime and dt.
+     * - Must be called once per frame before updateGaiaVineAnimation().
+     *
+     * Behavior summary:
+     * - Enter ATTACK_3 -> start vine growth animation.
+     * - Exit ATTACK_3 or Aphrodite love effect -> trigger reverse animation.
+     * - Reverse completes -> animation cleans itself up in update.
+     */
+    void detectGaiaAnimationTriggers();
     
     /**
      * Returns whether there are any active item use animations currently playing.

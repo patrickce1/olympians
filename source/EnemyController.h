@@ -36,6 +36,10 @@ public:
                 const std::shared_ptr<Enemy>& enemy,
                 std::vector<std::shared_ptr<Player>>& players);
 
+    /** Checks if a scramble event was fired after update() was called
+        * Resets the boolean after this is called. It should be called every frame */
+    bool didFireScrambleEvent();
+
     /**
      * Calculates which direction (0-3) an enemy should face relative to a local player.
      * Maps relative position between target and local player to cardinal directions.
@@ -64,7 +68,10 @@ public:
 
 private:
     /** Debug boolean. Set to false to prevent debug statements */
-    bool _debug = true;
+    bool _debug = false;
+
+    /** Keeps track of if a scramble event was fired this frame. Should be reset after being extracted */
+    bool _scrambleFired = false;
 
     /** Random number generator for decision making. */
     cugl::Random _rng;
