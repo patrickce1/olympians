@@ -61,7 +61,8 @@ static const std::unordered_map<ItemDef::EffectType, std::string> EFFECT_ICON_KE
     { ItemDef::EffectType::Charm,      "icon_charm"   },
     { ItemDef::EffectType::Frenzy,     "icon_frenzy"  },
     { ItemDef::EffectType::Resurrect,  "icon_resurrect"  },
-    { ItemDef::EffectType::Love,       "icon_love"  }
+    { ItemDef::EffectType::Love,       "icon_love"  },
+    { ItemDef::EffectType::Lifesteal,  "icon_lifesteal"  }
 };
 
 #pragma mark HealthState
@@ -618,6 +619,8 @@ bool GameScene::initSceneGraph() {
         
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
+    
+        _bossHealthBarGlow = _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.effectGlow");
         
         _bossHealthBarIcon = std::dynamic_pointer_cast<scene2::PolygonNode>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.barIcon"));
@@ -1876,6 +1879,7 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
             std::string frameKey = e.selfCast ? "timerFrameSelf" : "timerFrameReceived";
             auto frameTexture = _assets->get<cugl::graphics::Texture>(frameKey);
             auto frame = cugl::scene2::PolygonNode::allocWithTexture(frameTexture);
+            frame->setPosition(container->getContentSize() / 2.0f);
             frame->setAnchor(cugl::Vec2::ANCHOR_CENTER);
             container->addChild(frame);
             
@@ -1892,7 +1896,7 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
             container->addChild(icon);
             
             // Pie overlay
-            auto pie = cugl::scene2::SpriteNode::allocWithSheet(_assets->get<cugl::graphics::Texture>("pieTimer"), 1, 5);
+            auto pie = cugl::scene2::SpriteNode::allocWithSheet(_assets->get<cugl::graphics::Texture>("pieTimer"), 1, 13);
             pie->setAnchor(cugl::Vec2::ANCHOR_CENTER);
             pie->setPosition(container->getContentSize() / 2.0f);
             pie->setFrame(0);
@@ -1930,8 +1934,8 @@ void GameScene::updateEffectTimerIcons(float dt) {
             changed = true;
         } else {
             if (it->pie) {
-                int frame = (int)((1.0f - it->remainingDuration / it->totalDuration) * 5);
-                frame = std::clamp(frame, 0, 4);
+                int frame = (int)((1.0f - it->remainingDuration / it->totalDuration) * 13);
+                frame = std::clamp(frame, 0, 12);
                 it->pie->setFrame(frame);
             }
             ++it;
@@ -1995,6 +1999,12 @@ void GameScene::updateEnemyAndAI(float dt) {
 void GameScene::updateEnemyHealthBarEffect(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
+    
+    if (enemy->isVulnerable()) {
+        _bossHealthBarGlow->setVisible(true);
+    } else {
+        _bossHealthBarGlow->setVisible(false);
+    }
     
     auto applyBossBar = [&](const std::string& barTex,
                             const std::string& iconTex,

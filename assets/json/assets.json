@@ -567,6 +567,9 @@
         "shieldBar": {
             "file": "textures/gameScene/shieldBar.png"
         },
+        "vulnerableBar": {
+            "file": "textures/gameScene/vulnerableBar.png"
+        },
         "playerUsernameBG": {
             "file": "textures/gameScene/playerNameBG.png"
         },

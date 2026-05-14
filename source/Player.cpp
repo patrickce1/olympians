@@ -172,7 +172,8 @@ void Player::applyRegen(float amount, float duration) {
         _effectEvents.push_back({
             ItemDef::EffectType::Regen,
             "",
-            duration
+            duration,
+            false
         });
     }
 
@@ -201,7 +202,8 @@ void Player::applyEducate(float duration) {
         _effectEvents.push_back({
             ItemDef::EffectType::Educate,
             "",
-            duration
+            duration,
+            false
         });
     }
 
@@ -229,7 +231,8 @@ void Player::applyCharm(float duration) {
         _effectEvents.push_back({
             ItemDef::EffectType::Charm,
             "",
-            duration
+            duration,
+            false
         });
     }
 
@@ -259,7 +262,8 @@ void Player::applyLifesteal(float multiplier, float duration) {
         _effectEvents.push_back({
             ItemDef::EffectType::Lifesteal,
             "",
-            duration
+            duration,
+            false
         });
     }
 
