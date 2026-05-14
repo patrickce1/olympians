@@ -297,7 +297,6 @@ void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, c
  * @param input         The input controller instance
  */
 void HostSetupScene::update(float timestep, InputController& input) {
-    
     //Forced Tutorial Start from settings
     if (_pendingTutorialStart) {
         _pendingTutorialStart = false;
