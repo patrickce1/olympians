@@ -32,11 +32,8 @@ protected:
     /** The music slider */
     std::shared_ptr<cugl::scene2::Slider> _musicSlider;
 
-    /** The toggle button for screen effects */
-    std::shared_ptr<cugl::scene2::Button> _effectsButton;
-
-    /** The toggle button for haptics */
-    std::shared_ptr<cugl::scene2::Button> _hapticsButton;
+    /** The play button for playing the tutorial */
+    std::shared_ptr<cugl::scene2::Button> _tutorialButton;
 
     /** The save button to save the data and close the settings scene */
     std::shared_ptr<cugl::scene2::Button> _saveButton;
@@ -46,12 +43,6 @@ protected:
 
     /** The current music volume, in [0,1] */
     float _musicVolume = 1.0f;
-
-    /** Whether screen effects are enabled */
-    bool _effectsEnabled = true;
-
-    /** Whether haptics are enabled */
-    bool _hapticsEnabled = true;
 
     /**
      * Whether init() has been successfully called.
@@ -73,6 +64,9 @@ protected:
 
     /** Called when the SFX slider changes, passes new multiplier value */
     std::function<void(float)> _onSFXVolumeChange;
+    
+    /** Set to true when the user taps the tutorial replay button. */
+    bool _pendingTutorial = false;
 
 public:
 #pragma mark -
@@ -157,6 +151,15 @@ public:
         if (_onMusicVolumeChange) _onMusicVolumeChange(music);
         if (_onSFXVolumeChange)   _onSFXVolumeChange(sfx);
 
+    }
+    
+    /**
+     * Returns true if the user has requested to replay the tutorial, then resets the flag.
+     */
+    bool shouldStartTutorial() {
+        bool val = _pendingTutorial;
+        _pendingTutorial = false;
+        return val;
     }
 
 #pragma mark -

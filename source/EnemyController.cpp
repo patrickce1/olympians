@@ -204,7 +204,10 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
 }
 
 /** Checks if a scramble event was fired after update() was called
-    * Resets the boolean after this is called. It should be called every frame */
+  * Resets the boolean after this is called. It should be called every frame 
+  * 
+  * @return   return a scramble event was fired off
+  */
 bool EnemyController::didFireScrambleEvent() {
     bool returnValue = _scrambleFired;
     _scrambleFired = false;
