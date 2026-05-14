@@ -23,6 +23,18 @@
         },
         "sword_animation": {
             "file": "textures/items/animations/sword_animation.png"
+        },
+        "educate_animation": {
+            "file": "textures/items/animations/educate_animation.png"
+        },
+        "resurrection_animation": {
+            "file": "textures/items/animations/resurrection_animation.png"
+        },
+        "rage_animation": {
+            "file": "textures/items/animations/rage_animation.png"
+        },
+        "tsunami_animation": {
+            "file": "textures/items/animations/tsunami_animation.png"
         }
     }
 }

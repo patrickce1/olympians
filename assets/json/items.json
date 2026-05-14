@@ -2,7 +2,7 @@
     "rarityWeights": {
         "common": 70,
         "rare": 25,
-        "divine": 5,
+        "divine": 500,
         "special": 0
     },
     "items": [
@@ -359,12 +359,15 @@
                 }
             ],
             "itemUseAnimation": {
-                "spriteSheetId": "tide_animation",
+                "spriteSheetId": "tsunami_animation",
                 "rows": 1,
-                "cols": 9,
-                "frameCount": 9,
-                "animationDuration": 0.747,
-                "damageResolutionFrame": 7
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.2,
+                "damageResolutionFrame": 5,
+                "scale": 1.1,
+                "offsetY": 100,
+                "aboveInventory": false
             }
         },
         {
@@ -400,7 +403,16 @@
                     "amount": 25.0,
                     "duration": 5.0
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "resurrection_animation",
+                "rows": 1,
+                "cols": 10,
+                "frameCount": 10,
+                "animationDuration": 0.8,
+                "damageResolutionFrame": 5,
+                "centerOnDropLocation": true
+            }
         },
         {
             "id": "harvest",
@@ -458,7 +470,16 @@
                     "type": "educate",
                     "duration": 10.0
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "educate_animation",
+                "rows": 1,
+                "cols": 7,
+                "frameCount": 7,
+                "animationDuration": 0.8,
+                "damageResolutionFrame": 4,
+                "centerOnDropLocation": true
+            }
         },
         {
             "id": "rage",
@@ -479,7 +500,16 @@
                     "duration": 6.0,
                     "applyToAllSides": true
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "rage_animation",
+                "rows": 1,
+                "cols": 7,
+                "frameCount": 7,
+                "animationDuration": 0.5,
+                "damageResolutionFrame": 4,
+                "centerOnDropLocation": true
+            }
         },
         {
             "id": "treasure",

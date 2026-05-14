@@ -343,7 +343,10 @@ protected:
     /** The sprite node representing the boss character frame in the scene based on the spritesheets. */
     std::shared_ptr<cugl::scene2::SceneNode> _bossSprite;
     
-    /** The scene node representing the animated special effects to be populated in the scene based on the spritesheets. */
+    /** Full-screen effects layer rendered above boss/game area but below inventory and all player HUD elements. */
+    std::shared_ptr<cugl::scene2::SceneNode> _behindHUDEffectsLayer;
+
+    /** Full-screen effects layer rendered above everything, including the inventory. */
     std::shared_ptr<cugl::scene2::SceneNode> _specialEffectsLayer;
     
     /** The Current zone to highlight*/

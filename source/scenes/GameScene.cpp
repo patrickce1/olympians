@@ -542,7 +542,18 @@ bool GameScene::initSceneGraph() {
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
         
-        // This is the special effects node, this is where all the animated effects will go.
+        // _behindHUDEffectsLayer sits above the game area (boss, etc.) but below the inventory
+        // and all player HUD nodes. Achieved by temporarily detaching _inventory so we can insert
+        // this layer between the two in the scene's child order, then re-attaching _inventory on top.
+        _behindHUDEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
+        _behindHUDEffectsLayer->setContentSize(dimen);
+        _behindHUDEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+        _behindHUDEffectsLayer->setPosition(cugl::Vec2(dimen.width / 2.0f, dimen.height / 2.0f));
+        if (_inventory) _inventory->removeFromParent();
+        _scene->addChild(_behindHUDEffectsLayer);
+        if (_inventory) _scene->addChild(_inventory);
+
+        // _specialEffectsLayer is added last so it renders above everything, including the inventory.
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
         _specialEffectsLayer->setContentSize(dimen);
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
@@ -4659,16 +4670,24 @@ void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, 
         position = cugl::Vec2(viewportSize.width / 2.0f, viewportSize.height * 0.55f);
     }
     
-    node->setPosition(position);
     node->setAnchor(cugl::Vec2(0.5f, 0.5f));
-    
+
     // Scale animation to fit viewport width while maintaining aspect ratio
-    // Use setScale instead of setContentSize to avoid distorting the texture
-    float scale = viewportSize.width / frameSize.width;
+    float scale = (viewportSize.width / frameSize.width) * animConfig.scale;
     node->setScale(scale);
-    
-    // Add to special effects layer
-    _specialEffectsLayer->addChild(node);
+
+    // Apply per-item offset (screen space)
+    position.x += animConfig.offsetX;
+    position.y += animConfig.offsetY;
+
+    node->setPosition(position);
+
+    // Both layers share the same coordinate space as the scene root.
+    if (animConfig.aboveInventory) {
+        _specialEffectsLayer->addChild(node);
+    } else {
+        _behindHUDEffectsLayer->addChild(node);
+    }
     
     // Create and queue the animation instance
     ItemUseAnimation anim;
