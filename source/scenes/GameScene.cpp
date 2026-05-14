@@ -4398,7 +4398,12 @@ void GameScene::updateInputZones(){
     }
 
     // Add pass zones based on 
-
+    if(!local->hasLeftVine() && !local->getLeftPlayer()->hasRightVine()){
+        _inputZones.push_back(_passZones[0]);
+    }
+    if(!local->hasRightVine() && !local->getRightPlayer()->hasLeftVine()){
+        _inputZones.push_back(_passZones[1]);
+    }
 }
 
 /**

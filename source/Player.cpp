@@ -295,6 +295,8 @@ void Player::updateEffects(float dt) {
     }
 
     /* Gaia timers */
+    if (hasLeftVine() || hasRightVine()) updateHealth(-_vineDPS * dt);
+
     if (_leftVineDuration > 0.0f) {
         _leftVineDuration = std::max(0.0f, _leftVineDuration - dt);
         if (_leftVineDuration <= 0.0f) {
@@ -753,25 +755,31 @@ bool Player::isAlive() const {
 }
 
 /**
- * Applies a Gaia vine bind to the player's left side.
- * Sets the left vine flag and initializes the timer.
- * If the left vine is already active, the timer is RESET to the new value.
- *
- * @param timer Duration (in seconds) for the left vine bind
- */
-void Player::applyVineLeft(float timer) {
+* Applies a Gaia vine bind to the player's left side.
+* Sets the left vine flag and initializes the timer.
+* If the left vine is already active, the timer is RESET to the new value.
+* It also stores the dps value associated with the vine
+*
+* @param timer     Duration (in seconds) for the left vine bind. If player already bound, replaces duration
+* @param dps       How much damage per second being vine bound does. Overwrites the last DPS value for BOTH left and right
+*/
+void Player::applyVineLeft(float timer, float dps) {
     _hasLeftVine = true;
     _leftVineDuration = timer;
+    _vineDPS = dps;
 }
 
 /**
  * Applies a Gaia vine bind to the player's left side.
  * Sets the left vine flag and initializes the timer.
  * If the left vine is already active, the timer is RESET to the new value.
+ * It also stores the dps value associated with the vine
  *
- * @param timer Duration (in seconds) for the left vine bind
+ * @param timer     Duration (in seconds) for the left vine bind
+ * @param dps       How much damage per second being vine bound does. Overwrites the last DPS value for BOTH left and right
  */
-void Player::applyVineRight(float timer) {
+void Player::applyVineRight(float timer, float dps) {
     _hasRightVine = true;
     _rightVineDuration = timer;
+    _vineDPS = dps;
 }

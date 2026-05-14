@@ -137,9 +137,9 @@ void EnemyController::handleIdleEntryIfNeeded(EnemyLoader::State prevState, Enem
 EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<Enemy>& enemy) {
     std::vector<EnemyLoader::State> attacks;
 
-    attacks.push_back(EnemyLoader::State::ATTACK_1);
+    //attacks.push_back(EnemyLoader::State::ATTACK_1);
     attacks.push_back(EnemyLoader::State::ATTACK_2);
-    attacks.push_back(EnemyLoader::State::ATTACK_3);
+    //attacks.push_back(EnemyLoader::State::ATTACK_3);
 
     if (attacks.empty()) { if (_debug) CULog("[EnemyController] Attack: No attack states available"); return EnemyLoader::State::IDLE; }
 
@@ -306,11 +306,6 @@ void EnemyController::resolveVineEvent(const std::shared_ptr<Enemy>& enemy, std:
     }
 
     int targetIndex = wrapIndex(event.def.target, n);
-    if (targetIndex < 0 || targetIndex >= n) {
-        if (_debug) CULog("[EnemyController] Event: VINE fired with invalid target index %d", event.def.target);
-        return;
-    }
-
     auto& target = players[targetIndex];
     if (!target || !target->isAlive()) {
         if (_debug) CULog("[EnemyController] Event: VINE fired but Player[%d] is dead or null",
@@ -320,16 +315,15 @@ void EnemyController::resolveVineEvent(const std::shared_ptr<Enemy>& enemy, std:
 
     float duration = event.def.duration;
     float dps = event.def.amount;
-
     // Randomly choose left or right vine
     bool applyLeft = (_rng.getUint32() % 2) == 0;
     if (applyLeft) {
-        target->applyVineLeft(duration);
+        target->applyVineLeft(duration, dps);
         if (_debug) CULog("[EnemyController] Event: VINE applied to Player[%d] LEFT for %.2f seconds",
             targetIndex, duration);
     }
     else {
-        target->applyVineRight(duration);
+        target->applyVineRight(duration, dps);
         if (_debug) CULog("[EnemyController] Event: VINE applied to Player[%d] RIGHT for %.2f seconds",
             targetIndex, duration);
     }

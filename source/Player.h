@@ -78,6 +78,8 @@ private:
     float _leftVineDuration = 0.0f;
     /** Remaining duration (in seconds) of the right-side vine bind */
     float _rightVineDuration = 0.0f;
+    /** Keeps track of the damage per second being vine bound should do to the player */
+    float _vineDPS = 0;
 
 public:
     /**
@@ -432,26 +434,28 @@ public:
      */
     void setPlayerNumber(int number) { _playerNumber = number; }
 
-
     /* GAIA METHODS */
+    /**
+     * Applies a Gaia vine bind to the player's left side.
+     * Sets the left vine flag and initializes the timer.
+     * If the left vine is already active, the timer is RESET to the new value.
+     * It also stores the dps value associated with the vine
+     *
+     * @param timer     Duration (in seconds) for the left vine bind. If player already bound, replaces duration
+     * @param dps       How much damage per second being vine bound does. Overwrites the last DPS value for BOTH left and right
+     */
+    void applyVineLeft(float timer, float dps);
 
     /**
      * Applies a Gaia vine bind to the player's left side.
      * Sets the left vine flag and initializes the timer.
      * If the left vine is already active, the timer is RESET to the new value.
+     * It also stores the dps value associated with the vine
      *
-     * @param timer Duration (in seconds) for the left vine bind
+     * @param timer     Duration (in seconds) for the left vine bind
+     * @param dps       How much damage per second being vine bound does. Overwrites the last DPS value for BOTH left and right
      */
-    void applyVineLeft(float timer);
-
-    /**
-     * Applies a Gaia vine bind to the player's left side.
-     * Sets the left vine flag and initializes the timer.
-     * If the left vine is already active, the timer is RESET to the new value.
-     *
-     * @param timer Duration (in seconds) for the left vine bind
-     */
-    void applyVineRight(float timer);
+    void applyVineRight(float timer, float dps);
 
 
     /**
@@ -459,14 +463,14 @@ public:
      *
      * @return True if a left-side Gaia vine bind is active
      */
-    bool hasLeftVine() const { return hasLeftVine; }
+    bool hasLeftVine() const { return _hasLeftVine; }
 
     /**
      * Returns whether the player is currently vine bound on the right side.
      *
      * @return True if a right-side Gaia vine bind is active
      */
-    bool hasRightVine() const { return hasRightVine; }
+    bool hasRightVine() const { return _hasRightVine; }
 
     
 };
