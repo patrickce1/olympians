@@ -173,10 +173,11 @@ struct FloatingPopupData {
 struct ActiveEffectIcon {
     ItemDef::EffectType effectType;
     std::string defId;
-    std::shared_ptr<cugl::scene2::PolygonNode> icon;
+    std::shared_ptr<cugl::scene2::SceneNode> icon;
     std::shared_ptr<cugl::scene2::SpriteNode> pie;
     float remainingDuration;
     float totalDuration;
+    bool selfCast;
 };
 
 /**

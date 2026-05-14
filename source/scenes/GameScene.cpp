@@ -1740,11 +1740,18 @@ void GameScene::recomputeVisibleTimers() {
     std::vector<ActiveEffectIcon*> others;
 
     for (auto& e : _effectIcons) {
+        // Received effects can never be divine/rare — go straight to others
+        if (!e.selfCast) {
+            others.push_back(&e);
+            continue;
+        }
+        
         auto def = db.getDef(e.defId);
         if (!def) {
             others.push_back(&e);
             continue;
         }
+        
         auto rarity = def->getRarity();
         auto house = def->getHouseAffinity();
         if (house == ItemDef::houseFromString(local->getHouseName())) {
@@ -1808,8 +1815,6 @@ void GameScene::rebuildTimerLayout() {
 void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events) {
     if (!_timers) return;
     
-    const auto& db = _itemController.getDatabase();
-    
     for (const auto& e : events) {
         auto iconKeyIt = EFFECT_ICON_KEYS.find(e.effectType);
         if (iconKeyIt == EFFECT_ICON_KEYS.end()) continue;
@@ -1828,28 +1833,50 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
             existing->totalDuration = e.duration;
             existing->defId = e.itemId;
         } else {
-            auto icon = cugl::scene2::PolygonNode::allocWithTexture(texture);
-            icon->setContentSize(40,40);
-            icon->setAnchor(cugl::Vec2::ANCHOR_CENTER);
-            
             std::string iconName = "effect_icon_" + std::to_string(_nextEffectIconId++);
-            icon->setName(iconName);
             
-            // Create the pie overlay
+            // Container
+            auto container = cugl::scene2::SceneNode::alloc();
+            container->setContentSize(cugl::Size(ICON_SIZE, ICON_SIZE));
+            container->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            container->setName(iconName);
+            
+            // Frame — different border for self-cast vs received
+            std::string frameKey = e.selfCast ? "timerFrameSelf" : "timerFrameReceived";
+            auto frameTexture = _assets->get<cugl::graphics::Texture>(frameKey);
+            auto frame = cugl::scene2::PolygonNode::allocWithTexture(frameTexture);
+            frame->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            container->addChild(frame);
+            
+            // Icon
+            auto icon = cugl::scene2::PolygonNode::allocWithTexture(texture);
+            if (e.selfCast) {
+                icon->setContentSize(35,35);
+            } else {
+                icon->setContentSize(32,32);
+            }
+            icon->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            icon->setPosition(container->getContentSize() / 2.0f);
+            icon->setName(iconName);
+            container->addChild(icon);
+            
+            // Pie overlay
             auto pie = cugl::scene2::SpriteNode::allocWithSheet(_assets->get<cugl::graphics::Texture>("pieTimer"), 1, 5);
             pie->setAnchor(cugl::Vec2::ANCHOR_CENTER);
-            pie->setPosition(icon->getContentSize() / 2.0f);
+            pie->setPosition(container->getContentSize() / 2.0f);
             pie->setFrame(0);
-            icon->addChild(pie);
-            icon->doLayout();
+            container->addChild(pie);
+            
+            container->doLayout();
             
             _effectIcons.push_back({
                 e.effectType,
                 e.itemId,
-                icon,
+                container,
                 pie,
                 e.duration,
-                e.duration
+                e.duration,
+                e.selfCast
             });
         }
     }
@@ -3020,6 +3047,12 @@ void GameScene::applyFrenzyEffect(float itemInterval, float duration) {
     }
 
     _itemController.applyFrenzy(itemInterval, duration);
+    spawnEffectIcons({{
+        ItemDef::EffectType::Frenzy,
+        "",
+        duration,
+        false
+    }});
     _passedItemIds.clear();
     syncInventoryWidgets();
 }

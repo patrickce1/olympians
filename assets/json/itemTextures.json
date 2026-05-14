@@ -179,6 +179,12 @@
         },
         "icon_slow": {
             "file": "textures/items/timers/slowTimer.png"
+        },
+        "timerFrameSelf": {
+            "file": "textures/items/timers/timerFrameSelf.png"
+        },
+        "timerFrameReceived": {
+            "file": "textures/items/timers/timerFrameReceived.png"
         }
     }
 }

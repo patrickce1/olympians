@@ -25,6 +25,7 @@ public:
         ItemDef::EffectType effectType;
         std::string itemId;
         float duration;
+        bool selfCast = true;
     };
     
 private:
@@ -472,6 +473,17 @@ public:
         auto out = _effectEvents;
         _effectEvents.clear();
         return out;
+    }
+    
+    /**
+     * Pushes a received (non-self-cast) effect event onto the queue.
+     * Called when another player applies a timed effect to this player.
+     *
+     * @param type      The effect type applied.
+     * @param duration  The duration of the effect in seconds.
+     */
+    void pushReceivedEffectEvent(ItemDef::EffectType type, float duration) {
+        _effectEvents.push_back({ type, "", duration, false });
     }
     
 };
