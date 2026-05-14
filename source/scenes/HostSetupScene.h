@@ -122,6 +122,9 @@ protected:
 
     /** Number of frames the finger has been moving horizontally. */
     int _swipeHoldFrames = 0;
+    
+    /** Counts down frames at activation before the tutorial auto-slide begins. */
+    int _tutorialSlideDelay = 0;
 
 public:
 #pragma mark -
@@ -315,6 +318,17 @@ private:
      * @param currentIndex The index of the card we are at.
      */
     void updateCarouselDots(int currentIndex);
+    
+    /**
+     * Applies lock visuals to every non-Circe card when the tutorial has not
+     * yet been completed, and removes those visuals once it has. Also disables
+     * the START button when the carousel is resting on a locked card so the
+     * player cannot launch a boss they shouldn't access yet.
+     *
+     * Called from setActive(true) and every frame in update() so the state
+     * stays in sync if tutorialCompleted changes mid-session.
+     */
+    void updateTutorialLocks();
     
     /** Loads boss definitions from the enemies JSON to use in selection. */
     bool loadBosses();

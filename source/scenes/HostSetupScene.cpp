@@ -205,32 +205,40 @@ void HostSetupScene::setActive(bool value) {
         Scene2::setActive(value);
         if (value) {
             _status = WAIT;
-            _currentIndex = 1;
             _isAnimating = false;
             _isSwiping            = false;
             _swipeContainerStartX = 0.0f;
             _swipeTouchInitialPos = cugl::Vec2::ZERO;
             _swipeHoldFrames      = 0;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
-            float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
+            float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);;
+            if (!SavedDataManager::get().getTutorialCompleted()){
+                _currentIndex = 3;
+                startX -= 2.0f * (ROLE_CARD_WIDTH);
+                updateCarouselDots(3);
+            } else {
+                _currentIndex = 1;
+                updateCarouselDots(1);
+            }
             _bossSelectionCardContainer->setPosition(Vec2(startX, pos.y));
             _slideTarget = Vec2(startX, pos.y);
-            updateCarouselDots(1);
+            _tutorialSlideDelay = !SavedDataManager::get().getTutorialCompleted() ? 35 : 0;
             
             // Reset all glow overlays and illuminate only the starting card (index 1).
             for (int i = 0; i < (int)_bossCards.size(); i++) {
                 auto glow = _bossCards[i]->getChildByName("glowOverlay");
-                if (glow) glow->setVisible(i == 1);
+                if (glow) glow->setVisible(i == _currentIndex);
             }
             
             _leftButton->setVisible(true);
-            _rightButton->setVisible(true);
+            _rightButton->setVisible(_currentIndex!=3);
             _startGame->activate();
             _leftButton->activate();
             _rightButton->activate();
             _backButton->activate();
             _joinButton->activate();
             _settingsButton->activate();
+            updateTutorialLocks();
         } else {
             _isSwiping            = false;
             _swipeContainerStartX = 0.0f;
@@ -300,6 +308,14 @@ void HostSetupScene::update(float timestep, InputController& input) {
     handleSwipeBegin(input);
     handleSwipeTracking(input);
     handleSwipeRelease(input);
+    updateTutorialLocks();
+    if (!SavedDataManager::get().getTutorialCompleted() && (_currentIndex != 0 && !_isAnimating)){
+        if (_tutorialSlideDelay > 0) {
+            _tutorialSlideDelay--;
+        } else {
+            slideTo(_currentIndex - 1);
+        }
+    }
 }
 
 /**
@@ -593,4 +609,46 @@ void HostSetupScene::snapToNearestBoss(float releaseContainerX) {
     }
 
     updateCarouselDots(nearestIndex);
+}
+
+/**
+ * Applies lock visuals to every non-Circe card when the tutorial has not
+ * yet been completed, and removes those visuals once it has. Also disables
+ * the START button when the carousel is resting on a locked card so the
+ * player cannot launch a boss they shouldn't access yet.
+ *
+ * Called from setActive(true) and every frame in update() so the state
+ * stays in sync if tutorialCompleted changes mid-session.
+ */
+void HostSetupScene::updateTutorialLocks() {
+    bool tutorialDone = SavedDataManager::get().getTutorialCompleted();
+
+    const auto& allBosses = _enemyLoader.getAllOrdered();
+    for (int i = 0; i < (int)_bossCards.size(); i++) {
+        auto card = _bossCards[i];
+        if (!card) continue;
+
+        bool isCirce = (i < (int)allBosses.size() && allBosses[i].id == "circe");
+        bool locked  = !tutorialDone && !isCirce;
+
+        auto overlay = card->getChildByName("lockedOverlay");
+        if (overlay) overlay->setVisible(locked);
+        
+        if (locked) {
+            card->setColor(cugl::Color4(80, 80, 80, 255));
+        } else {
+            card->setColor(cugl::Color4::WHITE);
+        }
+    }
+
+    // Disable START when the current card is tutorial-locked
+    bool currentIsCirce = (_currentIndex < (int)allBosses.size() &&
+                           allBosses[_currentIndex].id == "circe");
+    bool currentLocked  = !tutorialDone && !currentIsCirce;
+
+    if (currentLocked) {
+        _startGame->deactivate();
+    } else if (isActive()) {
+        _startGame->activate();
+    }
 }
