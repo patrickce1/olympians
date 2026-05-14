@@ -271,6 +271,14 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
 // SECTION 5 — Boss specific mechanics
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Verifies that startCorrosive() enables the corrosive attack on the specified player.
+ * Checks that the flag is off initially, then on after activation, and that the target
+ * slot is stored correctly.
+ *
+ * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
+ * @param housesJsonPath   Unused; present for signature consistency with other tests.
+ */
 static void testCerberusCorrosiveActivation(const std::string& enemiesJsonPath,
     const std::string& housesJsonPath) {
     auto cerberus = std::make_shared<Cerberus>();
@@ -289,6 +297,15 @@ static void testCerberusCorrosiveActivation(const std::string& enemiesJsonPath,
     expect(cerberus->getCorrosiveTarget() == 0, "cerberus corrosive: target set to player 0");
 }
 
+/**
+ * Verifies the drain flag timing for an active corrosive attack.
+ * The first drain must fire immediately on startCorrosive() so GameScene can begin
+ * item-removal animations on the same frame. Subsequent drains fire once per
+ * CORROSIVE_DRAIN_INTERVAL and the flag is consumed (reset to false) after each read.
+ *
+ * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
+ * @param housesJsonPath   Unused; present for signature consistency with other tests.
+ */
 static void testCerberusCorrosiveDrainInterval(const std::string& enemiesJsonPath,
     const std::string& housesJsonPath) {
     auto cerberus = std::make_shared<Cerberus>();
@@ -309,6 +326,14 @@ static void testCerberusCorrosiveDrainInterval(const std::string& enemiesJsonPat
     expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain flag consumed after second check");
 }
 
+/**
+ * Verifies that the corrosive attack deactivates automatically once its duration elapses.
+ * Starts corrosive with a short duration, advances past it, and confirms
+ * isCorrosiveActive() returns false and the target slot is cleared.
+ *
+ * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
+ * @param housesJsonPath   Unused; present for signature consistency with other tests.
+ */
 static void testCerberusCorrosiveExpiration(const std::string& enemiesJsonPath,
     const std::string& housesJsonPath) {
     auto cerberus = std::make_shared<Cerberus>();
@@ -329,6 +354,14 @@ static void testCerberusCorrosiveExpiration(const std::string& enemiesJsonPath,
     expect(cerberus->getCorrosiveTarget() == -1, "cerberus corrosive expiration: target cleared");
 }
 
+/**
+ * Verifies that endCorrosive() cancels an active corrosive attack immediately,
+ * without waiting for the natural duration to elapse.
+ * Checks that isCorrosiveActive() is false and the target slot is cleared after the call.
+ *
+ * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
+ * @param housesJsonPath   Unused; present for signature consistency with other tests.
+ */
 static void testCerberusCorrosiveEarlyEnd(const std::string& enemiesJsonPath,
     const std::string& housesJsonPath) {
     auto cerberus = std::make_shared<Cerberus>();
@@ -454,6 +487,13 @@ static void knockHeadFromSlot(const std::shared_ptr<Cerberus>& cerberus,
     cerberus->takeDamage(threshold + 1.0f, playerSlot);
 }
 
+/**
+ * Verifies that a head is knocked only when cumulative damage from its slot exceeds
+ * the knockedThreshold, and that the back-position (slot 2) is never knockable.
+ * Uses the front head (slot 0 with targetIndex 0) as the primary test case.
+ *
+ * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
+ */
 static void testCerberusHeadKnockFromDamage(const std::string& enemiesJsonPath) {
     auto cerberus = makeCerberus(enemiesJsonPath);
     if (!cerberus) return;
@@ -476,6 +516,14 @@ static void testCerberusHeadKnockFromDamage(const std::string& enemiesJsonPath) 
     expect(!cerberus->isHeadKnocked(2), "head knock: back position always unblocked");
 }
 
+/**
+ * Verifies the all-heads-knocked window: when all three physical heads are knocked,
+ * every side multiplier is set to ALL_HEADS_KNOCKED_MULTIPLIER (5x) and the first
+ * attack that lands during this window consumes it, waking all heads and resetting
+ * multipliers to 1x.
+ *
+ * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
+ */
 static void testCerberusAllHeadsKnockedMultiplier(const std::string& enemiesJsonPath) {
     auto cerberus = makeCerberus(enemiesJsonPath);
     if (!cerberus) return;
@@ -510,6 +558,13 @@ static void testCerberusAllHeadsKnockedMultiplier(const std::string& enemiesJson
         "all-heads-knocked: side multipliers reset to 1x after window");
 }
 
+/**
+ * Verifies that Cerberus cannot enter its defense state while any head is knocked.
+ * Confirms defense is allowed before any head is knocked, then blocked immediately
+ * after one head is knocked via damage.
+ *
+ * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
+ */
 static void testCerberusDefenseBlockedWhenHeadKnocked(const std::string& enemiesJsonPath) {
     auto cerberus = makeCerberus(enemiesJsonPath);
     if (!cerberus) return;
@@ -521,6 +576,13 @@ static void testCerberusDefenseBlockedWhenHeadKnocked(const std::string& enemies
     expect(!cerberus->canEnterDefenseState(), "cerberus defense: blocked while any head is knocked");
 }
 
+/**
+ * Verifies that a knocked head recovers automatically after knockedDuration seconds.
+ * After recovery, isHeadKnocked() returns false and defense is re-enabled.
+ * The knockedDuration value (12.0s) must match enemies.json.
+ *
+ * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
+ */
 static void testCerberusHeadRecovery(const std::string& enemiesJsonPath) {
     auto cerberus = makeCerberus(enemiesJsonPath);
     if (!cerberus) return;
@@ -537,6 +599,13 @@ static void testCerberusHeadRecovery(const std::string& enemiesJsonPath) {
     expect(cerberus->canEnterDefenseState(), "head recovery: defense re-enabled after head recovers");
 }
 
+/**
+ * Verifies the locked-victim API used to track which player slot Cerberus is
+ * currently targeting for its corrosive attack.
+ * Checks default state (-1), lockVictim(), and clearLockedVictim().
+ *
+ * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
+ */
 static void testCerberusLockedVictim(const std::string& enemiesJsonPath) {
     auto cerberus = makeCerberus(enemiesJsonPath);
     if (!cerberus) return;
