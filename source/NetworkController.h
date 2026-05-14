@@ -441,9 +441,10 @@ public:
 
     /**
     * HOST ONLY. Broadcasts the new player order.
-    * @param newMapping represents the new order, where newMapping[i] is the new slot that
-    * player i ended up in. For example, if newMapping[0] = 1, that means that the player
-    * at slot 0 ended up at slot 1 after the scramble
+    * 
+    * @param newMapping  represents the new order, where newMapping[i] is the new slot that
+    *                    player i ended up in. For example, if newMapping[0] = 1, that means that the player
+    *                    at slot 0 ended up at slot 1 after the scramble
     */
     void broadcastPlayerScramble(const std::array<int, 4>& newMapping);
 

@@ -2295,26 +2295,7 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
     applyTexture(_leftPlayerSlot, localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
 
-    bool concealIdentity = false;
-    if (enemy &&
-        enemy->getId() == "gaia" &&
-        _gaiaVineAnim)
-    {
-        float progress = 0.0f;
-
-        if (_gaiaVineAnim->duration > 0.0f) {
-            progress = _gaiaVineAnim->currentTime / _gaiaVineAnim->duration;
-        }
-
-        if (!_gaiaVineAnim->reversing) {
-            // Forward: conceal AFTER halfway
-            concealIdentity = (progress >= 0.5f);
-        }
-        else {
-            // Reverse: conceal UNTIL halfway (then reveal)
-            concealIdentity = (progress > 0.5f);
-        }
-    }
+    bool concealIdentity = gaiaShouldConcealIdentity();
 
     if (_leftPlayerName && _leftPlayerHouse) {
         if (concealIdentity) {
@@ -3293,6 +3274,36 @@ void GameScene::handleItemSpawn(float dt) {
         if (!player || !player->isAI()) continue;
         _itemController.update(dt, player.get());
     }
+}
+
+/** Checks if we are in a state where
+  * the house and names of the current player's neighbors should be concealed
+  *
+  * @return     true if we should conceal neighbor house and name
+  */
+bool GameScene::gaiaShouldConcealIdentity() {
+    auto enemy = _gameState.getEnemy();
+    bool concealIdentity = false;
+    if (enemy &&
+        enemy->getId() == "gaia" &&
+        _gaiaVineAnim)
+    {
+        float progress = 0.0f;
+
+        if (_gaiaVineAnim->duration > 0.0f) {
+            progress = _gaiaVineAnim->currentTime / _gaiaVineAnim->duration;
+        }
+
+        if (!_gaiaVineAnim->reversing) {
+            // Forward: conceal AFTER halfway
+            concealIdentity = (progress >= 0.5f);
+        }
+        else {
+            // Reverse: conceal UNTIL halfway (then reveal)
+            concealIdentity = (progress > 0.5f);
+        }
+    }
+    return concealIdentity;
 }
 
 #pragma mark Sliding Items Physics
@@ -4772,7 +4783,7 @@ void GameScene::refreshTeammateNameLabels() {
         _playerName->setText(local->getPlayerName());
     if (_playerHouseName) {
         std::string house = local->getHouseName();
-        for (char& c : house) c = toupper(c);
+        for (char& letter : house) letter = toupper(letter); //make house string all uppercase
         _playerHouseName->setText(house);
     }
 
@@ -4786,7 +4797,7 @@ void GameScene::refreshTeammateNameLabels() {
     }
     if (_leftPlayerHouse && left) {
         std::string house = left->getHouseName();
-        for (char& c : house) c = toupper(c);
+        for (char& letter : house) letter = toupper(letter);
         _leftPlayerHouse->setText(house);
     }
 
@@ -4800,7 +4811,7 @@ void GameScene::refreshTeammateNameLabels() {
     }
     if (_rightPlayerHouse && right) {
         std::string house = right->getHouseName();
-        for (char& c : house) c = toupper(c);
+        for (char& letter : house) letter = toupper(letter);
         _rightPlayerHouse->setText(house);
     }
 }

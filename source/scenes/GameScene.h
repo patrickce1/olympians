@@ -1142,8 +1142,15 @@ public:
     /** HOST ONLY. Custom method used by Gaia. This creates a new ordering for the players.
       * This new ordering is sent to the GameState to be applied to the local machine.
       * This also broadcasts the new ordering over the network for clients to apply respectively as well
-    */
+      */
     void handleGaiaScramble();
+
+    /** Checks if we are in a state where 
+      * the house and names of the current player's neighbors should be concealed
+      *
+      * @return     true if we should conceal neighbor house and name
+      */
+    bool gaiaShouldConcealIdentity();
     
     /**
      * Spawns items for the local player every frame, and for all AI-controlled
