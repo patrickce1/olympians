@@ -599,7 +599,7 @@ void GameState::networkUpdate(GameStateMessage newState) {
                                         runtimeEffects[i][8], runtimeEffects[i][9]);
 
         // Sync the vine effects for all players with the host
-        // We DON'T use applyVine here because that is for logic
+        // We DON'T use applyVine here because that is for logic on the host end
         _players[i]->setVineLeft(vineEffects[i][0]);
         _players[i]->setVineRight(vineEffects[i][1]);
 

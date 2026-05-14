@@ -3945,9 +3945,9 @@ void GameScene::updateDropZoneVisibility(){
         
         //Hide pass zones due to vining
         if (local) {
-            //If our left side is blocked or our left ally is being blocked from us
+            //If our left side is blocked or our left ally is being blocked from us, don't show left passing zone
             _passLeftArea->setVisible(!local->hasLeftVine() && !local->getLeftPlayer()->hasRightVine());
-            //If our rigth side is blocked or our right ally is being blocked from us
+            //If our rigth side is blocked or our right ally is being blocked from us, don't show right passing zone
             _passRightArea->setVisible(!local->hasRightVine() && !local->getRightPlayer()->hasLeftVine());
         }
         _attackArea->setVisible(false);
@@ -4721,10 +4721,11 @@ void GameScene::updateInputZones(){
         _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
     }
 
-    // Add pass zones based on 
+    // If we are not being blocked by a vine from either end, enable the left passing zone 
     if(!local->hasLeftVine() && !local->getLeftPlayer()->hasRightVine()){
         _inputZones.push_back(_passZones[0]);
     }
+    // If we are not being blocked by a vine from either end, enable the right passing zone 
     if(!local->hasRightVine() && !local->getRightPlayer()->hasLeftVine()){
         _inputZones.push_back(_passZones[1]);
     }

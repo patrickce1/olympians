@@ -330,9 +330,22 @@ void Player::updateEffects(float dt) {
         }
     }
 
-    /* Gaia timers */
-    if (hasLeftVine() || hasRightVine()) updateHealth(-_vineDPS * dt);
+    if (_lifestealDuration > 0.0f) {
+        _lifestealDuration = std::max(0.0f, _lifestealDuration - dt);
+        if (_lifestealDuration <= 0.0f) {
+            _lifestealMultiplier = 0.0f;
+            if (_debug) {
+                CULog("Lifesteal expired: player='%s' house='%s'",
+                    _playerName.c_str(),
+                    _houseId.c_str());
+            }
+        }
+    }
 
+    /* Apply damage from the vines */
+    if (hasLeftVine() || hasRightVine()) updateHealth(-_vineDPS * dt);
+    
+    /* Tick down Gaia timers */
     if (_leftVineDuration > 0.0f) {
         _leftVineDuration = std::max(0.0f, _leftVineDuration - dt);
         if (_leftVineDuration <= 0.0f) {
@@ -344,18 +357,6 @@ void Player::updateEffects(float dt) {
         _rightVineDuration = std::max(0.0f, _rightVineDuration - dt);
         if (_rightVineDuration <= 0.0f) {
             _hasRightVine = false;
-        }
-    }
-    
-    if (_lifestealDuration > 0.0f) {
-        _lifestealDuration = std::max(0.0f, _lifestealDuration - dt);
-        if (_lifestealDuration <= 0.0f) {
-            _lifestealMultiplier = 0.0f;
-            if (_debug) {
-                CULog("Lifesteal expired: player='%s' house='%s'",
-                    _playerName.c_str(),
-                    _houseId.c_str());
-            }
         }
     }
 }
