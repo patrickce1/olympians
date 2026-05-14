@@ -305,7 +305,9 @@ void EnemyController::resolveVineEvent(const std::shared_ptr<Enemy>& enemy, std:
         return;
     }
 
-    int targetIndex = wrapIndex(event.def.target, n);
+    int offset = event.def.target; // int offset from JSON
+    int targetIndex = wrapIndex(enemy->getTargetIndex() + offset, n);
+
     auto& target = players[targetIndex];
     if (!target || !target->isAlive()) {
         if (_debug) CULog("[EnemyController] Event: VINE fired but Player[%d] is dead or null",

@@ -332,10 +332,10 @@
                             "amount": 20.0
                         },
 			{
-			    "type": "VINES",
+			    "type": "VINE",
 			    "target": 0,
-			    "amount": 10,
-			    "duration": 2
+			    "amount": 5.0,
+			    "duration": 3.0
 			}
                     ],
                     "nextState": "idle"

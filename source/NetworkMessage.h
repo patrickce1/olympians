@@ -139,6 +139,8 @@ struct PlayerRuntimeEffectState {
     float charmDuration;
     float lifestealMultiplier;
     float lifestealDuration;
+    bool hasLeftVine;
+    bool hasRightVine;
 };
 
 /** Message sent by the host to other players about the current state of the game
@@ -215,6 +217,8 @@ struct GameStateMessage {
             float player1CharmDuration;
             float player1LifestealMultiplier;
             float player1LifestealDuration;
+            bool player1HasVineLeft;
+            bool player1HasVineRight;
             float player2ShieldMitigation;
             float player2ShieldDuration;
             float player2BarrierMultiplier;
@@ -225,6 +229,8 @@ struct GameStateMessage {
             float player2CharmDuration;
             float player2LifestealMultiplier;
             float player2LifestealDuration;
+            bool player2HasVineLeft;
+            bool player2HasVineRight;
             float player3ShieldMitigation;
             float player3ShieldDuration;
             float player3BarrierMultiplier;
@@ -235,6 +241,8 @@ struct GameStateMessage {
             float player3CharmDuration;
             float player3LifestealMultiplier;
             float player3LifestealDuration;
+            bool player3HasVineLeft;
+            bool player3HasVineRight;
             float player4ShieldMitigation;
             float player4ShieldDuration;
             float player4BarrierMultiplier;
@@ -245,6 +253,8 @@ struct GameStateMessage {
             float player4CharmDuration;
             float player4LifestealMultiplier;
             float player4LifestealDuration;
+            bool player4HasVineLeft;
+            bool player4HasVineRight;
         };
         PlayerRuntimeEffectState playerRuntimeEffects[kMaxPlayers];
     };

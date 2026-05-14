@@ -480,6 +480,8 @@ public:
 
     /* GAIA METHODS */
     /**
+     * HOST ONLY -> used for starting vine tracking logic
+     * 
      * Applies a Gaia vine bind to the player's left side.
      * Sets the left vine flag and initializes the timer.
      * If the left vine is already active, the timer is RESET to the new value.
@@ -491,6 +493,8 @@ public:
     void applyVineLeft(float timer, float dps);
 
     /**
+     * HOST ONLY -> used for starting vine tracking logic
+     * 
      * Applies a Gaia vine bind to the player's left side.
      * Sets the left vine flag and initializes the timer.
      * If the left vine is already active, the timer is RESET to the new value.
@@ -505,17 +509,33 @@ public:
     /**
      * Returns whether the player is currently vine bound on the left side.
      *
-     * @return True if a left-side Gaia vine bind is active
+     * @return   True if a left-side Gaia vine bind is active
      */
     bool hasLeftVine() const { return _hasLeftVine; }
 
     /**
      * Returns whether the player is currently vine bound on the right side.
      *
-     * @return True if a right-side Gaia vine bind is active
+     * @return   True if a right-side Gaia vine bind is active
      */
     bool hasRightVine() const { return _hasRightVine; }
 
-    
+    /**
+      * CLIENT ONLY -> used for tracking vine logic
+      * 
+      * Marks a player's left side as having or not having a vine
+      * 
+      * @param applied   if true, the player should have a left vine. If false, they should not
+      */
+    void setVineLeft(bool applied) { _hasLeftVine = applied; }
+
+    /**
+      * CLIENT ONLY -> used for tracking vine logic
+      *
+      * Marks a player's right side as having or not having a vine
+      *
+      * @param applied   if true, the player should have a right vine. If false, they should not
+      */
+    void setVineRight(bool applied) { _hasRightVine = applied; }
 };
 #endif /* !__PLAYER_H__ */

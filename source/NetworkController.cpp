@@ -40,6 +40,8 @@ void readPlayerRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage&
         effectState.charmDuration = deserializer.readFloat();
         effectState.lifestealMultiplier = deserializer.readFloat();
         effectState.lifestealDuration = deserializer.readFloat();
+        effectState.hasLeftVine = deserializer.readBool();
+        effectState.hasRightVine = deserializer.readBool();
     }
 
     for (int ii = 0; ii < kMaxPlayers; ++ii) {
@@ -76,6 +78,8 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
             serializer.writeFloat(player->getCharmDuration());
             serializer.writeFloat(player->getLifestealMultiplier());
             serializer.writeFloat(player->getLifestealDuration());
+            serializer.writeBool(player->hasLeftVine());
+            serializer.writeBool(player->hasRightVine());
         } else {
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
@@ -87,6 +91,8 @@ void writePlayerRuntimeState(NetcodeSerializer& serializer, const vector<shared_
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
             serializer.writeFloat(0.0f);
+            serializer.writeBool(false);
+            serializer.writeBool(false);
         }
     }
 
