@@ -20,13 +20,32 @@ void Cerberus::loadCustomData() {
     }
 }
 
+/**
+ * Initializes Cerberus without asset manager support.
+ * Delegates to Enemy::init and then loads boss-specific configuration from customData.
+ *
+ * @param enemyId   The unique enemy ID (should be "cerberus").
+ * @param jsonPath  Path to enemies.json.
+ * @return          True if initialization succeeds, false on error.
+ */
 bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath) {
+    // True if the base Enemy initialized successfully; propagated to the caller.
     bool success = Enemy::init("cerberus", jsonPath);
     loadCustomData();
     return success;
 }
 
+/**
+ * Initializes Cerberus with animation metadata from the AssetManager.
+ * Delegates to Enemy::init and then loads boss-specific configuration from customData.
+ *
+ * @param enemyId   The unique enemy ID (should be "cerberus").
+ * @param jsonPath  Path to enemies.json.
+ * @param assets    AssetManager containing enemyAnimations.json.
+ * @return          True if initialization succeeds, false on error.
+ */
 bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) {
+    // True if the base Enemy initialized successfully; propagated to the caller.
     bool success = Enemy::init("cerberus", jsonPath, assets);
     loadCustomData();
     return success;
@@ -113,6 +132,7 @@ void Cerberus::takeDamage(float damage, int playerIndex) {
     // The drain-shield state reverses damage to healing, so head knock thresholds
     // are not reduced — players are not actually dealing damage during this state.
     if (attackerRelativeSlot != 2 && getCurrentState() != EnemyLoader::State::DEFENSE_MOVE) {
+        // Left side (relative slot 3) maps to head index 2; all other non-back slots map directly.
         int headArrayIndex = (attackerRelativeSlot == 3) ? 2 : attackerRelativeSlot;
         if (!_heads[headArrayIndex].knocked) {
             _heads[headArrayIndex].knockedThreshold -= damage;
@@ -126,6 +146,14 @@ void Cerberus::takeDamage(float damage, int playerIndex) {
 /**
  * Starts the corrosive debuff on the given player for the given duration.
  * GameScene polls shouldDrainItem() each frame to remove one item per drain tick.
+ * The first drain tick fires immediately on the same frame this is called.
+ *
+ * @param playerIndex  Slot index of the player to afflict.
+ * @param duration     How long the debuff lasts in seconds.
+ * @param interval     Seconds between drain ticks (0 = use CORROSIVE_DRAIN_INTERVAL default).
+ * @param fadeDuration Base fade-out duration per item during the corrosive animation (0 = use default 0.9s).
+ * @param fadeVariance ±fraction applied randomly to fadeDuration per item, e.g. 0.3 = ±30% (0 = use default 0.3).
+ * @param maxAffected  Maximum number of items drained per corrosive hit (0 = no limit).
  */
 void Cerberus::startCorrosive(int playerIndex, float duration, float interval,
                                float fadeDuration, float fadeVariance, int maxAffected) {
@@ -143,7 +171,11 @@ void Cerberus::startCorrosive(int playerIndex, float duration, float interval,
                       _corrosiveFadeDuration, _corrosiveFadeVariance * 100.0f, _corrosiveMaxAffected);
 }
 
-/** Ends the corrosive effect early (e.g., when the player runs out of items). */
+/**
+ * Ends the corrosive effect early (e.g., when the player runs out of items).
+ * Resets all corrosive state: clears the active flag, timer, target, drain accumulator,
+ * and pending drain flag.
+ */
 void Cerberus::endCorrosive() {
     _corrosiveActive     = false;
     _corrosiveTimer      = 0.0f;
@@ -153,7 +185,12 @@ void Cerberus::endCorrosive() {
     if (_debug) CULog("[Cerberus] endCorrosive called");
 }
 
-/** Returns true (and clears the flag) if a drain tick fired this frame. */
+/**
+ * Returns true (and clears the flag) if a drain tick fired this frame.
+ * GameScene should call this once per frame and drain one item when it returns true.
+ *
+ * @return True if a drain tick is pending this frame; false otherwise.
+ */
 bool Cerberus::shouldDrainItem() {
     if (_shouldDrain) {
         _shouldDrain = false;
@@ -164,6 +201,8 @@ bool Cerberus::shouldDrainItem() {
 
 /**
  * Marks the head at the given array index as knocked and starts its recovery timer.
+ * If this knock causes all three heads to be downed simultaneously, sets the 5×
+ * damage multiplier on all non-back sides to signal the vulnerability window.
  *
  * @param headArrayIndex  Index into _heads[] (0=main, 1=right, 2=left).
  */

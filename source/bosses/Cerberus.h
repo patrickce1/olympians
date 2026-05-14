@@ -117,6 +117,7 @@ public:
     /** Duration in seconds that the corrosive debuff lasts. */
     static constexpr float CORROSIVE_DURATION = 20.0f;
 
+    /** Default constructor. */
     Cerberus() {}
 
     /**
@@ -159,16 +160,24 @@ public:
     /**
      * Applies the corrosive debuff to a player for the specified duration.
      * GameScene should poll shouldDrainItem() each frame to remove items.
+     * The first drain tick fires immediately on the same frame this is called.
      *
      * @param playerIndex  Slot index of the player to afflict.
      * @param duration     How long the debuff lasts in seconds.
      * @param interval     Seconds between drain ticks (0 = use CORROSIVE_DRAIN_INTERVAL default).
+     * @param fadeDuration Base fade-out duration per item during the corrosive animation (0 = use default 0.9s).
+     * @param fadeVariance ±fraction applied randomly to fadeDuration per item, e.g. 0.3 = ±30% (0 = use default 0.3).
+     * @param maxAffected  Maximum number of items drained per corrosive hit (0 = no limit).
      */
     void startCorrosive(int playerIndex, float duration, float interval = 0.0f,
                         float fadeDuration = 0.0f, float fadeVariance = 0.0f,
                         int maxAffected = 0);
 
-    /** Ends the corrosive effect early (e.g., when the player runs out of items). */
+    /**
+     * Ends the corrosive effect early (e.g., when the player runs out of items).
+     * Resets all corrosive state: clears the active flag, timer, target, drain accumulator,
+     * and pending drain flag.
+     */
     void endCorrosive();
 
     /**
@@ -196,28 +205,59 @@ public:
     /**
      * Returns true (and clears the flag) if a corrosive drain tick fired this frame.
      * GameScene should call this once per frame and drain one item when it returns true.
+     *
+     * @return True if a drain tick is pending this frame; false otherwise.
      */
     bool shouldDrainItem();
 
-    /** Returns true if the corrosive debuff is currently active on any player. */
+    /**
+     * Returns true if the corrosive debuff is currently active on any player.
+     *
+     * @return True while the debuff timer is running, false otherwise.
+     */
     bool isCorrosiveActive() const { return _corrosiveActive; }
 
-    /** Returns the active drain interval in seconds. */
+    /**
+     * Returns the active drain interval in seconds.
+     *
+     * @return Seconds between successive corrosive drain ticks.
+     */
     float getCorrosiveDrainInterval() const { return _corrosiveDrainInterval; }
 
-    /** Returns the base fade duration for corrosive item animations. */
+    /**
+     * Returns the base fade duration for corrosive item animations.
+     *
+     * @return Base seconds each item takes to fade out during the corrosive effect.
+     */
     float getCorrosiveFadeDuration() const { return _corrosiveFadeDuration; }
 
-    /** Returns the ±variance fraction applied randomly per item (e.g. 0.3 = ±30%). */
+    /**
+     * Returns the ±variance fraction applied randomly per item fade (e.g. 0.3 = ±30%).
+     *
+     * @return Variance fraction in [0, 1].
+     */
     float getCorrosiveFadeVariance() const { return _corrosiveFadeVariance; }
 
-    /** Returns the max items corroded per hit (0 = no limit). */
+    /**
+     * Returns the max items drained per corrosive hit.
+     *
+     * @return Maximum number of items affected; 0 means no limit.
+     */
     int getCorrosiveMaxAffected() const { return _corrosiveMaxAffected; }
 
-    /** Returns the player slot currently afflicted by corrosive, or -1 if none. */
+    /**
+     * Returns the player slot currently afflicted by the corrosive debuff.
+     *
+     * @return Absolute player slot (0–3), or -1 if no player is currently corroded.
+     */
     int getCorrosiveTarget() const { return _corrosiveTarget; }
 
-    /** Returns true (and clears the flag) if a head was knocked since the last call. */
+    /**
+     * Returns true (and clears the flag) if a head was knocked since the last call.
+     * Used by GameScene to play the head-knock sound exactly once per knock event.
+     *
+     * @return True if a head knock occurred since the last call; false otherwise.
+     */
     bool consumeHeadKnockSound() {
         bool pending = _headKnockSoundPending;
         _headKnockSoundPending = false;
@@ -227,12 +267,22 @@ public:
     /** Damage multiplier applied when a player strikes any non-back head while all three heads are knocked simultaneously. */
     static constexpr float ALL_HEADS_KNOCKED_MULTIPLIER = 5.0f;
 
-    /** Returns true if all three heads (main, right, left) are simultaneously knocked. */
+    /**
+     * Returns true if all three heads (main, right, left) are simultaneously knocked.
+     * Used to detect the vulnerability window for the 5× damage multiplier.
+     *
+     * @return True if all three heads are currently in the knocked state.
+     */
     bool allHeadsKnocked() const {
         return _heads[0].knocked && _heads[1].knocked && _heads[2].knocked;
     }
 
-    /** Blocks the defense state while any head is knocked — the drain shield requires all heads active. */
+    /**
+     * Blocks the defense state while any head is knocked.
+     * The defense state requires all heads to be active to enter.
+     *
+     * @return True if no heads are currently knocked; false if any head is downed.
+     */
     bool canEnterDefenseState() const override {
         return !_heads[0].knocked && !_heads[1].knocked && !_heads[2].knocked;
     }
@@ -240,6 +290,8 @@ public:
     /**
      * Returns the cumulative animation speed multiplier contributed by active frantic tiers.
      * Returns 1.0 at full health; each crossed threshold adds _franticRate to the result.
+     *
+     * @return Speed multiplier >= 1.0; higher values mean faster idle animations.
      */
     float getFranticSpeedMultiplier() const {
         float speedMultiplier = 1.0f;
@@ -252,6 +304,7 @@ public:
      * Returns true if the head facing the given absolute player slot is currently knocked.
      *
      * @param playerSlot  Absolute slot index (0-3) of the player whose side to check.
+     * @return            True if that head is currently downed; false if active or back position.
      */
     bool isHeadKnocked(int playerSlot) const {
         int relativeSlot = (playerSlot - getTargetIndex() + 4) % 4;
@@ -265,6 +318,7 @@ public:
      * head (checks right then left). Returns -1 if both side heads are knocked.
      *
      * @param targetIndex  The enemy's current target player slot.
+     * @return             Absolute player slot of an available side head, or -1 if none.
      */
     int getAlternateKnockedHead(int targetIndex) const {
         if (!_heads[1].knocked) return (targetIndex + 1) % 4;  // right head
