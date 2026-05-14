@@ -3621,9 +3621,14 @@ void GameScene::updateDropZoneVisibility(){
     if (_draggedItemId != 0) {
         auto local = _gameState.getLocalPlayer();
         bool localAlive = local && local->isAlive();
-
-        _passLeftArea->setVisible(true);
-        _passRightArea->setVisible(true);
+        
+        //Hide pass zones due to vining
+        if (local) {
+            //If our left side is blocked or our left ally is being blocked from us
+            _passLeftArea->setVisible(!local->hasLeftVine() && !local->getLeftPlayer()->hasRightVine());
+            //If our rigth side is blocked or our right ally is being blocked from us
+            _passRightArea->setVisible(!local->hasRightVine() && !local->getRightPlayer()->hasLeftVine());
+        }
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
@@ -4385,24 +4390,15 @@ void GameScene::render() {
 void GameScene::updateInputZones(){
     Player* local = _gameState.getLocalPlayer();
     
-    // Dead players can only pass items or put them in inventory
-    // They cannot attack or support
-    if (local && !local->isAlive()) {
-        _inputZones = _passZones;
-        if (!local->hasLeftVine()) {
-            //insert left
-        }
-        if (!local->hasRightVine()) {
-            //insert right
-        }
-        _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
-    } else {
-        // Alive players have access to all zones
+    // Alive players can attack and support
+    if (local && local->isAlive()) {
         _inputZones = _attackZones;
         _inputZones.insert(_inputZones.end(), _supportZones.begin(), _supportZones.end());
-        _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
         _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
     }
+
+    // Add pass zones based on 
+
 }
 
 /**
