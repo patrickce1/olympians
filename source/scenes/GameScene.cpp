@@ -977,7 +977,8 @@ void GameScene::setActive(bool value) {
             if (_currentVisibleAnimationSprite) {
                 _currentVisibleAnimationSprite->setVisible(false);
             }
-            _isTutorial = (_gameState.getEnemy()->getId() == "circe") && !SavedDataManager::get().getTutorialCompleted();;
+            _isTutorial = (_gameState.getEnemy()->getId() == "circe") && (!SavedDataManager::get().getTutorialCompleted() || _forceTutorial);
+            _forceTutorial = false;
             if (_isTutorial && !_tutorialController.isActive()) {
                 _tutorialController.init(this, _assets);
                 _tutorialController.loadFromFile("json/tutorial.json");

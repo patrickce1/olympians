@@ -449,8 +449,9 @@ void LobbyScene::update(float timestep, InputController& input) {
         _network->broadcastHostsCurrentScene(2);
     }
     
-    if (_network->getEnemy() == "circe" && _network->isHost() && !SavedDataManager::get().getTutorialCompleted()) {
+    if (_network->getEnemy() == "circe" && _network->isHost() && (!SavedDataManager::get().getTutorialCompleted() || _forceTutorial)) {
         _network->setLocalHouse("athena");
+        _forceTutorial = false;
 
         // Sync the house to GameState before starting the game so AI doesn't pick Athena
         int localIndex = _network->getLocalPlayerNumber();

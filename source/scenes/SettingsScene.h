@@ -64,6 +64,9 @@ protected:
 
     /** Called when the SFX slider changes, passes new multiplier value */
     std::function<void(float)> _onSFXVolumeChange;
+    
+    /** Set to true when the user taps the tutorial replay button. */
+    bool _pendingTutorial = false;
 
 public:
 #pragma mark -
@@ -148,6 +151,15 @@ public:
         if (_onMusicVolumeChange) _onMusicVolumeChange(music);
         if (_onSFXVolumeChange)   _onSFXVolumeChange(sfx);
 
+    }
+    
+    /**
+     * Returns true if the user has requested to replay the tutorial, then resets the flag.
+     */
+    bool shouldStartTutorial() {
+        bool val = _pendingTutorial;
+        _pendingTutorial = false;
+        return val;
     }
 
 #pragma mark -

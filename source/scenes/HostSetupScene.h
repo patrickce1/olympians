@@ -128,6 +128,9 @@ protected:
     
     /** True if the player just completed the tutorial — show the settings hint popup on next activation. */
     bool _pendingTutorialCompletePopup = false;
+    
+    /** Set to true when SceneLoader wants to immediately start Circe with tutorial. */
+    bool _pendingTutorialStart = false;
 
 public:
 #pragma mark -
@@ -287,6 +290,12 @@ public:
      * Call this from SceneLoader after GameScene ends a tutorial session.
      */
     void setPendingTutorialCompletePopup() { _pendingTutorialCompletePopup = true; }
+    
+    /**
+     * Schedules an immediate tutorial start on next activation.
+     * Called by SceneLoader when the player taps "Replay Tutorial" in settings.
+     */
+    void setPendingTutorialStart() { _pendingTutorialStart = true; }
 
 private:
     /**

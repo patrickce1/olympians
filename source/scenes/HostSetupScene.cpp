@@ -239,7 +239,8 @@ void HostSetupScene::setActive(bool value) {
             _joinButton->activate();
             _settingsButton->activate();
             updateTutorialLocks();
-            
+    
+            //Tutorial completion pop up
             if (_pendingTutorialCompletePopup) {
                 _pendingTutorialCompletePopup = false;
                 if (_errorPopup) {
@@ -296,6 +297,16 @@ void HostSetupScene::updateText(const std::shared_ptr<scene2::Button>& button, c
  * @param input         The input controller instance
  */
 void HostSetupScene::update(float timestep, InputController& input) {
+    
+    //Forced Tutorial Start from settings
+    if (_pendingTutorialStart) {
+        _pendingTutorialStart = false;
+        slideTo(0); // Circe
+        //Start game and set the bots' houses
+        _startGame->setDown(true);
+        _startGame->setDown(false);
+    }
+    
     // Auto-dismiss the error popup after ERROR_DISPLAY_TIME seconds.
     if (_errorPopup && _errorPopup->isVisible()) {
         _errorTimer += timestep;

@@ -153,6 +153,9 @@ protected:
      * treated as a tap.
      */
     int _dragHoldFrames = 0;
+    
+    /** Set to true when the tutorial was triggered from settings, forcing a Circe auto-start. */
+    bool _forceTutorial = false;
 
 public:
 #pragma mark -
@@ -289,6 +292,9 @@ public:
      *@param message  The "[Name] disconnected" string to display.
      */
     void showDisconnectBanner(const std::string& message);
+    
+    /** Forces the tutorial to run on the next game start, regardless of saved state. */
+    void setForceTutorial() { _forceTutorial = true; }
 
 private:
     /**

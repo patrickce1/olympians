@@ -122,7 +122,12 @@ void SettingsScene::setupListeners() {
         if (_onMusicVolumeChange) _onMusicVolumeChange(value);
     });
     
-    // Add listener for _tutorialButton
+    _tutorialButton->addListener([this](const std::string& name, bool down) {
+        if (!down) {
+            _pendingTutorial = true;
+            _pendingClose = true;
+        }
+    });
 }
 
 /**
