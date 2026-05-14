@@ -18,7 +18,7 @@ public:
         DEFENSE_MOVE,
     };
 
-    enum class EventType { DAMAGE, HEAL, SIDE_MODIFIER, CORROSIVE, UNKNOWN };
+    enum class EventType { DAMAGE, HEAL, SIDE_MODIFIER, CORROSIVE, PLAYER_SCRAMBLE, UNKNOWN };
 
     // Enum that tracks which boss this is
     enum Boss {
@@ -96,6 +96,7 @@ private:
         if (s == "HEAL")          return EventType::HEAL;
         if (s == "SIDE_MODIFIER") return EventType::SIDE_MODIFIER;
         if (s == "CORROSIVE")     return EventType::CORROSIVE;
+        if (s == "PLAYER_SCRAMBLE") return EventType::PLAYER_SCRAMBLE;
         return EventType::UNKNOWN;
     }
 
@@ -270,11 +271,19 @@ public:
                             eventDef.type == EventType::CORROSIVE) {
                             eventDef.target = eventJson->getInt("target", 0);
                         }
+
                         eventDef.amount       = eventJson->getFloat("amount", 0.0f);
                         eventDef.interval     = eventJson->getFloat("interval", 0.0f);
                         eventDef.fadeDuration = eventJson->getFloat("fadeDuration", 0.0f);
                         eventDef.fadeVariance = eventJson->getFloat("fadeVariance", 0.0f);
                         eventDef.maxAffected  = eventJson->getInt("maxAffectedItems", 0);
+
+                        //player scramble has no amount or duration, it just happens
+                        if (eventDef.type != EventType::PLAYER_SCRAMBLE) {
+                            eventDef.amount = eventJson->getFloat("amount", 0.0f);
+                            eventDef.duration = eventJson->getFloat("duration", 0.0f);
+                        }
+                        
                         out.push_back(eventDef);
                     }
                 };

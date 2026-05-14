@@ -830,6 +830,9 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     
     _tutorialTimeline = ActionTimeline::alloc();
     setActive(false);
+
+    // Seed RNG once for host-authoritative shuffle operations
+    _rng = std::mt19937(std::random_device{}());
     return true;
 }
 
@@ -1071,6 +1074,14 @@ void GameScene::reset() {
 
     // Clear any active animations before resetting
     clearItemUseAnimations();
+
+    // Clean up Gaia vine overlay if it was active when the scene disposed
+    if (_gaiaVineAnim) {
+        if (_gaiaVineAnim->leftNode)  _gaiaVineAnim->leftNode->removeFromParent();
+        if (_gaiaVineAnim->rightNode) _gaiaVineAnim->rightNode->removeFromParent();
+        _gaiaVineAnim.reset();
+    }
+
     for (auto& popupAnim : _activeFloatingPopups) {
         if (popupAnim.node) popupAnim.node->removeFromParent();
     }
@@ -1762,7 +1773,9 @@ void GameScene::updateEnemyAndAI(float dt) {
     float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
     float enemyHealthBefore = enemy->getCurrentHealth();
 
-    _enemyController.update(dt, enemy, _gameState.getPlayers());
+    if (_network->isHost()) {
+        _enemyController.update(dt, enemy, _gameState.getPlayers());
+    }
 
     // Play shield block sound if local player's shield absorbed damage this update
     if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
@@ -1778,6 +1791,10 @@ void GameScene::updateEnemyAndAI(float dt) {
     
     // Play sounds for LOCAL player and enemy health changes after all updates
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
+
+    if (_network->isHost() && _enemyController.didFireScrambleEvent()) {
+        handleGaiaScramble();
+    }
 }
 
 /**
@@ -2383,6 +2400,13 @@ void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
         
         CULog("State animation changed to: %s", stateDef->animationKey.c_str());
         switchVisibleAnimation(stateDef->animationKey);
+
+        // Gaia vine overlay
+        if (enemy->getId() == "gaia"
+            && enemy->getCurrentState() == EnemyLoader::State::ATTACK_3
+            && stateDef->buildUpTime > 0.0f) {
+            startGaiaVineAnimation();
+        }
     }
     
     // Ensure sprite exists
@@ -2924,24 +2948,65 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
     if (!localPlayer) return;
 
     // Given each player and their respective slot, set the texture depending on their health state.
+    auto enemy = _gameState.getEnemy();
+
     auto applyTexture = [&](auto slot, auto player) {
         if (!slot || !player) return;
         slot->setTexture(_assets->get<cugl::graphics::Texture>(
             getHealthTexture(
                 getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
-                             player->getHouseName()
+                player->getHouseName()
             ))
         );
         slot->setScale(0.5f);
-    };
+        };
 
     applyTexture(_localPlayerSlot, localPlayer);
-    applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
+    applyTexture(_leftPlayerSlot, localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
+
+    bool concealIdentity = gaiaShouldConcealIdentity();
+
+    if (_leftPlayerName && _leftPlayerHouse) {
+        if (concealIdentity) {
+            _leftPlayerName->setText("???");
+            _leftPlayerHouse->setText("???");
+        }
+        else {
+            Player* left = localPlayer->getLeftPlayer();
+            if (left) {
+                _leftPlayerName->setText(left->isAI()
+                    ? "AI Player " + std::to_string(left->getPlayerNumber())
+                    : left->getPlayerName());
+                std::string house = left->getHouseName();
+                for (char& letter : house) letter = toupper(letter);
+                _leftPlayerHouse->setText(house);
+            }
+        }
+    }
+
+    if (_rightPlayerName && _rightPlayerHouse) {
+        if (concealIdentity) {
+            _rightPlayerName->setText("???");
+            _rightPlayerHouse->setText("???");
+        }
+        else {
+            Player* right = localPlayer->getRightPlayer();
+            if (right) {
+                _rightPlayerName->setText(right->isAI()
+                    ? "AI Player " + std::to_string(right->getPlayerNumber())
+                    : right->getPlayerName());
+                std::string house = right->getHouseName();
+                for (char& letter : house) letter = toupper(letter);
+                _rightPlayerHouse->setText(house);
+            }
+        }
+    }
+
     updateTeammateBlink(_leftPlayerSlot, localPlayer->getLeftPlayer(),
-                        _lastLeftPlayerHealth, _leftPlayerDamageBlinkTimer, _leftPlayerHealBlinkTimer, dt);
+        _lastLeftPlayerHealth, _leftPlayerDamageBlinkTimer, _leftPlayerHealBlinkTimer, dt);
     updateTeammateBlink(_rightPlayerSlot, localPlayer->getRightPlayer(),
-                        _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer, _rightPlayerHealBlinkTimer, dt);
+        _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer, _rightPlayerHealBlinkTimer, dt);
 }
 
 /**
@@ -3069,6 +3134,187 @@ void GameScene::slideReleasedItem(ItemInstance::ItemId itemId) {
         }
         
         startItemSliding(itemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
+    }
+}
+
+/**
+ * Spawns a Gaia vine SpriteNode over both ally icon widgets.
+ * Creates two SpriteNodes from the 4x3 sprite sheet, positions each over
+ * the left/right icon's playerIcon node, and adds them as children so they
+ * render in the same coordinate space as the icon. Called once on ATTACK_3
+ * state entry
+ */
+void GameScene::startGaiaVineAnimation() {
+    if (_gaiaVineAnim) return;
+
+    const int rows = 3;
+    const int cols = 4;
+    const int frameCount = 12;
+
+    auto texture = _assets->get<cugl::graphics::Texture>("gaiaVine");
+    if (!texture) {
+        CULog("ERROR: gaiaVine texture not found");
+        return;
+    }
+
+    GaiaVineAnimation anim;
+    anim.frameCount = frameCount;
+    anim.currentFrame = -1;
+
+    // Left ally overlay
+    if (_leftPlayerSlot) {
+        auto node = cugl::scene2::SpriteNode::allocWithSheet(texture, rows, cols, frameCount);
+        if (node) {
+            node->setFrame(0);
+            node->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+
+            cugl::Size iconSize = _leftPlayerSlot->getContentSize();
+
+            // center on icon
+            node->setPosition({
+                iconSize.width * 0.5f,
+                iconSize.height * 0.65f
+                });
+
+            // scale to width of icon
+            float frameW = texture->getWidth() / (float)cols;
+            float scale = iconSize.width / frameW;
+
+            node->setScale(scale);
+
+            _leftPlayerSlot->addChild(node);
+            anim.leftNode = node;
+        }
+    }
+
+    // Right ally overlay, same logic as left side
+    if (_rightPlayerSlot) {
+        auto node = cugl::scene2::SpriteNode::allocWithSheet(texture, rows, cols, frameCount);
+        if (node) {
+            node->setFrame(0);
+            node->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+
+            cugl::Size iconSize = _rightPlayerSlot->getContentSize();
+
+            node->setPosition({
+                iconSize.width * 0.5f,
+                iconSize.height * 0.65f
+                });
+
+            float frameW = texture->getWidth() / (float)cols;
+            float scale = iconSize.width / frameW;
+
+            node->setScale(scale);
+
+            _rightPlayerSlot->addChild(node);
+            anim.rightNode = node;
+        }
+    }
+    anim.reversing = false; //when the animation is created this should always be false
+    anim.duration = _gameState.getEnemy()->getCurrentStateDef()->buildUpTime;
+    _gaiaVineAnim = anim;
+}
+
+/**
+ * Handles Gaia vine animation triggers based on enemy state changes.
+ *
+ * This function starts the vine animation when Gaia enters ATTACK_3,
+ * and initiates the reverse (retraction) phase when Gaia leaves ATTACK_3
+ *
+ * IMPORTANT:
+ * - This is purely visual and does not affect gameplay logic.
+ * - Forward animation follows enemy buildup progress (stateTime / buildUpTime).
+ * - Reverse animation is handled locally using currentTime and dt.
+ * - Must be called once per frame before updateGaiaVineAnimation().
+ *
+ * Behavior summary:
+ * - Enter ATTACK_3 -> start vine growth animation.
+ * - Exit ATTACK_3 or Aphrodite love effect -> trigger reverse animation.
+ * - Reverse completes -> animation cleans itself up in update.
+ */
+void GameScene::detectGaiaAnimationTriggers() {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return;
+
+    // If we're in ATTACK_3 start the animation if it hasn't started
+    if (enemy->getId() == "gaia" &&
+        enemy->getCurrentState() == EnemyLoader::State::ATTACK_3 &&
+        !_gaiaVineAnim)
+    {
+        startGaiaVineAnimation();
+    }
+
+    // If we entered another state mid-way
+    // Most likely means stun but this is scalable for other things too
+    if (_gaiaVineAnim &&
+        !_gaiaVineAnim->reversing &&
+        enemy->getCurrentState() != EnemyLoader::State::ATTACK_3)
+    {
+        _gaiaVineAnim->reversing = true;
+    }
+}
+
+/**
+ * Advances the Gaia vine overlay animation.
+ *
+ * When boss is in ATTACK_3, we use the enemy current state time to dermine the progress of the animation
+ *
+ * If the boss is not in ATTACK_3 but the animation is still active, it means it is reversing.
+ * Reversal ticks down its timer using dt and _gaiaVineAnim -> currentTime
+ *
+ * Animation done when the reversal part of the animation is done (because a reversal is guaranteed)
+ *
+ * @param dt  Delta time in seconds (used for reversal)
+ */
+void GameScene::updateGaiaVineAnimation(float dt) {
+    if (!_gaiaVineAnim) return;
+
+    auto& anim = *_gaiaVineAnim;
+
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return;
+
+    // Forward (follow enemy state) OR reverse (manual)
+    if (!anim.reversing) {
+        const auto* stateDef = enemy->getCurrentStateDef();
+        if (!stateDef || stateDef->buildUpTime <= 0.0f) return;
+
+        float time = std::min(1.0f,
+            enemy->getStateTime() / stateDef->buildUpTime);
+
+        anim.currentTime = time * anim.duration;
+    }
+    else {
+        // Reverse, goes at a faster rate than normal animation
+        anim.currentTime -= dt * 2;
+    }
+
+    // Clamp time
+    anim.currentTime = std::max(0.0f,
+        std::min(anim.currentTime, anim.duration));
+
+    // Compute normalized progress
+    float progress = (anim.duration > 0.0f)
+        ? (anim.currentTime / anim.duration)
+        : 0.0f;
+
+    // Convert to frame
+    int frameIndex = std::min(
+        (int)(progress * anim.frameCount),
+        anim.frameCount - 1
+    );
+
+    // Apply frame if changed
+    if (frameIndex != anim.currentFrame) {
+        anim.currentFrame = frameIndex;
+        if (anim.leftNode)  anim.leftNode->setFrame(frameIndex);
+        if (anim.rightNode) anim.rightNode->setFrame(frameIndex);
+    }
+
+    if (anim.reversing && anim.currentTime <= 0.0f) {
+        if (anim.leftNode)  anim.leftNode->removeFromParent();
+        if (anim.rightNode) anim.rightNode->removeFromParent();
+        _gaiaVineAnim.reset();
     }
 }
 
@@ -3324,6 +3570,13 @@ void GameScene::handleNetworkUpdates(float dt) {
     }
     else {
         // clients just apply the latest state from host
+        _gameState.networkUpdate(_network->getStateUpdate());
+        if (_network->checkMidGameScramble()) {
+            _gameState.applyPlayerScramble(_network->getPlayerScrambleMapping());
+            setLocalPlayer(_network->getLocalPlayerNumber());
+            _gaiaVineAnim->reversing = true;
+            _gaiaVineAnim->currentTime = _gaiaVineAnim->duration; //duration of the original animation
+        }
         GameStateMessage stateUpdate = _network->getStateUpdate();
         _gameState.networkUpdate(stateUpdate);
         syncFrenzyEffect(stateUpdate.frenzyItemInterval, stateUpdate.frenzyDuration);
@@ -3663,6 +3916,29 @@ void GameScene::handleGaiaSpawn() {
     return;
 }
 
+/** HOST ONLY. Custom method used by Gaia. This creates a new ordering for the players.
+  * This new ordering is sent to the GameState to be applied to the local machine
+  * This also broadcasts the new ordering over the network for clients to apply respectively as well
+  */
+void GameScene::handleGaiaScramble() {
+    // Build identity list [0,1,2,3]
+    std::array<int, 4> mapping = { 0, 1, 2, 3 };
+
+    //// Shuffle atomically (single final result)
+    std::shuffle(mapping.begin(), mapping.end(), _rng);
+
+    _gameState.applyPlayerScramble(mapping);
+    _network->applyPlayerScramble(mapping);
+    _network->broadcastPlayerScramble(mapping);
+
+    refreshTeammateNameLabels();
+    resetTeammateBlinkState();
+    updatePlayerAndTeammateIcons(0.0f); // reset icons
+    _gaiaVineAnim->reversing = true;
+    _gaiaVineAnim->currentTime = _gaiaVineAnim->duration; //duration of the original animation
+}
+
+
 /**
  * Checks if Cerberus's corrosive debuff should drain an item from the affected player.
  * If the drain timer has elapsed, removes a random item from the target player's inventory.
@@ -3785,6 +4061,36 @@ void GameScene::handleItemSpawn(float dt) {
         if (!player || !player->isAI()) continue;
         _itemController.update(dt, player.get());
     }
+}
+
+/** Checks if we are in a state where
+  * the house and names of the current player's neighbors should be concealed
+  *
+  * @return     true if we should conceal neighbor house and name
+  */
+bool GameScene::gaiaShouldConcealIdentity() {
+    auto enemy = _gameState.getEnemy();
+    bool concealIdentity = false;
+    if (enemy &&
+        enemy->getId() == "gaia" &&
+        _gaiaVineAnim)
+    {
+        float progress = 0.0f;
+
+        if (_gaiaVineAnim->duration > 0.0f) {
+            progress = _gaiaVineAnim->currentTime / _gaiaVineAnim->duration;
+        }
+
+        if (!_gaiaVineAnim->reversing) {
+            // Forward: conceal AFTER halfway
+            concealIdentity = (progress >= 0.5f);
+        }
+        else {
+            // Reverse: conceal UNTIL halfway (then reveal)
+            concealIdentity = (progress > 0.5f);
+        }
+    }
+    return concealIdentity;
 }
 
 #pragma mark Sliding Items Physics
@@ -4499,6 +4805,8 @@ void GameScene::update(float dt, InputController& input) {
     updateSlidingItems(dt);
     updateSnapbackAnimations(dt);
     updateItemUseAnimations(dt);
+    detectGaiaAnimationTriggers();
+    updateGaiaVineAnimation(dt);
     updateStunDamagePopups(dt);
     updatePopupAnimations(dt);
 
@@ -5413,17 +5721,41 @@ void GameScene::refreshTeammateNameLabels() {
     Player* local = _gameState.getLocalPlayer();
     if (!local) return;
 
-    if (_leftPlayerName && local->getLeftPlayer()) {
-        _leftPlayerName->setText(
-            local->getLeftPlayer()->isAI()
-                ? "AI Player " + std::to_string(local->getLeftPlayer()->getPlayerNumber())
-                : local->getLeftPlayer()->getPlayerName());
+    // Local player labels
+    if (_playerName)
+        _playerName->setText(local->getPlayerName());
+    if (_playerHouseName) {
+        std::string house = local->getHouseName();
+        for (char& letter : house) letter = toupper(letter); //make house string all uppercase
+        _playerHouseName->setText(house);
     }
-    if (_rightPlayerName && local->getRightPlayer()) {
+
+    // Left neighbor
+    Player* left = local->getLeftPlayer();
+    if (_leftPlayerName && left) {
+        _leftPlayerName->setText(
+            left->isAI()
+            ? "AI Player " + std::to_string(left->getPlayerNumber())
+            : left->getPlayerName());
+    }
+    if (_leftPlayerHouse && left) {
+        std::string house = left->getHouseName();
+        for (char& letter : house) letter = toupper(letter);
+        _leftPlayerHouse->setText(house);
+    }
+
+    // Right neighbor
+    Player* right = local->getRightPlayer();
+    if (_rightPlayerName && right) {
         _rightPlayerName->setText(
-            local->getRightPlayer()->isAI()
-                ? "AI Player " + std::to_string(local->getRightPlayer()->getPlayerNumber())
-                : local->getRightPlayer()->getPlayerName());
+            right->isAI()
+            ? "AI Player " + std::to_string(right->getPlayerNumber())
+            : right->getPlayerName());
+    }
+    if (_rightPlayerHouse && right) {
+        std::string house = right->getHouseName();
+        for (char& letter : house) letter = toupper(letter);
+        _rightPlayerHouse->setText(house);
     }
 }
 

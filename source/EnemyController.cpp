@@ -225,6 +225,17 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
 
 }
 
+/** Checks if a scramble event was fired after update() was called
+  * Resets the boolean after this is called. It should be called every frame 
+  * 
+  * @return   return a scramble event was fired off
+  */
+bool EnemyController::didFireScrambleEvent() {
+    bool returnValue = _scrambleFired;
+    _scrambleFired = false;
+    return returnValue;
+}
+
 /** Resolves the fired events (if any) of the enemy on this frame. Removes the processed events from the buffer. */
 void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players, const std::vector<Enemy::FiredEvent>& events) {
     for (const auto& event : events) {
@@ -240,6 +251,9 @@ void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, st
                 break;
             case EnemyLoader::EventType::CORROSIVE:
                 resolveCorrosiveEvent(enemy, players, event);
+                break;
+            case EnemyLoader::EventType::PLAYER_SCRAMBLE:
+                _scrambleFired = true;
                 break;
             default:
                 if (_debug) CULog("[EnemyController] Event: Unhandled event type in state '%s' for enemy '%s'", enemy->getStates().at(event.state).name.c_str(), enemy->getId().c_str());
