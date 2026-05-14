@@ -468,6 +468,15 @@ public:
      * @param name  The display name to assign.
      */
     void setPlayerName(const std::string& name) { _playerName = name; }
+
+    /**
+     * Sets the player number (slot index) of this player.
+     * Called after a scramble to keep the slot index
+     * consistent with the player's new position in the ring.
+     *
+     * @param number  The new zero-based slot index to assign.
+     */
+    void setPlayerNumber(int number) { _playerNumber = number; }
     
     std::vector<EffectEvent> getEffectEvents() {
         auto out = _effectEvents;

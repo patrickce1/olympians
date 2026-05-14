@@ -5,6 +5,7 @@
 #include <random>
 #include <sstream>
 #include <unordered_set>
+#include "../SavedDataManager.h"
 #include "GameScene.h"
 
 using namespace cugl;
@@ -225,9 +226,18 @@ static std::vector<int> collectDeadPartyPlayerSlots(const GameState& gameState) 
  * @param resolvedMagnitude  The resolved attack magnitude calculated for this item use.
  * @param playerIndex    The index of the player applying the enemy effect.
  * @param shouldApplyEffects  Whether the effects should be applied or not.
+ * @param houseAffinityMultiplier House-role and affinity multiplier for damage-bearing effects.
+ * @param upgradeMultiplier Upgrade streak multiplier for damage-bearing effects.
  * @return   The collection of enemy effects to be applied this frame.
  */
-static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, float resolvedMagnitude, int playerIndex, bool shouldApplyEffects) {
+static std::vector<EnemyEffectMessage> collectEnemyEffects(
+    const ItemDef& def,
+    float resolvedMagnitude,
+    int playerIndex,
+    bool shouldApplyEffects,
+    float houseAffinityMultiplier,
+    float upgradeMultiplier
+) {
     std::vector<EnemyEffectMessage> enemyEffects;
     if (!shouldApplyEffects) {
         return enemyEffects;
@@ -236,13 +246,14 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
     for (const ItemDef::Effect& effect : def.getEffects()) {
         EnemyEffectMessage effectMsg;
         effectMsg.duration = effect.duration;
+        effectMsg.delay = effect.delay;
         effectMsg.playerIndex = playerIndex;
         effectMsg.applyToAllSides = false;
 
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
                 effectMsg.effectType = EnemyEffectType::Stun;
-                effectMsg.magnitude = resolvedMagnitude;
+                effectMsg.magnitude = effect.amount * houseAffinityMultiplier * upgradeMultiplier;
                 enemyEffects.push_back(effectMsg);
                 break;
             case ItemDef::EffectType::Love:
@@ -331,6 +342,7 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
         network.broadcastEnemyEffect(effectMsg.effectType,
             effectMsg.magnitude,
             effectMsg.duration,
+            effectMsg.delay,
             effectMsg.playerIndex,
             effectMsg.applyToAllSides);
     }
@@ -828,6 +840,9 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     
     _tutorialTimeline = ActionTimeline::alloc();
     setActive(false);
+
+    // Seed RNG once for host-authoritative shuffle operations
+    _rng = std::mt19937(std::random_device{}());
     return true;
 }
 
@@ -999,7 +1014,8 @@ void GameScene::setActive(bool value) {
             if (_currentVisibleAnimationSprite) {
                 _currentVisibleAnimationSprite->setVisible(false);
             }
-            _isTutorial = (_gameState.getEnemy()->getId() == "circe");
+            _isTutorial = (_gameState.getEnemy()->getId() == "circe") && (!SavedDataManager::get().getTutorialCompleted() || _forceTutorial);
+            _forceTutorial = false;
             if (_isTutorial && !_tutorialController.isActive()) {
                 _tutorialController.init(this, _assets);
                 _tutorialController.loadFromFile("json/tutorial.json");
@@ -1047,11 +1063,20 @@ void GameScene::reset() {
 
     // Clear any active animations before resetting
     clearItemUseAnimations();
+
+    // Clean up Gaia vine overlay if it was active when the scene disposed
+    if (_gaiaVineAnim) {
+        if (_gaiaVineAnim->leftNode)  _gaiaVineAnim->leftNode->removeFromParent();
+        if (_gaiaVineAnim->rightNode) _gaiaVineAnim->rightNode->removeFromParent();
+        _gaiaVineAnim.reset();
+    }
+
     for (auto& popupAnim : _activeFloatingPopups) {
         if (popupAnim.node) popupAnim.node->removeFromParent();
     }
     _activeFloatingPopups.clear();
     _pendingFloatingPopups.clear();
+    _pendingStunDamagePopups.clear();
     _itemController.reset();
 
     std::vector<ItemInstance::ItemId> itemIds;
@@ -1185,7 +1210,8 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
 
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
     const std::vector<EnemyEffectMessage> enemyEffects =
-        collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects);
+        collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects,
+                            houseAffinityMultiplier, upgradeMultiplier);
 
     startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
     if (!_activeItemUseAnimations.empty()) {
@@ -1242,6 +1268,11 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     CULog("Player attacked enemy '%s' with item %llu (damage: %.1f, immediate)",
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
 
+    const std::vector<EnemyEffectMessage> enemyEffects =
+        collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects,
+                            houseAffinityMultiplier, upgradeMultiplier);
+    scheduleStunDamagePopups(enemyEffects, dropPos, houseAffinityMultiplier, upgradeMultiplier);
+
     if (!_network->isHost()) {
         //If we add an animation for gaia's rock we will have to move this to handleAnimatedAttack
         if (def->getId() == "gaia_rock") {
@@ -1250,7 +1281,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         else {
             _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
         }
-        broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects));
+        broadcastEnemyEffects(*_network, enemyEffects);
     }
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique("enemy_hurt");
@@ -1927,7 +1958,9 @@ void GameScene::updateEnemyAndAI(float dt) {
     float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
     float enemyHealthBefore = enemy->getCurrentHealth();
 
-    _enemyController.update(dt, enemy, _gameState.getPlayers());
+    if (_network->isHost()) {
+        _enemyController.update(dt, enemy, _gameState.getPlayers());
+    }
 
     // Play shield block sound if local player's shield absorbed damage this update
     if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
@@ -1943,6 +1976,10 @@ void GameScene::updateEnemyAndAI(float dt) {
     
     // Play sounds for LOCAL player and enemy health changes after all updates
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
+
+    if (_network->isHost() && _enemyController.didFireScrambleEvent()) {
+        handleGaiaScramble();
+    }
 }
 
 /**
@@ -2341,6 +2378,13 @@ void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
         
         CULog("State animation changed to: %s", stateDef->animationKey.c_str());
         switchVisibleAnimation(stateDef->animationKey);
+
+        // Gaia vine overlay
+        if (enemy->getId() == "gaia"
+            && enemy->getCurrentState() == EnemyLoader::State::ATTACK_3
+            && stateDef->buildUpTime > 0.0f) {
+            startGaiaVineAnimation();
+        }
     }
     
     // Ensure sprite exists
@@ -2478,24 +2522,65 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
     if (!localPlayer) return;
 
     // Given each player and their respective slot, set the texture depending on their health state.
+    auto enemy = _gameState.getEnemy();
+
     auto applyTexture = [&](auto slot, auto player) {
         if (!slot || !player) return;
         slot->setTexture(_assets->get<cugl::graphics::Texture>(
             getHealthTexture(
                 getHealthState(player->getCurrentHealth(), player->getMaxHealth()),
-                             player->getHouseName()
+                player->getHouseName()
             ))
         );
         slot->setScale(0.5f);
-    };
+        };
 
     applyTexture(_localPlayerSlot, localPlayer);
-    applyTexture(_leftPlayerSlot,  localPlayer->getLeftPlayer());
+    applyTexture(_leftPlayerSlot, localPlayer->getLeftPlayer());
     applyTexture(_rightPlayerSlot, localPlayer->getRightPlayer());
+
+    bool concealIdentity = gaiaShouldConcealIdentity();
+
+    if (_leftPlayerName && _leftPlayerHouse) {
+        if (concealIdentity) {
+            _leftPlayerName->setText("???");
+            _leftPlayerHouse->setText("???");
+        }
+        else {
+            Player* left = localPlayer->getLeftPlayer();
+            if (left) {
+                _leftPlayerName->setText(left->isAI()
+                    ? "AI Player " + std::to_string(left->getPlayerNumber())
+                    : left->getPlayerName());
+                std::string house = left->getHouseName();
+                for (char& letter : house) letter = toupper(letter);
+                _leftPlayerHouse->setText(house);
+            }
+        }
+    }
+
+    if (_rightPlayerName && _rightPlayerHouse) {
+        if (concealIdentity) {
+            _rightPlayerName->setText("???");
+            _rightPlayerHouse->setText("???");
+        }
+        else {
+            Player* right = localPlayer->getRightPlayer();
+            if (right) {
+                _rightPlayerName->setText(right->isAI()
+                    ? "AI Player " + std::to_string(right->getPlayerNumber())
+                    : right->getPlayerName());
+                std::string house = right->getHouseName();
+                for (char& letter : house) letter = toupper(letter);
+                _rightPlayerHouse->setText(house);
+            }
+        }
+    }
+
     updateTeammateBlink(_leftPlayerSlot, localPlayer->getLeftPlayer(),
-                        _lastLeftPlayerHealth, _leftPlayerDamageBlinkTimer, _leftPlayerHealBlinkTimer, dt);
+        _lastLeftPlayerHealth, _leftPlayerDamageBlinkTimer, _leftPlayerHealBlinkTimer, dt);
     updateTeammateBlink(_rightPlayerSlot, localPlayer->getRightPlayer(),
-                        _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer, _rightPlayerHealBlinkTimer, dt);
+        _lastRightPlayerHealth, _rightPlayerDamageBlinkTimer, _rightPlayerHealBlinkTimer, dt);
 }
 
 /**
@@ -2624,6 +2709,187 @@ void GameScene::slideReleasedItem(ItemInstance::ItemId itemId) {
         }
         
         startItemSliding(itemId, dropVelocity, ItemInstance::SlideOriginType::SLIDE_FROM_DROP);
+    }
+}
+
+/**
+ * Spawns a Gaia vine SpriteNode over both ally icon widgets.
+ * Creates two SpriteNodes from the 4x3 sprite sheet, positions each over
+ * the left/right icon's playerIcon node, and adds them as children so they
+ * render in the same coordinate space as the icon. Called once on ATTACK_3
+ * state entry
+ */
+void GameScene::startGaiaVineAnimation() {
+    if (_gaiaVineAnim) return;
+
+    const int rows = 3;
+    const int cols = 4;
+    const int frameCount = 12;
+
+    auto texture = _assets->get<cugl::graphics::Texture>("gaiaVine");
+    if (!texture) {
+        CULog("ERROR: gaiaVine texture not found");
+        return;
+    }
+
+    GaiaVineAnimation anim;
+    anim.frameCount = frameCount;
+    anim.currentFrame = -1;
+
+    // Left ally overlay
+    if (_leftPlayerSlot) {
+        auto node = cugl::scene2::SpriteNode::allocWithSheet(texture, rows, cols, frameCount);
+        if (node) {
+            node->setFrame(0);
+            node->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+
+            cugl::Size iconSize = _leftPlayerSlot->getContentSize();
+
+            // center on icon
+            node->setPosition({
+                iconSize.width * 0.5f,
+                iconSize.height * 0.65f
+                });
+
+            // scale to width of icon
+            float frameW = texture->getWidth() / (float)cols;
+            float scale = iconSize.width / frameW;
+
+            node->setScale(scale);
+
+            _leftPlayerSlot->addChild(node);
+            anim.leftNode = node;
+        }
+    }
+
+    // Right ally overlay, same logic as left side
+    if (_rightPlayerSlot) {
+        auto node = cugl::scene2::SpriteNode::allocWithSheet(texture, rows, cols, frameCount);
+        if (node) {
+            node->setFrame(0);
+            node->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+
+            cugl::Size iconSize = _rightPlayerSlot->getContentSize();
+
+            node->setPosition({
+                iconSize.width * 0.5f,
+                iconSize.height * 0.65f
+                });
+
+            float frameW = texture->getWidth() / (float)cols;
+            float scale = iconSize.width / frameW;
+
+            node->setScale(scale);
+
+            _rightPlayerSlot->addChild(node);
+            anim.rightNode = node;
+        }
+    }
+    anim.reversing = false; //when the animation is created this should always be false
+    anim.duration = _gameState.getEnemy()->getCurrentStateDef()->buildUpTime;
+    _gaiaVineAnim = anim;
+}
+
+/**
+ * Handles Gaia vine animation triggers based on enemy state changes.
+ *
+ * This function starts the vine animation when Gaia enters ATTACK_3,
+ * and initiates the reverse (retraction) phase when Gaia leaves ATTACK_3
+ *
+ * IMPORTANT:
+ * - This is purely visual and does not affect gameplay logic.
+ * - Forward animation follows enemy buildup progress (stateTime / buildUpTime).
+ * - Reverse animation is handled locally using currentTime and dt.
+ * - Must be called once per frame before updateGaiaVineAnimation().
+ *
+ * Behavior summary:
+ * - Enter ATTACK_3 -> start vine growth animation.
+ * - Exit ATTACK_3 or Aphrodite love effect -> trigger reverse animation.
+ * - Reverse completes -> animation cleans itself up in update.
+ */
+void GameScene::detectGaiaAnimationTriggers() {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return;
+
+    // If we're in ATTACK_3 start the animation if it hasn't started
+    if (enemy->getId() == "gaia" &&
+        enemy->getCurrentState() == EnemyLoader::State::ATTACK_3 &&
+        !_gaiaVineAnim)
+    {
+        startGaiaVineAnimation();
+    }
+
+    // If we entered another state mid-way
+    // Most likely means stun but this is scalable for other things too
+    if (_gaiaVineAnim &&
+        !_gaiaVineAnim->reversing &&
+        enemy->getCurrentState() != EnemyLoader::State::ATTACK_3)
+    {
+        _gaiaVineAnim->reversing = true;
+    }
+}
+
+/**
+ * Advances the Gaia vine overlay animation.
+ *
+ * When boss is in ATTACK_3, we use the enemy current state time to dermine the progress of the animation
+ *
+ * If the boss is not in ATTACK_3 but the animation is still active, it means it is reversing.
+ * Reversal ticks down its timer using dt and _gaiaVineAnim -> currentTime
+ *
+ * Animation done when the reversal part of the animation is done (because a reversal is guaranteed)
+ *
+ * @param dt  Delta time in seconds (used for reversal)
+ */
+void GameScene::updateGaiaVineAnimation(float dt) {
+    if (!_gaiaVineAnim) return;
+
+    auto& anim = *_gaiaVineAnim;
+
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return;
+
+    // Forward (follow enemy state) OR reverse (manual)
+    if (!anim.reversing) {
+        const auto* stateDef = enemy->getCurrentStateDef();
+        if (!stateDef || stateDef->buildUpTime <= 0.0f) return;
+
+        float time = std::min(1.0f,
+            enemy->getStateTime() / stateDef->buildUpTime);
+
+        anim.currentTime = time * anim.duration;
+    }
+    else {
+        // Reverse, goes at a faster rate than normal animation
+        anim.currentTime -= dt * 2;
+    }
+
+    // Clamp time
+    anim.currentTime = std::max(0.0f,
+        std::min(anim.currentTime, anim.duration));
+
+    // Compute normalized progress
+    float progress = (anim.duration > 0.0f)
+        ? (anim.currentTime / anim.duration)
+        : 0.0f;
+
+    // Convert to frame
+    int frameIndex = std::min(
+        (int)(progress * anim.frameCount),
+        anim.frameCount - 1
+    );
+
+    // Apply frame if changed
+    if (frameIndex != anim.currentFrame) {
+        anim.currentFrame = frameIndex;
+        if (anim.leftNode)  anim.leftNode->setFrame(frameIndex);
+        if (anim.rightNode) anim.rightNode->setFrame(frameIndex);
+    }
+
+    if (anim.reversing && anim.currentTime <= 0.0f) {
+        if (anim.leftNode)  anim.leftNode->removeFromParent();
+        if (anim.rightNode) anim.rightNode->removeFromParent();
+        _gaiaVineAnim.reset();
     }
 }
 
@@ -2865,6 +3131,13 @@ void GameScene::handleNetworkUpdates(float dt) {
     }
     else {
         // clients just apply the latest state from host
+        _gameState.networkUpdate(_network->getStateUpdate());
+        if (_network->checkMidGameScramble()) {
+            _gameState.applyPlayerScramble(_network->getPlayerScrambleMapping());
+            setLocalPlayer(_network->getLocalPlayerNumber());
+            _gaiaVineAnim->reversing = true;
+            _gaiaVineAnim->currentTime = _gaiaVineAnim->duration; //duration of the original animation
+        }
         GameStateMessage stateUpdate = _network->getStateUpdate();
         _gameState.networkUpdate(stateUpdate);
         syncFrenzyEffect(stateUpdate.frenzyItemInterval, stateUpdate.frenzyDuration);
@@ -3203,6 +3476,29 @@ void GameScene::handleGaiaSpawn() {
     return;
 }
 
+/** HOST ONLY. Custom method used by Gaia. This creates a new ordering for the players.
+  * This new ordering is sent to the GameState to be applied to the local machine
+  * This also broadcasts the new ordering over the network for clients to apply respectively as well
+  */
+void GameScene::handleGaiaScramble() {
+    // Build identity list [0,1,2,3]
+    std::array<int, 4> mapping = { 0, 1, 2, 3 };
+
+    //// Shuffle atomically (single final result)
+    std::shuffle(mapping.begin(), mapping.end(), _rng);
+
+    _gameState.applyPlayerScramble(mapping);
+    _network->applyPlayerScramble(mapping);
+    _network->broadcastPlayerScramble(mapping);
+
+    refreshTeammateNameLabels();
+    resetTeammateBlinkState();
+    updatePlayerAndTeammateIcons(0.0f); // reset icons
+    _gaiaVineAnim->reversing = true;
+    _gaiaVineAnim->currentTime = _gaiaVineAnim->duration; //duration of the original animation
+}
+
+
 /**
  * Spawns items for the local player every frame, and for all AI-controlled
  * players if this machine is the host. AI item spawning is host-only since
@@ -3228,6 +3524,36 @@ void GameScene::handleItemSpawn(float dt) {
         if (!player || !player->isAI()) continue;
         _itemController.update(dt, player.get());
     }
+}
+
+/** Checks if we are in a state where
+  * the house and names of the current player's neighbors should be concealed
+  *
+  * @return     true if we should conceal neighbor house and name
+  */
+bool GameScene::gaiaShouldConcealIdentity() {
+    auto enemy = _gameState.getEnemy();
+    bool concealIdentity = false;
+    if (enemy &&
+        enemy->getId() == "gaia" &&
+        _gaiaVineAnim)
+    {
+        float progress = 0.0f;
+
+        if (_gaiaVineAnim->duration > 0.0f) {
+            progress = _gaiaVineAnim->currentTime / _gaiaVineAnim->duration;
+        }
+
+        if (!_gaiaVineAnim->reversing) {
+            // Forward: conceal AFTER halfway
+            concealIdentity = (progress >= 0.5f);
+        }
+        else {
+            // Reverse: conceal UNTIL halfway (then reveal)
+            concealIdentity = (progress > 0.5f);
+        }
+    }
+    return concealIdentity;
 }
 
 #pragma mark Sliding Items Physics
@@ -3926,6 +4252,9 @@ void GameScene::update(float dt, InputController& input) {
     updateSlidingItems(dt);
     updateSnapbackAnimations(dt);
     updateItemUseAnimations(dt);
+    detectGaiaAnimationTriggers();
+    updateGaiaVineAnimation(dt);
+    updateStunDamagePopups(dt);
     updatePopupAnimations(dt);
     updateEffectTimerIcons(dt);
 
@@ -4701,17 +5030,41 @@ void GameScene::refreshTeammateNameLabels() {
     Player* local = _gameState.getLocalPlayer();
     if (!local) return;
 
-    if (_leftPlayerName && local->getLeftPlayer()) {
-        _leftPlayerName->setText(
-            local->getLeftPlayer()->isAI()
-                ? "AI Player " + std::to_string(local->getLeftPlayer()->getPlayerNumber())
-                : local->getLeftPlayer()->getPlayerName());
+    // Local player labels
+    if (_playerName)
+        _playerName->setText(local->getPlayerName());
+    if (_playerHouseName) {
+        std::string house = local->getHouseName();
+        for (char& letter : house) letter = toupper(letter); //make house string all uppercase
+        _playerHouseName->setText(house);
     }
-    if (_rightPlayerName && local->getRightPlayer()) {
+
+    // Left neighbor
+    Player* left = local->getLeftPlayer();
+    if (_leftPlayerName && left) {
+        _leftPlayerName->setText(
+            left->isAI()
+            ? "AI Player " + std::to_string(left->getPlayerNumber())
+            : left->getPlayerName());
+    }
+    if (_leftPlayerHouse && left) {
+        std::string house = left->getHouseName();
+        for (char& letter : house) letter = toupper(letter);
+        _leftPlayerHouse->setText(house);
+    }
+
+    // Right neighbor
+    Player* right = local->getRightPlayer();
+    if (_rightPlayerName && right) {
         _rightPlayerName->setText(
-            local->getRightPlayer()->isAI()
-                ? "AI Player " + std::to_string(local->getRightPlayer()->getPlayerNumber())
-                : local->getRightPlayer()->getPlayerName());
+            right->isAI()
+            ? "AI Player " + std::to_string(right->getPlayerNumber())
+            : right->getPlayerName());
+    }
+    if (_rightPlayerHouse && right) {
+        std::string house = right->getHouseName();
+        for (char& letter : house) letter = toupper(letter);
+        _rightPlayerHouse->setText(house);
     }
 }
 
@@ -4962,15 +5315,15 @@ void GameScene::updateItemUseAnimations(float dt) {
         if (!activeAnim.damageResolved && frameIndex >= activeAnim.damageResolutionFrame) {
             activeAnim.damageResolved = true;
 
-            if (activeAnim.damageAmount > 0.0f) {
-                auto enemy = _gameState.getEnemy();
-                if (enemy) {
-                    const int playerNum = _gameState.getLocalPlayer()->getPlayerNumber();
+            auto enemy = _gameState.getEnemy();
+            Player* localPlayer = _gameState.getLocalPlayer();
+            const int playerNum = localPlayer ? localPlayer->getPlayerNumber() : 0;
 
+            if (enemy) {
+                if (activeAnim.damageAmount > 0.0f) {
                     // Apply pre-calculated damage before any item effects update enemy side multipliers.
                     const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
-                    Player* localPlayer = _gameState.getLocalPlayer();
                     if (localPlayer) {
                         localPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - enemy->getCurrentHealth()));
                     }
@@ -4980,17 +5333,23 @@ void GameScene::updateItemUseAnimations(float dt) {
                         createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
                             activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
                             activeAnim.upgradeMultiplier, sideMultiplier,
-                            activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
-                    }
-
-                    // Non-hosts broadcast so the host applies it on the same frame.
-                    if (_network && !_network->isHost()) {
-                        _network->broadcastDamage(activeAnim.damageAmount, playerNum, activeAnim.itemDefID);
-                        broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
-                    } else if (_network && _network->isHost()) {
-                        _gameState.enemyEffectUpdates(activeAnim.enemyEffects);
+                            activeAnim.damageAmount, finalDamage, 26.0f, 17.0f));
                     }
                 }
+
+                // Non-hosts broadcast so the host applies it on the same frame.
+                // Enemy effects are sent even for zero-damage items such as Thunderstorm.
+                if (_network && !_network->isHost()) {
+                    if (activeAnim.damageAmount > 0.0f) {
+                        _network->broadcastDamage(activeAnim.damageAmount, playerNum, activeAnim.itemDefID);
+                    }
+                    broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
+                } else if (_network && _network->isHost()) {
+                    _gameState.enemyEffectUpdates(activeAnim.enemyEffects);
+                }
+                scheduleStunDamagePopups(activeAnim.enemyEffects, activeAnim.popupPosition,
+                                         activeAnim.houseAffinityMultiplier,
+                                         activeAnim.upgradeMultiplier);
             }
 
             // Host plays enemy_hurt immediately; clients hear it via network sync.
@@ -5378,6 +5737,37 @@ void GameScene::createFloatingPopup(
 }
 
 /**
+ * Queues damage popups for any stun effects in an enemy-effect batch.
+ *
+ * Each popup uses the effect's configured delay so the visual appears when
+ * the stun damage is expected to resolve.
+ *
+ * @param enemyEffects The enemy effects produced by an item use.
+ * @param position Screen-space position where stun damage popups should appear.
+ * @param houseAffinityMultiplier House-role and affinity multiplier used to resolve stun damage.
+ * @param upgradeMultiplier Upgrade streak multiplier used to resolve stun damage.
+ */
+void GameScene::scheduleStunDamagePopups(const std::vector<EnemyEffectMessage>& enemyEffects, const cugl::Vec2& position, float houseAffinityMultiplier, float upgradeMultiplier) {
+    const float combinedMultiplier = houseAffinityMultiplier * upgradeMultiplier;
+    for (const EnemyEffectMessage& effect : enemyEffects) {
+        if (effect.effectType != EnemyEffectType::Stun || effect.magnitude <= 0.0f) {
+            continue;
+        }
+
+        PendingStunDamagePopup popup;
+        popup.amount = (std::abs(combinedMultiplier) > 0.01f)
+            ? effect.magnitude / combinedMultiplier
+            : effect.magnitude;
+        popup.houseAffinityMultiplier = houseAffinityMultiplier;
+        popup.upgradeMultiplier = upgradeMultiplier;
+        popup.delay = std::max(0.0f, effect.delay);
+        popup.playerIndex = effect.playerIndex;
+        popup.position = position;
+        _pendingStunDamagePopups.push_back(popup);
+    }
+}
+
+/**
  * Immediately builds and activates one floating popup.
  * Measures the label's text bounds, sizes the container to match so
  * ANCHOR_CENTER resolves correctly, then adds 8 black outline copies
@@ -5446,6 +5836,36 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
     popupAnim.phase              = FloatingPopupAnimation::ANIM_IN;
 
     _activeFloatingPopups.push_back(popupAnim);
+}
+
+/**
+ * Advances delayed stun damage popups and spawns any whose delay elapsed.
+ *
+ * @param dt Delta time in seconds.
+ */
+void GameScene::updateStunDamagePopups(float dt) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) {
+        _pendingStunDamagePopups.clear();
+        return;
+    }
+
+    for (auto popup = _pendingStunDamagePopups.begin(); popup != _pendingStunDamagePopups.end(); ) {
+        popup->delay = std::max(0.0f, popup->delay - dt);
+        if (popup->delay > 0.0f) {
+            ++popup;
+            continue;
+        }
+
+        const float sideMultiplier = enemy->getSideMultiplier(popup->playerIndex);
+        const float houseDamage = popup->amount * popup->houseAffinityMultiplier * popup->upgradeMultiplier;
+        const float finalDamage = houseDamage * sideMultiplier;
+        createFloatingPopup(popup->position, buildAttackDamagePopups(
+            popup->amount, popup->houseAffinityMultiplier, popup->upgradeMultiplier, sideMultiplier,
+            houseDamage, finalDamage, 26.0f, 17.0f));
+
+        popup = _pendingStunDamagePopups.erase(popup);
+    }
 }
 
 /**

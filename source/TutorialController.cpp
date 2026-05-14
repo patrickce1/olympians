@@ -1,5 +1,6 @@
 #include "TutorialController.h"
 #include "scenes/GameScene.h"
+#include "SavedDataManager.h"
 
 using namespace cugl;
 

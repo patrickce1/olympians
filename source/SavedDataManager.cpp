@@ -96,6 +96,7 @@ bool SavedDataManager::load() {
     if (root->has("musicVolume"))    _musicVolume    = (float)root->getFloat("musicVolume", 1.0);
     if (root->has("effectsEnabled")) _effectsEnabled = root->getBool("effectsEnabled", true);
     if (root->has("hapticsEnabled")) _hapticsEnabled = root->getBool("hapticsEnabled", true);
+    if (root->has("tutorialCompleted")) _tutorialCompleted = root->getBool("tutorialCompleted", false);
 
     CULog("SaveDataManager: loaded — playerName='%s'", _playerName.c_str());
     return true;
@@ -118,6 +119,7 @@ bool SavedDataManager::save() {
     root->appendChild("musicVolume",    JsonValue::alloc((double)_musicVolume));
     root->appendChild("effectsEnabled", JsonValue::alloc(_effectsEnabled));
     root->appendChild("hapticsEnabled", JsonValue::alloc(_hapticsEnabled));
+    root->appendChild("tutorialCompleted", JsonValue::alloc(_tutorialCompleted));
 
     auto writer = JsonWriter::alloc(path);
     if (writer == nullptr) {

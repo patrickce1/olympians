@@ -112,7 +112,9 @@
             "effects": [
                 {
                     "type": "stun",
-                    "duration": 2.0
+                    "amount": 0.0,
+                    "duration": 2.0,
+                    "delay": 0.0
                 }
             ],
             "itemUseAnimation": {
@@ -326,9 +328,34 @@
             "attackTarget": "enemy",
             "rarity": "divine",
             "houseAffinity": "zeus",
-            "baseValue": 10.0,
+            "baseValue": 0.0,
             "weight": 10.0,
-            "effects": [],
+            "effects": [
+                {
+                    "type": "stun",
+                    "amount": 10.0,
+                    "duration": 1.0,
+                    "delay": 0.0
+                },
+                {
+                    "type": "stun",
+                    "amount": 20.0,
+                    "duration": 1.0,
+                    "delay": 2.0
+                },
+                {
+                    "type": "stun",
+                    "amount": 40.0,
+                    "duration": 1.0,
+                    "delay": 4.0
+                },
+                {
+                    "type": "stun",
+                    "amount": 80.0,
+                    "duration": 2.0,
+                    "delay": 6.0
+                }
+            ],
             "itemUseAnimation": {
                 "spriteSheetId": "storm_animation",
                 "rows": 1,
