@@ -1257,7 +1257,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         broadcastEnemyEffects(*_network, enemyEffects);
     }
     if (_network->isHost() && _audio) {
-        _audio->playSoundUnique("enemy_hurt");
+        _audio->playSoundUnique("player_hurt");
         CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
     }
 
