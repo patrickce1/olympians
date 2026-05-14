@@ -97,10 +97,12 @@ struct ForgeEffectMessage {
 struct EnemyEffectMessage {
     /** The category of enemy effect to apply. */
     EnemyEffectType effectType;
-    /** The resolved item magnitude associated with the attack. */
+    /** The resolved effect magnitude; for stun this is the delayed damage amount. */
     float magnitude;
     /** The number of seconds the enemy effect should last. */
     float duration;
+    /** Seconds after receipt before the enemy effect should take effect. */
+    float delay = 0.0f;
     /** The attacking player's slot, used for side-relative enemy effects. */
     int playerIndex = 0;
     /** Whether the effect should be applied to all four boss sides instead of one side. */

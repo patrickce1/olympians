@@ -160,10 +160,11 @@ public:
      * @param effectType The kind of enemy effect that was applied.
      * @param magnitude  The resolved magnitude of the effect.
      * @param duration   The timed duration of the effect, or 0 for instant effects.
+     * @param delay      Seconds after host receipt before the effect takes effect.
      * @param playerIndex The attacking player's slot, used for side-relative effects.
      * @param applyToAllSides Whether the enemy effect should be applied to all four boss sides.
      */
-    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides);
+    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, float delay, int playerIndex, bool applyToAllSides);
 
     /**
      * Sends a forge request to the host for authoritative seeding.

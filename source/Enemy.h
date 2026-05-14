@@ -33,6 +33,18 @@ public:
         EnemyLoader::State state;       // state that fired this event (debug)
     };
 
+    /** Host-authoritative stun payload waiting for its configured delay to elapse. */
+    struct PendingStunEffect {
+        /** Remaining delay before the stun and damage are applied. */
+        float delay = 0.0f;
+        /** Duration of the stun once it takes effect. */
+        float duration = 0.0f;
+        /** Damage to deal when the stun takes effect. */
+        float amount = 0.0f;
+        /** Player slot credited with the stun damage. */
+        int playerIndex = 0;
+    };
+
 protected:
     /** Debug boolean. Set to false to prevent debug statements */
     bool _debug = false;
@@ -84,6 +96,9 @@ protected:
     
     /** Remaining stun time in seconds. While positive, enemy combat timers are frozen in place. */
     float _stunDuration = 0.0f;
+
+    /** Delayed stun effects that have been accepted by the authoritative enemy. */
+    std::vector<PendingStunEffect> _pendingStunEffects;
     
     /** Remaining love time in seconds. While positive, enemy attacks and retargeting are disabled. */
     float _loveDuration = 0.0f;
@@ -161,8 +176,13 @@ public:
     /** Returns the index of the player this enemy is currently targeting */
     int getTargetIndex() const { return _targetIndex; }
 
-    /** Sets the index of the player this enemy is currently targeting */
-    void setTargetIndex(int index) { _targetIndex = index; }
+    /** Sets the index of the player this enemy is currently targeting, unless the enemy is stunned. */
+    void setTargetIndex(int index) {
+        if (_stunDuration > 0.0f) {
+            return;
+        }
+        _targetIndex = index;
+    }
 
     /** Returns the current state of this enemy */
     EnemyLoader::State getCurrentState() const { return _currentState; }
@@ -197,6 +217,19 @@ public:
      * @param duration  The stun time to apply, in seconds.
      */
     void applyStun(float duration);
+
+    /**
+     * Schedules a stun and its paired damage to take effect after a delay.
+     *
+     * If delay is zero, the damage and stun are applied immediately. Positive
+     * damage is resolved through takeDamage() so side multipliers are respected.
+     *
+     * @param duration    The stun time to apply once the delay elapses, in seconds.
+     * @param amount      Damage to apply at the same time as the stun.
+     * @param delay       Seconds to wait before applying the stun and damage.
+     * @param playerIndex The player slot credited with the damage.
+     */
+    void scheduleStun(float duration, float amount, float delay, int playerIndex);
 
     /** Returns true when the current state is in the attack animation phase. */
     bool isInAttackAnimationPhase() const;
