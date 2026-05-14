@@ -52,6 +52,15 @@ static const std::array<float, 3> SLOT_Y = {
     (ICON_SIZE + ICON_GAP) * 2.0f
 };
 
+static const std::unordered_map<ItemDef::EffectType, std::string> EFFECT_ICON_KEYS = {
+    { ItemDef::EffectType::Regen,   "icon_regen"   },
+    { ItemDef::EffectType::Stun,    "icon_stun"    },
+    { ItemDef::EffectType::Educate, "icon_educate" },
+    { ItemDef::EffectType::Slow,    "icon_slow"    },
+    { ItemDef::EffectType::Charm,   "icon_charm"   },
+    { ItemDef::EffectType::Frenzy,  "icon_frenzy"  },
+};
+
 #pragma mark HealthState
 
 /**
@@ -1642,7 +1651,7 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
         // Check for duplicate — refresh duration if already active
         auto existing = std::find_if(_effectIcons.begin(), _effectIcons.end(),
             [&](const ActiveEffectIcon& icon) {
-                return icon.textureKey == def->getIconKey();
+                return icon.effectType == e.effectType;
             });
 
         if (existing != _effectIcons.end()) {
@@ -1665,6 +1674,7 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
             icon->doLayout();
             
             _effectIcons.push_back({
+                e.effectType,
                 def->getIconKey(),
                 icon,
                 pie,

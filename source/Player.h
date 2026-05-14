@@ -22,6 +22,7 @@ public:
      * Used by GameScene to spawn a corresponding timer icon.
      */
     struct EffectEvent {
+        ItemDef::EffectType effectType;
         std::string itemId;
         float duration;
     };

@@ -636,6 +636,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
                         effect.type != ItemDef::EffectType::Shield &&
                         effect.type != ItemDef::EffectType::Barrier) {
                         _effectEvents.push_back({
+                            effect.type,
                             def->getId(),
                             effect.duration
                         });
@@ -652,6 +653,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
                     effect.type != ItemDef::EffectType::Shield &&
                     effect.type != ItemDef::EffectType::Barrier) {
                     _effectEvents.push_back({
+                        effect.type,
                         def->getId(),
                         effect.duration
                     });
@@ -711,6 +713,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
                         
                         if (effect.duration > 0) {
                             _effectEvents.push_back({
+                                effect.type,
                                 def->getId(),
                                 effect.duration
                             });
@@ -724,6 +727,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
 
                     if (effect.duration > 0) {
                         _effectEvents.push_back({
+                            effect.type,
                             def->getId(),
                             effect.duration
                         });
@@ -737,6 +741,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
                 
                 if (effect.duration > 0) {
                     _effectEvents.push_back({
+                        effect.type,
                         def->getId(),
                         effect.duration
                     });

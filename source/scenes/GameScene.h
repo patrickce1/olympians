@@ -170,6 +170,7 @@ struct FloatingPopupData {
 };
 
 struct ActiveEffectIcon {
+    ItemDef::EffectType effectType;
     std::string textureKey;
     std::shared_ptr<cugl::scene2::PolygonNode> icon;
     std::shared_ptr<cugl::scene2::SpriteNode> pie;

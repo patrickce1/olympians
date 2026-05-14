@@ -152,6 +152,33 @@
         },
         "forge_large": {
             "file": "textures/codexScene/large/forge_large.png"
+        },
+        "icon_regen": {
+            "file": "textures/items/timers/regenTimer.png"
+        },
+        "icon_stun": {
+            "file": "textures/items/timers/stunTimer.png"
+        },
+        "icon_educate": {
+            "file": "textures/items/timers/educateTimer.png"
+        },
+        "icon_charm": {
+            "file": "textures/items/timers/charmTimer.png"
+        },
+        "icon_lifesteal": {
+            "file": "textures/items/timers/lifestealTimer.png"
+        },
+        "icon_frenzy": {
+            "file": "textures/items/timers/frenzyTimer.png"
+        },
+        "icon_love": {
+            "file": "textures/items/timers/loveTimer.png"
+        },
+        "icon_resurrect": {
+            "file": "textures/items/timers/resurrectTimer.png"
+        },
+        "icon_slow": {
+            "file": "textures/items/timers/slowTimer.png"
         }
     }
 }
