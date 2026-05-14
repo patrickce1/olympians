@@ -44,6 +44,24 @@ constexpr float ITEM_CORRODE_END_SCALE = 0.05f;
 //Defines the gap between the item and its tooltip
 constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 
+#pragma mark Cerberus Animation Helpers
+
+// Sprite index of the head hidden for each facing direction (0–3).
+// dir 0 (facing player) → hide back-position sprite (2)
+// dir 1 (facing right)  → hide left-position sprite (3)
+// dir 2 (facing away)   → hide front-position sprite (0)
+// dir 3 (facing left)   → hide right-position sprite (1)
+static constexpr int CERBERUS_HIDDEN_HEAD[4] = {2, 3, 0, 1};
+
+// Perspective rendering constants for Cerberus head sprites
+static constexpr float CERBERUS_PERSP_SCALE      = 0.95f;  // Scale applied to non-front heads for depth
+static constexpr float CERBERUS_PERSP_SHIFT      = 5.0f;   // Lateral pixel shift for side-view depth
+static constexpr float CERBERUS_BACK_SIDE_SHIFT  = 35.0f;  // Lateral shift for the back-position sprite in side view
+static constexpr float CERBERUS_BACK_VIEW_SPREAD = 10.0f;  // Spread for side heads when enemy faces fully away
+static constexpr float CERBERUS_GLOBAL_SHIFT     = 15.0f;  // Overall lateral shift applied to all heads in side view
+static constexpr float CERBERUS_Y_DELTA_SIDE     = 20.0f;  // Vertical depth offset in side view
+static constexpr float CERBERUS_Y_DELTA_BACK     = 10.0f;  // Vertical depth offset in back view
+
 #pragma mark HealthState
 
 /**
@@ -2345,24 +2363,6 @@ void GameScene::reorderCerberusHeads(int direction) {
     }
 }
 
-// ─── Cerberus animation helpers ──────────────────────────────────────────────
-
-// Sprite index of the head hidden for each facing direction (0–3).
-// dir 0 (facing player) → hide back-position sprite (2)
-// dir 1 (facing right)  → hide left-position sprite (3)
-// dir 2 (facing away)   → hide front-position sprite (0)
-// dir 3 (facing left)   → hide right-position sprite (1)
-static constexpr int CERBERUS_HIDDEN_HEAD[4] = {2, 3, 0, 1};
-
-// Perspective rendering constants for Cerberus head sprites
-static constexpr float CERBERUS_PERSP_SCALE      = 0.95f;  ///< Scale applied to non-front heads for depth
-static constexpr float CERBERUS_PERSP_SHIFT      = 5.0f;   ///< Lateral pixel shift for side-view depth
-static constexpr float CERBERUS_BACK_SIDE_SHIFT  = 35.0f;  ///< Lateral shift for the back-position sprite in side view
-static constexpr float CERBERUS_BACK_VIEW_SPREAD = 10.0f;  ///< Spread for side heads when enemy faces fully away
-static constexpr float CERBERUS_GLOBAL_SHIFT     = 15.0f;  ///< Overall lateral shift applied to all heads in side view
-static constexpr float CERBERUS_Y_DELTA_SIDE     = 20.0f;  ///< Vertical depth offset in side view
-static constexpr float CERBERUS_Y_DELTA_BACK     = 10.0f;  ///< Vertical depth offset in back view
-
 /**
  * Computes the linear sprite sheet frame index for a Cerberus head or body animation.
  *
@@ -2394,6 +2394,15 @@ static int computeCerberusAnimFrame(const AnimationEntry& animEntry, float animT
     return directionRow * animEntry.frameCount + std::clamp(frameWithinRow, 0, animEntry.frameCount - 1);
 }
 
+/**
+ * Advances all Cerberus per-head and body animation timers by a scaled delta time.
+ * Applies the enemy's slow multiplier, and additionally the frantic speed multiplier
+ * during the idle state. Does nothing if the enemy is stunned.
+ *
+ * @param dt        Elapsed time in seconds since the last frame.
+ * @param enemy     The enemy whose slow/stun state is queried.
+ * @param cerberus  Typed Cerberus pointer used to query frantic speed (may be null).
+ */
 void GameScene::advanceCerberusAnimationTimers(float dt, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus) {
     if (enemy->isStunned()) return;
 
@@ -2408,6 +2417,18 @@ void GameScene::advanceCerberusAnimationTimers(float dt, const std::shared_ptr<E
     }
 }
 
+/**
+ * Commits head animation keys when Cerberus transitions into a non-idle state.
+ * Determines which heads participate based on the state's headParticipants config,
+ * resolves redirects for knocked heads on single-head attacks, and resets each
+ * participating head's animation timer so it starts cleanly.
+ * Idle-state transitions are handled lazily inside updateSingleCerberusHead.
+ *
+ * @param currentState  The new enemy state being entered.
+ * @param stateDef      Pointer to the state's definition (may be null for unknown states).
+ * @param direction     Current facing direction (0=front, 1=right, 2=back, 3=left).
+ * @param cerberus      Typed Cerberus pointer used to check knocked/target state.
+ */
 void GameScene::handleCerberusStateTransition(EnemyLoader::State currentState, const EnemyLoader::StateDef* stateDef, int direction, const std::shared_ptr<Cerberus>& cerberus) {
     // Idle transitions are handled lazily per-head via the completion check in updateSingleCerberusHead.
     if (currentState == EnemyLoader::State::IDLE || !cerberus) return;
@@ -2462,6 +2483,13 @@ void GameScene::handleCerberusStateTransition(EnemyLoader::State currentState, c
     }
 }
 
+/**
+ * Updates the Cerberus body sprite for the current frame.
+ * Selects between the standard body sprite and the top-layer body sprite based on whether
+ * the enemy is facing fully away (direction 2), then advances the body animation frame.
+ *
+ * @param direction  Current facing direction (0=front, 1=right, 2=back, 3=left).
+ */
 void GameScene::updateCerberusBodySprite(int direction) {
     auto bodyAnimSearch = _animationRegistry.find(_cerberusAnimConfig.bodyAnimId);
     if (bodyAnimSearch == _animationRegistry.end()) return;
@@ -2477,6 +2505,22 @@ void GameScene::updateCerberusBodySprite(int direction) {
     if (isFacingAway  && _cerberusBodySpriteTop) _cerberusBodySpriteTop->setFrame(bodyFrameIndex);
 }
 
+/**
+ * Updates a single Cerberus head sprite for the current frame.
+ * Handles animation completion (reverting to idle after a two-phase attack finishes),
+ * positions the head sprite with perspective depth offsets, selects the knocked or
+ * active animation, computes the frame index, and drives the enemy's frame counter
+ * from the first attacking head so readyToFire() can trigger damage at the right frame.
+ *
+ * @param headIndex              Index of the head to update (0=front, 1=right, 2=back, 3=left).
+ * @param isVisible              Whether this head should be rendered (false for the hidden head).
+ * @param direction              Current facing direction (0=front, 1=right, 2=back, 3=left).
+ * @param globalXShift           Lateral pixel offset applied to all heads in side/back views.
+ * @param enemy                  The base enemy, used to query stun state and set the animation frame counter.
+ * @param cerberus               Typed Cerberus pointer used to check knocked head state.
+ * @param outFrameCounterUpdated In/out flag; set to true by the first attacking head that
+ *                               drives the frame counter, preventing double-writes.
+ */
 void GameScene::updateSingleCerberusHead(int headIndex, bool isVisible, int direction, float globalXShift, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus, bool& outFrameCounterUpdated) {
     // Completion check: once a two-phase attack animation's linear frames are exhausted,
     // revert to idle so the head is ready for the next attack. This allows a bite to
@@ -2609,6 +2653,15 @@ void GameScene::updateSingleCerberusHead(int headIndex, bool isVisible, int dire
     }
 }
 
+/**
+ * Main per-frame update for all Cerberus animation state.
+ * Shows the animated boss sprite hierarchy, reorders head z-ordering on direction changes,
+ * advances animation timers, handles state transitions, and delegates body/head sprite
+ * updates to their respective helpers.
+ *
+ * @param dt               Elapsed time in seconds since the last frame.
+ * @param localPlayerIndex Index of the local player (0-3), used to compute facing direction.
+ */
 void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
     auto enemy = _gameState.getEnemy();
     auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
@@ -2668,6 +2721,7 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
 
 /**
  * Updates the progress bar with the current ratios of all players and enemy health.
+ * @param dt Delta time in seconds
  */
 void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     auto enemy = _gameState.getEnemy();
@@ -2784,6 +2838,7 @@ void GameScene::updatePlayerHealthBarEffect(float dt) {
 
 /**
  * Updates the player and teammate UI icons to reflect their current health.
+ * @param dt Delta time in seconds
  */
 void GameScene::updatePlayerAndTeammateIcons(float dt) {
     auto localPlayer = _gameState.getLocalPlayer();
@@ -3024,6 +3079,7 @@ void GameScene::handlePlayerInput(InputController& input) {
 /**
  * Decrements the glow timer each frame. Clears the active glow action
  * once the timer expires.
+ * @param dt Delta time in seconds
  */
 void GameScene::tickGlowTimer(float dt) {
     if (_glowTimer <= 0) return;
@@ -3035,6 +3091,7 @@ void GameScene::tickGlowTimer(float dt) {
 
 /**
  * Updates the debug pointer position in scene coordinates.
+ * @param input The input controller for this frame, used to query touch state and position.
  */
 void GameScene::updateDebugPointer(InputController& input) {
     if (!isDebugMode()) {
@@ -3056,6 +3113,7 @@ void GameScene::updateDebugPointer(InputController& input) {
 
 /**
  * Hit-tests item widgets against the initial touch position.
+ * @param input The input controller for this frame, used to query touch state and position.
  */
 void GameScene::handleDragInitiation(InputController& input) {
     if (_draggedIcon || (!input.isDragging() && !input.justTouched() && !input.justMouseDown())) return;
@@ -3101,6 +3159,7 @@ void GameScene::handleDragInitiation(InputController& input) {
 
 /**
  * Moves the active dragged icon to follow the current touch position.
+ * @param input The input controller for this frame, used to query touch state and position.
  */
 void GameScene::handleDragTracking(InputController& input) {
     if (!_draggedIcon || (!input.isTouching() && !input.isMouseDown())) return;
@@ -3463,6 +3522,10 @@ void GameScene::applyForgeEffect(float chance, int seed) {
  * Plays appropriate hurt/heal sounds based on changes in player and enemy health.
  * Should be called after processing all enemy and AI updates, so we capture all 
  * health changes in one place and avoid playing multiple overlapping sounds for the same health change.
+ * 
+ * @param playerHealthBefore The local player's health before processing updates, used to detect health changes.
+ * @param enemyHealthBefore The enemy's health before processing updates, used to detect health changes.
+ * @param playerHurtEnabled Whether to play player hurt sounds; set to false when called
  */
 void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore, bool playerHurtEnabled) {
     auto player = _gameState.getLocalPlayer();
@@ -4390,7 +4453,10 @@ void GameScene::update(float dt, InputController& input) {
 #pragma mark -
 #pragma mark Inventory UI
 
-/** Creates a scene-node widget for the given item and adds it to the inventory container. */
+/** Creates a scene-node widget for the given item and adds it to the inventory container. 
+ * @param item The ItemInstance for which to create the widget.
+ * @return A shared pointer to the created SceneNode widget, or nullptr if creation failed.
+*/
 std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
     auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
     if (!itemDef) return nullptr;
@@ -4409,7 +4475,11 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     return widget;
 }
 
-/** Return a random in-bounds inventory position for a newly spawned item widget */
+/** Return a random in-bounds inventory position for a newly spawned item widget 
+ * 
+ * @param widgetSize The size of the item widget to be placed, used to ensure it fits within bounds
+ * @return A Vec2 representing a random position within the inventory container where the widget can be placed without overflowing
+*/
 cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size& widgetSize) const {
     const cugl::Size inventorySize = _inventory->getContentSize();
     Size dimen = getSize();
@@ -4596,7 +4666,7 @@ void GameScene::updateItemWidgetScales(float dt) {
     }
 }
 
-/*
+/**
  * Marks an item as used (consumed by an action).
  * Removes the visual widget and physics body from the scene.
  * Item remains in inventory until deferred damage is applied and animation completes.
@@ -4702,6 +4772,8 @@ void GameScene::updateConsumedItemAnimations(float dt) {
 /**
  * Updates corroded item animations and removes items from inventory when animation completes.
  * Unlike consumed items, these items are still in inventory during animation and only removed at the end.
+ *
+ * @param dt  Elapsed time in seconds since the last frame.
  */
 void GameScene::updateCorrodedItemAnimations(float dt) {
     if (_corrodedItemAnimations.empty()) return;
@@ -4803,7 +4875,7 @@ void GameScene::clearConsumedItemAnimations() {
     }
     _consumedItemAnimations.clear();
 }
-/*
+/**
  * Checks if an item is currently playing an animation.
  * Iterates through active animations to find if the given itemId is animating.
  *
@@ -5029,7 +5101,10 @@ void GameScene::setTutorialAllowedDropZone(InputController::Action zone){
 #pragma mark -
 #pragma mark Render
 
-/** Draws a green debug outline around the reset button's bounding box. */
+/** Draws a green debug outline around the reset button's bounding box. 
+ * 
+ * @param batch  The active sprite batch.
+ */
 void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
     if (!_resetBtn) return;
     Rect boundingBox = _resetBtn->getBoundingBox();
@@ -5038,7 +5113,10 @@ void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
     batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
 }
 
-/** Draws zone outlines and a fading glow on the last successfully used zone. */
+/** Draws zone outlines and a fading glow on the last successfully used zone. 
+ * 
+ * @param batch  The active sprite batch.
+ */
 void GameScene::renderDropZonesDebug(cugl::graphics::SpriteBatch* batch) {
     batch->setColor(Color4(0, 255, 0, 255));
     
@@ -5070,7 +5148,10 @@ void GameScene::renderDropZonesDebug(cugl::graphics::SpriteBatch* batch) {
     }
 }
 
-/** Draws a magenta outline around each visible item widget's bounding box. */
+/** Draws a magenta outline around each visible item widget's bounding box. 
+ * 
+ * @param batch  The active sprite batch.
+ */
 void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch) {
     batch->setColor(Color4(255, 0, 255, 140));
     for (auto& [id, widget] : _itemWidgets) {
@@ -5095,7 +5176,9 @@ void GameScene::renderItemBodyDebug(cugl::graphics::SpriteBatch* batch) {
     }
 }
 
-/** Draws a small red square at the current touch position. */
+/** Draws a small red square at the current touch position. 
+ * @param batch  The active sprite batch.
+ */
 void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch* batch) {
     if (!_hasDebugPointer) return;
     Rect p(_debugPointerScene.x - 6.0f, _debugPointerScene.y - 6.0f, 12.0f, 12.0f);
@@ -5132,7 +5215,7 @@ void GameScene::render() {
  * If any item is held, the pass zones are added to _inputZones.
  * If an attack item is held, the attack zone is added to _inputZones.
  * If a support item is held, the support zones are added to _inputZones.
- * If we are being corroded by Cerberus, we should not have pass zones active
+ * If we are being corroded by Cerberus, we should not have pass zones active.
  */
 void GameScene::updateInputZones(){
     Player* local = _gameState.getLocalPlayer();
@@ -5171,6 +5254,8 @@ void GameScene::updateInputZones(){
  * When active, debug mode shows additional overlays and UI elements
  * to aid development, including the reset button, drop zone outlines,
  * item widget bounding boxes, and a touch position indicator.
+ * 
+ * @param enabled  If true, debug mode is enabled. If false, it is disabled.
  */
 void GameScene::setDebugMode(bool enabled){
     _debugMode = enabled;
@@ -5394,6 +5479,12 @@ bool GameScene::removeItemFromInventory(Player* player, ItemInstance::ItemId ite
  * 
  * Damage is applied later in updateItemUseAnimations() when the keyframe is reached.
  * This deferred application allows multiple systems to hook into the animation lifecycle.
+ * 
+ * @param animConfig        Configuration struct defining the animation parameters (sprite sheet, frame count, keyframe, duration)
+ * @param damageAmount      The pre-calculated damage amount to apply at the resolution frame
+ * @param itemPos          The world position to anchor the animation (if Vec2::ZERO, defaults to center-bottom)
+ * @param itemId           The unique ID of the item instance being used (for tracking and preventing duplicate animations)
+ * 
  */
 void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, float damageAmount,
                                        const cugl::Vec2& itemPos, ItemInstance::ItemId itemId) {
@@ -5798,8 +5889,15 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
 }
 
 /**
- * Builds the popup for Cerberus's drain-shield defense: shows the raw hit value, then
- * the negative drain multiplier badge in teal, then the resulting heal in green.
+ * Builds the popup sequence for Cerberus's drain-shield defense.
+ * Shows the raw incoming hit value, then the negative drain multiplier badge in teal,
+ * then the resulting heal amount in green.
+ *
+ * @param preSideDamage      Raw damage dealt to Cerberus before the side multiplier is applied.
+ * @param sideMultiplier     The negative side multiplier (e.g. -0.5) that converts damage to a heal.
+ * @param valueFontSize      Font size used for the damage and heal value labels.
+ * @param multiplierFontSize Font size used for the multiplier badge label.
+ * @return Ordered list of FloatingPopupData entries ready for display.
  */
 std::vector<FloatingPopupData> GameScene::buildCerberusDefenseHealPopup(
     float preSideDamage, float sideMultiplier,

@@ -714,8 +714,10 @@ public:
 #pragma mark - Lifecycle
 
     /**
-    * Returns the current status of the game and whether or not the player wants to go back to a different scene
-    */
+     * Returns the current status of the game and whether or not the player wants to go back to a different scene.
+     *
+     * @return The current Status value (PLAYING, WON, LOST, or HOST_DISCONNECTED).
+     */
     Status getStatus() { return _status; }
 
     /**
@@ -775,8 +777,9 @@ public:
      * enemy, AI) to GameState::init(). Does not activate the scene —
      * call setActive(true) when ready to receive input.
      *
-     * @param assets  The loaded asset manager.
-     * @param networkController The network controller shared across all scenes
+     * @param assets             The loaded asset manager.
+     * @param networkController  The network controller shared across all scenes.
+     * @param audio              The audio controller for playing music and sound effects.
      * @return true if initialisation succeeded, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio);
@@ -819,7 +822,8 @@ public:
      * Handles the local player dropping an attack item on the boss zone.
      * Applies the dragged attack item to the enemy.
      *
-     *@param itemId  The id of the item being handled.
+     * @param itemId  The id of the item being handled.
+     * @return true if the attack was successfully applied, false otherwise.
      */
     bool handleAttack(ItemInstance::ItemId itemId);
 
@@ -827,7 +831,8 @@ public:
      * Handles the local player dropping a support item on the left ally zone.
      * Applies the dragged support item to the left neighbour.
      *
-     *@param itemId  The id of the item being handled.
+     * @param itemId  The id of the item being handled.
+     * @return true if the support was successfully applied, false otherwise.
      */
     bool handleSupportLeft(ItemInstance::ItemId itemId);
 
@@ -835,21 +840,24 @@ public:
      * Handles the local player dropping a support item on the right ally zone.
      * Applies the dragged support item to the right neighbour.
      *
-     *@param itemId  The id of the item being handled.
+     * @param itemId  The id of the item being handled.
+     * @return true if the support was successfully applied, false otherwise.
      */
     bool handleSupportRight(ItemInstance::ItemId itemId);
 
     /**
      * Passes the dragged item to the left neighbour.
      *
-     *@param itemId  The id of the item being handled.
+     * @param itemId  The id of the item being handled.
+     * @return true if the pass was successfully initiated, false otherwise.
      */
     bool handlePassLeft(ItemInstance::ItemId itemId);
 
     /**
      * Passes the dragged item to the right neighbour.
      *
-     *@param itemId  The id of the item being handled.
+     * @param itemId  The id of the item being handled.
+     * @return true if the pass was successfully initiated, false otherwise.
      */
     bool handlePassRight(ItemInstance::ItemId itemId);
 
@@ -858,7 +866,9 @@ public:
      * and resets the input action afterwards.
      * No-op if the local player is not alive.
      *
+     * @param action  The drop-zone action resolved from the input controller.
      * @param itemId  The id of the item being handled.
+     * @return true if the action was handled successfully, false otherwise.
      */
     bool handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId);
 
@@ -1094,6 +1104,7 @@ public:
      *
      * @param playerHealthBefore  The player's health before state updates
      * @param enemyHealthBefore   The enemy's health before state updates
+     * @param playerHurtEnabled   If false, suppresses player hurt/heal sounds (e.g. during tutorial sequences)
      */
     void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore, bool playerHurtEnabled = true);
     
@@ -1221,11 +1232,13 @@ public:
     void handleTooltipVisibility(float dt);
 
     /**
-    * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory.
-    * Marks received items as passes so they bypass inventory limits and spawn from sides.
-    * If we are the host, it will also give the correct items to the AI
-    * Intended usage: get the pass message vector from the network controller and pass into this function
-    */
+     * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory.
+     * Marks received items as passes so they bypass inventory limits and spawn from sides.
+     * If we are the host, it will also give the correct items to the AI.
+     * Intended usage: get the pass message vector from the network controller and pass into this function.
+     *
+     * @param passes  The vector of PassMessage objects received from the network controller.
+     */
     void processNetworkedPasses(std::vector<PassMessage> passes);
     
     /**
@@ -1295,7 +1308,9 @@ public:
     void slideDialogueOut();
     
     /**
-     * Shows the dialogue box with the specified message..
+     * Shows the dialogue box with the specified message.
+     *
+     * @param message  The text string to display inside the dialogue box.
      */
     void showDialogue(const std::string& message);
     
@@ -1755,7 +1770,12 @@ public:
      */
     std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
 
-    /** Return a random valid inventory position for a newly spawned item widget */
+    /**
+     * Returns a random valid inventory position for a newly spawned item widget.
+     *
+     * @param widgetSize  The size of the item widget, used to keep it within bounds.
+     * @return            A random position within the inventory area.
+     */
     cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
     
     /** Return a spawn position for a passed item based on which side it came from
@@ -1769,6 +1789,7 @@ public:
      *
      * @param itemId  The ItemInstance for which the item body is created.
      * @param widget  The widget to attach the physics body to.
+     * @return        The newly created BoxObstacle body registered in the physics world.
      */
     std::shared_ptr<cugl::physics2::BoxObstacle> createItemBody(
         ItemInstance::ItemId itemId,
@@ -1784,17 +1805,34 @@ public:
      */
     void removeItemWidget(ItemInstance::ItemId itemId);
 
-    /** Smoothly animates each item widget's scale towards its current target. */
+    /**
+     * Smoothly animates each item widget's scale towards its current target.
+     *
+     * @param dt  Delta time in seconds.
+     */
     void updateItemWidgetScales(float dt);
 
-    /** Spawns a short-lived shrinking ghost visual for a consumed item. */
+    /**
+     * Spawns a short-lived shrinking ghost visual for a consumed item.
+     *
+     * @param sourceWidget  The scene node of the consumed item, used as the animation source.
+     * @param itemDef       The item definition used to select the correct ghost texture.
+     */
     void spawnConsumedItemAnimation(const std::shared_ptr<cugl::scene2::SceneNode>& sourceWidget,
                                     const std::shared_ptr<const ItemDef>& itemDef);
 
-    /** Advances and cleans up active consumed-item ghost animations. */
+    /**
+     * Advances and cleans up active consumed-item ghost animations.
+     *
+     * @param dt  Delta time in seconds.
+     */
     void updateConsumedItemAnimations(float dt);
 
-    /** Updates active corrode animations and removes items when animation completes. */
+    /**
+     * Updates active corrode animations and removes items when animation completes.
+     *
+     * @param dt  Delta time in seconds.
+     */
     void updateCorrodedItemAnimations(float dt);
 
     /** Removes and clears all consumed-item ghost animations. */
@@ -1963,7 +2001,9 @@ public:
     void setDebugMode(bool enabled);
     
     /**
-     * Retrieves the current state of `_debugMode.
+     * Returns whether debug mode is currently enabled.
+     *
+     * @return true if debug overlays are active, false otherwise.
      */
     bool isDebugMode() const {return _debugMode; }
 
@@ -2007,6 +2047,8 @@ public:
      * Returns a reference to the item controller owned by this scene.
      * Exposed so LobbyScene can pass it to assignMissingHousesForAI()
      * when the host presses Begin Quest.
+     *
+     * @return  A reference to the ItemController owned by this scene.
      */
     ItemController& getItemController() { return _itemController; }
 };
