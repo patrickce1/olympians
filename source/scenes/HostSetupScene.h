@@ -122,6 +122,15 @@ protected:
 
     /** Number of frames the finger has been moving horizontally. */
     int _swipeHoldFrames = 0;
+    
+    /** Counts down frames at activation before the tutorial auto-slide begins. */
+    int _tutorialSlideDelay = 0;
+    
+    /** True if the player just completed the tutorial — show the settings hint popup on next activation. */
+    bool _pendingTutorialCompletePopup = false;
+    
+    /** Set to true when SceneLoader wants to immediately start Circe with tutorial. */
+    bool _pendingTutorialStart = false;
 
 public:
 #pragma mark -
@@ -274,6 +283,19 @@ public:
      *                           parent's local space.
      */
     void snapToNearestBoss(float releaseContainerX);
+    
+    /**
+     * Schedules a one-time popup on next activation informing the player
+     * that the tutorial can be replayed from settings.
+     * Call this from SceneLoader after GameScene ends a tutorial session.
+     */
+    void setPendingTutorialCompletePopup() { _pendingTutorialCompletePopup = true; }
+    
+    /**
+     * Schedules an immediate tutorial start on next activation.
+     * Called by SceneLoader when the player taps "Replay Tutorial" in settings.
+     */
+    void setPendingTutorialStart() { _pendingTutorialStart = true; }
 
 private:
     /**
@@ -315,6 +337,17 @@ private:
      * @param currentIndex The index of the card we are at.
      */
     void updateCarouselDots(int currentIndex);
+    
+    /**
+     * Applies lock visuals to every non-Circe card when the tutorial has not
+     * yet been completed, and removes those visuals once it has. Also disables
+     * the START button when the carousel is resting on a locked card so the
+     * player cannot launch a boss they shouldn't access yet.
+     *
+     * Called from setActive(true) and every frame in update() so the state
+     * stays in sync if tutorialCompleted changes mid-session.
+     */
+    void updateTutorialLocks();
     
     /** Loads boss definitions from the enemies JSON to use in selection. */
     bool loadBosses();

@@ -669,6 +669,9 @@ protected:
 #pragma mark - Tutorial
     /** Whether we are currently doing the tutorial with the respective boss, Circe. **/
     bool _isTutorial;
+    
+    /** When true, forces the tutorial to run this session regardless of saved state. */
+    bool _forceTutorial = false;
 
  #pragma mark - Gaia Variables
     /* RNG for host - authoritative slot shuffling during gameplay. **/
@@ -1844,6 +1847,9 @@ public:
      * Accepted values: "attack", "left_support", "right_support", "pass_left", "pass_right".
      */
     void setTutorialHighlight(const std::string& zone);
+    
+    /** Forces the tutorial to run on the next game start, regardless of saved state. */
+    void setForceTutorial() { _forceTutorial = true; }
     
     /**
      * Deactivates all tutorial highlights.

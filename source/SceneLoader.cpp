@@ -233,19 +233,26 @@ void SceneLoader::update(float dt) {
         if (_settingsScene.shouldClose()) {
             _settingsScene.setActive(false);
             _paused = false;
-            switch (_currentScene) {
-               case State::HOSTSETUP:
-                   _hostSetupScene.setInputEnabled(true);
-                   break;
-               case State::CLIENT:
-                   _clientScene.setInputEnabled(true);
-                   break;
-               case State::LOBBY:
-                   _lobbyScene.setInputEnabled(true);
-                   break;
-               default:
-                   break;
-           }
+            if (_settingsScene.shouldStartTutorial()) {
+                _gameScene.setForceTutorial();
+                _lobbyScene.setForceTutorial();
+                _hostSetupScene.setPendingTutorialStart();
+                _currentScene = State::HOSTSETUP;
+            } else {
+                switch (_currentScene) {
+                    case State::HOSTSETUP:
+                        _hostSetupScene.setInputEnabled(true);
+                        break;
+                    case State::CLIENT:
+                        _clientScene.setInputEnabled(true);
+                        break;
+                    case State::LOBBY:
+                        _lobbyScene.setInputEnabled(true);
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
         return;
     }
@@ -608,8 +615,11 @@ void SceneLoader::update(float dt) {
         {
         case WinLoseScene::Status::ABORT:
             _audio.playMusic("lobby");
-            if (_network->getEnemy() == "circe") { //Tutorial should go back to the setup screen.
+            if (_network->getEnemy() == "circe" && !SavedDataManager::get().getTutorialCompleted()) { //Tutorial should go back to the setup screen.
                 _network->disconnect();
+                SavedDataManager::get().setTutorialCompleted(true);
+                SavedDataManager::get().save();
+                _hostSetupScene.setPendingTutorialCompletePopup();
                 _hostSetupScene.setActive(true);
                 _currentScene = State::HOSTSETUP;
             } else {
