@@ -125,6 +125,9 @@ protected:
     
     /** Counts down frames at activation before the tutorial auto-slide begins. */
     int _tutorialSlideDelay = 0;
+    
+    /** True if the player just completed the tutorial — show the settings hint popup on next activation. */
+    bool _pendingTutorialCompletePopup = false;
 
 public:
 #pragma mark -
@@ -277,6 +280,13 @@ public:
      *                           parent's local space.
      */
     void snapToNearestBoss(float releaseContainerX);
+    
+    /**
+     * Schedules a one-time popup on next activation informing the player
+     * that the tutorial can be replayed from settings.
+     * Call this from SceneLoader after GameScene ends a tutorial session.
+     */
+    void setPendingTutorialCompletePopup() { _pendingTutorialCompletePopup = true; }
 
 private:
     /**

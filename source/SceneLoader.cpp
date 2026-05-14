@@ -610,6 +610,9 @@ void SceneLoader::update(float dt) {
             _audio.playMusic("lobby");
             if (_network->getEnemy() == "circe") { //Tutorial should go back to the setup screen.
                 _network->disconnect();
+                if (SavedDataManager::get().getTutorialCompleted()) {
+                    _hostSetupScene.setPendingTutorialCompletePopup();
+                }
                 _hostSetupScene.setActive(true);
                 _currentScene = State::HOSTSETUP;
             } else {

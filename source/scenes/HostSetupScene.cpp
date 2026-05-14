@@ -239,6 +239,17 @@ void HostSetupScene::setActive(bool value) {
             _joinButton->activate();
             _settingsButton->activate();
             updateTutorialLocks();
+            
+            if (_pendingTutorialCompletePopup) {
+                _pendingTutorialCompletePopup = false;
+                if (_errorPopup) {
+                    auto label = std::dynamic_pointer_cast<scene2::Label>(
+                        _errorPopup->getChildByName("errorLabel"));
+                    if (label) label->setText("Tutorial can be replayed in settings");
+                    _errorPopup->setVisible(true);
+                    _errorTimer = 0.0f;
+                }
+            }
         } else {
             _isSwiping            = false;
             _swipeContainerStartX = 0.0f;
@@ -309,6 +320,7 @@ void HostSetupScene::update(float timestep, InputController& input) {
     handleSwipeTracking(input);
     handleSwipeRelease(input);
     updateTutorialLocks();
+    
     if (!SavedDataManager::get().getTutorialCompleted() && (_currentIndex != 0 && !_isAnimating)){
         if (_tutorialSlideDelay > 0) {
             _tutorialSlideDelay--;
