@@ -488,6 +488,9 @@
         "sideIconBG": {
             "file": "textures/elements/sideIconBG.png"
         },
+        "tutorialButton": {
+            "file": "textures/elements/tutorialButton.png"
+        },
         "backArrow": {
             "file": "textures/backArrow.png",
             "minfilter": "linear",

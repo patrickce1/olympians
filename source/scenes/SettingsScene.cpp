@@ -68,16 +68,11 @@ void SettingsScene::setupUI() {
     _musicSlider = std::dynamic_pointer_cast<scene2::Slider>(
         _scene->getChildByName("musicSlider"));
     
-    _effectsButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("settingsScene.vibrations.toggleButton"));
-    _effectsButton->setDown(true);
-    
-    _hapticsButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("settingsScene.haptics.toggleButton"));
-    _hapticsButton->setDown(true);
-    
     _saveButton = std::dynamic_pointer_cast<scene2::Button>(
         _scene->getChildByName("save"));
+    
+    _tutorialButton = std::dynamic_pointer_cast<scene2::Button>(
+        _scene->getChildByName("play"));
     
     auto usernamePlaceholder = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("settingsScene.username.placeholder"));
     usernamePlaceholder->setText("ENTER NAME");
@@ -126,16 +121,8 @@ void SettingsScene::setupListeners() {
         _musicVolume = value;
         if (_onMusicVolumeChange) _onMusicVolumeChange(value);
     });
-
-    // Effects toggle
-    _effectsButton->addListener([this](const std::string& name, bool down) {
-        if (!down) _effectsEnabled = !_effectsEnabled;
-    });
-
-    // Haptics toggle
-    _hapticsButton->addListener([this](const std::string& name, bool down) {
-        if (!down) _hapticsEnabled = !_hapticsEnabled;
-    });
+    
+    // Add listener for _tutorialButton
 }
 
 /**
@@ -148,8 +135,7 @@ void SettingsScene::dispose() {
         _backButton = nullptr;
         _sfxSlider = nullptr;
         _musicSlider = nullptr;
-        _effectsButton = nullptr;
-        _hapticsButton = nullptr;
+        _tutorialButton = nullptr;
         _active = false;
         _saveButton = nullptr;
     }
@@ -176,8 +162,6 @@ void SettingsScene::setActive(bool value) {
             // Restore persisted values to the UI
             _sfxVolume      = SavedDataManager::get().getSFXVolume();
             _musicVolume    = SavedDataManager::get().getMusicVolume();
-            _effectsEnabled = SavedDataManager::get().getEffectsEnabled();
-            _hapticsEnabled = SavedDataManager::get().getHapticsEnabled();
 
             if (_usernameField && !saved.empty()) {
                 _usernameField->setText(saved);
@@ -187,11 +171,10 @@ void SettingsScene::setActive(bool value) {
             }
             if (_sfxSlider)     _sfxSlider->setValue(_sfxVolume);
             if (_musicSlider)   _musicSlider->setValue(_musicVolume);
-            if (_effectsButton) _effectsButton->setDown(_effectsEnabled);
-            if (_hapticsButton) _hapticsButton->setDown(_hapticsEnabled);
         } else {
             _saveButton->setDown(false);
             _backButton->setDown(false);
+            _tutorialButton->setDown(false);
         }
     }
 }
@@ -224,16 +207,14 @@ void SettingsScene::setInputEnabled(bool enabled) {
         _backButton->activate();
         _sfxSlider->activate();
         _musicSlider->activate();
-        _effectsButton->activate();
-        _hapticsButton->activate();
+        _tutorialButton->activate();
         _saveButton->activate();
     } else {
         _usernameField->deactivate();
         _backButton->deactivate();
         _sfxSlider->deactivate();
         _musicSlider->deactivate();
-        _effectsButton->deactivate();
-        _hapticsButton->deactivate();
+        _tutorialButton->deactivate();
         _saveButton->deactivate();
     }
 }
@@ -257,7 +238,5 @@ void SettingsScene::saveSettings() {
     }
     SavedDataManager::get().setSFXVolume(_sfxVolume);
     SavedDataManager::get().setMusicVolume(_musicVolume);
-    SavedDataManager::get().setEffectsEnabled(_effectsEnabled);
-    SavedDataManager::get().setHapticsEnabled(_hapticsEnabled);
     SavedDataManager::get().save();
 }
