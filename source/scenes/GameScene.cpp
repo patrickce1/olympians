@@ -542,16 +542,36 @@ bool GameScene::initSceneGraph() {
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
         
-        // _behindHUDEffectsLayer sits above the game area (boss, etc.) but below the inventory
-        // and all player HUD nodes. Achieved by temporarily detaching _inventory so we can insert
-        // this layer between the two in the scene's child order, then re-attaching _inventory on top.
-        _behindHUDEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
-        _behindHUDEffectsLayer->setContentSize(dimen);
-        _behindHUDEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
-        _behindHUDEffectsLayer->setPosition(cugl::Vec2(dimen.width / 2.0f, dimen.height / 2.0f));
-        if (_inventory) _inventory->removeFromParent();
-        _scene->addChild(_behindHUDEffectsLayer);
-        if (_inventory) _scene->addChild(_inventory);
+        // _behindHUDEffectsLayer lives inside _gameArea, inserted after the boss sprites
+        // but before the player icon HUD nodes (leftIcon, rightIcon, etc.) so it renders
+        // above the boss and below the HUD. The HUD nodes are temporarily detached so the
+        // layer ends up at the correct position in _gameArea's child order.
+        {
+            auto hudDialogue = _gameArea->getChildByName("dialogueBox");
+            auto hudLeft     = _gameArea->getChildByName("leftIcon");
+            auto hudRight    = _gameArea->getChildByName("rightIcon");
+            auto hudSupL     = _gameArea->getChildByName("supportLeft");
+            auto hudSupR     = _gameArea->getChildByName("supportRight");
+            auto hudDeath    = _gameArea->getChildByName("playerDeath");
+            if (hudDialogue) hudDialogue->removeFromParent();
+            if (hudLeft)     hudLeft->removeFromParent();
+            if (hudRight)    hudRight->removeFromParent();
+            if (hudSupL)     hudSupL->removeFromParent();
+            if (hudSupR)     hudSupR->removeFromParent();
+            if (hudDeath)    hudDeath->removeFromParent();
+
+            _behindHUDEffectsLayer = scene2::SceneNode::allocWithBounds(_gameArea->getContentSize());
+            _behindHUDEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_BOTTOM_LEFT);
+            _behindHUDEffectsLayer->setPosition(cugl::Vec2::ZERO);
+            _gameArea->addChild(_behindHUDEffectsLayer);
+
+            if (hudDialogue) _gameArea->addChild(hudDialogue);
+            if (hudLeft)     _gameArea->addChild(hudLeft);
+            if (hudRight)    _gameArea->addChild(hudRight);
+            if (hudSupL)     _gameArea->addChild(hudSupL);
+            if (hudSupR)     _gameArea->addChild(hudSupR);
+            if (hudDeath)    _gameArea->addChild(hudDeath);
+        }
 
         // _specialEffectsLayer is added last so it renders above everything, including the inventory.
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
@@ -4680,12 +4700,14 @@ void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, 
     position.x += animConfig.offsetX;
     position.y += animConfig.offsetY;
 
-    node->setPosition(position);
-
-    // Both layers share the same coordinate space as the scene root.
+    // _specialEffectsLayer shares the scene root coordinate space.
+    // _behindHUDEffectsLayer is a child of _gameArea whose origin is offset from the
+    // scene root by _gameArea->getPosition(), so convert screen-space position to local.
     if (animConfig.aboveInventory) {
+        node->setPosition(position);
         _specialEffectsLayer->addChild(node);
     } else {
+        node->setPosition(position - _gameArea->getPosition());
         _behindHUDEffectsLayer->addChild(node);
     }
     

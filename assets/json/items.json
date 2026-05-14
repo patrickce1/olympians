@@ -365,7 +365,7 @@
                 "frameCount": 13,
                 "animationDuration": 1.2,
                 "damageResolutionFrame": 5,
-                "scale": 1.1,
+                "scale": 1.05,
                 "offsetY": 100,
                 "aboveInventory": false
             }
@@ -407,10 +407,11 @@
             "itemUseAnimation": {
                 "spriteSheetId": "resurrection_animation",
                 "rows": 1,
-                "cols": 10,
-                "frameCount": 10,
-                "animationDuration": 0.8,
-                "damageResolutionFrame": 5,
+                "cols": 16,
+                "frameCount": 16,
+                "animationDuration": 1.1,
+                "damageResolutionFrame": 10,
+                "scale": 1.25,
                 "centerOnDropLocation": true
             }
         },
@@ -474,9 +475,9 @@
             "itemUseAnimation": {
                 "spriteSheetId": "educate_animation",
                 "rows": 1,
-                "cols": 7,
-                "frameCount": 7,
-                "animationDuration": 0.8,
+                "cols": 19,
+                "frameCount": 19,
+                "animationDuration": 1.2,
                 "damageResolutionFrame": 4,
                 "centerOnDropLocation": true
             }
@@ -508,6 +509,8 @@
                 "frameCount": 7,
                 "animationDuration": 0.5,
                 "damageResolutionFrame": 4,
+                "scale": 1.1,
+                "offsetY": -40,
                 "centerOnDropLocation": true
             }
         },
