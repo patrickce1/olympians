@@ -53,12 +53,14 @@ static const std::array<float, 3> SLOT_Y = {
 };
 
 static const std::unordered_map<ItemDef::EffectType, std::string> EFFECT_ICON_KEYS = {
-    { ItemDef::EffectType::Regen,   "icon_regen"   },
-    { ItemDef::EffectType::Stun,    "icon_stun"    },
-    { ItemDef::EffectType::Educate, "icon_educate" },
-    { ItemDef::EffectType::Slow,    "icon_slow"    },
-    { ItemDef::EffectType::Charm,   "icon_charm"   },
-    { ItemDef::EffectType::Frenzy,  "icon_frenzy"  },
+    { ItemDef::EffectType::Regen,      "icon_regen"   },
+    { ItemDef::EffectType::Stun,       "icon_stun"    },
+    { ItemDef::EffectType::Educate,    "icon_educate" },
+    { ItemDef::EffectType::Slow,       "icon_slow"    },
+    { ItemDef::EffectType::Charm,      "icon_charm"   },
+    { ItemDef::EffectType::Frenzy,     "icon_frenzy"  },
+    { ItemDef::EffectType::Resurrect,  "icon_resurrect"  },
+    { ItemDef::EffectType::Love,       "icon_love"  }
 };
 
 #pragma mark HealthState
@@ -1573,7 +1575,7 @@ void GameScene::recomputeVisibleTimers() {
     std::vector<ActiveEffectIcon*> others;
 
     for (auto& e : _effectIcons) {
-        auto def = db.getDef(e.textureKey);
+        auto def = db.getDef(e.defId);
         if (!def) {
             others.push_back(&e);
             continue;
@@ -1641,12 +1643,14 @@ void GameScene::rebuildTimerLayout() {
 void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events) {
     if (!_timers) return;
     
+    const auto& db = _itemController.getDatabase();
+    
     for (const auto& e : events) {
-        auto def = _itemController.getDatabase().getDef(e.itemId);
-        if (!def) continue;
+        auto iconKeyIt = EFFECT_ICON_KEYS.find(e.effectType);
+        if (iconKeyIt == EFFECT_ICON_KEYS.end()) continue;
 
-        auto texture = _assets->get<cugl::graphics::Texture>(def->getIconKey());
-        if (!texture) continue;
+        auto texture = _assets->get<cugl::graphics::Texture>(iconKeyIt->second);
+                if (!texture) continue;
         
         // Check for duplicate — refresh duration if already active
         auto existing = std::find_if(_effectIcons.begin(), _effectIcons.end(),
@@ -1656,8 +1660,9 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
 
         if (existing != _effectIcons.end()) {
             existing->remainingDuration = e.duration;
+            existing->totalDuration = e.duration;
+            existing->defId = e.itemId;
         } else {
-            
             auto icon = cugl::scene2::PolygonNode::allocWithTexture(texture);
             icon->setContentSize(40,40);
             icon->setAnchor(cugl::Vec2::ANCHOR_CENTER);
@@ -1675,7 +1680,7 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
             
             _effectIcons.push_back({
                 e.effectType,
-                def->getIconKey(),
+                e.itemId,
                 icon,
                 pie,
                 e.duration,
