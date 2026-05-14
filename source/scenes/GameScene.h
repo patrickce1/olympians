@@ -1032,11 +1032,38 @@ public:
     bool initializeEnemyAnimations(const std::string& enemyId);
 
     /**
+     * Creates and Z-orders all Cerberus body and head sprite nodes within _bossSprite.
+     *
+     * Extracts the body sprite placed by the registry loop, then (for Cerberus only)
+     * allocates four head instances per animation set and interleaves them with the body
+     * in draw order: back → body → right → left → front → body-top.
+     *
+     * @param enemyId  The enemy identifier; head setup only runs when this equals "cerberus".
+     */
+    void initializeCerberusAnimationSprites(const std::string& enemyId);
+
+    /**
      * Destroys all pre-created enemy animation sprite nodes and resets related state.
      * Called from setActive(false) and before loading a new enemy in setActive(true).
      */
     void destroyEnemyAnimations();
-    
+
+    /**
+     * Configures Cerberus-specific animation state after sprites have been created by
+     * initializeEnemyAnimations(). Performs three tasks in order:
+     *   1. Positions and scales the body sprites using the registry entry for the body animation.
+     *   2. Reads per-head offsets and phase offsets from the enemy's customData JSON and applies
+     *      them to every head sprite in _cerberusHeadSpritesByAnim.
+     *   3. Derives the idle head animation key from the enemy's IDLE state definition and
+     *      initialises _cerberusHeadActiveAnimKey / _cerberusHeadAnimBuildUpTime for all heads.
+     *
+     * After this call the body and head sprites are correctly placed but still invisible;
+     * the caller is responsible for resetting timers and hiding sprites for a clean start.
+     *
+     * @param enemy  The Cerberus enemy instance to read customData and state definitions from.
+     */
+    void configureCerberusAnimationState(const std::shared_ptr<Enemy>& enemy);
+
     /**
      * Switches the visible animation sprite by hiding the current one and showing the new one.
      * 

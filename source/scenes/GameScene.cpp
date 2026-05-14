@@ -1004,61 +1004,7 @@ void GameScene::setActive(bool value) {
 
             // Cerberus: load head config from customData and reset animation state
             if (enemy && enemy->getId() == "cerberus") {
-                // Apply correct position/scale to body sprite (bypasses switchVisibleAnimation)
-                auto bodyEntryIt = _animationRegistry.find(_cerberusAnimConfig.bodyAnimId);
-                if (bodyEntryIt != _animationRegistry.end()) {
-                    const auto& be = bodyEntryIt->second;
-                    cugl::Vec2 bodyPos(be.positionX + be.offsetX, be.positionY + be.offsetY);
-                    if (_cerberusBodySprite) {
-                        _cerberusBodySprite->setPosition(bodyPos);
-                        _cerberusBodySprite->setScale(be.scale);
-                    }
-                    if (_cerberusBodySpriteTop) {
-                        _cerberusBodySpriteTop->setPosition(bodyPos);
-                        _cerberusBodySpriteTop->setScale(be.scale);
-                    }
-                }
-                // Load per-head offsets and phase offsets from customData
-                auto cd = enemy->getCustomData();
-                if (cd) {
-                    auto headsJson = cd->get("heads");
-                    if (headsJson) {
-                        const char* keys[4] = {"front", "right", "back", "left"};
-                        for (int i = 0; i < 4; i++) {
-                            auto h = headsJson->get(keys[i]);
-                            if (h) {
-                                _cerberusAnimConfig.headOffsets[i].offsetX    = h->getFloat("offsetX", 0.0f);
-                                _cerberusAnimConfig.headOffsets[i].offsetY    = h->getFloat("offsetY", 0.0f);
-                                _cerberusAnimConfig.headOffsets[i].phaseOffset = h->getFloat("phaseOffset", 0.0f);
-                            }
-                        }
-                    }
-                }
-                // Derive idle head anim key from the IDLE state definition
-                auto idleStateIt = enemy->getStates().find(EnemyLoader::State::IDLE);
-                if (idleStateIt != enemy->getStates().end()) {
-                    _cerberusIdleHeadAnimKey = idleStateIt->second.headAnimationKey;
-                }
-                for (int i = 0; i < 4; i++) {
-                    _cerberusHeadActiveAnimKey[i] = _cerberusIdleHeadAnimKey;
-                    _cerberusHeadAnimBuildUpTime[i] = 0.0f;
-                }
-
-                // Apply per-head offsets to every head sprite set
-                for (auto& [key, sprites] : _cerberusHeadSpritesByAnim) {
-                    auto entryIt = _animationRegistry.find(key);
-                    if (entryIt == _animationRegistry.end()) continue;
-                    const auto& he = entryIt->second;
-                    for (int i = 0; i < 4; i++) {
-                        if (sprites[i]) {
-                            sprites[i]->setPosition(cugl::Vec2(
-                                he.positionX + _cerberusAnimConfig.headOffsets[i].offsetX,
-                                he.positionY + _cerberusAnimConfig.headOffsets[i].offsetY));
-                            sprites[i]->setScale(he.scale);
-                            sprites[i]->setVisible(false);
-                        }
-                    }
-                }
+                configureCerberusAnimationState(enemy);
             }
             // Reset cerberus state tracking, direction tracking, and timers
             _cerberusLastState = EnemyLoader::State::IDLE;
@@ -1333,9 +1279,10 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         }
         broadcastEnemyEffects(*_network, enemyEffects);
     }
+    const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
+    const float finalDamage    = resolvedMagnitude * sideMultiplier;
+
     if (_network->isHost() && _audio) {
-        const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
-        const float finalDamage    = resolvedMagnitude * sideMultiplier;
         _audio->playSoundUnique(finalDamage <= 0.0f ? "enemy_block" : "enemy_hurt");
     }
 
@@ -1346,8 +1293,6 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     }
 
     if (baseValue > 0.0f) {
-        const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
-        const float finalDamage    = resolvedMagnitude * sideMultiplier;
         if (sideMultiplier < 0.0f) {
             createFloatingPopup(dropPos, buildCerberusDefenseHealPopup(
                 resolvedMagnitude, sideMultiplier, 26.0f, 17.0f));
@@ -1914,6 +1859,82 @@ void GameScene::hideEnemyAnimationAndShowStatic() {
  * @param animationEntry  The animation metadata containing texture path and frame info
  * @return true if sprite node was successfully initialized, false on error
  */
+
+/**
+ * Configures Cerberus-specific animation state after sprites have been created by
+ * initializeEnemyAnimations(). Performs three tasks in order:
+ *   1. Positions and scales the body sprites using the registry entry for the body animation.
+ *   2. Reads per-head offsets and phase offsets from the enemy's customData JSON and applies
+ *      them to every head sprite in _cerberusHeadSpritesByAnim.
+ *   3. Derives the idle head animation key from the enemy's IDLE state definition and
+ *      initialises _cerberusHeadActiveAnimKey / _cerberusHeadAnimBuildUpTime for all heads.
+ *
+ * After this call the body and head sprites are correctly placed but still invisible;
+ * the caller is responsible for resetting timers and hiding sprites for a clean start.
+ *
+ * @param enemy  The Cerberus enemy instance to read customData and state definitions from.
+ */
+void GameScene::configureCerberusAnimationState(const std::shared_ptr<Enemy>& enemy) {
+    // 1. Position and scale the body sprites from the registry entry.
+    auto bodyEntryIt = _animationRegistry.find(_cerberusAnimConfig.bodyAnimId);
+    if (bodyEntryIt != _animationRegistry.end()) {
+        const auto& bodyAnimEntry = bodyEntryIt->second;
+        cugl::Vec2 bodyPos(bodyAnimEntry.positionX + bodyAnimEntry.offsetX,
+                           bodyAnimEntry.positionY + bodyAnimEntry.offsetY);
+        if (_cerberusBodySprite) {
+            _cerberusBodySprite->setPosition(bodyPos);
+            _cerberusBodySprite->setScale(bodyAnimEntry.scale);
+        }
+        if (_cerberusBodySpriteTop) {
+            _cerberusBodySpriteTop->setPosition(bodyPos);
+            _cerberusBodySpriteTop->setScale(bodyAnimEntry.scale);
+        }
+    }
+
+    // 2. Load per-head offsets and phase offsets from customData.
+    auto customData = enemy->getCustomData();
+    if (customData) {
+        auto headsJson = customData->get("heads");
+        if (headsJson) {
+            const char* keys[4] = {"front", "right", "back", "left"};
+            for (int i = 0; i < 4; i++) {
+                auto headOffsetJson = headsJson->get(keys[i]);
+                if (headOffsetJson) {
+                    _cerberusAnimConfig.headOffsets[i].offsetX     = headOffsetJson->getFloat("offsetX",     0.0f);
+                    _cerberusAnimConfig.headOffsets[i].offsetY     = headOffsetJson->getFloat("offsetY",     0.0f);
+                    _cerberusAnimConfig.headOffsets[i].phaseOffset = headOffsetJson->getFloat("phaseOffset", 0.0f);
+                }
+            }
+        }
+    }
+
+    // 3. Derive idle head anim key from the IDLE state definition.
+    auto idleStateIt = enemy->getStates().find(EnemyLoader::State::IDLE);
+    if (idleStateIt != enemy->getStates().end()) {
+        _cerberusIdleHeadAnimKey = idleStateIt->second.headAnimationKey;
+    }
+    for (int i = 0; i < 4; i++) {
+        _cerberusHeadActiveAnimKey[i]  = _cerberusIdleHeadAnimKey;
+        _cerberusHeadAnimBuildUpTime[i] = 0.0f;
+    }
+
+    // Apply per-head offsets to every head sprite set (positions sprites, leaves them invisible).
+    for (auto& [key, sprites] : _cerberusHeadSpritesByAnim) {
+        auto entryIt = _animationRegistry.find(key);
+        if (entryIt == _animationRegistry.end()) continue;
+        const auto& headAnimEntry = entryIt->second;
+        for (int i = 0; i < 4; i++) {
+            if (sprites[i]) {
+                sprites[i]->setPosition(cugl::Vec2(
+                    headAnimEntry.positionX + _cerberusAnimConfig.headOffsets[i].offsetX,
+                    headAnimEntry.positionY + _cerberusAnimConfig.headOffsets[i].offsetY));
+                sprites[i]->setScale(headAnimEntry.scale);
+                sprites[i]->setVisible(false);
+            }
+        }
+    }
+}
+
 void GameScene::destroyEnemyAnimations() {
     if (_bossSprite) _bossSprite->removeAllChildren();
     _enemyAnimationSpriteNodes.clear();
@@ -1983,9 +2004,29 @@ bool GameScene::initializeEnemyAnimations(const std::string& enemyId) {
         _enemyAnimationSpriteNodes[animationId] = spriteNode;
     }
     
-    // Cerberus z-order: for each head animation set, insert in order:
-    //   back(2) → body → right(1) → left(3) → front(0) → body-top → [next anim set] → ...
-    // The body was added by the registry loop above; remove it so we can re-insert in correct order.
+    initializeCerberusAnimationSprites(enemyId);
+
+    _bossSprite->setVisible(true);
+    return true;
+}
+
+/**
+ * Creates and Z-orders all Cerberus body and head sprite nodes within _bossSprite.
+ *
+ * The body sprite is extracted from _enemyAnimationSpriteNodes (where the registry loop
+ * placed it) and re-inserted in the correct draw order. For Cerberus specifically, head
+ * sprites are created in four instances per animation set and interleaved with the body:
+ *   back(2) → body → right(1) → left(3) → front(0) → body-top
+ * A second body sprite (_cerberusBodySpriteTop) is placed above all heads so the body
+ * correctly overlaps the heads when the enemy faces away (direction 2).
+ *
+ * No-ops for non-Cerberus enemies after extracting the body sprite.
+ *
+ * @param enemyId  The enemy identifier; head setup only runs when this equals "cerberus".
+ */
+void GameScene::initializeCerberusAnimationSprites(const std::string& enemyId) {
+    // The registry loop placed the body sprite at the end of _bossSprite's children.
+    // Remove it so it can be re-inserted at the correct Z position below.
     auto bodyNodeIt = _enemyAnimationSpriteNodes.find("cerberus_body_idle_animation");
     if (bodyNodeIt != _enemyAnimationSpriteNodes.end()) {
         _cerberusBodySprite = bodyNodeIt->second;
@@ -1993,90 +2034,88 @@ bool GameScene::initializeEnemyAnimations(const std::string& enemyId) {
         _cerberusBodySprite->removeFromParent();
     }
 
-    // Collect all cerberus head animations from the registry.
-    // Done by scanning the registry rather than the enemy instance because at init() time the
-    // default enemy is Cyclops — the actual boss choice isn't known until setActive(true).
-    if (enemyId == "cerberus") {
-        std::vector<std::string> orderedHeadKeys;
-        for (const auto& [key, entry] : _animationRegistry) {
-            if (key.rfind("cerberus_head_", 0) == 0) {
-                orderedHeadKeys.push_back(key);
-            }
+    if (enemyId != "cerberus") return;
+
+    // Collect all cerberus head animation keys from the registry.
+    // Scanned here (not from the enemy instance) because at init() time the default enemy
+    // is Cyclops — the actual boss choice isn't known until setActive(true).
+    std::vector<std::string> orderedHeadKeys;
+    for (const auto& registryPair : _animationRegistry) {
+        if (registryPair.first.rfind("cerberus_head_", 0) == 0) {
+            orderedHeadKeys.push_back(registryPair.first);
         }
-        // Sort so idle comes first (body must be inserted behind it), others follow alphabetically
-        std::sort(orderedHeadKeys.begin(), orderedHeadKeys.end(),
-                  [](const std::string& a, const std::string& b) {
-                      bool aIdle = a.find("idle") != std::string::npos;
-                      bool bIdle = b.find("idle") != std::string::npos;
-                      if (aIdle != bIdle) return aIdle;
-                      return a < b;
-                  });
+    }
+    // Idle set must come first so the body is inserted behind it; other sets follow alphabetically.
+    std::sort(orderedHeadKeys.begin(), orderedHeadKeys.end(),
+              [](const std::string& a, const std::string& b) {
+                  bool aIdle = a.find("idle") != std::string::npos;
+                  bool bIdle = b.find("idle") != std::string::npos;
+                  if (aIdle != bIdle) return aIdle;
+                  return a < b;
+              });
 
-        // Insert head sprites in per-set back→right→left→front order,
-        // with the body re-inserted between back and the remaining heads for the first set.
-        bool bodyInserted = false;
-        for (const auto& key : orderedHeadKeys) {
-            auto entryIt = _animationRegistry.find(key);
-            if (entryIt == _animationRegistry.end()) {
-                CULogError("Cerberus head anim key '%s' not in registry", key.c_str());
-                continue;
-            }
-            const auto& e = entryIt->second;
-            auto tex = cugl::graphics::Texture::allocWithFile(e.texture);
-            if (!tex) {
-                CULogError("Missing cerberus head texture: %s", e.texture.c_str());
-                continue;
-            }
-
-            std::array<std::shared_ptr<cugl::scene2::SpriteNode>, 4> sprites;
-            auto makeHead = [&](int idx) {
-                auto sprite = cugl::scene2::SpriteNode::allocWithSheet(
-                    tex, e.frameRows, e.frameCount, e.frameRows * e.frameCount);
-                if (sprite) {
-                    sprite->setAnchor(cugl::Vec2(0.5f, 0.5f));
-                    sprite->setPosition(cugl::Vec2(e.positionX, e.positionY));
-                    sprite->setScale(e.scale);
-                    sprite->setVisible(false);
-                    _bossSprite->addChild(sprite);
-                    sprites[idx] = sprite;
-                }
-            };
-
-            makeHead(2);  // back — behind body
-            if (!bodyInserted && _cerberusBodySprite) {
-                _bossSprite->addChild(_cerberusBodySprite);
-                bodyInserted = true;
-            }
-            makeHead(1);  // right
-            makeHead(3);  // left
-            makeHead(0);  // front — in front of body
-
-            _cerberusHeadSpritesByAnim[key] = sprites;
+    // Insert head sprites in per-set back→right→left→front order,
+    // with the body re-inserted between back and the remaining heads for the first set.
+    bool bodyInserted = false;
+    for (const auto& key : orderedHeadKeys) {
+        auto entryIt = _animationRegistry.find(key);
+        if (entryIt == _animationRegistry.end()) {
+            CULogError("Cerberus head anim key '%s' not in registry", key.c_str());
+            continue;
+        }
+        const auto& animEntry = entryIt->second;
+        auto tex = cugl::graphics::Texture::allocWithFile(animEntry.texture);
+        if (!tex) {
+            CULogError("Missing cerberus head texture: %s", animEntry.texture.c_str());
+            continue;
         }
 
-        // Second body sprite sits above ALL head layers — shown only for direction=2 (facing away)
-        // so the body correctly overlaps the heads in the back view.
-        auto bodyEntryIt = _animationRegistry.find("cerberus_body_idle_animation");
-        if (bodyEntryIt != _animationRegistry.end()) {
-            const auto& e = bodyEntryIt->second;
-            auto tex = cugl::graphics::Texture::allocWithFile(e.texture);
-            if (tex) {
-                auto sprite = cugl::scene2::SpriteNode::allocWithSheet(
-                    tex, e.frameRows, e.frameCount, e.frameRows * e.frameCount);
-                if (sprite) {
-                    sprite->setAnchor(cugl::Vec2(0.5f, 0.5f));
-                    sprite->setPosition(cugl::Vec2(e.positionX + e.offsetX, e.positionY + e.offsetY));
-                    sprite->setScale(e.scale);
-                    sprite->setVisible(false);
-                    _bossSprite->addChild(sprite);
-                    _cerberusBodySpriteTop = sprite;
-                }
+        std::array<std::shared_ptr<cugl::scene2::SpriteNode>, 4> sprites;
+        auto makeHead = [&](int idx) {
+            auto sprite = cugl::scene2::SpriteNode::allocWithSheet(
+                tex, animEntry.frameRows, animEntry.frameCount, animEntry.frameRows * animEntry.frameCount);
+            if (sprite) {
+                sprite->setAnchor(cugl::Vec2(0.5f, 0.5f));
+                sprite->setPosition(cugl::Vec2(animEntry.positionX, animEntry.positionY));
+                sprite->setScale(animEntry.scale);
+                sprite->setVisible(false);
+                _bossSprite->addChild(sprite);
+                sprites[idx] = sprite;
+            }
+        };
+
+        makeHead(2);  // back — behind body
+        if (!bodyInserted && _cerberusBodySprite) {
+            _bossSprite->addChild(_cerberusBodySprite);
+            bodyInserted = true;
+        }
+        makeHead(1);  // right
+        makeHead(3);  // left
+        makeHead(0);  // front — in front of body
+
+        _cerberusHeadSpritesByAnim[key] = sprites;
+    }
+
+    // Second body sprite sits above ALL head layers — shown only for direction=2 (facing away)
+    // so the body correctly overlaps the heads in the back view.
+    auto bodyEntryIt = _animationRegistry.find("cerberus_body_idle_animation");
+    if (bodyEntryIt != _animationRegistry.end()) {
+        const auto& bodyAnimEntry = bodyEntryIt->second;
+        auto tex = cugl::graphics::Texture::allocWithFile(bodyAnimEntry.texture);
+        if (tex) {
+            auto sprite = cugl::scene2::SpriteNode::allocWithSheet(
+                tex, bodyAnimEntry.frameRows, bodyAnimEntry.frameCount, bodyAnimEntry.frameRows * bodyAnimEntry.frameCount);
+            if (sprite) {
+                sprite->setAnchor(cugl::Vec2(0.5f, 0.5f));
+                sprite->setPosition(cugl::Vec2(bodyAnimEntry.positionX + bodyAnimEntry.offsetX,
+                                               bodyAnimEntry.positionY + bodyAnimEntry.offsetY));
+                sprite->setScale(bodyAnimEntry.scale);
+                sprite->setVisible(false);
+                _bossSprite->addChild(sprite);
+                _cerberusBodySpriteTop = sprite;
             }
         }
     }
-
-    _bossSprite->setVisible(true);
-    return true;
 }
 
 /**
@@ -5685,11 +5724,9 @@ void GameScene::updateItemUseAnimations(float dt) {
 
             // Host plays enemy_hurt or enemy_block depending on whether damage landed.
             if (_network && _network->isHost() && _audio) {
-                auto en = _gameState.getEnemy();
-                const int playerNum = _gameState.getLocalPlayer()->getPlayerNumber();
-                const float sideMultiplier = en ? en->getSideMultiplier(playerNum) : 1.0f;
-                const float finalDmg = activeAnim.damageAmount * sideMultiplier;
-                _audio->playSoundUnique(finalDmg <= 0.0f ? "enemy_block" : "enemy_hurt");
+                const float sideMultiplier = enemy ? enemy->getSideMultiplier(playerNum) : 1.0f;
+                const float finalDamage = activeAnim.damageAmount * sideMultiplier;
+                _audio->playSoundUnique(finalDamage <= 0.0f ? "enemy_block" : "enemy_hurt");
             }
         }
 
