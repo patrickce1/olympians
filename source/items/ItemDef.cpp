@@ -239,6 +239,11 @@ static bool parseEffect(const std::shared_ptr<JsonValue>& json, ItemDef::Effect&
         out.amount = std::max(0.0f, json->getFloat("amount"));
     }
 
+    out.delay = 0.0f;
+    if (json->has("delay") && json->get("delay")->isNumber()) {
+        out.delay = std::max(0.0f, json->getFloat("delay"));
+    }
+
     out.applyToAllSides = false;
     if (json->has("applyToAllSides") && json->get("applyToAllSides")->isBool()) {
         out.applyToAllSides = json->getBool("applyToAllSides", false);

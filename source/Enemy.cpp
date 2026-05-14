@@ -134,6 +134,7 @@ bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
 
     // Clear any previous stun/love state when reinitializing the enemy instance.
     _stunDuration = 0.0f;
+    _pendingStunEffects.clear();
     _loveDuration = 0.0f;
     _slowDuration = 0.0f;
     _slowMultiplier = 1.0f;
@@ -312,6 +313,19 @@ void Enemy::tick(float dt) {
         _stunDuration = std::max(0.0f, _stunDuration - dt);
         if (previousStunDuration > 0.0f && _stunDuration <= 0.0f && _debug) {
             CULog("Enemy stun expired: enemy='%s'", _enemyId.c_str());
+        }
+    }
+
+    for (auto pending = _pendingStunEffects.begin(); pending != _pendingStunEffects.end(); ) {
+        pending->delay = std::max(0.0f, pending->delay - dt);
+        if (pending->delay <= 0.0f) {
+            if (pending->amount > 0.0f) {
+                takeDamage(pending->amount, pending->playerIndex);
+            }
+            applyStun(pending->duration);
+            pending = _pendingStunEffects.erase(pending);
+        } else {
+            ++pending;
         }
     }
 
@@ -563,6 +577,38 @@ void Enemy::applyStun(float duration) {
 }
 
 /**
+ * Schedules a stun and its paired damage to take effect after a delay.
+ *
+ * If delay is zero, the damage and stun are applied immediately. Positive
+ * damage is resolved through takeDamage() so side multipliers are respected.
+ *
+ * @param duration    The stun time to apply once the delay elapses, in seconds.
+ * @param amount      Damage to apply at the same time as the stun.
+ * @param delay       Seconds to wait before applying the stun and damage.
+ * @param playerIndex The player slot credited with the damage.
+ */
+void Enemy::scheduleStun(float duration, float amount, float delay, int playerIndex) {
+    duration = std::max(0.0f, duration);
+    amount = std::max(0.0f, amount);
+    delay = std::max(0.0f, delay);
+
+    if (delay <= 0.0f) {
+        if (amount > 0.0f) {
+            takeDamage(amount, playerIndex);
+        }
+        applyStun(duration);
+        return;
+    }
+
+    PendingStunEffect pending;
+    pending.delay = delay;
+    pending.duration = duration;
+    pending.amount = amount;
+    pending.playerIndex = playerIndex;
+    _pendingStunEffects.push_back(pending);
+}
+
+/**
  * Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state.
  *
  * @param duration  The authoritative remaining stun time, in seconds.
@@ -596,7 +642,7 @@ void Enemy::applyLove(float duration, int playerIndex) {
     const bool wasLoved = isLoved();
     _loveDuration = std::max(_loveDuration, duration);
     if (validPlayerIndex) {
-        _targetIndex = playerIndex;
+        setTargetIndex(playerIndex);
     }
     forceIdle(duration);
 

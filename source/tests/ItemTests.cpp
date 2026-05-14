@@ -940,6 +940,98 @@ void testStunEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 }
 
 /**
+ * Tests that stun effect amount and delay fields parse from item JSON.
+ *
+ * Verifies that Thunderstorm's staged stun effects preserve their configured
+ * damage amounts, delays, and durations.
+ *
+ * @param itemsJson Parsed JSON object containing item definitions.
+ */
+void testStunAmountAndDelayParsing(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "stun params: item db load succeeds");
+
+    auto thunderstormDef = db.getDef("thunderstorm");
+    assertWithLabel(thunderstormDef != nullptr, "stun params: thunderstorm def exists");
+    if (!thunderstormDef) return;
+
+    const auto& effects = thunderstormDef->getEffects();
+    assertWithLabel(effects.size() == 4, "stun params: thunderstorm has four staged stun effects");
+    if (effects.size() < 4) return;
+
+    const float expectedAmounts[] = { 10.0f, 20.0f, 40.0f, 80.0f };
+    const float expectedDelays[] = { 0.0f, 2.0f, 4.0f, 6.0f };
+    const float expectedDurations[] = { 1.0f, 1.0f, 1.0f, 2.0f };
+
+    for (size_t index = 0; index < 4; index++) {
+        assertWithLabel(effects[index].type == ItemDef::EffectType::Stun,
+                        "stun params: thunderstorm staged effect is stun");
+        assertWithLabel(floatsEqualWithinTolerance(effects[index].amount, expectedAmounts[index]),
+                        "stun params: stun amount parses");
+        assertWithLabel(floatsEqualWithinTolerance(effects[index].delay, expectedDelays[index]),
+                        "stun params: stun delay parses");
+        assertWithLabel(floatsEqualWithinTolerance(effects[index].duration, expectedDurations[index]),
+                        "stun params: stun duration parses");
+    }
+}
+
+/**
+ * Tests delayed stun damage, side multiplier resolution, and target lock behavior.
+ *
+ * Verifies that:
+ * - Delayed stun effects do not damage or stun before their delay expires
+ * - Delayed stun damage resolves through Enemy::takeDamage() side multipliers
+ * - The enemy cannot change targets while stunned, including through love effects
+ * - Target changes are accepted again after stun expires
+ *
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization.
+ */
+void testStunDelayedDamageAndTargetLock(const std::string& enemiesJsonPath) {
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "stun delayed: enemy init succeeds");
+    if (!enemyOk) return;
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    enemy.setTargetIndex(0);
+    enemy.setSideMultiplier(2, 1.5f);
+
+    const float healthBeforeSchedule = enemy.getCurrentHealth();
+    enemy.scheduleStun(1.25f, 20.0f, 0.5f, 2);
+    assertWithLabel(!enemy.isStunned(), "stun delayed: delayed stun does not apply immediately");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getCurrentHealth(), healthBeforeSchedule),
+                    "stun delayed: delayed stun damage does not apply immediately");
+
+    enemy.update(0.4f);
+    assertWithLabel(!enemy.isStunned(), "stun delayed: enemy remains unstunned before delay");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getCurrentHealth(), healthBeforeSchedule),
+                    "stun delayed: enemy takes no stun damage before delay");
+
+    enemy.update(0.2f);
+    assertWithLabel(enemy.isStunned(), "stun delayed: enemy becomes stunned once delay expires");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getStunDuration(), 1.25f),
+                    "stun delayed: delayed stun duration applies");
+    assertWithLabel(floatsEqualWithinTolerance(healthBeforeSchedule - enemy.getCurrentHealth(), 30.0f),
+                    "stun delayed: stun damage uses side multiplier");
+
+    const int targetBeforeChangeAttempt = enemy.getTargetIndex();
+    enemy.setTargetIndex(2);
+    assertWithLabel(enemy.getTargetIndex() == targetBeforeChangeAttempt,
+                    "stun target lock: setTargetIndex is ignored while stunned");
+
+    enemy.applyLove(5.0f, 3);
+    assertWithLabel(enemy.getTargetIndex() == targetBeforeChangeAttempt,
+                    "stun target lock: love cannot retarget while stunned");
+
+    enemy.update(1.3f);
+    assertWithLabel(!enemy.isStunned(), "stun target lock: stun expires after duration");
+    enemy.setTargetIndex(2);
+    assertWithLabel(enemy.getTargetIndex() == 2,
+                    "stun target lock: target can change after stun expires");
+}
+
+/**
  * Tests the direct love effect on the enemy.
  *
  * Verifies that:
@@ -1674,6 +1766,8 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testHelmEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testShieldBarrierCoexistence(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testStunEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testStunAmountAndDelayParsing(itemsJson);
+    testStunDelayedDamageAndTargetLock(enemiesJsonPath);
     testLoveEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testSlowEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testVulnerableEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);

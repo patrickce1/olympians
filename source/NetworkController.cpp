@@ -143,7 +143,8 @@ void writeEnemyRuntimeState(NetcodeSerializer& serializer, const shared_ptr<Enem
  * Reads one enemy-effect message payload from the current deserializer position.
  *
  * The payload contains the enemy effect type followed by the resolved magnitude,
- * the timed duration for that effect, and the attacking player's index.
+ * the timed duration for that effect, delay before it takes effect, and
+ * the attacking player's index.
  *
  * @param deserializer  The deserializer positioned at the enemy-effect payload.
  * @return the decoded enemy-effect message.
@@ -153,6 +154,7 @@ EnemyEffectMessage readEnemyEffectMessage(NetcodeDeserializer& deserializer) {
     effectMsg.effectType = static_cast<EnemyEffectType>(deserializer.readSint32());
     effectMsg.magnitude = deserializer.readFloat();
     effectMsg.duration = deserializer.readFloat();
+    effectMsg.delay = deserializer.readFloat();
     effectMsg.playerIndex = deserializer.readSint32();
     effectMsg.applyToAllSides = deserializer.readBool();
     return effectMsg;
@@ -162,7 +164,8 @@ EnemyEffectMessage readEnemyEffectMessage(NetcodeDeserializer& deserializer) {
  * Writes one enemy-effect message payload to the current serializer position.
  *
  * The payload contains the enemy effect type followed by the resolved magnitude,
- * the timed duration for that effect, and the attacking player's index.
+ * the timed duration for that effect, delay before it takes effect, and
+ * the attacking player's index.
  *
  * @param serializer  The serializer receiving the enemy-effect payload.
  * @param effectMsg   The enemy-effect message to serialize.
@@ -171,6 +174,7 @@ void writeEnemyEffectMessage(NetcodeSerializer& serializer, const EnemyEffectMes
     serializer.writeSint32(static_cast<int>(effectMsg.effectType));
     serializer.writeFloat(effectMsg.magnitude);
     serializer.writeFloat(effectMsg.duration);
+    serializer.writeFloat(effectMsg.delay);
     serializer.writeSint32(effectMsg.playerIndex);
     serializer.writeBool(effectMsg.applyToAllSides);
 }
@@ -697,14 +701,16 @@ void NetworkController::broadcastSupportEffect(SupportEffectType effectType, flo
  * @param effectType The type of enemy effect being applied.
  * @param magnitude  The resolved magnitude associated with the attack item.
  * @param duration   The timed duration of the enemy effect.
+ * @param delay      Seconds after host receipt before the effect takes effect.
  * @param playerIndex The attacking player's slot.
  * @param applyToAllSides Whether the enemy effect should be applied to all four boss sides.
  */
-void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides) {
+void NetworkController::broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, float delay, int playerIndex, bool applyToAllSides) {
     EnemyEffectMessage effectMsg;
     effectMsg.effectType = effectType;
     effectMsg.magnitude = magnitude;
     effectMsg.duration = duration;
+    effectMsg.delay = std::max(0.0f, delay);
     effectMsg.playerIndex = playerIndex;
     effectMsg.applyToAllSides = applyToAllSides;
 
