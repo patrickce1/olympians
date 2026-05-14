@@ -5,6 +5,7 @@
 #include <random>
 #include <sstream>
 #include <unordered_set>
+#include "../SavedDataManager.h"
 #include "GameScene.h"
 
 using namespace cugl;
@@ -976,7 +977,7 @@ void GameScene::setActive(bool value) {
             if (_currentVisibleAnimationSprite) {
                 _currentVisibleAnimationSprite->setVisible(false);
             }
-            _isTutorial = (_gameState.getEnemy()->getId() == "circe");
+            _isTutorial = (_gameState.getEnemy()->getId() == "circe") && !SavedDataManager::get().getTutorialCompleted();;
             if (_isTutorial && !_tutorialController.isActive()) {
                 _tutorialController.init(this, _assets);
                 _tutorialController.loadFromFile("json/tutorial.json");

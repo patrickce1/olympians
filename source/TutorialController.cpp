@@ -401,8 +401,6 @@ bool TutorialController::executeStep(const TutorialStep& step) {
                 CULog("Tutorial: END step reached — re-enabling boss");
                 _gameScene->setTutorialBossActive(true);
             }
-            SavedDataManager::get().setTutorialCompleted(true);
-            SavedDataManager::get().save();
             _active = false;
             return true;
             

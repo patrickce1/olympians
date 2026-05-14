@@ -7,6 +7,7 @@
 #include "../InputController.h"
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
+#include "../SavedDataManager.h"
 
 /**
  * This class provides the interface to join an existing game.

@@ -608,11 +608,11 @@ void SceneLoader::update(float dt) {
         {
         case WinLoseScene::Status::ABORT:
             _audio.playMusic("lobby");
-            if (_network->getEnemy() == "circe") { //Tutorial should go back to the setup screen.
+            if (_network->getEnemy() == "circe" && !SavedDataManager::get().getTutorialCompleted()) { //Tutorial should go back to the setup screen.
                 _network->disconnect();
-                if (SavedDataManager::get().getTutorialCompleted()) {
-                    _hostSetupScene.setPendingTutorialCompletePopup();
-                }
+                SavedDataManager::get().setTutorialCompleted(true);
+                SavedDataManager::get().save();
+                _hostSetupScene.setPendingTutorialCompletePopup();
                 _hostSetupScene.setActive(true);
                 _currentScene = State::HOSTSETUP;
             } else {
