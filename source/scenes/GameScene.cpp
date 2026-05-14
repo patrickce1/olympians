@@ -224,9 +224,18 @@ static std::vector<int> collectDeadPartyPlayerSlots(const GameState& gameState) 
  * @param resolvedMagnitude  The resolved attack magnitude calculated for this item use.
  * @param playerIndex    The index of the player applying the enemy effect.
  * @param shouldApplyEffects  Whether the effects should be applied or not.
+ * @param houseAffinityMultiplier House-role and affinity multiplier for damage-bearing effects.
+ * @param upgradeMultiplier Upgrade streak multiplier for damage-bearing effects.
  * @return   The collection of enemy effects to be applied this frame.
  */
-static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, float resolvedMagnitude, int playerIndex, bool shouldApplyEffects) {
+static std::vector<EnemyEffectMessage> collectEnemyEffects(
+    const ItemDef& def,
+    float resolvedMagnitude,
+    int playerIndex,
+    bool shouldApplyEffects,
+    float houseAffinityMultiplier,
+    float upgradeMultiplier
+) {
     std::vector<EnemyEffectMessage> enemyEffects;
     if (!shouldApplyEffects) {
         return enemyEffects;
@@ -235,13 +244,14 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
     for (const ItemDef::Effect& effect : def.getEffects()) {
         EnemyEffectMessage effectMsg;
         effectMsg.duration = effect.duration;
+        effectMsg.delay = effect.delay;
         effectMsg.playerIndex = playerIndex;
         effectMsg.applyToAllSides = false;
 
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
                 effectMsg.effectType = EnemyEffectType::Stun;
-                effectMsg.magnitude = resolvedMagnitude;
+                effectMsg.magnitude = effect.amount * houseAffinityMultiplier * upgradeMultiplier;
                 enemyEffects.push_back(effectMsg);
                 break;
             case ItemDef::EffectType::Love:
@@ -330,6 +340,7 @@ static void broadcastEnemyEffects(NetworkController& network, const std::vector<
         network.broadcastEnemyEffect(effectMsg.effectType,
             effectMsg.magnitude,
             effectMsg.duration,
+            effectMsg.delay,
             effectMsg.playerIndex,
             effectMsg.applyToAllSides);
     }
@@ -1119,6 +1130,7 @@ void GameScene::reset() {
     }
     _activeFloatingPopups.clear();
     _pendingFloatingPopups.clear();
+    _pendingStunDamagePopups.clear();
     _itemController.reset();
 
     std::vector<ItemInstance::ItemId> itemIds;
@@ -1250,7 +1262,8 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
 
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
     const std::vector<EnemyEffectMessage> enemyEffects =
-        collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects);
+        collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects,
+                            houseAffinityMultiplier, upgradeMultiplier);
 
     startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
     if (!_activeItemUseAnimations.empty()) {
@@ -1305,6 +1318,11 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     CULog("Player attacked enemy '%s' with item %llu (damage: %.1f, immediate)",
           enemy->getId().c_str(), (unsigned long long)itemId, resolvedMagnitude);
 
+    const std::vector<EnemyEffectMessage> enemyEffects =
+        collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects,
+                            houseAffinityMultiplier, upgradeMultiplier);
+    scheduleStunDamagePopups(enemyEffects, dropPos, houseAffinityMultiplier, upgradeMultiplier);
+
     if (!_network->isHost()) {
         //If we add an animation for gaia's rock we will have to move this to handleAnimatedAttack
         if (def->getId() == "gaia_rock") {
@@ -1313,7 +1331,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         else {
             _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
         }
-        broadcastEnemyEffects(*_network, collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects));
+        broadcastEnemyEffects(*_network, enemyEffects);
     }
     if (_network->isHost() && _audio) {
         const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
@@ -1455,6 +1473,29 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                     }
                     break;
                 }
+                case ItemDef::EffectType::Regen: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Regen;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.magnitude = resolvedEffect.regenAmount;
+                    pendingEffect.duration = resolvedEffect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
                 case ItemDef::EffectType::Forge:
                 case ItemDef::EffectType::Frenzy:
                     break;
@@ -1483,7 +1524,6 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                 }
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
-                case ItemDef::EffectType::Regen:
                 case ItemDef::EffectType::Stun:
                 case ItemDef::EffectType::Love:
                 case ItemDef::EffectType::Slow:
@@ -3317,7 +3357,7 @@ void GameScene::applyPendingResurrectionSync() {
 }
 
 /**
- * Reapplies a pending client-side educate buff after stale host snapshots, until host sync catches up.
+ * Reapplies pending client-side timed party effects after stale host snapshots, until host sync catches up.
  */
 void GameScene::applyPendingPartyEffectSyncs() {
     auto shouldKeepPendingEffect = [&](PendingPartyEffectSync& pendingEffect) {
@@ -3342,6 +3382,13 @@ void GameScene::applyPendingPartyEffectSyncs() {
                         continue;
                     }
                     player->applyCharm(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                case ItemDef::EffectType::Regen:
+                    if (player->hasRegen()) {
+                        continue;
+                    }
+                    player->applyRegen(pendingEffect.magnitude, pendingEffect.duration);
                     waitingForHost = true;
                     break;
                 case ItemDef::EffectType::Lifesteal:
@@ -4413,6 +4460,7 @@ void GameScene::update(float dt, InputController& input) {
     updateSlidingItems(dt);
     updateSnapbackAnimations(dt);
     updateItemUseAnimations(dt);
+    updateStunDamagePopups(dt);
     updatePopupAnimations(dt);
 
     tickGlowTimer(dt);
@@ -5593,15 +5641,15 @@ void GameScene::updateItemUseAnimations(float dt) {
         if (!activeAnim.damageResolved && frameIndex >= activeAnim.damageResolutionFrame) {
             activeAnim.damageResolved = true;
 
-            if (activeAnim.damageAmount > 0.0f) {
-                auto enemy = _gameState.getEnemy();
-                if (enemy) {
-                    const int playerNum = _gameState.getLocalPlayer()->getPlayerNumber();
+            auto enemy = _gameState.getEnemy();
+            Player* localPlayer = _gameState.getLocalPlayer();
+            const int playerNum = localPlayer ? localPlayer->getPlayerNumber() : 0;
 
+            if (enemy) {
+                if (activeAnim.damageAmount > 0.0f) {
                     // Apply pre-calculated damage before any item effects update enemy side multipliers.
                     const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
-                    Player* localPlayer = _gameState.getLocalPlayer();
                     if (localPlayer) {
                         localPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - enemy->getCurrentHealth()));
                     }
@@ -5615,18 +5663,24 @@ void GameScene::updateItemUseAnimations(float dt) {
                             createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
                                 activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
                                 activeAnim.upgradeMultiplier, sideMultiplier,
-                                activeAnim.damageAmount, finalDamage, 22.0f, 14.0f));
+                                activeAnim.damageAmount, finalDamage, 26.0f, 17.0f));
                         }
                     }
-
-                    // Non-hosts broadcast so the host applies it on the same frame.
-                    if (_network && !_network->isHost()) {
-                        _network->broadcastDamage(activeAnim.damageAmount, playerNum, activeAnim.itemDefID);
-                        broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
-                    } else if (_network && _network->isHost()) {
-                        _gameState.enemyEffectUpdates(activeAnim.enemyEffects);
-                    }
                 }
+
+                // Non-hosts broadcast so the host applies it on the same frame.
+                // Enemy effects are sent even for zero-damage items such as Thunderstorm.
+                if (_network && !_network->isHost()) {
+                    if (activeAnim.damageAmount > 0.0f) {
+                        _network->broadcastDamage(activeAnim.damageAmount, playerNum, activeAnim.itemDefID);
+                    }
+                    broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
+                } else if (_network && _network->isHost()) {
+                    _gameState.enemyEffectUpdates(activeAnim.enemyEffects);
+                }
+                scheduleStunDamagePopups(activeAnim.enemyEffects, activeAnim.popupPosition,
+                                         activeAnim.houseAffinityMultiplier,
+                                         activeAnim.upgradeMultiplier);
             }
 
             // Host plays enemy_hurt or enemy_block depending on whether damage landed.
@@ -6065,6 +6119,37 @@ void GameScene::createFloatingPopup(
 }
 
 /**
+ * Queues damage popups for any stun effects in an enemy-effect batch.
+ *
+ * Each popup uses the effect's configured delay so the visual appears when
+ * the stun damage is expected to resolve.
+ *
+ * @param enemyEffects The enemy effects produced by an item use.
+ * @param position Screen-space position where stun damage popups should appear.
+ * @param houseAffinityMultiplier House-role and affinity multiplier used to resolve stun damage.
+ * @param upgradeMultiplier Upgrade streak multiplier used to resolve stun damage.
+ */
+void GameScene::scheduleStunDamagePopups(const std::vector<EnemyEffectMessage>& enemyEffects, const cugl::Vec2& position, float houseAffinityMultiplier, float upgradeMultiplier) {
+    const float combinedMultiplier = houseAffinityMultiplier * upgradeMultiplier;
+    for (const EnemyEffectMessage& effect : enemyEffects) {
+        if (effect.effectType != EnemyEffectType::Stun || effect.magnitude <= 0.0f) {
+            continue;
+        }
+
+        PendingStunDamagePopup popup;
+        popup.amount = (std::abs(combinedMultiplier) > 0.01f)
+            ? effect.magnitude / combinedMultiplier
+            : effect.magnitude;
+        popup.houseAffinityMultiplier = houseAffinityMultiplier;
+        popup.upgradeMultiplier = upgradeMultiplier;
+        popup.delay = std::max(0.0f, effect.delay);
+        popup.playerIndex = effect.playerIndex;
+        popup.position = position;
+        _pendingStunDamagePopups.push_back(popup);
+    }
+}
+
+/**
  * Immediately builds and activates one floating popup.
  * Measures the label's text bounds, sizes the container to match so
  * ANCHOR_CENTER resolves correctly, then adds 8 black outline copies
@@ -6133,6 +6218,36 @@ void GameScene::spawnSingleFloatingPopup(const FloatingPopupData& data, const cu
     popupAnim.phase              = FloatingPopupAnimation::ANIM_IN;
 
     _activeFloatingPopups.push_back(popupAnim);
+}
+
+/**
+ * Advances delayed stun damage popups and spawns any whose delay elapsed.
+ *
+ * @param dt Delta time in seconds.
+ */
+void GameScene::updateStunDamagePopups(float dt) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) {
+        _pendingStunDamagePopups.clear();
+        return;
+    }
+
+    for (auto popup = _pendingStunDamagePopups.begin(); popup != _pendingStunDamagePopups.end(); ) {
+        popup->delay = std::max(0.0f, popup->delay - dt);
+        if (popup->delay > 0.0f) {
+            ++popup;
+            continue;
+        }
+
+        const float sideMultiplier = enemy->getSideMultiplier(popup->playerIndex);
+        const float houseDamage = popup->amount * popup->houseAffinityMultiplier * popup->upgradeMultiplier;
+        const float finalDamage = houseDamage * sideMultiplier;
+        createFloatingPopup(popup->position, buildAttackDamagePopups(
+            popup->amount, popup->houseAffinityMultiplier, popup->upgradeMultiplier, sideMultiplier,
+            houseDamage, finalDamage, 26.0f, 17.0f));
+
+        popup = _pendingStunDamagePopups.erase(popup);
+    }
 }
 
 /**

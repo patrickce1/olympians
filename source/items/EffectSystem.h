@@ -76,9 +76,11 @@ private:
      *
      * @param effect  The serialized effect definition to apply.
      * @param target  The enemy receiving the stun.
+     * @param playerIndex The player slot credited with any stun damage.
+     * @return The applied stun duration.
      */
-    static float applyStunToEnemy(const ItemDef::Effect& effect, Enemy& target) {
-        target.applyStun(effect.duration);
+    static float applyStunToEnemy(const ItemDef::Effect& effect, Enemy& target, int playerIndex) {
+        target.scheduleStun(effect.duration, effect.amount, effect.delay, playerIndex);
         return effect.duration;
     }
 
@@ -174,7 +176,7 @@ public:
 
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
-                return applyStunToEnemy(effect, target);
+                return applyStunToEnemy(effect, target, playerIndex);
             case ItemDef::EffectType::Love:
                 return applyLoveToEnemy(effect, target, playerIndex);
             case ItemDef::EffectType::Slow:

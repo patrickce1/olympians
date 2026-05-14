@@ -149,6 +149,7 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto wheatDef = db.getDef("wheat");
     auto swordDef = db.getDef("sword");
     auto resurrectionDef = db.getDef("resurrection");
+    auto harvestDef = db.getDef("harvest");
     auto educateDef = db.getDef("educate");
     auto forgeDef = db.getDef("forge");
     auto charmDef = db.getDef("charm");
@@ -192,6 +193,14 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
                     floatsEqualWithinTolerance(resurrectionDef->getEffects()[0].regenAmount, 25.0f) &&
                     floatsEqualWithinTolerance(resurrectionDef->getEffects()[0].duration, 5.0f),
            "items: resurrection revive and regen values parse");
+    assertWithLabel(harvestDef && harvestDef->hasEffectType(ItemDef::EffectType::Regen),
+           "items: harvest parses regen effect");
+    assertWithLabel(harvestDef && harvestDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
+           "items: harvest attack target parses as all allies");
+    assertWithLabel(harvestDef && !harvestDef->getEffects().empty() &&
+                    floatsEqualWithinTolerance(harvestDef->getEffects()[0].regenAmount, 350.0f) &&
+                    floatsEqualWithinTolerance(harvestDef->getEffects()[0].duration, 7.0f),
+           "items: harvest regen values parse");
     assertWithLabel(educateDef && educateDef->hasEffectType(ItemDef::EffectType::Educate),
            "items: educate parses educate effect");
     assertWithLabel(educateDef && educateDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
@@ -931,6 +940,98 @@ void testStunEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 }
 
 /**
+ * Tests that stun effect amount and delay fields parse from item JSON.
+ *
+ * Verifies that Thunderstorm's staged stun effects preserve their configured
+ * damage amounts, delays, and durations.
+ *
+ * @param itemsJson Parsed JSON object containing item definitions.
+ */
+void testStunAmountAndDelayParsing(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "stun params: item db load succeeds");
+
+    auto thunderstormDef = db.getDef("thunderstorm");
+    assertWithLabel(thunderstormDef != nullptr, "stun params: thunderstorm def exists");
+    if (!thunderstormDef) return;
+
+    const auto& effects = thunderstormDef->getEffects();
+    assertWithLabel(effects.size() == 4, "stun params: thunderstorm has four staged stun effects");
+    if (effects.size() < 4) return;
+
+    const float expectedAmounts[] = { 10.0f, 20.0f, 40.0f, 80.0f };
+    const float expectedDelays[] = { 0.0f, 2.0f, 4.0f, 6.0f };
+    const float expectedDurations[] = { 1.0f, 1.0f, 1.0f, 2.0f };
+
+    for (size_t index = 0; index < 4; index++) {
+        assertWithLabel(effects[index].type == ItemDef::EffectType::Stun,
+                        "stun params: thunderstorm staged effect is stun");
+        assertWithLabel(floatsEqualWithinTolerance(effects[index].amount, expectedAmounts[index]),
+                        "stun params: stun amount parses");
+        assertWithLabel(floatsEqualWithinTolerance(effects[index].delay, expectedDelays[index]),
+                        "stun params: stun delay parses");
+        assertWithLabel(floatsEqualWithinTolerance(effects[index].duration, expectedDurations[index]),
+                        "stun params: stun duration parses");
+    }
+}
+
+/**
+ * Tests delayed stun damage, side multiplier resolution, and target lock behavior.
+ *
+ * Verifies that:
+ * - Delayed stun effects do not damage or stun before their delay expires
+ * - Delayed stun damage resolves through Enemy::takeDamage() side multipliers
+ * - The enemy cannot change targets while stunned, including through love effects
+ * - Target changes are accepted again after stun expires
+ *
+ * @param enemiesJsonPath Asset path to enemies JSON for Enemy initialization.
+ */
+void testStunDelayedDamageAndTargetLock(const std::string& enemiesJsonPath) {
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "stun delayed: enemy init succeeds");
+    if (!enemyOk) return;
+
+    enemy.setCurrentHealth(enemy.getMaxHealth());
+    enemy.clearRuntimeEffects();
+    enemy.setTargetIndex(0);
+    enemy.setSideMultiplier(2, 1.5f);
+
+    const float healthBeforeSchedule = enemy.getCurrentHealth();
+    enemy.scheduleStun(1.25f, 20.0f, 0.5f, 2);
+    assertWithLabel(!enemy.isStunned(), "stun delayed: delayed stun does not apply immediately");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getCurrentHealth(), healthBeforeSchedule),
+                    "stun delayed: delayed stun damage does not apply immediately");
+
+    enemy.update(0.4f);
+    assertWithLabel(!enemy.isStunned(), "stun delayed: enemy remains unstunned before delay");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getCurrentHealth(), healthBeforeSchedule),
+                    "stun delayed: enemy takes no stun damage before delay");
+
+    enemy.update(0.2f);
+    assertWithLabel(enemy.isStunned(), "stun delayed: enemy becomes stunned once delay expires");
+    assertWithLabel(floatsEqualWithinTolerance(enemy.getStunDuration(), 1.25f),
+                    "stun delayed: delayed stun duration applies");
+    assertWithLabel(floatsEqualWithinTolerance(healthBeforeSchedule - enemy.getCurrentHealth(), 30.0f),
+                    "stun delayed: stun damage uses side multiplier");
+
+    const int targetBeforeChangeAttempt = enemy.getTargetIndex();
+    enemy.setTargetIndex(2);
+    assertWithLabel(enemy.getTargetIndex() == targetBeforeChangeAttempt,
+                    "stun target lock: setTargetIndex is ignored while stunned");
+
+    enemy.applyLove(5.0f, 3);
+    assertWithLabel(enemy.getTargetIndex() == targetBeforeChangeAttempt,
+                    "stun target lock: love cannot retarget while stunned");
+
+    enemy.update(1.3f);
+    assertWithLabel(!enemy.isStunned(), "stun target lock: stun expires after duration");
+    enemy.setTargetIndex(2);
+    assertWithLabel(enemy.getTargetIndex() == 2,
+                    "stun target lock: target can change after stun expires");
+}
+
+/**
  * Tests the direct love effect on the enemy.
  *
  * Verifies that:
@@ -1366,6 +1467,119 @@ void testEducateEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 }
 
 /**
+ * Tests that party-wide ally effects skip dead party members.
+ */
+void testPartyWideEffectsSkipDeadAllies(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+    const std::string& housesJsonPath,
+    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "party-wide skip dead: item db load succeeds");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "party-wide skip dead: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "party-wide skip dead: enemy init succeeds");
+    if (!enemyOk) return;
+
+    Player athena("athena", 0, "Athena Tester", loader);
+    Player zeus("zeus", 1, "Zeus Ally", loader);
+    Player hades("hades", 2, "Dead Hades Ally", loader);
+    Player demeter("demeter", 3, "Demeter Ally", loader);
+
+    athena.setLeftPlayer(&demeter);
+    athena.setRightPlayer(&zeus);
+    zeus.setLeftPlayer(&athena);
+    zeus.setRightPlayer(&hades);
+    hades.setLeftPlayer(&zeus);
+    hades.setRightPlayer(&demeter);
+    demeter.setLeftPlayer(&hades);
+    demeter.setRightPlayer(&athena);
+
+    hades.updateHealth(-999999.0f);
+    assertWithLabel(!hades.isAlive(), "party-wide skip dead: test ally is dead before use");
+
+    auto instEducate = ItemInstance::alloc("educate", 3003);
+    assertWithLabel(instEducate != nullptr, "party-wide skip dead: create educate instance");
+    if (!instEducate) return;
+
+    athena.addItem(*instEducate);
+    athena.useItemById(instEducate->getId(), enemy, db);
+
+    assertWithLabel(athena.hasEducate() && zeus.hasEducate() && demeter.hasEducate(),
+        "party-wide skip dead: living allies receive educate buff");
+    assertWithLabel(!hades.hasEducate(),
+        "party-wide skip dead: dead ally does not receive educate buff");
+}
+
+/**
+ * Tests that harvest applies its regen effect to every party member.
+ *
+ * @param itemsJson Parsed JSON object containing item definitions.
+ * @param housesJsonPath Asset-relative path to house definitions.
+ * @param enemiesJsonPath Asset-relative path to enemy definitions.
+ */
+void testHarvestRegenAppliesToAllPlayers(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+    const std::string& housesJsonPath,
+    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "harvest: item db load succeeds");
+
+    auto harvestDef = db.getDef("harvest");
+    assertWithLabel(harvestDef != nullptr, "harvest: harvest def exists");
+    if (!harvestDef || harvestDef->getEffects().empty()) return;
+
+    const ItemDef::Effect harvestEffect = harvestDef->getEffects()[0];
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "harvest: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "harvest: enemy init succeeds");
+    if (!enemyOk) return;
+
+    Player demeter("demeter", 0, "Demeter Tester", loader);
+    Player zeus("zeus", 1, "Zeus Ally", loader);
+    Player hades("hades", 2, "Hades Ally", loader);
+    Player athena("athena", 3, "Athena Ally", loader);
+
+    demeter.setLeftPlayer(&athena);
+    demeter.setRightPlayer(&zeus);
+    zeus.setLeftPlayer(&demeter);
+    zeus.setRightPlayer(&hades);
+    hades.setLeftPlayer(&zeus);
+    hades.setRightPlayer(&athena);
+    athena.setLeftPlayer(&hades);
+    athena.setRightPlayer(&demeter);
+
+    auto instHarvest = ItemInstance::alloc("harvest", 5001);
+    assertWithLabel(instHarvest != nullptr, "harvest: create harvest instance");
+    if (!instHarvest) return;
+
+    demeter.addItem(*instHarvest);
+
+    const float resolvedHarvest = demeter.useItemById(instHarvest->getId(), enemy, db);
+    assertWithLabel(floatsEqualWithinTolerance(resolvedHarvest, 0.0f), "harvest: item returns zero base damage");
+    assertWithLabel(demeter.hasRegen() && zeus.hasRegen() && hades.hasRegen() && athena.hasRegen(),
+                    "harvest: all party members receive regen");
+    assertWithLabel(floatsEqualWithinTolerance(demeter.getRegenAmountRemaining(), harvestEffect.regenAmount) &&
+                    floatsEqualWithinTolerance(zeus.getRegenAmountRemaining(), harvestEffect.regenAmount) &&
+                    floatsEqualWithinTolerance(hades.getRegenAmountRemaining(), harvestEffect.regenAmount) &&
+                    floatsEqualWithinTolerance(athena.getRegenAmountRemaining(), harvestEffect.regenAmount),
+                    "harvest: all party members receive configured regen amount");
+    assertWithLabel(floatsEqualWithinTolerance(demeter.getRegenDuration(), harvestEffect.duration) &&
+                    floatsEqualWithinTolerance(zeus.getRegenDuration(), harvestEffect.duration) &&
+                    floatsEqualWithinTolerance(hades.getRegenDuration(), harvestEffect.duration) &&
+                    floatsEqualWithinTolerance(athena.getRegenDuration(), harvestEffect.duration),
+                    "harvest: all party members receive configured regen duration");
+    assertWithLabel(demeter.getInventory().empty(), "harvest: item is consumed from inventory after use");
+}
+
+/**
  * Tests the forge item transformation rules and stable instance identity behavior.
  */
 void testForgeEffect(const std::string& housesJsonPath) {
@@ -1552,6 +1766,8 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testHelmEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testShieldBarrierCoexistence(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testStunEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
+    testStunAmountAndDelayParsing(itemsJson);
+    testStunDelayedDamageAndTargetLock(enemiesJsonPath);
     testLoveEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testSlowEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
     testVulnerableEffect(itemsJson, housesJson, housesJsonPath, enemiesJsonPath);
@@ -1559,6 +1775,8 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testGaiaRockHealsEnemy(itemsJson, housesJsonPath, enemiesJsonPath);
     testResurrectionEffect(itemsJson, housesJsonPath, enemiesJsonPath);
     testEducateEffect(itemsJson, housesJsonPath, enemiesJsonPath);
+    testPartyWideEffectsSkipDeadAllies(itemsJson, housesJsonPath, enemiesJsonPath);
+    testHarvestRegenAppliesToAllPlayers(itemsJson, housesJsonPath, enemiesJsonPath);
     testForgeEffect(housesJsonPath);
     testFrenzyEffect(housesJsonPath);
 

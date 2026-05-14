@@ -495,11 +495,30 @@ protected:
         float elapsed = 0.0f;
     };
 
+    /** Delayed popup for stun damage that resolves when the stun effect triggers. */
+    struct PendingStunDamagePopup {
+        /** Raw stun damage before item and enemy multipliers are applied. */
+        float amount = 0.0f;
+        /** House-role and affinity multiplier captured when the stun item was used. */
+        float houseAffinityMultiplier = 1.0f;
+        /** Upgrade streak multiplier captured when the stun item was used. */
+        float upgradeMultiplier = 1.0f;
+        /** Remaining delay before the stun damage popup appears. */
+        float delay = 0.0f;
+        /** Player slot credited with the stun damage. */
+        int playerIndex = 0;
+        /** Screen-space position where the popup should appear. */
+        cugl::Vec2 position = cugl::Vec2::ZERO;
+    };
+
     /** Vector of currently active floating popup animations. */
     std::vector<FloatingPopupAnimation> _activeFloatingPopups;
     
     /** Vector of pending floating popups that have been queued but not yet spawned. */
     std::vector<PendingFloatingPopup> _pendingFloatingPopups;
+
+    /** Vector of stun damage popups waiting for their stun delay to elapse. */
+    std::vector<PendingStunDamagePopup> _pendingStunDamagePopups;
 
 #pragma mark - Tutorial Dialogue
     /** The root node of the dialogue UI, used for animations and visibility. Specific to tutorial */
@@ -538,7 +557,7 @@ protected:
     /** Client-side predicted resurrection state waiting for host confirmation. */
     PendingResurrectionSync _pendingResurrectionSync;
 
-    /** Tracks one client-predicted duration-only party effect until the authoritative host snapshot catches up. */
+    /** Tracks one client-predicted timed party effect until the authoritative host snapshot catches up. */
     struct PendingPartyEffectSync {
         /** The effect being predicted. */
         ItemDef::EffectType effectType = ItemDef::EffectType::Educate;
@@ -1496,6 +1515,19 @@ public:
     );
 
     /**
+     * Queues damage popups for any stun effects in an enemy-effect batch.
+     *
+     * Each popup uses the effect's configured delay so the visual appears when
+     * the stun damage is expected to resolve.
+     *
+     * @param enemyEffects The enemy effects produced by an item use.
+     * @param position Screen-space position where stun damage popups should appear.
+     * @param houseAffinityMultiplier House-role and affinity multiplier used to resolve stun damage.
+     * @param upgradeMultiplier Upgrade streak multiplier used to resolve stun damage.
+     */
+    void scheduleStunDamagePopups(const std::vector<EnemyEffectMessage>& enemyEffects, const cugl::Vec2& position, float houseAffinityMultiplier, float upgradeMultiplier);
+
+    /**
      * Spawns a floating popup showing the heal amount when Gaia's rock is used on the boss.
      *
      * @param dropPos    The screen-space position where the popup should appear.
@@ -1598,6 +1630,13 @@ public:
      * @param dt  Delta time in seconds.
      */
     void updatePopupAnimations(float dt);
+
+    /**
+     * Advances delayed stun damage popups and spawns any whose delay elapsed.
+     *
+     * @param dt Delta time in seconds.
+     */
+    void updateStunDamagePopups(float dt);
 
     /**
      * Returns the screen-space drop position of the given item's physics body.
@@ -1710,7 +1749,7 @@ public:
     void applyPendingResurrectionSync();
 
     /**
-     * Reapplies pending client-side duration-only party effects after stale host snapshots, until host sync catches up.
+     * Reapplies pending client-side timed party effects after stale host snapshots, until host sync catches up.
      */
     void applyPendingPartyEffectSyncs();
 
