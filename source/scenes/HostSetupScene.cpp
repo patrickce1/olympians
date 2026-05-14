@@ -211,7 +211,7 @@ void HostSetupScene::setActive(bool value) {
             _swipeTouchInitialPos = cugl::Vec2::ZERO;
             _swipeHoldFrames      = 0;
             Vec2 pos = _bossSelectionCardContainer->getPosition();
-            float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);;
+            float startX = _baseCarouselPosition.x + (ROLE_CARD_WIDTH / 2.0f);
             if (!SavedDataManager::get().getTutorialCompleted()){
                 _currentIndex = 3;
                 startX -= 2.0f * (ROLE_CARD_WIDTH);
