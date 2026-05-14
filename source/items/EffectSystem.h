@@ -60,13 +60,27 @@ private:
     }
 
     /**
+     * Applies a lifesteal effect to a player and returns the healing multiplier.
+     *
+     * @param effect  The serialized effect definition to apply.
+     * @param target  The player receiving the lifesteal.
+     * @return The applied lifesteal multiplier.
+     */
+    static float applyLifestealToPlayer(const ItemDef::Effect& effect, Player& target) {
+        target.applyLifesteal(effect.multiplier, effect.duration);
+        return effect.multiplier;
+    }
+
+    /**
      * Applies a stun effect to an enemy and returns the stun duration.
      *
      * @param effect  The serialized effect definition to apply.
      * @param target  The enemy receiving the stun.
+     * @param playerIndex The player slot credited with any stun damage.
+     * @return The applied stun duration.
      */
-    static float applyStunToEnemy(const ItemDef::Effect& effect, Enemy& target) {
-        target.applyStun(effect.duration);
+    static float applyStunToEnemy(const ItemDef::Effect& effect, Enemy& target, int playerIndex) {
+        target.scheduleStun(effect.duration, effect.amount, effect.delay, playerIndex);
         return effect.duration;
     }
 
@@ -129,6 +143,8 @@ public:
                 return applyRegenToPlayer(effect, target);
             case ItemDef::EffectType::Charm:
                 return applyCharmToPlayer(effect, target);
+            case ItemDef::EffectType::Lifesteal:
+                return applyLifestealToPlayer(effect, target);
             case ItemDef::EffectType::Resurrect:
             case ItemDef::EffectType::Educate:
             case ItemDef::EffectType::Stun:
@@ -160,7 +176,7 @@ public:
 
         switch (effect.type) {
             case ItemDef::EffectType::Stun:
-                return applyStunToEnemy(effect, target);
+                return applyStunToEnemy(effect, target, playerIndex);
             case ItemDef::EffectType::Love:
                 return applyLoveToEnemy(effect, target, playerIndex);
             case ItemDef::EffectType::Slow:
@@ -176,6 +192,7 @@ public:
             case ItemDef::EffectType::Forge:
             case ItemDef::EffectType::Charm:
             case ItemDef::EffectType::Frenzy:
+            case ItemDef::EffectType::Lifesteal:
                 break;
         }
 

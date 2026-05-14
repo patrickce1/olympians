@@ -66,6 +66,10 @@ private:
     float _educateDuration = 0.0f;
     /** The time left before charm expires. */
     float _charmDuration = 0.0f;
+    /** Fraction of enemy damage converted into healing while lifesteal is active. */
+    float _lifestealMultiplier = 0.0f;
+    /** The time left before lifesteal expires. */
+    float _lifestealDuration = 0.0f;
     /** Number of prior mallet uses recorded for this player this round. */
     int _malletUseCount = 0;
 
@@ -190,6 +194,27 @@ public:
     float getCharmDuration() const { return _charmDuration; }
 
     /**
+     * Returns whether the lifesteal effect is currently active on this player.
+     *
+     * @return True if lifesteal has remaining duration and a positive healing multiplier.
+     */
+    bool hasLifesteal() const { return _lifestealDuration > 0.0f && _lifestealMultiplier > 0.0f; }
+
+    /**
+     * Returns the active lifesteal healing fraction.
+     *
+     * @return The active lifesteal multiplier, or 0.0f when lifesteal is inactive.
+     */
+    float getLifestealMultiplier() const { return hasLifesteal() ? _lifestealMultiplier : 0.0f; }
+
+    /**
+     * Returns the remaining lifesteal duration.
+     *
+     * @return Remaining lifesteal duration in seconds.
+     */
+    float getLifestealDuration() const { return _lifestealDuration; }
+
+    /**
      * Returns the number of prior mallet uses recorded for this player this round.
      *
      * @return The number of completed mallet uses tracked for this player in the current round.
@@ -210,10 +235,12 @@ public:
      * @param regenDuration   The remaining regen duration in seconds.
      * @param educateDuration The remaining educate duration in seconds.
      * @param charmDuration The remaining charm duration in seconds.
+     * @param lifestealMultiplier The active lifesteal healing fraction.
+     * @param lifestealDuration The remaining lifesteal duration in seconds.
      */
     void syncRuntimeEffects(float shieldHealth, float shieldDuration, float barrierMultiplier,
         float barrierDuration, float regenAmountRemaining, float regenDuration, float educateDuration,
-        float charmDuration) {
+        float charmDuration, float lifestealMultiplier, float lifestealDuration) {
         _hasShield = shieldDuration > 0.0f;
         _shieldHealth = _hasShield ? shieldHealth : 0.0f;
         _shieldDuration = _hasShield ? shieldDuration : 0.0f;
@@ -225,6 +252,8 @@ public:
         _regenDuration = _hasRegen ? regenDuration : 0.0f;
         _educateDuration = std::max(0.0f, educateDuration);
         _charmDuration = std::max(0.0f, charmDuration);
+        _lifestealDuration = std::max(0.0f, lifestealDuration);
+        _lifestealMultiplier = _lifestealDuration > 0.0f ? std::max(0.0f, lifestealMultiplier) : 0.0f;
     }
     
     /**
@@ -302,6 +331,21 @@ public:
      * @param duration How long the charm effect should stay active.
      */
     void applyCharm(float duration);
+
+    /**
+     * Applies a timed lifesteal effect to this player.
+     *
+     * @param multiplier Fraction of dealt enemy damage converted into healing.
+     * @param duration How long the lifesteal effect should stay active, in seconds.
+     */
+    void applyLifesteal(float multiplier, float duration);
+
+    /**
+     * Heals this player from dealt enemy damage when lifesteal is active.
+     *
+     * @param damageDealt The actual enemy health lost from the player's damage.
+     */
+    void applyLifestealHeal(float damageDealt);
     
     /**
      * Advances this player's active runtime support effects by the elapsed frame time.

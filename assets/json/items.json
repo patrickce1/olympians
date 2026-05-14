@@ -112,7 +112,9 @@
             "effects": [
                 {
                     "type": "stun",
-                    "duration": 2.0
+                    "amount": 0.0,
+                    "duration": 2.0,
+                    "delay": 0.0
                 }
             ],
             "itemUseAnimation": {
@@ -326,9 +328,34 @@
             "attackTarget": "enemy",
             "rarity": "divine",
             "houseAffinity": "zeus",
-            "baseValue": 10.0,
+            "baseValue": 0.0,
             "weight": 10.0,
-            "effects": [],
+            "effects": [
+                {
+                    "type": "stun",
+                    "amount": 10.0,
+                    "duration": 1.0,
+                    "delay": 0.0
+                },
+                {
+                    "type": "stun",
+                    "amount": 20.0,
+                    "duration": 1.0,
+                    "delay": 2.0
+                },
+                {
+                    "type": "stun",
+                    "amount": 40.0,
+                    "duration": 1.0,
+                    "delay": 4.0
+                },
+                {
+                    "type": "stun",
+                    "amount": 80.0,
+                    "duration": 2.0,
+                    "delay": 6.0
+                }
+            ],
             "itemUseAnimation": {
                 "spriteSheetId": "storm_animation",
                 "rows": 1,
@@ -340,10 +367,10 @@
             }
         },
         {
-            "id": "tide",
-            "name": "Tide",
+            "id": "tsunami",
+            "name": "tsunami",
             "description": " ",
-            "icon": "item_poseidon_tide",
+            "icon": "item_poseidon_tsunami",
             "tooltip": "tooltip_poseidon_tsunami",
             "type": "attack",
             "attackTarget": "all_allies",
@@ -351,7 +378,13 @@
             "houseAffinity": "poseidon",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": [],
+            "effects": [
+                {
+                    "type": "lifesteal",
+                    "multiplier": 0.4,
+                    "duration": 10.0
+                }
+            ],
             "itemUseAnimation": {
                 "spriteSheetId": "tide_animation",
                 "rows": 1,
@@ -397,10 +430,10 @@
             ]
         },
         {
-            "id": "abundance",
-            "name": "Abundance",
+            "id": "harvest",
+            "name": "Harvest",
             "description": " ",
-            "icon": "item_demeter_abundance",
+            "icon": "item_demeter_harvest",
             "tooltip": "tooltip_demeter_harvest",
             "type": "attack",
             "attackTarget": "all_allies",
@@ -408,7 +441,13 @@
             "houseAffinity": "demeter",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "regen",
+                    "amount": 350.0,
+                    "duration": 7.0
+                }
+            ]
         },
         {
             "id": "forge",
@@ -460,7 +499,14 @@
             "houseAffinity": "ares",
             "baseValue": 60.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "vulnerable",
+                    "multiplier": 2.0,
+                    "duration": 6.0,
+                    "applyToAllSides": true
+                }
+            ]
         },
         {
             "id": "treasure",

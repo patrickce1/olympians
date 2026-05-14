@@ -42,7 +42,7 @@
         "item_potion": {
             "file": "textures/items/potion_r.png"
         },
-        "item_poseidon_tide": {
+        "item_poseidon_tsunami": {
             "file": "textures/items/poseidon_tide_d.png"
         },
         "item_zeus_thunderstorm": {
@@ -54,7 +54,7 @@
         "item_hades_resurrection": {
             "file": "textures/items/hades_resurrection_d.png"
         },
-        "item_demeter_abundance": {
+        "item_demeter_harvest": {
             "file": "textures/items/demeter_abundance_d.png"
         },
         "item_aphrodite_charm": {

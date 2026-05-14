@@ -218,6 +218,42 @@ void Player::applyCharm(float duration) {
 }
 
 /**
+ * Applies a timed lifesteal effect to this player.
+ *
+ * @param multiplier Fraction of dealt enemy damage converted into healing.
+ * @param duration How long the lifesteal effect should stay active, in seconds.
+ */
+void Player::applyLifesteal(float multiplier, float duration) {
+    if (multiplier <= 0.0f || duration <= 0.0f) {
+        return;
+    }
+
+    _lifestealMultiplier = std::max(0.0f, multiplier);
+    _lifestealDuration = duration;
+
+    if (_debug) {
+        CULog("Lifesteal applied: player='%s' house='%s' multiplier=%.3f duration=%.3f",
+            _playerName.c_str(),
+            _houseId.c_str(),
+            _lifestealMultiplier,
+            _lifestealDuration);
+    }
+}
+
+/**
+ * Heals this player from dealt enemy damage when lifesteal is active.
+ *
+ * @param damageDealt The actual enemy health lost from the player's damage.
+ */
+void Player::applyLifestealHeal(float damageDealt) {
+    if (!hasLifesteal() || damageDealt <= 0.0f) {
+        return;
+    }
+
+    updateHealth(damageDealt * _lifestealMultiplier);
+}
+
+/**
  * Advances this player's active runtime support effects by the elapsed frame time.
  *
  * Both shield and barrier durations are reduced by `dt` and clamped to `0.0f` so
@@ -310,6 +346,18 @@ void Player::updateEffects(float dt) {
             _hasRightVine = false;
         }
     }
+    
+    if (_lifestealDuration > 0.0f) {
+        _lifestealDuration = std::max(0.0f, _lifestealDuration - dt);
+        if (_lifestealDuration <= 0.0f) {
+            _lifestealMultiplier = 0.0f;
+            if (_debug) {
+                CULog("Lifesteal expired: player='%s' house='%s'",
+                    _playerName.c_str(),
+                    _houseId.c_str());
+            }
+        }
+    }
 }
 
 /** Clears runtime-only combat effects. */
@@ -325,6 +373,8 @@ void Player::clearRuntimeEffects() {
     _regenDuration = 0.0f;
     _educateDuration = 0.0f;
     _charmDuration = 0.0f;
+    _lifestealMultiplier = 0.0f;
+    _lifestealDuration = 0.0f;
 }
 
 /**
@@ -381,6 +431,9 @@ static ItemDef::Effect resolveEffectForCharm(const ItemDef::Effect& effect, bool
             break;
         case ItemDef::EffectType::Frenzy:
             resolved.amount *= 0.5f;
+            break;
+        case ItemDef::EffectType::Lifesteal:
+            resolved.multiplier *= 2.0f;
             break;
     }
 
@@ -591,7 +644,7 @@ static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolv
     }
     if (resolvedEffect.type == ItemDef::EffectType::Educate) {
         for (Player* player : collectPartyMembers(source)) {
-            if (!player) {
+            if (!player || !player->isAlive()) {
                 continue;
             }
             player->applyEducate(resolvedEffect.duration);
@@ -604,9 +657,18 @@ static void applyAttackEffectToParty(const ItemDef::Effect& effect, float resolv
     if (resolvedEffect.type == ItemDef::EffectType::Frenzy) {
         return;
     }
+    if (resolvedEffect.type == ItemDef::EffectType::Lifesteal) {
+        for (Player* player : collectPartyMembers(source)) {
+            if (!player || !player->isAlive()) {
+                continue;
+            }
+            player->applyLifesteal(resolvedEffect.multiplier, resolvedEffect.duration);
+        }
+        return;
+    }
 
     for (Player* player : collectPartyMembers(source)) {
-        if (!player) {
+        if (!player || !player->isAlive()) {
             continue;
         }
         EffectSystem::applyEffectToPlayer(resolvedEffect, resolvedMagnitude, *player);
@@ -700,7 +762,9 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
             const bool appliesToEnemy = !targetsAllAllies;
 
             if (appliesToEnemy) {
+                const float enemyHealthBefore = target.getCurrentHealth();
                 target.takeDamage(resolvedMagnitude, getPlayerNumber());
+                applyLifestealHeal(std::max(0.0f, enemyHealthBefore - target.getCurrentHealth()));
                 returnedMagnitude = resolvedMagnitude;
                 if (shouldApplyEffects) {
                     for (const ItemDef::Effect& effect : def->getEffects()) {
