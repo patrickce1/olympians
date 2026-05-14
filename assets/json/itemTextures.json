@@ -175,7 +175,10 @@
             "file": "textures/items/timers/loveTimer.png"
         },
         "icon_resurrect": {
-            "file": "textures/items/timers/resurrectTimer.png"
+            "file": "textures/items/timers/resurrectionTimer.png"
+        },
+        "icon_vulnerable": {
+            "file": "textures/items/timers/vulnerableTimer.png"
         },
         "icon_slow": {
             "file": "textures/items/timers/slowTimer.png"

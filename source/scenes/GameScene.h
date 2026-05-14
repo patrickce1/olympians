@@ -194,14 +194,22 @@ struct FloatingPopupData {
     bool playSound = true;                          /** If true, plays the popup_ding sound when this popup spawns. */
 };
 
+/**
+ * Represents a single active effect timer displayed in the _timers container.
+ *
+ * Tracks both the visual nodes and the remaining duration so the timer can
+ * be ticked down each frame, its pie overlay updated, and removed when expired.
+ * Icons not in the visible 3 are hidden but kept alive here so they can
+ * resurface if a higher-priority slot expires.
+ */
 struct ActiveEffectIcon {
-    ItemDef::EffectType effectType;
-    std::string defId;
-    std::shared_ptr<cugl::scene2::SceneNode> icon;
-    std::shared_ptr<cugl::scene2::SpriteNode> pie;
-    float remainingDuration;
-    float totalDuration;
-    bool selfCast;
+    ItemDef::EffectType effectType;                   /** The type of effect this icon represents. Used for duplicate detection. */
+    std::string defId;                                /** The item def ID. Only valid when selfCast = true; empty otherwise. */
+    std::shared_ptr<cugl::scene2::SceneNode> icon;    /** Root container node added to _timers. Holds frame, icon, and pie as children. */
+    std::shared_ptr<cugl::scene2::SpriteNode> pie;    /** Pie overlay sprite node. Advances through 13 frames as duration elapses. */
+    float remainingDuration;                          /** Remaining duration in seconds. Ticked down each frame in updateEnemyEffectIcons. */
+    float totalDuration;                              /** Original duration at spawn time. Used to compute pie frame from remaining fraction. */
+    bool selfCast;                                    /** True if the local player cast this effect, false if received from a teammate. */
 };
 
 /**
@@ -407,11 +415,13 @@ protected:
     Vec2 _holdAnchorPos = Vec2::ZERO;
     
 #pragma mark - Item Timers UI
+    /** The active effect icons as defined by the ActiveEffectIcon struct. */
     std::vector<ActiveEffectIcon> _effectIcons;
     
     /** The scene node representing the animated timers for special effects to be populated in the scene based on the used items. */
     std::shared_ptr<cugl::scene2::SceneNode> _timers;
     
+    /** Value tracking the value of the next item timer icon */
     int _nextEffectIconId = 0;
     
     
@@ -1186,7 +1196,7 @@ public:
       */
     void handleGaiaScramble();
 
-    /** Checks if we are in a state where 
+    /**Checks if we are in a state where
       * the house and names of the current player's neighbors should be concealed
       *
       * @return     true if we should conceal neighbor house and name
@@ -1733,27 +1743,51 @@ public:
      */
     void playSupportItemSound(const std::shared_ptr<const ItemDef>& def);
     
-    
-    void showEnemyEffectIcon(const std::string& effectId,const std::string& textureKey, const float duration);
-    
     /**
-     * Spawns a timer icon into the `_timers` container for each effect event.
+     * Spawns a timer icon for each effect event in the list.
      *
-     * Looks up the item definition by the event's itemId to get the correct
-     * icon texture, then adds the icon as a child of `_timers` (which handles
-     * vertical layout automatically). Each spawned icon is tracked in
-     * `_effectIcons` so its duration can be ticked down each frame.
+     * For each event, looks up the appropriate icon texture, checks for duplicates by effect type refreshing
+     * duration if found, and otherwise builds a new container with frame, icon, and pie
+     * overlay. Calls recomputeVisibleTimers after all events are processed.
      *
-     * @param events  The effect events drained from the local player this frame.
+     * Shield and barrier events are excluded upstream in Player::useItemById and
+     * will never appear here.
+     *
+     * @param events  Effect events drained from the local player this frame.
      */
     void spawnEffectIcons(const std::vector<Player::EffectEvent>& events);
 
+    /**
+     * Ticks all active effect timers down by dt and removes any that have expired.
+     *
+     * Updates each icon's pie overlay frame based on remainingDuration / totalDuration.
+     * If any icons expire and are removed, calls recomputeVisibleTimers to reshuffle
+     * the visible slots so hidden icons can surface.
+     *
+     * @param dt  Elapsed time since the previous frame, in seconds.
+     */
     void updateEffectTimerIcons(float dt);
     
-    /** Rebuilds the _timers scene graph children in newest-first order and triggers layout. */
+    /**
+     * Rebuilds the _timers scene graph children from the current visible icons.
+     *
+     * Clears all children from _timers and re-adds only visible icons in
+     * newest-first order (reverse _effectIcons iteration), assigning fixed
+     * SLOT_Y positions directly. No layout manager is used.
+     */
     void rebuildTimerLayout();
     
-    /** Recomputes which icons are visible based on priority rules. */
+    /**
+     * Recomputes which up to 3 effect icons are visible based on priority rules:
+     *   1. The local player's own divine item effect (selfCast, house-matched, rarity Divine)
+     *   2. The local player's own rare item effect (selfCast, house-matched, rarity Rare)
+     *   3. Remaining slots filled by highest remainingDuration among all others
+     *
+     * Received effects (selfCast = false) are always treated as others regardless
+     * of rarity. Icons not in the visible 3 are hidden but kept alive
+     * so they can resurface when a higher-priority slot expires. Calls rebuildTimerLayout
+     * after visibility is resolved.
+     */
     void recomputeVisibleTimers();
 
     

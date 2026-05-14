@@ -22,9 +22,13 @@ public:
      * Used by GameScene to spawn a corresponding timer icon.
      */
     struct EffectEvent {
+        /** The type of effect applied. Always valid. */
         ItemDef::EffectType effectType;
+        /** The def ID of the item that produced the effect. Only valid when selfCast = true. */
         std::string itemId;
+        /** Duration of the effect in seconds. */
         float duration;
+        /** True if the local player cast this effect themselves, false if received from a teammate. */
         bool selfCast = true;
     };
     
@@ -84,7 +88,7 @@ private:
     float _lifestealDuration = 0.0f;
     /** Number of prior mallet uses recorded for this player this round. */
     int _malletUseCount = 0;
-    
+    /** Vector storing all the effect events that occur when an item with a timed effect is used. */
     std::vector<EffectEvent> _effectEvents;
 
 public:
@@ -478,22 +482,11 @@ public:
      */
     void setPlayerNumber(int number) { _playerNumber = number; }
     
+    /** Returns the current list of effect events */
     std::vector<EffectEvent> getEffectEvents() {
         auto out = _effectEvents;
         _effectEvents.clear();
         return out;
     }
-    
-    /**
-     * Pushes a received (non-self-cast) effect event onto the queue.
-     * Called when another player applies a timed effect to this player.
-     *
-     * @param type      The effect type applied.
-     * @param duration  The duration of the effect in seconds.
-     */
-    void pushReceivedEffectEvent(ItemDef::EffectType type, float duration) {
-        _effectEvents.push_back({ type, "", duration, false });
-    }
-    
 };
 #endif /* !__PLAYER_H__ */
