@@ -81,6 +81,10 @@ static bool parseEffectType(const std::string& value, ItemDef::EffectType& out) 
         out = ItemDef::EffectType::Frenzy;
         return true;
     }
+    if (value == "lifesteal") {
+        out = ItemDef::EffectType::Lifesteal;
+        return true;
+    }
     return false;
 }
 

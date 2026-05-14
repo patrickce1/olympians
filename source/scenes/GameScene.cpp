@@ -175,6 +175,14 @@ static void broadcastSupportEffects(NetworkController& network, const ItemDef& d
                     0.0f,
                     true);
                 break;
+            case ItemDef::EffectType::Lifesteal:
+                network.broadcastSupportEffect(SupportEffectType::Lifesteal,
+                    effect.multiplier,
+                    effect.duration,
+                    targetPlayerID,
+                    0.0f,
+                    true);
+                break;
             case ItemDef::EffectType::Forge:
                 break;
             case ItemDef::EffectType::Stun:
@@ -262,10 +270,55 @@ static std::vector<EnemyEffectMessage> collectEnemyEffects(const ItemDef& def, f
             case ItemDef::EffectType::Forge:
             case ItemDef::EffectType::Charm:
             case ItemDef::EffectType::Frenzy:
+            case ItemDef::EffectType::Lifesteal:
                 break;
         }
     }
     return enemyEffects;
+}
+
+/**
+ * Triggers a boss attack targeting a specific player slot.
+ *
+ * Validates the given slot index against the current player list before
+ * assigning it as the enemy's target. Then forces the enemy into ATTACK_1,
+ * bypassing normal AI state transitions.
+ *
+ * @param targetSlot Index into the player list indicating which player
+ * the boss should attack. Out-of-range values are ignored
+ * and the enemy's current target remains unchanged.
+ */
+void GameScene::triggerBossAttack(int targetSlot) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return;
+
+    if (targetSlot >= 0 && targetSlot < _gameState.getPlayers().size()) {
+        enemy->setTargetIndex(targetSlot);
+    }
+
+    enemy->forceAttack(EnemyLoader::State::ATTACK_1);
+}
+
+/**
+ * Triggers a boss defense move targeting a specific player slot.
+ *
+ * Validates the given slot index against the current player list before
+ * assigning it as the enemy's target. Then forces the enemy into DEFENSE_MOVE,
+ * bypassing normal AI state transitions.
+ *
+ * @param targetSlot Index into the player list indicating which player
+ * the boss should react to. Out-of-range values are ignored
+ * and the enemy's current target remains unchanged.
+ */
+void GameScene::triggerBossDefense(int targetSlot) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy) return;
+   
+    if (targetSlot >= 0 && targetSlot < _gameState.getPlayers().size()) {
+        enemy->setTargetIndex(targetSlot);
+    }
+
+    enemy->forceDefense(EnemyLoader::State::DEFENSE_MOVE);
 }
 
 /** Sends all collected enemy-facing effects of an attack item to the host.
@@ -354,6 +407,9 @@ static ItemDef::Effect resolveEffectForCharm(const ItemDef::Effect& effect, bool
             break;
         case ItemDef::EffectType::Frenzy:
             resolved.amount *= 0.5f;
+            break;
+        case ItemDef::EffectType::Lifesteal:
+            resolved.multiplier *= 2.0f;
             break;
     }
 
@@ -516,6 +572,22 @@ bool GameScene::initSceneGraph() {
         _supportLeftArea = _gameArea->getChildByName("supportLeft");
         _supportRightArea = _gameArea->getChildByName("supportRight");
         _timers = _gameArea->getChildByName("timers");
+
+        _tutorialDialogueBox = _gameArea->getChildByName("dialogueBox");
+        
+        if (_tutorialDialogueBox) {
+            _tutorialDialogueBoxPos = _tutorialDialogueBox->getPosition();
+            _tutorialDialogueLabel = std::dynamic_pointer_cast<scene2::Label>(
+                _tutorialDialogueBox->getChildByName("label"));
+            
+            _gameArea->removeChild(_tutorialDialogueBox);
+            //Save the location of the dialog box in the world space (using relatives from the json in the gamearea)
+            Vec2 worldPos = _gameArea->nodeToWorldCoords(_tutorialDialogueBoxPos);
+            Vec2 scenePos = _scene->worldToNodeCoords(worldPos);
+            _tutorialDialogueBoxPos = scenePos;
+            _tutorialDialogueBox->setPosition(scenePos - Vec2(350, 0));
+            _scene->addChild(_tutorialDialogueBox);
+        }
     }
     
     if (_inventory) {
@@ -754,8 +826,23 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     // Set player icon textures immediately (normally done in update, but we need them visible on first render)
     updatePlayerAndTeammateIcons(0.0f);
     
+    _tutorialTimeline = ActionTimeline::alloc();
     setActive(false);
     return true;
+}
+
+/**
+ * Enables or disables the boss's ability to attack.
+ *
+ * Does not affect boss visuals or position — only gates whether the boss
+ * may initiate attacks. Also propagates the flag to the enemy controller.
+ *
+ * @param active  true to allow the boss to attack; false to suppress attacks.
+ */
+void GameScene::setTutorialBossActive(bool active) {
+    // Keep boss visuals unchanged; toggle whether it may attack.
+    _tutorialBossCanAttack = active;
+    _enemyController.setAttacksEnabled(active);
 }
 
 /**
@@ -872,7 +959,6 @@ void GameScene::updateNetworkOrder() {
     _rightPlayerHouse->setText(rightName);
 
     _gameState.setEnemy(_network->getEnemy(), _assets);
-
     initBackgroundAndBossImage();
 }
 
@@ -913,6 +999,22 @@ void GameScene::setActive(bool value) {
             if (_currentVisibleAnimationSprite) {
                 _currentVisibleAnimationSprite->setVisible(false);
             }
+            _isTutorial = (_gameState.getEnemy()->getId() == "circe");
+            if (_isTutorial && !_tutorialController.isActive()) {
+                _tutorialController.init(this, _assets);
+                _tutorialController.loadFromFile("json/tutorial.json");
+            }
+            if (!_tutorialController.isActive()) {
+                setTutorialBossActive(true);
+            }
+            if (_isTutorial && !_tutorialController.isActive()){
+                _tutorialController.start();
+                CULog("GameScene: tutorial started, isActive=%d", _tutorialController.isActive() ? 1 : 0);
+            }
+            if (_isTutorial){
+                clearTutorialHighlight();
+                setTutorialDisableSupportZonesVisibility(false);
+            }
         }
     }
 }
@@ -939,6 +1041,9 @@ void GameScene::reset() {
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
+    
+    // Reset the tutorial highlight zone
+    _tutorialHighlightZone.clear();
 
     // Clear any active animations before resetting
     clearItemUseAnimations();
@@ -1038,7 +1143,16 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
-    const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+    float resolvedMagnitude = 0.0f;
+    if (def->getAttackTarget() == ItemDef::AttackTarget::AllAllies) {
+        resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
+    } else {
+        resolvedMagnitude = local->resolveItemMagnitude(*def, _itemController.getDatabase());
+        local->recordItemUse(*def);
+        if (!removeItemFromInventory(local, item.getId())) {
+            return false;
+        }
+    }
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
@@ -1071,8 +1185,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
 
     // Vec2::ZERO signals startItemUseAnimation to use the default viewport center.
     const std::vector<EnemyEffectMessage> enemyEffects =
-        (!_network->isHost()) ? collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects)
-                              : std::vector<EnemyEffectMessage>{};
+        collectEnemyEffects(*def, resolvedMagnitude, local->getPlayerNumber(), shouldApplyEffects);
 
     startItemUseAnimation(animConfig, resolvedMagnitude, animPos, 0);
     if (!_activeItemUseAnimations.empty()) {
@@ -1194,6 +1307,8 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                         applyFrenzyEffect(resolvedEffect.amount, resolvedEffect.duration);
                     }
                     break;
+                case ItemDef::EffectType::Lifesteal:
+                    break;
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
                 case ItemDef::EffectType::Regen:
@@ -1271,12 +1386,57 @@ bool GameScene::handleAllyTargetAttack(ItemInstance::ItemId itemId, const std::s
                     }
                     break;
                 }
+                case ItemDef::EffectType::Regen: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Regen;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.magnitude = resolvedEffect.regenAmount;
+                    pendingEffect.duration = resolvedEffect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
                 case ItemDef::EffectType::Forge:
                 case ItemDef::EffectType::Frenzy:
                     break;
+                case ItemDef::EffectType::Lifesteal: {
+                    PendingPartyEffectSync pendingEffect;
+                    pendingEffect.effectType = ItemDef::EffectType::Lifesteal;
+                    for (const auto& player : _gameState.getPlayers()) {
+                        if (player) {
+                            pendingEffect.playerSlots.push_back(player->getPlayerNumber());
+                        }
+                    }
+                    pendingEffect.magnitude = resolvedEffect.multiplier;
+                    pendingEffect.duration = resolvedEffect.duration;
+                    pendingEffect.active = !pendingEffect.playerSlots.empty();
+
+                    auto existing = std::find_if(_pendingPartyEffectSyncs.begin(), _pendingPartyEffectSyncs.end(),
+                        [&](const PendingPartyEffectSync& pending) {
+                            return pending.effectType == effect.type;
+                        });
+                    if (existing != _pendingPartyEffectSyncs.end()) {
+                        *existing = pendingEffect;
+                    } else if (pendingEffect.active) {
+                        _pendingPartyEffectSyncs.push_back(pendingEffect);
+                    }
+                    break;
+                }
                 case ItemDef::EffectType::Shield:
                 case ItemDef::EffectType::Barrier:
-                case ItemDef::EffectType::Regen:
                 case ItemDef::EffectType::Stun:
                 case ItemDef::EffectType::Love:
                 case ItemDef::EffectType::Slow:
@@ -1522,7 +1682,6 @@ std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId it
     return nullptr;
 }
 
-
 /**
  * Calls the appropriate handle action helper based on the input that we recieved
  *
@@ -1532,6 +1691,12 @@ std::shared_ptr<const ItemDef> GameScene::getHeldItemDef(ItemInstance::ItemId it
 bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId) {
     Player* local = _gameState.getLocalPlayer();
     if (!local) return false;
+
+    if (_tutorialController.isActive() && _tutorialController.isWaiting()) {
+        if (!_tutorialController.isWaitingForActionMatch(action)) {
+            return false;
+        }
+    }
 
     switch (action) {
         case InputController::Action::DROP_BOSS:
@@ -2480,6 +2645,10 @@ void GameScene::handlePlayerInput(InputController& input) {
                 }
                 _draggedIcon->setVisible(false);
             }
+
+            if (_isTutorial){
+                _tutorialController.handlePlayerAction(finalAction);
+            }
         } else {
             // Item action failed - slide the item back
             slideReleasedItem(_draggedItemId);
@@ -2740,7 +2909,7 @@ void GameScene::applyPendingResurrectionSync() {
 }
 
 /**
- * Reapplies a pending client-side educate buff after stale host snapshots, until host sync catches up.
+ * Reapplies pending client-side timed party effects after stale host snapshots, until host sync catches up.
  */
 void GameScene::applyPendingPartyEffectSyncs() {
     auto shouldKeepPendingEffect = [&](PendingPartyEffectSync& pendingEffect) {
@@ -2765,6 +2934,20 @@ void GameScene::applyPendingPartyEffectSyncs() {
                         continue;
                     }
                     player->applyCharm(pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                case ItemDef::EffectType::Regen:
+                    if (player->hasRegen()) {
+                        continue;
+                    }
+                    player->applyRegen(pendingEffect.magnitude, pendingEffect.duration);
+                    waitingForHost = true;
+                    break;
+                case ItemDef::EffectType::Lifesteal:
+                    if (player->hasLifesteal()) {
+                        continue;
+                    }
+                    player->applyLifesteal(pendingEffect.magnitude, pendingEffect.duration);
                     waitingForHost = true;
                     break;
                 default:
@@ -2995,6 +3178,9 @@ void GameScene::handleGaiaSpawn() {
  * @param dt  Delta time in seconds.
  */
 void GameScene::handleItemSpawn(float dt) {
+    if (_tutorialController.isActive()) {
+        return;
+    }
     // Always spawn items for the local human player.
     _itemController.update(dt, _gameState.getLocalPlayer());
 
@@ -3253,6 +3439,11 @@ void GameScene::handleTooltipVisibility(float dt) {
                     _tooltipNode->setScale(0.4315);
                 }
                 _tooltipNode->setVisible(true);
+
+                // Notify tutorial if waiting for tooltip action
+                if (_tutorialController.isActive()) {
+                    _tutorialController.handlePlayerAction(InputController::Action::HOLD_FOR_TOOLTIP);
+                }
             }
             // keep tooltip above the moving widget
             updateTooltipPosition();
@@ -3338,6 +3529,63 @@ void GameScene::updateSlidingItems(float dt) {
     for (auto itemId : itemsToRemove) {
         _slidingItems.erase(itemId);
     }
+}
+
+/**
+ * Animates the dialogue box sliding into its active position.
+ * This method uses the CUGL timeline to move the _tutorialDialogueBox from its current
+ * position to the predefined _tutorialDialogueBoxPos. It uses a CUBIC_OUT easing to
+ * create a smooth deceleration effect over 0.4 seconds.
+ */
+void GameScene::slideDialogueIn() {
+    if (_tutorialDialogueBox) {
+        _tutorialTimeline->remove("dialogueBox");
+        auto slideInAction = cugl::scene2::MoveTo::alloc(_tutorialDialogueBoxPos);
+        auto easing = EasingFactory::alloc(EasingFactory::Type::CUBIC_OUT);
+        _tutorialTimeline->add("dialogueBox", slideInAction->attach(_tutorialDialogueBox), 0.4f, easing);
+    }
+}
+
+/**
+ * Animates the dialogue box sliding out of view.
+ * This method calculates an offscreen position relative to the current
+ * _tutorialDialogueBoxPos (shifted 350 units to the left) and initiates a slide-out
+ * animation. It uses a CUBIC_IN easing for a smooth acceleration effect
+ * over 0.4 seconds.
+ */
+void GameScene::slideDialogueOut() {
+    if (_tutorialDialogueBox) {
+        _tutorialTimeline->remove("dialogueBox");
+        Vec2 offscreen = _tutorialDialogueBoxPos - Vec2(350, 0);
+        auto slideOutAction = cugl::scene2::MoveTo::alloc(offscreen);
+        auto easing = EasingFactory::alloc(EasingFactory::Type::CUBIC_IN);
+        _tutorialTimeline->add("dialogueBox", slideOutAction->attach(_tutorialDialogueBox), 0.4f, easing);
+    }
+}
+
+/**
+ * Initiates the sequence to display a new dialogue message.
+ * This method updates the pending text and triggers a "slide out, then slide in"
+ * sequence. It sets a timer to match the slide-out duration, allowing the
+ * update loop to swap the text and call slideDialogueIn() once the box is hidden.
+ * @param message The string text to display in the dialogue label.
+ */
+void GameScene::showDialogue(const std::string& message) {
+    if (_tutorialDialogueLabel) {
+            _tutorialDialogueBox->removeFromParent();
+            _scene->addChild(_tutorialDialogueBox);
+            _tutorialPendingDialogueText = message;
+            _tutorialDialogueWaitingToSlideIn = true;
+            _tutorialDialogueOutTimer = 0.4f; // match slide out duration
+            slideDialogueOut();
+        }
+}
+
+/**
+ * Triggers the animation to hide the dialogue box.
+ */
+void GameScene::hideDialogue() {
+    slideDialogueOut();
 }
 
 /**
@@ -3450,12 +3698,19 @@ void GameScene::processZoneInteractionsForSlidingItems() {
                         widgetIt->second->setVisible(false);
                     }
                 }
+                if (_isTutorial) {
+                        _tutorialController.handlePlayerAction(action);
+                    }
                 markItemAsUsed(itemId);
                 itemsToRemove.insert(itemId);
             } else if (action == InputController::Action::DROP_ALLY_LEFT ||
                        action == InputController::Action::DROP_ALLY_RIGHT) {
                 // Target ally is dead — snapback the item to inventory instead of leaving it in the zone
                 itemsToRemove.insert(itemId);
+                initiateSnapbackAnimation(itemId, itemPos);
+            }
+            else{
+                item->setCanInteractWithZones(false);
                 initiateSnapbackAnimation(itemId, itemPos);
             }
             break;
@@ -3528,12 +3783,42 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
  * and toggles their visibility accordingly.
  */
 void GameScene::updateDropZoneVisibility(){
+    // Helper lambda to hide all zones
+    auto hideAllZones = [this]() {
+        _passLeftArea->setVisible(false);
+        _passRightArea->setVisible(false);
+        _supportLeftArea->setVisible(false);
+        _supportRightArea->setVisible(false);
+        _attackArea->setVisible(false);
+    };
+
+    // If the tutorial has explicitly requested a highlight, keep those
+    // zones visible regardless of drag state.
+    if (!_tutorialHighlightZone.empty() && _tutorialHighlightZone != "none") {
+        hideAllZones();
+        if (_tutorialHighlightZone == "left_support") {
+            _supportLeftArea->setVisible(true);
+        } else if (_tutorialHighlightZone == "right_support") {
+            _supportRightArea->setVisible(true);
+        } else if (_tutorialHighlightZone == "attack") {
+            _attackArea->setVisible(true);
+        } else if (_tutorialHighlightZone == "pass_left") {
+            _passLeftArea->setVisible(true);
+        } else if (_tutorialHighlightZone == "pass_right") {
+            _passRightArea->setVisible(true);
+        }
+        return;
+    }
+
     if (_draggedItemId != 0) {
-        Player* local = _gameState.getLocalPlayer();
+        auto local = _gameState.getLocalPlayer();
         bool localAlive = local && local->isAlive();
 
         _passLeftArea->setVisible(true);
         _passRightArea->setVisible(true);
+        _attackArea->setVisible(false);
+        _supportLeftArea->setVisible(false);
+        _supportRightArea->setVisible(false);
 
         if (localAlive) {
             auto itemDef = getHeldItemDef(_draggedItemId);
@@ -3542,19 +3827,15 @@ void GameScene::updateDropZoneVisibility(){
                     _attackArea->setVisible(true);
                 } else {
                     // Only show each support zone if that ally is alive
-                    Player* leftAlly  = local->getLeftPlayer();
-                    Player* rightAlly = local->getRightPlayer();
-                    _supportLeftArea->setVisible(leftAlly  && leftAlly->isAlive());
-                    _supportRightArea->setVisible(rightAlly && rightAlly->isAlive());
+                    auto leftAlly  = local->getLeftPlayer();
+                    auto rightAlly = local->getRightPlayer();
+                    _supportLeftArea->setVisible(leftAlly  && leftAlly->isAlive() && !_tutorialDisableSupportZones);
+                    _supportRightArea->setVisible(rightAlly && rightAlly->isAlive() && !_tutorialDisableSupportZones);
                 }
             }
         }
     } else {
-        _attackArea->setVisible(false);
-        _supportLeftArea->setVisible(false);
-        _supportRightArea->setVisible(false);
-        _passLeftArea->setVisible(false);
-        _passRightArea->setVisible(false);
+        hideAllZones();
     }
 }
 
@@ -3585,6 +3866,10 @@ void GameScene::update(float dt, InputController& input) {
     
     if (_network->isHost()) {
         _network->broadcastHostsCurrentScene(1);
+    }
+    
+    if (_tutorialController.isActive()){
+            _tutorialController.update(dt);
     }
 
     handleResetButton(input);
@@ -3632,6 +3917,17 @@ void GameScene::update(float dt, InputController& input) {
     updateAllPlayersAndEnemyHealthUI(dt);
     updatePlayerAndTeammateIcons(dt);
     updatePlayerHealthBarEffect(dt);
+    
+    //Update the dialogue controller
+    _tutorialTimeline->update(dt);
+    if (_tutorialDialogueWaitingToSlideIn) {
+        _tutorialDialogueOutTimer -= dt;
+        if (_tutorialDialogueOutTimer <= 0.0f) {
+            _tutorialDialogueWaitingToSlideIn = false;
+            if (_tutorialDialogueLabel) _tutorialDialogueLabel->setText(_tutorialPendingDialogueText);
+            slideDialogueIn();
+        }
+    }
 }
 
 #pragma mark -
@@ -4012,6 +4308,56 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
 }
 
 /**
+ * Spawns a tutorial item and animates it into the player's hand.
+ *
+ * The item is created and added to the local player's inventory, then visually
+ * introduced into the scene from a specific origin:
+ * If passDirection is 0, the item spawns from a default off-screen position.
+ * If passDirection is 1, the item slides in from the left pass zone.
+ * If passDirection is 2, the item slides in from the right pass zone.
+ *
+ * This is primarily used by the tutorial system to simulate receiving or spawning items.
+ *
+ * @param defId          The definition ID of the item to create.
+ * @param passDirection  Determines the spawn origin:
+ *                       0 = direct spawn (off-screen),
+ *                       1 = slide in from left (pass),
+ *                       2 = slide in from right (pass).
+ */
+void GameScene::spawnTutorialItem(const std::string& defId, int passDirection) {
+    Player* localPlayer = _gameState.getLocalPlayer();
+    if (!localPlayer){
+        CULog("spawnTutorialItem: no local player");
+        return;
+    }
+    
+    // Create the item and add to local player.
+    ItemInstance::ItemId itemId = _itemController.giveItemByID(localPlayer, defId);
+    if (itemId == 0){
+        CULog("spawnTutorialItem: failed to create item for defId '%s'", defId.c_str());
+        return;
+    }
+    const auto& inv = localPlayer->getInventory();
+    for (const ItemInstance& item : inv){
+        if (item.getId() == itemId){
+            //spawn pos not yet determined
+            cugl::Vec2 spawnPos;
+            if (passDirection != 0){
+                spawnPos = getPassSpawnPosition(passDirection);
+                _spawnItemFromPosition(item, spawnPos, ItemInstance::SlideOriginType::SLIDE_FROM_PASS);
+            }
+            else {
+                cugl::Size screenSize = getSize();
+                spawnPos = cugl::Vec2(screenSize.width * 0.5f, -50.0f);
+                _spawnItemFromPosition(item, spawnPos, ItemInstance::SlideOriginType::SLIDE_FROM_SPAWN);
+            }
+            CULog("spawnTutorialItem: spawned item id=%llu defId=%s passDir=%d", (unsigned long long)item.getId(), defId.c_str(), passDirection);
+            return;
+        }
+    }
+}
+
+/**
  * Refreshes existing widget textures after item instances are redefined in place.
  *
  * Forge preserves item instance IDs, so the existing inventory widgets are kept and
@@ -4041,6 +4387,7 @@ void GameScene::refreshInventoryWidgetTextures() {
     }
 }
 
+/** Synchronises on-screen item widgets with the local player's current inventory. */
 void GameScene::syncInventoryWidgets() {
     Player* local = _gameState.getLocalPlayer();
     if (!_inventory || !local) return;
@@ -4086,6 +4433,39 @@ void GameScene::syncInventoryWidgets() {
     for (ItemInstance::ItemId itemId : removedIds) {
         removeItemWidget(itemId);
     }
+}
+
+#pragma mark -
+#pragma mark Tutorial
+/** Sets the highlighted tutorial zone by name (e.g. "attack", "left_support", "pass_left").
+ *  Used to visually guide the player toward the correct drop zone during tutorial steps.
+ *
+ *  @param zone  The name of the zone to highlight.
+ */
+void GameScene::setTutorialHighlight(const std::string& zone) {
+    _tutorialHighlightZone = zone;
+}
+
+/** Clears the active tutorial zone highlight, returning all zones to their default appearance. */
+void GameScene::clearTutorialHighlight() {
+    _tutorialHighlightZone = "none";
+}
+
+/** Enables or disables the visibility of support zones during the tutorial.
+ *  Used to hide irrelevant zones when the tutorial only requires the attack zone.
+ *
+ *  @param disable  If true, support zones are hidden. If false, they are shown normally.
+ */
+void GameScene::setTutorialDisableSupportZonesVisibility(bool disable) {
+    _tutorialDisableSupportZones = disable;
+}
+
+/**
+ *  Sets the zone that should be activated during the tutorial.
+ *  @param zone  The zone that should be activated in the tutorial
+ */
+void GameScene::setTutorialAllowedDropZone(InputController::Action zone){
+    _allowedTutorialZone = zone;
 }
 
 #pragma mark -
@@ -4554,8 +4934,13 @@ void GameScene::updateItemUseAnimations(float dt) {
                 if (enemy) {
                     const int playerNum = _gameState.getLocalPlayer()->getPlayerNumber();
 
-                    // Apply pre-calculated damage and show the popup sequence.
+                    // Apply pre-calculated damage before any item effects update enemy side multipliers.
+                    const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
+                    Player* localPlayer = _gameState.getLocalPlayer();
+                    if (localPlayer) {
+                        localPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - enemy->getCurrentHealth()));
+                    }
                     if (activeAnim.baseValue > 0.0f) {
                         const float sideMultiplier = enemy->getSideMultiplier(playerNum);
                         const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
@@ -4569,6 +4954,8 @@ void GameScene::updateItemUseAnimations(float dt) {
                     if (_network && !_network->isHost()) {
                         _network->broadcastDamage(activeAnim.damageAmount, playerNum, activeAnim.itemDefID);
                         broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
+                    } else if (_network && _network->isHost()) {
+                        _gameState.enemyEffectUpdates(activeAnim.enemyEffects);
                     }
                 }
             }

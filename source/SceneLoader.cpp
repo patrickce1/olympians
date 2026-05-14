@@ -608,9 +608,15 @@ void SceneLoader::update(float dt) {
         {
         case WinLoseScene::Status::ABORT:
             _audio.playMusic("lobby");
-            _lobbyScene.setActive(true);
+            if (_network->getEnemy() == "circe") { //Tutorial should go back to the setup screen.
+                _network->disconnect();
+                _hostSetupScene.setActive(true);
+                _currentScene = State::HOSTSETUP;
+            } else {
+                _lobbyScene.setActive(true);
+                _currentScene = State::LOBBY;
+            }
             _winLoseScene.setActive(false);
-            _currentScene = State::LOBBY;
             break;
         case WinLoseScene::Status::PRE_GAMESCENE_START:
             CULog("Transitioning to PreGameScene from WinLoseScene...");

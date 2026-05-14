@@ -340,10 +340,10 @@
             }
         },
         {
-            "id": "tide",
-            "name": "Tide",
+            "id": "tsunami",
+            "name": "tsunami",
             "description": " ",
-            "icon": "item_poseidon_tide",
+            "icon": "item_poseidon_tsunami",
             "tooltip": "tooltip_poseidon_tsunami",
             "type": "attack",
             "attackTarget": "all_allies",
@@ -351,7 +351,13 @@
             "houseAffinity": "poseidon",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": [],
+            "effects": [
+                {
+                    "type": "lifesteal",
+                    "multiplier": 0.4,
+                    "duration": 10.0
+                }
+            ],
             "itemUseAnimation": {
                 "spriteSheetId": "tide_animation",
                 "rows": 1,
@@ -397,10 +403,10 @@
             ]
         },
         {
-            "id": "abundance",
-            "name": "Abundance",
+            "id": "harvest",
+            "name": "Harvest",
             "description": " ",
-            "icon": "item_demeter_abundance",
+            "icon": "item_demeter_harvest",
             "tooltip": "tooltip_demeter_harvest",
             "type": "attack",
             "attackTarget": "all_allies",
@@ -408,7 +414,13 @@
             "houseAffinity": "demeter",
             "baseValue": 0.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "regen",
+                    "amount": 350.0,
+                    "duration": 7.0
+                }
+            ]
         },
         {
             "id": "forge",
@@ -460,7 +472,14 @@
             "houseAffinity": "ares",
             "baseValue": 60.0,
             "weight": 10.0,
-            "effects": []
+            "effects": [
+                {
+                    "type": "vulnerable",
+                    "multiplier": 2.0,
+                    "duration": 6.0,
+                    "applyToAllSides": true
+                }
+            ]
         },
         {
             "id": "treasure",

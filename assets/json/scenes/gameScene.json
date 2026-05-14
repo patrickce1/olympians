@@ -144,6 +144,20 @@
                             "y_offset": 0
                         }
                     },
+                    "dialogueBox": {
+                        "type": "Widget",
+                        "data": {
+                            "key": "dialogueBox",
+                            "variables": {}
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.0,
+                            "y_offset": 0.00
+                        }
+                    },
                     "leftIcon": {
                         "type": "Widget",
                         "data": {

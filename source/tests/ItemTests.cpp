@@ -149,12 +149,14 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
     auto wheatDef = db.getDef("wheat");
     auto swordDef = db.getDef("sword");
     auto resurrectionDef = db.getDef("resurrection");
+    auto harvestDef = db.getDef("harvest");
     auto educateDef = db.getDef("educate");
     auto forgeDef = db.getDef("forge");
     auto charmDef = db.getDef("charm");
     auto treasureDef = db.getDef("treasure");
     auto spearDef = db.getDef("spear");
     auto wingsDef = db.getDef("wings");
+    auto tsunamiDef = db.getDef("tsunami");
     assertWithLabel(lightningBoltDef && lightningBoltDef->getHouseAffinity() == ItemDef::House::Zeus,
            "items: lightning_bolt affinity parses as Zeus");
     assertWithLabel(lightningBoltDef && lightningBoltDef->hasEffectType(ItemDef::EffectType::Stun),
@@ -191,6 +193,14 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
                     floatsEqualWithinTolerance(resurrectionDef->getEffects()[0].regenAmount, 25.0f) &&
                     floatsEqualWithinTolerance(resurrectionDef->getEffects()[0].duration, 5.0f),
            "items: resurrection revive and regen values parse");
+    assertWithLabel(harvestDef && harvestDef->hasEffectType(ItemDef::EffectType::Regen),
+           "items: harvest parses regen effect");
+    assertWithLabel(harvestDef && harvestDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
+           "items: harvest attack target parses as all allies");
+    assertWithLabel(harvestDef && !harvestDef->getEffects().empty() &&
+                    floatsEqualWithinTolerance(harvestDef->getEffects()[0].regenAmount, 350.0f) &&
+                    floatsEqualWithinTolerance(harvestDef->getEffects()[0].duration, 7.0f),
+           "items: harvest regen values parse");
     assertWithLabel(educateDef && educateDef->hasEffectType(ItemDef::EffectType::Educate),
            "items: educate parses educate effect");
     assertWithLabel(educateDef && educateDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
@@ -230,6 +240,14 @@ void testItemsLoad(const std::shared_ptr<cugl::JsonValue>& itemsJson) {
                     floatsEqualWithinTolerance(wingsDef->getEffects()[0].multiplier, 0.5f) &&
                     floatsEqualWithinTolerance(wingsDef->getEffects()[0].duration, 5.0f),
            "items: wings slow values parse");
+    assertWithLabel(tsunamiDef && tsunamiDef->hasEffectType(ItemDef::EffectType::Lifesteal),
+           "items: tsunami parses lifesteal effect");
+    assertWithLabel(tsunamiDef && tsunamiDef->getAttackTarget() == ItemDef::AttackTarget::AllAllies,
+           "items: tsunami attack target parses as all allies");
+    assertWithLabel(tsunamiDef && !tsunamiDef->getEffects().empty() &&
+                    floatsEqualWithinTolerance(tsunamiDef->getEffects()[0].multiplier, 0.4f) &&
+                    floatsEqualWithinTolerance(tsunamiDef->getEffects()[0].duration, 10.0f),
+           "items: tsunami lifesteal values parse");
 }
 
 /**
@@ -1357,6 +1375,119 @@ void testEducateEffect(const std::shared_ptr<cugl::JsonValue>& itemsJson,
 }
 
 /**
+ * Tests that party-wide ally effects skip dead party members.
+ */
+void testPartyWideEffectsSkipDeadAllies(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+    const std::string& housesJsonPath,
+    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "party-wide skip dead: item db load succeeds");
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "party-wide skip dead: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "party-wide skip dead: enemy init succeeds");
+    if (!enemyOk) return;
+
+    Player athena("athena", 0, "Athena Tester", loader);
+    Player zeus("zeus", 1, "Zeus Ally", loader);
+    Player hades("hades", 2, "Dead Hades Ally", loader);
+    Player demeter("demeter", 3, "Demeter Ally", loader);
+
+    athena.setLeftPlayer(&demeter);
+    athena.setRightPlayer(&zeus);
+    zeus.setLeftPlayer(&athena);
+    zeus.setRightPlayer(&hades);
+    hades.setLeftPlayer(&zeus);
+    hades.setRightPlayer(&demeter);
+    demeter.setLeftPlayer(&hades);
+    demeter.setRightPlayer(&athena);
+
+    hades.updateHealth(-999999.0f);
+    assertWithLabel(!hades.isAlive(), "party-wide skip dead: test ally is dead before use");
+
+    auto instEducate = ItemInstance::alloc("educate", 3003);
+    assertWithLabel(instEducate != nullptr, "party-wide skip dead: create educate instance");
+    if (!instEducate) return;
+
+    athena.addItem(*instEducate);
+    athena.useItemById(instEducate->getId(), enemy, db);
+
+    assertWithLabel(athena.hasEducate() && zeus.hasEducate() && demeter.hasEducate(),
+        "party-wide skip dead: living allies receive educate buff");
+    assertWithLabel(!hades.hasEducate(),
+        "party-wide skip dead: dead ally does not receive educate buff");
+}
+
+/**
+ * Tests that harvest applies its regen effect to every party member.
+ *
+ * @param itemsJson Parsed JSON object containing item definitions.
+ * @param housesJsonPath Asset-relative path to house definitions.
+ * @param enemiesJsonPath Asset-relative path to enemy definitions.
+ */
+void testHarvestRegenAppliesToAllPlayers(const std::shared_ptr<cugl::JsonValue>& itemsJson,
+    const std::string& housesJsonPath,
+    const std::string& enemiesJsonPath) {
+    ItemDatabase db;
+    assertWithLabel(db.loadFromJson(itemsJson), "harvest: item db load succeeds");
+
+    auto harvestDef = db.getDef("harvest");
+    assertWithLabel(harvestDef != nullptr, "harvest: harvest def exists");
+    if (!harvestDef || harvestDef->getEffects().empty()) return;
+
+    const ItemDef::Effect harvestEffect = harvestDef->getEffects()[0];
+
+    HouseLoader loader;
+    bool housesOk = loader.loadFromFile(housesJsonPath);
+    assertWithLabel(housesOk, "harvest: house loader init succeeds");
+
+    Enemy enemy;
+    bool enemyOk = enemy.init("cyclops", enemiesJsonPath);
+    assertWithLabel(enemyOk, "harvest: enemy init succeeds");
+    if (!enemyOk) return;
+
+    Player demeter("demeter", 0, "Demeter Tester", loader);
+    Player zeus("zeus", 1, "Zeus Ally", loader);
+    Player hades("hades", 2, "Hades Ally", loader);
+    Player athena("athena", 3, "Athena Ally", loader);
+
+    demeter.setLeftPlayer(&athena);
+    demeter.setRightPlayer(&zeus);
+    zeus.setLeftPlayer(&demeter);
+    zeus.setRightPlayer(&hades);
+    hades.setLeftPlayer(&zeus);
+    hades.setRightPlayer(&athena);
+    athena.setLeftPlayer(&hades);
+    athena.setRightPlayer(&demeter);
+
+    auto instHarvest = ItemInstance::alloc("harvest", 5001);
+    assertWithLabel(instHarvest != nullptr, "harvest: create harvest instance");
+    if (!instHarvest) return;
+
+    demeter.addItem(*instHarvest);
+
+    const float resolvedHarvest = demeter.useItemById(instHarvest->getId(), enemy, db);
+    assertWithLabel(floatsEqualWithinTolerance(resolvedHarvest, 0.0f), "harvest: item returns zero base damage");
+    assertWithLabel(demeter.hasRegen() && zeus.hasRegen() && hades.hasRegen() && athena.hasRegen(),
+                    "harvest: all party members receive regen");
+    assertWithLabel(floatsEqualWithinTolerance(demeter.getRegenAmountRemaining(), harvestEffect.regenAmount) &&
+                    floatsEqualWithinTolerance(zeus.getRegenAmountRemaining(), harvestEffect.regenAmount) &&
+                    floatsEqualWithinTolerance(hades.getRegenAmountRemaining(), harvestEffect.regenAmount) &&
+                    floatsEqualWithinTolerance(athena.getRegenAmountRemaining(), harvestEffect.regenAmount),
+                    "harvest: all party members receive configured regen amount");
+    assertWithLabel(floatsEqualWithinTolerance(demeter.getRegenDuration(), harvestEffect.duration) &&
+                    floatsEqualWithinTolerance(zeus.getRegenDuration(), harvestEffect.duration) &&
+                    floatsEqualWithinTolerance(hades.getRegenDuration(), harvestEffect.duration) &&
+                    floatsEqualWithinTolerance(athena.getRegenDuration(), harvestEffect.duration),
+                    "harvest: all party members receive configured regen duration");
+    assertWithLabel(demeter.getInventory().empty(), "harvest: item is consumed from inventory after use");
+}
+
+/**
  * Tests the forge item transformation rules and stable instance identity behavior.
  */
 void testForgeEffect(const std::string& housesJsonPath) {
@@ -1550,6 +1681,8 @@ void ItemTests::runAll(const std::string& itemsJsonPath,
     testGaiaRockHealsEnemy(itemsJson, housesJsonPath, enemiesJsonPath);
     testResurrectionEffect(itemsJson, housesJsonPath, enemiesJsonPath);
     testEducateEffect(itemsJson, housesJsonPath, enemiesJsonPath);
+    testPartyWideEffectsSkipDeadAllies(itemsJson, housesJsonPath, enemiesJsonPath);
+    testHarvestRegenAppliesToAllPlayers(itemsJson, housesJsonPath, enemiesJsonPath);
     testForgeEffect(housesJsonPath);
     testFrenzyEffect(housesJsonPath);
 
