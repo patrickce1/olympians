@@ -2327,7 +2327,7 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
                     ? "AI Player " + std::to_string(left->getPlayerNumber())
                     : left->getPlayerName());
                 std::string house = left->getHouseName();
-                for (char& c : house) c = toupper(c);
+                for (char& letter : house) letter = toupper(letter);
                 _leftPlayerHouse->setText(house);
             }
         }
@@ -2345,7 +2345,7 @@ void GameScene::updatePlayerAndTeammateIcons(float dt) {
                     ? "AI Player " + std::to_string(right->getPlayerNumber())
                     : right->getPlayerName());
                 std::string house = right->getHouseName();
-                for (char& c : house) c = toupper(c);
+                for (char& letter : house) letter = toupper(letter);
                 _rightPlayerHouse->setText(house);
             }
         }
@@ -2628,10 +2628,10 @@ void GameScene::updateGaiaVineAnimation(float dt) {
         const auto* stateDef = enemy->getCurrentStateDef();
         if (!stateDef || stateDef->buildUpTime <= 0.0f) return;
 
-        float t = std::min(1.0f,
+        float time = std::min(1.0f,
             enemy->getStateTime() / stateDef->buildUpTime);
 
-        anim.currentTime = t * anim.duration;
+        anim.currentTime = time * anim.duration;
     }
     else {
         // Reverse, goes at a faster rate than normal animation
