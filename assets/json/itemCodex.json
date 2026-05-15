@@ -151,9 +151,9 @@
       "description": "Zeus summons a storm cloud that rains lightning in escalating strikes, each hit more devastating than the last."
     },
     {
-      "id": "tide",
+      "id": "tsunami",
       "name": "POSEIDON'S TSUNAMI",
-      "image_large": "tide_large",
+      "image_large": "tsunami_large",
       "rarity": "Divine",
       "house": "Poseidon",
       "category": "ATTACK",
@@ -171,9 +171,9 @@
       "description": "Hades reaches beyond death to revive all fallen allies and grant every teammate ongoing healing."
     },
     {
-      "id": "cornucopia",
-      "name": "DEMETER'S ABUNDANCE",
-      "image_large": "cornucopia_large",
+      "id": "harvest",
+      "name": "DEMETER'S HARVEST",
+      "image_large": "harvest_large",
       "rarity": "Divine",
       "house": "Demeter",
       "category": "SUPPORT",
