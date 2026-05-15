@@ -315,7 +315,7 @@ int EnemyController::cerberusRedirectVictim(const std::shared_ptr<Cerberus>& cer
 
 /** Deals damage to the targeted players from a damage event. */
 void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players, const Enemy::FiredEvent& fe) {
-    CULog("[DEBUG] resolveDamageEvent called: target=%d players=%d", fe.def.target, (int)players.size());
+    if (_debug) CULog("[EnemyController] resolveDamageEvent: target=%d players=%d", fe.def.target, (int)players.size());
     int victim = computeVictim(enemy, players, fe.def.target);
     if (victim < 0) {
         if (_debug) CULog("[EnemyController] Event: DAMAGE fired but players list is empty");

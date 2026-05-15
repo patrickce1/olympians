@@ -165,14 +165,14 @@ void Cerberus::knockHead(int headArrayIndex) {
     _heads[headArrayIndex].knocked = true;
     _heads[headArrayIndex].knockedTimer = _knockedDuration;
     _headKnockSoundPending = true;
-    CULog("[Cerberus] Head %d knocked for %.1fs", headArrayIndex, _knockedDuration);
+    if (_debug) CULog("[Cerberus] Head %d knocked for %.1fs", headArrayIndex, _knockedDuration);
 
     if (allHeadsKnocked()) {
         // All three heads are now down — boost all non-back sides to signal the vulnerability window.
         setSideMultiplier(0, ALL_HEADS_KNOCKED_MULTIPLIER);
         setSideMultiplier(1, ALL_HEADS_KNOCKED_MULTIPLIER);
         setSideMultiplier(3, ALL_HEADS_KNOCKED_MULTIPLIER);
-        CULog("[Cerberus] All heads knocked — %.1fx side multiplier active on all non-back sides", ALL_HEADS_KNOCKED_MULTIPLIER);
+        if (_debug) CULog("[Cerberus] All heads knocked — %.1fx side multiplier active on all non-back sides", ALL_HEADS_KNOCKED_MULTIPLIER);
     }
 }
 
@@ -186,5 +186,5 @@ void Cerberus::unKnockHead(int headArrayIndex) {
     _heads[headArrayIndex].knocked = false;
     _heads[headArrayIndex].knockedTimer = 0.0f;
     _heads[headArrayIndex].knockedThreshold = _maxKnockedThreshold;
-    CULog("[Cerberus] Head %d recovered", headArrayIndex);
+    if (_debug) CULog("[Cerberus] Head %d recovered", headArrayIndex);
 }

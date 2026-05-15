@@ -2287,6 +2287,9 @@ void GameScene::configureCerberusAnimationState(const std::shared_ptr<Enemy>& en
     }
 }
 
+/**
+ * Removes all enemy animation sprite nodes from the scene and clears related state.
+ */
 void GameScene::destroyEnemyAnimations() {
     if (_bossSprite) _bossSprite->removeAllChildren();
     _enemyAnimationSpriteNodes.clear();
@@ -2297,6 +2300,15 @@ void GameScene::destroyEnemyAnimations() {
     _currentAnimationId      = "";
 }
 
+/**
+ * Initializes the enemy animation sprites for the given enemy ID by creating SpriteNodes
+ * for each animation in the registry that matches the enemy ID prefix. Configures layout
+ * based on viewport size and stores references for later use. Also calls initializeCerberusAnimationSprites
+ * to perform additional setup for Cerberus head/body sprites. Finally, makes the _bossSprite container visible.
+ * 
+ * @param enemyId  The enemy identifier used to filter relevant animations from the registry and trigger Cerberus-specific setup.
+ * @return true if all relevant sprites were successfully initialized, false on any error (e.g. texture load failure).
+ */
 bool GameScene::initializeEnemyAnimations(const std::string& enemyId) {
     // Ensure we have the animation container
     if (!_bossSprite) {
@@ -2412,13 +2424,13 @@ void GameScene::initializeCerberusAnimationSprites(const std::string& enemyId) {
     for (const auto& key : orderedHeadKeys) {
         auto entryIt = _animationRegistry.find(key);
         if (entryIt == _animationRegistry.end()) {
-            CULogError("Cerberus head anim key '%s' not in registry", key.c_str());
+            if (_debug) CULogError("Cerberus head anim key '%s' not in registry", key.c_str());
             continue;
         }
         const auto& animEntry = entryIt->second;
         auto tex = cugl::graphics::Texture::allocWithFile(animEntry.texture);
         if (!tex) {
-            CULogError("Missing cerberus head texture: %s", animEntry.texture.c_str());
+            if (_debug) CULogError("Missing cerberus head texture: %s", animEntry.texture.c_str());
             continue;
         }
 
@@ -2453,10 +2465,10 @@ void GameScene::initializeCerberusAnimationSprites(const std::string& enemyId) {
     auto bodyEntryIt = _animationRegistry.find("cerberus_body_idle_animation");
     if (bodyEntryIt != _animationRegistry.end()) {
         const auto& bodyAnimEntry = bodyEntryIt->second;
-        auto tex = cugl::graphics::Texture::allocWithFile(bodyAnimEntry.texture);
-        if (tex) {
+        auto texure = cugl::graphics::Texture::allocWithFile(bodyAnimEntry.texture);
+        if (texure) {
             auto sprite = cugl::scene2::SpriteNode::allocWithSheet(
-                tex, bodyAnimEntry.frameRows, bodyAnimEntry.frameCount, bodyAnimEntry.frameRows * bodyAnimEntry.frameCount);
+                texure, bodyAnimEntry.frameRows, bodyAnimEntry.frameCount, bodyAnimEntry.frameRows * bodyAnimEntry.frameCount);
             if (sprite) {
                 sprite->setAnchor(cugl::Vec2(0.5f, 0.5f));
                 sprite->setPosition(cugl::Vec2(bodyAnimEntry.positionX + bodyAnimEntry.offsetX,
@@ -2755,6 +2767,16 @@ void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
     updateEnemyAnimationFrame(dt, localPlayerIndex);
 }
 
+/**
+ * Reorders the Cerberus heads based on the specified direction. 
+ * Cerberus has 4 heads that need to be layered correctly depending on which way it's facing:
+ * - Facing front (0):    body, head3, head1, head0
+ * - Facing right (1):   head2, body, head1, head0
+ * - Facing back (2):    head2, body, head3, head1
+ * - Facing left (3):    head2, body, head3, head0
+ *
+ * @param direction  The direction the Cerberus is facing (0-3).
+ */
 void GameScene::reorderCerberusHeads(int direction) {
     // Per-direction z-order from back (first = lowest z) to front (last = drawn on top).
     // Matches the layering the user specified:
@@ -5623,7 +5645,7 @@ void GameScene::updateCorrodedItemAnimations(float dt) {
                 _tooltipNode->setVisible(false);
             }
 
-            CULog("  -> Corroded item was being dragged, resetting drag state and hiding tooltip");
+            if (_debugMode) CULog("  -> Corroded item was being dragged, resetting drag state and hiding tooltip");
         }
 
         // Remove from corroding set
