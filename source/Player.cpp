@@ -704,7 +704,10 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
         const float resolvedMagnitude = resolveItemMagnitude(*def, db);
         const bool shouldApplyEffects = canApplyItemEffects(*this, *def);
         float returnedMagnitude = 0.0f;
-        if (def->getType() == ItemDef::Type::Support) {
+        if (def->getId() == "gaia_rock") {
+            target.updateHealth(-1 * def->getBaseValue());
+            returnedMagnitude = def->getBaseValue();
+        } else if (def->getType() == ItemDef::Type::Support) {
             target.updateHealth(resolvedMagnitude);
             returnedMagnitude = resolvedMagnitude;
             if (shouldApplyEffects) {
@@ -776,10 +779,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
         const float resolvedMagnitude = resolveItemMagnitude(*def, db);
         const bool shouldApplyEffects = canApplyItemEffects(*this, *def);
         float returnedMagnitude = 0.0f;
-        if (def->getId() == "gaia_rock") {
-            target.updateHealth(resolvedMagnitude);
-            returnedMagnitude = resolvedMagnitude;
-        } else if (def->getType() == ItemDef::Type::Attack) {
+        if (def->getType() == ItemDef::Type::Attack) {
             const bool targetsAllAllies = def->getAttackTarget() == ItemDef::AttackTarget::AllAllies;
             const bool appliesToEnemy = !targetsAllAllies;
 
