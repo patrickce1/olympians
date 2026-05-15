@@ -67,9 +67,9 @@ public:
      * is ignored so the AI never exceeds the difficulty the boss allows.
      */
     static constexpr int XP_CAP_CIRCE    = 0;   // Always easiest — no prior XP counts
-    static constexpr int XP_CAP_CYCLOPS  = 5;
-    static constexpr int XP_CAP_CERBERUS = 15;
-    static constexpr int XP_CAP_GAIA     = 100; // Effectively uncapped
+    static constexpr int XP_CAP_CYCLOPS  = 30;
+    static constexpr int XP_CAP_CERBERUS = 30;
+    static constexpr int XP_CAP_GAIA     = 30; // Effectively uncapped
 
     /**
      * Maximum XP considered when computing the decision multiplier.

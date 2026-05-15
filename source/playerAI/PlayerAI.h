@@ -56,7 +56,7 @@ public:
 
 protected:
     /** Debug boolean. Set to false to suppress debug output. */
-    bool _debug = false;
+    bool _debug = true;
 
     /** The current FSM state of this AI controller. */
     State _state = State::IDLE;
@@ -70,37 +70,37 @@ protected:
      * Fastest think interval in seconds (best AI). Loaded from JSON.
      * The AI will act no more often than this.
      */
-    float _thinkIntervalMin = 1.0f;
+    float _thinkIntervalMin;
 
     /**
      * Slowest think interval in seconds (worst AI). Loaded from JSON.
      * The AI will act no less often than this.
      */
-    float _thinkIntervalMax = 3.0f;
+    float _thinkIntervalMax;
 
     /**
      * Minimum heal threshold (worst AI — only heals nearly dead teammates).
      * Loaded from JSON.
      */
-    float _healThresholdMin = 0.2f;
+    float _healThresholdMin;
 
     /**
      * Maximum heal threshold (best AI — heals teammates early).
      * Loaded from JSON.
      */
-    float _healThresholdMax = 0.8f;
+    float _healThresholdMax;
 
     /**
      * Maximum pass probability for an unowned rare item when rarityWisdom = 1.
      * Loaded from JSON.
      */
-    float _rarePassChance = 0.6f;
+    float _rarePassChance;
 
     /**
      * Maximum pass probability for an unowned divine item when rarityWisdom = 1.
      * Loaded from JSON.
      */
-    float _divinePassChance = 0.9f;
+    float _divinePassChance;
 
     // ── Runtime interpolated values ────────────────────────────────────────
 
@@ -108,13 +108,13 @@ protected:
      * Current think interval in seconds, interpolated between
      * _thinkIntervalMax (worst) and _thinkIntervalMin (best).
      */
-    float _thinkInterval = 3.0f;
+    float _thinkInterval;
 
     /**
      * Current heal threshold, interpolated between _healThresholdMin and
      * _healThresholdMax by _decisionMultiplier.
      */
-    float _healThreshold = 0.2f;
+    float _healThreshold;
 
     /**
      * Current attack weight used in the weighted random roll.
@@ -147,7 +147,7 @@ protected:
      * Set via setDecisionMultiplier() by GameState before the round begins.
      * Drives interpolation of all four wisdom parameters.
      */
-    float _decisionMultiplier = 0.0f;
+    float _decisionMultiplier;
 
     /**
      * The set of item IDs originally spawned for this AI.
@@ -165,6 +165,14 @@ protected:
 
     /** Read-only reference to the item database for item type lookups. */
     const ItemDatabase* _db = nullptr;
+    
+    /**
+     * The preferred target for the pending rarity-pass, set during evaluate()
+     * alongside _pendingPassItemId. Points to the neighbor who owns the item,
+     * or nullptr if neither neighbor owns it (in which case actPass() picks
+     * randomly). Cleared in actPass() after the pass resolves.
+     */
+    Player* _pendingPassTarget = nullptr;
 
 public:
 
@@ -335,6 +343,29 @@ private:
      * exists.
      */
     void actPass();
+    
+    /**
+     * Returns whether this player originally received this item via spawn
+     * (as opposed to receiving it via a pass from another player).
+     *
+     * Used by neighboring AI players during rarity-pass logic to determine
+     * who an unowned item should be returned to.
+     *
+     * @param itemId  The ItemId to check.
+     * @return true if this player's _ownedItemIds contains the given ID.
+     */
+    bool ownsItem(ItemInstance::ItemId itemId) const {
+        return _ownedItemIds.count(itemId) > 0;
+    }
+    
+    /**
+     * Returns whether the AI has at least one support item in its inventory,
+     * regardless of neighbor health. Used by evaluate() to include SUPPORT
+     * in the weighted roll independently of whether a target currently qualifies.
+     *
+     * @return true if any inventory item has type ItemDef::Type::Support.
+     */
+    bool hasSupportItem() const;
 };
 
 #endif /* __PLAYER_AI_H__ */

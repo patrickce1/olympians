@@ -247,6 +247,7 @@ void LobbyScene::setActive(bool value) {
                 showDisconnectBanner(_disconnectBanner);
                 _disconnectBanner = "";
             }
+            CULog("[LobbyScene] Cached player XP: %d", SavedDataManager::get().getPlayerXP());
         } else {
             if (_pendingDisconnect) {
                 _network->disconnect();
@@ -521,21 +522,6 @@ void LobbyScene::update(float timestep, InputController& input) {
             SavedDataManager::get().getPlayerXP()
         );
     }
-    
-    // change boss icon to the currently chosen boss
-//    std::string lobbyBoss = _network->getEnemy();
-//    if (lobbyBoss != _currentBoss) {
-//        _currentBoss = lobbyBoss;
-//        updateLobbyBoss(lobbyBoss);
-//
-//        // Re-derive AI difficulty whenever the boss changes.
-//        if (_network->isHost() && _gameState && !_currentBoss.empty()) {
-//            _gameState->applyAIDifficultyForBoss(
-//                _currentBoss,
-//                SavedDataManager::get().getPlayerXP()
-//            );
-//        }
-//    }
     
     // Only the host can start; only enable the button when all players have locked in a house.
     if (_network->isHost()) {

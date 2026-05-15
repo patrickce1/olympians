@@ -1,5 +1,7 @@
 #include "PlayerAI.h"
 
+static constexpr float HOUSE_WEIGHT_MIN = 0.3f;
+static constexpr float HOUSE_WEIGHT_MAX = 0.7f;
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
@@ -130,13 +132,16 @@ void PlayerAI::applyDecisionMultiplier() {
     if (_db) {
         const auto* mults = _db->getHouseMultipliers(getHouseName());
         if (mults) {
-            // attack and support on HouseMultipliers are sliders in [0,1].
-            // Normalize so they sum to 1.0 for use as weights.
             float total = mults->attack + mults->support;
             if (total > 0.0f) {
                 houseAttack  = mults->attack  / total;
                 houseSupport = mults->support / total;
             }
+            // Clamp so no house goes more extreme than 70/30 in either direction.
+            // This ensures even pure-attack (Ares: 1/0) or pure-support (Demeter: 0/1)
+            // houses retain meaningful behaviour in both action types.
+            houseAttack  = std::max(HOUSE_WEIGHT_MIN, std::min(HOUSE_WEIGHT_MAX, houseAttack));
+            houseSupport = 1.0f - houseAttack;
         }
     }
     _attackWeight  = 0.5f + _decisionMultiplier * (houseAttack  - 0.5f);
@@ -146,7 +151,7 @@ void PlayerAI::applyDecisionMultiplier() {
     _effectiveRarePassChance   = _decisionMultiplier * _rarePassChance;
     _effectiveDivinePassChance = _decisionMultiplier * _divinePassChance;
 
-    if (_debug) CULog(
+    CULog(
         "[PlayerAI '%s'] multiplier=%.2f → interval=%.2f heal=%.2f "
         "atk=%.2f sup=%.2f rarePass=%.2f divinePass=%.2f",
         getPlayerName().c_str(), _decisionMultiplier,
@@ -239,25 +244,32 @@ bool PlayerAI::canAttack() const {
 }
 
 /**
+ * Returns whether the AI has at least one support item in its inventory,
+ * regardless of whether any neighbor currently needs healing.
+ * Used by evaluate() to decide if SUPPORT is a viable roll option.
+ *
+ * @return true if any inventory item has type ItemDef::Type::Support.
+ */
+bool PlayerAI::hasSupportItem() const {
+    for (const ItemInstance& item : getInventory()) {
+        auto def = _db->getDef(item.getDefId());
+        if (def && def->getType() == ItemDef::Type::Support) return true;
+    }
+    return false;
+}
+
+/**
  * Returns whether the AI has a support item AND at least one neighbor is
- * alive and below _healThreshold.
+ * alive and below _healThreshold. Used only by actSupport() to find a target.
  *
  * @return true if a support item exists and a valid heal target is available.
  */
 bool PlayerAI::canSupport() const {
-    bool hasSupportItem = false;
-    for (const ItemInstance& item : getInventory()) {
-        auto def = _db->getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Support) {
-            hasSupportItem = true;
-            break;
-        }
-    }
-    if (!hasSupportItem) return false;
+    if (!hasSupportItem()) return false;
 
     auto needsHeal = [&](Player* p) {
         return p && p->isAlive() &&
-               p->getCurrentHealth() / p->getMaxHealth() < _healThreshold;
+               p->getCurrentHealth() < 100;
     };
     return needsHeal(getLeftPlayer()) || needsHeal(getRightPlayer());
 }
@@ -270,84 +282,126 @@ bool PlayerAI::canSupport() const {
  * Evaluates game context and returns the state the AI should transition to.
  *
  * Priority order:
- *   1. Forced heal override — if any neighbor is below _healThreshold and a
- *      support item exists, return SUPPORT immediately.
- *   2. Rarity-pass check — scan for unowned divine items (divinePassChance),
- *      then unowned rare items (rarePassChance). First hit sets
- *      _pendingPassItemId and returns PASS. Owned items are skipped.
- *   3. Weighted random roll — between ATTACK (_attackWeight) and SUPPORT
- *      (_supportWeight). Returns PASS if neither is viable, IDLE if empty.
+ *   1. Support check — if the AI has a support item and any neighbor needs
+ *      healing (below _healThreshold), heal immediately. This is always the
+ *      top priority so teammates are never left injured while the AI attacks.
+ *   2. Rarity-pass check — scan for unowned non-attack divine items
+ *      (divinePassChance), then unowned non-attack rare items (rarePassChance).
+ *      Attack items are never passed. First hit returns PASS.
+ *   3. Attack — if the AI has an attack item, attack the enemy.
+ *   4. Fallback — if nothing else is viable, pass a random item or idle.
  *
  * @param enemy  The current enemy.
  * @return The State the AI should transition to this think cycle.
  */
 PlayerAI::State PlayerAI::evaluate(const Enemy& enemy) {
     _pendingPassItemId = 0;
+    _pendingPassTarget = nullptr;
 
     if (getInventory().empty()) return State::IDLE;
 
-    // --- 1. Forced heal override ---
-    // If a neighbor is critically injured and we have a support item, heal
-    // immediately regardless of the weighted roll.
-    if (canSupport()) {
-        auto isCritical = [&](Player* p) {
+    // --- 1. Support check ---
+    // Always heal first if a teammate needs it and we have a support item.
+    // Uses _healThreshold so better AI heals earlier, worse AI only heals
+    // when teammates are nearly dead.
+    if (hasSupportItem()) {
+        auto needsHeal = [&](Player* p) {
             return p && p->isAlive() &&
                    p->getCurrentHealth() / p->getMaxHealth() < _healThreshold;
         };
-        if (isCritical(getLeftPlayer()) || isCritical(getRightPlayer())) {
-            if (_debug) CULog("[PlayerAI '%s'] evaluate — forced heal override", getPlayerName().c_str());
+        if (needsHeal(getLeftPlayer()) || needsHeal(getRightPlayer())) {
+            if (_debug) CULog("[PlayerAI '%s'] evaluate — support priority (teammate below %.0f%%)",
+                  getPlayerName().c_str(), _healThreshold * 100.0f);
             return State::SUPPORT;
         }
     }
 
-    // --- 2. Rarity-pass check ---
+    // --- 2. Rarity-pass check (non-attack items only) ---
+    // Attack items are never passed — they should always be used on the enemy.
+    // Pass target preference is based on house affinity: if a neighbor plays
+    // the house the item belongs to, they get priority. If neither neighbor
+    // matches, passes to a random alive neighbor.
     bool hasAliveNeighbor = (getLeftPlayer()  && getLeftPlayer()->isAlive()) ||
                             (getRightPlayer() && getRightPlayer()->isAlive());
 
     if (hasAliveNeighbor) {
-        // Divine check first (higher priority / higher pass chance)
-        for (const ItemInstance& item : getInventory()) {
-            auto def = _db->getDef(item.getDefId());
-            if (!def || def->getRarity() != ItemDef::Rarity::Divine) continue;
-            if (_ownedItemIds.count(item.getId())) continue; // owned — always use
+        // Returns the alive neighbor whose house matches this item's affinity,
+        // or nullptr if neither neighbor matches (actPass() picks randomly).
+        auto findAffinityNeighbor = [&](const ItemInstance& inventoryItem) -> Player* {
+            auto itemDef = _db->getDef(inventoryItem.getDefId());
+            if (!itemDef) return nullptr;
 
-            float roll = static_cast<float>(rand()) / RAND_MAX;
-            if (roll < _effectiveDivinePassChance) {
-                if (_debug) CULog("[PlayerAI '%s'] evaluate — divine pass triggered (roll=%.2f chance=%.2f)",
-                      getPlayerName().c_str(), roll, _effectiveDivinePassChance);
-                _pendingPassItemId = item.getId();
-                return State::PASS;
-            }
-        }
+            ItemDef::House itemAffinity = itemDef->getHouseAffinity();
+            if (itemAffinity == ItemDef::House::None) return nullptr;
 
-        // Rare check second
-        for (const ItemInstance& item : getInventory()) {
-            auto def = _db->getDef(item.getDefId());
-            if (!def || def->getRarity() != ItemDef::Rarity::Rare) continue;
-            if (_ownedItemIds.count(item.getId())) continue; // owned — always use
+            auto matchesAffinity = [&](Player* neighbor) -> bool {
+                if (!neighbor || !neighbor->isAlive()) return false;
+                return ItemDef::houseFromString(neighbor->getHouseName(), ItemDef::House::None)
+                       == itemAffinity;
+            };
 
-            float roll = static_cast<float>(rand()) / RAND_MAX;
-            if (roll < _effectiveRarePassChance) {
-                if (_debug) CULog("[PlayerAI '%s'] evaluate — rare pass triggered (roll=%.2f chance=%.2f)",
-                      getPlayerName().c_str(), roll, _effectiveRarePassChance);
-                _pendingPassItemId = item.getId();
+            if (matchesAffinity(getLeftPlayer()))  return getLeftPlayer();
+            if (matchesAffinity(getRightPlayer())) return getRightPlayer();
+            return nullptr; // no affinity match — actPass() picks randomly
+        };
+
+        for (const ItemInstance& inventoryItem : getInventory()) {
+            auto itemDef = _db->getDef(inventoryItem.getDefId());
+            if (!itemDef) continue;
+            if (itemDef->getType() == ItemDef::Type::Attack) continue; // never pass attack items
+
+            float passChance = 0.0f;
+            if      (itemDef->getRarity() == ItemDef::Rarity::Divine) passChance = _effectiveDivinePassChance;
+            else if (itemDef->getRarity() == ItemDef::Rarity::Rare)   passChance = _effectiveRarePassChance;
+            else continue; // commons are never rarity-passed
+
+            float passRoll = static_cast<float>(rand()) / RAND_MAX;
+            if (passRoll < passChance) {
+                _pendingPassItemId = inventoryItem.getId();
+                _pendingPassTarget = findAffinityNeighbor(inventoryItem);
+                if (_debug) CULog(
+                    "[PlayerAI '%s'] evaluate — rarity pass triggered (roll=%.2f chance=%.2f) → target='%s'",
+                    getPlayerName().c_str(), passRoll, passChance,
+                    _pendingPassTarget ? _pendingPassTarget->getPlayerName().c_str() : "random");
                 return State::PASS;
             }
         }
     }
 
-    // --- 3. Weighted random roll ---
-    if (!canAttack() && !canSupport()) return State::PASS;
+    // --- 3. Weighted action roll ---
+    // No emergency heal and no rarity-pass fired. Use the house-weighted ratio
+    // to decide between attacking and supporting. Better AI will lean toward
+    // their house's natural style; worse AI is closer to 50/50.
+    // Falls back to whichever is available if only one option exists.
+    bool canAttackNow  = canAttack();
+    bool canSupportNow = canSupport();
 
-    float totalWeight = 0.0f;
-    if (canAttack())  totalWeight += _attackWeight;
-    if (canSupport()) totalWeight += _supportWeight;
+    if (!canAttackNow && !canSupportNow) {
+        if (_debug) CULog("[PlayerAI '%s'] evaluate — fallback pass/idle", getPlayerName().c_str());
+        return hasAliveNeighbor ? State::PASS : State::IDLE;
+    }
 
-    float roll = static_cast<float>(rand()) / RAND_MAX * totalWeight;
+    if (canAttackNow && !canSupportNow) {
+        if (_debug) CULog("[PlayerAI '%s'] evaluate — attacking (no support items)", getPlayerName().c_str());
+        return State::ATTACK;
+    }
 
-    if (canAttack() && roll < _attackWeight) {
+    if (!canAttackNow && canSupportNow) {
+        if (_debug) CULog("[PlayerAI '%s'] evaluate — supporting (no attack items)", getPlayerName().c_str());
+        return State::SUPPORT;
+    }
+
+    // Both options available — roll against house-weighted ratio
+    float totalWeight = _attackWeight + _supportWeight;
+    float actionRoll  = static_cast<float>(rand()) / RAND_MAX * totalWeight;
+
+    if (actionRoll < _attackWeight) {
+        if (_debug) CULog("[PlayerAI '%s'] evaluate — attacking (roll=%.2f atk=%.2f sup=%.2f)",
+              getPlayerName().c_str(), actionRoll, _attackWeight, _supportWeight);
         return State::ATTACK;
     } else {
+        if (_debug) CULog("[PlayerAI '%s'] evaluate — supporting (roll=%.2f atk=%.2f sup=%.2f)",
+              getPlayerName().c_str(), actionRoll, _attackWeight, _supportWeight);
         return State::SUPPORT;
     }
 }
@@ -382,14 +436,14 @@ void PlayerAI::actAttack(Enemy& enemy, ItemController& items) {
 }
 
 /**
- * Finds the most injured neighbor below _healThreshold and uses a random
+ * Finds the most injured neighbor and uses a random
  * support item on them. Does nothing if no valid target or support item exists.
  *
  * @param items  The ItemController used to resolve the item action.
  */
 void PlayerAI::actSupport(ItemController& items) {
     Player* target = nullptr;
-    float lowestRatio = _healThreshold;
+    float lowestRatio = 1.0f;
 
     auto check = [&](Player* p) {
         if (!p || !p->isAlive()) return;
@@ -400,8 +454,8 @@ void PlayerAI::actSupport(ItemController& items) {
     check(getRightPlayer());
 
     if (!target) {
-        if (_debug) CULog("[PlayerAI '%s'] actSupport — no neighbour below %.2f, aborting",
-                getPlayerName().c_str(), _healThreshold);
+        if (_debug) CULog("[PlayerAI '%s'] actSupport — no alive neighbour, aborting",
+                getPlayerName().c_str());
         return;
     }
 
@@ -425,13 +479,20 @@ void PlayerAI::actSupport(ItemController& items) {
 }
 
 /**
- * Passes an item to a random alive neighbor (left or right).
+ * Passes an item to a neighbor (left or right).
  *
- * If _pendingPassItemId was set by evaluate(), that specific item is located
- * and passed, and its ID is removed from _ownedItemIds. Falls back to a random
- * item if the pending item is not found in inventory. Clears _pendingPassItemId
- * after resolving regardless of outcome. Does nothing if inventory is empty or
- * no alive neighbor exists.
+ * If _pendingPassItemId was set by evaluate() this cycle, that specific item
+ * is passed. If _pendingPassTarget is set, the item goes directly to that
+ * neighbor (the one who originally owned it). If _pendingPassTarget is nullptr,
+ * the item goes to a random alive neighbor.
+ *
+ * When no pending item is set (fallback pass), selects an item based on
+ * inventory balance: passes a support item if the AI has more support items
+ * than attack items, passes an attack item if it has more attack items, or
+ * picks randomly if counts are equal. This keeps the AI's inventory balanced
+ * rather than hoarding one type while passing another.
+ *
+ * Does nothing if inventory is empty or no alive neighbor exists.
  */
 void PlayerAI::actPass() {
     if (getInventory().empty()) {
@@ -448,30 +509,76 @@ void PlayerAI::actPass() {
         return;
     }
 
-    // Resolve which item to pass — prefer the pending item set by evaluate()
+    // Resolve which item to pass
     const ItemInstance* resolved = nullptr;
     if (_pendingPassItemId != 0) {
-        for (const ItemInstance& item : getInventory()) {
-            if (item.getId() == _pendingPassItemId) {
-                resolved = &item;
+        for (const ItemInstance& inventoryItem : getInventory()) {
+            if (inventoryItem.getId() == _pendingPassItemId) {
+                resolved = &inventoryItem;
                 break;
             }
         }
         if (!resolved && _debug) {
-            CULog("[PlayerAI '%s'] actPass — pending item %llu not found, falling back to random",
+            CULog("[PlayerAI '%s'] actPass — pending item %llu not found, falling back to balance pass",
                   getPlayerName().c_str(), (unsigned long long)_pendingPassItemId);
         }
     }
 
-    const auto& inventory = getInventory();
-    ItemInstance itemToPass = resolved ? *resolved
-                                       : inventory[rand() % inventory.size()];
+    ItemInstance itemToPass;
+    if (resolved) {
+        itemToPass = *resolved;
+    } else {
+        // Fallback pass — balance inventory by passing from the larger type bucket.
+        // Count attack and support items separately, then pick from whichever
+        // is larger. If equal, pick randomly across all items.
+        std::vector<ItemInstance::ItemId> attackItems;
+        std::vector<ItemInstance::ItemId> supportItems;
+
+        for (const ItemInstance& inventoryItem : getInventory()) {
+            auto itemDef = _db->getDef(inventoryItem.getDefId());
+            if (!itemDef) continue;
+            if      (itemDef->getType() == ItemDef::Type::Attack)  attackItems.push_back(inventoryItem.getId());
+            else if (itemDef->getType() == ItemDef::Type::Support) supportItems.push_back(inventoryItem.getId());
+        }
+
+        ItemInstance::ItemId chosenId = 0;
+        if (attackItems.size() > supportItems.size() && !attackItems.empty()) {
+            // More attack items — pass one to balance toward support
+            chosenId = attackItems[rand() % attackItems.size()];
+            if (_debug) CULog("[PlayerAI '%s'] actPass — balance pass: passing attack item (atk=%zu sup=%zu)",
+                  getPlayerName().c_str(), attackItems.size(), supportItems.size());
+        } else if (supportItems.size() > attackItems.size() && !supportItems.empty()) {
+            // More support items — pass one to balance toward attack
+            chosenId = supportItems[rand() % supportItems.size()];
+            if (_debug) CULog("[PlayerAI '%s'] actPass — balance pass: passing support item (atk=%zu sup=%zu)",
+                  getPlayerName().c_str(), attackItems.size(), supportItems.size());
+        } else {
+            // Equal counts or only one type present — pick randomly from full inventory
+            const auto& inventory = getInventory();
+            chosenId = inventory[rand() % inventory.size()].getId();
+            if (_debug) CULog("[PlayerAI '%s'] actPass — balance pass: random (atk=%zu sup=%zu)",
+                  getPlayerName().c_str(), attackItems.size(), supportItems.size());
+        }
+
+        // Resolve the chosen ID back to an ItemInstance
+        for (const ItemInstance& inventoryItem : getInventory()) {
+            if (inventoryItem.getId() == chosenId) {
+                itemToPass = inventoryItem;
+                break;
+            }
+        }
+    }
+
     _pendingPassItemId = 0;
 
-    // Item leaving this AI — remove from owned set
-    _ownedItemIds.erase(itemToPass.getId());
-
-    Player* chosenTarget = targets[rand() % targets.size()];
+    // Resolve target — prefer the affinity neighbor set by evaluate(), fall back to random
+    Player* chosenTarget = nullptr;
+    if (_pendingPassTarget && _pendingPassTarget->isAlive()) {
+        chosenTarget = _pendingPassTarget;
+    } else {
+        chosenTarget = targets[rand() % targets.size()];
+    }
+    _pendingPassTarget = nullptr;
 
     int passDirection = 0;
     if (chosenTarget == getLeftPlayer())       passDirection = 1;

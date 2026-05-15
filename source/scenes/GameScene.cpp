@@ -5723,7 +5723,7 @@ void GameScene::handleXPAdjustment(bool won) {
         SavedDataManager::get().addPlayerXP(xpReward);
     } else {
         SavedDataManager::get().setPlayerXP(
-            SavedDataManager::get().getPlayerXP() - (xpReward / 2)
+            SavedDataManager::get().getPlayerXP() - 1
         );
     }
     SavedDataManager::get().save();
