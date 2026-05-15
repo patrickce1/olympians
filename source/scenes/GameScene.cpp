@@ -669,10 +669,13 @@ bool GameScene::initSceneGraph() {
         _passRightArea = _inventory->getChildByName("passZoneRight");
 
         /* Gaia's vines */
-        _vineOverlayLeft = _inventory->getChildByName("vineOverlayLeft");
-        _vineOverlayRight = _inventory->getChildByName("vineOverlayRight");
-        _vineOverlayLeftNeighbor = _inventory->getChildByName("vineOverlayLeftNeighbor");
-        _vineOverlayRightNeighbor = _inventory->getChildByName("vineOverlayRightNeighbor");
+        // Local overlays
+        _vineOverlayLeft = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayLeft"));
+        _vineOverlayRight = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayRight"));
+
+        // Ally overlays
+        _vineOverlayLeftNeighbor = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayLeftNeighbor"));
+        _vineOverlayRightNeighbor = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayRightNeighbor"));
     }
     
     _tooltipNode = std::dynamic_pointer_cast<scene2::PolygonNode>(
@@ -4447,13 +4450,102 @@ void GameScene::handleGaiaScramble() {
  *
  * Does nothing if the current enemy is not Gaia.
  */
-void GameScene::updateGaiaInventoryVinesVisibility() {
-    if (_gameState.getEnemy()->getId() != "gaia") { return; }
+void GameScene::updateGaiaInventoryVineAnimations(float dt) {
+
+    auto enemy = _gameState.getEnemy();
+    if (!enemy || enemy->getId() != "gaia") return;
+
     auto local = _gameState.getLocalPlayer();
-    _vineOverlayLeftNeighbor->setVisible(!local->hasLeftVine() && local->getLeftPlayer()->hasRightVine());
-    _vineOverlayRightNeighbor->setVisible(!local->hasRightVine() && local->getRightPlayer()->hasLeftVine());
-    _vineOverlayLeft->setVisible(local->hasLeftVine());
-    _vineOverlayRight->setVisible(local->hasRightVine());
+    if (!local) return;
+
+    // ---- READ CURRENT STATE ----
+    _vineLeftAnim.currBlocked = local->hasLeftVine();
+    _vineRightAnim.currBlocked = local->hasRightVine();
+
+    _vineRightNeigborAnim.currBlocked = local->getLeftPlayer()->hasRightVine();
+    _vineLeftNeighborAnim.currBlocked = local->getRightPlayer()->hasLeftVine();
+
+    // ---- HELPER (inline logic per node) ----
+    auto updateAnim = [&](VineAnim& state,
+        const std::shared_ptr<cugl::scene2::SpriteNode>& node) {
+
+            if (!node) return;
+
+            const float duration = state.duration;
+            const int frameCount = state.totalFrames;
+
+            // false -> true (start forward)
+            if (state.currBlocked && !state.previousBlocked) {
+                state.elapsedTime = 0.0f;
+                state.currentFrame = 0;
+                state.isReversing = false;
+                node->setFrame(0);
+            }
+
+            // true -> false (start reverse)
+            else if (!state.currBlocked && state.previousBlocked) {
+                state.elapsedTime = duration;
+                state.currentFrame = frameCount - 1;
+                state.isReversing = true;
+            }
+
+            // ---- ANIMATION ----
+            if (state.currBlocked || state.isReversing) {
+
+                if (state.isReversing) {
+                    state.elapsedTime = std::max(state.elapsedTime - 2*dt, 0.0f);
+                }
+                else {
+                    state.elapsedTime = std::min(state.elapsedTime + dt, duration);
+                }
+
+                float progress = state.elapsedTime / duration;
+
+                int frame = std::min(
+                    static_cast<int>(progress * frameCount),
+                    frameCount - 1
+                );
+
+                if (frame != state.currentFrame) {
+                    state.currentFrame = frame;
+                    node->setFrame(frame);
+                }
+
+                // reverse finished → hide
+                if (state.isReversing && state.elapsedTime <= 0.0f) {
+                    state.isReversing = false;
+                    state.elapsedTime = 0;
+                }
+            }
+
+            state.previousBlocked = state.currBlocked;
+        };
+
+    // ---- UPDATE ALL 4 ANIMS (always tick) ----
+    updateAnim(_vineLeftAnim, _vineOverlayLeft);
+    updateAnim(_vineRightAnim, _vineOverlayRight);
+    updateAnim(_vineRightNeigborAnim, _vineOverlayLeftNeighbor);
+    updateAnim(_vineLeftNeighborAnim, _vineOverlayRightNeighbor);
+
+    // ---- PRIORITY (per side) ----
+
+    // LEFT SIDE
+    if (_vineOverlayLeft && _vineOverlayLeftNeighbor) {
+        bool showLocal = _vineLeftAnim.currBlocked || _vineLeftAnim.isReversing;
+        bool showNeighbor = (!_vineLeftAnim.currBlocked && (_vineLeftNeighborAnim.currBlocked || _vineLeftNeighborAnim.isReversing));
+
+        _vineOverlayLeft->setVisible(showLocal);
+        _vineOverlayLeftNeighbor->setVisible(showNeighbor);
+    }
+
+    // RIGHT SIDE
+    if (_vineOverlayRight && _vineOverlayRightNeighbor) {
+        bool showLocal = _vineRightAnim.currBlocked || _vineRightAnim.isReversing;
+        bool showNeighbor = (!_vineRightAnim.currBlocked && (_vineRightNeigborAnim.currBlocked || _vineRightNeigborAnim.isReversing));
+
+        _vineOverlayRight->setVisible(showLocal);
+        _vineOverlayRightNeighbor->setVisible(showNeighbor);
+    }
 }
 
 /**
@@ -5343,7 +5435,7 @@ void GameScene::update(float dt, InputController& input) {
     handleCorrosiveDrain();
     updateEnemyHealthBarEffect(dt);
     updateDropZoneVisibility();
-    updateGaiaInventoryVinesVisibility();
+    updateGaiaInventoryVineAnimations(dt);
 
     // Update sliding items before physics world update
     updateSlidingItems(dt);

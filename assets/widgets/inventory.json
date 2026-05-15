@@ -823,14 +823,17 @@
                 }
             },
             "vineOverlayLeft": {
-                "type": "Image",
+                "type": "Sprite",
                 "data": {
                     "texture": "gaiaVineOverlayLeft",
                     "anchor": [0, 0],
                     "size": [120, 300],
+                    "scale": [0.23, 0.175],
                     "angle": 0,
                     "position": [0, 0],
-                    "visible": false
+                    "visible": false,
+                    "rows": 1,
+                    "cols": 6
                 },
                 "layout": {
                     "x_anchor": "left",
@@ -841,14 +844,17 @@
                 }
             },
             "vineOverlayRight": {
-                "type": "Image",
+                "type": "Sprite",
                 "data": {
                     "texture": "gaiaVineOverlayRight",
                     "anchor": [1, 0],
                     "size": [120, 300],
+                    "scale": [0.23, 0.175],
                     "angle": 0,
                     "position": [393, 0],
-                    "visible": false
+                    "visible": false,
+                    "rows": 1,
+                    "cols": 6
                 },
                 "layout": {
                     "x_anchor": "right",
@@ -859,38 +865,44 @@
                 }
             },
             "vineOverlayLeftNeighbor": {
-                "type": "Image",
+                "type": "Sprite",
                 "data": {
                     "texture": "gaiaVineOverlayLeft",
                     "anchor": [0, 0],
                     "size": [120, 300],
+                    "scale": [0.23, 0.175],
                     "angle": 0,
                     "position": [0, 0],
-                    "visible": false
+                    "visible": false,
+                    "rows": 1,
+                    "cols": 6
                 },
                 "layout": {
                     "x_anchor": "left",
                     "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": -0.09,
+                    "x_offset": -0.02,
                     "y_offset": 0
                 }
             },
             "vineOverlayRightNeighbor": {
-                "type": "Image",
+                "type": "Sprite",
                 "data": {
                     "texture": "gaiaVineOverlayRight",
                     "anchor": [1, 0],
                     "size": [120, 300],
+                    "scale": [0.23, 0.175],
                     "angle": 0,
                     "position": [393, 0],
-                    "visible": false
+                    "visible": false,                  
+                    "rows": 1,
+                    "cols": 6
                 },
                 "layout": {
                     "x_anchor": "right",
                     "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": 0.09,
+                    "x_offset": 0.02,
                     "y_offset": 0
                 }
             }

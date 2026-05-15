@@ -453,15 +453,32 @@ protected:
     /** The world position when drag begins */
     Vec2 _holdAnchorPos = Vec2::ZERO;
 
+#pragma mark - Gaia Inventory Vines Animation
     /** Vine overlay on the left pass zone blocking the local player's left pass */
-    std::shared_ptr<cugl::scene2::SceneNode> _vineOverlayLeft;
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayLeft;
     /** Vine overlay on the right pass zone blocking the local player's right pass */
-    std::shared_ptr<cugl::scene2::SceneNode> _vineOverlayRight;
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayRight;
     /** Vine overlay peering in from the left edge representing the left neighbor's blocked right pass */
-    std::shared_ptr<cugl::scene2::SceneNode> _vineOverlayLeftNeighbor;
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayLeftNeighbor;
     /** Vine overlay peering in from the right edge representing the right neighbor's blocked left pass */
-    std::shared_ptr<cugl::scene2::SceneNode> _vineOverlayRightNeighbor;
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayRightNeighbor;
 
+    struct VineAnim {
+        bool currBlocked = false;   // current blocked state
+        bool previousBlocked = false;   // previous frame
+        float elapsedTime = 0.0f;
+        int currentFrame = 0;
+        bool isReversing = false;
+
+        const int duration = 0.5f;
+        const int totalFrames = 6;
+        
+    };
+
+    VineAnim _vineLeftAnim;
+    VineAnim _vineRightAnim;
+    VineAnim _vineLeftNeighborAnim;
+    VineAnim _vineRightNeigborAnim;
     
 #pragma mark - Item Timers UI
     /** The active effect icons as defined by the ActiveEffectIcon struct. */
@@ -1501,7 +1518,7 @@ public:
      *
      * Does nothing if the current enemy is not Gaia.
      */
-    void updateGaiaInventoryVinesVisibility();
+    void updateGaiaInventoryVineAnimations(float dt);
 
     /** Checks if we are in a state where
       * the house and names of the current player's neighbors should be concealed
