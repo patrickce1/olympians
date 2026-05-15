@@ -218,8 +218,10 @@ public:
                 }
 
                 // Explicit per-state overrides (take precedence over animation registry).
-                int   jsonDamageFrame    = stateJson->getInt("damageFrame", -1);
+                int   jsonDamageFrame     = stateJson->getInt("damageFrame", -1);
                 int   jsonOutroFrameCount = stateJson->getInt("outroFrameCount", -1);
+                int   jsonFrameCount      = stateJson->getInt("frameCount", -1);
+                int   jsonLoopEndFrame    = stateJson->getInt("loopEndFrame", -2);  // -2 = not specified
                 float jsonFrameDuration   = stateJson->getFloat("frameDuration", 0.0f);
 
                 // Populate animation metadata from registry if available
@@ -258,9 +260,11 @@ public:
                 }
 
                 // JSON fields override whatever the animation registry set.
-                if (jsonDamageFrame >= 0)     stateDef.damageFrame    = jsonDamageFrame;
-                if (jsonOutroFrameCount >= 0) stateDef.outroFrameCount = jsonOutroFrameCount;
-                if (jsonFrameDuration > 0.0f) stateDef.frameDuration   = jsonFrameDuration;
+                if (jsonDamageFrame >= 0)     stateDef.damageFrame     = jsonDamageFrame;
+                if (jsonOutroFrameCount >= 0) stateDef.outroFrameCount  = jsonOutroFrameCount;
+                if (jsonFrameCount > 0)       stateDef.frameCount       = jsonFrameCount;
+                if (jsonLoopEndFrame >= -1)   stateDef.loopEndFrame     = jsonLoopEndFrame;  // -2 = not specified, -1 = no loop (valid)
+                if (jsonFrameDuration > 0.0f) stateDef.frameDuration    = jsonFrameDuration;
 
                 auto aiObj = entry->get("ai");
                 if (aiObj && aiObj->isObject()) {
