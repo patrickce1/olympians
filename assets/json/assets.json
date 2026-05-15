@@ -573,6 +573,9 @@
         "shieldBar": {
             "file": "textures/gameScene/shieldBar.png"
         },
+        "vulnerableBar": {
+            "file": "textures/gameScene/vulnerableBar.png"
+        },
         "playerUsernameBG": {
             "file": "textures/gameScene/playerNameBG.png"
         },
@@ -602,6 +605,9 @@
         },
         "deathLabel": {
           "file": "textures/gameScene/deathLabel.png"
+        },
+        "pieTimer": {
+          "file": "textures/gameScene/pieTimer.png"
         },
         "winSign": {
             "file": "textures/winLoseScene/winSign.png"
