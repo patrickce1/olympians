@@ -16,6 +16,22 @@
  * Model Class representing the Player
  */
 class Player {
+public:
+    /**
+     * Describes a single timed effect applied this frame.
+     * Used by GameScene to spawn a corresponding timer icon.
+     */
+    struct EffectEvent {
+        /** The type of effect applied. Always valid. */
+        ItemDef::EffectType effectType;
+        /** The def ID of the item that produced the effect. Only valid when selfCast = true. */
+        std::string itemId;
+        /** Duration of the effect in seconds. */
+        float duration;
+        /** True if the local player cast this effect themselves, false if received from a teammate. */
+        bool selfCast = true;
+    };
+    
 private:
     
     /** The inventory of the player stored as a vector of ItemInstance objects*/
@@ -72,6 +88,8 @@ private:
     float _lifestealDuration = 0.0f;
     /** Number of prior mallet uses recorded for this player this round. */
     int _malletUseCount = 0;
+    /** Vector storing all the effect events that occur when an item with a timed effect is used. */
+    std::vector<EffectEvent> _effectEvents;
 
 public:
     /**
@@ -464,5 +482,11 @@ public:
      */
     void setPlayerNumber(int number) { _playerNumber = number; }
     
+    /** Returns the current list of effect events */
+    std::vector<EffectEvent> getEffectEvents() {
+        auto out = _effectEvents;
+        _effectEvents.clear();
+        return out;
+    }
 };
 #endif /* !__PLAYER_H__ */
