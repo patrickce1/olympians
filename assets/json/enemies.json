@@ -379,6 +379,28 @@
                     "buildUpTime": 4.0,
                     "cooldownTime": 0.0,
                     "animationKey": "gaia_idle_animation",
+                    "entryEvents": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 0.5
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 0.5
+                        }
+                    ],
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -393,6 +415,28 @@
                     "buildUpTime": 3.0,
                     "cooldownTime": 1.0,
                     "animationKey": "gaia_idle_animation",
+                    "entryEvents": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 0.5
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 0.5
+                        }
+                    ],
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -413,6 +457,28 @@
                     "buildUpTime": 1.0,
                     "cooldownTime": 2.0,
                     "animationKey": "gaia_idle_animation",
+                    "entryEvents": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 0.5
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 0.5
+                        }
+                    ],
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -445,18 +511,7 @@
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
                     "animationKey": "gaia_idle_animation",
-                    "events": [
-			            {
-                            "type": "SIDE_MODIFIER",
-                            "target": 1,
-                            "amount": 0.2
-                        },
-			            {
-                            "type": "SIDE_MODIFIER",
-                            "target": 3,
-                            "amount": 0.2
-                        }
-                    ],
+                    "events": [],
                     "nextState": "idle"
                 }
             }
