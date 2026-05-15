@@ -11,9 +11,11 @@ using namespace cugl;
 /** Singleton loader instance */
 static EnemyLoader staticEnemyLoader;
 /** Flag to ensure loader is initialized only once */
-static bool staticEnemyLoaderInitialized = false; 
+static bool staticEnemyLoaderInitialized = false;
+/** True if the loader was initialized with the animation registry already populated */
+static bool staticEnemyLoaderHadRegistry = false;
 /** Path where the loader was initialized (for error checking if multiple paths are used) */
-static std::string staticEnemyLoaderPath; 
+static std::string staticEnemyLoaderPath;
 
 /**
  * Ensures the animation registry is loaded from AssetManager (if provided).
@@ -55,11 +57,20 @@ static bool ensureEnemyLoaderInitialized(const std::string& jsonPath) {
             return false;
         }
         staticEnemyLoaderInitialized = true;
+        staticEnemyLoaderHadRegistry = staticEnemyLoader.isAnimationRegistryLoaded();
         staticEnemyLoaderPath = jsonPath;
+    } else if (!staticEnemyLoaderHadRegistry && staticEnemyLoader.isAnimationRegistryLoaded()) {
+        // Registry was loaded after the initial parse — reload so StateDefs get animation metadata.
+        CULog("EnemyLoader: registry now available, reloading enemy definitions with animation data");
+        if (!staticEnemyLoader.loadFromFile(jsonPath)) {
+            CULog("ERROR: Failed to reload enemy JSON from %s", jsonPath.c_str());
+            return false;
+        }
+        staticEnemyLoaderHadRegistry = true;
     }
 
     if (staticEnemyLoaderPath != jsonPath) {
-        CULog("ERROR: Enemy JSON already loaded from different path: %s vs %s", 
+        CULog("ERROR: Enemy JSON already loaded from different path: %s vs %s",
               staticEnemyLoaderPath.c_str(), jsonPath.c_str());
         return false;
     }
@@ -134,6 +145,7 @@ bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
 
     // Clear any previous stun/love state when reinitializing the enemy instance.
     _stunDuration = 0.0f;
+    _pendingStunEffects.clear();
     _loveDuration = 0.0f;
     _slowDuration = 0.0f;
     _slowMultiplier = 1.0f;
@@ -315,6 +327,19 @@ void Enemy::tick(float dt) {
         }
     }
 
+    for (auto pending = _pendingStunEffects.begin(); pending != _pendingStunEffects.end(); ) {
+        pending->delay = std::max(0.0f, pending->delay - dt);
+        if (pending->delay <= 0.0f) {
+            if (pending->amount > 0.0f) {
+                takeDamage(pending->amount, pending->playerIndex);
+            }
+            applyStun(pending->duration);
+            pending = _pendingStunEffects.erase(pending);
+        } else {
+            ++pending;
+        }
+    }
+
     if (_loveDuration > 0.0f) {
         _loveDuration = std::max(0.0f, _loveDuration - dt);
         if (previousLoveDuration > 0.0f && _loveDuration <= 0.0f && _debug) {
@@ -375,9 +400,17 @@ bool Enemy::readyToFire() const {
     if (!stateDef) return false;
     if (_eventsFiredThisState) return false;
 
-    // damageFrame overrides all — works for both looping and linear states
+    // Fire when the animation visually reaches the designated damage frame.
+    // Also accept a time-based fallback so events still fire when the frame counter
+    // isn't being driven (e.g. Cerberus head knocked mid-attack).
     if (stateDef->damageFrame >= 0) {
-        return _currentAnimationFrame >= stateDef->damageFrame;
+        if (_currentAnimationFrame >= stateDef->damageFrame) return true;
+        if (stateDef->frameDuration > 0.0f && stateDef->buildUpTime > 0.0f) {
+            // Time at which the damage frame is first visible in the outro phase.
+            float outroOffset = static_cast<float>(stateDef->damageFrame - (stateDef->loopEndFrame + 1)) * stateDef->frameDuration;
+            return _stateTime >= stateDef->buildUpTime + outroOffset;
+        }
+        return false;
     }
 
     if (stateDef->frameCount <= 0) {
@@ -563,6 +596,38 @@ void Enemy::applyStun(float duration) {
 }
 
 /**
+ * Schedules a stun and its paired damage to take effect after a delay.
+ *
+ * If delay is zero, the damage and stun are applied immediately. Positive
+ * damage is resolved through takeDamage() so side multipliers are respected.
+ *
+ * @param duration    The stun time to apply once the delay elapses, in seconds.
+ * @param amount      Damage to apply at the same time as the stun.
+ * @param delay       Seconds to wait before applying the stun and damage.
+ * @param playerIndex The player slot credited with the damage.
+ */
+void Enemy::scheduleStun(float duration, float amount, float delay, int playerIndex) {
+    duration = std::max(0.0f, duration);
+    amount = std::max(0.0f, amount);
+    delay = std::max(0.0f, delay);
+
+    if (delay <= 0.0f) {
+        if (amount > 0.0f) {
+            takeDamage(amount, playerIndex);
+        }
+        applyStun(duration);
+        return;
+    }
+
+    PendingStunEffect pending;
+    pending.delay = delay;
+    pending.duration = duration;
+    pending.amount = amount;
+    pending.playerIndex = playerIndex;
+    _pendingStunEffects.push_back(pending);
+}
+
+/**
  * Overwrites local stun time from the host snapshot so remote clients mirror the authoritative state.
  *
  * @param duration  The authoritative remaining stun time, in seconds.
@@ -596,7 +661,7 @@ void Enemy::applyLove(float duration, int playerIndex) {
     const bool wasLoved = isLoved();
     _loveDuration = std::max(_loveDuration, duration);
     if (validPlayerIndex) {
-        _targetIndex = playerIndex;
+        setTargetIndex(playerIndex);
     }
     forceIdle(duration);
 

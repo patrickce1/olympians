@@ -1,5 +1,6 @@
 #include <cugl/cugl.h>
 #include "GameState.h"
+#include "../bosses/Cerberus.h"
 #include <array>
 #include <cstdlib>
 
@@ -141,7 +142,7 @@ bool GameState::initEnemy() {
 
 /**
  * Creates an enemy instance of the appropriate type based on enemy ID.
- * Currently supports Cyclops (custom class) and Cerberus (generic Enemy).
+ * Currently supports Cyclops, Cerberus, and Gaia as custom subclasses.
  * 
  * @param enemyID The unique identifier for the enemy to create
  * @return A shared pointer to the newly created enemy instance
@@ -150,8 +151,7 @@ static std::shared_ptr<Enemy> createEnemyByID(const std::string& enemyID) {
     if (enemyID == "cyclops") {
         return std::make_shared<Cyclops>();
     } else if (enemyID == "cerberus") {
-        // TODO: Create a custom Cerberus class in a future PR
-        return std::make_shared<Enemy>();
+        return std::make_shared<Cerberus>();
     }
     else if (enemyID == "gaia") {
         return std::make_shared<Gaia>();
@@ -508,7 +508,7 @@ void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects)
 
         switch (effect.effectType) {
             case EnemyEffectType::Stun:
-                _enemy->applyStun(effect.duration);
+                _enemy->scheduleStun(effect.duration, effect.magnitude, effect.delay, effect.playerIndex);
                 break;
             case EnemyEffectType::Love:
                 _enemy->applyLove(effect.duration, effect.playerIndex);
@@ -544,14 +544,24 @@ void GameState::networkUpdate(GameStateMessage newState) {
     _enemy->enterState((EnemyLoader::State) newState.bossState);
     _enemy->setStateTime(newState.stateTime);
 
-    //update boss direction
-    _enemy->setTargetIndex(newState.bossTarget);
-
     // sync authoritative enemy runtime effects
     _enemy->syncStunDuration(newState.bossStunDuration);
     _enemy->syncLoveDuration(newState.bossLoveDuration);
     _enemy->syncSlow(newState.bossSlowMultiplier, newState.bossSlowDuration);
     _enemy->syncVulnerable(newState.bossVulnerableMultipliers, newState.bossVulnerableDurations);
+
+    // sync Cerberus head knocked state and locked victim
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_enemy);
+    if (cerberus) {
+        for (int i = 0; i < 3; i++) {
+            cerberus->syncHeadKnockedState(i, newState.cerberusHeadsKnocked[i],
+                                              newState.cerberusHeadsKnockedTimer[i]);
+        }
+        cerberus->lockVictim(newState.cerberusLockedVictim);
+    }
+
+    //update boss direction
+    _enemy->setTargetIndex(newState.bossTarget);
 
     // update player health and authoritative timed support effects
     std::vector<float> healths = {
@@ -725,4 +735,60 @@ void GameState::swapPlayers(int slotA, int slotB) {
         _players[i]->setLeftPlayer (_players[(i - 1 + total) % total].get());
         _players[i]->setRightPlayer(_players[(i + 1) % total].get());
     }
+}
+
+/**
+ * Reorders the player array according to a permutation supplied by the boss
+ * scramble mechanic.  After reordering, all neighbour pointers in the
+ * circular ring are re-wired and the player ID map is rebuilt.
+ *
+ * The permutation is expressed as a "where does slot i go?" mapping:
+ *   newMapping[oldSlot] = newSlot 
+ * e.g. newMapping = {2, 0, 3, 1} moves
+ *   old slot 0 → new slot 2
+ *   old slot 1 → new slot 0
+ *   old slot 2 → new slot 3
+ *   old slot 3 → new slot 1
+ *
+ * Clients must receive the permutation over the network and
+ * call this with the same array as the hosts' so all peers stay in sync.
+ *
+ * @param newMapping  A length-4 array where permutation[i] is the new
+ *                     slot index that the player currently at slot i
+ *                     should occupy.  Must be a valid permutation of
+ *                     {0, 1, 2, 3}; behaviour is undefined otherwise.
+ */
+void GameState::applyPlayerScramble(const std::array<int, 4>& newMapping) {
+    const int n = (int)_players.size();
+    const int originalLocalPlayerNumber = _localPlayer->getPlayerNumber();
+    CUAssertLog(n == 4, "applyScramble expects exactly 4 players");
+
+    // Build the reordered array without mutating _players mid-loop.
+    std::array<std::shared_ptr<Player>, 4> reordered;
+    for (int oldSlot = 0; oldSlot < n; oldSlot++) {
+        int newSlot = newMapping[oldSlot];
+        CUAssertLog(newSlot >= 0 && newSlot < n, "applyScramble: permutation value out of range");
+        reordered[newSlot] = _players[oldSlot];
+    }
+
+    // Apply the reordering to _players and _playerIdMap
+    for (int i = 0; i < n; i++) {
+        _players[i] = reordered[i];
+        _playerIdMap[i] = _players[i].get();
+    }
+
+    // Relink left/right neighbors
+    for (int i = 0; i < n; i++) {
+        _players[i]->setLeftPlayer(_players[(i - 1 + n) % n].get());
+        _players[i]->setRightPlayer(_players[(i + 1) % n].get());
+    }
+
+    // Make sure all players reset their player numbers
+    for (int i = 0; i < n; i++) {
+        _players[i]->setPlayerNumber(i);
+    }
+
+    // Set local player
+    int newSlot = newMapping[originalLocalPlayerNumber];
+    _localPlayer = _players[newSlot].get();
 }

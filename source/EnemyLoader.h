@@ -18,7 +18,7 @@ public:
         DEFENSE_MOVE,
     };
 
-    enum class EventType { DAMAGE, HEAL, SIDE_MODIFIER, UNKNOWN };
+    enum class EventType { DAMAGE, HEAL, SIDE_MODIFIER, CORROSIVE, PLAYER_SCRAMBLE, UNKNOWN };
 
     // Enum that tracks which boss this is
     enum Boss {
@@ -32,7 +32,10 @@ public:
         EventType type = EventType::UNKNOWN;
         int target = 0;                            // relative index offset. What player to attack or what side to modify. Heal ignores this and self targets
         float amount = 0.0f;                       // damage amount, heal amount, or multiplier change
-        float duration = 0.0f;
+        float interval     = 0.0f;    // seconds between ticks (CORROSIVE only; 0 = use default)
+        float fadeDuration   = 0.0f;  // base fade duration per item (CORROSIVE only; 0 = use default)
+        float fadeVariance   = 0.0f;  // ±fraction of fadeDuration applied randomly per item (e.g. 0.3 = ±30%)
+        int   maxAffected    = 0;     // max items corroded per hit (CORROSIVE only; 0 = no limit)
     };
 
     struct StateDef {
@@ -40,7 +43,7 @@ public:
         std::string name;
         float buildUpTime = 0.0f;
         float cooldownTime = 0.0f;
-        State nextState = IDLE;                
+        State nextState = IDLE;
         std::vector<EventDef> entryEvents;  // fired immediately when entering this state
         std::vector<EventDef> events;       // fired when the state completes
         std::string animationKey;           // Key to lookup animation in enemyAnimations.json
@@ -50,6 +53,9 @@ public:
         float frameDuration = 0.0f;         // Duration per frame in seconds
         int damageFrame = -1;               // Frame index when events fire (-1 = fire at loop end or last frame)
         int outroFrameCount = 0;            // Frames after loopEndFrame that play before state exits
+        std::string headAnimationKey;           // Optional: per-head-sprite animation for this state
+        std::vector<int> headParticipants;      // Which head indices play headAnimationKey; empty = all
+        bool headParticipantsRelative = false;  // If true, indices are direction-relative (0=center, 1=right, 3=left)
     };
 
     struct AIConfig {
@@ -86,9 +92,11 @@ private:
 private:
     /** Parses an event type string from JSON into an EventType enum. */
     static EventType parseEventType(const std::string& s) {
-        if (s == "DAMAGE")           return EventType::DAMAGE;
-        if (s == "HEAL")             return EventType::HEAL;
-        if (s == "SIDE_MODIFIER")  return EventType::SIDE_MODIFIER;
+        if (s == "DAMAGE")        return EventType::DAMAGE;
+        if (s == "HEAL")          return EventType::HEAL;
+        if (s == "SIDE_MODIFIER") return EventType::SIDE_MODIFIER;
+        if (s == "CORROSIVE")     return EventType::CORROSIVE;
+        if (s == "PLAYER_SCRAMBLE") return EventType::PLAYER_SCRAMBLE;
         return EventType::UNKNOWN;
     }
 
@@ -200,7 +208,22 @@ public:
                 stateDef.cooldownTime = stateJson->getFloat("cooldownTime", 0.0f);
                 stateDef.nextState    = parseStateType(stateJson->getString("nextState", "idle"));
                 stateDef.animationKey = stateJson->getString("animationKey", "");
-                
+                stateDef.headAnimationKey = stateJson->getString("headAnimationKey", "");
+                stateDef.headParticipantsRelative = stateJson->getBool("headParticipantsRelative", false);
+                auto participantsJson = stateJson->get("headParticipants");
+                if (participantsJson && participantsJson->isArray()) {
+                    for (int p = 0; p < participantsJson->size(); p++) {
+                        stateDef.headParticipants.push_back(participantsJson->get(p)->asInt());
+                    }
+                }
+
+                // Explicit per-state overrides (take precedence over animation registry).
+                int   jsonDamageFrame     = stateJson->getInt("damageFrame", -1);
+                int   jsonOutroFrameCount = stateJson->getInt("outroFrameCount", -1);
+                int   jsonFrameCount      = stateJson->getInt("frameCount", -1);
+                int   jsonLoopEndFrame    = stateJson->getInt("loopEndFrame", -2);  // -2 = not specified
+                float jsonFrameDuration   = stateJson->getFloat("frameDuration", 0.0f);
+
                 // Populate animation metadata from registry if available
                 if (!stateDef.animationKey.empty() && _animationRegistry.count(stateDef.animationKey) > 0) {
                     const auto& animMeta = _animationRegistry.at(stateDef.animationKey);
@@ -216,7 +239,32 @@ public:
                     } else {
                         stateDef.frameCount = animMeta.frameCount;
                     }
+                } else if (stateDef.animationKey.empty() &&
+                           !stateDef.headAnimationKey.empty() &&
+                           _animationRegistry.count(stateDef.headAnimationKey) > 0) {
+                    // No body animation, but a two-phase head animation exists.
+                    // Derive outroFrameCount from the head animation's attack frames so
+                    // isStateComplete() waits for the full animation just like Cyclops.
+                    // buildUpTime in JSON stays as the natural loop-phase duration.
+                    const auto& headMeta = _animationRegistry.at(stateDef.headAnimationKey);
+                    bool pureLoop = (headMeta.loopEndFrame < 0 ||
+                                     headMeta.loopEndFrame >= headMeta.frameCount - 1);
+                    if (!pureLoop && headMeta.loopStartFrame >= 0) {
+                        stateDef.outroFrameCount  = headMeta.frameCount - headMeta.loopEndFrame - 1;
+                        stateDef.frameDuration    = headMeta.frameDuration;
+                        stateDef.frameCount       = 0; // keep time-based completion
+                        stateDef.damageFrame      = headMeta.damageFrame;
+                        stateDef.loopStartFrame   = headMeta.loopStartFrame;
+                        stateDef.loopEndFrame     = headMeta.loopEndFrame;
+                    }
                 }
+
+                // JSON fields override whatever the animation registry set.
+                if (jsonDamageFrame >= 0)     stateDef.damageFrame     = jsonDamageFrame;
+                if (jsonOutroFrameCount >= 0) stateDef.outroFrameCount  = jsonOutroFrameCount;
+                if (jsonFrameCount > 0)       stateDef.frameCount       = jsonFrameCount;
+                if (jsonLoopEndFrame >= -1)   stateDef.loopEndFrame     = jsonLoopEndFrame;  // -2 = not specified, -1 = no loop (valid)
+                if (jsonFrameDuration > 0.0f) stateDef.frameDuration    = jsonFrameDuration;
 
                 auto aiObj = entry->get("ai");
                 if (aiObj && aiObj->isObject()) {
@@ -233,12 +281,20 @@ public:
                         if (!eventJson) continue;
                         EventDef eventDef;
                         eventDef.type   = parseEventType(eventJson->getString("type", ""));
-                        // "target" is a relative player-index offset; only meaningful for DAMAGE and SIDE_MODIFIER
-                        if (eventDef.type == EventType::DAMAGE || eventDef.type == EventType::SIDE_MODIFIER) {
+                        // "target" is a relative player-index offset
+                        if (eventDef.type == EventType::DAMAGE ||
+                            eventDef.type == EventType::SIDE_MODIFIER ||
+                            eventDef.type == EventType::CORROSIVE) {
                             eventDef.target = eventJson->getInt("target", 0);
                         }
-                        eventDef.amount   = eventJson->getFloat("amount", 0.0f);
-                        eventDef.duration = eventJson->getFloat("duration", 0.0f);
+
+                        eventDef.amount       = eventJson->getFloat("amount", 0.0f);
+                        eventDef.interval     = eventJson->getFloat("interval", 0.0f);
+                        eventDef.fadeDuration = eventJson->getFloat("fadeDuration", 0.0f);
+                        eventDef.fadeVariance = eventJson->getFloat("fadeVariance", 0.0f);
+                        eventDef.maxAffected  = eventJson->getInt("maxAffectedItems", 0);
+
+                        
                         out.push_back(eventDef);
                     }
                 };

@@ -104,7 +104,7 @@ public:
      *
      * `multiplier` is used by effects such as barrier and vulnerable, while
      * `mitigation` is used by shield. `duration` is the lifetime in seconds for
-     * timed effects.
+     * timed effects, and `delay` is used by delayed effects such as stun.
      */
     struct Effect {
         /** The effect category to apply. */
@@ -127,6 +127,8 @@ public:
         float chance = 0.0f;
         /** Generic amount value used by utility effects such as frenzy. */
         float amount = 0.0f;
+        /** Delay before a timed effect takes effect, in seconds. */
+        float delay = 0.0f;
     };
 
 private:

@@ -82,6 +82,9 @@
         "gaia": {
             "file": "textures/gameScene/gaia/gaia.png"
         },
+        "gaiaVine": {
+            "file": "textures/gameScene/gaia/vine_animation.png"
+        },
         "healthFrame": {
             "file": "textures/gameScene/healthFrame.png"
         },
@@ -488,6 +491,9 @@
         "sideIconBG": {
             "file": "textures/elements/sideIconBG.png"
         },
+        "tutorialButton": {
+            "file": "textures/elements/tutorialButton.png"
+        },
         "backArrow": {
             "file": "textures/backArrow.png",
             "minfilter": "linear",
@@ -561,6 +567,9 @@
         "shieldBar": {
             "file": "textures/gameScene/shieldBar.png"
         },
+        "vulnerableBar": {
+            "file": "textures/gameScene/vulnerableBar.png"
+        },
         "playerUsernameBG": {
             "file": "textures/gameScene/playerNameBG.png"
         },
@@ -590,6 +599,9 @@
         },
         "deathLabel": {
           "file": "textures/gameScene/deathLabel.png"
+        },
+        "pieTimer": {
+          "file": "textures/gameScene/pieTimer.png"
         },
         "winSign": {
             "file": "textures/winLoseScene/winSign.png"
@@ -810,6 +822,12 @@
             "stream": false,
             "volume": 0.4
         },
+        "enemy_block": {
+            "type": "sample",
+            "file": "sounds/enemy_block.wav",
+            "stream": false,
+            "volume": 0.4
+        },
         "cyclops_boulder": {
             "type": "sample",
             "file": "sounds/cyclops_boulder.wav",
@@ -827,6 +845,30 @@
             "file": "sounds/cyclops_scream.wav",
             "stream": false,
             "volume": 0.5
+        },
+        "cerberus_bite": {
+            "type": "sample",
+            "file": "sounds/cerberus_bite.wav",
+            "stream": false,
+            "volume": 0.45
+        },
+        "cerberus_spit": {
+            "type": "sample",
+            "file": "sounds/cerberus_spit.wav",
+            "stream": false,
+            "volume": 0.5
+        },
+        "cerberus_defense": {
+            "type": "sample",
+            "file": "sounds/cerberus_defense.wav",
+            "stream": false,
+            "volume": 0.5
+        },
+        "cerberus_head_knock": {
+            "type": "sample",
+            "file": "sounds/cerberus_head_knock.wav",
+            "stream": false,
+            "volume": 0.6
         },
         "shield_block": {
             "type": "sample",

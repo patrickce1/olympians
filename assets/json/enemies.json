@@ -241,53 +241,118 @@
 	    {
             "id": "cerberus",
             "name": "cerberus",
-            "maxHealth": 100.0,
+            "maxHealth": 10000.0,
             "spritesheetPath": "textures/cerberus.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 1.0
+                "defenseLikelihood": 0.2
             },
             "customData": {
-                "eyeMultiplier": 2.0
+                "knockedThreshold": 100.0,
+                "knockedDuration": 10.0,
+                "knockedThresholdRegen": 3.0,
+                "frantic1Threshold": 0.66,
+                "frantic2Threshold": 0.33,
+                "franticRate": 0.75,
+                "headAnimationId": "cerberus_head_idle_animation",
+                "heads": {
+                    "front": { "offsetX":   0.0, "offsetY":  60.0, "phaseOffset": 0.00 },
+                    "right": { "offsetX":  60.0, "offsetY":  20.0, "phaseOffset": 0.24 },
+                    "back":  { "offsetX":   0.0, "offsetY": 20.0, "phaseOffset": 0.48 },
+                    "left":  { "offsetX": -60.0, "offsetY":  20.0, "phaseOffset": 0.42 }
+                }
             },
             "states": {
                 "idle": {
-                    "name": "idle"
+                    "name": "idle",
+                    "headAnimationKey": "cerberus_head_idle_animation",
+                    "entryEvents": [
+                        { "type": "SIDE_MODIFIER", "target": 0, "amount": 1.0 },
+                        { "type": "SIDE_MODIFIER", "target": 1, "amount": 1.0 },
+                        { "type": "SIDE_MODIFIER", "target": 2, "amount": 1.0 },
+                        { "type": "SIDE_MODIFIER", "target": 3, "amount": 1.0 }
+                    ]
                 },
                 "attack_1": {
-                    "name": "",
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 0.0,
+                    "name": "Triple Bite",
+                    "buildUpTime": 2.0,
+                    "cooldownTime": 2.0,
+                    "headAnimationKey": "cerberus_head_bite_animation",
+                    "headParticipants": [0, 1, 3],
+                    "headParticipantsRelative": true,
+                    "entryEvents": [
+                    ],
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 30.0
+                        },
+                        {
+                            "type": "DAMAGE",
+                            "target": 1,
+                            "amount": 30.0
+                        },
+                        {
+                            "type": "DAMAGE",
+                            "target": 3,
+                            "amount": 30.0
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "attack_2": {
-                    "name": "",
+                    "name": "Venom Spit",
                     "buildUpTime": 3.0,
-                    "cooldownTime": 1.0,
+                    "cooldownTime": 2.0,
+                    "headAnimationKey": "cerberus_head_spit_animation",
+                    "headParticipants": [0],
+                    "headParticipantsRelative": true,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 50.0
+                        },
+                        {
+                            "type": "CORROSIVE",
+                            "target": 0,
+                            "interval": 0.4,
+                            "fadeDuration": 3.8,
+                            "fadeVariance": 0.7,
+                            "maxAffectedItems": 10
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "attack_3": {
-                    "name": "",
-                    "buildUpTime": 3.0,
-                    "cooldownTime": 1.0,
+                    "name": "Single Bite",
+                    "buildUpTime": 1.0,
+                    "cooldownTime": 2.0,
+                    "headAnimationKey": "cerberus_head_bite_animation",
+                    "headParticipants": [0],
+                    "headParticipantsRelative": true,
                     "events": [
+                        {
+                            "type": "DAMAGE",
+                            "target": 0,
+                            "amount": 50.0
+                        }
                     ],
                     "nextState": "idle"
                 },
                 "defensive_move" : {
-                    "name": "test heal move",
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 5.0,
-                    "events": [
-                        {
-                            "type": "HEAL",
-                            "amount": 10.0
-                        }
+                    "name": "Defense",
+                    "buildUpTime": 6.0,
+                    "cooldownTime": 2.0,
+                    "headAnimationKey": "cerberus_head_defend_animation",
+                    "entryEvents": [
+                        { "type": "SIDE_MODIFIER", "target": 0, "amount": -0.8 },
+                        { "type": "SIDE_MODIFIER", "target": 1, "amount": -0.8 },
+                        { "type": "SIDE_MODIFIER", "target": 2, "amount":  0.5 },
+                        { "type": "SIDE_MODIFIER", "target": 3, "amount": -0.8 }
                     ],
+                    "events": [],
                     "nextState": "idle"
                 }
             }
@@ -336,8 +401,8 @@
                 },
                 "attack_3": {
                     "name": "Shift the Ground",
-                    "buildUpTime": 3.0,
-                    "cooldownTime": 1.0,
+                    "buildUpTime": 1.0,
+                    "cooldownTime": 2.0,
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -358,6 +423,9 @@
                             "type": "DAMAGE",
                             "target": 3,
                             "amount": 20.0
+                        },
+                        {
+                            "type": "PLAYER_SCRAMBLE"
                         }
                     ],
                     "nextState": "idle"

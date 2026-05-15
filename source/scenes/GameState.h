@@ -14,6 +14,8 @@
 #include "../NetworkMessage.h"
 #include "../bosses/Cyclops.h"
 #include "../bosses/Gaia.h"
+#include "../bosses/Cerberus.h"
+
 
 /**
  * Pure data model for the game world.
@@ -289,6 +291,29 @@ public:
      * @param slotB  Second 0-based slot index.
      */
     void swapPlayers(int slotA, int slotB);
+
+    /**
+     * Reorders the player array according to a permutation supplied by the boss
+     * scramble mechanic.  After reordering, all neighbour pointers in the
+     * circular ring are re-wired and the player ID map is rebuilt.
+     *
+     * The permutation is expressed as a "where does slot i go?" mapping:
+     *   newMapping[oldSlot] = newSlot
+     * e.g. newMapping = {2, 0, 3, 1} moves
+     *   old slot 0 → new slot 2
+     *   old slot 1 → new slot 0
+     *   old slot 2 → new slot 3
+     *   old slot 3 → new slot 1
+     *
+     * Clients must receive the permutation over the network and
+     * call this with the same array as the hosts' so all peers stay in sync.
+     *
+     * @param newMapping  A length-4 array where permutation[i] is the new
+     *                     slot index that the player currently at slot i
+     *                     should occupy.  Must be a valid permutation of
+     *                     {0, 1, 2, 3}; behaviour is undefined otherwise.
+     */
+    void applyPlayerScramble(const std::array<int, 4>& newMapping);
 
 private:
 

@@ -97,14 +97,29 @@ struct ForgeEffectMessage {
 struct EnemyEffectMessage {
     /** The category of enemy effect to apply. */
     EnemyEffectType effectType;
-    /** The resolved item magnitude associated with the attack. */
+    /** The resolved effect magnitude; for stun this is the delayed damage amount. */
     float magnitude;
     /** The number of seconds the enemy effect should last. */
     float duration;
+    /** Seconds after receipt before the enemy effect should take effect. */
+    float delay = 0.0f;
     /** The attacking player's slot, used for side-relative enemy effects. */
     int playerIndex = 0;
     /** Whether the effect should be applied to all four boss sides instead of one side. */
     bool applyToAllSides = false;
+};
+
+/**
+ * Message broadcast by the host when a Cerberus corrosive drain tick fires.
+ * Received by all devices; only the target player's device will have widgets
+ * to animate. Item selection is done locally on each device (instance IDs are
+ * not shared across the network, so they cannot be sent).
+ */
+struct CorrosiveDrainMessage {
+    int targetPlayerSlot = -1;
+    float fadeDuration   = 0.9f;
+    float fadeVariance   = 0.3f;
+    int maxAffected      = 0;
 };
 
 /** Message sent by client to indicate passing an item.
@@ -188,6 +203,13 @@ struct GameStateMessage {
 
     /** Authoritative number of prior mallet uses recorded for each player this round. */
     std::array<int32_t, kMaxPlayers> playerMalletUseCounts = {0, 0, 0, 0};
+
+    /** Cerberus head knocked state (indices 0=main, 1=right, 2=left). Zero for non-Cerberus bosses. */
+    std::array<bool,  3> cerberusHeadsKnocked      = {false, false, false};
+    std::array<float, 3> cerberusHeadsKnockedTimer  = {0.0f,  0.0f,  0.0f};
+
+    /** Player slot locked as the target for the current single-head Cerberus attack, or -1. */
+    int cerberusLockedVictim = -1;
 
     // player health
     union {

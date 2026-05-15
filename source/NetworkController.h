@@ -160,10 +160,11 @@ public:
      * @param effectType The kind of enemy effect that was applied.
      * @param magnitude  The resolved magnitude of the effect.
      * @param duration   The timed duration of the effect, or 0 for instant effects.
+     * @param delay      Seconds after host receipt before the effect takes effect.
      * @param playerIndex The attacking player's slot, used for side-relative effects.
      * @param applyToAllSides Whether the enemy effect should be applied to all four boss sides.
      */
-    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, int playerIndex, bool applyToAllSides);
+    void broadcastEnemyEffect(EnemyEffectType effectType, float magnitude, float duration, float delay, int playerIndex, bool applyToAllSides);
 
     /**
      * Sends a forge request to the host for authoritative seeding.
@@ -246,6 +247,21 @@ public:
 
     /** Returns all forge effect messages received after calling getNetworkUpdate(). */
     const std::vector<ForgeEffectMessage>& getForgeEffectUpdates() const { return forgeEffects; }
+
+    /** Returns all corrosive drain messages received after calling getNetworkUpdate(). */
+    const std::vector<CorrosiveDrainMessage>& getCorrosiveDrainUpdates() const { return corrosiveDrains; }
+
+    /**
+     * HOST ONLY. Broadcasts a Cerberus corrosive drain event to all clients.
+     * The host also applies the drain locally via applyCorrosiveDrain.
+     *
+     * @param targetPlayerSlot  Slot index of the player whose items are drained.
+     * @param fadeDuration      Base fade-out duration per item for the animation.
+     * @param fadeVariance      ±fraction applied randomly to fadeDuration per item.
+     * @param maxAffected       Number of items that were drained (clients select locally).
+     */
+    void broadcastCorrosiveDrain(int targetPlayerSlot, float fadeDuration, float fadeVariance,
+                                 int maxAffected);
 
     /** Returns the number of Gaia item spawn messages we received after calling getNetworkUpdate() */
     int getNumGaiaSpawns() const { return gaiaSpawns; }
@@ -439,6 +455,44 @@ public:
      *  the join message without prematurely inserting into _slotToPlayer. */
     void setPlayerNameOnly(const std::string& name) { _playerName = name; }
 
+    /**
+    * HOST ONLY. Broadcasts the new player order.
+    * 
+    * @param newMapping  represents the new order, where newMapping[i] is the new slot that
+    *                    player i ended up in. For example, if newMapping[0] = 1, that means that the player
+    *                    at slot 0 ended up at slot 1 after the scramble
+    */
+    void broadcastPlayerScramble(const std::array<int, 4>& newMapping);
+
+    /** CLIENT ONLY. Checks if we recieved a message that player order has been scrambled.
+        If yes, it returns true and sets _midGameScramblePending to false to ensure the scramble is
+        only applied once */
+    bool checkMidGameScramble();
+
+    /**
+     * Returns the most recent player scramble mapping broadcast by the host.
+     * Must be used in conjunction with checkMidGameScramble() to ensure
+     * the mapping is not stale or applied more than once.
+     *
+     * @return A length-4 array where index i contains the new slot that
+     *         the player originally at slot i should occupy.
+     */
+    std::array<int, 4> getPlayerScrambleMapping() { return _playerScrambleMapping; }
+
+    /**
+    * Applies a complete slot remapping in one atomic operation.
+    * Rebuilds the internal _slotToPlayer and _uuidToSlot maps using the
+    * provided old-slot -> new-slot mapping.
+    * Preserves player identity and runtime state; only the slot indices
+    * are reassigned.
+    * Safe to call on both host and clients when handling a
+    * MID_GAME_SCRAMBLE message.
+    * @param newMapping represents the new order, where newMapping[i] is the new slot that
+    *        player i ended up in. For example, if newMapping[0] = 1, that means that the player
+    *        at slot 0 ended up at slot 1 after the scramble
+    */
+    void applyPlayerScramble(const std::array<int, 4>& newMapping);
+
 
 protected:
     // This enum is used internally by this class to figure out how to decode the data received over the network
@@ -465,7 +519,9 @@ protected:
         SWAP_SLOTS = 16,
         BOSS_HEAL = 17,
         GAIA_SPAWN = 18,
-        FORGE_EFFECT = 19
+        FORGE_EFFECT = 19,
+        MID_GAME_SCRAMBLE = 20,
+        CORROSIVE_DRAIN = 21
     };
 
     /** Our network connection */
@@ -493,6 +549,7 @@ private:
     std::vector<SupportEffectMessage> supportEffects;
     std::vector<EnemyEffectMessage> enemyEffects;
     std::vector<ForgeEffectMessage> forgeEffects;
+    std::vector<CorrosiveDrainMessage> corrosiveDrains;
 
     /** Integer that keeps track of how many messages a client received to spawn in Gaia rocks */
     int gaiaSpawns;
@@ -528,6 +585,12 @@ private:
     
     /** Houses chosen by the host for AI slots, keyed by game slot index */
     std::unordered_map<int, std::string> _aIHouses;
+
+    /** Array that we use to write in any new mappings. By default it's just the normal mapping*/
+    std::array<int, 4> _playerScrambleMapping = { 0,1,2,3 };
+
+    /** Boolean flag that keeps track of if a mid game scramble was applied */
+    bool _midGameScramblePending = false;
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */
