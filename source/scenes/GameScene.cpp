@@ -4462,8 +4462,8 @@ void GameScene::updateGaiaInventoryVineAnimations(float dt) {
     _vineLeftAnim.currBlocked = local->hasLeftVine();
     _vineRightAnim.currBlocked = local->hasRightVine();
 
-    _vineRightNeigborAnim.currBlocked = local->getLeftPlayer()->hasRightVine();
-    _vineLeftNeighborAnim.currBlocked = local->getRightPlayer()->hasLeftVine();
+    _vineLeftNeighborAnim.currBlocked = local->getLeftPlayer()->hasRightVine();
+    _vineRightNeighborAnim.currBlocked = local->getRightPlayer()->hasLeftVine();
 
     // ---- HELPER (inline logic per node) ----
     auto updateAnim = [&](VineAnim& state,
@@ -4524,7 +4524,7 @@ void GameScene::updateGaiaInventoryVineAnimations(float dt) {
     // ---- UPDATE ALL 4 ANIMS (always tick) ----
     updateAnim(_vineLeftAnim, _vineOverlayLeft);
     updateAnim(_vineRightAnim, _vineOverlayRight);
-    updateAnim(_vineRightNeigborAnim, _vineOverlayLeftNeighbor);
+    updateAnim(_vineRightNeighborAnim, _vineOverlayLeftNeighbor);
     updateAnim(_vineLeftNeighborAnim, _vineOverlayRightNeighbor);
 
     // ---- PRIORITY (per side) ----
@@ -4541,7 +4541,7 @@ void GameScene::updateGaiaInventoryVineAnimations(float dt) {
     // RIGHT SIDE
     if (_vineOverlayRight && _vineOverlayRightNeighbor) {
         bool showLocal = _vineRightAnim.currBlocked || _vineRightAnim.isReversing;
-        bool showNeighbor = (!_vineRightAnim.currBlocked && (_vineRightNeigborAnim.currBlocked || _vineRightNeigborAnim.isReversing));
+        bool showNeighbor = (!_vineRightAnim.currBlocked && (_vineRightNeighborAnim.currBlocked || _vineRightNeighborAnim.isReversing));
 
         _vineOverlayRight->setVisible(showLocal);
         _vineOverlayRightNeighbor->setVisible(showNeighbor);

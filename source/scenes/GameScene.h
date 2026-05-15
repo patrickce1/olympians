@@ -475,9 +475,13 @@ protected:
         
     };
 
+    //Animation for our left vine
     VineAnim _vineLeftAnim;
+    //Animaton for our right vine
     VineAnim _vineRightAnim;
+    //Animation for our left neighbor's vine
     VineAnim _vineLeftNeighborAnim;
+    //Animation for our right neighbor's vine
     VineAnim _vineRightNeigborAnim;
     
 #pragma mark - Item Timers UI
