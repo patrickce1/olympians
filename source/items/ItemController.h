@@ -38,8 +38,9 @@ public:
      *
      * @param dt  Time elapsed
      * @param player   The player to give the item to
+     * @param blockSpawn  If true, advances the timer but suppresses item spawning
      */
-    void update(float dt, Player* player);
+    void update(float dt, Player* player, bool blockSpawn = false);
 
     /**
      * Advances timed item-spawn controller effects.

@@ -13,6 +13,8 @@
 #include "../NetworkMessage.h"
 #include "../bosses/Cyclops.h"
 #include "../bosses/Gaia.h"
+#include "../bosses/Cerberus.h"
+
 
 /**
  * Pure data model for the game world.
@@ -190,8 +192,6 @@ public:
     /**
      * Applies all queued boss heal messages to the enemy's current health.
      * Called by the host each frame after processing incoming network messages.
-     * Currently used exclusively for Gaia's rock item, which heals the boss
-     * instead of dealing damage.
      *
      * @param bossHeals  The queued boss heal updates to apply this frame.
      */
