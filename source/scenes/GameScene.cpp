@@ -3542,7 +3542,8 @@ void GameScene::applyForgeEffect(float chance, int seed) {
 
 /** 
  * Plays appropriate hurt/heal sounds based on changes in player and enemy health.
- * Should be called after processing all enemy and AI updates, so we capture all 
+ * Also responsible for triggering heal/damage frames.
+ * Should be called after processing all enemy and AI updates, so we capture all
  * health changes in one place and avoid playing multiple overlapping sounds for the same health change.
  */
 void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore) {

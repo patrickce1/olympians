@@ -1061,7 +1061,9 @@ public:
     /**
      * Plays health and damage indicator sounds based on health changes.
      * Called after game state updates to detect and play appropriate audio feedback
-     * for player damage, healing, and enemy damage. 
+     * for player damage, healing, and enemy damage.
+     *
+     * Also responsible for triggering heal/damage frames for local player.
      *
      * Only plays player hurt/heal sounds for non-AI local player. Also plays enemy hurt
      * sounds. Uses the player's house to determine which hurt sound variant to play.
