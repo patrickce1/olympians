@@ -1,10 +1,12 @@
 {
     "playerAI": {
-        "thinkIntervalMin": 1.0,
-        "thinkIntervalMax": 3.0,
-        "healThresholdMin": 0.5,
-        "healThresholdMax": 0.7,
-        "rarePassChance":   0.5,
-        "divinePassChance": 0.9
+        "thinkIntervalMin":    1.0,
+        "thinkIntervalMax":    3.0,
+        "healThresholdMin":    0.5,
+        "healThresholdMax":    0.7,
+        "rarePassChanceMin":   0.25,
+        "rarePassChanceMax":   0.5,
+        "divinePassChanceMin": 0.5,
+        "divinePassChanceMax": 0.9
     }
 }

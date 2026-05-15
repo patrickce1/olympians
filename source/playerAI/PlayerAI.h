@@ -90,18 +90,18 @@ protected:
      */
     float _healThresholdMax;
 
-    /**
-     * Maximum pass probability for an unowned rare item when rarityWisdom = 1.
-     * Loaded from JSON.
-     */
-    float _rarePassChance;
+    /** Minimum rare pass probability (worst AI). Loaded from JSON. */
+    float _rarePassChanceMin;
+    
+    /** Maximum rare pass probability (best AI). Loaded from JSON. */
+    float _rarePassChanceMax;
 
-    /**
-     * Maximum pass probability for an unowned divine item when rarityWisdom = 1.
-     * Loaded from JSON.
-     */
-    float _divinePassChance;
-
+    /** Minimum divine pass probability (worst AI). Loaded from JSON. */
+    float _divinePassChanceMin;
+    
+    /** Maximum divine pass probability (best AI). Loaded from JSON. */
+    float _divinePassChanceMax;
+    
     // ── Runtime interpolated values ────────────────────────────────────────
 
     /**

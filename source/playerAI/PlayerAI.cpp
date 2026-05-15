@@ -68,17 +68,31 @@ bool PlayerAI::init(const ItemDatabase& db, const std::string& path) {
         valid = false;
     }
 
-    if (config->has("rarePassChance") && config->get("rarePassChance")->isNumber()) {
-        _rarePassChance = config->getFloat("rarePassChance");
+    if (config->has("rarePassChanceMin") && config->get("rarePassChanceMin")->isNumber()) {
+        _rarePassChanceMin = config->getFloat("rarePassChanceMin");
     } else {
-        if (_debug) CULogError("PlayerAI::init — missing or invalid 'rarePassChance'");
+        if (_debug) CULogError("PlayerAI::init — missing or invalid 'rarePassChanceMin'");
         valid = false;
     }
 
-    if (config->has("divinePassChance") && config->get("divinePassChance")->isNumber()) {
-        _divinePassChance = config->getFloat("divinePassChance");
+    if (config->has("rarePassChanceMax") && config->get("rarePassChanceMax")->isNumber()) {
+        _rarePassChanceMax = config->getFloat("rarePassChanceMax");
     } else {
-        if (_debug) CULogError("PlayerAI::init — missing or invalid 'divinePassChance'");
+        if (_debug) CULogError("PlayerAI::init — missing or invalid 'rarePassChanceMax'");
+        valid = false;
+    }
+
+    if (config->has("divinePassChanceMin") && config->get("divinePassChanceMin")->isNumber()) {
+        _divinePassChanceMin = config->getFloat("divinePassChanceMin");
+    } else {
+        if (_debug) CULogError("PlayerAI::init — missing or invalid 'divinePassChanceMin'");
+        valid = false;
+    }
+
+    if (config->has("divinePassChanceMax") && config->get("divinePassChanceMax")->isNumber()) {
+        _divinePassChanceMax = config->getFloat("divinePassChanceMax");
+    } else {
+        if (_debug) CULogError("PlayerAI::init — missing or invalid 'divinePassChanceMax'");
         valid = false;
     }
 
@@ -148,8 +162,8 @@ void PlayerAI::applyDecisionMultiplier() {
     _supportWeight = 0.5f + _decisionMultiplier * (houseSupport - 0.5f);
 
     // rarityWisdom: scale pass chances linearly from 0 at worst to full at best
-    _effectiveRarePassChance   = _decisionMultiplier * _rarePassChance;
-    _effectiveDivinePassChance = _decisionMultiplier * _divinePassChance;
+    _effectiveRarePassChance   = _rarePassChanceMin   + _decisionMultiplier * (_rarePassChanceMax   - _rarePassChanceMin);
+    _effectiveDivinePassChance = _divinePassChanceMin + _decisionMultiplier * (_divinePassChanceMax - _divinePassChanceMin);
 
     CULog(
         "[PlayerAI '%s'] multiplier=%.2f → interval=%.2f heal=%.2f "
