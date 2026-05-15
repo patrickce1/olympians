@@ -482,7 +482,7 @@ protected:
     //Animation for our left neighbor's vine
     VineAnim _vineLeftNeighborAnim;
     //Animation for our right neighbor's vine
-    VineAnim _vineRightNeigborAnim;
+    VineAnim _vineRightNeighborAnim;
     
 #pragma mark - Item Timers UI
     /** The active effect icons as defined by the ActiveEffectIcon struct. */
