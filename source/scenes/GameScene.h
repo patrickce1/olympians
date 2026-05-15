@@ -432,6 +432,12 @@ protected:
     
     /** The scene node representing the animated special effects to be populated in the scene based on the spritesheets. */
     std::shared_ptr<cugl::scene2::SceneNode> _specialEffectsLayer;
+
+    /** Full-screen red frame shown when the local player takes damage. */
+    std::shared_ptr<cugl::scene2::NinePatch> _damageFrame;
+
+    /** Full-screen green frame shown when the local player heals. */
+    std::shared_ptr<cugl::scene2::NinePatch> _healFrame;
     
     /** The Current zone to highlight*/
     std::string _tutorialHighlightZone = "none";
@@ -681,6 +687,15 @@ protected:
 
     /** Blink cadence used for teammate flashes. */
     float _blinkInterval = 0.12f;
+
+    /** Seconds remaining before the local damage frame fully fades out. */
+    float _damageFrameTimer = 0.0f;
+
+    /** Seconds remaining before the local heal frame fully fades out. */
+    float _healFrameTimer = 0.0f;
+
+    /** Duration of the local full-screen heal/damage frame fade. */
+    float _frameFadeDuration = 0.55f;
 
 #pragma mark - Debug State
     
@@ -1313,7 +1328,9 @@ public:
     /**
      * Plays health and damage indicator sounds based on health changes.
      * Called after game state updates to detect and play appropriate audio feedback
-     * for player damage, healing, and enemy damage. 
+     * for player damage, healing, and enemy damage.
+     *
+     * Also responsible for triggering heal/damage frames for local player.
      *
      * Only plays player hurt/heal sounds for non-AI local player. Also plays enemy hurt
      * sounds. Uses the player's house to determine which hurt sound variant to play.
@@ -1323,6 +1340,28 @@ public:
      * @param playerHurtEnabled   If false, suppresses player hurt/heal sounds (e.g. during tutorial sequences)
      */
     void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore, bool playerHurtEnabled = true);
+
+    /** Creates the full-screen heal and damage frame overlays. */
+    void initHealthFrameEffects();
+
+    /** Resizes full-screen heal and damage frames to match the current scene. */
+    void layoutHealthFrameEffects();
+
+    /** Starts or refreshes the full-screen damage frame fade. */
+    void triggerDamageFrame();
+
+    /** Starts or refreshes the full-screen heal frame fade. */
+    void triggerHealFrame();
+
+    /** Clears active full-screen heal and damage frame effects. */
+    void resetHealthFrameEffects();
+
+    /**
+     * Updates the opacity of active full-screen heal and damage frame effects.
+     *
+     * @param dt Delta time in seconds.
+     */
+    void updateHealthFrameEffects(float dt);
     
     /**
      * Checks if the current enemy attack animation has finished playing (both buildup and attack phases).
