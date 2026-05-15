@@ -1,0 +1,837 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                1,
+                1
+            ],
+            "size": [
+                373,
+                316
+            ],
+            "angle": 0,
+            "position": [
+                20,
+                535
+            ],
+            "visible": true
+        },
+        "children": {
+            "teamStatsBG": {
+                "type": "Image",
+                "data": {
+                    "texture": "teamStatsBG",
+                    "anchor": [
+                        1,
+                        0.5
+                    ],
+                    "size": [
+                        373,
+                        316
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "header": {
+                "type": "Label",
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        532,
+                        76
+                    ],
+                    "position": [
+                        45,
+                        139
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "font": "mainFont",
+                    "text": "TEAM STATISTICS",
+                    "foreground": "#ffd9a9ff",
+                    "background": "#00000000",
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "valign": "top",
+                    "halign": "center",
+                    "scale": 0.25
+                },
+                "children": {},
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.12,
+                    "y_offset": -0.5
+                }
+            },
+            "stats": {
+                "type": "Node",
+                "format": {
+                    "type": "Float",
+                    "x_alignment": "left",
+                    "y_alignment": "top",
+                    "orientation": "vertical"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        178,
+                        73
+                    ],
+                    "angle": 0,
+                    "position": [
+                        45,
+                        56
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "totalDmg": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "left",
+                            "y_alignment": "middle",
+                            "orientation": "horizontal"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                178,
+                                19
+                            ],
+                            "angle": 0,
+                            "position": [
+                                89,
+                                9.5
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "label": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        400,
+                                        76
+                                    ],
+                                    "position": [
+                                        50,
+                                        9.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "mainFont",
+                                    "text": "Total Damage",
+                                    "foreground": "#ffd9a9ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "center",
+                                    "scale": 0.25
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        8,
+                                        0
+                                    ]
+                                }
+                            },
+                            "lineMed": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "lineMed",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        19,
+                                        1
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        117.5,
+                                        9.5
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        8,
+                                        0
+                                    ]
+                                }
+                            },
+                            "value": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        172,
+                                        76
+                                    ],
+                                    "position": [
+                                        156.5,
+                                        9.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "mainFont",
+                                    "text": "20,780",
+                                    "foreground": "#ffd9a9ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "center",
+                                    "scale": 0.25
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 2,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "priority": 0,
+                            "padding": [
+                                0,
+                                8,
+                                0,
+                                0
+                            ]
+                        }
+                    },
+                    "totalHeal": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "left",
+                            "y_alignment": "middle",
+                            "orientation": "horizontal"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                178,
+                                19
+                            ],
+                            "angle": 0,
+                            "position": [
+                                89,
+                                36.5
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "label": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        332,
+                                        76
+                                    ],
+                                    "position": [
+                                        41.5,
+                                        9.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "mainFont",
+                                    "text": "Total Heals",
+                                    "foreground": "#ffd9a9ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "left",
+                                    "scale": 0.25
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        8,
+                                        0
+                                    ]
+                                }
+                            },
+                            "lineLg": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "lineLg",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        36,
+                                        1
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        109,
+                                        9.5
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        8,
+                                        0
+                                    ]
+                                }
+                            },
+                            "value": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        172,
+                                        76
+                                    ],
+                                    "position": [
+                                        156.5,
+                                        9.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "mainFont",
+                                    "text": "20,780",
+                                    "foreground": "#ffd9a9ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "center",
+                                    "scale": 0.25
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 2,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "priority": 1,
+                            "padding": [
+                                0,
+                                8,
+                                0,
+                                0
+                            ]
+                        }
+                    },
+                    "utilRating": {
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "center",
+                            "y_alignment": "middle",
+                            "orientation": "horizontal"
+                        },
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                178,
+                                19
+                            ],
+                            "angle": 0,
+                            "position": [
+                                89,
+                                63.5
+                            ],
+                            "visible": true
+                        },
+                        "children": {
+                            "label": {
+                                "type": "Label",
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        408,
+                                        76
+                                    ],
+                                    "position": [
+                                        51,
+                                        9.5
+                                    ],
+                                    "angle": 0,
+                                    "visible": true,
+                                    "font": "mainFont",
+                                    "text": "Utility Rating",
+                                    "foreground": "#ffd9a9ff",
+                                    "background": "#00000000",
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ],
+                                    "valign": "top",
+                                    "halign": "left",
+                                    "scale": 0.25
+                                },
+                                "children": {},
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        8,
+                                        0
+                                    ]
+                                }
+                            },
+                            "lineSm": {
+                                "type": "Image",
+                                "data": {
+                                    "texture": "lineSm",
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        5.5,
+                                        1
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        112.75,
+                                        9.5
+                                    ],
+                                    "visible": true
+                                },
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        8,
+                                        0
+                                    ]
+                                }
+                            },
+                            "stars": {
+                                "type": "Node",
+                                "format": {
+                                    "type": "Float",
+                                    "x_alignment": "left",
+                                    "y_alignment": "middle",
+                                    "orientation": "horizontal"
+                                },
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        54.5,
+                                        15
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        150.75,
+                                        9.5
+                                    ],
+                                    "visible": true
+                                },
+                                "children": {
+                                    "star0": {
+                                        "type": "Node",
+                                        "format": {
+                                            "type": "Anchored"
+                                        },
+                                        "data": {
+                                            "anchor": [
+                                                0.5,
+                                                0.5
+                                            ],
+                                            "size": [
+                                                15.5,
+                                                15
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                7.75,
+                                                7.5
+                                            ],
+                                            "visible": true
+                                        },
+                                        "children": {
+                                            "empty": {
+                                                "type": "Image",
+                                                "data": {
+                                                    "texture": "empty",
+                                                    "anchor": [
+                                                        0,
+                                                        1
+                                                    ],
+                                                    "size": [
+                                                        15.5,
+                                                        15
+                                                    ],
+                                                    "angle": 0,
+                                                    "position": [
+                                                        0,
+                                                        0
+                                                    ],
+                                                    "visible": true
+                                                },
+                                                "layout": {
+                                                    "x_anchor": "left",
+                                                    "y_anchor": "top",
+                                                    "absolute": false,
+                                                    "x_offset": 0,
+                                                    "y_offset": 0
+                                                }
+                                            },
+                                            "fill": {
+                                                "type": "Image",
+                                                "data": {
+                                                    "texture": "fill",
+                                                    "anchor": [
+                                                        0,
+                                                        1
+                                                    ],
+                                                    "size": [
+                                                        15.5,
+                                                        15
+                                                    ],
+                                                    "angle": 0,
+                                                    "position": [
+                                                        0,
+                                                        0
+                                                    ],
+                                                    "visible": true
+                                                },
+                                                "layout": {
+                                                    "x_anchor": "left",
+                                                    "y_anchor": "top",
+                                                    "absolute": false,
+                                                    "x_offset": 0,
+                                                    "y_offset": 0
+                                                }
+                                            }
+                                        },
+                                        "layout": {
+                                            "priority": 0,
+                                            "padding": [
+                                                0,
+                                                0,
+                                                4,
+                                                0
+                                            ]
+                                        }
+                                    },
+                                    "star1": {
+                                        "type": "Node",
+                                        "format": {
+                                            "type": "Anchored"
+                                        },
+                                        "data": {
+                                            "anchor": [
+                                                0.5,
+                                                0.5
+                                            ],
+                                            "size": [
+                                                15.5,
+                                                15
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                27.25,
+                                                7.5
+                                            ],
+                                            "visible": true
+                                        },
+                                        "children": {
+                                            "empty": {
+                                                "type": "Image",
+                                                "data": {
+                                                    "texture": "empty",
+                                                    "anchor": [
+                                                        0,
+                                                        1
+                                                    ],
+                                                    "size": [
+                                                        15.5,
+                                                        15
+                                                    ],
+                                                    "angle": 0,
+                                                    "position": [
+                                                        0,
+                                                        0
+                                                    ],
+                                                    "visible": true
+                                                },
+                                                "layout": {
+                                                    "x_anchor": "left",
+                                                    "y_anchor": "top",
+                                                    "absolute": false,
+                                                    "x_offset": 0,
+                                                    "y_offset": 0
+                                                }
+                                            },
+                                            "fill": {
+                                                "type": "Image",
+                                                "data": {
+                                                    "texture": "fill",
+                                                    "anchor": [
+                                                        0,
+                                                        1
+                                                    ],
+                                                    "size": [
+                                                        15.5,
+                                                        15
+                                                    ],
+                                                    "angle": 0,
+                                                    "position": [
+                                                        0,
+                                                        0
+                                                    ],
+                                                    "visible": true
+                                                },
+                                                "layout": {
+                                                    "x_anchor": "left",
+                                                    "y_anchor": "top",
+                                                    "absolute": false,
+                                                    "x_offset": 0,
+                                                    "y_offset": 0
+                                                }
+                                            }
+                                        },
+                                        "layout": {
+                                            "priority": 1,
+                                            "padding": [
+                                                0,
+                                                0,
+                                                4,
+                                                0
+                                            ]
+                                        }
+                                    },
+                                    "star2": {
+                                        "type": "Node",
+                                        "format": {
+                                            "type": "Anchored"
+                                        },
+                                        "data": {
+                                            "anchor": [
+                                                0.5,
+                                                0.5
+                                            ],
+                                            "size": [
+                                                15.5,
+                                                15
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                46.75,
+                                                7.5
+                                            ],
+                                            "visible": true
+                                        },
+                                        "children": {
+                                            "empty": {
+                                                "type": "Image",
+                                                "data": {
+                                                    "texture": "empty",
+                                                    "anchor": [
+                                                        0,
+                                                        1
+                                                    ],
+                                                    "size": [
+                                                        15.5,
+                                                        15
+                                                    ],
+                                                    "angle": 0,
+                                                    "position": [
+                                                        0,
+                                                        0
+                                                    ],
+                                                    "visible": true
+                                                },
+                                                "layout": {
+                                                    "x_anchor": "left",
+                                                    "y_anchor": "top",
+                                                    "absolute": false,
+                                                    "x_offset": 0,
+                                                    "y_offset": 0
+                                                }
+                                            },
+                                            "fill": {
+                                                "type": "Image",
+                                                "data": {
+                                                    "texture": "fill",
+                                                    "anchor": [
+                                                        0,
+                                                        1
+                                                    ],
+                                                    "size": [
+                                                        15.5,
+                                                        15
+                                                    ],
+                                                    "angle": 0,
+                                                    "position": [
+                                                        0,
+                                                        0
+                                                    ],
+                                                    "visible": true
+                                                },
+                                                "layout": {
+                                                    "x_anchor": "left",
+                                                    "y_anchor": "top",
+                                                    "absolute": false,
+                                                    "x_offset": 0,
+                                                    "y_offset": 0
+                                                }
+                                            }
+                                        },
+                                        "layout": {
+                                            "priority": 2,
+                                            "padding": [
+                                                0,
+                                                0,
+                                                0,
+                                                0
+                                            ]
+                                        }
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 2,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        "layout": {
+                            "priority": 2,
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ]
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.12,
+                    "y_offset": -0.59
+                }
+            }
+        },
+        "layout": {
+            "x_anchor": "right",
+            "y_anchor": "top",
+            "absolute": false,
+            "x_offset": 0,
+            "y_offset": 0
+        }
+    }
+}

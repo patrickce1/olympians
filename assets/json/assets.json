@@ -695,8 +695,28 @@
         },
         "exampleTooltip": {
             "file": "textures/items/tooltips/exampleTooltip.png"
+        },
+        "successLabelS": {
+            "file": "textures/statsScreen/successLabelS.png"
+        },
+        "teamStatsBG": {
+            "file": "textures/statsScreen/teamStatsBG.png"
+        },
+        "lineMed": {
+            "file": "textures/statsScreen/lineMed.png"
+        },
+        "lineLg": {
+            "file": "textures/statsScreen/lineLg.png"
+        },
+        "lineSm": {
+            "file": "textures/statsScreen/lineSm.png"
+        },
+        "empty": {
+            "file": "textures/statsScreen/empty.png"
+        },
+        "fill": {
+            "file": "textures/statsScreen/fill.png"
         }
-        
     },
     "fonts": {
         "felt": {
@@ -901,6 +921,7 @@
         "buttonSmall": "widgets/elements/buttonSmall.json",
         "textfield": "widgets/elements/textfield.json",
         "keypad": "widgets/elements/keypad.json",
+        "teamStats": "widgets/stats/teamStats.json",
         "settingsScene": "json/scenes/settingsScene.json"
     },
     "scene2s": {
