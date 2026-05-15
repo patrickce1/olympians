@@ -1029,7 +1029,6 @@ void GameScene::setActive(bool value) {
                 );
             }
             
-            
             // Reset enemy animation state for clean start
             _enemyAnimationCurrentDirection = 0;
             

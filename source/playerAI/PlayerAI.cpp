@@ -2,9 +2,6 @@
 
 static constexpr float HOUSE_WEIGHT_MIN = 0.3f;
 static constexpr float HOUSE_WEIGHT_MAX = 0.7f;
-// ---------------------------------------------------------------------------
-// Init
-// ---------------------------------------------------------------------------
 
 /**
  * Initializes the AI controller from the "playerAI" block in playerAI.json.
@@ -297,9 +294,9 @@ bool PlayerAI::hasSupportItem() const {
 bool PlayerAI::canSupport() const {
     if (!hasSupportItem()) return false;
 
-    auto needsHeal = [&](Player* p) {
-        return p && p->isAlive() &&
-               p->getCurrentHealth() < 100;
+    auto needsHeal = [&](Player* player) {
+        return player && player->isAlive() &&
+               player->getCurrentHealth() < 100;
     };
     return needsHeal(getLeftPlayer()) || needsHeal(getRightPlayer());
 }
@@ -335,9 +332,9 @@ PlayerAI::State PlayerAI::evaluate(const Enemy& enemy) {
     // Uses _healThreshold so better AI heals earlier, worse AI only heals
     // when teammates are nearly dead.
     if (hasSupportItem()) {
-        auto needsHeal = [&](Player* p) {
-            return p && p->isAlive() &&
-                   p->getCurrentHealth() / p->getMaxHealth() < _healThreshold;
+        auto needsHeal = [&](Player* player) {
+            return player && player->isAlive() &&
+                   player->getCurrentHealth() / player->getMaxHealth() < _healThreshold;
         };
         if (needsHeal(getLeftPlayer()) || needsHeal(getRightPlayer())) {
             if (_debug) CULog("[PlayerAI '%s'] evaluate — support priority (teammate below %.0f%%)",

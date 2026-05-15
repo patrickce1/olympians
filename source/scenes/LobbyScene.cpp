@@ -515,6 +515,7 @@ void LobbyScene::update(float timestep, InputController& input) {
         }
     }
     
+    // change boss icon to the currently chosen boss
     updateLobbyBoss(_network->getEnemy());
     
     // Only the host can start; only enable the button when all players have locked in a house.

@@ -56,7 +56,7 @@ public:
 
 protected:
     /** Debug boolean. Set to false to suppress debug output. */
-    bool _debug = true;
+    bool _debug = false;
 
     /** The current FSM state of this AI controller. */
     State _state = State::IDLE;
