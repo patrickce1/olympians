@@ -217,6 +217,11 @@ public:
                     }
                 }
 
+                // Explicit per-state overrides (take precedence over animation registry).
+                int   jsonDamageFrame    = stateJson->getInt("damageFrame", -1);
+                int   jsonOutroFrameCount = stateJson->getInt("outroFrameCount", -1);
+                float jsonFrameDuration   = stateJson->getFloat("frameDuration", 0.0f);
+
                 // Populate animation metadata from registry if available
                 if (!stateDef.animationKey.empty() && _animationRegistry.count(stateDef.animationKey) > 0) {
                     const auto& animMeta = _animationRegistry.at(stateDef.animationKey);
@@ -243,12 +248,19 @@ public:
                     bool pureLoop = (headMeta.loopEndFrame < 0 ||
                                      headMeta.loopEndFrame >= headMeta.frameCount - 1);
                     if (!pureLoop && headMeta.loopStartFrame >= 0) {
-                        stateDef.outroFrameCount = headMeta.frameCount - headMeta.loopEndFrame - 1;
-                        stateDef.frameDuration   = headMeta.frameDuration;
-                        stateDef.frameCount      = 0; // keep time-based completion
-                        stateDef.damageFrame     = headMeta.damageFrame;
+                        stateDef.outroFrameCount  = headMeta.frameCount - headMeta.loopEndFrame - 1;
+                        stateDef.frameDuration    = headMeta.frameDuration;
+                        stateDef.frameCount       = 0; // keep time-based completion
+                        stateDef.damageFrame      = headMeta.damageFrame;
+                        stateDef.loopStartFrame   = headMeta.loopStartFrame;
+                        stateDef.loopEndFrame     = headMeta.loopEndFrame;
                     }
                 }
+
+                // JSON fields override whatever the animation registry set.
+                if (jsonDamageFrame >= 0)     stateDef.damageFrame    = jsonDamageFrame;
+                if (jsonOutroFrameCount >= 0) stateDef.outroFrameCount = jsonOutroFrameCount;
+                if (jsonFrameDuration > 0.0f) stateDef.frameDuration   = jsonFrameDuration;
 
                 auto aiObj = entry->get("ai");
                 if (aiObj && aiObj->isObject()) {
@@ -278,11 +290,6 @@ public:
                         eventDef.fadeVariance = eventJson->getFloat("fadeVariance", 0.0f);
                         eventDef.maxAffected  = eventJson->getInt("maxAffectedItems", 0);
 
-                        //player scramble has no amount or duration, it just happens
-                        if (eventDef.type != EventType::PLAYER_SCRAMBLE) {
-                            eventDef.amount = eventJson->getFloat("amount", 0.0f);
-                            eventDef.duration = eventJson->getFloat("duration", 0.0f);
-                        }
                         
                         out.push_back(eventDef);
                     }

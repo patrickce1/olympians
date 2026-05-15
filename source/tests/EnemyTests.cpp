@@ -272,12 +272,9 @@ static void testControllerDoesNotAttackWhenAllPlayersDead(const std::string& ene
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Verifies that startCorrosive() enables the corrosive attack on the specified player.
- * Checks that the flag is off initially, then on after activation, and that the target
- * slot is stored correctly.
- *
- * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
- * @param housesJsonPath   Unused; present for signature consistency with other tests.
+ * Verifies that markCorrosive() sets the pending drain flag and target slot.
+ * The flag must be initially clear, then set after markCorrosive(), and consumed
+ * (reset to false) after the first shouldDrainItem() read.
  */
 static void testCerberusCorrosiveActivation(const std::string& enemiesJsonPath,
     const std::string& housesJsonPath) {
@@ -286,25 +283,19 @@ static void testCerberusCorrosiveActivation(const std::string& enemiesJsonPath,
     expect(ok, "Enemy::init succeeds for 'cerberus'");
     if (!ok) return;
 
-    // Initially, corrosive should not be active
-    expect(!cerberus->isCorrosiveActive(), "cerberus corrosive: initially not active");
+    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain flag initially clear");
     expect(cerberus->getCorrosiveTarget() == -1, "cerberus corrosive: initially no target");
 
-    // Start corrosive on player 0
-    cerberus->startCorrosive(0, Cerberus::CORROSIVE_DURATION);
+    cerberus->markCorrosive(0);
 
-    expect(cerberus->isCorrosiveActive(), "cerberus corrosive: active after startCorrosive");
     expect(cerberus->getCorrosiveTarget() == 0, "cerberus corrosive: target set to player 0");
+    expect(cerberus->shouldDrainItem(), "cerberus corrosive: drain flag set after markCorrosive");
+    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain flag consumed after first read");
 }
 
 /**
- * Verifies the drain flag timing for an active corrosive attack.
- * The first drain must fire immediately on startCorrosive() so GameScene can begin
- * item-removal animations on the same frame. Subsequent drains fire once per
- * CORROSIVE_DRAIN_INTERVAL and the flag is consumed (reset to false) after each read.
- *
- * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
- * @param housesJsonPath   Unused; present for signature consistency with other tests.
+ * Verifies that markCorrosive() is a one-shot event — the drain flag fires exactly
+ * once and does not re-arm on subsequent update() calls.
  */
 static void testCerberusCorrosiveDrainInterval(const std::string& enemiesJsonPath,
     const std::string& housesJsonPath) {
@@ -313,26 +304,18 @@ static void testCerberusCorrosiveDrainInterval(const std::string& enemiesJsonPat
     expect(ok, "Enemy::init succeeds for 'cerberus'");
     if (!ok) return;
 
-    cerberus->startCorrosive(0, Cerberus::CORROSIVE_DURATION);
+    cerberus->markCorrosive(0);
 
-    // First drain fires immediately on startCorrosive so GameScene can kick off
-    // all item animations on the same frame the attack lands.
-    expect(cerberus->shouldDrainItem(), "cerberus corrosive: first drain fires immediately on start");
-    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain flag consumed after first check");
+    expect(cerberus->shouldDrainItem(), "cerberus corrosive: drain fires on markCorrosive");
+    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain flag consumed after read");
 
-    // Subsequent drains fire once per interval.
-    cerberus->update(Cerberus::CORROSIVE_DRAIN_INTERVAL);
-    expect(cerberus->shouldDrainItem(), "cerberus corrosive: drain fires again after one interval");
-    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain flag consumed after second check");
+    // Updating should NOT re-arm the drain (one-shot design).
+    cerberus->update(5.0f);
+    expect(!cerberus->shouldDrainItem(), "cerberus corrosive: drain does not re-arm on update");
 }
 
 /**
- * Verifies that the corrosive attack deactivates automatically once its duration elapses.
- * Starts corrosive with a short duration, advances past it, and confirms
- * isCorrosiveActive() returns false and the target slot is cleared.
- *
- * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
- * @param housesJsonPath   Unused; present for signature consistency with other tests.
+ * Verifies markCorrosive() stores custom fade parameters correctly.
  */
 static void testCerberusCorrosiveExpiration(const std::string& enemiesJsonPath,
     const std::string& housesJsonPath) {
@@ -341,26 +324,20 @@ static void testCerberusCorrosiveExpiration(const std::string& enemiesJsonPath,
     expect(ok, "Enemy::init succeeds for 'cerberus'");
     if (!ok) return;
 
-    // Start corrosive with short duration
-    float shortDuration = 2.0f;
-    cerberus->startCorrosive(0, shortDuration);
+    cerberus->markCorrosive(2, 1.5f, 0.4f, 3);
 
-    expect(cerberus->isCorrosiveActive(), "cerberus corrosive expiration: active after start");
-
-    // Update for duration + a bit extra
-    cerberus->update(shortDuration + 0.5f);
-
-    expect(!cerberus->isCorrosiveActive(), "cerberus corrosive expiration: expired after duration");
-    expect(cerberus->getCorrosiveTarget() == -1, "cerberus corrosive expiration: target cleared");
+    expect(cerberus->getCorrosiveTarget() == 2, "cerberus corrosive params: correct target");
+    expect(std::abs(cerberus->getCorrosiveFadeDuration() - 1.5f) < 0.001f,
+           "cerberus corrosive params: fade duration stored");
+    expect(std::abs(cerberus->getCorrosiveFadeVariance() - 0.4f) < 0.001f,
+           "cerberus corrosive params: fade variance stored");
+    expect(cerberus->getCorrosiveMaxAffected() == 3,
+           "cerberus corrosive params: max affected stored");
 }
 
 /**
- * Verifies that endCorrosive() cancels an active corrosive attack immediately,
- * without waiting for the natural duration to elapse.
- * Checks that isCorrosiveActive() is false and the target slot is cleared after the call.
- *
- * @param enemiesJsonPath  Path to enemies.json used to initialise Cerberus.
- * @param housesJsonPath   Unused; present for signature consistency with other tests.
+ * Verifies that calling markCorrosive() twice in a row keeps the flag set and
+ * updates the target to the most recent value.
  */
 static void testCerberusCorrosiveEarlyEnd(const std::string& enemiesJsonPath,
     const std::string& housesJsonPath) {
@@ -369,15 +346,12 @@ static void testCerberusCorrosiveEarlyEnd(const std::string& enemiesJsonPath,
     expect(ok, "Enemy::init succeeds for 'cerberus'");
     if (!ok) return;
 
-    // Start corrosive
-    cerberus->startCorrosive(0, Cerberus::CORROSIVE_DURATION);
-    expect(cerberus->isCorrosiveActive(), "cerberus corrosive early end: active after start");
+    cerberus->markCorrosive(1);
+    cerberus->markCorrosive(3);
 
-    // End corrosive early
-    cerberus->endCorrosive();
-
-    expect(!cerberus->isCorrosiveActive(), "cerberus corrosive early end: not active after endCorrosive");
-    expect(cerberus->getCorrosiveTarget() == -1, "cerberus corrosive early end: target cleared");
+    expect(cerberus->getCorrosiveTarget() == 3, "cerberus corrosive re-mark: target updated");
+    expect(cerberus->shouldDrainItem(), "cerberus corrosive re-mark: drain flag still set");
+    expect(!cerberus->shouldDrainItem(), "cerberus corrosive re-mark: flag consumed after read");
 }
 
 static void testCyclopsMultiplierScalesDamage(const std::string& enemiesJsonPath,

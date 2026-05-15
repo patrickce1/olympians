@@ -11,20 +11,14 @@
  *     from its corresponding side. When a head's accumulated damage exceeds the knock
  *     threshold it is knocked, plays a downed animation, and blocks incoming attacks
  *     from that side. It recovers with a full threshold reset after knockedDuration seconds.
- *   - Corrosive spit: the Venom Spit attack (attack_2) applies a corrosive debuff to the
- *     targeted player, draining one item per interval for CORROSIVE_DURATION seconds.
+ *   - Corrosive spit: the Venom Spit attack (attack_2) corrodes items in the targeted
+ *     player's inventory in one shot; each corroded item fades out and is removed.
  *   - Frantic mode: once health falls below configurable thresholds, IDLE cooldowns
  *     shorten and idle animations speed up so Cerberus attacks more frequently.
  *     Both thresholds stack independently.
  */
 class Cerberus : public Enemy {
 private:
-    /** Accumulates elapsed time between corrosive inventory drain ticks. */
-    float _corrosiveDrainAccum = 0.0f;
-
-    /** Active drain interval; set by startCorrosive, falls back to CORROSIVE_DRAIN_INTERVAL. */
-    float _corrosiveDrainInterval = CORROSIVE_DRAIN_INTERVAL;
-
     /** Base fade duration per item for the corrosive animation. */
     float _corrosiveFadeDuration = 0.9f;
 
@@ -70,13 +64,7 @@ private:
     /** Set by knockHead(); consumed once by GameScene to play the knock sound. */
     bool _headKnockSoundPending = false;
 
-    /** True when the corrosive debuff is currently draining the targeted player's inventory. */
-    bool _corrosiveActive = false;
-
-    /** Seconds remaining on the active corrosive debuff. */
-    float _corrosiveTimer = 0.0f;
-
-    /** Player slot currently afflicted by the corrosive debuff, or -1 if none. */
+    /** Player slot targeted by the corrosive attack, or -1 if none pending. */
     int _corrosiveTarget = -1;
 
     /**
@@ -87,7 +75,7 @@ private:
      */
     int _lockedVictim = -1;
 
-    /** Set each drain tick; consumed once by GameScene to remove one item from the target. */
+    /** Set when the corrosive attack fires; consumed once by GameScene to apply the one-shot drain. */
     bool _shouldDrain = false;
 
     /**
@@ -111,11 +99,6 @@ private:
     void unKnockHead(int headArrayIndex);
 
 public:
-    /** Seconds between successive corrosive inventory drain ticks. */
-    static constexpr float CORROSIVE_DRAIN_INTERVAL = 1.0f;
-
-    /** Duration in seconds that the corrosive debuff lasts. */
-    static constexpr float CORROSIVE_DURATION = 20.0f;
 
     /** Default constructor. */
     Cerberus() {}
@@ -158,27 +141,17 @@ public:
     void takeDamage(float damage, int playerIndex) override;
 
     /**
-     * Applies the corrosive debuff to a player for the specified duration.
-     * GameScene should poll shouldDrainItem() each frame to remove items.
-     * The first drain tick fires immediately on the same frame this is called.
+     * Marks the corrosive attack as pending for the given player (one-shot).
+     * GameScene polls shouldDrainItem() once per frame; the flag is consumed on the
+     * first call after markCorrosive() so the drain fires exactly once per attack.
      *
-     * @param playerIndex  Slot index of the player to afflict.
-     * @param duration     How long the debuff lasts in seconds.
-     * @param interval     Seconds between drain ticks (0 = use CORROSIVE_DRAIN_INTERVAL default).
-     * @param fadeDuration Base fade-out duration per item during the corrosive animation (0 = use default 0.9s).
-     * @param fadeVariance ±fraction applied randomly to fadeDuration per item, e.g. 0.3 = ±30% (0 = use default 0.3).
-     * @param maxAffected  Maximum number of items drained per corrosive hit (0 = no limit).
+     * @param playerIndex  Slot index of the player to corrode.
+     * @param fadeDuration Base fade-out duration per item (0 = use default 0.9s).
+     * @param fadeVariance ±fraction applied randomly to fadeDuration per item (0 = use default 0.3).
+     * @param maxAffected  Maximum number of items corroded per hit (0 = no limit).
      */
-    void startCorrosive(int playerIndex, float duration, float interval = 0.0f,
-                        float fadeDuration = 0.0f, float fadeVariance = 0.0f,
-                        int maxAffected = 0);
-
-    /**
-     * Ends the corrosive effect early (e.g., when the player runs out of items).
-     * Resets all corrosive state: clears the active flag, timer, target, drain accumulator,
-     * and pending drain flag.
-     */
-    void endCorrosive();
+    void markCorrosive(int playerIndex, float fadeDuration = 0.0f,
+                       float fadeVariance = 0.0f, int maxAffected = 0);
 
     /**
      * Locks in the victim player slot for the current single-head attack.
@@ -203,54 +176,22 @@ public:
     void clearLockedVictim() { _lockedVictim = -1; }
 
     /**
-     * Returns true (and clears the flag) if a corrosive drain tick fired this frame.
-     * GameScene should call this once per frame and drain one item when it returns true.
-     *
-     * @return True if a drain tick is pending this frame; false otherwise.
+     * Returns true (and clears the flag) if a corrosive drain is pending this frame.
+     * GameScene calls this once per frame; the flag is consumed after one true return.
      */
     bool shouldDrainItem();
 
-    /**
-     * Returns true if the corrosive debuff is currently active on any player.
-     *
-     * @return True while the debuff timer is running, false otherwise.
-     */
-    bool isCorrosiveActive() const { return _corrosiveActive; }
+    /** Returns the player slot targeted by the pending corrosive drain, or -1 if none. */
+    int getCorrosiveTarget() const { return _corrosiveTarget; }
 
-    /**
-     * Returns the active drain interval in seconds.
-     *
-     * @return Seconds between successive corrosive drain ticks.
-     */
-    float getCorrosiveDrainInterval() const { return _corrosiveDrainInterval; }
-
-    /**
-     * Returns the base fade duration for corrosive item animations.
-     *
-     * @return Base seconds each item takes to fade out during the corrosive effect.
-     */
+    /** Returns the base fade duration per item for the corrosive animation. */
     float getCorrosiveFadeDuration() const { return _corrosiveFadeDuration; }
 
-    /**
-     * Returns the ±variance fraction applied randomly per item fade (e.g. 0.3 = ±30%).
-     *
-     * @return Variance fraction in [0, 1].
-     */
+    /** Returns the ±variance fraction applied randomly per item fade. */
     float getCorrosiveFadeVariance() const { return _corrosiveFadeVariance; }
 
-    /**
-     * Returns the max items drained per corrosive hit.
-     *
-     * @return Maximum number of items affected; 0 means no limit.
-     */
+    /** Returns the max items corroded per hit (0 = no limit). */
     int getCorrosiveMaxAffected() const { return _corrosiveMaxAffected; }
-
-    /**
-     * Returns the player slot currently afflicted by the corrosive debuff.
-     *
-     * @return Absolute player slot (0–3), or -1 if no player is currently corroded.
-     */
-    int getCorrosiveTarget() const { return _corrosiveTarget; }
 
     /**
      * Returns true (and clears the flag) if a head was knocked since the last call.
@@ -324,6 +265,25 @@ public:
         if (!_heads[1].knocked) return (targetIndex + 1) % 4;  // right head
         if (!_heads[2].knocked) return (targetIndex + 3) % 4;  // left head
         return -1;
+    }
+
+    /** Returns whether head i (0=main, 1=right, 2=left) is currently knocked. */
+    bool isHeadKnockedByIndex(int i) const { return _heads[i].knocked; }
+
+    /** Returns the remaining recovery timer for head i (0=main, 1=right, 2=left). */
+    float getHeadKnockedTimer(int i) const { return _heads[i].knockedTimer; }
+
+    /**
+     * Directly sets the knocked state for head i from an authoritative network snapshot.
+     * Does not trigger side-multiplier changes (those are synced separately).
+     *
+     * @param i       Head array index (0=main, 1=right, 2=left).
+     * @param knocked Whether the head is downed.
+     * @param timer   Seconds remaining until recovery.
+     */
+    void syncHeadKnockedState(int i, bool knocked, float timer) {
+        _heads[i].knocked = knocked;
+        _heads[i].knockedTimer = timer;
     }
 };
 #endif // __CERBERUS__

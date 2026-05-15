@@ -1256,6 +1256,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
+    const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
 
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
@@ -1290,8 +1291,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
         }
         broadcastEnemyEffects(*_network, enemyEffects);
     }
-    const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
-    const float finalDamage    = resolvedMagnitude * sideMultiplier;
+    const float finalDamage = resolvedMagnitude * sideMultiplier;
 
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique(finalDamage <= 0.0f ? "enemy_block" : "enemy_hurt");
@@ -1767,15 +1767,16 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
 void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
+
+    bool isAuthoritative = !_network || _network->checkConnection() != NetworkController::CONNECTED || _network->isHost();
+    if (!isAuthoritative) return;
+
     // Track player and enemy health before any updates to detect damage
     auto player = _gameState.getLocalPlayer();
-    // Only track health if local player is not AI (AI players shouldn't hear their own hurt sounds)
     float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
     float enemyHealthBefore = enemy->getCurrentHealth();
 
-    if (_network->isHost()) {
-        _enemyController.update(dt, enemy, _gameState.getPlayers());
-    }
+    _enemyController.update(dt, enemy, _gameState.getPlayers());
 
     // Play shield block sound if local player's shield absorbed damage this update
     if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
@@ -1788,11 +1789,10 @@ void GameScene::updateEnemyAndAI(float dt) {
             ai->update(dt, *enemy, _itemController);
         }
     }
-    
-    // Play sounds for LOCAL player and enemy health changes after all updates
+
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
 
-    if (_network->isHost() && _enemyController.didFireScrambleEvent()) {
+    if (_enemyController.didFireScrambleEvent()) {
         handleGaiaScramble();
     }
 }
@@ -2579,7 +2579,10 @@ void GameScene::handleCerberusStateTransition(EnemyLoader::State currentState, c
         int headPlayerSlot = (cerberus->getTargetIndex() + headIndex - direction + 4) % 4;
         if (cerberus->isHeadKnocked(headPlayerSlot)) continue;
 
-        _cerberusHeadAnimTime[headIndex] = 0.0f;
+        // On clients, seed the timer from the host's stateTime so the animation starts
+        // at the correct offset rather than frame 0 (compensates for network latency).
+        // On the host, stateTime is always 0 at transition so this is a no-op there.
+        _cerberusHeadAnimTime[headIndex] = (!_network || _network->isHost()) ? 0.0f : cerberus->getStateTime();
         _cerberusSoundFired[headIndex] = false;
         _cerberusHeadActiveAnimKey[headIndex] = newHeadAnimKey;
         _cerberusHeadAnimBuildUpTime[headIndex] = buildUpTime;
@@ -2721,9 +2724,15 @@ void GameScene::updateSingleCerberusHead(int headIndex, bool isVisible, int dire
     }
 
     // Knocked/loved heads use pure-loop mode (no build-up phase).
-    float committedBuildUpTime = (_cerberusHeadActiveAnimKey[headIndex] != _cerberusIdleHeadAnimKey)
-        ? _cerberusHeadAnimBuildUpTime[headIndex] : 0.0f;
-    int frameIndex = computeCerberusAnimFrame(headAnimEntry, _cerberusHeadAnimTime[headIndex], committedBuildUpTime, headIndex);
+    bool isCommittedAttack = (_cerberusHeadActiveAnimKey[headIndex] != _cerberusIdleHeadAnimKey);
+    float committedBuildUpTime = isCommittedAttack ? _cerberusHeadAnimBuildUpTime[headIndex] : 0.0f;
+    // Always use the local per-head timer for animation. The timer is seeded from the
+    // authoritative stateTime at each state transition and advances by the same dt as
+    // _stateTime, so they cross buildUpTime in the same frame — keeping the animation
+    // and event firing in sync on every device without the 1-frame mismatch that
+    // arises from using the pre-tick stateTime from the GSM.
+    float animTime = _cerberusHeadAnimTime[headIndex];
+    int frameIndex = computeCerberusAnimFrame(headAnimEntry, animTime, committedBuildUpTime, headIndex);
 
     auto& activeHeadSprites = _cerberusHeadSpritesByAnim[displayAnimKey];
     if (activeHeadSprites[headIndex]) {
@@ -2776,10 +2785,24 @@ void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
         if (staticFallbackSprite) staticFallbackSprite->setVisible(false);
     }
 
-    // Compute facing direction; reorder head z-ordering when it changes.
-    int direction = std::clamp(
-        EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex), 0, 3);
-    _enemyAnimationCurrentDirection = direction;
+    // Only update facing direction when no head is mid-attack. A retarget that fires
+    // while an attack animation is still playing would snap the head positions and
+    // corrupt headPlayerSlot calculations (making healthy heads appear knocked).
+    bool anyHeadAttacking = false;
+    for (int i = 0; i < 4; i++) {
+        if (_cerberusHeadActiveAnimKey[i] != _cerberusIdleHeadAnimKey) {
+            anyHeadAttacking = true;
+            break;
+        }
+    }
+    int direction;
+    if (!anyHeadAttacking) {
+        direction = std::clamp(
+            EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex), 0, 3);
+        _enemyAnimationCurrentDirection = direction;
+    } else {
+        direction = _enemyAnimationCurrentDirection;
+    }
     if (direction != _cerberusLastDirection) {
         reorderCerberusHeads(direction);
         _cerberusLastDirection = direction;
@@ -3581,6 +3604,25 @@ void GameScene::handleNetworkUpdates(float dt) {
         _gameState.networkUpdate(stateUpdate);
         syncFrenzyEffect(stateUpdate.frenzyItemInterval, stateUpdate.frenzyDuration);
         processForgeEffects(_network->getForgeEffectUpdates());
+        for (const auto& drain : _network->getCorrosiveDrainUpdates()) {
+            int localSlot = _network->getLocalPlayerNumber();
+            if (drain.targetPlayerSlot == localSlot && localSlot >= 0) {
+                Player* localPlayer = _gameState.getPlayerBySlot(localSlot);
+                if (localPlayer) {
+                    const auto& inv = localPlayer->getInventory();
+                    int count = (drain.maxAffected > 0)
+                        ? std::min(drain.maxAffected, (int)inv.size())
+                        : (int)inv.size();
+                    std::vector<uint64_t> localIds;
+                    localIds.reserve(count);
+                    for (int ii = 0; ii < count; ii++) {
+                        localIds.push_back(static_cast<uint64_t>(inv[ii].getId()));
+                    }
+                    applyCorrosiveDrain(localSlot, drain.fadeDuration,
+                                       drain.fadeVariance, localIds);
+                }
+            }
+        }
         applyPendingResurrectionSync();
         applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
@@ -3940,33 +3982,32 @@ void GameScene::handleGaiaScramble() {
 
 
 /**
- * Checks if Cerberus's corrosive debuff should drain an item from the affected player.
- * If the drain timer has elapsed, removes a random item from the target player's inventory.
- * Host handles this authoritative logic; clients receive updates via game state broadcasts.
+ * One-shot corrosive drain handler. Only runs on the host (resolveCorrosiveEvent sets
+ * the pending flag exclusively on the host). Applies the drain to the target player
+ * and broadcasts a CorrosiveDrainMessage to human client players so they can run
+ * their own fade animations.
  */
-void GameScene::handleCorrosiveDrain(){
-    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+void GameScene::handleCorrosiveDrain() {
+    if (!_network || !_network->isHost()) return;
 
-    if (!cerberus || !cerberus->isCorrosiveActive() || !cerberus->shouldDrainItem()) {
-        return;
-    }
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+    if (!cerberus || !cerberus->shouldDrainItem()) return;
 
     int targetIndex = cerberus->getCorrosiveTarget();
+    if (targetIndex < 0) return;
     Player* victim = _gameState.getPlayerBySlot(targetIndex);
-    if (!victim || !victim->isAlive() || victim->getInventory().empty()) {
-        if (_debugMode) CULog("No victim, victim dead, or empty inventory - ending corrosive (target=%d)", targetIndex);
-        cerberus->endCorrosive();
-        return;
-    }
+    if (!victim || !victim->isAlive()) return;
 
-    // Pop and start fading items simultaneously. Each item gets a randomized
-    // fade duration. If maxAffected > 0, pick that many at random.
-    auto& inventory = victim->getInventory();
+    float fadeDuration = cerberus->getCorrosiveFadeDuration();
+    float fadeVariance = cerberus->getCorrosiveFadeVariance();
+    int maxAffected    = cerberus->getCorrosiveMaxAffected();
+
+    const auto& inventory = victim->getInventory();
+    if (inventory.empty()) return;
+
     std::vector<int> indices;
     indices.reserve(inventory.size());
     for (int i = 0; i < (int)inventory.size(); i++) indices.push_back(i);
-
-    int maxAffected = cerberus->getCorrosiveMaxAffected();
     if (maxAffected > 0 && (int)indices.size() > maxAffected) {
         for (int i = 0; i < maxAffected; i++) {
             int j = i + rand() % ((int)indices.size() - i);
@@ -3975,12 +4016,47 @@ void GameScene::handleCorrosiveDrain(){
         indices.resize(maxAffected);
     }
 
-    for (int idx : indices) {
-        const auto& item = inventory[idx];
-        ItemInstance::ItemId itemId = item.getId();
+    std::vector<uint64_t> selectedIds;
+    selectedIds.reserve(indices.size());
+    for (int idx : indices) selectedIds.push_back(inventory[idx].getId());
 
-        if (_corrodingItemIds.count(itemId)) continue;  // already animating
-        if (_draggedItemId == itemId) continue;          // skip dragged item
+    bool isAITarget = (dynamic_cast<PlayerAI*>(victim) != nullptr);
+    int localSlot   = _network->getLocalPlayerNumber();
+
+    if (isAITarget) {
+        // AI player: remove items from model immediately (no animation device for AI).
+        for (uint64_t id : selectedIds)
+            victim->removeItemById(static_cast<ItemInstance::ItemId>(id));
+    } else if (targetIndex == localSlot) {
+        // Host is also the victim: run fade animations locally.
+        applyCorrosiveDrain(targetIndex, fadeDuration, fadeVariance, selectedIds);
+    } else {
+        // Remote human player: broadcast so their device runs the fade animation.
+        _network->broadcastCorrosiveDrain(targetIndex, fadeDuration, fadeVariance, maxAffected);
+    }
+
+    if (_debugMode) CULog("Corrosive drain (%s): %d items for player %d",
+                          isAITarget ? "AI" : (targetIndex == localSlot ? "local-host" : "remote"),
+                          (int)selectedIds.size(), targetIndex);
+}
+
+/**
+ * Creates corrosive fade animations for the drained items on the local device.
+ * Only the target player's device has item widgets, so animations only run there.
+ * Items are removed from the local player's inventory when each animation completes.
+ *
+ * @param targetPlayerSlot  Slot of the player whose items were drained.
+ * @param fadeDuration      Base fade-out duration per item.
+ * @param fadeVariance      ±fraction applied randomly to fadeDuration per item.
+ * @param itemIds           Authoritative list of item instance IDs to animate.
+ */
+void GameScene::applyCorrosiveDrain(int targetPlayerSlot, float fadeDuration, float fadeVariance,
+                                    const std::vector<uint64_t>& itemIds) {
+    for (uint64_t rawId : itemIds) {
+        ItemInstance::ItemId itemId = static_cast<ItemInstance::ItemId>(rawId);
+
+        if (_corrodingItemIds.count(itemId)) continue;
+        if (_draggedItemId == itemId) continue;
 
         auto widgetIt = _itemWidgets.find(itemId);
         if (widgetIt == _itemWidgets.end() || !widgetIt->second) continue;
@@ -3998,31 +4074,24 @@ void GameScene::handleCorrosiveDrain(){
             bodyIt->second->setPosition(center);
         }
 
-        float startScale   = widget->getScaleX();
-        float base         = cerberus->getCorrosiveFadeDuration();
-        float variance     = cerberus->getCorrosiveFadeVariance();
-        float jitter       = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;  // [-1, 1]
-        float fadeDuration = base * (1.0f + jitter * variance);
+        float startScale = widget->getScaleX();
+        float jitter     = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;
+        float duration   = fadeDuration * (1.0f + jitter * fadeVariance);
 
         CorrodedItemAnimation anim;
         anim.node        = widget;
         anim.elapsed     = 0.0f;
         anim.popDuration = 0.1f;
         anim.popScale    = startScale * 1.15f;
-        anim.duration    = anim.popDuration + fadeDuration;
+        anim.duration    = anim.popDuration + duration;
         anim.startScale  = startScale;
         anim.endScale    = ITEM_CORRODE_END_SCALE;
         anim.itemId      = itemId;
         _corrodedItemAnimations.push_back(anim);
     }
 
-    // Record visual target so pass zones and spawning stay blocked until animations finish.
-    _corrosiveVisualTarget = targetIndex;
-
-    // End the drain cycle — restrictions lift when the last animation completes.
-    cerberus->endCorrosive();
-
-    if (_debugMode) CULog("Corrosive: started %d simultaneous item animations", (int)inventory.size());
+    _corrosiveVisualTarget = targetPlayerSlot;
+    if (_debugMode) CULog("applyCorrosiveDrain: started animations for player %d", targetPlayerSlot);
 }
 
 
@@ -5165,8 +5234,9 @@ void GameScene::updateConsumedItemAnimations(float dt) {
 }
 
 /**
- * Updates corroded item animations and removes items from inventory when animation completes.
- * Unlike consumed items, these items are still in inventory during animation and only removed at the end.
+ * Updates corroded item animations and cleans up widgets when each animation completes.
+ * This is the authoritative removal point: items stay in the inventory model (and remain
+ * usable) while fading, and are only removed here when their animation finishes.
  *
  * @param dt  Elapsed time in seconds since the last frame.
  */
@@ -5235,10 +5305,12 @@ void GameScene::updateCorrodedItemAnimations(float dt) {
             _itemBodies.erase(bodyIt);
         }
 
-        // Remove from player inventory
-        Player* localPlayer = _gameState.getLocalPlayer();
-        if (localPlayer) {
-            localPlayer->removeItemById(itemId);
+        // Safety-net removal: items are removed upfront on all devices, so this is a no-op.
+        // _corrosiveVisualTarget is the slot of the corroded player.
+        Player* targetPlayer = (_corrosiveVisualTarget >= 0)
+            ? _gameState.getPlayerBySlot(_corrosiveVisualTarget) : nullptr;
+        if (targetPlayer) {
+            targetPlayer->removeItemById(itemId);
         }
     }
 
@@ -5451,7 +5523,8 @@ void GameScene::syncInventoryWidgets() {
 
     std::vector<ItemInstance::ItemId> removedIds;
     for (const auto& [itemId, widget] : _itemWidgets) {
-        if (liveIds.find(itemId) == liveIds.end()) {
+        if (liveIds.find(itemId) == liveIds.end() &&
+            _corrodingItemIds.find(itemId) == _corrodingItemIds.end()) {
             removedIds.push_back(itemId);
         }
     }
@@ -6018,6 +6091,7 @@ void GameScene::updateItemUseAnimations(float dt) {
 
             if (enemy) {
                 if (activeAnim.damageAmount > 0.0f) {
+                    const float sideMultiplier = enemy->getSideMultiplier(playerNum);
                     // Apply pre-calculated damage before any item effects update enemy side multipliers.
                     const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
@@ -6025,8 +6099,7 @@ void GameScene::updateItemUseAnimations(float dt) {
                         localPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - enemy->getCurrentHealth()));
                     }
                     if (activeAnim.baseValue > 0.0f) {
-                        const float sideMultiplier = enemy->getSideMultiplier(playerNum);
-                        const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
+                        const float finalDamage = activeAnim.damageAmount * sideMultiplier;
                         if (sideMultiplier < 0.0f) {
                             createFloatingPopup(activeAnim.popupPosition, buildCerberusDefenseHealPopup(
                                 activeAnim.damageAmount, sideMultiplier, 22.0f, 14.0f));

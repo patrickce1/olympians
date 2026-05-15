@@ -549,7 +549,17 @@ void GameState::networkUpdate(GameStateMessage newState) {
     _enemy->syncLoveDuration(newState.bossLoveDuration);
     _enemy->syncSlow(newState.bossSlowMultiplier, newState.bossSlowDuration);
     _enemy->syncVulnerable(newState.bossVulnerableMultipliers, newState.bossVulnerableDurations);
-    
+
+    // sync Cerberus head knocked state and locked victim
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_enemy);
+    if (cerberus) {
+        for (int i = 0; i < 3; i++) {
+            cerberus->syncHeadKnockedState(i, newState.cerberusHeadsKnocked[i],
+                                              newState.cerberusHeadsKnockedTimer[i]);
+        }
+        cerberus->lockVictim(newState.cerberusLockedVictim);
+    }
+
     //update boss direction
     _enemy->setTargetIndex(newState.bossTarget);
 

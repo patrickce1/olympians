@@ -1987,6 +1987,19 @@ public:
      */
     void updateCorrodedItemAnimations(float dt);
 
+    /**
+     * Creates corrosive fade animations for a set of drained items on the local device.
+     * Only visually effective on the target player's device (only they have the item widgets).
+     * Called directly by the host and via network message on clients.
+     *
+     * @param targetPlayerSlot  Slot of the player whose items were drained.
+     * @param fadeDuration      Base fade-out duration per item.
+     * @param fadeVariance      ±fraction applied randomly to fadeDuration per item.
+     * @param itemIds           Authoritative list of item instance IDs to animate.
+     */
+    void applyCorrosiveDrain(int targetPlayerSlot, float fadeDuration, float fadeVariance,
+                             const std::vector<uint64_t>& itemIds);
+
     /** Removes and clears all consumed-item ghost animations. */
     void clearConsumedItemAnimations();
     /** Marks an item as used (pending animation resolution, should not be respawned).

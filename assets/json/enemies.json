@@ -132,6 +132,7 @@
                     "animationKey": "cyclops_slash_animation",
                     "buildUpTime": 1.0,
                     "cooldownTime": 0.0,
+                    "damageFrame": 5,
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -146,6 +147,7 @@
                     "animationKey": "cyclops_scream_animation",
                     "buildUpTime": 0.0,
                     "cooldownTime": 5.0,
+                    "damageFrame": 5,
                     "entryEvents": [
                         {
                             "type": "SIDE_MODIFIER",
@@ -197,6 +199,7 @@
                     "animationKey": "cyclops_boulder_animation",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
+                    "damageFrame": 6,
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -277,6 +280,9 @@
                     "name": "Triple Bite",
                     "buildUpTime": 2.0,
                     "cooldownTime": 2.0,
+                    "damageFrame": 8,
+                    "outroFrameCount": 10,
+                    "frameDuration": 0.12,
                     "headAnimationKey": "cerberus_head_bite_animation",
                     "headParticipants": [0, 1, 3],
                     "headParticipantsRelative": true,
@@ -305,6 +311,9 @@
                     "name": "Venom Spit",
                     "buildUpTime": 3.0,
                     "cooldownTime": 2.0,
+                    "damageFrame": 9,
+                    "outroFrameCount": 4,
+                    "frameDuration": 0.12,
                     "headAnimationKey": "cerberus_head_spit_animation",
                     "headParticipants": [0],
                     "headParticipantsRelative": true,
@@ -329,6 +338,9 @@
                     "name": "Single Bite",
                     "buildUpTime": 1.0,
                     "cooldownTime": 2.0,
+                    "damageFrame": 8,
+                    "outroFrameCount": 10,
+                    "frameDuration": 0.12,
                     "headAnimationKey": "cerberus_head_bite_animation",
                     "headParticipants": [0],
                     "headParticipantsRelative": true,

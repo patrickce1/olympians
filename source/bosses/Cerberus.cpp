@@ -75,20 +75,6 @@ void Cerberus::update(float dt) {
         }
     }
 
-    if (_corrosiveActive) {
-        _corrosiveTimer -= dt;
-        if (_corrosiveTimer <= 0.0f) {
-            _corrosiveTimer = 0.0f;
-            _corrosiveActive = false;
-            _corrosiveTarget = -1;
-        } else {
-            _corrosiveDrainAccum -= dt;
-            if (_corrosiveDrainAccum <= 0.0f) {
-                _corrosiveDrainAccum = _corrosiveDrainInterval;
-                _shouldDrain = true;
-            }
-        }
-    }
 
     Enemy::update(dt);
 
@@ -144,52 +130,21 @@ void Cerberus::takeDamage(float damage, int playerIndex) {
 }
 
 /**
- * Starts the corrosive debuff on the given player for the given duration.
- * GameScene polls shouldDrainItem() each frame to remove one item per drain tick.
- * The first drain tick fires immediately on the same frame this is called.
- *
- * @param playerIndex  Slot index of the player to afflict.
- * @param duration     How long the debuff lasts in seconds.
- * @param interval     Seconds between drain ticks (0 = use CORROSIVE_DRAIN_INTERVAL default).
- * @param fadeDuration Base fade-out duration per item during the corrosive animation (0 = use default 0.9s).
- * @param fadeVariance ±fraction applied randomly to fadeDuration per item, e.g. 0.3 = ±30% (0 = use default 0.3).
- * @param maxAffected  Maximum number of items drained per corrosive hit (0 = no limit).
+ * Marks a one-shot corrosive drain as pending for the given player.
+ * GameScene polls shouldDrainItem() once per frame; the flag is consumed on the first true return.
  */
-void Cerberus::startCorrosive(int playerIndex, float duration, float interval,
-                               float fadeDuration, float fadeVariance, int maxAffected) {
-    _corrosiveTarget        = playerIndex;
-    _corrosiveTimer         = duration;
-    _corrosiveActive        = true;
-    _corrosiveDrainInterval = (interval     > 0.0f) ? interval     : CORROSIVE_DRAIN_INTERVAL;
-    _corrosiveFadeDuration  = (fadeDuration > 0.0f) ? fadeDuration : 0.9f;
-    _corrosiveFadeVariance  = (fadeVariance > 0.0f) ? fadeVariance : 0.3f;
-    _corrosiveMaxAffected   = maxAffected;
-    _corrosiveDrainAccum    = _corrosiveDrainInterval;
-    _shouldDrain            = true;   // fire the first drain immediately
-    if (_debug) CULog("[Cerberus] startCorrosive: player=%d, duration=%.1f, fade=%.2f±%.0f%%, max=%d",
-                      playerIndex, duration,
-                      _corrosiveFadeDuration, _corrosiveFadeVariance * 100.0f, _corrosiveMaxAffected);
+void Cerberus::markCorrosive(int playerIndex, float fadeDuration, float fadeVariance, int maxAffected) {
+    _corrosiveTarget       = playerIndex;
+    _corrosiveFadeDuration = (fadeDuration > 0.0f) ? fadeDuration : 0.9f;
+    _corrosiveFadeVariance = (fadeVariance > 0.0f) ? fadeVariance : 0.3f;
+    _corrosiveMaxAffected  = maxAffected;
+    _shouldDrain           = true;
+    if (_debug) CULog("[Cerberus] markCorrosive: player=%d, fade=%.2f±%.0f%%, max=%d",
+                      playerIndex, _corrosiveFadeDuration, _corrosiveFadeVariance * 100.0f, _corrosiveMaxAffected);
 }
 
 /**
- * Ends the corrosive effect early (e.g., when the player runs out of items).
- * Resets all corrosive state: clears the active flag, timer, target, drain accumulator,
- * and pending drain flag.
- */
-void Cerberus::endCorrosive() {
-    _corrosiveActive     = false;
-    _corrosiveTimer      = 0.0f;
-    _corrosiveTarget     = -1;
-    _corrosiveDrainAccum = 0.0f;
-    _shouldDrain         = false;
-    if (_debug) CULog("[Cerberus] endCorrosive called");
-}
-
-/**
- * Returns true (and clears the flag) if a drain tick fired this frame.
- * GameScene should call this once per frame and drain one item when it returns true.
- *
- * @return True if a drain tick is pending this frame; false otherwise.
+ * Returns true (and clears the flag) if a corrosive drain is pending this frame.
  */
 bool Cerberus::shouldDrainItem() {
     if (_shouldDrain) {

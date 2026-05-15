@@ -205,8 +205,6 @@ void EnemyController::update(float dt, const std::shared_ptr<Enemy>& enemy, std:
                 enemy->requestState(nextAttack);
                 currentState = enemy->getCurrentState();
 
-                // For single-head Cerberus attacks, lock in the redirected victim now so
-                // the damage/corrosive event stays consistent if a head recovers mid-buildup.
                 bool isSingleHead = (nextAttack == EnemyLoader::State::ATTACK_2 ||
                                      nextAttack == EnemyLoader::State::ATTACK_3);
                 if (isSingleHead && enemy->getId() == "cerberus") {
@@ -298,10 +296,13 @@ int EnemyController::computeVictim(const std::shared_ptr<Enemy>& enemy,
 int EnemyController::cerberusRedirectVictim(const std::shared_ptr<Cerberus>& cerberus,
                                              int victim,
                                              EnemyLoader::State state) const {
-    // If a victim was locked at attack-entry time, use it — the head may have
-    // recovered during the build-up phase and we must stay consistent with the
-    // animation that was already committed.
-    if (cerberus->getLockedVictim() >= 0) return cerberus->getLockedVictim();
+    // If a victim was locked at attack-entry time, use it unless that head was
+    // knocked during the build-up phase — in that case skip the hit entirely.
+    int locked = cerberus->getLockedVictim();
+    if (locked >= 0) {
+        if (cerberus->isHeadKnocked(locked)) return -1;
+        return locked;
+    }
 
     if (!cerberus->isHeadKnocked(victim)) return victim;
     bool isSingleHead = (state == EnemyLoader::State::ATTACK_2 ||
@@ -314,6 +315,7 @@ int EnemyController::cerberusRedirectVictim(const std::shared_ptr<Cerberus>& cer
 
 /** Deals damage to the targeted players from a damage event. */
 void EnemyController::resolveDamageEvent(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players, const Enemy::FiredEvent& fe) {
+    CULog("[DEBUG] resolveDamageEvent called: target=%d players=%d", fe.def.target, (int)players.size());
     int victim = computeVictim(enemy, players, fe.def.target);
     if (victim < 0) {
         if (_debug) CULog("[EnemyController] Event: DAMAGE fired but players list is empty");
@@ -359,8 +361,8 @@ void EnemyController::resolveCorrosiveEvent(const std::shared_ptr<Enemy>& enemy,
     if (victim < 0) return;
     victim = cerberusRedirectVictim(cerberus, victim, fe.state);
     if (victim < 0) return;
-    cerberus->startCorrosive(victim, Cerberus::CORROSIVE_DURATION, fe.def.interval, fe.def.fadeDuration, fe.def.fadeVariance, fe.def.maxAffected);
-    if (_debug) CULog("[EnemyController] CORROSIVE applied to Player[%d]", victim);
+    cerberus->markCorrosive(victim, fe.def.fadeDuration, fe.def.fadeVariance, fe.def.maxAffected);
+    if (_debug) CULog("[EnemyController] CORROSIVE marked for Player[%d]", victim);
 }
 
 /** Applies a heal to the boss based on a heal event

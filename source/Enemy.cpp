@@ -389,9 +389,17 @@ bool Enemy::readyToFire() const {
     if (!stateDef) return false;
     if (_eventsFiredThisState) return false;
 
-    // damageFrame overrides all — works for both looping and linear states
+    // Fire when the animation visually reaches the designated damage frame.
+    // Also accept a time-based fallback so events still fire when the frame counter
+    // isn't being driven (e.g. Cerberus head knocked mid-attack).
     if (stateDef->damageFrame >= 0) {
-        return _currentAnimationFrame >= stateDef->damageFrame;
+        if (_currentAnimationFrame >= stateDef->damageFrame) return true;
+        if (stateDef->frameDuration > 0.0f && stateDef->buildUpTime > 0.0f) {
+            // Time at which the damage frame is first visible in the outro phase.
+            float outroOffset = static_cast<float>(stateDef->damageFrame - (stateDef->loopEndFrame + 1)) * stateDef->frameDuration;
+            return _stateTime >= stateDef->buildUpTime + outroOffset;
+        }
+        return false;
     }
 
     if (stateDef->frameCount <= 0) {
@@ -496,6 +504,20 @@ EnemyLoader::State Enemy::getNextStateOrIdle() const {
  */
 void Enemy::update(float dt) {
     tick(dt);
+
+    // One-line state snapshot every second to diagnose damage firing.
+    static float _dbgTimer = 0.0f;
+    _dbgTimer += dt;
+    if (_dbgTimer >= 1.0f) {
+        _dbgTimer = 0.0f;
+        const EnemyLoader::StateDef* dbgDef = getCurrentStateDef();
+        CULog("[Enemy::update] id=%s state=%d(%s) stateTime=%.2f stunned=%d loved=%d eventsFired=%d animFrame=%d damageFrame=%d",
+              _enemyId.c_str(), (int)_currentState,
+              dbgDef ? dbgDef->name.c_str() : "?",
+              _stateTime, (int)isStunned(), (int)isLoved(),
+              (int)_eventsFiredThisState, _currentAnimationFrame,
+              dbgDef ? dbgDef->damageFrame : -99);
+    }
 
     if (isStunned()) {
         return;
