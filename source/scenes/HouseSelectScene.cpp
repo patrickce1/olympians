@@ -99,6 +99,7 @@ void HouseSelectScene::setupUI() {
     if (_playerIcon) {
         _playerIconImage = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
                             _playerIcon->getChildByName("emptyLocalIcon"));
+        _playerIconImage->setScale(0.5f);
         
         _playerIconGlow = std::dynamic_pointer_cast<cugl::scene2::PolygonNode>(
                             _playerIcon->getChildByName("lockedGlow"));

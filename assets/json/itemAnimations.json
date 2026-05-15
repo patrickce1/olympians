@@ -15,8 +15,8 @@
         "storm_animation": {
             "file": "textures/items/animations/storm_animation.png"
         },
-        "tide_animation": {
-            "file": "textures/items/animations/tide_animation.png"
+        "tsunami_animation": {
+            "file": "textures/items/animations/tsunami_animation.png"
         },
         "arrows_animation": {
             "file": "textures/items/animations/arrows_animation.png"
