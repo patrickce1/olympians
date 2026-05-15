@@ -42,6 +42,8 @@ constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
 //Defines the gap between the item and its tooltip
 constexpr float ITEM_TOOLTIP_GAP = 6.0f;
+/** Full opacity used when a local heal/damage screen frame is triggered. */
+constexpr uint8_t HEALTH_FRAME_MAX_ALPHA = 255;
 
 #pragma mark HealthState
 
@@ -560,6 +562,7 @@ bool GameScene::initSceneGraph() {
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
         _specialEffectsLayer->setPosition(cugl::Vec2(dimen.width / 2.0f, dimen.height / 2.0f));
         _scene->addChild(_specialEffectsLayer);
+        initHealthFrameEffects();
         _supportLeftArea = _gameArea->getChildByName("supportLeft");
         _supportRightArea = _gameArea->getChildByName("supportRight");
         _tutorialDialogueBox = _gameArea->getChildByName("dialogueBox");
@@ -861,6 +864,10 @@ void GameScene::dispose() {
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
         _playerHealthBar = nullptr;
+        _damageFrame = nullptr;
+        _healFrame = nullptr;
+        _damageFrameTimer = 0.0f;
+        _healFrameTimer = 0.0f;
         _leftPHealthBar = nullptr;
         _rightPHealthBar = nullptr;
         _leftPHealthShield = nullptr;
@@ -1031,6 +1038,7 @@ void GameScene::reset() {
     _slotsDemotedToAI.clear();
     _pendingResurrectionSync = PendingResurrectionSync{};
     _pendingPartyEffectSyncs.clear();
+    resetHealthFrameEffects();
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
@@ -3205,17 +3213,103 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
     // Only play sounds for non-AI local players
     if (player && !dynamic_cast<PlayerAI*>(player)) {
         const float playerHealthDelta = player->getCurrentHealth() - playerHealthBefore;
-        if (playerHealthDelta < 0.0f && _audio) {
-            std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
-            _audio->playSoundUnique(soundKey);
-        } else if (playerHealthDelta >= 1.0f && _audio) {
-            _audio->playSoundUnique("player_heal");
+        if (playerHealthDelta < 0.0f) {
+            triggerDamageFrame();
+            if (_audio) {
+                std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
+                _audio->playSoundUnique(soundKey);
+            }
+        } else if (playerHealthDelta > 0.0f) {
+            triggerHealFrame();
+            if (playerHealthDelta >= 1.0f && _audio) {
+                _audio->playSoundUnique("player_heal");
+            }
         }
     }
     
     if (enemy->getCurrentHealth() < enemyHealthBefore && _audio) {
         _audio->playSoundUnique("enemy_hurt");
     }
+}
+
+/** Creates the full-screen heal and damage frame overlays. */
+void GameScene::initHealthFrameEffects() {
+    if (!_specialEffectsLayer || !_assets) return;
+
+    Size dimen = getSize();
+    auto createFrame = [&](const std::string& textureKey) -> std::shared_ptr<scene2::NinePatch> {
+        auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
+        if (!texture) {
+            CULogError("GameScene: missing health frame texture '%s'", textureKey.c_str());
+            return nullptr;
+        }
+
+        Rect interior(
+            std::max(0.0f, texture->getWidth() * 0.5f - 0.5f),
+            std::max(0.0f, texture->getHeight() * 0.5f - 0.5f),
+            1.0f,
+            1.0f
+        );
+        auto frame = scene2::NinePatch::allocWithTexture(texture, interior);
+        if (!frame) return nullptr;
+
+        frame->setAnchor(Vec2::ANCHOR_CENTER);
+        frame->setPosition(Vec2(dimen.width * 0.5f, dimen.height * 0.5f));
+        frame->setContentSize(dimen);
+        frame->setColor(Color4(255, 255, 255, 0));
+        _specialEffectsLayer->addChild(frame);
+        return frame;
+    };
+
+    _damageFrame = createFrame("damageFrame");
+    _healFrame = createFrame("healFrame");
+}
+
+/** Starts or refreshes the full-screen damage frame fade. */
+void GameScene::triggerDamageFrame() {
+    _damageFrameTimer = _frameFadeDuration;
+    if (_damageFrame) {
+        _damageFrame->setColor(Color4(255, 255, 255, HEALTH_FRAME_MAX_ALPHA));
+    }
+}
+
+/** Starts or refreshes the full-screen heal frame fade. */
+void GameScene::triggerHealFrame() {
+    _healFrameTimer = _frameFadeDuration;
+    if (_healFrame) {
+        _healFrame->setColor(Color4(255, 255, 255, HEALTH_FRAME_MAX_ALPHA));
+    }
+}
+
+/** Clears active full-screen heal and damage frame effects. */
+void GameScene::resetHealthFrameEffects() {
+    _damageFrameTimer = 0.0f;
+    _healFrameTimer = 0.0f;
+    if (_damageFrame) {
+        _damageFrame->setColor(Color4(255, 255, 255, 0));
+    }
+    if (_healFrame) {
+        _healFrame->setColor(Color4(255, 255, 255, 0));
+    }
+}
+
+/**
+ * Updates the opacity of active full-screen heal and damage frame effects.
+ *
+ * @param dt Delta time in seconds.
+ */
+void GameScene::updateHealthFrameEffects(float dt) {
+    auto updateFrame = [dt, this](const std::shared_ptr<scene2::NinePatch>& frame, float& timer) {
+        if (!frame) return;
+
+        timer = std::max(0.0f, timer - dt);
+        const float progress = _frameFadeDuration > 0.0f ? timer / _frameFadeDuration : 0.0f;
+        const uint8_t alpha = static_cast<uint8_t>(std::round(HEALTH_FRAME_MAX_ALPHA * progress));
+        frame->setColor(Color4(255, 255, 255, alpha));
+    };
+
+    updateFrame(_damageFrame, _damageFrameTimer);
+    updateFrame(_healFrame, _healFrameTimer);
 }
 
 /** Custom method called inside of handleItemSpawn that is used specifically for the Gaia boss
@@ -4026,6 +4120,7 @@ void GameScene::update(float dt, InputController& input) {
     updateGaiaVineAnimation(dt);
     updateStunDamagePopups(dt);
     updatePopupAnimations(dt);
+    updateHealthFrameEffects(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);
