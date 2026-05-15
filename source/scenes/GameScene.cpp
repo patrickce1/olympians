@@ -1331,9 +1331,13 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
     const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
 
+    const float localHealthBefore = local->getCurrentHealth();
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
+    }
+    if (local->getCurrentHealth() > localHealthBefore) {
+        triggerHealFrame();
     }
     
     spawnEffectIcons(local->getEffectEvents());
@@ -6734,7 +6738,11 @@ void GameScene::updateItemUseAnimations(float dt) {
                     const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
                     if (localPlayer) {
+                        const float localHealthBefore = localPlayer->getCurrentHealth();
                         localPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - enemy->getCurrentHealth()));
+                        if (localPlayer->getCurrentHealth() > localHealthBefore) {
+                            triggerHealFrame();
+                        }
                     }
                     if (activeAnim.baseValue > 0.0f) {
                         const float finalDamage = activeAnim.damageAmount * sideMultiplier;
