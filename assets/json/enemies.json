@@ -316,7 +316,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 45.0
+                            "amount": 0.0
                         }
                     ],
                     "nextState": "idle"
@@ -329,12 +329,12 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 20.0
+                            "amount": 0.0
                         },
                         {
                             "type": "VINE",
                             "target": 0,
-                            "amount": 3.0,
+                            "amount": 2.0,
                             "duration": 5.0
                         }
                     ],
@@ -348,22 +348,22 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 20.0
+                            "amount": 0.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 1,
-                            "amount": 20.0
+                            "amount": 0.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 2,
-                            "amount": 20.0
+                            "amount": 0.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 3,
-                            "amount": 20.0
+                            "amount": 0.0
                         },
                         {
                             "type": "PLAYER_SCRAMBLE"

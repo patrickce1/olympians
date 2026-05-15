@@ -2931,6 +2931,10 @@ void GameScene::handleNetworkUpdates(float dt) {
         applyPendingResurrectionSync();
         applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
+        CULog("Client: localPlayerNum=%d leftNeighborSlot=%d leftNeighbor_hasRightVine=%d",
+            _network->getLocalPlayerNumber(),
+            _gameState.getLocalPlayer()->getLeftPlayer()->getPlayerNumber(),
+            _gameState.getLocalPlayer()->getLeftPlayer()->hasRightVine());
     }
     
     // Play sounds for LOCAL player and enemy health changes after all updates
@@ -3292,8 +3296,8 @@ void GameScene::updateGaiaInventoryVinesVisibility() {
     auto local = _gameState.getLocalPlayer();
     _vineOverlayLeftNeighbor->setVisible(!local->hasLeftVine() && local->getLeftPlayer()->hasRightVine());
     _vineOverlayRightNeighbor->setVisible(!local->hasRightVine() && local->getRightPlayer()->hasLeftVine());
-    _vineOverlayLeft->setVisible(_gameState.getLocalPlayer()->hasLeftVine());
-    _vineOverlayRight->setVisible(_gameState.getLocalPlayer()->hasRightVine());
+    _vineOverlayLeft->setVisible(local->hasLeftVine());
+    _vineOverlayRight->setVisible(local->hasRightVine());
 }
 
 /**

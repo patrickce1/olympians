@@ -827,7 +827,7 @@
                     "x_anchor": "right",
                     "y_anchor": "bottom",
                     "absolute": false,
-                    "x_offset": 30,
+                    "x_offset": 0,
                     "y_offset": 0
                 }
             },
