@@ -30,8 +30,11 @@ public:
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+    
+    /** The scene node defined by the JSON */
+    std::shared_ptr<cugl::scene2::SceneNode> _scene;
 
-    /** The network controller shared across all scenes*/
+    /** The network controller shared across all scenes */
     std::shared_ptr<NetworkController> _network;
     
     /** The return button for the boss select scene */
@@ -48,6 +51,33 @@ protected:
     std::shared_ptr<cugl::scene2::SceneNode> _statsHeader;
     std::shared_ptr<cugl::scene2::SceneNode> _indivStats;
     std::shared_ptr<cugl::scene2::SceneNode> _successLabel;
+    
+    // Team stats values
+    std::shared_ptr<cugl::scene2::Label> _teamTotalDmg;
+    std::shared_ptr<cugl::scene2::Label> _teamTotalHeal;
+
+    // Utility stars (each star has an empty/fill child to toggle)
+    std::shared_ptr<cugl::scene2::SceneNode> _utilStar[3];
+
+    // Individual player rows (indexed 0–3)
+    std::shared_ptr<cugl::scene2::Label> _playerDmg[4];
+    std::shared_ptr<cugl::scene2::Label> _playerHeal[4];
+    std::shared_ptr<cugl::scene2::Label> _playerUtility[4];
+    std::shared_ptr<cugl::scene2::Label> _playerName[4];
+    
+    struct PlayerStats {
+        std::string displayName;  // e.g. "ATHENA | help_me123"
+        int damage;
+        int heals;
+        int utility;
+    };
+    
+    // Timeline
+    std::shared_ptr<cugl::ActionTimeline> _timeline;
+
+    // Track if timeline is running
+    bool _animating = false;
+    
     int _phase = 1;
     bool _pendingPhase2 = false;
     
@@ -107,6 +137,8 @@ public:
      */
     void setupUI();
     
+    void setupStatsUI();
+    
     /**
      * Attaches input listeners to the return button.
      */
@@ -148,6 +180,18 @@ public:
 
 private:
     void showPhase(int phase);
+    
+    void setStats(const PlayerStats players[4]);
+    
+    std::string formatNumber(int value);
+    
+    void runPhase1Intro();
+    
+    void transitionToPhase2();
+    
+    void runPhase2Intro();
+    
+    void resetVisualState();
 };
 
 #endif /* __WIN_LOSE_SCENE_H__ */

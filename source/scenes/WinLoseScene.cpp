@@ -83,6 +83,34 @@ void WinLoseScene::setupUI() {
     showPhase(1);
 }
 
+void WinLoseScene::setupStatsUI() {
+    // Team stat number labels
+    _teamTotalDmg = std::dynamic_pointer_cast<scene2::Label>(
+        _assets->get<scene2::SceneNode>("winLoseScene.teamStats.stats.totalDmg.value"));
+    _teamTotalHeal = std::dynamic_pointer_cast<scene2::Label>(
+        _assets->get<scene2::SceneNode>("winLoseScene.teamStats.stats.totalHeal.value"));
+
+    // Utility rating stars
+    for (int i = 0; i < 3; i++) {
+        std::string path = "winLoseScene.teamStats.stats.utilRating.stars.star" + std::to_string(i);
+        _utilStar[i] = _assets->get<scene2::SceneNode>(path);
+    }
+
+    // Individual player rows
+    std::string rowKeys[4] = {"1", "2", "3", "4"};
+    for (int i = 0; i < 4; i++) {
+        std::string base = "winLoseScene.indivStats." + rowKeys[i];
+        _playerName[i] = std::dynamic_pointer_cast<scene2::Label>(
+            _assets->get<scene2::SceneNode>(base + ".name"));
+        _playerDmg[i] = std::dynamic_pointer_cast<scene2::Label>(
+            _assets->get<scene2::SceneNode>(base + ".values.damage"));
+        _playerHeal[i] = std::dynamic_pointer_cast<scene2::Label>(
+            _assets->get<scene2::SceneNode>(base + ".values.heal"));
+        _playerUtility[i] = std::dynamic_pointer_cast<scene2::Label>(
+            _assets->get<scene2::SceneNode>(base + ".values.utility"));
+    }
+}
+
 /**
  * Attaches input listeners to the return button.
  */
@@ -179,7 +207,6 @@ void WinLoseScene::update(float timestep) {
 void WinLoseScene::showPhase(int phase) {
     bool onPhase1 = (phase == 1);
  
-    // Win/lose imagery: show the correct one for phase 1, hide both for phase 2
     if (onPhase1) {
         _victoryImage->setVisible(_didWin);
         _defeatImage->setVisible(!_didWin);
@@ -188,7 +215,7 @@ void WinLoseScene::showPhase(int phase) {
         _defeatImage->setVisible(false);
     }
  
-    // Return (continue) button — active only in phase 1
+    // active only in phase 1
     _continueButton->setVisible(onPhase1);
     if (onPhase1) {
         _continueButton->activate();
@@ -197,13 +224,12 @@ void WinLoseScene::showPhase(int phase) {
         _continueButton->setDown(false);
     }
  
-    // Stats panel — active only in phase 2
+    // active only in phase 2
     _teamStats->setVisible(!onPhase1);
     _statsHeader->setVisible(!onPhase1);
     _indivStats->setVisible(!onPhase1);
     _successLabel->setVisible(!onPhase1);
  
-    // Medium (lobby) button — active only in phase 2
     _returnButton->setVisible(!onPhase1);
     if (!onPhase1) {
         _returnButton->activate();
@@ -213,5 +239,42 @@ void WinLoseScene::showPhase(int phase) {
     }
  
     _phase = phase;
+}
+
+void WinLoseScene::setStats(const PlayerStats players[4]) {
+    int totalDamage = 0;
+    int totalHeals  = 0;
+    int totalUtility = 0;
+
+    for (int i = 0; i < 4; i++) {
+        totalDamage  += players[i].damage;
+        totalHeals   += players[i].heals;
+        totalUtility += players[i].utility;
+
+        _playerName[i]->setText(players[i].displayName);
+        _playerDmg[i]->setText(formatNumber(players[i].damage));
+        _playerHeal[i]->setText(formatNumber(players[i].heals));
+        _playerUtility[i]->setText(formatNumber(players[i].utility));
+    }
+
+    _teamTotalDmg->setText(formatNumber(totalDamage));
+    _teamTotalHeal->setText(formatNumber(totalHeals));
+
+    // Utility stars
+    int stars = 3;
+    for (int i = 0; i < 3; i++) {
+        _utilStar[i]->getChildByName("fill")->setVisible(i < stars);
+    }
+}
+
+// Helper to format integers as "20,780" style
+std::string WinLoseScene::formatNumber(int value) {
+    std::string s = std::to_string(value);
+    int insertPos = (int)s.size() - 3;
+    while (insertPos > 0) {
+        s.insert(insertPos, ",");
+        insertPos -= 3;
+    }
+    return s;
 }
 
