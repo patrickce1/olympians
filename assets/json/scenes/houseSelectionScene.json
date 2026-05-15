@@ -1815,7 +1815,7 @@
                                         "heroPoster": "demeterPoster",
                                         "heroName": "-DEMETER-",
                                         "heroStats": "statsDemeter",
-                                        "rare": "item_cornucopia"
+                                        "rare": "item_harvest"
                                     }
                                 },
                                 "layout": {
@@ -1862,7 +1862,7 @@
                                         "heroName": "-POSEIDON-",
                                         "heroStats": "statsPoseidon",
                                         "rare": "item_trident",
-                                        "divine": "item_poseidon_tide"
+                                        "divine": "item_poseidon_tsunami"
                                     }
                                 },
                                 "layout": {

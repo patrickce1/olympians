@@ -42,6 +42,36 @@ constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
 //Defines the gap between the item and its tooltip
 constexpr float ITEM_TOOLTIP_GAP = 6.0f;
+/** The size of each timer in the _timers container. */
+static const float ICON_SIZE = 40.0f;
+/** X center position within the _timers container. */
+static const float SLOT_X    = 20.0f;
+/** The gap between each timer in the scene node. */
+static const float ICON_GAP  = 9.0f;
+
+/** Slot Y positions within _timers for up to 3 icons, bottom to top. */
+static const std::array<float, 3> SLOT_Y = {
+    0.0f,
+    ICON_SIZE + ICON_GAP,
+    (ICON_SIZE + ICON_GAP) * 2.0f
+};
+
+/**
+ *  Maps ItemDef::EffectType to the asset key for its generic effect icon texture.
+ *  Used for received (non-self-cast) effects where no item def ID is available.
+*/
+static const std::unordered_map<ItemDef::EffectType, std::string> EFFECT_ICON_KEYS = {
+    { ItemDef::EffectType::Regen,      "icon_regen"   },
+    { ItemDef::EffectType::Stun,       "icon_stun"    },
+    { ItemDef::EffectType::Educate,    "icon_educate" },
+    { ItemDef::EffectType::Slow,       "icon_slow"    },
+    { ItemDef::EffectType::Charm,      "icon_charm"   },
+    { ItemDef::EffectType::Frenzy,     "icon_frenzy"  },
+    { ItemDef::EffectType::Resurrect,  "icon_resurrect"  },
+    { ItemDef::EffectType::Love,       "icon_love"  },
+    { ItemDef::EffectType::Vulnerable, "icon_vulnerable"  },
+    { ItemDef::EffectType::Lifesteal,  "icon_lifesteal"  }
+};
 
 #pragma mark HealthState
 
@@ -562,6 +592,8 @@ bool GameScene::initSceneGraph() {
         _scene->addChild(_specialEffectsLayer);
         _supportLeftArea = _gameArea->getChildByName("supportLeft");
         _supportRightArea = _gameArea->getChildByName("supportRight");
+        _timers = _gameArea->getChildByName("timers");
+
         _tutorialDialogueBox = _gameArea->getChildByName("dialogueBox");
         
         if (_tutorialDialogueBox) {
@@ -595,6 +627,8 @@ bool GameScene::initSceneGraph() {
         
         _bossHealthBar = std::dynamic_pointer_cast<scene2::ProgressBar>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.healthFill"));
+    
+        _bossHealthBarGlow = _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.effectGlow");
         
         _bossHealthBarIcon = std::dynamic_pointer_cast<scene2::PolygonNode>(
                _assets->get<scene2::SceneNode>("gameScene.inventory.enemyHealth.barIcon"));
@@ -1146,6 +1180,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
     float resolvedMagnitude = 0.0f;
+    std::vector<Player::EffectEvent> effectEvents;
     if (def->getAttackTarget() == ItemDef::AttackTarget::AllAllies) {
         resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     } else {
@@ -1154,10 +1189,25 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         if (!removeItemFromInventory(local, item.getId())) {
             return false;
         }
+        
+        // Manually build effect events since useItemById wasn't called
+        if (shouldApplyEffects) {
+            for (const ItemDef::Effect& effect : def->getEffects()) {
+                if (effect.duration > 0) {
+                    effectEvents.push_back({
+                        effect.type,
+                        def->getId(),
+                        effect.duration
+                    });
+                }
+            }
+        }
     }
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
+    
+    spawnEffectIcons(effectEvents);
 
     const auto& animConfig = def->getItemUseAnimation();
     const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
@@ -1227,6 +1277,8 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
+    
+    spawnEffectIcons(local->getEffectEvents());
 
     if (handleAllyTargetAttack(itemId, def, local, resolvedMagnitude, shouldApplyEffects)) {
         return true;
@@ -1481,6 +1533,8 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
+        
+        spawnEffectIcons(local->getEffectEvents());
 
         if (!_network->isHost()) {
             _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
@@ -1522,6 +1576,8 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
 
         const float resolvedMagnitude = local->useItemById(item.getId(), *target, _itemController.getDatabase());
         if (resolvedMagnitude < 0.0f) return false;
+        
+        spawnEffectIcons(local->getEffectEvents());
 
         if (!_network->isHost()) {
             _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
@@ -1719,6 +1775,277 @@ bool GameScene::handlePlayerActions(InputController::Action action, ItemInstance
     }
 }
 
+/**
+ * Recomputes which up to 3 effect icons are visible based on priority rules:
+ *   1. The local player's own divine item effect (selfCast, house-matched, rarity Divine)
+ *   2. The local player's own rare item effect (selfCast, house-matched, rarity Rare)
+ *   3. Remaining slots filled by highest remainingDuration among all others
+ *
+ * Received effects (selfCast = false) are always treated as others regardless
+ * of rarity. Icons not in the visible 3 are hidden but kept alive
+ * so they can resurface when a higher-priority slot expires. Calls rebuildTimerLayout
+ * after visibility is resolved.
+ */
+void GameScene::recomputeVisibleTimers() {
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) return;
+
+    const auto& db = _itemController.getDatabase();
+
+    // Classify each active icon by rarity
+    ActiveEffectIcon* divineSlot = nullptr;
+    ActiveEffectIcon* rareSlot   = nullptr;
+    std::vector<ActiveEffectIcon*> otherEffectIcons;
+
+    for (auto& effectIcon : _effectIcons) {
+        // Received effects can never be divine/rare — go straight to others
+        if (!effectIcon.selfCast) {
+            otherEffectIcons.push_back(&effectIcon);
+            continue;
+        }
+        
+        auto def = db.getDef(effectIcon.defId);
+        if (!def) {
+            otherEffectIcons.push_back(&effectIcon);
+            continue;
+        }
+        
+        auto rarity = def->getRarity();
+        auto house = def->getHouseAffinity();
+        if (house == ItemDef::houseFromString(local->getHouseName())) {
+            if (rarity == ItemDef::Rarity::Divine) {
+                divineSlot = &effectIcon;
+            } else if (rarity == ItemDef::Rarity::Rare) {
+                rareSlot = &effectIcon;
+            }
+        } else {
+            otherEffectIcons.push_back(&effectIcon);
+        }
+    }
+
+    // Sort others by remaining duration descending
+    std::sort(otherEffectIcons.begin(), otherEffectIcons.end(), [](const ActiveEffectIcon* iconA, const ActiveEffectIcon* iconB) {
+        return iconA->remainingDuration > iconB->remainingDuration;
+    });
+
+    // Build the visible set in priority order
+    std::vector<ActiveEffectIcon*> visibleIcon;
+    if (divineSlot) visibleIcon.push_back(divineSlot);
+    if (rareSlot)   visibleIcon.push_back(rareSlot);
+    
+    for (int i = 0; i < otherEffectIcons.size() && visibleIcon.size() < 3; i++) {
+        visibleIcon.push_back(otherEffectIcons[i]);
+    }
+
+    // Show/hide accordingly
+    for (auto& effectIcon : _effectIcons) {
+        bool shouldShow = std::find(visibleIcon.begin(), visibleIcon.end(), &effectIcon) != visibleIcon.end();
+        if (effectIcon.icon) effectIcon.icon->setVisible(shouldShow);
+    }
+
+    rebuildTimerLayout();
+}
+
+/**
+ * Rebuilds the _timers scene graph children from the current visible icons.
+ *
+ * Clears all children from _timers and re-adds only visible icons in
+ * newest-first order (reverse _effectIcons iteration), assigning fixed
+ * SLOT_Y positions directly. No layout manager is used.
+ */
+void GameScene::rebuildTimerLayout() {
+    if (!_timers) return;
+
+    _timers->removeAllChildren();
+
+    int slot = 0;
+    for (auto effect = _effectIcons.rbegin(); effect != _effectIcons.rend(); ++effect) {
+        if (!effect->icon || !effect->icon->isVisible()) continue;
+        effect->icon->setPosition(SLOT_X, SLOT_Y[slot]);
+        _timers->addChild(effect->icon);
+        slot++;
+    }
+}
+
+/**
+ * Spawns a timer icon for each effect event in the list.
+ *
+ * For each event, looks up the appropriate icon texture, checks for duplicates by effect type refreshing
+ * duration if found, and otherwise builds a new container with frame, icon, and pie
+ * overlay. Calls recomputeVisibleTimers after all events are processed.
+ *
+ * Shield and barrier events are excluded upstream in Player::useItemById and
+ * will never appear here.
+ *
+ * @param events  Effect events drained from the local player this frame.
+ */
+void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events) {
+    if (!_timers) return;
+    
+    for (const auto& event : events) {
+        auto iconKeyIt = EFFECT_ICON_KEYS.find(event.effectType);
+        if (iconKeyIt == EFFECT_ICON_KEYS.end()) continue;
+
+        auto texture = _assets->get<cugl::graphics::Texture>(iconKeyIt->second);
+                if (!texture) continue;
+        
+        // Check for duplicate — refresh duration if already active
+        auto existing = std::find_if(_effectIcons.begin(), _effectIcons.end(),
+            [&](const ActiveEffectIcon& icon) {
+                return icon.effectType == event.effectType;
+            });
+
+        if (existing != _effectIcons.end()) {
+            existing->remainingDuration = event.duration;
+            existing->totalDuration = event.duration;
+            existing->defId = event.itemId;
+        } else {
+            std::string iconName = "effect_icon_" + std::to_string(_nextEffectIconId++);
+            
+            // Timer container
+            auto timer = cugl::scene2::SceneNode::alloc();
+            timer->setContentSize(cugl::Size(ICON_SIZE, ICON_SIZE));
+            timer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            timer->setName(iconName);
+            
+            // Frame
+            std::string frameKey = event.selfCast ? "timerFrameSelf" : "timerFrameReceived";
+            auto frameTexture = _assets->get<cugl::graphics::Texture>(frameKey);
+            auto frame = cugl::scene2::PolygonNode::allocWithTexture(frameTexture);
+            if (event.selfCast) {
+                frame->setContentSize(39.5,39.5);
+            } else {
+                frame->setContentSize(37,37);
+            }
+            frame->setPosition(timer->getContentSize() / 2.0f);
+            frame->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            timer->addChild(frame);
+            
+            // Icon
+            auto icon = cugl::scene2::PolygonNode::allocWithTexture(texture);
+            if (event.selfCast) {
+                icon->setContentSize(35,35);
+            } else {
+                icon->setContentSize(32,32);
+            }
+            icon->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            icon->setPosition(timer->getContentSize() / 2.0f);
+            icon->setName(iconName);
+            timer->addChild(icon);
+            
+            // Pie overlay
+            auto pie = cugl::scene2::SpriteNode::allocWithSheet(_assets->get<cugl::graphics::Texture>("pieTimer"), 1, 13);
+            pie->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+            pie->setPosition(timer->getContentSize() / 2.0f);
+            pie->setFrame(0);
+            timer->addChild(pie);
+            
+            timer->doLayout();
+            
+            _effectIcons.push_back({
+                event.effectType,
+                event.itemId,
+                timer,
+                pie,
+                event.duration,
+                event.duration,
+                event.selfCast
+            });
+        }
+    }
+    
+    recomputeVisibleTimers();
+}
+
+/**
+ * Polls each player's live effect state every frame and synthesizes
+ * EffectEvent entries for any timed effect that is active but not yet
+ * represented in _effectIcons. Refreshes duration for existing icons
+ * from the authoritative player value so network-triggered effects
+ * (e.g. someone else using Charm) are always reflected without relying
+ * on EffectEvent delivery.
+ *
+ * Call this every frame BEFORE spawnEffectIcons / updateEffectTimerIcons.
+ */
+void GameScene::syncEffectIconsFromPlayerState() {
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) return;
+
+    struct EffectPoll {
+        ItemDef::EffectType effectType;
+        bool active;
+        float duration;
+    };
+
+    std::vector<EffectPoll> effectPolls = {
+        { ItemDef::EffectType::Charm, local->hasCharm(), local->getCharmDuration()},
+        { ItemDef::EffectType::Educate, local->hasEducate(), local->getEducateDuration()},
+        { ItemDef::EffectType::Regen, local->hasRegen(), local->getRegenDuration()  },
+        { ItemDef::EffectType::Lifesteal, local->hasLifesteal(), local->getLifestealDuration()},
+        { ItemDef::EffectType::Frenzy, _itemController.hasFrenzy(), _itemController.getFrenzyDuration()}
+    };
+
+    std::vector<Player::EffectEvent> toSpawn;
+
+    for (const auto& poll : effectPolls) {
+        auto isExistingIcon = std::find_if(_effectIcons.begin(), _effectIcons.end(),
+            [&](const ActiveEffectIcon& icon) {
+                return icon.effectType == poll.effectType;
+            });
+
+        if (poll.active) {
+            if (isExistingIcon == _effectIcons.end()) {
+                // No icon yet
+                toSpawn.push_back({ poll.effectType, "", poll.duration, false });
+            } else {
+                // Icon exists — sync its duration to the authoritative player value
+                isExistingIcon->remainingDuration = poll.duration;
+            }
+        }
+    }
+
+    if (!toSpawn.empty()) {
+        spawnEffectIcons(toSpawn);
+    }
+}
+
+/**
+ * Ticks all active effect timers down by dt and removes any that have expired.
+ *
+ * Updates each icon's pie overlay frame based on remainingDuration / totalDuration.
+ * If any icons expire and are removed, calls recomputeVisibleTimers to reshuffle
+ * the visible slots so hidden icons can surface.
+ *
+ * @param dt  Elapsed time since the previous frame, in seconds.
+ */
+void GameScene::updateEffectTimerIcons(float dt) {
+    if (!_timers) return;
+
+    bool changed = false;
+
+    for (auto effect = _effectIcons.begin(); effect != _effectIcons.end(); ) {
+        effect->remainingDuration -= dt;
+        if (effect->remainingDuration <= 0.0f) {
+            if (effect->icon) {
+                effect->icon->removeFromParent();
+            }
+            effect = _effectIcons.erase(effect);
+            changed = true;
+        } else {
+            if (effect->pie) {
+                int frame = (int)((1.0f - effect->remainingDuration / effect->totalDuration) * 13);
+                frame = std::clamp(frame, 0, 12);
+                effect->pie->setFrame(frame);
+            }
+            ++effect;
+        }
+    }
+
+    if (changed) {
+        recomputeVisibleTimers();
+    }
+}
+
 #pragma mark -
 #pragma mark Update Helpers
 
@@ -1771,6 +2098,12 @@ void GameScene::updateEnemyAndAI(float dt) {
 void GameScene::updateEnemyHealthBarEffect(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
+    
+    if (enemy->isVulnerable()) {
+        _bossHealthBarGlow->setVisible(true);
+    } else {
+        _bossHealthBarGlow->setVisible(false);
+    }
     
     auto applyBossBar = [&](const std::string& barTex,
                             const std::string& iconTex,
@@ -3100,6 +3433,12 @@ void GameScene::applyFrenzyEffect(float itemInterval, float duration) {
     }
 
     _itemController.applyFrenzy(itemInterval, duration);
+    spawnEffectIcons({{
+        ItemDef::EffectType::Frenzy,
+        "",
+        duration,
+        false
+    }});
     _passedItemIds.clear();
     syncInventoryWidgets();
 }
@@ -4030,6 +4369,8 @@ void GameScene::update(float dt, InputController& input) {
     updateGaiaVineAnimation(dt);
     updateStunDamagePopups(dt);
     updatePopupAnimations(dt);
+    syncEffectIconsFromPlayerState();
+    updateEffectTimerIcons(dt);
 
     tickGlowTimer(dt);
     updateDebugPointer(input);
