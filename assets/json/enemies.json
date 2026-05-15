@@ -299,7 +299,7 @@
             "spritesheetPath": "textures/gaia.png",
             "ai": {
                 "retargetLikelihood": 0.9,
-                "defenseLikelihood": 0.5
+                "defenseLikelihood": 0.0
             },
             "customData": {
                 "spawnCooldownConstant": 5.0
@@ -331,12 +331,12 @@
                             "target": 0,
                             "amount": 20.0
                         },
-			{
-			    "type": "VINE",
-			    "target": 0,
-			    "amount": 5.0,
-			    "duration": 3.0
-			}
+                        {
+                            "type": "VINE",
+                            "target": 0,
+                            "amount": 3.0,
+                            "duration": 5.0
+                        }
                     ],
                     "nextState": "idle"
                 },

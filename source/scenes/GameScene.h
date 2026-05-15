@@ -393,6 +393,15 @@ protected:
     /** The world position when drag begins */
     Vec2 _holdAnchorPos = Vec2::ZERO;
 
+    /** Vine overlay on the left pass zone blocking the local player's left pass */
+    std::shared_ptr<cugl::scene2::SceneNode> _vineOverlayLeft;
+    /** Vine overlay on the right pass zone blocking the local player's right pass */
+    std::shared_ptr<cugl::scene2::SceneNode> _vineOverlayRight;
+    /** Vine overlay peering in from the left edge representing the left neighbor's blocked right pass */
+    std::shared_ptr<cugl::scene2::SceneNode> _vineOverlayLeftNeighbor;
+    /** Vine overlay peering in from the right edge representing the right neighbor's blocked left pass */
+    std::shared_ptr<cugl::scene2::SceneNode> _vineOverlayRightNeighbor;
+
 #pragma mark - Drag State
 
     /** The scene node currently being dragged by the player, or nullptr. */
@@ -1163,6 +1172,17 @@ public:
       * This also broadcasts the new ordering over the network for clients to apply respectively as well
       */
     void handleGaiaScramble();
+
+    /**
+     * Toggles the vine overlays in the inventory based on which sides are blocked by Gaia's vines.
+     *
+     * The local player's overlays appear when they themselves are blocked from passing on that side.
+     * The neighbor overlays appear when a neighbor is blocked from passing toward the local player,
+     * but the local player is not themselves blocked on that side.
+     *
+     * Does nothing if the current enemy is not Gaia.
+     */
+    void updateGaiaInventoryVinesVisibility();
 
     /** Checks if we are in a state where 
       * the house and names of the current player's neighbors should be concealed

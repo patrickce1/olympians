@@ -613,11 +613,17 @@ bool GameScene::initSceneGraph() {
         
         _passLeftArea = _inventory->getChildByName("passZoneLeft");
         _passRightArea = _inventory->getChildByName("passZoneRight");
+
+        /* Gaia's vines */
+        _vineOverlayLeft = _inventory->getChildByName("vineOverlayLeft");
+        _vineOverlayRight = _inventory->getChildByName("vineOverlayRight");
+        _vineOverlayLeftNeighbor = _inventory->getChildByName("vineOverlayLeftNeighbor");
+        _vineOverlayRightNeighbor = _inventory->getChildByName("vineOverlayRightNeighbor");
     }
     
     _tooltipNode = std::dynamic_pointer_cast<scene2::PolygonNode>(
         _assets->get<scene2::SceneNode>("gameScene.tooltip"));
-    
+
     addChild(_scene);
     return true;
 }
@@ -872,6 +878,10 @@ void GameScene::dispose() {
         _rightPlayerHouse = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
+        _vineOverlayLeft = nullptr;
+        _vineOverlayRight = nullptr;
+        _vineOverlayLeftNeighbor = nullptr;
+        _vineOverlayRightNeighbor = nullptr;
         _enemyAnimationSpriteNodes.clear();
         _currentVisibleAnimationSprite = nullptr;
         _itemWidgets.clear();
@@ -3205,7 +3215,7 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
     // Only play sounds for non-AI local players
     if (player && !dynamic_cast<PlayerAI*>(player)) {
         const float playerHealthDelta = player->getCurrentHealth() - playerHealthBefore;
-        if (playerHealthDelta < 0.0f && _audio) {
+        if (playerHealthDelta < -1.0f && _audio) {
             std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
             _audio->playSoundUnique(soundKey);
         } else if (playerHealthDelta >= 1.0f && _audio) {
@@ -3268,6 +3278,23 @@ void GameScene::handleGaiaScramble() {
     _gaiaVineAnim->currentTime = _gaiaVineAnim->duration; //duration of the original animation
 }
 
+/**
+ * Toggles the vine overlays in the inventory based on which sides are blocked by Gaia's vines.
+ *
+ * The local player's overlays appear when they themselves are blocked from passing on that side.
+ * The neighbor overlays appear when a neighbor is blocked from passing toward the local player,
+ * but the local player is not themselves blocked on that side.
+ *
+ * Does nothing if the current enemy is not Gaia.
+ */
+void GameScene::updateGaiaInventoryVinesVisibility() {
+    if (_gameState.getEnemy()->getId() != "gaia") { return; }
+    auto local = _gameState.getLocalPlayer();
+    _vineOverlayLeftNeighbor->setVisible(!local->hasLeftVine() && local->getLeftPlayer()->hasRightVine());
+    _vineOverlayRightNeighbor->setVisible(!local->hasRightVine() && local->getRightPlayer()->hasLeftVine());
+    _vineOverlayLeft->setVisible(_gameState.getLocalPlayer()->hasLeftVine());
+    _vineOverlayRight->setVisible(_gameState.getLocalPlayer()->hasRightVine());
+}
 
 /**
  * Spawns items for the local player every frame, and for all AI-controlled
@@ -4022,6 +4049,7 @@ void GameScene::update(float dt, InputController& input) {
     updateEnemyAndAI(dt);
     updateEnemyHealthBarEffect(dt);
     updateDropZoneVisibility();
+    updateGaiaInventoryVinesVisibility();
 
     // Update sliding items before physics world update
     updateSlidingItems(dt);

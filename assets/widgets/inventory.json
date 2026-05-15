@@ -794,6 +794,78 @@
                     "x_offset": 0,
                     "y_offset": 0.11
                 }
+            },
+            "vineOverlayLeft": {
+                "type": "Image",
+                "data": {
+                    "texture": "gaiaVineOverlayLeft",
+                    "anchor": [0, 0],
+                    "size": [120, 300],
+                    "angle": 0,
+                    "position": [0, 0],
+                    "visible": false
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "vineOverlayRight": {
+                "type": "Image",
+                "data": {
+                    "texture": "gaiaVineOverlayRight",
+                    "anchor": [1, 0],
+                    "size": [120, 300],
+                    "angle": 0,
+                    "position": [393, 0],
+                    "visible": false
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 30,
+                    "y_offset": 0
+                }
+            },
+            "vineOverlayLeftNeighbor": {
+                "type": "Image",
+                "data": {
+                    "texture": "gaiaVineOverlayLeft",
+                    "anchor": [0, 0],
+                    "size": [120, 300],
+                    "angle": 0,
+                    "position": [0, 0],
+                    "visible": false
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": -0.09,
+                    "y_offset": 0
+                }
+            },
+            "vineOverlayRightNeighbor": {
+                "type": "Image",
+                "data": {
+                    "texture": "gaiaVineOverlayRight",
+                    "anchor": [1, 0],
+                    "size": [120, 300],
+                    "angle": 0,
+                    "position": [393, 0],
+                    "visible": false
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.09,
+                    "y_offset": 0
+                }
             }
         }
     }
