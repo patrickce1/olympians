@@ -109,6 +109,19 @@ struct EnemyEffectMessage {
     bool applyToAllSides = false;
 };
 
+/**
+ * Message broadcast by the host when a Cerberus corrosive drain tick fires.
+ * Received by all devices; only the target player's device will have widgets
+ * to animate. Item selection is done locally on each device (instance IDs are
+ * not shared across the network, so they cannot be sent).
+ */
+struct CorrosiveDrainMessage {
+    int targetPlayerSlot = -1;
+    float fadeDuration   = 0.9f;
+    float fadeVariance   = 0.3f;
+    int maxAffected      = 0;
+};
+
 /** Message sent by client to indicate passing an item.
  * The itemID is the ID of a item definition type, which are used in the itemDatabase
  * The playerID is the location of the player in the circle, with 0 being the host
@@ -190,6 +203,13 @@ struct GameStateMessage {
 
     /** Authoritative number of prior mallet uses recorded for each player this round. */
     std::array<int32_t, kMaxPlayers> playerMalletUseCounts = {0, 0, 0, 0};
+
+    /** Cerberus head knocked state (indices 0=main, 1=right, 2=left). Zero for non-Cerberus bosses. */
+    std::array<bool,  3> cerberusHeadsKnocked      = {false, false, false};
+    std::array<float, 3> cerberusHeadsKnockedTimer  = {0.0f,  0.0f,  0.0f};
+
+    /** Player slot locked as the target for the current single-head Cerberus attack, or -1. */
+    int cerberusLockedVictim = -1;
 
     // player health
     union {

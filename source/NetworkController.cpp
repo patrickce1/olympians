@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include "NetworkController.h"
+#include "bosses/Cerberus.h"
 
 using namespace cugl;
 using namespace cugl::scene2;
@@ -116,6 +117,11 @@ void readEnemyRuntimeState(NetcodeDeserializer& deserializer, GameStateMessage& 
         stateMsg.bossVulnerableDurations[side] = deserializer.readFloat();
         stateMsg.bossVulnerableMultipliers[side] = deserializer.readFloat();
     }
+    for (int i = 0; i < 3; i++) {
+        stateMsg.cerberusHeadsKnocked[i]     = deserializer.readBool();
+        stateMsg.cerberusHeadsKnockedTimer[i] = deserializer.readFloat();
+    }
+    stateMsg.cerberusLockedVictim = deserializer.readSint32();
 }
 
 /**
@@ -137,6 +143,12 @@ void writeEnemyRuntimeState(NetcodeSerializer& serializer, const shared_ptr<Enem
         serializer.writeFloat(enemy->getVulnerableDurationForSide(side));
         serializer.writeFloat(enemy->getVulnerableMultiplierForSide(side));
     }
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
+    for (int i = 0; i < 3; i++) {
+        serializer.writeBool( cerberus ? cerberus->isHeadKnockedByIndex(i) : false);
+        serializer.writeFloat(cerberus ? cerberus->getHeadKnockedTimer(i) : 0.0f);
+    }
+    serializer.writeSint32(cerberus ? cerberus->getLockedVictim() : -1);
 }
 
 /**
@@ -569,6 +581,15 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             }
             break;
         }
+        case MessageType::CORROSIVE_DRAIN: {
+            CorrosiveDrainMessage drainMsg;
+            drainMsg.targetPlayerSlot = _deserializer.readSint32();
+            drainMsg.fadeDuration     = _deserializer.readFloat();
+            drainMsg.fadeVariance     = _deserializer.readFloat();
+            drainMsg.maxAffected      = _deserializer.readSint32();
+            corrosiveDrains.push_back(drainMsg);
+            break;
+        }
 
 	}
 }
@@ -599,6 +620,7 @@ void NetworkController::clearQueues() {
 	supportEffects.clear();
 	enemyEffects.clear();
     forgeEffects.clear();
+    corrosiveDrains.clear();
 	passes.clear();
     bossHeals.clear();
     gaiaSpawns = 0;
@@ -745,6 +767,22 @@ void NetworkController::broadcastForgeEffect(float chance, int seed) {
     _serializer.writeFloat(chance);
     _serializer.writeSint32(seed);
     _serializer.writeBool(true);
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
+}
+
+/**
+ * HOST ONLY. Broadcasts a Cerberus corrosive drain event to all clients.
+ * Sends only the count of drained items; each client selects items from
+ * its own local inventory (item instance IDs are not shared across devices).
+ */
+void NetworkController::broadcastCorrosiveDrain(int targetPlayerSlot, float fadeDuration,
+                                                float fadeVariance, int maxAffected) {
+    _serializer.writeSint32(MessageType::CORROSIVE_DRAIN);
+    _serializer.writeSint32(targetPlayerSlot);
+    _serializer.writeFloat(fadeDuration);
+    _serializer.writeFloat(fadeVariance);
+    _serializer.writeSint32(maxAffected);
     _network->broadcast(_serializer.serialize());
     _serializer.reset();
 }
