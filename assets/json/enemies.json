@@ -316,7 +316,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 0.0
+                            "amount": 30.0
                         }
                     ],
                     "nextState": "idle"
@@ -348,22 +348,22 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 0.0
+                            "amount": 15.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 1,
-                            "amount": 0.0
+                            "amount": 15.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 2,
-                            "amount": 0.0
+                            "amount": 15.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 3,
-                            "amount": 0.0
+                            "amount": 15.0
                         },
                         {
                             "type": "PLAYER_SCRAMBLE"
