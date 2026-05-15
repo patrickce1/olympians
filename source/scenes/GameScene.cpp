@@ -1527,6 +1527,7 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
 
         if (!_network->isHost()) {
             if (def->getId() == "gaia_rock") {
+            // This is where we do damage to teammate
                 _network->broadcastHeal(-1 * resolvedMagnitude, target->getPlayerNumber());
             }
             else {
