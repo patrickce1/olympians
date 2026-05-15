@@ -161,6 +161,36 @@
             "scale": 0.68,
             "offsetX": 0,
             "offsetY": 0
+        },
+        {
+            "id": "circe_idle_animation",
+            "texture": "textures/gameScene/circe/circe_idle.png",
+            "frameCount": 10,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "loopStartFrame": 0,
+            "loopEndFrame": 9,
+            "positionX": 196.5,
+            "positionY": 250.0,
+            "scale": 0.96,
+            "offsetX": 0,
+            "offsetY": 0
+        },
+        {
+            "id": "circe_attack_animation",
+            "texture": "textures/gameScene/circe/circe_attacks.png",
+            "frameCount": 8,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "loopStartFrame": 0,
+            "loopEndFrame": 3,
+            "damageFrame": 5,
+            "sound": "",
+            "positionX": 196.5,
+            "positionY": 250.0,
+            "scale": 0.24,
+            "offsetX": 0,
+            "offsetY": 0
         }
     ]
 }
