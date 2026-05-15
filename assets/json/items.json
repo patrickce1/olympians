@@ -386,7 +386,7 @@
                 }
             ],
             "itemUseAnimation": {
-                "spriteSheetId": "tide_animation",
+                "spriteSheetId": "tsunami_animation",
                 "rows": 1,
                 "cols": 9,
                 "frameCount": 9,
