@@ -3,6 +3,8 @@
 
 #include <cugl/cugl.h>
 #include <unordered_set>
+#include <algorithm>
+#include <vector>
 #include "../Player.h"
 #include "../Enemy.h"
 #include "../items/ItemController.h"
@@ -215,6 +217,9 @@ protected:
     /** Read-only reference to the item database for item type lookups. */
     const ItemDatabase* _db = nullptr;
     
+    /** Forge chances triggered by this AI since the last GameScene drain. */
+    std::vector<float> _pendingForgeChances;
+    
     /**
      * The preferred target for the pending rarity-pass, set during evaluate()
      * alongside _pendingPassItemId. Points to the neighbor who owns the item,
@@ -308,6 +313,16 @@ public:
      * @return The active State enum value.
      */
     State getState() const { return _state; }
+    
+    /**
+     * Returns and clears host-level forge effects triggered by this AI.
+     *
+     * GameScene owns the authoritative forge seed and network broadcast path,
+     * so PlayerAI only reports the resolved chance for each triggered effect.
+     *
+     * @return The resolved forge chances triggered since the last drain.
+     */
+    std::vector<float> consumePendingForgeChances();
 
     /** Returns true — this player is always AI-controlled. */
     bool isAI() const override { return true; }
@@ -457,6 +472,52 @@ private:
      * @return true if conditions are met or no ruleset exists for this house.
      */
     bool checkDivineRuleset() const;
+    
+    /**
+     * Returns whether an AI player is allowed to apply a definition's configured effects.
+     *
+     * @param player The AI player attempting to use the item.
+     * @param def    The item definition whose effect eligibility is being checked.
+     * @return True if the player's house or educate effect allows item effects to apply.
+     */
+    bool canPlayerApplyEffects(const Player& player, const ItemDef& def);
+    
+    /**
+     * Collects every party member reachable from the source player's neighbor links.
+     *
+     * @param source The AI player whose party ring should be traversed.
+     * @return The connected party members, including source, with no duplicate players.
+     */
+    std::vector<Player*> collectReachablePartyMembers(Player& source);
+    
+    /**
+     * Applies AI-triggered frenzy item-spawn effects after an attack item use.
+     *
+     * @param source The AI player that used the item.
+     * @param def    The item definition that may contain frenzy effects.
+     * @param items  The ItemController that owns item-spawn frenzy state.
+     */
+    void applyAIFrenzyEffects(Player& source, const ItemDef& def, ItemController& items);
+    
+    /**
+     * Collects AI-triggered forge chances for GameScene to apply authoritatively.
+     *
+     * @param source The AI player that used the item.
+     * @param def    The item definition that may contain forge effects.
+     * @return Resolved forge chances after AI house/effect eligibility and charm.
+     */
+    std::vector<float> collectAIForgeChances(Player& source, const ItemDef& def);
+    
+    /**
+     * Uses an attack item and applies AI-owned follow-up effects that live
+     * outside Player::useItemById, such as item-controller frenzy.
+     *
+     * @param itemId    The inventory item instance to consume.
+     * @param enemy     The enemy attack target.
+     * @param items     The ItemController used for shared item-spawn effects.
+     * @return The resolved attack magnitude, or -1.0f if the item use failed.
+     */
+    float useAttackItemById(ItemInstance::ItemId itemId, Enemy& enemy, ItemController& items);
 };
 
 #endif /* __PLAYER_AI_H__ */

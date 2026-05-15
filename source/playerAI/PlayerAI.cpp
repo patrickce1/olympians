@@ -35,6 +35,7 @@ bool PlayerAI::init(const ItemDatabase& db, const std::string& path) {
 
     _db = &db;
     _thinkTimer = 0.0f;
+    _pendingForgeChances.clear();
     bool valid = true;
 
     if (config->has("thinkIntervalMin") && config->get("thinkIntervalMin")->isNumber()) {
@@ -556,7 +557,7 @@ void PlayerAI::actAttack(Enemy& enemy, ItemController& items) {
     ItemInstance::ItemId chosen = attackItems[rand() % attackItems.size()];
     if (_debug) CULog("[PlayerAI '%s'] actAttack — using item %llu on '%s'",
           getPlayerName().c_str(), (unsigned long long)chosen, enemy.getId().c_str());
-    useItemById(chosen, enemy, *_db);
+    useAttackItemById(chosen, enemy, items);
 }
 
 /**
@@ -859,3 +860,164 @@ bool PlayerAI::checkDivineRuleset() const {
 
     return conditionsMet;
 }
+
+/**
+ * Returns whether an AI player is allowed to apply a definition's configured effects.
+ *
+ * @param player The AI player attempting to use the item.
+ * @param def    The item definition whose effect eligibility is being checked.
+ * @return True if the player's house or educate effect allows item effects to apply.
+ */
+bool PlayerAI::canPlayerApplyEffects(const Player& player, const ItemDef& def) {
+    if (player.hasEducate()) {
+        return true;
+    }
+
+    if (def.getHouseAffinity() == ItemDef::House::None) {
+        return true;
+    }
+
+    return def.getHouseAffinity() ==
+           ItemDef::houseFromString(player.getHouseName(), ItemDef::House::None);
+}
+
+/**
+ * Collects every party member reachable from the source player's neighbor links.
+ *
+ * @param source The AI player whose party ring should be traversed.
+ * @return The connected party members, including source, with no duplicate players.
+ */
+std::vector<Player*> PlayerAI::collectReachablePartyMembers(Player& source) {
+    std::vector<Player*> party;
+    party.push_back(&source);
+
+    for (size_t index = 0; index < party.size() && party.size() < Enemy::NUM_PLAYERS; ++index) {
+        Player* player = party[index];
+        if (!player) {
+            continue;
+        }
+
+        Player* neighbors[2] = { player->getLeftPlayer(), player->getRightPlayer() };
+        for (Player* neighbor : neighbors) {
+            if (!neighbor) {
+                continue;
+            }
+            if (std::find(party.begin(), party.end(), neighbor) == party.end()) {
+                party.push_back(neighbor);
+            }
+        }
+    }
+
+    return party;
+}
+
+/**
+ * Applies AI-triggered frenzy item-spawn effects after an attack item use.
+ *
+ * @param source The AI player that used the item.
+ * @param def    The item definition that may contain frenzy effects.
+ * @param items  The ItemController that owns item-spawn frenzy state.
+ */
+void PlayerAI::applyAIFrenzyEffects(Player& source, const ItemDef& def, ItemController& items) {
+    if (!canPlayerApplyEffects(source, def)) {
+        return;
+    }
+
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        if (effect.type != ItemDef::EffectType::Frenzy) {
+            continue;
+        }
+
+        float itemInterval = effect.amount;
+        if (source.hasCharm()) {
+            itemInterval *= 0.5f;
+        }
+
+        if (itemInterval <= 0.0f || effect.duration <= 0.0f) {
+            continue;
+        }
+
+        for (Player* player : collectReachablePartyMembers(source)) {
+            if (player) {
+                player->clearInventory();
+            }
+        }
+        items.applyFrenzy(itemInterval, effect.duration);
+    }
+}
+
+/**
+ * Collects AI-triggered forge chances for GameScene to apply authoritatively.
+ *
+ * @param source The AI player that used the item.
+ * @param def    The item definition that may contain forge effects.
+ * @return Resolved forge chances after AI house/effect eligibility and charm.
+ */
+std::vector<float> PlayerAI::collectAIForgeChances(Player& source, const ItemDef& def) {
+    std::vector<float> forgeChances;
+    if (!canPlayerApplyEffects(source, def)) {
+        return forgeChances;
+    }
+
+    for (const ItemDef::Effect& effect : def.getEffects()) {
+        if (effect.type != ItemDef::EffectType::Forge) {
+            continue;
+        }
+
+        float divineChance = effect.chance;
+        if (source.hasCharm()) {
+            divineChance = std::min(1.0f, divineChance * 2.0f);
+        }
+
+        forgeChances.push_back(divineChance);
+    }
+
+    return forgeChances;
+}
+
+/**
+ * Returns and clears host-level forge effects triggered by this AI.
+ *
+ * GameScene owns the authoritative forge seed and network broadcast path,
+ * so PlayerAI only reports the resolved chance for each triggered effect.
+ *
+ * @return The resolved forge chances triggered since the last drain.
+ */
+std::vector<float> PlayerAI::consumePendingForgeChances() {
+    std::vector<float> chances = _pendingForgeChances;
+    _pendingForgeChances.clear();
+    return chances;
+}
+
+/**
+ * Uses an attack item and applies AI-owned follow-up effects that live
+ * outside Player::useItemById, such as item-controller frenzy.
+ *
+ * @param itemId The inventory item instance to consume.
+ * @param enemy  The enemy attack target.
+ * @param items  The ItemController used for shared item-spawn effects.
+ * @return The resolved attack magnitude, or -1.0f if the item use failed.
+ */
+float PlayerAI::useAttackItemById(ItemInstance::ItemId itemId, Enemy& enemy, ItemController& items) {
+    if (!_db) {
+        return -1.0f;
+    }
+
+    std::shared_ptr<const ItemDef> def = nullptr;
+    for (const ItemInstance& item : getInventory()) {
+        if (item.getId() == itemId) {
+            def = _db->getDef(item.getDefId());
+            break;
+        }
+    }
+
+    const float resolvedMagnitude = useItemById(itemId, enemy, *_db);
+    if (resolvedMagnitude >= 0.0f && def && def->getAttackTarget() == ItemDef::AttackTarget::AllAllies) {
+        std::vector<float> forgeChances = collectAIForgeChances(*this, *def);
+        _pendingForgeChances.insert(_pendingForgeChances.end(), forgeChances.begin(), forgeChances.end());
+        applyAIFrenzyEffects(*this, *def, items);
+    }
+
+    return resolvedMagnitude;
+}
+
