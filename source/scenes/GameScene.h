@@ -470,7 +470,7 @@ protected:
         int currentFrame = 0;
         bool isReversing = false;
 
-        const int duration = 0.5f;
+        const float duration = 0.5f;
         const int totalFrames = 6;
         
     };

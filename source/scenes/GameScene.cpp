@@ -4503,7 +4503,7 @@ void GameScene::updateGaiaInventoryVineAnimations(float dt) {
 
                 int frame = std::min(
                     static_cast<int>(progress * frameCount),
-                    frameCount - 1
+                    node->getCount() - 1
                 );
 
                 if (frame != state.currentFrame) {
@@ -4514,7 +4514,7 @@ void GameScene::updateGaiaInventoryVineAnimations(float dt) {
                 // reverse finished → hide
                 if (state.isReversing && state.elapsedTime <= 0.0f) {
                     state.isReversing = false;
-                    state.elapsedTime = 0;
+                    state.elapsedTime = 0.0f;
                 }
             }
 
