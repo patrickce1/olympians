@@ -11,9 +11,11 @@ using namespace cugl;
 /** Singleton loader instance */
 static EnemyLoader staticEnemyLoader;
 /** Flag to ensure loader is initialized only once */
-static bool staticEnemyLoaderInitialized = false; 
+static bool staticEnemyLoaderInitialized = false;
+/** True if the loader was initialized with the animation registry already populated */
+static bool staticEnemyLoaderHadRegistry = false;
 /** Path where the loader was initialized (for error checking if multiple paths are used) */
-static std::string staticEnemyLoaderPath; 
+static std::string staticEnemyLoaderPath;
 
 /**
  * Ensures the animation registry is loaded from AssetManager (if provided).
@@ -55,11 +57,20 @@ static bool ensureEnemyLoaderInitialized(const std::string& jsonPath) {
             return false;
         }
         staticEnemyLoaderInitialized = true;
+        staticEnemyLoaderHadRegistry = staticEnemyLoader.isAnimationRegistryLoaded();
         staticEnemyLoaderPath = jsonPath;
+    } else if (!staticEnemyLoaderHadRegistry && staticEnemyLoader.isAnimationRegistryLoaded()) {
+        // Registry was loaded after the initial parse — reload so StateDefs get animation metadata.
+        CULog("EnemyLoader: registry now available, reloading enemy definitions with animation data");
+        if (!staticEnemyLoader.loadFromFile(jsonPath)) {
+            CULog("ERROR: Failed to reload enemy JSON from %s", jsonPath.c_str());
+            return false;
+        }
+        staticEnemyLoaderHadRegistry = true;
     }
 
     if (staticEnemyLoaderPath != jsonPath) {
-        CULog("ERROR: Enemy JSON already loaded from different path: %s vs %s", 
+        CULog("ERROR: Enemy JSON already loaded from different path: %s vs %s",
               staticEnemyLoaderPath.c_str(), jsonPath.c_str());
         return false;
     }
@@ -389,9 +400,17 @@ bool Enemy::readyToFire() const {
     if (!stateDef) return false;
     if (_eventsFiredThisState) return false;
 
-    // damageFrame overrides all — works for both looping and linear states
+    // Fire when the animation visually reaches the designated damage frame.
+    // Also accept a time-based fallback so events still fire when the frame counter
+    // isn't being driven (e.g. Cerberus head knocked mid-attack).
     if (stateDef->damageFrame >= 0) {
-        return _currentAnimationFrame >= stateDef->damageFrame;
+        if (_currentAnimationFrame >= stateDef->damageFrame) return true;
+        if (stateDef->frameDuration > 0.0f && stateDef->buildUpTime > 0.0f) {
+            // Time at which the damage frame is first visible in the outro phase.
+            float outroOffset = static_cast<float>(stateDef->damageFrame - (stateDef->loopEndFrame + 1)) * stateDef->frameDuration;
+            return _stateTime >= stateDef->buildUpTime + outroOffset;
+        }
+        return false;
     }
 
     if (stateDef->frameCount <= 0) {
