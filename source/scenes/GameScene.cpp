@@ -4455,10 +4455,7 @@ void GameScene::handleItemSpawn(float dt) {
     int localPlayerSlot = local ? local->getPlayerNumber() : -1;
     bool localPlayerCorrosive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
 
-    // Don't spawn items for local player if they're being corroded
-    if (!localPlayerCorrosive) {
-        _itemController.update(dt, _gameState.getLocalPlayer());
-    }
+    _itemController.update(dt, _gameState.getLocalPlayer(), localPlayerCorrosive);
 
     //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
     handleGaiaSpawn();
