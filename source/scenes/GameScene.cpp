@@ -2931,10 +2931,6 @@ void GameScene::handleNetworkUpdates(float dt) {
         applyPendingResurrectionSync();
         applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
-        CULog("Client: localPlayerNum=%d leftNeighborSlot=%d leftNeighbor_hasRightVine=%d",
-            _network->getLocalPlayerNumber(),
-            _gameState.getLocalPlayer()->getLeftPlayer()->getPlayerNumber(),
-            _gameState.getLocalPlayer()->getLeftPlayer()->hasRightVine());
     }
     
     // Play sounds for LOCAL player and enemy health changes after all updates
