@@ -1208,7 +1208,7 @@ public:
       */
     void handleGaiaScramble();
 
-    /**Checks if we are in a state where
+    /** Checks if we are in a state where
       * the house and names of the current player's neighbors should be concealed
       *
       * @return     true if we should conceal neighbor house and name
