@@ -145,7 +145,7 @@ float ItemController::getEffectiveItemInterval() const {
  * @param dt  Time elapsed
  * @param player   The player to give the item to
  */
-void ItemController::update(float dt, Player* player) {
+void ItemController::update(float dt, Player* player, bool blockSpawn) {
     const float itemInterval = getEffectiveItemInterval();
     if (!player || itemInterval <= 0.0f) {
         return;
@@ -154,6 +154,8 @@ void ItemController::update(float dt, Player* player) {
     auto [it, inserted] = _itemTimers.emplace(player->getPlayerNumber(), _itemTimerStart);
     float& itemTimer = it->second;
     itemTimer += dt;
+
+    if (blockSpawn) return;
 
     while (itemTimer >= itemInterval) {
         itemTimer -= itemInterval;

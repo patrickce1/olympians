@@ -1,5 +1,6 @@
 #include <cugl/cugl.h>
 #include "GameState.h"
+#include "../bosses/Cerberus.h"
 #include <array>
 #include <cstdlib>
 
@@ -141,7 +142,7 @@ bool GameState::initEnemy() {
 
 /**
  * Creates an enemy instance of the appropriate type based on enemy ID.
- * Currently supports Cyclops (custom class) and Cerberus (generic Enemy).
+ * Currently supports Cyclops, Cerberus, and Gaia as custom subclasses.
  * 
  * @param enemyID The unique identifier for the enemy to create
  * @return A shared pointer to the newly created enemy instance
@@ -150,8 +151,7 @@ static std::shared_ptr<Enemy> createEnemyByID(const std::string& enemyID) {
     if (enemyID == "cyclops") {
         return std::make_shared<Cyclops>();
     } else if (enemyID == "cerberus") {
-        // TODO: Create a custom Cerberus class in a future PR
-        return std::make_shared<Enemy>();
+        return std::make_shared<Cerberus>();
     }
     else if (enemyID == "gaia") {
         return std::make_shared<Gaia>();
@@ -352,8 +352,6 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
 /**
  * Applies all queued boss heal messages to the enemy's current health.
  * Called by the host each frame after processing incoming network messages.
- * Currently used exclusively for Gaia's rock item, which heals the boss
- * instead of dealing damage.
  *
  * @param bossHeals  The queued boss heal updates to apply this frame.
  */
@@ -549,7 +547,17 @@ void GameState::networkUpdate(GameStateMessage newState) {
     _enemy->syncLoveDuration(newState.bossLoveDuration);
     _enemy->syncSlow(newState.bossSlowMultiplier, newState.bossSlowDuration);
     _enemy->syncVulnerable(newState.bossVulnerableMultipliers, newState.bossVulnerableDurations);
-    
+
+    // sync Cerberus head knocked state and locked victim
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_enemy);
+    if (cerberus) {
+        for (int i = 0; i < 3; i++) {
+            cerberus->syncHeadKnockedState(i, newState.cerberusHeadsKnocked[i],
+                                              newState.cerberusHeadsKnockedTimer[i]);
+        }
+        cerberus->lockVictim(newState.cerberusLockedVictim);
+    }
+
     //update boss direction
     _enemy->setTargetIndex(newState.bossTarget);
 
