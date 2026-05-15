@@ -371,12 +371,14 @@
             },
             "states": {
                 "idle": {
-                    "name": "idle"
+                    "name": "idle",
+                    "animationKey": "gaia_idle_animation"
                 },
                 "attack_1": {
                     "name": "Earth's Tremors",
                     "buildUpTime": 4.0,
                     "cooldownTime": 0.0,
+                    "animationKey": "gaia_idle_animation",
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -390,6 +392,7 @@
                     "name": "Poisonous Hedge",
                     "buildUpTime": 3.0,
                     "cooldownTime": 1.0,
+                    "animationKey": "gaia_idle_animation",
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -409,6 +412,7 @@
                     "name": "Shift the Ground",
                     "buildUpTime": 1.0,
                     "cooldownTime": 2.0,
+                    "animationKey": "gaia_idle_animation",
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -440,6 +444,7 @@
                     "name": "Wall of Stone",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
+                    "animationKey": "gaia_idle_animation",
                     "events": [
 			            {
                             "type": "SIDE_MODIFIER",
