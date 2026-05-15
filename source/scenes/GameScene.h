@@ -323,6 +323,9 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
+    /** Maps ItemId to the item definition currently displayed by its widget. */
+    std::unordered_map<ItemInstance::ItemId, std::string> _itemWidgetDefIds;
+
     /** Set of ItemIds currently corroding (prevents scale updates during corrosion animation). */
     std::unordered_set<ItemInstance::ItemId> _corrodingItemIds;
 
@@ -1857,7 +1860,7 @@ public:
     void detectDroppedPeers();
 
     /**
-     * HOST ONLY. Replaces the player at the given slot with an EasyPlayerAI,
+     * HOST ONLY. Replaces the player at the given slot with an PlayerAI,
      * re-wires the neighbour ring, and restores the disconnected player's
      * health and inventory onto the new AI.
      *
@@ -2335,6 +2338,17 @@ public:
      * Must only be called while _draggedIcon and _tooltipNode are valid.
      */
     void updateTooltipPosition();
+    
+    /**
+     * Awards or deducts XP based on the game outcome and selected boss,
+     * then persists the result to disk.
+     *
+     * On a win, the full boss XP reward is added. On a loss, half the
+     * boss XP reward is deducted (clamped to 0 by setPlayerXP).
+     *
+     * @param won  true if the players won, false if they lost.
+     */
+    void handleXPAdjustment(bool won);
 
 #pragma mark -
 #pragma mark Tutorial
