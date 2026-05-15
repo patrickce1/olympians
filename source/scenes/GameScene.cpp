@@ -1018,6 +1018,18 @@ void GameScene::setActive(bool value) {
             // Without this, _db is null and the AI crashes on first update.
             _gameState.initAI(_itemController);
             
+            // Re-apply AI difficulty after initAI() resets all multipliers to 0.
+            // Uses the current enemy ID and cached player XP so the multiplier
+            // matches what was set in the lobby.
+            const std::string& bossId = _gameState.getEnemy() ? _gameState.getEnemy()->getId(): "";
+            if (!bossId.empty()) {
+                _gameState.applyAIDifficultyForBoss(
+                    bossId,
+                    SavedDataManager::get().getPlayerXP()
+                );
+            }
+            
+            
             // Reset enemy animation state for clean start
             _enemyAnimationCurrentDirection = 0;
             
@@ -5133,6 +5145,15 @@ void GameScene::demoteSlotToAI(int slot) {
     newAI->setCurrentHealth(savedHealth);
     for (const ItemInstance& item : savedInventory) {
         newAI->addItem(item);
+    }
+    
+    // Re-apply difficulty after init() resets the multiplier to 0
+    const std::string& bossId = _gameState.getEnemy() ? _gameState.getEnemy()->getId(): "";
+    if (!bossId.empty()) {
+        _gameState.applyAIDifficultyForBoss(
+            bossId,
+            SavedDataManager::get().getPlayerXP()
+        );
     }
 }
 

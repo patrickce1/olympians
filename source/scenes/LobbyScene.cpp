@@ -516,12 +516,6 @@ void LobbyScene::update(float timestep, InputController& input) {
     }
     
     updateLobbyBoss(_network->getEnemy());
-    if (_network->isHost() && _gameState && !_currentBoss.empty()) {
-        _gameState->applyAIDifficultyForBoss(
-            _currentBoss,
-            SavedDataManager::get().getPlayerXP()
-        );
-    }
     
     // Only the host can start; only enable the button when all players have locked in a house.
     if (_network->isHost()) {
