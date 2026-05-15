@@ -115,6 +115,12 @@
         "heal": {
             "file": "textures/gameScene/heal.png"
         },
+        "damageFrame": {
+            "file": "textures/gameScene/damageFrame.png"
+        },
+        "healFrame": {
+            "file": "textures/gameScene/healFrame.png"
+        },
         "debugReset": {
             "file": "textures/attack.png"
         },
