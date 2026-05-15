@@ -216,6 +216,30 @@ public:
      * @param value  true to enable haptics; false to disable.
      */
     void setHapticsEnabled(bool value) { _hapticsEnabled = value; }
+    
+    // ── Tutorial ───────────────────────────────────────────────────────────
+
+    /**
+     * Returns true if the player has completed the tutorial at least once.
+     *
+     * When false, only the Circe boss is selectable in HouseSelectScene.
+     * Defaults to false if load() has not yet been called or the key was
+     * absent from the save file (i.e. new installs start with the tutorial
+     * required).
+     *
+     * @return true if the tutorial has been completed; false otherwise.
+     */
+    bool getTutorialCompleted() const { return _tutorialCompleted; }
+
+    /**
+     * Sets whether the tutorial has been completed in memory.
+     *
+     * Does not write to disk. Call save() afterwards to persist the
+     * change across sessions.
+     *
+     * @param value  true to mark the tutorial as completed; false to reset it.
+     */
+    void setTutorialCompleted(bool value) { _tutorialCompleted = value; }
 
 private:
     SavedDataManager() = default;
@@ -251,6 +275,13 @@ private:
 
     /** Whether haptic feedback is enabled. Default true. */
     bool _hapticsEnabled = true;
+    
+    /**
+     * Whether the player has completed the tutorial. Default false so that
+     * new installs always start with the tutorial required and only Circe
+     * unlocked until it is finished.
+     */
+    bool _tutorialCompleted = false;
 };
 
 #endif /* __SAVE_DATA_MANAGER_H__ */
