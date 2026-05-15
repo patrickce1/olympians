@@ -1074,6 +1074,9 @@ public:
     /** Creates the full-screen heal and damage frame overlays. */
     void initHealthFrameEffects();
 
+    /** Resizes full-screen heal and damage frames to match the current scene. */
+    void layoutHealthFrameEffects();
+
     /** Starts or refreshes the full-screen damage frame fade. */
     void triggerDamageFrame();
 

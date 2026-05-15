@@ -3575,7 +3575,6 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
 void GameScene::initHealthFrameEffects() {
     if (!_specialEffectsLayer || !_assets) return;
 
-    Size dimen = getSize();
     auto createFrame = [&](const std::string& textureKey) -> std::shared_ptr<scene2::NinePatch> {
         auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
         if (!texture) {
@@ -3593,8 +3592,6 @@ void GameScene::initHealthFrameEffects() {
         if (!frame) return nullptr;
 
         frame->setAnchor(Vec2::ANCHOR_CENTER);
-        frame->setPosition(Vec2(dimen.width * 0.5f, dimen.height * 0.5f));
-        frame->setContentSize(dimen);
         frame->setColor(Color4(255, 255, 255, 0));
         _specialEffectsLayer->addChild(frame);
         return frame;
@@ -3602,6 +3599,27 @@ void GameScene::initHealthFrameEffects() {
 
     _damageFrame = createFrame("damageFrame");
     _healFrame = createFrame("healFrame");
+    layoutHealthFrameEffects();
+}
+
+/** Resizes full-screen heal and damage frames to match the current scene. */
+void GameScene::layoutHealthFrameEffects() {
+    Size dimen = getSize();
+    if (_specialEffectsLayer) {
+        _specialEffectsLayer->setContentWidth(dimen.width);
+        _specialEffectsLayer->setContentHeight(dimen.height);
+        _specialEffectsLayer->setPosition(Vec2(dimen.width * 0.5f, dimen.height * 0.5f));
+    }
+
+    auto layoutFrame = [dimen](const std::shared_ptr<scene2::NinePatch>& frame) {
+        if (!frame) return;
+        frame->setContentWidth(dimen.width);
+        frame->setContentHeight(dimen.height);
+        frame->setPosition(Vec2(dimen.width * 0.5f, dimen.height * 0.5f));
+    };
+
+    layoutFrame(_damageFrame);
+    layoutFrame(_healFrame);
 }
 
 /** Starts or refreshes the full-screen damage frame fade. */
