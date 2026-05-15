@@ -106,6 +106,20 @@ bool PlayerAI::init(const ItemDatabase& db, const std::string& path) {
         if (_debug) CULogError("PlayerAI::init — missing or invalid 'rockPassChanceMax'");
         valid = false;
     }
+    
+    if (config->has("divineObedienceMin") && config->get("divineObedienceMin")->isNumber()) {
+        _divineObedienceMin = config->getFloat("divineObedienceMin");
+    } else {
+        if (_debug) CULogError("PlayerAI::init — missing or invalid 'divineObedienceMin'");
+        valid = false;
+    }
+
+    if (config->has("divineObedienceMax") && config->get("divineObedienceMax")->isNumber()) {
+        _divineObedienceMax = config->getFloat("divineObedienceMax");
+    } else {
+        if (_debug) CULogError("PlayerAI::init — missing or invalid 'divineObedienceMax'");
+        valid = false;
+    }
 
     if (valid) applyDecisionMultiplier();
     return valid;
@@ -176,15 +190,16 @@ void PlayerAI::applyDecisionMultiplier() {
     _effectiveRarePassChance   = _rarePassChanceMin   + _decisionMultiplier * (_rarePassChanceMax   - _rarePassChanceMin);
     _effectiveDivinePassChance = _divinePassChanceMin + _decisionMultiplier * (_divinePassChanceMax - _divinePassChanceMin);
     _effectiveRockPassChance = _rockPassChanceMin + _decisionMultiplier * (_rockPassChanceMax - _rockPassChanceMin);
+    _effectiveDivineObedience = _divineObedienceMin + _decisionMultiplier * (_divineObedienceMax - _divineObedienceMin);
 
     CULog(
         "[PlayerAI '%s'] multiplier=%.2f → interval=%.2f heal=%.2f "
-        "atk=%.2f sup=%.2f rarePass=%.2f divinePass=%.2f rockPass=%.2f",
+        "atk=%.2f sup=%.2f rarePass=%.2f divinePass=%.2f rockPass=%.2f divineObedience=%.2f",
         getPlayerName().c_str(), _decisionMultiplier,
         _thinkInterval, _healThreshold,
         _attackWeight, _supportWeight,
         _effectiveRarePassChance, _effectiveDivinePassChance,
-        _effectiveRockPassChance);
+        _effectiveRockPassChance, _effectiveDivineObedience);
 }
 
 // ---------------------------------------------------------------------------
@@ -309,28 +324,23 @@ bool PlayerAI::canSupport() const {
  * Evaluates game context and returns the state the AI should transition to.
  *
  * Priority order:
- *   1. Support check — if the AI has a support item and any neighbor needs
- *      healing (below _healThreshold), heal immediately. This is always the
- *      top priority so teammates are never left injured while the AI attacks.
- *   2. Rarity-pass check — scan for unowned non-attack divine items
- *      (divinePassChance), then unowned non-attack rare items (rarePassChance).
- *      Attack items are never passed. First hit returns PASS.
- *   3. Attack — if the AI has an attack item, attack the enemy.
- *   4. Fallback — if nothing else is viable, pass a random item or idle.
+ *   1. Support check — heal a teammate below _healThreshold immediately.
+ *   2. Rarity-pass check — pass unowned rare/divine non-attack items to
+ *      affinity-matched neighbors. See evaluateRarityPass().
+ *   3. Weighted action roll — divine ruleset check then house-weighted roll
+ *      between ATTACK and SUPPORT. See evaluateWeightedAction().
  *
  * @param enemy  The current enemy.
  * @return The State the AI should transition to this think cycle.
  */
 PlayerAI::State PlayerAI::evaluate(const Enemy& enemy) {
-    _pendingPassItemId = 0;
-    _pendingPassTarget = nullptr;
+    _pendingPassItemId  = 0;
+    _pendingPassTarget  = nullptr;
+    _rulesetDeferDivine = false;
 
     if (getInventory().empty()) return State::IDLE;
 
     // --- 1. Support check ---
-    // Always heal first if a teammate needs it and we have a support item.
-    // Uses _healThreshold so better AI heals earlier, worse AI only heals
-    // when teammates are nearly dead.
     if (hasSupportItem()) {
         auto needsHeal = [&](Player* player) {
             return player && player->isAlive() &&
@@ -343,91 +353,147 @@ PlayerAI::State PlayerAI::evaluate(const Enemy& enemy) {
         }
     }
 
-    // --- 2. Rarity-pass check (non-attack items only) ---
-    // Attack items are never passed — they should always be used on the enemy.
-    // Pass target preference is based on house affinity: if a neighbor plays
-    // the house the item belongs to, they get priority. If neither neighbor
-    // matches, passes to a random alive neighbor.
+    // --- 2. Rarity-pass check ---
     bool hasAliveNeighbor = (getLeftPlayer()  && getLeftPlayer()->isAlive()) ||
                             (getRightPlayer() && getRightPlayer()->isAlive());
 
-    if (hasAliveNeighbor) {
-        // Returns the alive neighbor whose house matches this item's affinity,
-        // or nullptr if neither neighbor matches (actPass() picks randomly).
-        auto findAffinityNeighbor = [&](const ItemInstance& inventoryItem) -> Player* {
-            auto itemDef = _db->getDef(inventoryItem.getDefId());
-            if (!itemDef) return nullptr;
+    if (hasAliveNeighbor && evaluateRarityPass()) {
+        return State::PASS;
+    }
 
-            ItemDef::House itemAffinity = itemDef->getHouseAffinity();
-            if (itemAffinity == ItemDef::House::None) return nullptr;
+    // --- 3. Weighted action roll ---
+    return evaluateWeightedAction(hasAliveNeighbor);
+}
 
-            auto matchesAffinity = [&](Player* neighbor) -> bool {
-                if (!neighbor || !neighbor->isAlive()) return false;
-                return ItemDef::houseFromString(neighbor->getHouseName(), ItemDef::House::None)
-                       == itemAffinity;
-            };
+/**
+ * Scans inventory for unowned non-attack rare and divine items and rolls
+ * against pass chances. If triggered, sets _pendingPassItemId and
+ * _pendingPassTarget as side effects and returns true.
+ *
+ * Attack items are never passed. Commons are never rarity-passed.
+ * Pass target is the alive neighbor whose house matches the item's affinity,
+ * or nullptr if neither neighbor matches (actPass() picks randomly).
+ *
+ * @return true if a rarity-pass was triggered, false otherwise.
+ */
+bool PlayerAI::evaluateRarityPass() {
+    auto findAffinityNeighbor = [&](const ItemInstance& inventoryItem) -> Player* {
+        auto itemDef = _db->getDef(inventoryItem.getDefId());
+        if (!itemDef) return nullptr;
 
-            if (matchesAffinity(getLeftPlayer()))  return getLeftPlayer();
-            if (matchesAffinity(getRightPlayer())) return getRightPlayer();
-            return nullptr; // no affinity match — actPass() picks randomly
+        ItemDef::House itemAffinity = itemDef->getHouseAffinity();
+        if (itemAffinity == ItemDef::House::None) return nullptr;
+
+        auto matchesAffinity = [&](Player* neighbor) -> bool {
+            if (!neighbor || !neighbor->isAlive()) return false;
+            return ItemDef::houseFromString(neighbor->getHouseName(), ItemDef::House::None)
+                   == itemAffinity;
         };
 
+        if (matchesAffinity(getLeftPlayer()))  return getLeftPlayer();
+        if (matchesAffinity(getRightPlayer())) return getRightPlayer();
+        return nullptr;
+    };
+
+    for (const ItemInstance& inventoryItem : getInventory()) {
+        auto itemDef = _db->getDef(inventoryItem.getDefId());
+        if (!itemDef) continue;
+        if (itemDef->getType() == ItemDef::Type::Attack) continue;
+
+        float passChance = 0.0f;
+        if      (itemDef->getRarity() == ItemDef::Rarity::Divine) passChance = _effectiveDivinePassChance;
+        else if (itemDef->getRarity() == ItemDef::Rarity::Rare)   passChance = _effectiveRarePassChance;
+        else continue;
+
+        float passRoll = static_cast<float>(rand()) / RAND_MAX;
+        if (passRoll < passChance) {
+            _pendingPassItemId = inventoryItem.getId();
+            _pendingPassTarget = findAffinityNeighbor(inventoryItem);
+            if (_debug) CULog(
+                "[PlayerAI '%s'] evaluateRarityPass — triggered (roll=%.2f chance=%.2f) → target='%s'",
+                getPlayerName().c_str(), passRoll, passChance,
+                _pendingPassTarget ? _pendingPassTarget->getPlayerName().c_str() : "random");
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Checks the divine ruleset for any owned house-affinity divine in inventory,
+ * then performs a house-weighted roll between ATTACK and SUPPORT.
+ * Sets _rulesetDeferDivine if the ruleset defers the divine this cycle so
+ * actAttack() can exclude it from the candidate pool.
+ *
+ * Returns PASS or IDLE if neither ATTACK nor SUPPORT is viable.
+ *
+ * @param hasAliveNeighbor  Whether an alive neighbor exists, used for the
+ *                          PASS vs IDLE fallback decision.
+ * @return The State the AI should transition to.
+ */
+PlayerAI::State PlayerAI::evaluateWeightedAction(bool hasAliveNeighbor) {
+    // Divine ruleset check — only applies to this AI's own house-affinity divine
+    ItemDef::House ownHouse = ItemDef::houseFromString(getHouseName(), ItemDef::House::None);
+    bool hasOwnedDivine = false;
+
+    if (ownHouse != ItemDef::House::None) {
         for (const ItemInstance& inventoryItem : getInventory()) {
             auto itemDef = _db->getDef(inventoryItem.getDefId());
-            if (!itemDef) continue;
-            if (itemDef->getType() == ItemDef::Type::Attack) continue; // never pass attack items
-
-            float passChance = 0.0f;
-            if      (itemDef->getRarity() == ItemDef::Rarity::Divine) passChance = _effectiveDivinePassChance;
-            else if (itemDef->getRarity() == ItemDef::Rarity::Rare)   passChance = _effectiveRarePassChance;
-            else continue; // commons are never rarity-passed
-
-            float passRoll = static_cast<float>(rand()) / RAND_MAX;
-            if (passRoll < passChance) {
-                _pendingPassItemId = inventoryItem.getId();
-                _pendingPassTarget = findAffinityNeighbor(inventoryItem);
-                if (_debug) CULog(
-                    "[PlayerAI '%s'] evaluate — rarity pass triggered (roll=%.2f chance=%.2f) → target='%s'",
-                    getPlayerName().c_str(), passRoll, passChance,
-                    _pendingPassTarget ? _pendingPassTarget->getPlayerName().c_str() : "random");
-                return State::PASS;
+            if (itemDef &&
+                itemDef->getRarity()        == ItemDef::Rarity::Divine &&
+                itemDef->getHouseAffinity() == ownHouse) {
+                hasOwnedDivine = true;
+                break;
             }
         }
     }
 
-    // --- 3. Weighted action roll ---
-    // No emergency heal and no rarity-pass fired. Use the house-weighted ratio
-    // to decide between attacking and supporting. Better AI will lean toward
-    // their house's natural style; worse AI is closer to 50/50.
-    // Falls back to whichever is available if only one option exists.
+    if (hasOwnedDivine) {
+        float obedienceRoll = static_cast<float>(rand()) / RAND_MAX;
+        bool  shouldObey    = obedienceRoll < _effectiveDivineObedience;
+        bool  rulesetPassed = checkDivineRuleset();
+
+        if (shouldObey && !rulesetPassed) {
+            if (_debug) CULog(
+                "[PlayerAI '%s'] evaluateWeightedAction — divine deferred by ruleset "
+                "(roll=%.2f obedience=%.2f)",
+                getPlayerName().c_str(), obedienceRoll, _effectiveDivineObedience);
+            _rulesetDeferDivine = true;
+        }
+    }
+
     bool canAttackNow  = canAttack();
     bool canSupportNow = canSupport();
 
     if (!canAttackNow && !canSupportNow) {
-        if (_debug) CULog("[PlayerAI '%s'] evaluate — fallback pass/idle", getPlayerName().c_str());
+        if (_debug) CULog("[PlayerAI '%s'] evaluateWeightedAction — fallback pass/idle",
+              getPlayerName().c_str());
         return hasAliveNeighbor ? State::PASS : State::IDLE;
     }
 
     if (canAttackNow && !canSupportNow) {
-        if (_debug) CULog("[PlayerAI '%s'] evaluate — attacking (no support items)", getPlayerName().c_str());
+        if (_debug) CULog("[PlayerAI '%s'] evaluateWeightedAction — attacking (no support items)",
+              getPlayerName().c_str());
         return State::ATTACK;
     }
 
     if (!canAttackNow && canSupportNow) {
-        if (_debug) CULog("[PlayerAI '%s'] evaluate — supporting (no attack items)", getPlayerName().c_str());
+        if (_debug) CULog("[PlayerAI '%s'] evaluateWeightedAction — supporting (no attack items)",
+              getPlayerName().c_str());
         return State::SUPPORT;
     }
 
-    // Both options available — roll against house-weighted ratio
+    // Both available — roll against house-weighted ratio
     float totalWeight = _attackWeight + _supportWeight;
     float actionRoll  = static_cast<float>(rand()) / RAND_MAX * totalWeight;
 
     if (actionRoll < _attackWeight) {
-        if (_debug) CULog("[PlayerAI '%s'] evaluate — attacking (roll=%.2f atk=%.2f sup=%.2f)",
+        if (_debug) CULog("[PlayerAI '%s'] evaluateWeightedAction — attacking (roll=%.2f atk=%.2f sup=%.2f)",
               getPlayerName().c_str(), actionRoll, _attackWeight, _supportWeight);
         return State::ATTACK;
     } else {
-        if (_debug) CULog("[PlayerAI '%s'] evaluate — supporting (roll=%.2f atk=%.2f sup=%.2f)",
+        if (_debug) CULog("[PlayerAI '%s'] evaluateWeightedAction — supporting (roll=%.2f atk=%.2f sup=%.2f)",
               getPlayerName().c_str(), actionRoll, _attackWeight, _supportWeight);
         return State::SUPPORT;
     }
@@ -445,17 +511,48 @@ PlayerAI::State PlayerAI::evaluate(const Enemy& enemy) {
  * @param items  The ItemController used to resolve the item action.
  */
 void PlayerAI::actAttack(Enemy& enemy, ItemController& items) {
+    ItemDef::House ownHouse = ItemDef::houseFromString(getHouseName(), ItemDef::House::None);
+
     std::vector<ItemInstance::ItemId> attackItems;
     for (const ItemInstance& item : getInventory()) {
-        auto def = _db->getDef(item.getDefId());
-        if (def && def->getType() == ItemDef::Type::Attack) {
-            attackItems.push_back(item.getId());
+        auto itemDef = _db->getDef(item.getDefId());
+        if (!itemDef || itemDef->getType() != ItemDef::Type::Attack) continue;
+
+        // If the ruleset deferred the divine, remove any attack item that is
+        // this AI's own house-affinity divine from the candidate pool entirely.
+        if (_rulesetDeferDivine &&
+            itemDef->getRarity()        == ItemDef::Rarity::Divine &&
+            itemDef->getHouseAffinity() == ownHouse) {
+            if (_debug) CULog("[PlayerAI '%s'] actAttack — excluding own divine (ruleset deferred)",
+                  getPlayerName().c_str());
+            continue;
         }
+
+        attackItems.push_back(item.getId());
     }
+
+    _rulesetDeferDivine = false;
+
     if (attackItems.empty()) {
-        if (_debug) CULog("[PlayerAI '%s'] actAttack — no attack items, aborting", getPlayerName().c_str());
+        if (_debug) CULog("[PlayerAI '%s'] actAttack — no eligible attack items",
+              getPlayerName().c_str());
+        
+        // Divine was the only attack item and ruleset said no.
+        // Try supporting instead, then fall back to passing.
+        if (canSupport()) {
+            if (_debug) CULog("[PlayerAI '%s'] actAttack — no eligible attack items, diverting to support",
+                  getPlayerName().c_str());
+            actSupport(items);
+            return;
+        } else {
+            if (_debug) CULog("[PlayerAI '%s'] actAttack — no eligible attack items, trying to pass",
+                  getPlayerName().c_str());
+            actPass();
+            return;
+        }
         return;
     }
+
     ItemInstance::ItemId chosen = attackItems[rand() % attackItems.size()];
     if (_debug) CULog("[PlayerAI '%s'] actAttack — using item %llu on '%s'",
           getPlayerName().c_str(), (unsigned long long)chosen, enemy.getId().c_str());
@@ -643,4 +740,122 @@ void PlayerAI::actPass() {
     itemToPass.setPassDirection(passDirection);
     itemToPass.setSlideOrigin(ItemInstance::SlideOriginType::SLIDE_FROM_PASS);
     chosenTarget->addItem(itemToPass);
+}
+
+/**
+ * Evaluates whether current game conditions meet the house-specific divine
+ * ruleset. Returns true if conditions are satisfied or no ruleset exists
+ * for this house, meaning the AI may proceed with using the divine item.
+ * Returns false if conditions are not met, meaning the AI should defer.
+ *
+ * @return true if the divine may be used, false if conditions are not met.
+ */
+bool PlayerAI::checkDivineRuleset() const {
+    ItemDef::House house = ItemDef::houseFromString(getHouseName(), ItemDef::House::None);
+
+    // Helper: health ratio of a player, or 1.0 if null/dead
+    auto healthRatio = [](Player* player) -> float {
+        if (!player || !player->isAlive()) return 1.0f;
+        return player->getCurrentHealth() / player->getMaxHealth();
+    };
+
+    Player* leftNeighbor  = getLeftPlayer();
+    Player* rightNeighbor = getRightPlayer();
+
+    // Count how many of {self, left, right} are below a health threshold
+    auto countBelowThreshold = [&](float threshold) -> int {
+        int count = 0;
+        if (getCurrentHealth() / getMaxHealth() < threshold) count++;
+        if (leftNeighbor  && leftNeighbor->isAlive()  && healthRatio(leftNeighbor)  < threshold) count++;
+        if (rightNeighbor && rightNeighbor->isAlive() && healthRatio(rightNeighbor) < threshold) count++;
+        return count;
+    };
+
+    // Check if a player holds any divine item
+    auto hasDivine = [&](Player* player) -> bool {
+        if (!player) return false;
+        for (const ItemInstance& item : player->getInventory()) {
+            auto itemDef = _db->getDef(item.getDefId());
+            if (itemDef && itemDef->getRarity() == ItemDef::Rarity::Divine) return true;
+        }
+        return false;
+    };
+
+    bool conditionsMet = true;
+
+    switch (house) {
+
+        case ItemDef::House::Poseidon: {
+            // Self or a teammate below 50%, OR 2+ players below 75%
+            bool anyBelowHalf   = countBelowThreshold(0.5f) >= 1;
+            bool twoBelowThreeQ = countBelowThreshold(0.75f) >= 2;
+            conditionsMet       = anyBelowHalf || twoBelowThreeQ;
+            if (_debug) CULog(
+                "[PlayerAI '%s'] divineRuleset poseidon — anyBelow50=%d twoBelowQ75=%d → %s",
+                getPlayerName().c_str(), anyBelowHalf, twoBelowThreeQ,
+                conditionsMet ? "USE" : "DEFER");
+            break;
+        }
+
+        case ItemDef::House::Demeter: {
+            // Self or teammate below 30%, OR 2+ below 50%, OR all 3 below 60%
+            bool anyBelowThird = countBelowThreshold(0.3f) >= 1;
+            bool twoBelowHalf  = countBelowThreshold(0.5f) >= 2;
+            bool allBelowSixty = countBelowThreshold(0.6f) >= 3;
+            conditionsMet      = anyBelowThird || twoBelowHalf || allBelowSixty;
+            if (_debug) CULog(
+                "[PlayerAI '%s'] divineRuleset demeter — anyBelow30=%d twoBelowHalf=%d allBelow60=%d → %s",
+                getPlayerName().c_str(), anyBelowThird, twoBelowHalf, allBelowSixty,
+                conditionsMet ? "USE" : "DEFER");
+            break;
+        }
+
+        case ItemDef::House::Hades: {
+            // At least one teammate must be dead
+            bool leftDead  = leftNeighbor  && !leftNeighbor->isAlive();
+            bool rightDead = rightNeighbor && !rightNeighbor->isAlive();
+            conditionsMet  = leftDead || rightDead;
+            if (_debug) CULog(
+                "[PlayerAI '%s'] divineRuleset hades — leftDead=%d rightDead=%d → %s",
+                getPlayerName().c_str(), leftDead, rightDead,
+                conditionsMet ? "USE" : "DEFER");
+            break;
+        }
+
+        case ItemDef::House::Hephaestus: {
+            // Self and all alive teammates must each have at least 2 items
+            bool selfHasEnough  = (int)getInventory().size() >= 2;
+            bool leftHasEnough  = !leftNeighbor  || !leftNeighbor->isAlive()
+                                  || (int)leftNeighbor->getInventory().size()  >= 2;
+            bool rightHasEnough = !rightNeighbor || !rightNeighbor->isAlive()
+                                  || (int)rightNeighbor->getInventory().size() >= 2;
+            conditionsMet       = selfHasEnough && leftHasEnough && rightHasEnough;
+            if (_debug) CULog(
+                "[PlayerAI '%s'] divineRuleset hephaestus — self=%d left=%d right=%d → %s",
+                getPlayerName().c_str(), selfHasEnough, leftHasEnough, rightHasEnough,
+                conditionsMet ? "USE" : "DEFER");
+            break;
+        }
+
+        case ItemDef::House::Hermes: {
+            // No teammate currently holds a divine item
+            bool leftHasDivine  = hasDivine(leftNeighbor);
+            bool rightHasDivine = hasDivine(rightNeighbor);
+            conditionsMet       = !leftHasDivine && !rightHasDivine;
+            if (_debug) CULog(
+                "[PlayerAI '%s'] divineRuleset hermes — leftHasDivine=%d rightHasDivine=%d → %s",
+                getPlayerName().c_str(), leftHasDivine, rightHasDivine,
+                conditionsMet ? "USE" : "DEFER");
+            break;
+        }
+
+        default:
+            // No ruleset for this house — always allow use
+            if (_debug) CULog("[PlayerAI '%s'] divineRuleset — no ruleset for house '%s', allowing use",
+                  getPlayerName().c_str(), getHouseName().c_str());
+            conditionsMet = true;
+            break;
+    }
+
+    return conditionsMet;
 }

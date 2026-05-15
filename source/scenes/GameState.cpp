@@ -669,7 +669,7 @@ void GameState::assignMissingHousesForAI(ItemController& itemController) {
 }
 
 /**
- * Replaces the player at the given slot with an EasyPlayerAI, optionally
+ * Replaces the player at the given slot with an PlayerAI, optionally
  * preserving their house. Re-wires the neighbour ring and updates the
  * player ID map. Note: caller must call ai->init() after this to set _db.
  *

@@ -63,6 +63,14 @@ protected:
 
     /** Accumulator tracking elapsed time since the last think cycle. */
     float _thinkTimer = 0.0f;
+    
+    /**
+     * Set to true in evaluate() when the divine ruleset check fires and
+     * conditions are not met. Consumed in actAttack() to exclude the AI's
+     * own divine item from the candidate pool. Cleared after actAttack()
+     * resolves, or at the start of the next evaluate() cycle.
+     */
+    bool _rulesetDeferDivine = false;
 
     // ── Raw JSON floor/ceiling values ──────────────────────────────────────
 
@@ -115,6 +123,20 @@ protected:
      */
     float _rockPassChanceMax;
     
+    /**
+     * Minimum probability that the AI consults the divine ruleset before
+     * using one of its own divine items (worst AI). Loaded from JSON.
+     * At this floor the AI mostly ignores the ruleset and uses divines freely.
+     */
+    float _divineObedienceMin;
+
+    /**
+     * Maximum probability that the AI consults the divine ruleset before
+     * using one of its own divine items (best AI). Loaded from JSON.
+     * At this ceiling the AI almost always waits for the right conditions.
+     */
+    float _divineObedienceMax;
+    
     // ── Runtime interpolated values ────────────────────────────────────────
 
     /**
@@ -161,6 +183,13 @@ protected:
      * and _rockPassChanceMax by _decisionMultiplier.
      */
     float _effectiveRockPassChance = 0.5f;
+    
+    /**
+     * Current probability that the AI consults the divine ruleset before using
+     * one of its own divine items. Interpolated between _divineObedienceMin
+     * and _divineObedienceMax by _decisionMultiplier.
+     */
+    float _effectiveDivineObedience = 0.3f;
 
     /**
      * Scales AI decision quality from 0.0 (easiest) to 1.0 (hardest).
@@ -300,6 +329,28 @@ private:
      * external use.
      */
     void applyDecisionMultiplier();
+    
+    /**
+     * Step 2 of evaluate(). Scans inventory for unowned non-attack rare and
+     * divine items and rolls against pass chances. If a pass triggers, sets
+     * _pendingPassItemId and _pendingPassTarget and returns true. Attack items
+     * are never considered. Only fires when an alive neighbor exists.
+     *
+     * @return true if a rarity-pass was triggered this cycle, false otherwise.
+     */
+    bool evaluateRarityPass();
+
+    /**
+     * Step 3 of evaluate(). Checks the divine ruleset for owned divines, then
+     * performs a weighted roll between ATTACK and SUPPORT based on house ratios.
+     * Sets _rulesetDeferDivine if the ruleset defers the divine this cycle.
+     * Returns PASS or IDLE if neither action is viable.
+     *
+     * @param hasAliveNeighbor  Whether an alive neighbor exists, used for the
+     *                          PASS vs IDLE fallback decision.
+     * @return The State the AI should transition to.
+     */
+    State evaluateWeightedAction(bool hasAliveNeighbor);
 
     /**
      * Evaluates game context and returns the state the AI should transition to.
@@ -386,6 +437,26 @@ private:
      * @return true if any inventory item has type ItemDef::Type::Support.
      */
     bool hasSupportItem() const;
+    
+    /**
+     * Evaluates whether the current game state meets the conditions required
+     * for the AI's house divine item to be used optimally.
+     *
+     * Each house has a specific ruleset. If the AI's house has no ruleset,
+     * returns true so the divine is always used. If the ruleset conditions
+     * are not met, the AI may defer usage based on _effectiveDivineObedience.
+     *
+     * Rulesets by house:
+     *   poseidon  — self or a teammate below 50%, OR 2+ teammates below 75%
+     *   demeter   — self or a teammate below 30%, OR 2+ teammates below 50%,
+     *               OR all 3 teammates below 60%
+     *   hades     — at least one teammate must be dead
+     *   hephaestus — self and all teammates each have at least 2 inventory items
+     *   hermes    — no teammate currently holds a divine item
+     *
+     * @return true if conditions are met or no ruleset exists for this house.
+     */
+    bool checkDivineRuleset() const;
 };
 
 #endif /* __PLAYER_AI_H__ */
