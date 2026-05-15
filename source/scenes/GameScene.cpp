@@ -4493,7 +4493,7 @@ void GameScene::updateGaiaInventoryVineAnimations(float dt) {
             if (state.currBlocked || state.isReversing) {
 
                 if (state.isReversing) {
-                    state.elapsedTime = std::max(state.elapsedTime - 2*dt, 0.0f);
+                    state.elapsedTime = std::max(state.elapsedTime - dt, 0.0f);
                 }
                 else {
                     state.elapsedTime = std::min(state.elapsedTime + dt, duration);
