@@ -516,20 +516,6 @@ EnemyLoader::State Enemy::getNextStateOrIdle() const {
 void Enemy::update(float dt) {
     tick(dt);
 
-    // One-line state snapshot every second to diagnose damage firing.
-    static float _dbgTimer = 0.0f;
-    _dbgTimer += dt;
-    if (_dbgTimer >= 1.0f) {
-        _dbgTimer = 0.0f;
-        const EnemyLoader::StateDef* dbgDef = getCurrentStateDef();
-        CULog("[Enemy::update] id=%s state=%d(%s) stateTime=%.2f stunned=%d loved=%d eventsFired=%d animFrame=%d damageFrame=%d",
-              _enemyId.c_str(), (int)_currentState,
-              dbgDef ? dbgDef->name.c_str() : "?",
-              _stateTime, (int)isStunned(), (int)isLoved(),
-              (int)_eventsFiredThisState, _currentAnimationFrame,
-              dbgDef ? dbgDef->damageFrame : -99);
-    }
-
     if (isStunned()) {
         return;
     }
