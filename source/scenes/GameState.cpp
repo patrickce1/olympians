@@ -352,8 +352,6 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
 /**
  * Applies all queued boss heal messages to the enemy's current health.
  * Called by the host each frame after processing incoming network messages.
- * Currently used exclusively for Gaia's rock item, which heals the boss
- * instead of dealing damage.
  *
  * @param bossHeals  The queued boss heal updates to apply this frame.
  */

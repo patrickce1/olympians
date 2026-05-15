@@ -1337,24 +1337,13 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
 
     if (!_network->isHost()) {
         //If we add an animation for gaia's rock we will have to move this to handleAnimatedAttack
-        if (def->getId() == "gaia_rock") {
-            _network->broadcastBossHeal(resolvedMagnitude);
-        }
-        else {
-            _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
-        }
+        _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
         broadcastEnemyEffects(*_network, enemyEffects);
     }
     const float finalDamage = resolvedMagnitude * sideMultiplier;
 
     if (_network->isHost() && _audio) {
         _audio->playSoundUnique(finalDamage <= 0.0f ? "enemy_block" : "enemy_hurt");
-    }
-
-    //Since Gaia's rock heals unlike other attacks, we need a custom popup for it
-    if (def->getId() == "gaia_rock") {
-        handleGaiaRockPopup(dropPos, resolvedMagnitude);
-        return true;
     }
 
     if (baseValue > 0.0f) {
@@ -1578,8 +1567,19 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         spawnEffectIcons(local->getEffectEvents());
 
         if (!_network->isHost()) {
-            _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
+            if (def->getId() == "gaia_rock") {
+            // This is where we do damage to teammate
+                _network->broadcastHeal(-1 * resolvedMagnitude, target->getPlayerNumber());
+            }
+            else {
+                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
+            }
+        }
+
+        if (def->getId() == "gaia_rock") {
+            handleGaiaRockPopup(dropPos, resolvedMagnitude);
+            return true;
         }
             
         playSupportItemSound(def);
@@ -1621,9 +1621,20 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         spawnEffectIcons(local->getEffectEvents());
 
         if (!_network->isHost()) {
-            _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
+            if (def->getId() == "gaia_rock") {
+                _network->broadcastHeal(-1 * resolvedMagnitude, target->getPlayerNumber());
+            }
+            else {
+                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
+            }
         }
+
+        if (def->getId() == "gaia_rock") {
+            handleGaiaRockPopup(dropPos, resolvedMagnitude);
+            return true;
+        }
+
         playSupportItemSound(def);
         CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
         
@@ -6871,14 +6882,14 @@ std::vector<FloatingPopupData> GameScene::buildCerberusDefenseHealPopup(
   * Spawns a floating popup showing the heal amount when Gaia's rock is used on the boss.
   *
   * @param dropPos    The screen-space position where the popup should appear.
-  * @param healAmount The amount of health restored to the boss.
+  * @param damageAmount The amount of damage done to our ally
   */
-void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
+void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float damageAmount) {
     char healText[32];
-    std::snprintf(healText, sizeof(healText), "+%.1f", healAmount);
+    std::snprintf(healText, sizeof(healText), "-%.1f", damageAmount);
     createFloatingPopup(dropPos, { {
         healText, 26.0f,
-        cugl::Color4(80, 220, 255, 255),
+        cugl::Color4(255, 110, 60, 255),
         cugl::Color4::BLACK,
         0.0f, 0.5f,
         cugl::Vec2::ZERO,
