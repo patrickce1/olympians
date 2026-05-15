@@ -266,8 +266,6 @@ void TutorialController::handlePlayerAction(InputController::Action action) {
         _waitingForAction = false;
         _index++;
         advanceStep();
-    } else {
-        CULog("Tutorial: wrong action, still waiting");
     }
 }
 

@@ -1222,6 +1222,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
+    const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
 
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
@@ -1268,8 +1269,7 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     }
 
     if (baseValue > 0.0f) {
-        const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
-        const float finalDamage     = resolvedMagnitude * sideMultiplier;
+        const float finalDamage = resolvedMagnitude * sideMultiplier;
         createFloatingPopup(dropPos, buildAttackDamagePopups(
             baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
             resolvedMagnitude, finalDamage, 26.0f, 17.0f));
@@ -5093,8 +5093,10 @@ void GameScene::updateItemUseAnimations(float dt) {
                     // Apply pre-calculated damage before any item effects update enemy side multipliers.
                     const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
+                    const float actualDamageDealt = enemyHealthBefore - enemy->getCurrentHealth();
+
                     if (localPlayer) {
-                        localPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - enemy->getCurrentHealth()));
+                        localPlayer->applyLifestealHeal(std::max(0.0f, actualDamageDealt));
                     }
                     if (activeAnim.baseValue > 0.0f) {
                         const float sideMultiplier = enemy->getSideMultiplier(playerNum);
