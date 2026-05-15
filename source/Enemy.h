@@ -158,6 +158,9 @@ public:
     /** Returns the unique id of this enemy */
     const std::string& getId() const { return _enemyId; }
 
+    /** Returns the raw customData JSON blob from enemies.json */
+    std::shared_ptr<cugl::JsonValue> getCustomData() const { return _customData; }
+
     /** Returns the file path to the sprite sheet */
     const std::string& getSpritesheetPath() const { return _spritesheetPath; }
 
@@ -410,6 +413,14 @@ public:
      * @return true if the enemy should activate their defensive move, false otherwise
      */
     bool virtual shouldDefend();
+
+    /**
+     * Returns false to veto entering the defense state regardless of the AI random roll.
+     * Override in boss subclasses to add preconditions for defensive behavior.
+     *
+     * @return true if defense is currently allowed, false to block it.
+     */
+    virtual bool canEnterDefenseState() const { return true; }
 
     /**
      * Returns the damage multiplier for a given absolute side index.
