@@ -291,7 +291,7 @@ public:
                             eventDef.target = eventJson->getInt("target", 0);
                         }
                         if(eventDef.type == EventType::VINE){
-                            eventDef.duration = eventJson->getInt("duration", 0.0f)
+                            eventDef.duration = eventJson->getInt("duration", 0.0f);
                         }
                         eventDef.amount       = eventJson->getFloat("amount", 0.0f);
                         eventDef.interval     = eventJson->getFloat("interval", 0.0f);

@@ -5256,10 +5256,10 @@ void GameScene::updateDropZoneVisibility(){
         // Hide pass zones while corrosive animations are still running on this player
         int localPlayerSlot = local ? local->getPlayerNumber() : -1;
         bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
-        bool leftVinePresent = local->hasLeftVine() || local->getLeftPlayer()->hasRightVine();
-        bool rightVinePresent = !local->hasRightVine() && !local->getRightPlayer()->hasLeftVine();
-        _passLeftArea->setVisible(!isCorrosiveActive);
-        _passRightArea->setVisible(!isCorrosiveActive);
+        bool leftVinePresent = local ? (local->hasLeftVine() || local->getLeftPlayer()->hasRightVine()) : false;
+        bool rightVinePresent = local ? (local->hasRightVine() || local->getRightPlayer()->hasLeftVine()) : false;
+        _passLeftArea->setVisible(!isCorrosiveActive && !leftVinePresent);
+        _passRightArea->setVisible(!isCorrosiveActive && !rightVinePresent);
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
