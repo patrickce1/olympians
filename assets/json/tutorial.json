@@ -139,7 +139,7 @@
     },
     {
       "type": "show_message",
-      "text": "When you use your house item, you deal extra damage!",
+      "text": "When you use your house item, it becomes enhanced!",
       "delay": 6.0
     },
     {
