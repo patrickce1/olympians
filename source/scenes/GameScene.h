@@ -323,6 +323,9 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
+    /** Maps ItemId to the item definition currently displayed by its widget. */
+    std::unordered_map<ItemInstance::ItemId, std::string> _itemWidgetDefIds;
+
     /** Set of ItemIds currently corroding (prevents scale updates during corrosion animation). */
     std::unordered_set<ItemInstance::ItemId> _corrodingItemIds;
 

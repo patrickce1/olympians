@@ -923,6 +923,7 @@ void GameScene::dispose() {
         _enemyAnimationSpriteNodes.clear();
         _currentVisibleAnimationSprite = nullptr;
         _itemWidgets.clear();
+        _itemWidgetDefIds.clear();
         _itemWidgetScales.clear();
         _itemWidgetScaleTargets.clear();
         _consumedItemAnimations.clear();
@@ -1101,6 +1102,7 @@ void GameScene::reset() {
     _slotsDemotedToAI.clear();
     _pendingResurrectionSync = PendingResurrectionSync{};
     _pendingPartyEffectSyncs.clear();
+    _itemWidgetDefIds.clear();
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
@@ -2123,10 +2125,17 @@ void GameScene::updateEnemyAndAI(float dt) {
         _audio->playSoundUnique("shield_block");
     }
 
-    // Update AI players - this is when they attack the boss AND heal teammates
-    for (auto& player : _gameState.getPlayers()) {
-        if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
-            ai->update(dt, *enemy, _itemController);
+    // Update AI players on the host so AI item decisions and effects are authoritative.
+    if (_network->isHost()) {
+        for (auto& player : _gameState.getPlayers()) {
+            if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
+                ai->update(dt, *enemy, _itemController);
+                for (float forgeChance : ai->consumePendingForgeChances()) {
+                    const int seed = makeForgeSeed();
+                    applyForgeEffect(forgeChance, seed);
+                    _network->broadcastForgeEffect(forgeChance, seed);
+                }
+            }
         }
     }
 
@@ -4377,7 +4386,7 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
         if (playerHurtEnabled && playerHealthDelta < 0.0f && _audio) {
             std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
             _audio->playSoundUnique(soundKey);
-        } else if (playerHealthDelta >= 1.0f && _audio) {
+        } else if (playerHealthDelta >= 1.0f && !player->hasRegen() && _audio) {
             _audio->playSoundUnique("player_heal");
         }
     }
@@ -5525,6 +5534,7 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
         }
         _itemWidgets.erase(widget);
     }
+    _itemWidgetDefIds.erase(itemId);
 
     auto body = _itemBodies.find(itemId);
     if (body != _itemBodies.end()) {
@@ -5603,6 +5613,9 @@ void GameScene::markItemAsUsed(ItemInstance::ItemId itemId) {
         _inventory->removeChild(widget->second);
         _itemWidgets.erase(widget);
     }
+    _itemWidgetDefIds.erase(itemId);
+    _itemWidgetScales.erase(itemId);
+    _itemWidgetScaleTargets.erase(itemId);
     
     // Remove physics body from world
     auto body = _itemBodies.find(itemId);
@@ -5837,6 +5850,7 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     
     widget->setPosition(spawnPos);
     _itemWidgets.emplace(id, widget);
+    _itemWidgetDefIds[id] = item.getDefId();
     _itemWidgetScales[id] = ITEM_NORMAL_SCALE;
     _itemWidgetScaleTargets[id] = ITEM_NORMAL_SCALE;
     createItemBody(id, widget);
@@ -5918,29 +5932,54 @@ void GameScene::spawnTutorialItem(const std::string& defId, int passDirection) {
 /**
  * Refreshes existing widget textures after item instances are redefined in place.
  *
- * Forge preserves item instance IDs, so the existing inventory widgets are kept and
- * only their textures are swapped to match the new item definitions.
+ * Forge preserves item instance IDs, so changed inventory widgets are rebuilt in
+ * place to avoid inheriting stale scale or texture-native polygon dimensions.
  */
 void GameScene::refreshInventoryWidgetTextures() {
     Player* local = _gameState.getLocalPlayer();
     if (!local || !_assets) return;
 
     for (const ItemInstance& item : local->getInventory()) {
+        const ItemInstance::ItemId itemId = item.getId();
         auto widgetIt = _itemWidgets.find(item.getId());
         if (widgetIt == _itemWidgets.end() || !widgetIt->second) {
             continue;
         }
 
-        auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
-        if (!itemDef) {
+        const std::string& defId = item.getDefId();
+        auto displayedDefIt = _itemWidgetDefIds.find(itemId);
+        const bool defChanged = displayedDefIt == _itemWidgetDefIds.end() ||
+                                displayedDefIt->second != defId;
+        if (!defChanged) {
             continue;
         }
 
-        auto texture = _assets->get<cugl::graphics::Texture>(itemDef->getIconKey());
-        auto polygon = std::dynamic_pointer_cast<scene2::PolygonNode>(widgetIt->second);
-        if (texture && polygon) {
-            polygon->setTexture(texture);
-            polygon->setContentSize(Size(100, 100));
+        std::shared_ptr<SceneNode> oldWidget = widgetIt->second;
+        Vec2 oldPosition = oldWidget->getPosition();
+        bool oldVisible = oldWidget->isVisible();
+        float oldScale = oldWidget->getScaleX();
+
+        auto replacement = createItemWidget(item);
+        if (!replacement) {
+            continue;
+        }
+
+        replacement->setPosition(oldPosition);
+        replacement->setVisible(oldVisible);
+
+        if (_inventory) {
+            _inventory->removeChild(oldWidget);
+        }
+        widgetIt->second = replacement;
+        _itemWidgetDefIds[itemId] = defId;
+
+        if (itemId == _draggedItemId) {
+            _draggedIcon = replacement;
+            replacement->setScale(oldScale);
+        } else {
+            _itemWidgetScales[itemId] = ITEM_NORMAL_SCALE;
+            _itemWidgetScaleTargets[itemId] = ITEM_NORMAL_SCALE;
+            replacement->setScale(ITEM_NORMAL_SCALE);
         }
     }
 }
