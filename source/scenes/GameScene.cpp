@@ -1102,6 +1102,8 @@ void GameScene::reset() {
     // Delegate inventory clearing and health resetting to the model.
     _gameState.reset();
     resetTeammateBlinkState();
+    _timers->removeAllChildren();
+    _effectIcons.clear();
 }
 
 #pragma mark -

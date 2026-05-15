@@ -72,7 +72,7 @@
                             "y_offset": 0
                         }
                     },
-                    "BACK TO LOBBY": {
+                    "CONTINUE": {
                         "type": "Label",
                         "data": {
                             "anchor": [
@@ -90,7 +90,7 @@
                             "angle": 0,
                             "visible": true,
                             "font": "mainFont",
-                            "text": "BACK TO LOBBY",
+                            "text": "CONTINUE",
                             "foreground": "#ffd9a9ff",
                             "background": "#00000000",
                             "padding": [
@@ -291,6 +291,105 @@
                     "y_offset": -0.24
                 }
             },
+            "returnB": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        0
+                    ],
+                    "size": [
+                        340,
+                        51
+                    ],
+                    "angle": 0,
+                    "position": [
+                        29,
+                        93
+                    ],
+                    "visible": true,
+                    "upnode": "buttonMedBG"
+                },
+                "children": {
+                    "buttonMedBG": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "buttonMedBG",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                340,
+                                51
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "BACK TO LOBBY": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                1
+                            ],
+                            "size": [
+                                516,
+                                76
+                            ],
+                            "position": [
+                                106.00009155273438,
+                                16
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "BACK TO LOBBY",
+                            "foreground": "#ffd9a9ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center",
+                            "scale": 0.25
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.31
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0.05
+                }
+            },
             "winLoseLabelS": {
                 "type": "Image",
                 "data": {
@@ -485,11 +584,25 @@
                     }
                 },
                 "layout": {
-                    "x_anchor": "center",
+                    "x_anchor": "left",
                     "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0.27,
                     "y_offset": 0.09
+                }
+            },
+            "indivStats": {
+                "type": "Widget",
+                "format": { "type": "Anchored" },
+                "data": {
+                    "key": "indivStats"
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0.16
                 }
             }
         }

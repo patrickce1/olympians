@@ -1,0 +1,281 @@
+{
+    "variables": {},
+    "contents": {
+        "type": "Node",
+        "format": {
+            "type": "Anchored"
+        },
+        "data": {
+            "anchor": [
+                0.5,
+                0.5
+            ],
+            "size": [
+                394,
+                85
+            ],
+            "angle": 0,
+            "position": [
+                0,
+                182
+            ],
+            "visible": true
+        },
+        "children": {
+            "regularStatBG": {
+                "type": "Image",
+                "data": {
+                    "texture": "regularStatBG",
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        484,
+                        85
+                    ],
+                    "angle": 0,
+                    "position": [
+                        0,
+                        0
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "playerIcon": {
+                "type": "Image",
+                "data": {
+                    "texture": "athenaDeath",
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        70,
+                        70
+                    ],
+                    "angle": 0,
+                    "position": [
+                        20,
+                        7
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.05,
+                    "y_offset": -0.09
+                }
+            },
+            "values": {
+                "type": "Node",
+                "format": {
+                    "type": "Float",
+                    "x_alignment": "left",
+                    "y_alignment": "middle",
+                    "orientation": "horizontal"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        0.5
+                    ],
+                    "size": [
+                        191,
+                        19
+                    ],
+                    "angle": 0,
+                    "position": [
+                        110,
+                        33
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "damage": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                188,
+                                76
+                            ],
+                            "position": [
+                                23.5,
+                                9.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "00,000",
+                            "foreground": "#ffd9a9ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center",
+                            "scale": 0.25
+                        },
+                        "children": {},
+                        "layout": {
+                            "priority": 0,
+                            "padding": [
+                                0,
+                                0,
+                                25,
+                                0
+                            ]
+                        }
+                    },
+                    "heal": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                188,
+                                76
+                            ],
+                            "position": [
+                                95.5,
+                                9.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "00,000",
+                            "foreground": "#ffd9a9ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center",
+                            "scale": 0.25
+                        },
+                        "children": {},
+                        "layout": {
+                            "priority": 1,
+                            "padding": [
+                                0,
+                                0,
+                                25,
+                                0
+                            ]
+                        }
+                    },
+                    "utility": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                188,
+                                76
+                            ],
+                            "position": [
+                                167.5,
+                                9.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "00,000",
+                            "foreground": "#ffd9a9ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center",
+                            "scale": 0.25
+                        },
+                        "children": {},
+                        "layout": {
+                            "priority": 2,
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ]
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0.02,
+                    "y_offset": 0
+                }
+            },
+            "name": {
+                "type": "Label",
+                "data": {
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        1,114,
+                        74.62
+                    ],
+                    "position": [
+                        110,
+                        7
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "font": "mainFont",
+                    "text": "ATHENA | help_me123",
+                    "foreground": "#f0b57eff",
+                    "background": "#00000000",
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "valign": "top",
+                    "halign": "left",
+                    "scale": 0.1875
+                },
+                "children": {},
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.28,
+                    "y_offset": -0.75
+                }
+            }
+        }
+    }
+}

@@ -714,6 +714,15 @@
         "empty": {
             "file": "textures/statsScreen/empty.png"
         },
+        "mvp": {
+            "file": "textures/statsScreen/mvp.png"
+        },
+        "mvpBG": {
+            "file": "textures/statsScreen/mvpBG.png"
+        },
+        "regularStatBG": {
+            "file": "textures/statsScreen/regularStatBG.png"
+        },
         "fill": {
             "file": "textures/statsScreen/fill.png"
         }
@@ -922,6 +931,8 @@
         "textfield": "widgets/elements/textfield.json",
         "keypad": "widgets/elements/keypad.json",
         "teamStats": "widgets/stats/teamStats.json",
+        "indivStats": "widgets/stats/indivStats.json",
+        "regularStatsBlock": "widgets/stats/regularStatsBlock.json",
         "settingsScene": "json/scenes/settingsScene.json"
     },
     "scene2s": {
