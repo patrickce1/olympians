@@ -43,6 +43,14 @@ protected:
     /** The base images for showing defeat */
     std::shared_ptr<cugl::scene2::SceneNode> _defeatImage;
     
+    std::shared_ptr<cugl::scene2::Button>    _continueButton;   // phase 1
+    std::shared_ptr<cugl::scene2::SceneNode> _teamStats;
+    std::shared_ptr<cugl::scene2::SceneNode> _statsHeader;
+    std::shared_ptr<cugl::scene2::SceneNode> _indivStats;
+    std::shared_ptr<cugl::scene2::SceneNode> _successLabel;
+    int _phase = 1;
+    bool _pendingPhase2 = false;
+    
     /** The current status */
     Status _status;
     
@@ -139,7 +147,7 @@ public:
     
 
 private:
-    
+    void showPhase(int phase);
 };
 
 #endif /* __WIN_LOSE_SCENE_H__ */

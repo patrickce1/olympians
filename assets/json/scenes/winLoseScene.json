@@ -22,7 +22,7 @@
             "visible": true
         },
         "children": {
-            "return": {
+            "continue": {
                 "type": "Button",
                 "format": {
                     "type": "Anchored"
@@ -291,7 +291,7 @@
                     "y_offset": -0.24
                 }
             },
-            "returnB": {
+            "return": {
                 "type": "Button",
                 "format": {
                     "type": "Anchored"

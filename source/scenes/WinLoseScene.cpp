@@ -65,18 +65,34 @@ bool WinLoseScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const
  * will be added.
  */
 void WinLoseScene::setupUI() {
-    _returnButton = std::dynamic_pointer_cast<scene2::Button>(
-        _assets->get<scene2::SceneNode>("winLoseScene.return"));
+    _continueButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("winLoseScene.continue"));
     
     _victoryImage = _assets->get<scene2::SceneNode>("winLoseScene.winner");
     
     _defeatImage = _assets->get<scene2::SceneNode>("winLoseScene.loser");
+    
+    _returnButton = std::dynamic_pointer_cast<scene2::Button>(
+        _assets->get<scene2::SceneNode>("winLoseScene.return"));
+    
+    _teamStats     = _assets->get<scene2::SceneNode>("winLoseScene.teamStats");
+    _statsHeader   = _assets->get<scene2::SceneNode>("winLoseScene.statsHeader");
+    _indivStats    = _assets->get<scene2::SceneNode>("winLoseScene.indivStats");
+    _successLabel  = _assets->get<scene2::SceneNode>("winLoseScene.winLoseLabelS");
+    
+    showPhase(1);
 }
 
 /**
  * Attaches input listeners to the return button.
  */
 void WinLoseScene::setupListeners() {
+    _continueButton->addListener([this](const std::string& name, bool down) {
+        if (down) {
+            _pendingPhase2 = true;
+        }
+    });
+    
     _returnButton->addListener([this](const std::string& name, bool down) {
         if (down) {
             _status = Status::ABORT;
@@ -89,10 +105,14 @@ void WinLoseScene::setupListeners() {
  */
 void WinLoseScene::dispose() {
     if (_active) {
-        removeAllChildren();
         _returnButton = nullptr;
-        _victoryImage = nullptr;
-        _defeatImage = nullptr;
+        _continueButton  = nullptr;
+        _victoryImage  = nullptr;
+        _defeatImage   = nullptr;
+        _teamStats     = nullptr;
+        _statsHeader   = nullptr;
+        _indivStats    = nullptr;
+        _successLabel  = nullptr;
         _active = false;
     }
     _network = nullptr;
@@ -111,13 +131,14 @@ void WinLoseScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
         if (value) {
+            _pendingPhase2 = false;
             _status = IDLE;
-            _returnButton->activate();
+            showPhase(1);
         } else {
             _returnButton->deactivate();
-            
-            // If any were pressed, reset them
             _returnButton->setDown(false);
+            _continueButton->deactivate();
+            _continueButton->setDown(false);
         }
     }
 }
@@ -128,12 +149,9 @@ void WinLoseScene::setActive(bool value) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void WinLoseScene::update(float timestep) {
-    if (_didWin) {
-        _victoryImage->setVisible(true);
-        _defeatImage->setVisible(false);
-    } else {
-        _victoryImage->setVisible(false);
-        _defeatImage->setVisible(true);
+    if (_pendingPhase2) {
+        _pendingPhase2 = false;
+        showPhase(2);
     }
     
     _network->getNetworkUpdates();
@@ -143,5 +161,57 @@ void WinLoseScene::update(float timestep) {
         _status = Status::PRE_GAMESCENE_START;
         return;
     }
+}
+
+/**
+ * Toggles visibility and activation state for the two UI phases.
+ *
+ * Phase 1 — result reveal:
+ *   Visible:  win/lose sign + return (continue) button.
+ *   Hidden:   stats panels + medium (lobby) button.
+ *
+ * Phase 2 — post-game stats:
+ *   Visible:  stats panels + medium (lobby) button.
+ *   Hidden:   win/lose sign + return (continue) button.
+ *
+ * @param phase  1 for the result-reveal screen, 2 for the stats screen.
+ */
+void WinLoseScene::showPhase(int phase) {
+    bool onPhase1 = (phase == 1);
+ 
+    // Win/lose imagery: show the correct one for phase 1, hide both for phase 2
+    if (onPhase1) {
+        _victoryImage->setVisible(_didWin);
+        _defeatImage->setVisible(!_didWin);
+    } else {
+        _victoryImage->setVisible(false);
+        _defeatImage->setVisible(false);
+    }
+ 
+    // Return (continue) button — active only in phase 1
+    _continueButton->setVisible(onPhase1);
+    if (onPhase1) {
+        _continueButton->activate();
+    } else {
+        _continueButton->deactivate();
+        _continueButton->setDown(false);
+    }
+ 
+    // Stats panel — active only in phase 2
+    _teamStats->setVisible(!onPhase1);
+    _statsHeader->setVisible(!onPhase1);
+    _indivStats->setVisible(!onPhase1);
+    _successLabel->setVisible(!onPhase1);
+ 
+    // Medium (lobby) button — active only in phase 2
+    _returnButton->setVisible(!onPhase1);
+    if (!onPhase1) {
+        _returnButton->activate();
+    } else {
+        _returnButton->deactivate();
+        _returnButton->setDown(false);
+    }
+ 
+    _phase = phase;
 }
 
