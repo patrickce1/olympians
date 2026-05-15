@@ -424,6 +424,18 @@ protected:
     /** Value tracking the value of the next item timer icon */
     int _nextEffectIconId = 0;
     
+    /** Whether the regen timer has already spawned  */
+    bool _regenTimerSpawned = false;
+    
+    /** Whether the educate timer has already spawned  */
+    bool _educateTimerSpawned = false;
+    
+    /** Whether the charm timer has already spawned  */
+    bool _charmTimerSpawned = false;
+    
+    /** Whether the lifesteal timer has already spawned  */
+    bool _lifestealTimerSpawned = false;
+    
     
 #pragma mark - Drag State
 
@@ -1756,6 +1768,18 @@ public:
      * @param events  Effect events drained from the local player this frame.
      */
     void spawnEffectIcons(const std::vector<Player::EffectEvent>& events);
+    
+    /**
+     * Polls each player's live effect state every frame and synthesizes
+     * EffectEvent entries for any timed effect that is active but not yet
+     * represented in _effectIcons. Refreshes duration for existing icons
+     * from the authoritative player value so network-triggered effects
+     * (e.g. someone else using Charm) are always reflected without relying
+     * on EffectEvent delivery.
+     *
+     * Call this every frame BEFORE spawnEffectIcons / updateEffectTimerIcons.
+     */
+    void syncEffectIconsFromPlayerState();
 
     /**
      * Ticks all active effect timers down by dt and removes any that have expired.

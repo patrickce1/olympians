@@ -167,15 +167,6 @@ void Player::applyRegen(float amount, float duration) {
     _hasRegen = true;
     _regenAmountRemaining = std::max(0.0f, amount);
     _regenDuration = duration;
-    
-    if (duration > 0) {
-        _effectEvents.push_back({
-            ItemDef::EffectType::Regen,
-            "",
-            duration,
-            false
-        });
-    }
 
     if (_debug) {
         CULog("Regen applied: player='%s' house='%s' amount=%.3f duration=%.3f",
@@ -197,15 +188,6 @@ void Player::applyEducate(float duration) {
     }
 
     _educateDuration = duration;
-    
-    if (duration > 0) {
-        _effectEvents.push_back({
-            ItemDef::EffectType::Educate,
-            "",
-            duration,
-            false
-        });
-    }
 
     if (_debug) {
         CULog("Educate applied: player='%s' house='%s' duration=%.3f",
@@ -226,15 +208,6 @@ void Player::applyCharm(float duration) {
     }
 
     _charmDuration = duration;
-    
-    if (duration > 0) {
-        _effectEvents.push_back({
-            ItemDef::EffectType::Charm,
-            "",
-            duration,
-            false
-        });
-    }
 
     if (_debug) {
         CULog("Charm applied: player='%s' house='%s' duration=%.3f",
@@ -257,15 +230,6 @@ void Player::applyLifesteal(float multiplier, float duration) {
 
     _lifestealMultiplier = std::max(0.0f, multiplier);
     _lifestealDuration = duration;
-    
-    if (duration > 0) {
-        _effectEvents.push_back({
-            ItemDef::EffectType::Lifesteal,
-            "",
-            duration,
-            false
-        });
-    }
 
     if (_debug) {
         CULog("Lifesteal applied: player='%s' house='%s' multiplier=%.3f duration=%.3f",

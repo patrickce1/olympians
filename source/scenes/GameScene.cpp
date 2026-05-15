@@ -1180,6 +1180,7 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
     float resolvedMagnitude = 0.0f;
+    std::vector<Player::EffectEvent> effectEvents;
     if (def->getAttackTarget() == ItemDef::AttackTarget::AllAllies) {
         resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     } else {
@@ -1188,12 +1189,25 @@ bool GameScene::handleAnimatedAttack(ItemInstance::ItemId itemId, const ItemInst
         if (!removeItemFromInventory(local, item.getId())) {
             return false;
         }
+        
+        // Manually build effect events since useItemById wasn't called
+        if (shouldApplyEffects) {
+            for (const ItemDef::Effect& effect : def->getEffects()) {
+                if (effect.duration > 0) {
+                    effectEvents.push_back({
+                        effect.type,
+                        def->getId(),
+                        effect.duration
+                    });
+                }
+            }
+        }
     }
     if (resolvedMagnitude < 0.0f) {
         return false;
     }
     
-    spawnEffectIcons(local->getEffectEvents());
+    spawnEffectIcons(effectEvents);
 
     const auto& animConfig = def->getItemUseAnimation();
     const cugl::Vec2 animPos = animConfig.centerOnDropLocation ? dropPos : cugl::Vec2::ZERO;
@@ -1941,6 +1955,58 @@ void GameScene::spawnEffectIcons(const std::vector<Player::EffectEvent>& events)
     }
     
     recomputeVisibleTimers();
+}
+
+/**
+ * Polls each player's live effect state every frame and synthesizes
+ * EffectEvent entries for any timed effect that is active but not yet
+ * represented in _effectIcons. Refreshes duration for existing icons
+ * from the authoritative player value so network-triggered effects
+ * (e.g. someone else using Charm) are always reflected without relying
+ * on EffectEvent delivery.
+ *
+ * Call this every frame BEFORE spawnEffectIcons / updateEffectTimerIcons.
+ */
+void GameScene::syncEffectIconsFromPlayerState() {
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) return;
+
+    struct EffectPoll {
+        ItemDef::EffectType effectType;
+        bool active;
+        float duration;
+    };
+
+    std::vector<EffectPoll> effectPolls = {
+        { ItemDef::EffectType::Charm, local->hasCharm(), local->getCharmDuration()},
+        { ItemDef::EffectType::Educate, local->hasEducate(), local->getEducateDuration()},
+        { ItemDef::EffectType::Regen, local->hasRegen(), local->getRegenDuration()  },
+        { ItemDef::EffectType::Lifesteal, local->hasLifesteal(), local->getLifestealDuration()},
+        { ItemDef::EffectType::Frenzy, _itemController.hasFrenzy(), _itemController.getFrenzyDuration()}
+    };
+
+    std::vector<Player::EffectEvent> toSpawn;
+
+    for (const auto& poll : effectPolls) {
+        auto isExistingIcon = std::find_if(_effectIcons.begin(), _effectIcons.end(),
+            [&](const ActiveEffectIcon& icon) {
+                return icon.effectType == poll.effectType;
+            });
+
+        if (poll.active) {
+            if (isExistingIcon == _effectIcons.end()) {
+                // No icon yet
+                toSpawn.push_back({ poll.effectType, "", poll.duration, false });
+            } else {
+                // Icon exists — sync its duration to the authoritative player value
+                isExistingIcon->remainingDuration = poll.duration;
+            }
+        }
+    }
+
+    if (!toSpawn.empty()) {
+        spawnEffectIcons(toSpawn);
+    }
 }
 
 /**
@@ -4299,6 +4365,7 @@ void GameScene::update(float dt, InputController& input) {
     updateGaiaVineAnimation(dt);
     updateStunDamagePopups(dt);
     updatePopupAnimations(dt);
+    syncEffectIconsFromPlayerState();
     updateEffectTimerIcons(dt);
 
     tickGlowTimer(dt);
