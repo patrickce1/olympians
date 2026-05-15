@@ -1524,6 +1524,8 @@ public:
      * but the local player is not themselves blocked on that side.
      *
      * Does nothing if the current enemy is not Gaia.
+     * 
+     * @param dt  Delta time in seconds.
      */
     void updateGaiaInventoryVineAnimations(float dt);
 
