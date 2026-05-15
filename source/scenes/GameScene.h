@@ -703,6 +703,13 @@ protected:
         CerberusHeadOffset headOffsets[4];  // 0=front, 1=right, 2=back, 3=left
     };
 
+    /** Perspective transform for a single Cerberus head: scale and positional offsets. */
+    struct HeadTransform {
+        float scale   = 1.0f;
+        float xOffset = 0.0f;
+        float yOffset = 0.0f;
+    };
+
     /** Animation registry loaded from enemyAnimations.json. Maps animation ID to metadata. */
     std::unordered_map<std::string, AnimationEntry> _animationRegistry;
 
@@ -1040,6 +1047,16 @@ public:
     void updateEnemyAnimation(float dt, int localPlayerIndex);
 
     /**
+     * Determines which direction Cerberus should face this frame, locking the current
+     * direction while any head is mid-attack to prevent head-position corruption.
+     *
+     * @param localPlayerIndex  Slot index of the local player.
+     * @param enemy             The Cerberus enemy whose target index is used for direction math.
+     * @return                  Resolved facing direction (0=front, 1=right, 2=back, 3=left).
+     */
+    int resolveCerberusDirection(int localPlayerIndex, const std::shared_ptr<Enemy>& enemy);
+
+    /**
      * Orchestrates all body and head sprite updates for Cerberus each frame.
      *
      * @param dt               Elapsed time in seconds since the last frame.
@@ -1087,6 +1104,33 @@ public:
     void updateCerberusBodySprite(int direction);
 
     /**
+     * Determines which animation key a Cerberus head should display this frame.
+     * Reverts expired two-phase attack animations to idle, applies knocked/love overrides,
+     * and restores looping state animations for heads that recovered from being knocked.
+     * May update _cerberusHeadActiveAnimKey[headIndex] as a side effect.
+     *
+     * @param headIndex  Sprite index (0-3) of the head being evaluated.
+     * @param direction  Current facing direction (0-3).
+     * @param enemy      The enemy queried for current state and love status.
+     * @param cerberus   The Cerberus instance queried for per-head knock state.
+     * @return           The animation key to display for this head this frame.
+     */
+    std::string resolveHeadDisplayKey(int headIndex, int direction,
+                                      const std::shared_ptr<Enemy>& enemy,
+                                      const std::shared_ptr<Cerberus>& cerberus);
+
+    /**
+     * Computes the perspective-corrected scale and positional offsets for a single
+     * Cerberus head based on its sprite index and the current facing direction.
+     * Front heads are full-size; side and back heads are scaled down and shifted laterally.
+     *
+     * @param headIndex  Sprite index (0-3) of the head.
+     * @param direction  Current facing direction (0=front, 1=right, 2=back, 3=left).
+     * @return           A HeadTransform containing the scale, x-offset, and y-offset to apply.
+     */
+    HeadTransform computeHeadPerspective(int headIndex, int direction) const;
+
+    /**
      * Updates frame, position, scale, visibility, and damage sound for a single
      * Cerberus head sprite.
      *
@@ -1110,6 +1154,35 @@ public:
     bool initializeEnemyAnimations(const std::string& enemyId);
 
     /**
+     * Collects all animation keys whose names start with "cerberus_head_" from the registry
+     * and sorts them with the idle set first, then remaining sets alphabetically.
+     * This ordering ensures the body sprite is inserted at the correct Z position.
+     *
+     * @return  Sorted list of Cerberus head animation keys.
+     */
+    std::vector<std::string> collectSortedCerberusHeadKeys() const;
+
+    /**
+     * Allocates four head sprites for a single animation set, inserts them into _bossSprite
+     * in back→right→left→front order, and inserts the body sprite between back and right
+     * the first time this is called (bodyInserted tracks whether that has happened yet).
+     *
+     * @param key           Animation key identifying this head set.
+     * @param animEntry     Registry entry providing texture, frame layout, and transform.
+     * @param bodyInserted  In/out flag; set to true the first time the body is inserted.
+     * @return              True if sprites were created successfully; false if the texture failed to load.
+     */
+    bool createAndInsertCerberusHeadSet(const std::string& key, const AnimationEntry& animEntry,
+                                        bool& bodyInserted);
+
+    /**
+     * Creates the top-layer body sprite that sits above all head layers so the body
+     * correctly overlaps heads when Cerberus faces away (direction 2).
+     * Stores the result in _cerberusBodySpriteTop.
+     */
+    void addCerberusBodyTopSprite();
+
+    /**
      * Creates and Z-orders all Cerberus body and head sprite nodes within _bossSprite.
      *
      * Extracts the body sprite placed by the registry loop, then (for Cerberus only)
@@ -1127,16 +1200,32 @@ public:
     void destroyEnemyAnimations();
 
     /**
-     * Configures Cerberus-specific animation state after sprites have been created by
-     * initializeEnemyAnimations(). Performs three tasks in order:
-     *   1. Positions and scales the body sprites using the registry entry for the body animation.
-     *   2. Reads per-head offsets and phase offsets from the enemy's customData JSON and applies
-     *      them to every head sprite in _cerberusHeadSpritesByAnim.
-     *   3. Derives the idle head animation key from the enemy's IDLE state definition and
-     *      initialises _cerberusHeadActiveAnimKey / _cerberusHeadAnimBuildUpTime for all heads.
+     * Positions and scales the body and body-top sprites using the body animation's registry entry.
+     */
+    void applyCerberusBodySpriteTransform();
+
+    /**
+     * Reads per-head X/Y offsets and phase offsets from the enemy's customData JSON
+     * and stores them in _cerberusAnimConfig.headOffsets for use by other helpers.
      *
-     * After this call the body and head sprites are correctly placed but still invisible;
-     * the caller is responsible for resetting timers and hiding sprites for a clean start.
+     * @param enemy  The Cerberus enemy instance whose customData contains the "heads" object.
+     */
+    void loadCerberusHeadOffsets(const std::shared_ptr<Enemy>& enemy);
+
+    /**
+     * Derives the idle head animation key from the enemy's IDLE state, resets all head
+     * active-animation keys and build-up timers to idle defaults, then applies the loaded
+     * per-head offsets to every head sprite and hides them.
+     * Must be called after loadCerberusHeadOffsets() so offsets are available.
+     *
+     * @param enemy  The Cerberus enemy instance whose state definitions supply the idle head key.
+     */
+    void placeAndResetCerberusHeadSprites(const std::shared_ptr<Enemy>& enemy);
+
+    /**
+     * Configures Cerberus-specific animation state after sprites have been created.
+     * Positions body sprites, loads per-head offsets, and resets all head animation state.
+     * After this call sprites are correctly placed but invisible.
      *
      * @param enemy  The Cerberus enemy instance to read customData and state definitions from.
      */
@@ -2088,9 +2177,31 @@ public:
     void updateConsumedItemAnimations(float dt);
 
     /**
-     * Updates active corrode animations and removes items when animation completes.
+     * Advances a single corroded-item animation by dt and updates its node's scale.
+     * Runs a two-phase tween: pop (scale up) then decay (scale down to zero).
+     * Degenerate animations (null node or zero duration) are treated as immediately finished.
      *
-     * @param dt  Delta time in seconds.
+     * @param anim  The animation state to advance in place.
+     * @param dt    Elapsed time in seconds since the last frame.
+     * @return      True if the animation has completed; false if still running.
+     */
+    bool tickCorrodedAnimation(CorrodedItemAnimation& anim, float dt);
+
+    /**
+     * Cleans up all state for a corroded item once its animation has finished.
+     * Resets any in-progress drag, removes the item from corrosion tracking,
+     * destroys its visual widget and physics body, and removes it from the player's inventory.
+     *
+     * @param itemId  The instance ID of the item whose animation has completed.
+     */
+    void finalizeCorrodedItem(ItemInstance::ItemId itemId);
+
+    /**
+     * Ticks all active corroded-item animations and finalizes any that have completed.
+     * Items remain usable while fading and are only removed after their animation finishes.
+     * Clears the corrosive visual lock once all animations are done.
+     *
+     * @param dt  Elapsed time in seconds since the last frame.
      */
     void updateCorrodedItemAnimations(float dt);
 
