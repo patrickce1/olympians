@@ -331,6 +331,166 @@
                     "x_offset": 0,
                     "y_offset": 0
                 }
+            },
+            "statsHeader": {
+                "type": "Node",
+                "format": {
+                    "type": "Float",
+                    "x_alignment": "left",
+                    "y_alignment": "middle",
+                    "orientation": "horizontal"
+                },
+                "data": {
+                    "anchor": [
+                        0,
+                        0.5
+                    ],
+                    "size": [
+                        190,
+                        19
+                    ],
+                    "angle": 0,
+                    "position": [
+                        106,
+                        497
+                    ],
+                    "visible": true
+                },
+                "children": {
+                    "DMG": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                               0.5,
+                               0.5
+                            ],
+                            "size": [
+                                160,
+                                76
+                            ],
+                            "position": [
+                                20,
+                                9.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "DMG",
+                            "foreground": "#d7a16fff",
+                            "background": "#00000000",
+                                "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center",
+                            "scale": 0.25
+                        },
+                        "children": {},
+                        "layout": {
+                            "priority": 0,
+                            "padding": [
+                                0,
+                                0,
+                                37,
+                                0
+                            ]
+                        }
+                    },
+                    "HEAL": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                176,
+                                76
+                            ],
+                            "position": [
+                                99,
+                                9.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "HEAL",
+                            "foreground": "#d7a16fff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center",
+                            "scale": 0.25
+                        },
+                        "children": {},
+                        "layout": {
+                            "priority": 1,
+                            "padding": [
+                                0,
+                                0,
+                                37,
+                                0
+                            ]
+                        }
+                    },
+                    "UTL": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "size": [
+                                128,
+                                76
+                            ],
+                            "position": [
+                                174,
+                                9.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "UTL",
+                            "foreground": "#d7a16fff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "top",
+                            "halign": "center",
+                            "scale": 0.25
+                        },
+                        "children": {},
+                        "layout": {
+                            "priority": 2,
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ]
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0.27,
+                    "y_offset": 0.09
+                }
             }
         }
     }
