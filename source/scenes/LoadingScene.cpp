@@ -1,51 +1,3 @@
-//
-//  LoadingScene.cpp
-//  Cornell University Game Library (CUGL)
-//
-//  This module creates a generic loading scene for games. For years we copied
-//  this class from demo to demo without ever making it part of the engine.
-//  At first it was because it was because the loading scene depends on specific
-//  assets, and we do not want to include hard assets like images and fonts in
-//  the engine itself. But with the addition of JSON scene loading and Figma
-//  support, this made less sense.
-//
-//  With that said, this loading scene is still very simple. It has no animation
-//  beyond a simple progress bar. Students often replace this class when making
-//  their own games.
-//
-//  This class uses our standard shared-pointer architecture.
-//
-//  1. The constructor does not perform any initialization; it just sets all
-//     attributes to their defaults.
-//
-//  2. All initialization takes place via init methods, which can fail if an
-//     object is initialized more than once.
-//
-//  3. All allocation takes place via static constructors which return a shared
-//     pointer.
-//
-//  CUGL MIT License:
-//      This software is provided 'as-is', without any express or implied
-//      warranty.  In no event will the authors be held liable for any damages
-//      arising from the use of this software.
-//
-//      Permission is granted to anyone to use this software for any purpose,
-//      including commercial applications, and to alter it and redistribute it
-//      freely, subject to the following restrictions:
-//
-//      1. The origin of this software must not be misrepresented; you must not
-//      claim that you wrote the original software. If you use this software
-//      in a product, an acknowledgment in the product documentation would be
-//      appreciated but is not required.
-//
-//      2. Altered source versions must be plainly marked as such, and must not
-//      be misrepresented as being the original software.
-//
-//      3. This notice may not be removed or altered from any source distribution.
-//
-//  Author: Walker White
-//  Version: 12/2/25 (SDL3 Integration)
-//
 #include <cugl/graphics/loaders/CUTextureLoader.h>
 #include <cugl/graphics/loaders/CUFontLoader.h>
 #include <cugl/scene2/CUScene2Loader.h>
@@ -70,10 +22,9 @@ using namespace cugl::graphics;
  * it should be lightweight. The scene must include a {@link scene2::SceneNode}
  * named "load". This node must have at least four children:
  *
- *     - "load.before": The scene to display while loading is in progress
- *     - "load.after": The scene to display when the loading is complete
- *     - "load.bar": A {@link ProgressBar} for showing the loading progress
- *     - "load.play" A play {@link Button} for the user to start the game
+ *     - "load.loadingScene": The scene to display while loading is in progress
+ *     - "load.loadingScene.bar": A {@link ProgressBar} for showing the loading progress
+ *     - "load.logo" A logo defining the game creators
  *
  * The string directory is the asset directory to be loaded asynchronously
  * by this scene. Loading will commence after a call to {@link #start}. The
@@ -84,95 +35,93 @@ using namespace cugl::graphics;
  *
  * @return true if the scene is initialized properly, false otherwise.
  */
-bool AppLoadingScene::init(const std::string scene, const std::string directory) {
+bool AppLoadingScene::init(const std::string scene,
+                           const std::string directory) {
+
     _assets = AssetManager::alloc();
-    if (_assets == nullptr || !_assets->loadDirectory(scene) ) {
+
+    if (_assets == nullptr || !_assets->loadDirectory(scene)) {
         return false;
     }
-    
+
     _assets->attach<Font>(FontLoader::alloc()->getHook());
     _assets->attach<Texture>(TextureLoader::alloc()->getHook());
     _assets->attach<WidgetValue>(WidgetLoader::alloc()->getHook());
     _assets->attach<scene2::SceneNode>(Scene2Loader::alloc()->getHook());
-    
+
     return init(_assets,directory);
 }
 
-/**
- * Initializes a loading scene with the given asset manager and directory.
- *
- * The asset manager must already contain the scene graph used by this
- * scene. The scene must include a {@link scene2::SceneNode} named
- * "load". This node must have at least four children:
- *
- *     - "load.before": The scene to display while loading is in progress
- *     - "load.after": The scene to display when the loading is complete
- *     - "load.bar": A {@link ProgressBar} for showing the loading progress
- *     - "load.play" A play {@link Button} for the user to start the game
- *
- * The string directory is the asset directory to be loaded asynchronously
- * by this scene. The progress on this directory can be monitored via
- * {@link #getProgress}.
- *
- * @param asset     A previously initialized asset manager
- * @param directory The asset directory to load asynchronously
- *
- * @return true if the scene is initialized properly, false otherwise.
- */
-bool AppLoadingScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
-                        const std::string directory) {
-    // First make sure we have the scene
+bool AppLoadingScene::init(
+    const std::shared_ptr<cugl::AssetManager>& assets,
+    const std::string directory) {
+
     auto layer = assets->get<scene2::SceneNode>("load");
+
     if (layer == nullptr) {
-        CUAssertLog(false,"Missing \"load\" in scene specification");
+        CUAssertLog(false,"Missing \"load\" scene");
         return false;
     }
-    _before  = assets->get<scene2::SceneNode>("load.before");
-    _after = assets->get<scene2::SceneNode>("load.after");
-    _bar = std::dynamic_pointer_cast<scene2::ProgressBar>(assets->get<scene2::SceneNode>("load.bar"));
-    _button = std::dynamic_pointer_cast<scene2::Button>(assets->get<scene2::SceneNode>("load.play"));
-    if (_bar == nullptr) {
-        CUAssertLog(false,"Missing progress bar in scene specification");
-        return false;
-    }
-    if (_button == nullptr) {
-        CUAssertLog(false,"Missing play button in scene specification");
-        return false;
-    }
+    _blackOverlay = assets->get<scene2::SceneNode>("load.blackOverlay");
+
+    _logo = assets->get<scene2::SceneNode>("load.logo");
+
+    _loadingScene = assets->get<scene2::SceneNode>("load.loadingScene");
     
-    // Check to see if we have a size hint
+    _loadingText = std::dynamic_pointer_cast<scene2::Label>(
+            assets->get<scene2::SceneNode>("load.loadingScene.label"));
+
+    _bar = std::dynamic_pointer_cast<scene2::ProgressBar>(
+            assets->get<scene2::SceneNode>("load.loadingScene.bar.fill"));
+
+    if (_bar == nullptr) {
+        CUAssertLog(false,"Missing loading bar");
+        return false;
+    }
+
+
     if (layer->getJSON()->has("size")) {
+
         if (!Scene2::initWithHint(layer->getContentSize())) {
             return false;
         }
+
     } else if (!Scene2::init()) {
         return false;
     }
 
-    // Rearrange the children to fit the screen
     layer->setContentSize(_size);
     layer->doLayout();
-    
-    // Add a listener for the button
-    _button->addListener([=,this](const std::string& name, bool down) {
-        this->_active = down;
-    });
-    
-    // Ensure the correct visibility
-    if (_before) {
-        _before->setVisible(true);
-    }
-    if (_after) {
-        _after->setVisible(false);
-    }
-    _bar->setVisible(true);
-    _button->setVisible(false);
 
-    //Application::get()->setClearColor(Color4(192,192,192,255));
     addChild(layer);
+
+    _loadingScene->setVisible(false);
+    _bar->setVisible(false);
+
+    // Initial alpha setup
+    Color4 opacity;
+
+    opacity = _logo->getColor();
+    opacity.a = 0;
+    _logo->setColor(opacity);
+
+    opacity = _loadingScene->getColor();
+    opacity.a = 0;
+    _loadingScene->setColor(opacity);
+
+    opacity = _bar->getColor();
+    opacity.a = 0;
+    _bar->setColor(opacity);
     
+    opacity = _loadingText->getForeground();
+    opacity.a = 0;
+    _loadingText->setColor(opacity);
+
     _assets = assets;
     _directory = directory;
+
+    _phase = LoadPhase::LOGO_FADE_IN;
+
     return true;
 }
 
@@ -180,16 +129,24 @@ bool AppLoadingScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
  * Disposes of all (non-static) resources allocated to this mode.
  */
 void AppLoadingScene::dispose() {
-    // Deactivate the button (platform dependent)
-    if (isPending()) {
-        _button->deactivate();
-    }
     _assets = nullptr;
-    _before = nullptr;
-    _after  = nullptr;
-    _button = nullptr;
+
+    _blackOverlay = nullptr;
+    _logo = nullptr;
+    _loadingScene = nullptr;
+
     _bar = nullptr;
+
     _progress = 0.0f;
+    _displayProgress = 0.0f;
+
+    _logoAlpha = 0.0f;
+    _sceneAlpha = 0.0f;
+    _barAlpha = 0.0f;
+
+    _phaseTimer = 0.0f;
+
+    _started = false;
     _completed = false;
 }
 
@@ -199,11 +156,8 @@ void AppLoadingScene::dispose() {
  * This method has no affect if loading is already in progress.
  */
 void AppLoadingScene::start() {
-    if (_started) {
-        return;
-    }
+    if (_started) return;
     _started = true;
-    _assets->loadDirectoryAsync(_directory, nullptr);
 }
 
 /**
@@ -213,23 +167,166 @@ void AppLoadingScene::start() {
  *
  * @param timestep  The amount of time (in seconds) since the last frame
  */
-void AppLoadingScene::update(float progress) {
-    if (_progress < 1) {
-        _progress = _assets->progress();
-        if (_progress >= 1) {
-            _progress = 1.0f;
-            if (_before) {
-                _before->setVisible(false);
+void AppLoadingScene::update(float dt) {
+
+    if (!_started) {
+        return;
+    }
+
+    _phaseTimer += dt;
+
+    switch (_phase) {
+
+        // Fade logo in
+        case LoadPhase::LOGO_FADE_IN: {
+
+            _logoAlpha += dt;
+
+            if (_logoAlpha > 1.0f) {
+                _logoAlpha = 1.0f;
             }
-            if (_after) {
-                _after->setVisible(true);
+
+            Color4 opacity = _logo->getColor();
+            opacity.a = (Uint8)(_logoAlpha * 255);
+
+            _logo->setColor(opacity);
+
+            // Small pulse effect
+            float scale =
+                1.0f + 0.02f * sin(_phaseTimer * 2.0f);
+
+            _logo->setScale(scale);
+
+            if (_logoAlpha >= 1.0f) {
+                _phase = LoadPhase::LOGO_HOLD;
+                _phaseTimer = 0.0f;
             }
-            _bar->setVisible(false);
-            _button->setVisible(true);
-            _button->activate();
+            break;
         }
-        _bar->setProgress(_progress);
+        case LoadPhase::LOGO_HOLD: {
+
+            if (_phaseTimer >= 1.0f) {
+                _phase = LoadPhase::LOGO_FADE_OUT;
+            }
+
+            break;
+        }
+        case LoadPhase::LOGO_FADE_OUT: {
+
+            _logoAlpha -= dt;
+
+            if (_logoAlpha < 0.0f) {
+                _logoAlpha = 0.0f;
+            }
+
+            Color4 color = _logo->getColor();
+            color.a = (Uint8)(_logoAlpha * 255);
+
+            _logo->setColor(color);
+
+            if (_logoAlpha <= 0.0f) {
+                _loadingScene->setVisible(true);
+                _assets->loadDirectoryAsync(_directory,nullptr);
+
+                _phase = LoadPhase::LOADING_SCENE_FADE_IN;
+                _phaseTimer = 0.0f;
+            }
+
+            break;
+        }
+        case LoadPhase::LOADING_SCENE_FADE_IN: {
+
+            _sceneAlpha += dt;
+
+            if (_sceneAlpha > 1.0f) {
+                _sceneAlpha = 1.0f;
+            }
+
+            Color4 color = _loadingScene->getColor();
+            color.a = (Uint8)(_sceneAlpha * 255);
+
+            _loadingScene->setColor(color);
+
+            if (_sceneAlpha >= 1.0f) {
+                _phase = LoadPhase::BAR_FADE_IN;
+                _phaseTimer = 0.0f;
+            }
+            break;
+        }
+        case LoadPhase::BAR_FADE_IN: {
+
+            _bar->setVisible(true);
+            _loadingText->setVisible(true);
+
+            _barAlpha += dt * 2.0f;
+
+            if (_barAlpha > 1.0f) {
+                _barAlpha = 1.0f;
+            }
+
+            Color4 color = _bar->getColor();
+            color.a = (Uint8)(_barAlpha * 255);
+
+            _bar->setColor(color);
+            _loadingText->setColor(color);
+
+            if (_barAlpha >= 1.0f) {
+                _phase = LoadPhase::LOADING;
+            }
+
+            break;
+        }
+        case LoadPhase::LOADING: {
+            _dotTimer += dt;
+
+            if (_dotTimer >= 0.2f) {
+                _dotTimer = 0.0f;
+                _dotCount = (_dotCount + 1) % 4;
+                std::string text = "Loading";
+                
+                for (int i = 0; i < _dotCount; i++) {
+                    text += ".";
+                }
+                _loadingText->setText(text);
+            }
+            
+            // Actual loading
+            _progress = _assets->progress();
+            
+            _displayProgress +=
+                (_progress - _displayProgress) * 0.1f;
+
+            _bar->setProgress(_displayProgress);
+
+            if (_progress >= 1.0f &&
+                _displayProgress >= 0.99f) {
+
+                _bar->setProgress(1.0f);
+
+                _phase = LoadPhase::FINISHED;
+                _phaseTimer = 0.0f;
+            }
+
+            break;
+        }
+
+        case LoadPhase::FINISHED:
+            _dotTimer += dt;
+
+            if (_dotTimer >= 0.2f) {
+                _dotTimer = 0.0f;
+                _dotCount = (_dotCount + 1) % 4;
+                std::string text = "Loading";
+                
+                for (int i = 0; i < _dotCount; i++) {
+                    text += ".";
+                }
+                _loadingText->setText(text);
+            }
+            
+            if (_phaseTimer >= 1.0f) {
+                    _completed = true;
+                }
+            break;
     }
 }
-
-

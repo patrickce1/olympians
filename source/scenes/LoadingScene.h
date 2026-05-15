@@ -31,27 +31,69 @@
  * with {@link #getAssetManager} gives access to these assets.
  */
 class AppLoadingScene : public cugl::scene2::Scene2 {
+public:
+
+    /**
+     * Represents the different phases of the animated loading sequence.
+     *
+     * The loading scene progresses through these phases in order to create
+     * a cinematic transition from startup into the main menu.
+     */
+    enum class LoadPhase {
+        /** The team logo fades smoothly into view */
+        LOGO_FADE_IN,
+        /** The logo remains fully visible for a short duration */
+        LOGO_HOLD,
+        /** The logo fades back out to transition into the loading scene */
+        LOGO_FADE_OUT,
+        /** The loading scene background fades into visibility */
+        LOADING_SCENE_FADE_IN,
+        /** The loading bar and loading text fade into visibility */
+        BAR_FADE_IN,
+        /** Assets are actively loading and progress is updated */
+        LOADING,
+        /** Loading has completed and the scene is ready to transition */
+        FINISHED
+    };
+    
+    
 protected:
     /** The asset manager for loading. */
     std::shared_ptr<cugl::AssetManager> _assets;
     /** The asset directory reference */
     std::string _directory;
-    
     /** The scene during loading */
-    std::shared_ptr<cugl::scene2::SceneNode>  _before;
-    /** The scene during when complete */
-    std::shared_ptr<cugl::scene2::SceneNode>  _after;
-    /** The "play" button */
-    std::shared_ptr<cugl::scene2::Button>     _button;
+    std::shared_ptr<cugl::scene2::SceneNode>  _loadingScene;
     /** The animated progress bar */
     std::shared_ptr<cugl::scene2::ProgressBar>  _bar;
-    
+    /** The black overlay for transitioning in the loading scene */
+    std::shared_ptr<cugl::scene2::SceneNode> _blackOverlay;
+    /** The studio logo */
+    std::shared_ptr<cugl::scene2::SceneNode> _logo;
+    /** The label above the loading bar */
+    std::shared_ptr<cugl::scene2::Label> _loadingText;
     /** The progress displayed on the screen */
-    float _progress;
+    float _progress = 0.0f;
+    /** The artificial progress*/
+    float _displayProgress = 0.0f;
     /** Whether or not the player has pressed play to continue */
-    bool  _completed;
+    bool  _completed = false;
     /** Whether or not the asset loader has started loading */
-    bool  _started;
+    bool  _started = false;
+    /** How quickly the dots in 'Loading..." appear */
+    float _dotTimer = 0.0f;
+    /** The number of dots after 'Loading' currently */
+    int _dotCount = 0;
+    /** The current phase of the animated loading sequence */
+    LoadPhase _phase;
+    /** Tracks elapsed time within the current loading phase */
+    float _phaseTimer = 0.0f;
+    /** Current alpha value used for fading the logo in and out */
+    float _logoAlpha = 0.0f;
+    /** Current alpha value used for fading in the loading scene */
+    float _sceneAlpha = 0.0f;
+    /** Current alpha value used for fading in the loading bar and text */
+    float _barAlpha = 0.0f;
 
 public:
 #pragma mark -
@@ -83,22 +125,21 @@ public:
      *
      * This class will create its own {@link AssetManager}, which can be
      * accessed via {@link #getAssetManager}. This asset manager will only
-     * attach loaders for {@link graphics::Font}, {@link graphics::Texture},
-     * {@link scene2::SceneNode} and {@link WidgetValue}.
+     * attach loaders for {@link Font}, {@link Texture}, {@link scene2::SceneNode}
+     * and {@link WidgetValue}.
      *
      * The string scene should be a path to a JSON file that defines the scene
      * graph for this loading scene. This file will be loaded synchronously, so
      * it should be lightweight. The scene must include a {@link scene2::SceneNode}
-     * named "load". This node must have at least four children:
+     * named "load". This node must have at least three children:
      *
-     *     - "load.before": The scene to display while loading is in progress
-     *     - "load.after": The scene to display when the loading is complete
-     *     - "load.bar": A {@link ProgressBar} for showing the loading progress
-     *     - "load.play" A play {@link Button} for the user to start the game
+     *     - "load.loadingScene": The scene to display while loading is in progress
+     *     - "load.loadingScene.bar": A {@link ProgressBar} for showing the loading progress
+     *     - "load.logo" A logo defining the game creators
      *
      * The string directory is the asset directory to be loaded asynchronously
-     * by this scene. The progress on this directory can be monitored via
-     * {@link #getProgress}.
+     * by this scene. Loading will commence after a call to {@link #start}. The
+     * progress on this directory can be monitored via {@link #getProgress}.
      *
      * @param scene     A JSON file with the scene graph for this scene
      * @param directory The asset directory to load asynchronously
@@ -112,13 +153,12 @@ public:
      *
      * The asset manager must already contain the scene graph used by this
      * scene. The scene must include a {@link scene2::SceneNode} named
-     * "load". This node must have at least four children:
+     * "load". This node must have at least This node must have at least three children:
      *
-     *     - "load.before": The scene to display while loading is in progress
-     *     - "load.after": The scene to display when the loading is complete
-     *     - "load.bar": A {@link ProgressBar} for showing the loading progress
-     *     - "load.play" A play {@link Button} for the user to start the game
-     *
+     *     - "load.loadingScene": The scene to display while loading is in progress
+     *     - "load.loadingScene.bar": A {@link ProgressBar} for showing the loading progress
+     *     - "load.logo" A logo defining the game creators
+     *     
      * The string directory is the asset directory to be loaded asynchronously
      * by this scene. The progress on this directory can be monitored via
      * {@link #getProgress}.
@@ -142,12 +182,11 @@ public:
      * The string scene should be a path to a JSON file that defines the scene
      * graph for this loading scene. This file will be loaded synchronously, so
      * it should be lightweight. The scene must include a {@link scene2::SceneNode}
-     * named "load". This node must have at least four children:
+     * named "load". This node must have at least three children:
      *
-     *     - "load.before": The scene to display while loading is in progress
-     *     - "load.after": The scene to display when the loading is complete
-     *     - "load.bar": A {@link ProgressBar} for showing the loading progress
-     *     - "load.play" A play {@link Button} for the user to start the game
+     *     - "load.loadingScene": The scene to display while loading is in progress
+     *     - "load.loadingScene.bar": A {@link ProgressBar} for showing the loading progress
+     *     - "load.logo" A logo defining the game creators
      *
      * The string directory is the asset directory to be loaded asynchronously
      * by this scene. The progress on this directory can be monitored via
@@ -169,12 +208,11 @@ public:
      *
      * The asset manager must already contain the scene graph used by this
      * scene. The scene must include a {@link scene2::SceneNode} named
-     * "load". This node must have at least four children:
+     * "load". This node must have at least three children:
      *
-     *     - "load.before": The scene to display while loading is in progress
-     *     - "load.after": The scene to display when the loading is complete
-     *     - "load.bar": A {@link ProgressBar} for showing the loading progress
-     *     - "load.play" A play {@link Button} for the user to start the game
+     *     - "load.loadingScene": The scene to display while loading is in progress
+     *     - "load.loadingScene.bar": A {@link ProgressBar} for showing the loading progress
+     *     - "load.logo" A logo defining the game creators
      *
      * The string directory is the asset directory to be loaded asynchronously
      * by this scene. The progress on this directory can be monitored via
@@ -226,13 +264,6 @@ public:
      * @return the current progress of this this loading scene.
      */
     float getProgress( ) const { return _progress; }
-
-    /**
-     * Returns true if loading is complete, but the player has not pressed play
-     *
-     * @return true if loading is complete, but the player has not pressed play
-     */
-    bool isPending( ) const { return _button != nullptr && _button->isVisible(); }
     
     /**
      * Returns true if loading is complete, and the player has pressed play
@@ -241,6 +272,7 @@ public:
      */
     bool isComplete( ) const { return _completed; }
     
+    /** Resizes the scene as needed. */
     void resize();
 };
 

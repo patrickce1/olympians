@@ -260,7 +260,7 @@ void SceneLoader::update(float dt) {
     switch (_currentScene) {
         case State::LOAD:
             _loadingScene->update(dt);
-            if (_loadingScene->isPending())
+            if (_loadingScene->isComplete())
             {
                 CULog("Assets finished loading. Initializing MenuScene...");
 
