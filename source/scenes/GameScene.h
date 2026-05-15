@@ -16,6 +16,7 @@
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 #include "../bosses/Gaia.h"
+#include "../bosses/Cerberus.h"
 
 
 /** Animation duration for floating popups to scale in, in seconds. */
@@ -59,6 +60,36 @@ struct ConsumedItemAnimation {
 
     /** Ending scale at animation completion. */
     float endScale = 0.0f;
+};
+
+/**
+ * Represents a corroded item animation that removes the item after completion.
+ * Unlike consumed items, corroded items are removed from inventory AFTER animation finishes.
+ */
+struct CorrodedItemAnimation {
+    /** Transient visual node shown while the corrode animation plays. */
+    std::shared_ptr<cugl::scene2::SceneNode> node;
+
+    /** Elapsed animation time in seconds. */
+    float elapsed = 0.0f;
+
+    /** Duration of the initial pop (scale-up) phase in seconds. */
+    float popDuration = 0.0f;
+
+    /** Peak scale reached at the end of the pop phase. */
+    float popScale = 1.0f;
+
+    /** Total animation duration in seconds (pop + decay). */
+    float duration = 0.0f;
+
+    /** Scale at animation start (typically 1.0). */
+    float startScale = 1.0f;
+
+    /** Target scale at animation end. */
+    float endScale = 0.001f;
+
+    /** Item ID to remove from inventory after animation completes. */
+    ItemInstance::ItemId itemId;
 };
 /*
  * Represents a single item use animation currently playing on screen.
@@ -292,6 +323,17 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
+    /** Maps ItemId to the item definition currently displayed by its widget. */
+    std::unordered_map<ItemInstance::ItemId, std::string> _itemWidgetDefIds;
+
+    /** Set of ItemIds currently corroding (prevents scale updates during corrosion animation). */
+    std::unordered_set<ItemInstance::ItemId> _corrodingItemIds;
+
+    /** Player slot whose corrosive animations are still running (-1 if none).
+     *  Stays set until all corroding animations complete so pass zones and
+     *  item spawning remain blocked for the full visual duration. */
+    int _corrosiveVisualTarget = -1;
+
     /** Current visual scale for each inventory item widget (for smooth pickup/release animation). */
     std::unordered_map<ItemInstance::ItemId, float> _itemWidgetScales;
 
@@ -390,6 +432,12 @@ protected:
     
     /** The scene node representing the animated special effects to be populated in the scene based on the spritesheets. */
     std::shared_ptr<cugl::scene2::SceneNode> _specialEffectsLayer;
+
+    /** Full-screen red frame shown when the local player takes damage. */
+    std::shared_ptr<cugl::scene2::NinePatch> _damageFrame;
+
+    /** Full-screen green frame shown when the local player heals. */
+    std::shared_ptr<cugl::scene2::NinePatch> _healFrame;
     
     /** The Current zone to highlight*/
     std::string _tutorialHighlightZone = "none";
@@ -481,6 +529,8 @@ protected:
 
     /** Active short-lived consumed-item ghost animations. */
     std::vector<ConsumedItemAnimation> _consumedItemAnimations;
+    /** Active corrode animations for items being destroyed by corrosion. */
+    std::vector<CorrodedItemAnimation> _corrodedItemAnimations;
     /** Vector of currently active item use animations. Multiple animations can play concurrently. */
     std::vector<ItemUseAnimation> _activeItemUseAnimations;
 
@@ -638,6 +688,15 @@ protected:
     /** Blink cadence used for teammate flashes. */
     float _blinkInterval = 0.12f;
 
+    /** Seconds remaining before the local damage frame fully fades out. */
+    float _damageFrameTimer = 0.0f;
+
+    /** Seconds remaining before the local heal frame fully fades out. */
+    float _healFrameTimer = 0.0f;
+
+    /** Duration of the local full-screen heal/damage frame fade. */
+    float _frameFadeDuration = 0.55f;
+
 #pragma mark - Debug State
     
     /** Determines whether the debug mode is on. This inlcudes reset button, zone lines, etc.*/
@@ -650,6 +709,24 @@ protected:
     bool _hasDebugPointer = false;
 
 #pragma mark - Enemy Animation State
+
+    struct CerberusHeadOffset {
+        float offsetX    = 0.0f;
+        float offsetY    = 0.0f;
+        float phaseOffset = 0.0f;
+    };
+
+    struct CerberusAnimConfig {
+        std::string bodyAnimId;
+        CerberusHeadOffset headOffsets[4];  // 0=front, 1=right, 2=back, 3=left
+    };
+
+    /** Perspective transform for a single Cerberus head: scale and positional offsets. */
+    struct HeadTransform {
+        float scale   = 1.0f;
+        float xOffset = 0.0f;
+        float yOffset = 0.0f;
+    };
 
     /** Animation registry loaded from enemyAnimations.json. Maps animation ID to metadata. */
     std::unordered_map<std::string, AnimationEntry> _animationRegistry;
@@ -678,6 +755,27 @@ protected:
     /** Flag tracking if damage has been dealt during the current enemy state. Resets when state changes. */
     bool _enemyAttackDamageDealtThisState = false;
 
+    CerberusAnimConfig _cerberusAnimConfig;
+    std::shared_ptr<cugl::scene2::SpriteNode> _cerberusBodySprite;
+    /** Second body sprite inserted above all heads; shown only when facing away (direction=2). */
+    std::shared_ptr<cugl::scene2::SpriteNode> _cerberusBodySpriteTop;
+    /** Per-animation-key sprite sets for all cerberus head animations (one SpriteNode per head). */
+    std::unordered_map<std::string, std::array<std::shared_ptr<cugl::scene2::SpriteNode>, 4>> _cerberusHeadSpritesByAnim;
+    /** headAnimationKey of the IDLE state — fallback for non-participating heads. */
+    std::string _cerberusIdleHeadAnimKey;
+    /** Last enemy state seen; used to detect transitions and reset head timers. */
+    EnemyLoader::State _cerberusLastState = EnemyLoader::State::IDLE;
+    /** Guards per-head damage sound so it fires once per attack, not every frame. */
+    bool _cerberusSoundFired[4] = {false, false, false, false};
+    float _cerberusHeadAnimTime[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    float _cerberusBodyAnimTime = 0.0f;
+    /** Per-head committed animation key — persists until the animation completes, even across state transitions. */
+    std::string _cerberusHeadActiveAnimKey[4];
+    /** BuildUpTime saved when each head's attack animation was committed; needed for correct two-phase frame math after state transitions. */
+    float _cerberusHeadAnimBuildUpTime[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    /** Last direction for which head z-order was applied; -1 forces a reorder on first frame. */
+    int _cerberusLastDirection = -1;
+    
     /** Active Gaia vine overlay animation, if any. Empty when no animation is playing. */
     std::optional<GaiaVineAnimation> _gaiaVineAnim;
 
@@ -738,8 +836,10 @@ public:
 #pragma mark - Lifecycle
 
     /**
-    * Returns the current status of the game and whether or not the player wants to go back to a different scene
-    */
+     * Returns the current status of the game and whether or not the player wants to go back to a different scene.
+     *
+     * @return The current Status value (PLAYING, WON, LOST, or HOST_DISCONNECTED).
+     */
     Status getStatus() { return _status; }
 
     /**
@@ -799,8 +899,9 @@ public:
      * enemy, AI) to GameState::init(). Does not activate the scene —
      * call setActive(true) when ready to receive input.
      *
-     * @param assets  The loaded asset manager.
-     * @param networkController The network controller shared across all scenes
+     * @param assets             The loaded asset manager.
+     * @param networkController  The network controller shared across all scenes.
+     * @param audio              The audio controller for playing music and sound effects.
      * @return true if initialisation succeeded, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio);
@@ -843,7 +944,8 @@ public:
      * Handles the local player dropping an attack item on the boss zone.
      * Applies the dragged attack item to the enemy.
      *
-     *@param itemId  The id of the item being handled.
+     * @param itemId  The id of the item being handled.
+     * @return true if the attack was successfully applied, false otherwise.
      */
     bool handleAttack(ItemInstance::ItemId itemId);
 
@@ -851,7 +953,8 @@ public:
      * Handles the local player dropping a support item on the left ally zone.
      * Applies the dragged support item to the left neighbour.
      *
-     *@param itemId  The id of the item being handled.
+     * @param itemId  The id of the item being handled.
+     * @return true if the support was successfully applied, false otherwise.
      */
     bool handleSupportLeft(ItemInstance::ItemId itemId);
 
@@ -859,21 +962,24 @@ public:
      * Handles the local player dropping a support item on the right ally zone.
      * Applies the dragged support item to the right neighbour.
      *
-     *@param itemId  The id of the item being handled.
+     * @param itemId  The id of the item being handled.
+     * @return true if the support was successfully applied, false otherwise.
      */
     bool handleSupportRight(ItemInstance::ItemId itemId);
 
     /**
      * Passes the dragged item to the left neighbour.
      *
-     *@param itemId  The id of the item being handled.
+     * @param itemId  The id of the item being handled.
+     * @return true if the pass was successfully initiated, false otherwise.
      */
     bool handlePassLeft(ItemInstance::ItemId itemId);
 
     /**
      * Passes the dragged item to the right neighbour.
      *
-     *@param itemId  The id of the item being handled.
+     * @param itemId  The id of the item being handled.
+     * @return true if the pass was successfully initiated, false otherwise.
      */
     bool handlePassRight(ItemInstance::ItemId itemId);
 
@@ -882,7 +988,9 @@ public:
      * and resets the input action afterwards.
      * No-op if the local player is not alive.
      *
+     * @param action  The drop-zone action resolved from the input controller.
      * @param itemId  The id of the item being handled.
+     * @return true if the action was handled successfully, false otherwise.
      */
     bool handlePlayerActions(InputController::Action action, ItemInstance::ItemId itemId);
 
@@ -957,16 +1065,190 @@ public:
     void updateEnemyAnimation(float dt, int localPlayerIndex);
 
     /**
-     * Pre-creates all enemy animation sprite nodes with their textures and layouts.
-     * 
-     * Called during init() to load all animations upfront. This eliminates stuttering
-     * when switching between animations since all sprites are pre-allocated and we only
-     * swap visibility instead of creating/destroying sprites at runtime.
+     * Determines which direction Cerberus should face this frame, locking the current
+     * direction while any head is mid-attack to prevent head-position corruption.
      *
+     * @param localPlayerIndex  Slot index of the local player.
+     * @param enemy             The Cerberus enemy whose target index is used for direction math.
+     * @return                  Resolved facing direction (0=front, 1=right, 2=back, 3=left).
+     */
+    int resolveCerberusDirection(int localPlayerIndex, const std::shared_ptr<Enemy>& enemy);
+
+    /**
+     * Orchestrates all body and head sprite updates for Cerberus each frame.
+     *
+     * @param dt               Elapsed time in seconds since the last frame.
+     * @param localPlayerIndex Slot index of the local player, used to determine facing direction.
+     */
+    void updateCerberusAnimation(float dt, int localPlayerIndex);
+
+    /**
+     * Reorders Cerberus head sprites in _bossSprite so the head facing the local
+     * player renders on top. Called whenever the facing direction changes.
+     *
+     * @param direction  New facing direction (0=front, 1=right, 2=back, 3=left).
+     */
+    void reorderCerberusHeads(int direction);
+
+    /**
+     * Advances cerberus body and head animation timers. Pauses all timers while stunned.
+     * During IDLE, scales elapsed time by the frantic speed multiplier so animations
+     * visually speed up as Cerberus's health drops.
+     *
+     * @param dt        Elapsed time since the last frame in seconds.
+     * @param enemy     The enemy whose stun and state are checked.
+     * @param cerberus  The Cerberus instance queried for the frantic speed multiplier.
+     */
+    void advanceCerberusAnimationTimers(float dt, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus);
+
+    /**
+     * Commits a new head attack animation to all participating heads when a non-idle
+     * state is first entered. For attack_3, redirects to a side head if the front head
+     * is knocked. Has no effect on idle transitions (those resolve lazily per-head).
+     *
+     * @param currentState  The state that was just entered.
+     * @param stateDef      Definition of the new state (may be null).
+     * @param direction     Current facing direction (0-3).
+     * @param cerberus      The Cerberus instance queried for head-knock state.
+     */
+    void handleCerberusStateTransition(EnemyLoader::State currentState, const EnemyLoader::StateDef* stateDef, int direction, const std::shared_ptr<Cerberus>& cerberus);
+
+    /**
+     * Sets the correct frame and visibility for the Cerberus body sprites
+     * based on the current facing direction.
+     *
+     * @param direction  Current facing direction (0=front, 1=right, 2=back, 3=left).
+     */
+    void updateCerberusBodySprite(int direction);
+
+    /**
+     * Determines which animation key a Cerberus head should display this frame.
+     * Reverts expired two-phase attack animations to idle, applies knocked/love overrides,
+     * and restores looping state animations for heads that recovered from being knocked.
+     * May update _cerberusHeadActiveAnimKey[headIndex] as a side effect.
+     *
+     * @param headIndex  Sprite index (0-3) of the head being evaluated.
+     * @param direction  Current facing direction (0-3).
+     * @param enemy      The enemy queried for current state and love status.
+     * @param cerberus   The Cerberus instance queried for per-head knock state.
+     * @return           The animation key to display for this head this frame.
+     */
+    std::string resolveHeadDisplayKey(int headIndex, int direction,
+                                      const std::shared_ptr<Enemy>& enemy,
+                                      const std::shared_ptr<Cerberus>& cerberus);
+
+    /**
+     * Computes the perspective-corrected scale and positional offsets for a single
+     * Cerberus head based on its sprite index and the current facing direction.
+     * Front heads are full-size; side and back heads are scaled down and shifted laterally.
+     *
+     * @param headIndex  Sprite index (0-3) of the head.
+     * @param direction  Current facing direction (0=front, 1=right, 2=back, 3=left).
+     * @return           A HeadTransform containing the scale, x-offset, and y-offset to apply.
+     */
+    HeadTransform computeHeadPerspective(int headIndex, int direction) const;
+
+    /**
+     * Updates frame, position, scale, visibility, and damage sound for a single
+     * Cerberus head sprite.
+     *
+     * @param headIndex               Sprite index (0-3) of the head to update.
+     * @param isVisible               False for the hidden back-position head.
+     * @param direction               Current facing direction (0-3).
+     * @param globalXShift            Lateral shift applied to all heads for directional perspective.
+     * @param enemy                   The enemy for target-index and frame-counter updates.
+     * @param cerberus                The Cerberus instance queried for head-knock and love state.
+     * @param outFrameCounterUpdated  Set to true once the first attacking head drives the frame counter.
+     */
+    void updateSingleCerberusHead(int headIndex, bool isVisible, int direction, float globalXShift, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus, bool& outFrameCounterUpdated);
+
+    /**
+     * Creates sprite nodes only for the selected enemy's animations.
+     * Called from setActive(true) once the enemy is known.
+     *
+     * @param enemyId  The enemy identifier (e.g. "cyclops", "cerberus").
      * @return true if all animations were successfully initialized, false on error
      */
-    bool initializeAllEnemyAnimations();
-    
+    bool initializeEnemyAnimations(const std::string& enemyId);
+
+    /**
+     * Collects all animation keys whose names start with "cerberus_head_" from the registry
+     * and sorts them with the idle set first, then remaining sets alphabetically.
+     * This ordering ensures the body sprite is inserted at the correct Z position.
+     *
+     * @return  Sorted list of Cerberus head animation keys.
+     */
+    std::vector<std::string> collectSortedCerberusHeadKeys() const;
+
+    /**
+     * Allocates four head sprites for a single animation set, inserts them into _bossSprite
+     * in back→right→left→front order, and inserts the body sprite between back and right
+     * the first time this is called (bodyInserted tracks whether that has happened yet).
+     *
+     * @param key           Animation key identifying this head set.
+     * @param animEntry     Registry entry providing texture, frame layout, and transform.
+     * @param bodyInserted  In/out flag; set to true the first time the body is inserted.
+     * @return              True if sprites were created successfully; false if the texture failed to load.
+     */
+    bool createAndInsertCerberusHeadSet(const std::string& key, const AnimationEntry& animEntry,
+                                        bool& bodyInserted);
+
+    /**
+     * Creates the top-layer body sprite that sits above all head layers so the body
+     * correctly overlaps heads when Cerberus faces away (direction 2).
+     * Stores the result in _cerberusBodySpriteTop.
+     */
+    void addCerberusBodyTopSprite();
+
+    /**
+     * Creates and Z-orders all Cerberus body and head sprite nodes within _bossSprite.
+     *
+     * Extracts the body sprite placed by the registry loop, then (for Cerberus only)
+     * allocates four head instances per animation set and interleaves them with the body
+     * in draw order: back → body → right → left → front → body-top.
+     *
+     * @param enemyId  The enemy identifier; head setup only runs when this equals "cerberus".
+     */
+    void initializeCerberusAnimationSprites(const std::string& enemyId);
+
+    /**
+     * Destroys all pre-created enemy animation sprite nodes and resets related state.
+     * Called from setActive(false) and before loading a new enemy in setActive(true).
+     */
+    void destroyEnemyAnimations();
+
+    /**
+     * Positions and scales the body and body-top sprites using the body animation's registry entry.
+     */
+    void applyCerberusBodySpriteTransform();
+
+    /**
+     * Reads per-head X/Y offsets and phase offsets from the enemy's customData JSON
+     * and stores them in _cerberusAnimConfig.headOffsets for use by other helpers.
+     *
+     * @param enemy  The Cerberus enemy instance whose customData contains the "heads" object.
+     */
+    void loadCerberusHeadOffsets(const std::shared_ptr<Enemy>& enemy);
+
+    /**
+     * Derives the idle head animation key from the enemy's IDLE state, resets all head
+     * active-animation keys and build-up timers to idle defaults, then applies the loaded
+     * per-head offsets to every head sprite and hides them.
+     * Must be called after loadCerberusHeadOffsets() so offsets are available.
+     *
+     * @param enemy  The Cerberus enemy instance whose state definitions supply the idle head key.
+     */
+    void placeAndResetCerberusHeadSprites(const std::shared_ptr<Enemy>& enemy);
+
+    /**
+     * Configures Cerberus-specific animation state after sprites have been created.
+     * Positions body sprites, loads per-head offsets, and resets all head animation state.
+     * After this call sprites are correctly placed but invisible.
+     *
+     * @param enemy  The Cerberus enemy instance to read customData and state definitions from.
+     */
+    void configureCerberusAnimationState(const std::shared_ptr<Enemy>& enemy);
+
     /**
      * Switches the visible animation sprite by hiding the current one and showing the new one.
      * 
@@ -1046,15 +1328,40 @@ public:
     /**
      * Plays health and damage indicator sounds based on health changes.
      * Called after game state updates to detect and play appropriate audio feedback
-     * for player damage, healing, and enemy damage. 
+     * for player damage, healing, and enemy damage.
+     *
+     * Also responsible for triggering heal/damage frames for local player.
      *
      * Only plays player hurt/heal sounds for non-AI local player. Also plays enemy hurt
      * sounds. Uses the player's house to determine which hurt sound variant to play.
      *
      * @param playerHealthBefore  The player's health before state updates
      * @param enemyHealthBefore   The enemy's health before state updates
+     * @param playerHurtEnabled   If false, suppresses player hurt/heal sounds (e.g. during tutorial sequences)
      */
-    void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore);
+    void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore, bool playerHurtEnabled = true);
+
+    /** Creates the full-screen heal and damage frame overlays. */
+    void initHealthFrameEffects();
+
+    /** Resizes full-screen heal and damage frames to match the current scene. */
+    void layoutHealthFrameEffects();
+
+    /** Starts or refreshes the full-screen damage frame fade. */
+    void triggerDamageFrame();
+
+    /** Starts or refreshes the full-screen heal frame fade. */
+    void triggerHealFrame();
+
+    /** Clears active full-screen heal and damage frame effects. */
+    void resetHealthFrameEffects();
+
+    /**
+     * Updates the opacity of active full-screen heal and damage frame effects.
+     *
+     * @param dt Delta time in seconds.
+     */
+    void updateHealthFrameEffects(float dt);
     
     /**
      * Checks if the current enemy attack animation has finished playing (both buildup and attack phases).
@@ -1180,11 +1487,13 @@ public:
     void handleTooltipVisibility(float dt);
 
     /**
-    * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory.
-    * Marks received items as passes so they bypass inventory limits and spawn from sides.
-    * If we are the host, it will also give the correct items to the AI
-    * Intended usage: get the pass message vector from the network controller and pass into this function
-    */
+     * Processes all the passMessages inside of the vector, putting the correct items in the player's inventory.
+     * Marks received items as passes so they bypass inventory limits and spawn from sides.
+     * If we are the host, it will also give the correct items to the AI.
+     * Intended usage: get the pass message vector from the network controller and pass into this function.
+     *
+     * @param passes  The vector of PassMessage objects received from the network controller.
+     */
     void processNetworkedPasses(std::vector<PassMessage> passes);
     
     /**
@@ -1202,6 +1511,13 @@ public:
       */
     void handleGaiaSpawn();
 
+    /**
+     * Checks if Cerberus's corrosive debuff should drain an item from the affected player.
+     * If the drain timer has elapsed, removes a random item from the target player's inventory.
+     * Host handles this authoritative logic; clients receive updates via game state broadcasts.
+     */
+    void handleCorrosiveDrain();
+
     /** HOST ONLY. Custom method used by Gaia. This creates a new ordering for the players.
       * This new ordering is sent to the GameState to be applied to the local machine.
       * This also broadcasts the new ordering over the network for clients to apply respectively as well
@@ -1214,7 +1530,7 @@ public:
       * @return     true if we should conceal neighbor house and name
       */
     bool gaiaShouldConcealIdentity();
-    
+
     /**
      * Spawns items for the local player every frame, and for all AI-controlled
      * players if this machine is the host. AI item spawning is host-only since
@@ -1260,7 +1576,9 @@ public:
     void slideDialogueOut();
     
     /**
-     * Shows the dialogue box with the specified message..
+     * Shows the dialogue box with the specified message.
+     *
+     * @param message  The text string to display inside the dialogue box.
      */
     void showDialogue(const std::string& message);
     
@@ -1539,7 +1857,7 @@ public:
     void detectDroppedPeers();
 
     /**
-     * HOST ONLY. Replaces the player at the given slot with an EasyPlayerAI,
+     * HOST ONLY. Replaces the player at the given slot with an PlayerAI,
      * re-wires the neighbour ring, and restores the disconnected player's
      * health and inventory onto the new AI.
      *
@@ -1642,6 +1960,22 @@ public:
     std::vector<FloatingPopupData> buildAttackDamagePopups(
         float baseValue, float houseAffinityMultiplier, float upgradeMultiplier, float sideMultiplier,
         float preSideDamage, float finalDamage,
+        float valueFontSize, float multiplierFontSize
+    ) const;
+
+    /**
+     * Builds the popup sequence shown when Cerberus's drain-shield absorbs and reverses
+     * incoming damage into a heal. Shows the raw hit, the negative drain multiplier badge,
+     * and the resulting heal amount.
+     *
+     * @param preSideDamage    Damage before the side multiplier (what the player would have dealt).
+     * @param sideMultiplier   The negative side multiplier (e.g. -0.8).
+     * @param valueFontSize    Base font size for the damage/heal values.
+     * @param multiplierFontSize Base font size for the multiplier badge.
+     * @return Ordered list of FloatingPopupData for the sequence.
+     */
+    std::vector<FloatingPopupData> buildCerberusDefenseHealPopup(
+        float preSideDamage, float sideMultiplier,
         float valueFontSize, float multiplierFontSize
     ) const;
 
@@ -1826,7 +2160,12 @@ public:
      */
     std::shared_ptr<cugl::scene2::SceneNode> createItemWidget(const ItemInstance& item);
 
-    /** Return a random valid inventory position for a newly spawned item widget */
+    /**
+     * Returns a random valid inventory position for a newly spawned item widget.
+     *
+     * @param widgetSize  The size of the item widget, used to keep it within bounds.
+     * @return            A random position within the inventory area.
+     */
     cugl::Vec2 getRandomInventoryPosition(const cugl::Size& widgetSize) const;
     
     /** Return a spawn position for a passed item based on which side it came from
@@ -1840,6 +2179,7 @@ public:
      *
      * @param itemId  The ItemInstance for which the item body is created.
      * @param widget  The widget to attach the physics body to.
+     * @return        The newly created BoxObstacle body registered in the physics world.
      */
     std::shared_ptr<cugl::physics2::BoxObstacle> createItemBody(
         ItemInstance::ItemId itemId,
@@ -1855,15 +2195,70 @@ public:
      */
     void removeItemWidget(ItemInstance::ItemId itemId);
 
-    /** Smoothly animates each item widget's scale towards its current target. */
+    /**
+     * Smoothly animates each item widget's scale towards its current target.
+     *
+     * @param dt  Delta time in seconds.
+     */
     void updateItemWidgetScales(float dt);
 
-    /** Spawns a short-lived shrinking ghost visual for a consumed item. */
+    /**
+     * Spawns a short-lived shrinking ghost visual for a consumed item.
+     *
+     * @param sourceWidget  The scene node of the consumed item, used as the animation source.
+     * @param itemDef       The item definition used to select the correct ghost texture.
+     */
     void spawnConsumedItemAnimation(const std::shared_ptr<cugl::scene2::SceneNode>& sourceWidget,
                                     const std::shared_ptr<const ItemDef>& itemDef);
 
-    /** Advances and cleans up active consumed-item ghost animations. */
+    /**
+     * Advances and cleans up active consumed-item ghost animations.
+     *
+     * @param dt  Delta time in seconds.
+     */
     void updateConsumedItemAnimations(float dt);
+
+    /**
+     * Advances a single corroded-item animation by dt and updates its node's scale.
+     * Runs a two-phase tween: pop (scale up) then decay (scale down to zero).
+     * Degenerate animations (null node or zero duration) are treated as immediately finished.
+     *
+     * @param anim  The animation state to advance in place.
+     * @param dt    Elapsed time in seconds since the last frame.
+     * @return      True if the animation has completed; false if still running.
+     */
+    bool tickCorrodedAnimation(CorrodedItemAnimation& anim, float dt);
+
+    /**
+     * Cleans up all state for a corroded item once its animation has finished.
+     * Resets any in-progress drag, removes the item from corrosion tracking,
+     * destroys its visual widget and physics body, and removes it from the player's inventory.
+     *
+     * @param itemId  The instance ID of the item whose animation has completed.
+     */
+    void finalizeCorrodedItem(ItemInstance::ItemId itemId);
+
+    /**
+     * Ticks all active corroded-item animations and finalizes any that have completed.
+     * Items remain usable while fading and are only removed after their animation finishes.
+     * Clears the corrosive visual lock once all animations are done.
+     *
+     * @param dt  Elapsed time in seconds since the last frame.
+     */
+    void updateCorrodedItemAnimations(float dt);
+
+    /**
+     * Creates corrosive fade animations for a set of drained items on the local device.
+     * Only visually effective on the target player's device (only they have the item widgets).
+     * Called directly by the host and via network message on clients.
+     *
+     * @param targetPlayerSlot  Slot of the player whose items were drained.
+     * @param fadeDuration      Base fade-out duration per item.
+     * @param fadeVariance      ±fraction applied randomly to fadeDuration per item.
+     * @param itemIds           Authoritative list of item instance IDs to animate.
+     */
+    void applyCorrosiveDrain(int targetPlayerSlot, float fadeDuration, float fadeVariance,
+                             const std::vector<uint64_t>& itemIds);
 
     /** Removes and clears all consumed-item ghost animations. */
     void clearConsumedItemAnimations();
@@ -1940,6 +2335,17 @@ public:
      * Must only be called while _draggedIcon and _tooltipNode are valid.
      */
     void updateTooltipPosition();
+    
+    /**
+     * Awards or deducts XP based on the game outcome and selected boss,
+     * then persists the result to disk.
+     *
+     * On a win, the full boss XP reward is added. On a loss, half the
+     * boss XP reward is deducted (clamped to 0 by setPlayerXP).
+     *
+     * @param won  true if the players won, false if they lost.
+     */
+    void handleXPAdjustment(bool won);
 
 #pragma mark -
 #pragma mark Tutorial
@@ -2034,7 +2440,9 @@ public:
     void setDebugMode(bool enabled);
     
     /**
-     * Retrieves the current state of `_debugMode.
+     * Returns whether debug mode is currently enabled.
+     *
+     * @return true if debug overlays are active, false otherwise.
      */
     bool isDebugMode() const {return _debugMode; }
 
@@ -2078,6 +2486,8 @@ public:
      * Returns a reference to the item controller owned by this scene.
      * Exposed so LobbyScene can pass it to assignMissingHousesForAI()
      * when the host presses Begin Quest.
+     *
+     * @return  A reference to the ItemController owned by this scene.
      */
     ItemController& getItemController() { return _itemController; }
 };

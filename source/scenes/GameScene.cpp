@@ -40,8 +40,12 @@ constexpr float ITEM_SCALE_SPEED = 14.0f;
 constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
 //Defines how large the item is once it has been used. So it shrinks to this size.
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
+//Defines how small corroded items shrink (smaller than consumed items)
+constexpr float ITEM_CORRODE_END_SCALE = 0.05f;
 //Defines the gap between the item and its tooltip
 constexpr float ITEM_TOOLTIP_GAP = 6.0f;
+/** Full opacity used when a local heal/damage screen frame is triggered. */
+constexpr uint8_t HEALTH_FRAME_MAX_ALPHA = 255;
 /** The size of each timer in the _timers container. */
 static const float ICON_SIZE = 40.0f;
 /** X center position within the _timers container. */
@@ -72,6 +76,24 @@ static const std::unordered_map<ItemDef::EffectType, std::string> EFFECT_ICON_KE
     { ItemDef::EffectType::Vulnerable, "icon_vulnerable"  },
     { ItemDef::EffectType::Lifesteal,  "icon_lifesteal"  }
 };
+
+#pragma mark Cerberus Animation Helpers
+
+// Sprite index of the head hidden for each facing direction (0–3).
+// dir 0 (facing player) → hide back-position sprite (2)
+// dir 1 (facing right)  → hide left-position sprite (3)
+// dir 2 (facing away)   → hide front-position sprite (0)
+// dir 3 (facing left)   → hide right-position sprite (1)
+static constexpr int CERBERUS_HIDDEN_HEAD[4] = {2, 3, 0, 1};
+
+// Perspective rendering constants for Cerberus head sprites
+static constexpr float CERBERUS_PERSP_SCALE      = 0.95f;  // Scale applied to non-front heads for depth
+static constexpr float CERBERUS_PERSP_SHIFT      = 5.0f;   // Lateral pixel shift for side-view depth
+static constexpr float CERBERUS_BACK_SIDE_SHIFT  = 35.0f;  // Lateral shift for the back-position sprite in side view
+static constexpr float CERBERUS_BACK_VIEW_SPREAD = 10.0f;  // Spread for side heads when enemy faces fully away
+static constexpr float CERBERUS_GLOBAL_SHIFT     = 15.0f;  // Overall lateral shift applied to all heads in side view
+static constexpr float CERBERUS_Y_DELTA_SIDE     = 20.0f;  // Vertical depth offset in side view
+static constexpr float CERBERUS_Y_DELTA_BACK     = 10.0f;  // Vertical depth offset in back view
 
 #pragma mark HealthState
 
@@ -590,6 +612,7 @@ bool GameScene::initSceneGraph() {
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
         _specialEffectsLayer->setPosition(cugl::Vec2(dimen.width / 2.0f, dimen.height / 2.0f));
         _scene->addChild(_specialEffectsLayer);
+        initHealthFrameEffects();
         _supportLeftArea = _gameArea->getChildByName("supportLeft");
         _supportRightArea = _gameArea->getChildByName("supportRight");
         _timers = _gameArea->getChildByName("timers");
@@ -831,12 +854,6 @@ bool GameScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const st
     // Load animation registry from the already-registered enemyAnimations JSON asset
     loadAnimationRegistry();
     
-    // Pre-create all animation sprites to eliminate runtime stuttering
-    if (!initializeAllEnemyAnimations()) {
-        CULogError("Failed to initialize enemy animations");
-        return false;
-    }
-    
     // Pass animation registry to EnemyController for attack phase detection
     _enemyController.setAnimationRegistry(&_animationRegistry);
 
@@ -895,6 +912,10 @@ void GameScene::dispose() {
         _rightPlayerName = nullptr;
         _bossHealthBar = nullptr;
         _playerHealthBar = nullptr;
+        _damageFrame = nullptr;
+        _healFrame = nullptr;
+        _damageFrameTimer = 0.0f;
+        _healFrameTimer = 0.0f;
         _leftPHealthBar = nullptr;
         _rightPHealthBar = nullptr;
         _leftPHealthShield = nullptr;
@@ -909,6 +930,7 @@ void GameScene::dispose() {
         _enemyAnimationSpriteNodes.clear();
         _currentVisibleAnimationSprite = nullptr;
         _itemWidgets.clear();
+        _itemWidgetDefIds.clear();
         _itemWidgetScales.clear();
         _itemWidgetScaleTargets.clear();
         _consumedItemAnimations.clear();
@@ -1013,17 +1035,48 @@ void GameScene::setActive(bool value) {
             }
 
             // Re-initialize AI players after updateNetworkOrder() rebuilds
-            // AI slots via demoteToAI(). demoteToAI() creates EasyPlayerAI
+            // AI slots via demoteToAI(). demoteToAI() creates PlayerAI
             // objects but cannot call init() since it has no ItemController.
             // Without this, _db is null and the AI crashes on first update.
             _gameState.initAI(_itemController);
             
+            // Re-apply AI difficulty after initAI() resets all multipliers to 0.
+            // Uses the current enemy ID and cached player XP so the multiplier
+            // matches what was set in the lobby.
+            const std::string& bossId = _gameState.getEnemy() ? _gameState.getEnemy()->getId(): "";
+            if (!bossId.empty() && _network->isHost()) {
+                _gameState.applyAIDifficultyForBoss(
+                    bossId,
+                    SavedDataManager::get().getPlayerXP()
+                );
+            }
+            
             // Reset enemy animation state for clean start
             _enemyAnimationCurrentDirection = 0;
-            
-            // Hide animation sprite on scene reset
-            if (_currentVisibleAnimationSprite) {
-                _currentVisibleAnimationSprite->setVisible(false);
+
+            // Destroy previous enemy's sprites and load only the selected enemy's animations.
+            auto enemy = _gameState.getEnemy();
+            destroyEnemyAnimations();
+            if (enemy) initializeEnemyAnimations(enemy->getId());
+
+            // Cerberus: load head config from customData and reset animation state
+            if (enemy && enemy->getId() == "cerberus") {
+                configureCerberusAnimationState(enemy);
+            }
+            // Reset cerberus state tracking, direction tracking, and timers
+            _cerberusLastState = EnemyLoader::State::IDLE;
+            _cerberusLastDirection = -1;
+            for (int i = 0; i < 4; i++) _cerberusSoundFired[i] = false;
+            _cerberusBodyAnimTime = 0.0f;
+            for (int i = 0; i < 4; i++) {
+                _cerberusHeadAnimTime[i] = _cerberusAnimConfig.headOffsets[i].phaseOffset;
+            }
+            if (_cerberusBodySprite) _cerberusBodySprite->setVisible(false);
+            if (_cerberusBodySpriteTop) _cerberusBodySpriteTop->setVisible(false);
+            for (auto& [key, sprites] : _cerberusHeadSpritesByAnim) {
+                for (int i = 0; i < 4; i++) {
+                    if (sprites[i]) sprites[i]->setVisible(false);
+                }
             }
             _isTutorial = (_gameState.getEnemy()->getId() == "circe") && (!SavedDataManager::get().getTutorialCompleted() || _forceTutorial);
             _forceTutorial = false;
@@ -1042,6 +1095,8 @@ void GameScene::setActive(bool value) {
                 clearTutorialHighlight();
                 setTutorialDisableSupportZonesVisibility(false);
             }
+        } else {
+            destroyEnemyAnimations();
         }
     }
 }
@@ -1065,6 +1120,8 @@ void GameScene::reset() {
     _slotsDemotedToAI.clear();
     _pendingResurrectionSync = PendingResurrectionSync{};
     _pendingPartyEffectSyncs.clear();
+    resetHealthFrameEffects();
+    _itemWidgetDefIds.clear();
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
@@ -1272,10 +1329,15 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
     const float houseAffinityMultiplier =
         computeHouseAffinityMultiplier(*local, *def, _itemController.getDatabase());
     const float upgradeMultiplier = computeUpgradeMultiplier(*local, *def);
+    const float sideMultiplier = enemy->getSideMultiplier(local->getPlayerNumber());
 
+    const float localHealthBefore = local->getCurrentHealth();
     const float resolvedMagnitude = local->useItemById(item.getId(), *enemy, _itemController.getDatabase());
     if (resolvedMagnitude < 0.0f) {
         return false;
+    }
+    if (local->getCurrentHealth() > localHealthBefore) {
+        triggerHealFrame();
     }
     
     spawnEffectIcons(local->getEffectEvents());
@@ -1300,31 +1362,24 @@ bool GameScene::handleImmediateAttack(ItemInstance::ItemId itemId, const ItemIns
 
     if (!_network->isHost()) {
         //If we add an animation for gaia's rock we will have to move this to handleAnimatedAttack
-        if (def->getId() == "gaia_rock") {
-            _network->broadcastBossHeal(resolvedMagnitude);
-        }
-        else {
-            _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
-        }
+        _network->broadcastDamage(resolvedMagnitude, local->getPlayerNumber(), def->getId());
         broadcastEnemyEffects(*_network, enemyEffects);
     }
-    if (_network->isHost() && _audio) {
-        _audio->playSoundUnique("enemy_hurt");
-        CULog("Host: Attack caused enemy damage, playing enemy_hurt sound");
-    }
+    const float finalDamage = resolvedMagnitude * sideMultiplier;
 
-    //Since Gaia's rock heals unlike other attacks, we need a custom popup for it
-    if (def->getId() == "gaia_rock") {
-        handleGaiaRockPopup(dropPos, resolvedMagnitude);
-        return true;
+    if (_network->isHost() && _audio) {
+        _audio->playSoundUnique(finalDamage <= 0.0f ? "enemy_block" : "enemy_hurt");
     }
 
     if (baseValue > 0.0f) {
-        const float sideMultiplier  = enemy->getSideMultiplier(local->getPlayerNumber());
-        const float finalDamage     = resolvedMagnitude * sideMultiplier;
-        createFloatingPopup(dropPos, buildAttackDamagePopups(
-            baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
-            resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+        if (sideMultiplier < 0.0f) {
+            createFloatingPopup(dropPos, buildCerberusDefenseHealPopup(
+                resolvedMagnitude, sideMultiplier, 26.0f, 17.0f));
+        } else {
+            createFloatingPopup(dropPos, buildAttackDamagePopups(
+                baseValue, houseAffinityMultiplier, upgradeMultiplier, sideMultiplier,
+                resolvedMagnitude, finalDamage, 26.0f, 17.0f));
+        }
     }
 
     return true;
@@ -1537,8 +1592,19 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         spawnEffectIcons(local->getEffectEvents());
 
         if (!_network->isHost()) {
-            _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
+            if (def->getId() == "gaia_rock") {
+            // This is where we do damage to teammate
+                _network->broadcastHeal(-1 * resolvedMagnitude, target->getPlayerNumber());
+            }
+            else {
+                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
+            }
+        }
+
+        if (def->getId() == "gaia_rock") {
+            handleGaiaRockPopup(dropPos, resolvedMagnitude);
+            return true;
         }
             
         playSupportItemSound(def);
@@ -1580,9 +1646,20 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         spawnEffectIcons(local->getEffectEvents());
 
         if (!_network->isHost()) {
-            _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
-            broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
+            if (def->getId() == "gaia_rock") {
+                _network->broadcastHeal(-1 * resolvedMagnitude, target->getPlayerNumber());
+            }
+            else {
+                _network->broadcastHeal(resolvedMagnitude, target->getPlayerNumber());
+                broadcastSupportEffects(*_network, *def, resolvedMagnitude, target->getPlayerNumber(), shouldShowEffectPopup);
+            }
         }
+
+        if (def->getId() == "gaia_rock") {
+            handleGaiaRockPopup(dropPos, resolvedMagnitude);
+            return true;
+        }
+
         playSupportItemSound(def);
         CULog("handleSupportRight: Healing teammate (%.1f)", resolvedMagnitude);
         
@@ -2055,32 +2132,39 @@ void GameScene::updateEffectTimerIcons(float dt) {
 void GameScene::updateEnemyAndAI(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
+
+    bool isAuthoritative = !_network || _network->checkConnection() != NetworkController::CONNECTED || _network->isHost();
+    if (!isAuthoritative) return;
+
     // Track player and enemy health before any updates to detect damage
     auto player = _gameState.getLocalPlayer();
-    // Only track health if local player is not AI (AI players shouldn't hear their own hurt sounds)
     float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
     float enemyHealthBefore = enemy->getCurrentHealth();
 
-    if (_network->isHost()) {
-        _enemyController.update(dt, enemy, _gameState.getPlayers());
-    }
+    _enemyController.update(dt, enemy, _gameState.getPlayers());
 
     // Play shield block sound if local player's shield absorbed damage this update
     if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
         _audio->playSoundUnique("shield_block");
     }
 
-    // Update AI players - this is when they attack the boss AND heal teammates
-    for (auto& player : _gameState.getPlayers()) {
-        if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
-            ai->update(dt, *enemy, _itemController);
+    // Update AI players on the host so AI item decisions and effects are authoritative.
+    if (_network->isHost()) {
+        for (auto& player : _gameState.getPlayers()) {
+            if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
+                ai->update(dt, *enemy, _itemController);
+                for (float forgeChance : ai->consumePendingForgeChances()) {
+                    const int seed = makeForgeSeed();
+                    applyForgeEffect(forgeChance, seed);
+                    _network->broadcastForgeEffect(forgeChance, seed);
+                }
+            }
         }
     }
-    
-    // Play sounds for LOCAL player and enemy health changes after all updates
+
     playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
 
-    if (_network->isHost() && _enemyController.didFireScrambleEvent()) {
+    if (_enemyController.didFireScrambleEvent()) {
         handleGaiaScramble();
     }
 }
@@ -2170,15 +2254,131 @@ void GameScene::hideEnemyAnimationAndShowStatic() {
  * @param animationEntry  The animation metadata containing texture path and frame info
  * @return true if sprite node was successfully initialized, false on error
  */
-bool GameScene::initializeAllEnemyAnimations() {
+
+/**
+ * Positions and scales the body and body-top sprites using the body animation's registry entry.
+ */
+void GameScene::applyCerberusBodySpriteTransform() {
+    auto bodyEntryIt = _animationRegistry.find(_cerberusAnimConfig.bodyAnimId);
+    if (bodyEntryIt == _animationRegistry.end()) return;
+    const auto& bodyAnimEntry = bodyEntryIt->second;
+    cugl::Vec2 bodyPos(bodyAnimEntry.positionX + bodyAnimEntry.offsetX,
+                       bodyAnimEntry.positionY + bodyAnimEntry.offsetY);
+    if (_cerberusBodySprite) {
+        _cerberusBodySprite->setPosition(bodyPos);
+        _cerberusBodySprite->setScale(bodyAnimEntry.scale);
+    }
+    if (_cerberusBodySpriteTop) {
+        _cerberusBodySpriteTop->setPosition(bodyPos);
+        _cerberusBodySpriteTop->setScale(bodyAnimEntry.scale);
+    }
+}
+
+/**
+ * Reads per-head X/Y offsets and phase offsets from the enemy's customData JSON
+ * and stores them in _cerberusAnimConfig.headOffsets.
+ *
+ * @param enemy  The Cerberus enemy instance whose customData contains the "heads" object.
+ */
+void GameScene::loadCerberusHeadOffsets(const std::shared_ptr<Enemy>& enemy) {
+    auto customData = enemy->getCustomData();
+    if (!customData) return;
+    auto headsJson = customData->get("heads");
+    if (!headsJson) return;
+    const char* keys[4] = {"front", "right", "back", "left"};
+    for (int i = 0; i < 4; i++) {
+        auto headOffsetJson = headsJson->get(keys[i]);
+        if (headOffsetJson) {
+            _cerberusAnimConfig.headOffsets[i].offsetX     = headOffsetJson->getFloat("offsetX",     0.0f);
+            _cerberusAnimConfig.headOffsets[i].offsetY     = headOffsetJson->getFloat("offsetY",     0.0f);
+            _cerberusAnimConfig.headOffsets[i].phaseOffset = headOffsetJson->getFloat("phaseOffset", 0.0f);
+        }
+    }
+}
+
+/**
+ * Derives the idle head animation key from the enemy's IDLE state, resets all head
+ * active-animation keys and build-up timers to idle defaults, then applies the loaded
+ * per-head offsets to every head sprite and hides them.
+ * Must be called after loadCerberusHeadOffsets() so _cerberusAnimConfig.headOffsets is populated.
+ *
+ * @param enemy  The Cerberus enemy instance whose state definitions supply the idle head key.
+ */
+void GameScene::placeAndResetCerberusHeadSprites(const std::shared_ptr<Enemy>& enemy) {
+    auto idleStateIt = enemy->getStates().find(EnemyLoader::State::IDLE);
+    if (idleStateIt != enemy->getStates().end()) {
+        _cerberusIdleHeadAnimKey = idleStateIt->second.headAnimationKey;
+    }
+    for (int i = 0; i < 4; i++) {
+        _cerberusHeadActiveAnimKey[i]   = _cerberusIdleHeadAnimKey;
+        _cerberusHeadAnimBuildUpTime[i] = 0.0f;
+    }
+
+    for (auto& [key, sprites] : _cerberusHeadSpritesByAnim) {
+        auto entryIt = _animationRegistry.find(key);
+        if (entryIt == _animationRegistry.end()) continue;
+        const auto& headAnimEntry = entryIt->second;
+        for (int i = 0; i < 4; i++) {
+            if (sprites[i]) {
+                sprites[i]->setPosition(cugl::Vec2(
+                    headAnimEntry.positionX + _cerberusAnimConfig.headOffsets[i].offsetX,
+                    headAnimEntry.positionY + _cerberusAnimConfig.headOffsets[i].offsetY));
+                sprites[i]->setScale(headAnimEntry.scale);
+                sprites[i]->setVisible(false);
+            }
+        }
+    }
+}
+
+/**
+ * Configures Cerberus-specific animation state after sprites have been created.
+ * Positions body sprites, loads per-head offsets, and resets all head animation state.
+ * After this call sprites are correctly placed but invisible.
+ *
+ * @param enemy  The Cerberus enemy instance to read customData and state definitions from.
+ */
+void GameScene::configureCerberusAnimationState(const std::shared_ptr<Enemy>& enemy) {
+    applyCerberusBodySpriteTransform();
+    loadCerberusHeadOffsets(enemy);
+    placeAndResetCerberusHeadSprites(enemy);
+}
+
+/**
+ * Removes all enemy animation sprite nodes from the scene and clears related state.
+ */
+void GameScene::destroyEnemyAnimations() {
+    if (_bossSprite) _bossSprite->removeAllChildren();
+    _enemyAnimationSpriteNodes.clear();
+    _cerberusHeadSpritesByAnim.clear();
+    _cerberusBodySprite      = nullptr;
+    _cerberusBodySpriteTop   = nullptr;
+    _currentVisibleAnimationSprite = nullptr;
+    _currentAnimationId      = "";
+}
+
+/**
+ * Initializes the enemy animation sprites for the given enemy ID by creating SpriteNodes
+ * for each animation in the registry that matches the enemy ID prefix. Configures layout
+ * based on viewport size and stores references for later use. Also calls initializeCerberusAnimationSprites
+ * to perform additional setup for Cerberus head/body sprites. Finally, makes the _bossSprite container visible.
+ * 
+ * @param enemyId  The enemy identifier used to filter relevant animations from the registry and trigger Cerberus-specific setup.
+ * @return true if all relevant sprites were successfully initialized, false on any error (e.g. texture load failure).
+ */
+bool GameScene::initializeEnemyAnimations(const std::string& enemyId) {
     // Ensure we have the animation container
     if (!_bossSprite) {
         CULogError("Boss animation space not found");
         return false;
     }
     
-    // Create sprite node for each animation in the registry
+    // Create sprite node for each animation in the registry.
+    // Cerberus head animations are skipped here — they are created separately below
+    // as 4 per-head SpriteNodes with correct scale and Z-order.
     for (const auto& [animationId, animationEntry] : _animationRegistry) {
+        if (animationId.rfind(enemyId + "_", 0) != 0) continue;
+        if (animationId.rfind("cerberus_head_", 0) == 0) continue;
+
         // Allocate texture from file
         auto texture = cugl::graphics::Texture::allocWithFile(animationEntry.texture);
         if (!texture) {
@@ -2224,8 +2424,139 @@ bool GameScene::initializeAllEnemyAnimations() {
         _enemyAnimationSpriteNodes[animationId] = spriteNode;
     }
     
+    initializeCerberusAnimationSprites(enemyId);
+
     _bossSprite->setVisible(true);
     return true;
+}
+
+/**
+ * Collects all animation keys starting with "cerberus_head_" from the registry and sorts
+ * them with the idle set first, then remaining sets alphabetically. Idle-first ordering
+ * ensures the body sprite is inserted at the correct Z position during sprite setup.
+ *
+ * @return  Sorted list of Cerberus head animation keys.
+ */
+std::vector<std::string> GameScene::collectSortedCerberusHeadKeys() const {
+    std::vector<std::string> keys;
+    for (const auto& pair : _animationRegistry) {
+        if (pair.first.rfind("cerberus_head_", 0) == 0) {
+            keys.push_back(pair.first);
+        }
+    }
+    std::sort(keys.begin(), keys.end(),
+              [](const std::string& a, const std::string& b) {
+                  bool aIdle = a.find("idle") != std::string::npos;
+                  bool bIdle = b.find("idle") != std::string::npos;
+                  if (aIdle != bIdle) return aIdle;
+                  return a < b;
+              });
+    return keys;
+}
+
+/**
+ * Allocates four head sprites for one animation set, inserting them into _bossSprite
+ * in back→right→left→front order and inserting the body sprite between back and right
+ * on the first call (tracked via bodyInserted).
+ *
+ * @param key           Animation key for this head set.
+ * @param animEntry     Registry entry providing texture, frame layout, and transform.
+ * @param bodyInserted  In/out flag; set true the first time the body is inserted.
+ * @return              True if sprites were created; false if the texture failed to load.
+ */
+bool GameScene::createAndInsertCerberusHeadSet(const std::string& key,
+                                               const AnimationEntry& animEntry,
+                                               bool& bodyInserted) {
+    auto tex = cugl::graphics::Texture::allocWithFile(animEntry.texture);
+    if (!tex) {
+        if (_debugMode) CULogError("Missing cerberus head texture: %s", animEntry.texture.c_str());
+        return false;
+    }
+
+    std::array<std::shared_ptr<cugl::scene2::SpriteNode>, 4> sprites;
+    auto makeHead = [&](int idx) {
+        auto sprite = cugl::scene2::SpriteNode::allocWithSheet(
+            tex, animEntry.frameRows, animEntry.frameCount, animEntry.frameRows * animEntry.frameCount);
+        if (sprite) {
+            sprite->setAnchor(cugl::Vec2(0.5f, 0.5f));
+            sprite->setPosition(cugl::Vec2(animEntry.positionX, animEntry.positionY));
+            sprite->setScale(animEntry.scale);
+            sprite->setVisible(false);
+            _bossSprite->addChild(sprite);
+            sprites[idx] = sprite;
+        }
+    };
+
+    makeHead(2);  // back — behind body
+    if (!bodyInserted && _cerberusBodySprite) {
+        _bossSprite->addChild(_cerberusBodySprite);
+        bodyInserted = true;
+    }
+    makeHead(1);  // right
+    makeHead(3);  // left
+    makeHead(0);  // front — in front of body
+
+    _cerberusHeadSpritesByAnim[key] = sprites;
+    return true;
+}
+
+/**
+ * Creates the top-layer body sprite that sits above all head layers so the body
+ * correctly overlaps heads when Cerberus faces away (direction 2).
+ * Stores the result in _cerberusBodySpriteTop.
+ */
+void GameScene::addCerberusBodyTopSprite() {
+    auto entryIt = _animationRegistry.find("cerberus_body_idle_animation");
+    if (entryIt == _animationRegistry.end()) return;
+    const auto& bodyAnimEntry = entryIt->second;
+    auto tex = cugl::graphics::Texture::allocWithFile(bodyAnimEntry.texture);
+    if (!tex) return;
+    auto sprite = cugl::scene2::SpriteNode::allocWithSheet(
+        tex, bodyAnimEntry.frameRows, bodyAnimEntry.frameCount,
+        bodyAnimEntry.frameRows * bodyAnimEntry.frameCount);
+    if (!sprite) return;
+    sprite->setAnchor(cugl::Vec2(0.5f, 0.5f));
+    sprite->setPosition(cugl::Vec2(bodyAnimEntry.positionX + bodyAnimEntry.offsetX,
+                                   bodyAnimEntry.positionY + bodyAnimEntry.offsetY));
+    sprite->setScale(bodyAnimEntry.scale);
+    sprite->setVisible(false);
+    _bossSprite->addChild(sprite);
+    _cerberusBodySpriteTop = sprite;
+}
+
+/**
+ * Extracts the body sprite from the registry-populated sprite list, then (for Cerberus)
+ * builds all head sprite sets via collectSortedCerberusHeadKeys / createAndInsertCerberusHeadSet
+ * and adds the top body layer via addCerberusBodyTopSprite.
+ * Draw order: back → body → right → left → front → body-top.
+ *
+ * @param enemyId  The enemy identifier; head setup only runs when this equals "cerberus".
+ */
+void GameScene::initializeCerberusAnimationSprites(const std::string& enemyId) {
+    // The registry loop placed the body sprite at the end of _bossSprite's children.
+    // Remove it so it can be re-inserted at the correct Z position below.
+    auto bodyNodeIt = _enemyAnimationSpriteNodes.find("cerberus_body_idle_animation");
+    if (bodyNodeIt != _enemyAnimationSpriteNodes.end()) {
+        _cerberusBodySprite = bodyNodeIt->second;
+        _cerberusAnimConfig.bodyAnimId = "cerberus_body_idle_animation";
+        _cerberusBodySprite->removeFromParent();
+    }
+
+    if (enemyId != "cerberus") return;
+
+    // Scanned from registry (not from the enemy instance) because at init() time the
+    // default enemy is Cyclops — the actual boss choice isn't known until setActive(true).
+    bool bodyInserted = false;
+    for (const auto& key : collectSortedCerberusHeadKeys()) {
+        auto entryIt = _animationRegistry.find(key);
+        if (entryIt == _animationRegistry.end()) {
+            if (_debugMode) CULogError("Cerberus head anim key '%s' not in registry", key.c_str());
+            continue;
+        }
+        createAndInsertCerberusHeadSet(key, entryIt->second, bodyInserted);
+    }
+
+    addCerberusBodyTopSprite();
 }
 
 /**
@@ -2455,10 +2786,16 @@ bool GameScene::isEnemyAttackAnimationComplete() const {
  */
 void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
     auto enemy = _gameState.getEnemy();
-    
+
     // If no enemy, hide animation
     if (!enemy) {
         hideEnemyAnimationAndShowStatic();
+        return;
+    }
+
+    // Cerberus uses its own multi-sprite animation logic
+    if (enemy->getId() == "cerberus") {
+        updateCerberusAnimation(dt, localPlayerIndex);
         return;
     }
     
@@ -2508,7 +2845,494 @@ void GameScene::updateEnemyAnimation(float dt, int localPlayerIndex) {
 }
 
 /**
+ * Reorders the Cerberus heads based on the specified direction. 
+ * Cerberus has 4 heads that need to be layered correctly depending on which way it's facing:
+ * - Facing front (0):    body, head3, head1, head0
+ * - Facing right (1):   head2, body, head1, head0
+ * - Facing back (2):    head2, body, head3, head1
+ * - Facing left (3):    head2, body, head3, head0
+ *
+ * @param direction  The direction the Cerberus is facing (0-3).
+ */
+void GameScene::reorderCerberusHeads(int direction) {
+    // Per-direction z-order from back (first = lowest z) to front (last = drawn on top).
+    // Matches the layering the user specified:
+    //   dir 0 (facing me):    body, head3, head1, head0(center), bodyTop
+    //   dir 1 (facing right): head2, body, head1(center), head0, bodyTop
+    //   dir 2 (facing away):  head2(center), body, head3, head1, bodyTop
+    //   dir 3 (facing left):  head2, body, head3(center), head0, bodyTop
+    // Entries: >=0 = head index, -1 = bodySprite, -2 = bodyTop.
+    static const int ORDER[4][5] = {
+        { -1,  3,  1,  0, -2 },   // dir 0
+        {  2, -1,  1,  0, -2 },   // dir 1
+        {  2, -1,  3,  1, -2 },   // dir 2
+        {  2, -1,  3,  0, -2 },   // dir 3
+    };
+    static const int HIDDEN_HEAD[4] = {2, 3, 0, 1};
+    int hidden = HIDDEN_HEAD[direction];
+
+    // Remove all cerberus head sprites and body sprites from the scene graph
+    for (auto& [key, sprites] : _cerberusHeadSpritesByAnim) {
+        for (int i = 0; i < 4; i++) {
+            if (sprites[i]) sprites[i]->removeFromParent();
+        }
+    }
+    if (_cerberusBodySprite)    _cerberusBodySprite->removeFromParent();
+    if (_cerberusBodySpriteTop) _cerberusBodySpriteTop->removeFromParent();
+
+    // Add the hidden head first — it will be invisible but occupies the lowest z-slot
+    for (auto& [key, sprites] : _cerberusHeadSpritesByAnim) {
+        if (sprites[hidden]) _bossSprite->addChild(sprites[hidden]);
+    }
+
+    // Add the remaining sprites in the per-direction order
+    for (int slot = 0; slot < 5; slot++) {
+        int entry = ORDER[direction][slot];
+        if (entry == -1) {
+            if (_cerberusBodySprite) _bossSprite->addChild(_cerberusBodySprite);
+        } else if (entry == -2) {
+            if (_cerberusBodySpriteTop) _bossSprite->addChild(_cerberusBodySpriteTop);
+        } else {
+            for (auto& [key, sprites] : _cerberusHeadSpritesByAnim) {
+                if (sprites[entry]) _bossSprite->addChild(sprites[entry]);
+            }
+        }
+    }
+}
+
+/**
+ * Computes the linear sprite sheet frame index for a Cerberus head or body animation.
+ *
+ * Supports two animation modes:
+ *   - Pure loop: loopEndFrame covers the last frame; the animation loops
+ *     [loopStartFrame, loopEndFrame] indefinitely.
+ *   - Two-phase: loopEndFrame < frameCount-1; the animation loops during the build-up
+ *     phase, then plays the remaining frames linearly as the attack executes.
+ *
+ * @param animEntry     Metadata for the animation to compute the frame for.
+ * @param animTime      Seconds elapsed since this animation started playing.
+ * @param buildUpTime   Duration of the looping build-up phase (0 for pure loops).
+ * @param directionRow  Sprite sheet row (0-3) corresponding to the current facing direction.
+ * @return Linear frame index into the sprite sheet.
+ */
+static int computeCerberusAnimFrame(const AnimationEntry& animEntry, float animTime, float buildUpTime, int directionRow) {
+    bool isPureLoop = (animEntry.loopEndFrame < 0 || animEntry.loopEndFrame >= animEntry.frameCount - 1);
+    int loopFrameCount = animEntry.loopEndFrame - animEntry.loopStartFrame + 1;
+    int frameWithinRow;
+    if (isPureLoop || animTime < buildUpTime) {
+        if (loopFrameCount <= 0) return directionRow * animEntry.frameCount;  // malformed data guard
+        frameWithinRow = animEntry.loopStartFrame + static_cast<int>(animTime / animEntry.frameDuration) % loopFrameCount;
+    } else {
+        float timeIntoAttackPhase = animTime - buildUpTime;
+        int maxAttackFrame = animEntry.frameCount - (animEntry.loopEndFrame + 2);
+        frameWithinRow = animEntry.loopEndFrame + 1 +
+                         std::min(static_cast<int>(timeIntoAttackPhase / animEntry.frameDuration), maxAttackFrame);
+    }
+    return directionRow * animEntry.frameCount + std::clamp(frameWithinRow, 0, animEntry.frameCount - 1);
+}
+
+/**
+ * Advances all Cerberus per-head and body animation timers by a scaled delta time.
+ * Applies the enemy's slow multiplier, and additionally the frantic speed multiplier
+ * during the idle state. Does nothing if the enemy is stunned.
+ *
+ * @param dt        Elapsed time in seconds since the last frame.
+ * @param enemy     The enemy whose slow/stun state is queried.
+ * @param cerberus  Typed Cerberus pointer used to query frantic speed (may be null).
+ */
+void GameScene::advanceCerberusAnimationTimers(float dt, const std::shared_ptr<Enemy>& enemy, const std::shared_ptr<Cerberus>& cerberus) {
+    if (enemy->isStunned()) return;
+
+    // Apply slow multiplier first, then frantic on top during IDLE.
+    float scaledDt = dt * enemy->getSlowMultiplier();
+    if (cerberus && enemy->getCurrentState() == EnemyLoader::State::IDLE) {
+        scaledDt *= cerberus->getFranticSpeedMultiplier();
+    }
+    _cerberusBodyAnimTime += scaledDt;
+    for (int headIndex = 0; headIndex < 4; headIndex++) {
+        _cerberusHeadAnimTime[headIndex] += scaledDt;
+    }
+}
+
+/**
+ * Commits head animation keys when Cerberus transitions into a non-idle state.
+ * Determines which heads participate based on the state's headParticipants config,
+ * resolves redirects for knocked heads on single-head attacks, and resets each
+ * participating head's animation timer so it starts cleanly.
+ * Idle-state transitions are handled lazily inside updateSingleCerberusHead.
+ *
+ * @param currentState  The new enemy state being entered.
+ * @param stateDef      Pointer to the state's definition (may be null for unknown states).
+ * @param direction     Current facing direction (0=front, 1=right, 2=back, 3=left).
+ * @param cerberus      Typed Cerberus pointer used to check knocked/target state.
+ */
+void GameScene::handleCerberusStateTransition(EnemyLoader::State currentState, const EnemyLoader::StateDef* stateDef, int direction, const std::shared_ptr<Cerberus>& cerberus) {
+    // Idle transitions are handled lazily per-head via the completion check in updateSingleCerberusHead.
+    if (currentState == EnemyLoader::State::IDLE || !cerberus) return;
+
+    const std::vector<int> participants = stateDef ? stateDef->headParticipants : std::vector<int>{};
+    bool participantsAreRelative = stateDef && stateDef->headParticipantsRelative;
+    std::string newHeadAnimKey = (stateDef && !stateDef->headAnimationKey.empty())
+        ? stateDef->headAnimationKey : _cerberusIdleHeadAnimKey;
+    float buildUpTime = stateDef ? stateDef->buildUpTime : 0.0f;
+
+    // For attack_3: if the front head is knocked, redirect the single-head animation
+    // to an available side head. If all side heads are also knocked, nothing is committed
+    // (EnemyController similarly skips the damage in that case).
+    int redirectedHeadIndex = -1;
+    bool isSingleHeadAttack = (currentState == EnemyLoader::State::ATTACK_2 ||
+                               currentState == EnemyLoader::State::ATTACK_3);
+    if (isSingleHeadAttack && participantsAreRelative) {
+        int targetPlayerSlot = cerberus->getTargetIndex();
+        if (cerberus->isHeadKnocked(targetPlayerSlot)) {
+            int alternatePlayerSlot = cerberus->getAlternateKnockedHead(targetPlayerSlot);
+            if (alternatePlayerSlot >= 0) {
+                redirectedHeadIndex = (alternatePlayerSlot - targetPlayerSlot + direction + 4) % 4;
+            }
+        }
+    }
+
+    for (int headIndex = 0; headIndex < 4; headIndex++) {
+        bool headParticipates;
+        if (redirectedHeadIndex >= 0) {
+            headParticipates = (headIndex == redirectedHeadIndex);
+        } else if (participants.empty()) {
+            headParticipates = true;
+        } else if (participantsAreRelative) {
+            int relativePosition = (headIndex - direction + 4) % 4;
+            headParticipates = std::find(participants.begin(), participants.end(), relativePosition) != participants.end();
+        } else {
+            headParticipates = std::find(participants.begin(), participants.end(), headIndex) != participants.end();
+        }
+
+        // Only commit if the new state has a distinct attack animation key. Defensive moves
+        // that reuse the idle head key must not interrupt a bite that is still completing.
+        if (!headParticipates || newHeadAnimKey == _cerberusIdleHeadAnimKey) continue;
+
+        // Skip knocked heads — they display the knocked animation regardless.
+        int headPlayerSlot = (cerberus->getTargetIndex() + headIndex - direction + 4) % 4;
+        if (cerberus->isHeadKnocked(headPlayerSlot)) continue;
+
+        // On clients, seed the timer from the host's stateTime so the animation starts
+        // at the correct offset rather than frame 0 (compensates for network latency).
+        // On the host, stateTime is always 0 at transition so this is a no-op there.
+        _cerberusHeadAnimTime[headIndex] = (!_network || _network->isHost()) ? 0.0f : cerberus->getStateTime();
+        _cerberusSoundFired[headIndex] = false;
+        _cerberusHeadActiveAnimKey[headIndex] = newHeadAnimKey;
+        _cerberusHeadAnimBuildUpTime[headIndex] = buildUpTime;
+    }
+}
+
+/**
+ * Updates the Cerberus body sprite for the current frame.
+ * Selects between the standard body sprite and the top-layer body sprite based on whether
+ * the enemy is facing fully away (direction 2), then advances the body animation frame.
+ *
+ * @param direction  Current facing direction (0=front, 1=right, 2=back, 3=left).
+ */
+void GameScene::updateCerberusBodySprite(int direction) {
+    auto bodyAnimSearch = _animationRegistry.find(_cerberusAnimConfig.bodyAnimId);
+    if (bodyAnimSearch == _animationRegistry.end()) return;
+
+    // When facing fully away, show the top-layer body sprite that renders above the heads.
+    bool isFacingAway = (direction == 2);
+    if (_cerberusBodySprite)    _cerberusBodySprite->setVisible(!isFacingAway);
+    if (_cerberusBodySpriteTop) _cerberusBodySpriteTop->setVisible(isFacingAway);
+
+    // Body always uses pure-loop mode, so buildUpTime is 0.
+    int bodyFrameIndex = computeCerberusAnimFrame(bodyAnimSearch->second, _cerberusBodyAnimTime, 0.0f, direction);
+    if (!isFacingAway && _cerberusBodySprite)    _cerberusBodySprite->setFrame(bodyFrameIndex);
+    if (isFacingAway  && _cerberusBodySpriteTop) _cerberusBodySpriteTop->setFrame(bodyFrameIndex);
+}
+
+/**
+ * Updates a single Cerberus head sprite for the current frame.
+ * Handles animation completion (reverting to idle after a two-phase attack finishes),
+ * positions the head sprite with perspective depth offsets, selects the knocked or
+ * active animation, computes the frame index, and drives the enemy's frame counter
+ * from the first attacking head so readyToFire() can trigger damage at the right frame.
+ *
+ * @param headIndex              Index of the head to update (0=front, 1=right, 2=back, 3=left).
+ * @param isVisible              Whether this head should be rendered (false for the hidden head).
+ * @param direction              Current facing direction (0=front, 1=right, 2=back, 3=left).
+ * @param globalXShift           Lateral pixel offset applied to all heads in side/back views.
+ * @param enemy                  The base enemy, used to query stun state and set the animation frame counter.
+ * @param cerberus               Typed Cerberus pointer used to check knocked head state.
+ * @param outFrameCounterUpdated In/out flag; set to true by the first attacking head that
+ *                               drives the frame counter, preventing double-writes.
+ */
+/**
+ * Determines which animation key a Cerberus head should display this frame.
+ * Reverts expired two-phase attack animations to idle, applies knocked/love overrides,
+ * and restores looping state animations for heads that recovered from being knocked.
+ * May update _cerberusHeadActiveAnimKey[headIndex] as a side effect.
+ *
+ * @param headIndex  Sprite index (0-3) of the head being evaluated.
+ * @param direction  Current facing direction (0-3).
+ * @param enemy      The enemy queried for current state and love status.
+ * @param cerberus   The Cerberus instance queried for per-head knock state.
+ * @return           The animation key to display for this head this frame.
+ */
+std::string GameScene::resolveHeadDisplayKey(int headIndex, int direction,
+                                             const std::shared_ptr<Enemy>& enemy,
+                                             const std::shared_ptr<Cerberus>& cerberus) {
+    // Completion check: once a two-phase attack animation's outro frames are exhausted,
+    // revert to idle so the head is ready for the next attack.
+    if (_cerberusHeadActiveAnimKey[headIndex] != _cerberusIdleHeadAnimKey) {
+        auto it = _animationRegistry.find(_cerberusHeadActiveAnimKey[headIndex]);
+        if (it != _animationRegistry.end()) {
+            const AnimationEntry& entry = it->second;
+            bool isPureLoop = (entry.loopEndFrame < 0 ||
+                               entry.loopEndFrame >= entry.frameCount - 1);
+            if (!isPureLoop) {
+                int attackFrameCount = entry.frameCount - entry.loopEndFrame - 1;
+                float totalDuration = _cerberusHeadAnimBuildUpTime[headIndex] +
+                                      attackFrameCount * entry.frameDuration;
+                if (_cerberusHeadAnimTime[headIndex] >= totalDuration) {
+                    _cerberusHeadActiveAnimKey[headIndex] = _cerberusIdleHeadAnimKey;
+                }
+            } else if (enemy->getCurrentState() == EnemyLoader::State::IDLE) {
+                // Pure-loop non-idle animations (e.g. defend) must not outlive their state.
+                _cerberusHeadActiveAnimKey[headIndex] = _cerberusIdleHeadAnimKey;
+            }
+        }
+    }
+
+    // Knocked/love override: abort any in-progress attack and show knocked animation.
+    std::string displayAnimKey = _cerberusHeadActiveAnimKey[headIndex];
+    int headPlayerSlot = (enemy->getTargetIndex() + headIndex - direction + 4) % 4;
+    if (cerberus && (cerberus->isHeadKnocked(headPlayerSlot) || enemy->isLoved())) {
+        _cerberusHeadActiveAnimKey[headIndex] = _cerberusIdleHeadAnimKey;
+        displayAnimKey = "cerberus_head_knocked_animation";
+    } else if (_cerberusHeadActiveAnimKey[headIndex] == _cerberusIdleHeadAnimKey &&
+               enemy->getCurrentState() != EnemyLoader::State::IDLE) {
+        // Recovery: head was knocked during a non-idle state, or was skipped in
+        // handleCerberusStateTransition. Restore the state's looping head animation.
+        const auto* stateDef = enemy->getCurrentStateDef();
+        if (stateDef && !stateDef->headAnimationKey.empty() &&
+            stateDef->headAnimationKey != _cerberusIdleHeadAnimKey) {
+            auto animIt = _animationRegistry.find(stateDef->headAnimationKey);
+            if (animIt != _animationRegistry.end()) {
+                bool isPureLoop = (animIt->second.loopEndFrame < 0 ||
+                                   animIt->second.loopEndFrame >= animIt->second.frameCount - 1);
+                if (isPureLoop) _cerberusHeadActiveAnimKey[headIndex] = stateDef->headAnimationKey;
+            }
+        }
+    }
+
+    return displayAnimKey;
+}
+
+/**
+ * Computes the perspective-corrected scale and positional offsets for a single
+ * Cerberus head. Front heads are full-size; side and back heads are scaled down
+ * and shifted laterally. Uses the CERBERUS_PERSP_* constants for magnitudes.
+ *
+ * @param headIndex  Sprite index (0-3) of the head.
+ * @param direction  Current facing direction (0=front, 1=right, 2=back, 3=left).
+ * @return           HeadTransform containing scale, x-offset, and y-offset to apply.
+ */
+GameScene::HeadTransform GameScene::computeHeadPerspective(int headIndex, int direction) const {
+    HeadTransform result;
+    int relativePosition = (headIndex - direction + 4) % 4;
+
+    result.scale = (relativePosition == 0) ? 1.0f : CERBERUS_PERSP_SCALE;
+    if (direction == 2 && relativePosition != 0) result.scale *= 0.9f;
+
+    float facingSign = (direction == 1) ? 1.0f : (direction == 3) ? -1.0f : 0.0f;
+    result.xOffset = 0.0f;
+    if (relativePosition != 0) {
+        if (headIndex == 2 && (direction == 1 || direction == 3)) {
+            result.xOffset = facingSign * CERBERUS_BACK_SIDE_SHIFT;
+        } else if (direction == 2) {
+            float lateralSign = (headIndex == 1) ? 1.0f : (headIndex == 3) ? -1.0f : 0.0f;
+            result.xOffset = lateralSign * CERBERUS_BACK_VIEW_SPREAD;
+        } else {
+            result.xOffset = facingSign * CERBERUS_PERSP_SHIFT;
+        }
+    }
+
+    float yDepthDelta = (direction == 2) ? CERBERUS_Y_DELTA_BACK
+                      : (direction != 0) ? CERBERUS_Y_DELTA_SIDE : 0.0f;
+    result.yOffset = 0.0f;
+    if (yDepthDelta > 0.0f) {
+        if (direction == 2) {
+            result.yOffset = -yDepthDelta;
+        } else {
+            if (relativePosition == 0) result.yOffset =  yDepthDelta;
+            else if (headIndex == 2)   result.yOffset = +yDepthDelta;
+            else                       result.yOffset = -yDepthDelta;
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Updates frame, position, scale, visibility, and damage sound for a single
+ * Cerberus head sprite.
+ *
+ * @param headIndex               Sprite index (0-3) of the head to update.
+ * @param isVisible               False for the hidden back-position head.
+ * @param direction               Current facing direction (0-3).
+ * @param globalXShift            Lateral shift applied to all heads for directional perspective.
+ * @param enemy                   The enemy for target-index and frame-counter updates.
+ * @param cerberus                The Cerberus instance queried for head-knock and love state.
+ * @param outFrameCounterUpdated  Set to true once the first attacking head drives the frame counter.
+ */
+void GameScene::updateSingleCerberusHead(int headIndex, bool isVisible, int direction,
+                                         float globalXShift, const std::shared_ptr<Enemy>& enemy,
+                                         const std::shared_ptr<Cerberus>& cerberus,
+                                         bool& outFrameCounterUpdated) {
+    std::string displayAnimKey = resolveHeadDisplayKey(headIndex, direction, enemy, cerberus);
+
+    for (auto& [animKey, spriteSet] : _cerberusHeadSpritesByAnim) {
+        if (spriteSet[headIndex])
+            spriteSet[headIndex]->setVisible(isVisible && animKey == displayAnimKey);
+    }
+    if (!isVisible) return;
+
+    auto headAnimSearch = _animationRegistry.find(displayAnimKey);
+    if (headAnimSearch == _animationRegistry.end()) return;
+    const AnimationEntry& headAnimEntry = headAnimSearch->second;
+
+    HeadTransform persp = computeHeadPerspective(headIndex, direction);
+
+    bool isCommittedAttack = (_cerberusHeadActiveAnimKey[headIndex] != _cerberusIdleHeadAnimKey);
+    float committedBuildUpTime = isCommittedAttack ? _cerberusHeadAnimBuildUpTime[headIndex] : 0.0f;
+    // Use the local per-head timer: seeded from authoritative stateTime at each transition
+    // and advanced by the same dt, so damage fires on the same frame on every device.
+    float animTime = _cerberusHeadAnimTime[headIndex];
+    int frameIndex = computeCerberusAnimFrame(headAnimEntry, animTime, committedBuildUpTime, headIndex);
+
+    auto& activeHeadSprites = _cerberusHeadSpritesByAnim[displayAnimKey];
+    if (activeHeadSprites[headIndex]) {
+        activeHeadSprites[headIndex]->setScale(headAnimEntry.scale * persp.scale);
+        activeHeadSprites[headIndex]->setPosition(cugl::Vec2(
+            headAnimEntry.positionX + _cerberusAnimConfig.headOffsets[headIndex].offsetX + globalXShift + persp.xOffset,
+            headAnimEntry.positionY + _cerberusAnimConfig.headOffsets[headIndex].offsetY + persp.yOffset));
+        activeHeadSprites[headIndex]->setFrame(frameIndex);
+    }
+
+    // Fire the damage sound exactly once at the designated frame.
+    // Guard with isCommittedAttack so knocked heads never trigger attack sounds.
+    if (isCommittedAttack && !_cerberusSoundFired[headIndex] && headAnimEntry.damageFrame >= 0) {
+        int frameWithinRow = frameIndex - headIndex * headAnimEntry.frameCount;
+        if (frameWithinRow >= headAnimEntry.damageFrame) {
+            _cerberusSoundFired[headIndex] = true;
+            if (!headAnimEntry.sound.empty() && _audio) _audio->playSoundUnique(headAnimEntry.sound);
+        }
+    }
+
+    // Drive the enemy frame counter from the first attacking head so readyToFire() uses
+    // frame-based triggering instead of time-based.
+    if (isCommittedAttack && !outFrameCounterUpdated) {
+        enemy->setCurrentAnimationFrame(frameIndex - headIndex * headAnimEntry.frameCount);
+        outFrameCounterUpdated = true;
+    }
+}
+
+/**
+ * Main per-frame update for all Cerberus animation state.
+ * Shows the animated boss sprite hierarchy, reorders head z-ordering on direction changes,
+ * advances animation timers, handles state transitions, and delegates body/head sprite
+ * updates to their respective helpers.
+ *
+ * @param dt               Elapsed time in seconds since the last frame.
+ * @param localPlayerIndex Index of the local player (0-3), used to compute facing direction.
+ */
+/**
+ * Determines which direction Cerberus should face this frame, locking the current
+ * direction while any head is mid-attack to prevent head-position corruption from
+ * a retarget snapping mid-animation.
+ *
+ * @param localPlayerIndex  Slot index of the local player.
+ * @param enemy             The Cerberus enemy whose target index is used for direction math.
+ * @return                  Resolved facing direction (0=front, 1=right, 2=back, 3=left).
+ */
+int GameScene::resolveCerberusDirection(int localPlayerIndex, const std::shared_ptr<Enemy>& enemy) {
+    bool anyHeadAttacking = false;
+    for (int i = 0; i < 4; i++) {
+        if (_cerberusHeadActiveAnimKey[i] != _cerberusIdleHeadAnimKey) {
+            anyHeadAttacking = true;
+            break;
+        }
+    }
+    if (!anyHeadAttacking) {
+        int direction = std::clamp(
+            EnemyController::calculateDirection(enemy->getTargetIndex(), localPlayerIndex), 0, 3);
+        _enemyAnimationCurrentDirection = direction;
+        return direction;
+    }
+    return _enemyAnimationCurrentDirection;
+}
+
+/**
+ * Main per-frame update for all Cerberus animation state.
+ * Shows the animated boss sprite hierarchy, reorders head Z-ordering on direction changes,
+ * advances animation timers, handles state transitions, and delegates body/head sprite
+ * updates to their respective helpers.
+ *
+ * @param dt               Elapsed time in seconds since the last frame.
+ * @param localPlayerIndex Index of the local player (0-3), used to compute facing direction.
+ */
+void GameScene::updateCerberusAnimation(float dt, int localPlayerIndex) {
+    auto enemy = _gameState.getEnemy();
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(enemy);
+
+    // Show the animated boss sprite hierarchy and hide the static fallback.
+    if (_bossSprite) _bossSprite->setVisible(true);
+    if (_gameArea) {
+        auto staticFallbackSprite = _gameArea->getChildByName("bossIdle");
+        if (staticFallbackSprite) staticFallbackSprite->setVisible(false);
+    }
+
+    int direction = resolveCerberusDirection(localPlayerIndex, enemy);
+    if (direction != _cerberusLastDirection) {
+        reorderCerberusHeads(direction);
+        _cerberusLastDirection = direction;
+    }
+
+    advanceCerberusAnimationTimers(dt, enemy, cerberus);
+
+    // Detect state transitions and commit head animations for the new state.
+    EnemyLoader::State currentState = enemy->getCurrentState();
+    const auto* stateDef = enemy->getCurrentStateDef();
+    if (currentState != _cerberusLastState) {
+        // Play defense sound once on entry.
+        if (currentState == EnemyLoader::State::DEFENSE_MOVE) {
+            if (_audio) _audio->playSoundUnique("cerberus_defense", false);
+        }
+        handleCerberusStateTransition(currentState, stateDef, direction, cerberus);
+        _cerberusLastState = currentState;
+    }
+
+    // Play the knock sound once whenever a head transitions to knocked.
+    if (cerberus && cerberus->consumeHeadKnockSound() && _audio) {
+        _audio->playSoundUnique("cerberus_head_knock");
+    }
+
+    updateCerberusBodySprite(direction);
+
+    float facingSign = (direction == 1) ? 1.0f : (direction == 3) ? -1.0f : 0.0f;
+    float globalXShift = facingSign * CERBERUS_GLOBAL_SHIFT;
+    int hiddenHeadSpriteIndex = CERBERUS_HIDDEN_HEAD[direction];
+    bool frameCounterUpdated = false;
+    for (int headIndex = 0; headIndex < 4; headIndex++) {
+        updateSingleCerberusHead(
+            headIndex,
+            headIndex != hiddenHeadSpriteIndex,
+            direction,
+            globalXShift,
+            enemy,
+            cerberus,
+            frameCounterUpdated);
+    }
+}
+
+/**
  * Updates the progress bar with the current ratios of all players and enemy health.
+ * @param dt Delta time in seconds
  */
 void GameScene::updateAllPlayersAndEnemyHealthUI(float dt) {
     auto enemy = _gameState.getEnemy();
@@ -2625,6 +3449,7 @@ void GameScene::updatePlayerHealthBarEffect(float dt) {
 
 /**
  * Updates the player and teammate UI icons to reflect their current health.
+ * @param dt Delta time in seconds
  */
 void GameScene::updatePlayerAndTeammateIcons(float dt) {
     auto localPlayer = _gameState.getLocalPlayer();
@@ -2794,7 +3619,6 @@ void GameScene::handleResetButton(InputController& input) {
 
     Vec2 touchPosScreen = screenToWorldCoords(input.getTouchStart());
     if (_resetBtn->getBoundingBox().contains(touchPosScreen)) {
-        CULog("Reset button tapped!");
         reset();
     }
 }
@@ -3088,6 +3912,7 @@ void GameScene::handlePlayerInput(InputController& input) {
 /**
  * Decrements the glow timer each frame. Clears the active glow action
  * once the timer expires.
+ * @param dt Delta time in seconds
  */
 void GameScene::tickGlowTimer(float dt) {
     if (_glowTimer <= 0) return;
@@ -3099,6 +3924,7 @@ void GameScene::tickGlowTimer(float dt) {
 
 /**
  * Updates the debug pointer position in scene coordinates.
+ * @param input The input controller for this frame, used to query touch state and position.
  */
 void GameScene::updateDebugPointer(InputController& input) {
     if (!isDebugMode()) {
@@ -3120,6 +3946,7 @@ void GameScene::updateDebugPointer(InputController& input) {
 
 /**
  * Hit-tests item widgets against the initial touch position.
+ * @param input The input controller for this frame, used to query touch state and position.
  */
 void GameScene::handleDragInitiation(InputController& input) {
     if (_draggedIcon || (!input.isDragging() && !input.justTouched() && !input.justMouseDown())) return;
@@ -3165,6 +3992,7 @@ void GameScene::handleDragInitiation(InputController& input) {
 
 /**
  * Moves the active dragged icon to follow the current touch position.
+ * @param input The input controller for this frame, used to query touch state and position.
  */
 void GameScene::handleDragTracking(InputController& input) {
     if (!_draggedIcon || (!input.isTouching() && !input.isMouseDown())) return;
@@ -3184,8 +4012,18 @@ void GameScene::handleDragTracking(InputController& input) {
     auto body = _itemBodies.find(_draggedItemId);
     if (body != _itemBodies.end() && body->second) {
         _dragPreviousFrameItemBodyPos = body->second->getPosition(); // Store current position for velocity calculation
-        Size widgetSize = _draggedIcon->getContentSize();
-        Vec2 center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+
+        // Corroding items use center anchor, so their position IS the center
+        // Normal items use bottom-left anchor, so we need to add half-size to get center
+        bool isCorroding = (_corrodingItemIds.find(_draggedItemId) != _corrodingItemIds.end());
+        Vec2 center;
+        if (isCorroding) {
+            center = widgetPosition;
+        } else {
+            Size widgetSize = _draggedIcon->getContentSize();
+            center = widgetPosition + Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+        }
+
         body->second->setPosition(center);
         body->second->setLinearVelocity(Vec2::ZERO);
     }
@@ -3251,32 +4089,56 @@ void GameScene::handleNetworkUpdates(float dt) {
         _gameState.networkUpdate(stateUpdate);
         syncFrenzyEffect(stateUpdate.frenzyItemInterval, stateUpdate.frenzyDuration);
         processForgeEffects(_network->getForgeEffectUpdates());
+        for (const auto& drain : _network->getCorrosiveDrainUpdates()) {
+            int localSlot = _network->getLocalPlayerNumber();
+            if (drain.targetPlayerSlot == localSlot && localSlot >= 0) {
+                Player* localPlayer = _gameState.getPlayerBySlot(localSlot);
+                if (localPlayer) {
+                    const auto& inv = localPlayer->getInventory();
+                    int count = (drain.maxAffected > 0)
+                        ? std::min(drain.maxAffected, (int)inv.size())
+                        : (int)inv.size();
+                    std::vector<uint64_t> localIds;
+                    localIds.reserve(count);
+                    for (int ii = 0; ii < count; ii++) {
+                        localIds.push_back(static_cast<uint64_t>(inv[ii].getId()));
+                    }
+                    applyCorrosiveDrain(localSlot, drain.fadeDuration,
+                                       drain.fadeVariance, localIds);
+                }
+            }
+        }
         applyPendingResurrectionSync();
         applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
     }
     
-    // Play sounds for LOCAL player and enemy health changes after all updates
-    playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore);
-    
+    // Player heal sounds (ally heals, regen) are tracked here; player hurt is tracked in
+    // updateEnemyAndAI where attacks actually land, to avoid false positives from network corrections.
+    playHealthAndDamageSounds(playerHealthBefore, enemyHealthBefore, /*playerHurtEnabled=*/false);
+
     // Check if we won or lost (common to both host and client)
     if (_network->isHost()) {
         if (_gameState.didWin()) {
             _network->broadcastWonGame();
             _status = Status::WON;
             CULog("We won!");
+            handleXPAdjustment(true);
         } else if (_gameState.didLose()) {
             _network->broadcastLostGame();
             _status = Status::LOST;
             CULog("We lost!");
+            handleXPAdjustment(false);
         }
     } else {
         if (_network->checkGameWon()) {
             _status = Status::WON;
             CULog("We won!");
+            handleXPAdjustment(true);
         } else if (_network->checkGameLost()) {
             _status = Status::LOST;
             CULog("We lost!");
+            handleXPAdjustment(false);
         }
     }
 
@@ -3534,27 +4396,138 @@ void GameScene::applyForgeEffect(float chance, int seed) {
 
 /** 
  * Plays appropriate hurt/heal sounds based on changes in player and enemy health.
- * Should be called after processing all enemy and AI updates, so we capture all 
+ * Also responsible for triggering heal/damage frames.
+ * Should be called after processing all enemy and AI updates, so we capture all
  * health changes in one place and avoid playing multiple overlapping sounds for the same health change.
+ * 
+ * @param playerHealthBefore The local player's health before processing updates, used to detect health changes.
+ * @param enemyHealthBefore The enemy's health before processing updates, used to detect health changes.
+ * @param playerHurtEnabled Whether to play player hurt sounds; set to false when called
  */
-void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore) {
+void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore, bool playerHurtEnabled) {
     auto player = _gameState.getLocalPlayer();
     auto enemy = _gameState.getEnemy();
-    
+
     // Only play sounds for non-AI local players
     if (player && !dynamic_cast<PlayerAI*>(player)) {
         const float playerHealthDelta = player->getCurrentHealth() - playerHealthBefore;
-        if (playerHealthDelta < 0.0f && _audio) {
-            std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
-            _audio->playSoundUnique(soundKey);
-        } else if (playerHealthDelta >= 1.0f && _audio) {
-            _audio->playSoundUnique("player_heal");
+        if (playerHurtEnabled && (playerHealthDelta < 0.0f)) {
+            triggerDamageFrame();
+            if (_audio) {
+                std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
+                _audio->playSoundUnique(soundKey);
+            }
+        } else if (playerHealthDelta > 0.0f) {
+            triggerHealFrame();
+            if (playerHealthDelta >= 1.0f && !player->hasRegen() && _audio) {
+                _audio->playSoundUnique("player_heal");
+            }
         }
     }
     
     if (enemy->getCurrentHealth() < enemyHealthBefore && _audio) {
         _audio->playSoundUnique("enemy_hurt");
+    } else if (enemy->getCurrentHealth() > enemyHealthBefore && _audio) {
+        _audio->playSoundUnique("enemy_block");
     }
+}
+
+/** Creates the full-screen heal and damage frame overlays. */
+void GameScene::initHealthFrameEffects() {
+    if (!_specialEffectsLayer || !_assets) return;
+
+    auto createFrame = [&](const std::string& textureKey) -> std::shared_ptr<scene2::NinePatch> {
+        auto texture = _assets->get<cugl::graphics::Texture>(textureKey);
+        if (!texture) {
+            CULogError("GameScene: missing health frame texture '%s'", textureKey.c_str());
+            return nullptr;
+        }
+
+        Rect interior(
+            std::max(0.0f, texture->getWidth() * 0.5f - 0.5f),
+            std::max(0.0f, texture->getHeight() * 0.5f - 0.5f),
+            1.0f,
+            1.0f
+        );
+        auto frame = scene2::NinePatch::allocWithTexture(texture, interior);
+        if (!frame) return nullptr;
+
+        frame->setAnchor(Vec2::ANCHOR_CENTER);
+        frame->setColor(Color4(255, 255, 255, 0));
+        _specialEffectsLayer->addChild(frame);
+        return frame;
+    };
+
+    _damageFrame = createFrame("damageFrame");
+    _healFrame = createFrame("healFrame");
+    layoutHealthFrameEffects();
+}
+
+/** Resizes full-screen heal and damage frames to match the current scene. */
+void GameScene::layoutHealthFrameEffects() {
+    Size dimen = getSize();
+    if (_specialEffectsLayer) {
+        _specialEffectsLayer->setContentWidth(dimen.width);
+        _specialEffectsLayer->setContentHeight(dimen.height);
+        _specialEffectsLayer->setPosition(Vec2(dimen.width * 0.5f, dimen.height * 0.5f));
+    }
+
+    auto layoutFrame = [dimen](const std::shared_ptr<scene2::NinePatch>& frame) {
+        if (!frame) return;
+        frame->setContentWidth(dimen.width);
+        frame->setContentHeight(dimen.height);
+        frame->setPosition(Vec2(dimen.width * 0.5f, dimen.height * 0.5f));
+    };
+
+    layoutFrame(_damageFrame);
+    layoutFrame(_healFrame);
+}
+
+/** Starts or refreshes the full-screen damage frame fade. */
+void GameScene::triggerDamageFrame() {
+    _damageFrameTimer = _frameFadeDuration;
+    if (_damageFrame) {
+        _damageFrame->setColor(Color4(255, 255, 255, HEALTH_FRAME_MAX_ALPHA));
+    }
+}
+
+/** Starts or refreshes the full-screen heal frame fade. */
+void GameScene::triggerHealFrame() {
+    _healFrameTimer = _frameFadeDuration;
+    if (_healFrame) {
+        _healFrame->setColor(Color4(255, 255, 255, HEALTH_FRAME_MAX_ALPHA));
+    }
+}
+
+/** Clears active full-screen heal and damage frame effects. */
+void GameScene::resetHealthFrameEffects() {
+    _damageFrameTimer = 0.0f;
+    _healFrameTimer = 0.0f;
+    if (_damageFrame) {
+        _damageFrame->setColor(Color4(255, 255, 255, 0));
+    }
+    if (_healFrame) {
+        _healFrame->setColor(Color4(255, 255, 255, 0));
+    }
+}
+
+/**
+ * Updates the opacity of active full-screen heal and damage frame effects.
+ *
+ * @param dt Delta time in seconds.
+ */
+void GameScene::updateHealthFrameEffects(float dt) {
+    auto updateFrame = [dt, this](const std::shared_ptr<scene2::NinePatch>& frame, float& timer) {
+        if (!frame) return;
+
+        timer = std::max(0.0f, timer - dt);
+        const float progress = _frameFadeDuration > 0.0f ? timer / _frameFadeDuration : 0.0f;
+        const uint8_t alpha = static_cast<uint8_t>(std::round(HEALTH_FRAME_MAX_ALPHA * progress));
+        frame->setColor(Color4(255, 255, 255, alpha));
+    };
+
+    updateFrame(_damageFrame, _damageFrameTimer);
+    updateFrame(_healFrame, _healFrameTimer);
 }
 
 /** Custom method called inside of handleItemSpawn that is used specifically for the Gaia boss
@@ -3609,9 +4582,125 @@ void GameScene::handleGaiaScramble() {
 
 
 /**
+ * One-shot corrosive drain handler. Only runs on the host (resolveCorrosiveEvent sets
+ * the pending flag exclusively on the host). Applies the drain to the target player
+ * and broadcasts a CorrosiveDrainMessage to human client players so they can run
+ * their own fade animations.
+ */
+void GameScene::handleCorrosiveDrain() {
+    if (!_network || !_network->isHost()) return;
+
+    auto cerberus = std::dynamic_pointer_cast<Cerberus>(_gameState.getEnemy());
+    if (!cerberus || !cerberus->shouldDrainItem()) return;
+
+    int targetIndex = cerberus->getCorrosiveTarget();
+    if (targetIndex < 0) return;
+    Player* victim = _gameState.getPlayerBySlot(targetIndex);
+    if (!victim || !victim->isAlive()) return;
+
+    float fadeDuration = cerberus->getCorrosiveFadeDuration();
+    float fadeVariance = cerberus->getCorrosiveFadeVariance();
+    int maxAffected    = cerberus->getCorrosiveMaxAffected();
+
+    const auto& inventory = victim->getInventory();
+    if (inventory.empty()) return;
+
+    std::vector<int> indices;
+    indices.reserve(inventory.size());
+    for (int i = 0; i < (int)inventory.size(); i++) indices.push_back(i);
+    if (maxAffected > 0 && (int)indices.size() > maxAffected) {
+        for (int i = 0; i < maxAffected; i++) {
+            int j = i + rand() % ((int)indices.size() - i);
+            std::swap(indices[i], indices[j]);
+        }
+        indices.resize(maxAffected);
+    }
+
+    std::vector<uint64_t> selectedIds;
+    selectedIds.reserve(indices.size());
+    for (int idx : indices) selectedIds.push_back(inventory[idx].getId());
+
+    bool isAITarget = (dynamic_cast<PlayerAI*>(victim) != nullptr);
+    int localSlot   = _network->getLocalPlayerNumber();
+
+    if (isAITarget) {
+        // AI player: remove items from model immediately (no animation device for AI).
+        for (uint64_t id : selectedIds)
+            victim->removeItemById(static_cast<ItemInstance::ItemId>(id));
+    } else if (targetIndex == localSlot) {
+        // Host is also the victim: run fade animations locally.
+        applyCorrosiveDrain(targetIndex, fadeDuration, fadeVariance, selectedIds);
+    } else {
+        // Remote human player: broadcast so their device runs the fade animation.
+        _network->broadcastCorrosiveDrain(targetIndex, fadeDuration, fadeVariance, maxAffected);
+    }
+
+    if (_debugMode) CULog("Corrosive drain (%s): %d items for player %d",
+                          isAITarget ? "AI" : (targetIndex == localSlot ? "local-host" : "remote"),
+                          (int)selectedIds.size(), targetIndex);
+}
+
+/**
+ * Creates corrosive fade animations for the drained items on the local device.
+ * Only the target player's device has item widgets, so animations only run there.
+ * Items are removed from the local player's inventory when each animation completes.
+ *
+ * @param targetPlayerSlot  Slot of the player whose items were drained.
+ * @param fadeDuration      Base fade-out duration per item.
+ * @param fadeVariance      ±fraction applied randomly to fadeDuration per item.
+ * @param itemIds           Authoritative list of item instance IDs to animate.
+ */
+void GameScene::applyCorrosiveDrain(int targetPlayerSlot, float fadeDuration, float fadeVariance,
+                                    const std::vector<uint64_t>& itemIds) {
+    for (uint64_t rawId : itemIds) {
+        ItemInstance::ItemId itemId = static_cast<ItemInstance::ItemId>(rawId);
+
+        if (_corrodingItemIds.count(itemId)) continue;
+        if (_draggedItemId == itemId) continue;
+
+        auto widgetIt = _itemWidgets.find(itemId);
+        if (widgetIt == _itemWidgets.end() || !widgetIt->second) continue;
+
+        auto widget = widgetIt->second;
+        _corrodingItemIds.insert(itemId);
+
+        cugl::Rect bounds = widget->getBoundingBox();
+        cugl::Vec2 center = bounds.origin + cugl::Vec2(bounds.size.width * 0.5f, bounds.size.height * 0.5f);
+        widget->setAnchor(cugl::Vec2::ANCHOR_CENTER);
+        widget->setPosition(center);
+
+        auto bodyIt = _itemBodies.find(itemId);
+        if (bodyIt != _itemBodies.end() && bodyIt->second) {
+            bodyIt->second->setPosition(center);
+        }
+
+        float startScale = widget->getScaleX();
+        float jitter     = (static_cast<float>(rand()) / RAND_MAX) * 2.0f - 1.0f;
+        float duration   = fadeDuration * (1.0f + jitter * fadeVariance);
+
+        CorrodedItemAnimation anim;
+        anim.node        = widget;
+        anim.elapsed     = 0.0f;
+        anim.popDuration = 0.1f;
+        anim.popScale    = startScale * 1.15f;
+        anim.duration    = anim.popDuration + duration;
+        anim.startScale  = startScale;
+        anim.endScale    = ITEM_CORRODE_END_SCALE;
+        anim.itemId      = itemId;
+        _corrodedItemAnimations.push_back(anim);
+    }
+
+    _corrosiveVisualTarget = targetPlayerSlot;
+    if (_debugMode) CULog("applyCorrosiveDrain: started animations for player %d", targetPlayerSlot);
+}
+
+
+/**
  * Spawns items for the local player every frame, and for all AI-controlled
  * players if this machine is the host. AI item spawning is host-only since
  * the host is the authoritative source for all AI state.
+ * 
+ * Corrosive players do not get items.
  *
  * @param dt  Delta time in seconds.
  */
@@ -3619,8 +4708,13 @@ void GameScene::handleItemSpawn(float dt) {
     if (_tutorialController.isActive()) {
         return;
     }
-    // Always spawn items for the local human player.
-    _itemController.update(dt, _gameState.getLocalPlayer());
+
+    // Block item spawning while corrosive animations are still running on this player
+    Player* local = _gameState.getLocalPlayer();
+    int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+    bool localPlayerCorrosive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
+
+    _itemController.update(dt, _gameState.getLocalPlayer(), localPlayerCorrosive);
 
     //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
     handleGaiaSpawn();
@@ -4249,6 +5343,8 @@ bool GameScene::isItemInVisibleArea(const cugl::Vec2& position) {
  * This function evaluates which drop zones should be visible at the current moment
  * (e.g., during drag-and-drop interactions or based on item/type compatibility)
  * and toggles their visibility accordingly.
+ * 
+ * Corrosive players can not see pass zones
  */
 void GameScene::updateDropZoneVisibility(){
     // Helper lambda to hide all zones
@@ -4282,8 +5378,11 @@ void GameScene::updateDropZoneVisibility(){
         auto local = _gameState.getLocalPlayer();
         bool localAlive = local && local->isAlive();
 
-        _passLeftArea->setVisible(true);
-        _passRightArea->setVisible(true);
+        // Hide pass zones while corrosive animations are still running on this player
+        int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+        bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
+        _passLeftArea->setVisible(!isCorrosiveActive);
+        _passRightArea->setVisible(!isCorrosiveActive);
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
@@ -4313,12 +5412,22 @@ void GameScene::updateDropZoneVisibility(){
  */
 void GameScene::updateTooltipPosition() {
     Size widgetSize = _draggedIcon->getContentSize();
-
     Vec2 widgetPos = _draggedIcon->getPosition();
 
-    // Center tooltip horizontally over the widget, place it just above
-    float x = widgetPos.x + (widgetSize.width  - _tooltipNode->getWidth()) * 0.5f;
-    float y = widgetPos.y +  widgetSize.height + ITEM_TOOLTIP_GAP;
+    // Corroding items use CENTER anchor for proper shrinking animation
+    // Normal items use BOTTOM_LEFT anchor
+    bool isCorroding = (_corrodingItemIds.find(_draggedItemId) != _corrodingItemIds.end());
+
+    float x, y;
+    if (isCorroding) {
+        // Center anchor: position is at widget center
+        x = widgetPos.x - _tooltipNode->getWidth() * 0.5f;
+        y = widgetPos.y + widgetSize.height * 0.5f + ITEM_TOOLTIP_GAP;
+    } else {
+        // Bottom-left anchor: position is at widget bottom-left
+        x = widgetPos.x + (widgetSize.width - _tooltipNode->getWidth()) * 0.5f;
+        y = widgetPos.y + widgetSize.height + ITEM_TOOLTIP_GAP;
+    }
 
     _tooltipNode->setPosition(Vec2(x, y));
 }
@@ -4354,6 +5463,7 @@ void GameScene::update(float dt, InputController& input) {
     handleItemSpawn(dt);
     updateEnemyAnimation(dt, _network->getLocalPlayerNumber());
     updateEnemyAndAI(dt);
+    handleCorrosiveDrain();
     updateEnemyHealthBarEffect(dt);
     updateDropZoneVisibility();
 
@@ -4365,6 +5475,7 @@ void GameScene::update(float dt, InputController& input) {
     updateGaiaVineAnimation(dt);
     updateStunDamagePopups(dt);
     updatePopupAnimations(dt);
+    updateHealthFrameEffects(dt);
     syncEffectIconsFromPlayerState();
     updateEffectTimerIcons(dt);
 
@@ -4383,6 +5494,7 @@ void GameScene::update(float dt, InputController& input) {
     syncInventoryWidgets();
     updateItemWidgetScales(dt);
     updateConsumedItemAnimations(dt);
+    updateCorrodedItemAnimations(dt);
     syncItemWidgetsToBodies();
 
     _network->clearQueues();
@@ -4405,7 +5517,10 @@ void GameScene::update(float dt, InputController& input) {
 #pragma mark -
 #pragma mark Inventory UI
 
-/** Creates a scene-node widget for the given item and adds it to the inventory container. */
+/** Creates a scene-node widget for the given item and adds it to the inventory container. 
+ * @param item The ItemInstance for which to create the widget.
+ * @return A shared pointer to the created SceneNode widget, or nullptr if creation failed.
+*/
 std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item) {
     auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
     if (!itemDef) return nullptr;
@@ -4424,7 +5539,11 @@ std::shared_ptr<SceneNode> GameScene::createItemWidget(const ItemInstance& item)
     return widget;
 }
 
-/** Return a random in-bounds inventory position for a newly spawned item widget */
+/** Return a random in-bounds inventory position for a newly spawned item widget 
+ * 
+ * @param widgetSize The size of the item widget to be placed, used to ensure it fits within bounds
+ * @return A Vec2 representing a random position within the inventory container where the widget can be placed without overflowing
+*/
 cugl::Vec2 GameScene::getRandomInventoryPosition(const cugl::Size& widgetSize) const {
     const cugl::Size inventorySize = _inventory->getContentSize();
     Size dimen = getSize();
@@ -4513,8 +5632,14 @@ void GameScene::syncItemWidgetsToBodies() {
 
         Size widgetSize = widget->second->getContentSize();
         Vec2 bodyPosition = body->getPosition();
-        Vec2 widgetPosition = bodyPosition - Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
-        widget->second->setPosition(widgetPosition);
+
+        // Corroding items use center anchor, so position differently
+        if (_corrodingItemIds.find(itemId) != _corrodingItemIds.end()) {
+            widget->second->setPosition(bodyPosition);
+        } else {
+            Vec2 widgetPosition = bodyPosition - Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f);
+            widget->second->setPosition(widgetPosition);
+        }
     }
 
     for (ItemInstance::ItemId itemId : staleIds) {
@@ -4542,6 +5667,7 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
         }
         _itemWidgets.erase(widget);
     }
+    _itemWidgetDefIds.erase(itemId);
 
     auto body = _itemBodies.find(itemId);
     if (body != _itemBodies.end()) {
@@ -4578,6 +5704,11 @@ void GameScene::updateItemWidgetScales(float dt) {
     for (const auto& [itemId, widget] : _itemWidgets) {
         if (!widget) continue;
 
+        // Skip corroding items - they have their own animation
+        if (_corrodingItemIds.find(itemId) != _corrodingItemIds.end()) {
+            continue;
+        }
+
         auto current = _itemWidgetScales.find(itemId);
         if (current == _itemWidgetScales.end()) {
             _itemWidgetScales[itemId] = ITEM_NORMAL_SCALE;
@@ -4600,7 +5731,7 @@ void GameScene::updateItemWidgetScales(float dt) {
     }
 }
 
-/*
+/**
  * Marks an item as used (consumed by an action).
  * Removes the visual widget and physics body from the scene.
  * Item remains in inventory until deferred damage is applied and animation completes.
@@ -4615,6 +5746,9 @@ void GameScene::markItemAsUsed(ItemInstance::ItemId itemId) {
         _inventory->removeChild(widget->second);
         _itemWidgets.erase(widget);
     }
+    _itemWidgetDefIds.erase(itemId);
+    _itemWidgetScales.erase(itemId);
+    _itemWidgetScaleTargets.erase(itemId);
     
     // Remove physics body from world
     auto body = _itemBodies.find(itemId);
@@ -4704,6 +5838,104 @@ void GameScene::updateConsumedItemAnimations(float dt) {
 }
 
 /**
+ * Advances a single corroded-item animation by dt seconds and updates its node's scale.
+ * Runs a two-phase tween: a brief pop (scale up) followed by a decay (scale down to zero).
+ * Degenerate animations (null node or zero duration) are treated as immediately finished.
+ *
+ * @param anim  The animation state to advance in place.
+ * @param dt    Elapsed time in seconds since the last frame.
+ * @return      True if the animation has completed; false if it is still running.
+ */
+bool GameScene::tickCorrodedAnimation(CorrodedItemAnimation& anim, float dt) {
+    if (!anim.node || anim.duration <= 0.0f) return true;
+
+    anim.elapsed += dt;
+
+    float scale;
+    if (anim.elapsed < anim.popDuration) {
+        float t = anim.elapsed / anim.popDuration;
+        scale = anim.startScale + (anim.popScale - anim.startScale) * t;
+    } else {
+        float decayDuration = anim.duration - anim.popDuration;
+        float t = std::min(1.0f, (anim.elapsed - anim.popDuration) / decayDuration);
+        scale = anim.popScale + (anim.endScale - anim.popScale) * t;
+    }
+    anim.node->setScale(scale);
+
+    return anim.elapsed >= anim.duration;
+}
+
+/**
+ * Cleans up all state associated with a corroded item once its animation has finished.
+ * Resets any in-progress drag on this item, removes it from corrosion tracking,
+ * destroys its visual widget and physics body, and removes it from the player's inventory.
+ * Must be called before erasing the animation entry to avoid iterator invalidation.
+ *
+ * @param itemId  The instance ID of the item whose animation has completed.
+ */
+void GameScene::finalizeCorrodedItem(ItemInstance::ItemId itemId) {
+    if (_draggedItemId == itemId) {
+        _draggedIcon = nullptr;
+        _draggedItemId = 0;
+        _draggedItemDef = nullptr;
+        _dragStartBodyPosition = Vec2::ZERO;
+        if (_tooltipNode) _tooltipNode->setVisible(false);
+        if (_debugMode) CULog("  -> Corroded item was being dragged, resetting drag state and hiding tooltip");
+    }
+
+    _corrodingItemIds.erase(itemId);
+
+    auto widgetIt = _itemWidgets.find(itemId);
+    if (widgetIt != _itemWidgets.end()) {
+        if (_inventory && widgetIt->second) _inventory->removeChild(widgetIt->second);
+        _itemWidgets.erase(widgetIt);
+    }
+
+    auto bodyIt = _itemBodies.find(itemId);
+    if (bodyIt != _itemBodies.end() && bodyIt->second && _itemPhysicsWorld) {
+        _itemPhysicsWorld->removeObstacle(bodyIt->second);
+        _itemBodies.erase(bodyIt);
+    }
+
+    // Safety-net: items are removed upfront on all devices, so this is normally a no-op.
+    Player* targetPlayer = (_corrosiveVisualTarget >= 0)
+        ? _gameState.getPlayerBySlot(_corrosiveVisualTarget) : nullptr;
+    if (targetPlayer) targetPlayer->removeItemById(itemId);
+}
+
+/**
+ * Ticks all active corroded-item animations and finalizes any that have completed.
+ * Items remain usable in the inventory model while fading; they are removed here
+ * only after their animation finishes. Clears the corrosive visual lock once all
+ * animations are done.
+ *
+ * @param dt  Elapsed time in seconds since the last frame.
+ */
+void GameScene::updateCorrodedItemAnimations(float dt) {
+    if (_corrodedItemAnimations.empty()) return;
+
+    std::vector<ItemInstance::ItemId> finishedItems;
+    for (auto& anim : _corrodedItemAnimations) {
+        if (tickCorrodedAnimation(anim, dt)) {
+            finishedItems.push_back(anim.itemId);
+        }
+    }
+
+    for (ItemInstance::ItemId itemId : finishedItems) {
+        finalizeCorrodedItem(itemId);
+    }
+
+    _corrodedItemAnimations.erase(
+        std::remove_if(_corrodedItemAnimations.begin(), _corrodedItemAnimations.end(),
+                       [](const CorrodedItemAnimation& anim) {
+                           return !anim.node || anim.elapsed >= anim.duration;
+                       }),
+        _corrodedItemAnimations.end());
+
+    if (_corrodedItemAnimations.empty()) _corrosiveVisualTarget = -1;
+}
+
+/**
  * Clears all active consumed item animations, detaching each ghost node
  * from the inventory scene graph and emptying the animation list.
  */
@@ -4717,7 +5949,7 @@ void GameScene::clearConsumedItemAnimations() {
     }
     _consumedItemAnimations.clear();
 }
-/*
+/**
  * Checks if an item is currently playing an animation.
  * Iterates through active animations to find if the given itemId is animating.
  *
@@ -4751,6 +5983,7 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     
     widget->setPosition(spawnPos);
     _itemWidgets.emplace(id, widget);
+    _itemWidgetDefIds[id] = item.getDefId();
     _itemWidgetScales[id] = ITEM_NORMAL_SCALE;
     _itemWidgetScaleTargets[id] = ITEM_NORMAL_SCALE;
     createItemBody(id, widget);
@@ -4832,29 +6065,54 @@ void GameScene::spawnTutorialItem(const std::string& defId, int passDirection) {
 /**
  * Refreshes existing widget textures after item instances are redefined in place.
  *
- * Forge preserves item instance IDs, so the existing inventory widgets are kept and
- * only their textures are swapped to match the new item definitions.
+ * Forge preserves item instance IDs, so changed inventory widgets are rebuilt in
+ * place to avoid inheriting stale scale or texture-native polygon dimensions.
  */
 void GameScene::refreshInventoryWidgetTextures() {
     Player* local = _gameState.getLocalPlayer();
     if (!local || !_assets) return;
 
     for (const ItemInstance& item : local->getInventory()) {
+        const ItemInstance::ItemId itemId = item.getId();
         auto widgetIt = _itemWidgets.find(item.getId());
         if (widgetIt == _itemWidgets.end() || !widgetIt->second) {
             continue;
         }
 
-        auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
-        if (!itemDef) {
+        const std::string& defId = item.getDefId();
+        auto displayedDefIt = _itemWidgetDefIds.find(itemId);
+        const bool defChanged = displayedDefIt == _itemWidgetDefIds.end() ||
+                                displayedDefIt->second != defId;
+        if (!defChanged) {
             continue;
         }
 
-        auto texture = _assets->get<cugl::graphics::Texture>(itemDef->getIconKey());
-        auto polygon = std::dynamic_pointer_cast<scene2::PolygonNode>(widgetIt->second);
-        if (texture && polygon) {
-            polygon->setTexture(texture);
-            polygon->setContentSize(Size(100, 100));
+        std::shared_ptr<SceneNode> oldWidget = widgetIt->second;
+        Vec2 oldPosition = oldWidget->getPosition();
+        bool oldVisible = oldWidget->isVisible();
+        float oldScale = oldWidget->getScaleX();
+
+        auto replacement = createItemWidget(item);
+        if (!replacement) {
+            continue;
+        }
+
+        replacement->setPosition(oldPosition);
+        replacement->setVisible(oldVisible);
+
+        if (_inventory) {
+            _inventory->removeChild(oldWidget);
+        }
+        widgetIt->second = replacement;
+        _itemWidgetDefIds[itemId] = defId;
+
+        if (itemId == _draggedItemId) {
+            _draggedIcon = replacement;
+            replacement->setScale(oldScale);
+        } else {
+            _itemWidgetScales[itemId] = ITEM_NORMAL_SCALE;
+            _itemWidgetScaleTargets[itemId] = ITEM_NORMAL_SCALE;
+            replacement->setScale(ITEM_NORMAL_SCALE);
         }
     }
 }
@@ -4898,7 +6156,8 @@ void GameScene::syncInventoryWidgets() {
 
     std::vector<ItemInstance::ItemId> removedIds;
     for (const auto& [itemId, widget] : _itemWidgets) {
-        if (liveIds.find(itemId) == liveIds.end()) {
+        if (liveIds.find(itemId) == liveIds.end() &&
+            _corrodingItemIds.find(itemId) == _corrodingItemIds.end()) {
             removedIds.push_back(itemId);
         }
     }
@@ -4943,7 +6202,10 @@ void GameScene::setTutorialAllowedDropZone(InputController::Action zone){
 #pragma mark -
 #pragma mark Render
 
-/** Draws a green debug outline around the reset button's bounding box. */
+/** Draws a green debug outline around the reset button's bounding box. 
+ * 
+ * @param batch  The active sprite batch.
+ */
 void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
     if (!_resetBtn) return;
     Rect boundingBox = _resetBtn->getBoundingBox();
@@ -4952,7 +6214,10 @@ void GameScene::renderResetButton(cugl::graphics::SpriteBatch* batch) {
     batch->outline(path, Vec2::ZERO, Affine2::IDENTITY);
 }
 
-/** Draws zone outlines and a fading glow on the last successfully used zone. */
+/** Draws zone outlines and a fading glow on the last successfully used zone. 
+ * 
+ * @param batch  The active sprite batch.
+ */
 void GameScene::renderDropZonesDebug(cugl::graphics::SpriteBatch* batch) {
     batch->setColor(Color4(0, 255, 0, 255));
     
@@ -4984,7 +6249,10 @@ void GameScene::renderDropZonesDebug(cugl::graphics::SpriteBatch* batch) {
     }
 }
 
-/** Draws a magenta outline around each visible item widget's bounding box. */
+/** Draws a magenta outline around each visible item widget's bounding box. 
+ * 
+ * @param batch  The active sprite batch.
+ */
 void GameScene::renderItemWidgetDebug(cugl::graphics::SpriteBatch* batch) {
     batch->setColor(Color4(255, 0, 255, 140));
     for (auto& [id, widget] : _itemWidgets) {
@@ -5009,7 +6277,9 @@ void GameScene::renderItemBodyDebug(cugl::graphics::SpriteBatch* batch) {
     }
 }
 
-/** Draws a small red square at the current touch position. */
+/** Draws a small red square at the current touch position. 
+ * @param batch  The active sprite batch.
+ */
 void GameScene::renderPointerDebug(cugl::graphics::SpriteBatch* batch) {
     if (!_hasDebugPointer) return;
     Rect p(_debugPointerScene.x - 6.0f, _debugPointerScene.y - 6.0f, 12.0f, 12.0f);
@@ -5046,20 +6316,35 @@ void GameScene::render() {
  * If any item is held, the pass zones are added to _inputZones.
  * If an attack item is held, the attack zone is added to _inputZones.
  * If a support item is held, the support zones are added to _inputZones.
+ * If we are being corroded by Cerberus, we should not have pass zones active.
  */
 void GameScene::updateInputZones(){
     Player* local = _gameState.getLocalPlayer();
-    
+
+    // Block passing while corrosive animations are still running on this player
+    int localPlayerSlot = local ? local->getPlayerNumber() : -1;
+    bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
+
     // Dead players can only pass items or put them in inventory
     // They cannot attack or support
     if (local && !local->isAlive()) {
-        _inputZones = _passZones;
+        // If corrosive is active on this player, they can't pass either
+        if (!isCorrosiveActive) {
+            _inputZones = _passZones;
+        } else {
+            _inputZones.clear();
+        }
         _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
     } else {
         // Alive players have access to all zones
         _inputZones = _attackZones;
         _inputZones.insert(_inputZones.end(), _supportZones.begin(), _supportZones.end());
-        _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
+
+        // Only add pass zones if not affected by corrosive
+        if (!isCorrosiveActive) {
+            _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
+        }
+
         _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
     }
 }
@@ -5070,6 +6355,8 @@ void GameScene::updateInputZones(){
  * When active, debug mode shows additional overlays and UI elements
  * to aid development, including the reset button, drop zone outlines,
  * item widget bounding boxes, and a touch position indicator.
+ * 
+ * @param enabled  If true, debug mode is enabled. If false, it is disabled.
  */
 void GameScene::setDebugMode(bool enabled){
     _debugMode = enabled;
@@ -5099,7 +6386,7 @@ void GameScene::detectDroppedPeers() {
 }
 
 /**
- * HOST ONLY. Replaces the player at the given slot with an EasyPlayerAI,
+ * HOST ONLY. Replaces the player at the given slot with an PlayerAI,
  * re-wires the neighbour ring, and restores the disconnected player's
  * health and inventory onto the new AI.
  *
@@ -5109,7 +6396,7 @@ void GameScene::demoteSlotToAI(int slot) {
     Player* player = _gameState.getPlayerBySlot(slot);
     if (!player) return;
 
-    CULog("GameScene: host demoting slot %d to EasyPlayerAI", slot);
+    CULog("GameScene: host demoting slot %d to PlayerAI", slot);
 
     // Snapshot state before overwriting
     float savedHealth    = player->getCurrentHealth();
@@ -5121,7 +6408,7 @@ void GameScene::demoteSlotToAI(int slot) {
 
     // Restore health and inventory onto the new AI
     Player* newAI = _gameState.getPlayerBySlot(slot);
-    auto* ai = dynamic_cast<EasyPlayerAI*>(newAI);
+    auto* ai = dynamic_cast<PlayerAI*>(newAI);
     if (ai) {
         ai->init(_itemController.getDatabase(), "json/playerAI.json");
     }
@@ -5129,6 +6416,15 @@ void GameScene::demoteSlotToAI(int slot) {
     newAI->setCurrentHealth(savedHealth);
     for (const ItemInstance& item : savedInventory) {
         newAI->addItem(item);
+    }
+    
+    // Re-apply difficulty after init() resets the multiplier to 0
+    const std::string& bossId = _gameState.getEnemy() ? _gameState.getEnemy()->getId(): "";
+    if (!bossId.empty()) {
+        _gameState.applyAIDifficultyForBoss(
+            bossId,
+            SavedDataManager::get().getPlayerXP()
+        );
     }
 }
 
@@ -5198,7 +6494,7 @@ void GameScene::handleDisconnectedPlayers() {
         // Skip if the slot is already AI or doesn't exist.
         if (!existing || existing->isAI()) continue;
 
-        // Step 2a: Host replaces the player object with an EasyPlayerAI.
+        // Step 2a: Host replaces the player object with an PlayerAI.
         // Clients skip this — their state is kept in sync each frame
         // via broadcastGameState / networkUpdate.
         if (_network->isHost()) {
@@ -5317,6 +6613,12 @@ bool GameScene::removeItemFromInventory(Player* player, ItemInstance::ItemId ite
  * 
  * Damage is applied later in updateItemUseAnimations() when the keyframe is reached.
  * This deferred application allows multiple systems to hook into the animation lifecycle.
+ * 
+ * @param animConfig        Configuration struct defining the animation parameters (sprite sheet, frame count, keyframe, duration)
+ * @param damageAmount      The pre-calculated damage amount to apply at the resolution frame
+ * @param itemPos          The world position to anchor the animation (if Vec2::ZERO, defaults to center-bottom)
+ * @param itemId           The unique ID of the item instance being used (for tracking and preventing duplicate animations)
+ * 
  */
 void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, float damageAmount,
                                        const cugl::Vec2& itemPos, ItemInstance::ItemId itemId) {
@@ -5431,19 +6733,28 @@ void GameScene::updateItemUseAnimations(float dt) {
 
             if (enemy) {
                 if (activeAnim.damageAmount > 0.0f) {
+                    const float sideMultiplier = enemy->getSideMultiplier(playerNum);
                     // Apply pre-calculated damage before any item effects update enemy side multipliers.
                     const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
                     if (localPlayer) {
+                        const float localHealthBefore = localPlayer->getCurrentHealth();
                         localPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - enemy->getCurrentHealth()));
+                        if (localPlayer->getCurrentHealth() > localHealthBefore) {
+                            triggerHealFrame();
+                        }
                     }
                     if (activeAnim.baseValue > 0.0f) {
-                        const float sideMultiplier = enemy->getSideMultiplier(playerNum);
-                        const float finalDamage    = activeAnim.damageAmount * sideMultiplier;
-                        createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
-                            activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
-                            activeAnim.upgradeMultiplier, sideMultiplier,
-                            activeAnim.damageAmount, finalDamage, 26.0f, 17.0f));
+                        const float finalDamage = activeAnim.damageAmount * sideMultiplier;
+                        if (sideMultiplier < 0.0f) {
+                            createFloatingPopup(activeAnim.popupPosition, buildCerberusDefenseHealPopup(
+                                activeAnim.damageAmount, sideMultiplier, 22.0f, 14.0f));
+                        } else {
+                            createFloatingPopup(activeAnim.popupPosition, buildAttackDamagePopups(
+                                activeAnim.baseValue, activeAnim.houseAffinityMultiplier,
+                                activeAnim.upgradeMultiplier, sideMultiplier,
+                                activeAnim.damageAmount, finalDamage, 26.0f, 17.0f));
+                        }
                     }
                 }
 
@@ -5462,9 +6773,11 @@ void GameScene::updateItemUseAnimations(float dt) {
                                          activeAnim.upgradeMultiplier);
             }
 
-            // Host plays enemy_hurt immediately; clients hear it via network sync.
+            // Host plays enemy_hurt or enemy_block depending on whether damage landed.
             if (_network && _network->isHost() && _audio) {
-                _audio->playSoundUnique("enemy_hurt");
+                const float sideMultiplier = enemy ? enemy->getSideMultiplier(playerNum) : 1.0f;
+                const float finalDamage = activeAnim.damageAmount * sideMultiplier;
+                _audio->playSoundUnique(finalDamage <= 0.0f ? "enemy_block" : "enemy_hurt");
             }
         }
 
@@ -5606,23 +6919,37 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
 
     // Format each value as a fixed one-decimal string.
     char baseText[32], upgradeText[32], houseText[32], preText[32], sideText[32], finalText[32];
-    std::snprintf(baseText,  sizeof(baseText),  "-%.1f", baseValue);
-    std::snprintf(upgradeText, sizeof(upgradeText), "%.1fx", upgradeMultiplier);
-    std::snprintf(houseText, sizeof(houseText), "%.1fx", houseAffinityMultiplier);
-    std::snprintf(preText,   sizeof(preText),   "-%.1f", preSideDamage);
-    std::snprintf(sideText,  sizeof(sideText),  "%.1fx", sideMultiplier);
-    std::snprintf(finalText, sizeof(finalText), "-%.1f", finalDamage);
+    std::snprintf(baseText,    sizeof(baseText),    "-%.1f",  baseValue);
+    std::snprintf(upgradeText, sizeof(upgradeText), "%.1fx",  upgradeMultiplier);
+    std::snprintf(houseText,   sizeof(houseText),   "%.1fx",  houseAffinityMultiplier);
+    std::snprintf(preText,     sizeof(preText),     "-%.1f",  preSideDamage);
+    std::snprintf(sideText,    sizeof(sideText),    "%.1fx",  sideMultiplier);
+
+    // Final value format and color: damage (red/orange), zero or enemy-heal (gray).
+    cugl::Color4 finalColor;
+    if (finalDamage > 0.01f) {
+        std::snprintf(finalText, sizeof(finalText), "-%.1f", finalDamage);
+        finalColor = damageColor(finalDamage);
+    } else if (finalDamage < -0.01f) {
+        std::snprintf(finalText, sizeof(finalText), "+%.1f", -finalDamage);
+        finalColor = cugl::Color4(160, 160, 160, 255);
+    } else {
+        std::snprintf(finalText, sizeof(finalText), "0.0");
+        finalColor = cugl::Color4(160, 160, 160, 255);
+    }
 
     // Log-scale the multiplier font size so larger multipliers get proportionally bigger text.
     const float upgradeLog  = 0.2f * std::log(std::max(1.0f, upgradeMultiplier));
     const float houseLog    = 0.2f * std::log(std::max(1.0f, houseAffinityMultiplier));
-    const float sideLog     = 0.2f * std::log(std::max(1.0f, sideMultiplier));
-    const float combinedLog = 0.2f * std::log(std::max(1.0f, houseAffinityMultiplier * upgradeMultiplier * sideMultiplier));
+    const float sideLog     = 0.2f * std::log(std::max(1.0f, std::abs(sideMultiplier)));
+    const float combinedLog = 0.2f * std::log(std::max(1.0f, std::abs(houseAffinityMultiplier * upgradeMultiplier * sideMultiplier)));
 
-    // Green for a bonus side, blue for a penalty side.
-    const cugl::Color4 sideColor = (sideMultiplier >= 1.0f)
+    // Green for bonus, teal for drain/reverse, blue for penalty/block.
+    const cugl::Color4 sideColor = (sideMultiplier > 1.0f)
         ? cugl::Color4(150, 220,  80, 255)
-        : cugl::Color4(120, 160, 255, 255);
+        : (sideMultiplier < 0.0f)
+            ? cugl::Color4( 60, 210, 200, 255)
+            : cugl::Color4(120, 160, 255, 255);
 
     std::vector<FloatingPopupData> popups;
     popups.push_back({
@@ -5691,7 +7018,7 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
         popups.push_back({
             finalText,
             valueFontSize * (1.0f + combinedLog),
-            damageColor(finalDamage),
+            finalColor,
             cugl::Color4::BLACK,
             nextDelay + 0.3f,
             0.5f,
@@ -5704,17 +7031,50 @@ std::vector<FloatingPopupData> GameScene::buildAttackDamagePopups(
 }
 
 /**
+ * Builds the popup sequence for Cerberus's drain-shield defense.
+ * Shows the raw incoming hit value, then the negative drain multiplier badge in teal,
+ * then the resulting heal amount in green.
+ *
+ * @param preSideDamage      Raw damage dealt to Cerberus before the side multiplier is applied.
+ * @param sideMultiplier     The negative side multiplier (e.g. -0.5) that converts damage to a heal.
+ * @param valueFontSize      Font size used for the damage and heal value labels.
+ * @param multiplierFontSize Font size used for the multiplier badge label.
+ * @return Ordered list of FloatingPopupData entries ready for display.
+ */
+std::vector<FloatingPopupData> GameScene::buildCerberusDefenseHealPopup(
+    float preSideDamage, float sideMultiplier,
+    float valueFontSize, float multiplierFontSize) const
+{
+    float healAmount = preSideDamage * std::abs(sideMultiplier);
+
+    char damageText[32], multText[32], healText[32];
+    std::snprintf(damageText, sizeof(damageText), "-%.1f", preSideDamage);
+    std::snprintf(multText,   sizeof(multText),   "%.1fx", sideMultiplier);
+    std::snprintf(healText,   sizeof(healText),   "+%.1f", healAmount);
+
+    // Teal badge to distinguish from the normal green (bonus) or blue (penalty) multipliers.
+    const cugl::Color4 drainColor(60, 210, 200, 255);
+    const cugl::Color4 healColor(160, 160, 160, 255);
+
+    return {
+        { damageText, valueFontSize,       cugl::Color4(160, 160, 160, 255), cugl::Color4::BLACK, 0.0f,  0.15f, cugl::Vec2::ZERO,       true  },
+        { multText,   multiplierFontSize,  drainColor,                       cugl::Color4::BLACK, 0.05f, 0.2f,  cugl::Vec2(20.f, 15.f), false },
+        { healText,   valueFontSize,       healColor,                        cugl::Color4::BLACK, 0.2f,  0.5f,  cugl::Vec2::ZERO,       true  },
+    };
+}
+
+/**
   * Spawns a floating popup showing the heal amount when Gaia's rock is used on the boss.
   *
   * @param dropPos    The screen-space position where the popup should appear.
-  * @param healAmount The amount of health restored to the boss.
+  * @param damageAmount The amount of damage done to our ally
   */
-void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float healAmount) {
+void GameScene::handleGaiaRockPopup(cugl::Vec2 dropPos, float damageAmount) {
     char healText[32];
-    std::snprintf(healText, sizeof(healText), "+%.1f", healAmount);
+    std::snprintf(healText, sizeof(healText), "-%.1f", damageAmount);
     createFloatingPopup(dropPos, { {
         healText, 26.0f,
-        cugl::Color4(80, 220, 255, 255),
+        cugl::Color4(255, 110, 60, 255),
         cugl::Color4::BLACK,
         0.0f, 0.5f,
         cugl::Vec2::ZERO,
@@ -6036,4 +7396,32 @@ void GameScene::updatePopupAnimations(float dt) {
         popupEntry->node->setColor(cugl::Color4(255, 255, 255, (uint8_t)(alpha * 255)));
         ++popupEntry;
     }
+}
+
+/**
+ * Awards or deducts XP based on the game outcome and selected boss,
+ * then persists the result to disk.
+ *
+ * On a win, the full boss XP reward is added. On a loss, half the
+ * boss XP reward is deducted (clamped to 0 by setPlayerXP).
+ *
+ * @param won  true if the players won, false if they lost.
+ */
+void GameScene::handleXPAdjustment(bool won) {
+    const std::string& bossId = _gameState.getEnemy()->getId();
+
+    int xpReward = 0;
+    if      (bossId == "circe")    xpReward = GameState::XP_CIRCE;
+    else if (bossId == "cyclops")  xpReward = GameState::XP_CYCLOPS;
+    else if (bossId == "cerberus") xpReward = GameState::XP_CERBERUS;
+    else if (bossId == "gaia")     xpReward = GameState::XP_GAIA;
+
+    if (won) {
+        SavedDataManager::get().addPlayerXP(xpReward);
+    } else {
+        SavedDataManager::get().setPlayerXP(
+            SavedDataManager::get().getPlayerXP() - 1
+        );
+    }
+    SavedDataManager::get().save();
 }

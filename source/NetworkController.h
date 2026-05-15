@@ -248,6 +248,21 @@ public:
     /** Returns all forge effect messages received after calling getNetworkUpdate(). */
     const std::vector<ForgeEffectMessage>& getForgeEffectUpdates() const { return forgeEffects; }
 
+    /** Returns all corrosive drain messages received after calling getNetworkUpdate(). */
+    const std::vector<CorrosiveDrainMessage>& getCorrosiveDrainUpdates() const { return corrosiveDrains; }
+
+    /**
+     * HOST ONLY. Broadcasts a Cerberus corrosive drain event to all clients.
+     * The host also applies the drain locally via applyCorrosiveDrain.
+     *
+     * @param targetPlayerSlot  Slot index of the player whose items are drained.
+     * @param fadeDuration      Base fade-out duration per item for the animation.
+     * @param fadeVariance      ±fraction applied randomly to fadeDuration per item.
+     * @param maxAffected       Number of items that were drained (clients select locally).
+     */
+    void broadcastCorrosiveDrain(int targetPlayerSlot, float fadeDuration, float fadeVariance,
+                                 int maxAffected);
+
     /** Returns the number of Gaia item spawn messages we received after calling getNetworkUpdate() */
     int getNumGaiaSpawns() const { return gaiaSpawns; }
 
@@ -505,7 +520,8 @@ protected:
         BOSS_HEAL = 17,
         GAIA_SPAWN = 18,
         FORGE_EFFECT = 19,
-        MID_GAME_SCRAMBLE = 20
+        MID_GAME_SCRAMBLE = 20,
+        CORROSIVE_DRAIN = 21
     };
 
     /** Our network connection */
@@ -533,6 +549,7 @@ private:
     std::vector<SupportEffectMessage> supportEffects;
     std::vector<EnemyEffectMessage> enemyEffects;
     std::vector<ForgeEffectMessage> forgeEffects;
+    std::vector<CorrosiveDrainMessage> corrosiveDrains;
 
     /** Integer that keeps track of how many messages a client received to spawn in Gaia rocks */
     int gaiaSpawns;
