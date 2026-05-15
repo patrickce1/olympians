@@ -1495,7 +1495,7 @@ public:
     void detectDroppedPeers();
 
     /**
-     * HOST ONLY. Replaces the player at the given slot with an EasyPlayerAI,
+     * HOST ONLY. Replaces the player at the given slot with an PlayerAI,
      * re-wires the neighbour ring, and restores the disconnected player's
      * health and inventory onto the new AI.
      *
@@ -1836,6 +1836,17 @@ public:
      * Must only be called while _draggedIcon and _tooltipNode are valid.
      */
     void updateTooltipPosition();
+    
+    /**
+     * Awards or deducts XP based on the game outcome and selected boss,
+     * then persists the result to disk.
+     *
+     * On a win, the full boss XP reward is added. On a loss, half the
+     * boss XP reward is deducted (clamped to 0 by setPlayerXP).
+     *
+     * @param won  true if the players won, false if they lost.
+     */
+    void handleXPAdjustment(bool won);
 
 #pragma mark -
 #pragma mark Tutorial

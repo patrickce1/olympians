@@ -979,7 +979,7 @@ void GameScene::setActive(bool value) {
             }
 
             // Re-initialize AI players after updateNetworkOrder() rebuilds
-            // AI slots via demoteToAI(). demoteToAI() creates EasyPlayerAI
+            // AI slots via demoteToAI(). demoteToAI() creates PlayerAI
             // objects but cannot call init() since it has no ItemController.
             // Without this, _db is null and the AI crashes on first update.
             _gameState.initAI(_itemController);
@@ -2932,18 +2932,22 @@ void GameScene::handleNetworkUpdates(float dt) {
             _network->broadcastWonGame();
             _status = Status::WON;
             CULog("We won!");
+            handleXPAdjustment(true);
         } else if (_gameState.didLose()) {
             _network->broadcastLostGame();
             _status = Status::LOST;
             CULog("We lost!");
+            handleXPAdjustment(false);
         }
     } else {
         if (_network->checkGameWon()) {
             _status = Status::WON;
             CULog("We won!");
+            handleXPAdjustment(true);
         } else if (_network->checkGameLost()) {
             _status = Status::LOST;
             CULog("We lost!");
+            handleXPAdjustment(false);
         }
     }
 
@@ -4758,7 +4762,7 @@ void GameScene::detectDroppedPeers() {
 }
 
 /**
- * HOST ONLY. Replaces the player at the given slot with an EasyPlayerAI,
+ * HOST ONLY. Replaces the player at the given slot with an PlayerAI,
  * re-wires the neighbour ring, and restores the disconnected player's
  * health and inventory onto the new AI.
  *
@@ -4768,7 +4772,7 @@ void GameScene::demoteSlotToAI(int slot) {
     Player* player = _gameState.getPlayerBySlot(slot);
     if (!player) return;
 
-    CULog("GameScene: host demoting slot %d to EasyPlayerAI", slot);
+    CULog("GameScene: host demoting slot %d to PlayerAI", slot);
 
     // Snapshot state before overwriting
     float savedHealth    = player->getCurrentHealth();
@@ -4780,7 +4784,7 @@ void GameScene::demoteSlotToAI(int slot) {
 
     // Restore health and inventory onto the new AI
     Player* newAI = _gameState.getPlayerBySlot(slot);
-    auto* ai = dynamic_cast<EasyPlayerAI*>(newAI);
+    auto* ai = dynamic_cast<PlayerAI*>(newAI);
     if (ai) {
         ai->init(_itemController.getDatabase(), "json/playerAI.json");
     }
@@ -4857,7 +4861,7 @@ void GameScene::handleDisconnectedPlayers() {
         // Skip if the slot is already AI or doesn't exist.
         if (!existing || existing->isAI()) continue;
 
-        // Step 2a: Host replaces the player object with an EasyPlayerAI.
+        // Step 2a: Host replaces the player object with an PlayerAI.
         // Clients skip this — their state is kept in sync each frame
         // via broadcastGameState / networkUpdate.
         if (_network->isHost()) {
@@ -5695,4 +5699,32 @@ void GameScene::updatePopupAnimations(float dt) {
         popupEntry->node->setColor(cugl::Color4(255, 255, 255, (uint8_t)(alpha * 255)));
         ++popupEntry;
     }
+}
+
+/**
+ * Awards or deducts XP based on the game outcome and selected boss,
+ * then persists the result to disk.
+ *
+ * On a win, the full boss XP reward is added. On a loss, half the
+ * boss XP reward is deducted (clamped to 0 by setPlayerXP).
+ *
+ * @param won  true if the players won, false if they lost.
+ */
+void GameScene::handleXPAdjustment(bool won) {
+    const std::string& bossId = _gameState.getEnemy()->getId();
+
+    int xpReward = 0;
+    if      (bossId == "circe")    xpReward = GameState::XP_CIRCE;
+    else if (bossId == "cyclops")  xpReward = GameState::XP_CYCLOPS;
+    else if (bossId == "cerberus") xpReward = GameState::XP_CERBERUS;
+    else if (bossId == "gaia")     xpReward = GameState::XP_GAIA;
+
+    if (won) {
+        SavedDataManager::get().addPlayerXP(xpReward);
+    } else {
+        SavedDataManager::get().setPlayerXP(
+            SavedDataManager::get().getPlayerXP() - (xpReward / 2)
+        );
+    }
+    SavedDataManager::get().save();
 }

@@ -141,7 +141,7 @@ void LobbyScene::setupListeners() {
         
         // Assign unique houses to any AI slots that don't have one.
         // ItemController is needed to reinitialize AI behavior after
-        // reconstructing slots as EasyPlayerAI with their new house.
+        // reconstructing slots as PlayerAI with their new house.
         _gameState->assignMissingHousesForAI(*_itemController);
 
         // Broadcast each AI house to clients.
@@ -514,8 +514,28 @@ void LobbyScene::update(float timestep, InputController& input) {
         }
     }
     
-    // change boss icon to the currently chosen boss
     updateLobbyBoss(_network->getEnemy());
+    if (_network->isHost() && _gameState && !_currentBoss.empty()) {
+        _gameState->applyAIDifficultyForBoss(
+            _currentBoss,
+            SavedDataManager::get().getPlayerXP()
+        );
+    }
+    
+    // change boss icon to the currently chosen boss
+//    std::string lobbyBoss = _network->getEnemy();
+//    if (lobbyBoss != _currentBoss) {
+//        _currentBoss = lobbyBoss;
+//        updateLobbyBoss(lobbyBoss);
+//
+//        // Re-derive AI difficulty whenever the boss changes.
+//        if (_network->isHost() && _gameState && !_currentBoss.empty()) {
+//            _gameState->applyAIDifficultyForBoss(
+//                _currentBoss,
+//                SavedDataManager::get().getPlayerXP()
+//            );
+//        }
+//    }
     
     // Only the host can start; only enable the button when all players have locked in a house.
     if (_network->isHost()) {
