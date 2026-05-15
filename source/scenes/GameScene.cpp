@@ -923,6 +923,7 @@ void GameScene::dispose() {
         _enemyAnimationSpriteNodes.clear();
         _currentVisibleAnimationSprite = nullptr;
         _itemWidgets.clear();
+        _itemWidgetDefIds.clear();
         _itemWidgetScales.clear();
         _itemWidgetScaleTargets.clear();
         _consumedItemAnimations.clear();
@@ -1027,10 +1028,21 @@ void GameScene::setActive(bool value) {
             }
 
             // Re-initialize AI players after updateNetworkOrder() rebuilds
-            // AI slots via demoteToAI(). demoteToAI() creates EasyPlayerAI
+            // AI slots via demoteToAI(). demoteToAI() creates PlayerAI
             // objects but cannot call init() since it has no ItemController.
             // Without this, _db is null and the AI crashes on first update.
             _gameState.initAI(_itemController);
+            
+            // Re-apply AI difficulty after initAI() resets all multipliers to 0.
+            // Uses the current enemy ID and cached player XP so the multiplier
+            // matches what was set in the lobby.
+            const std::string& bossId = _gameState.getEnemy() ? _gameState.getEnemy()->getId(): "";
+            if (!bossId.empty() && _network->isHost()) {
+                _gameState.applyAIDifficultyForBoss(
+                    bossId,
+                    SavedDataManager::get().getPlayerXP()
+                );
+            }
             
             // Reset enemy animation state for clean start
             _enemyAnimationCurrentDirection = 0;
@@ -1101,6 +1113,7 @@ void GameScene::reset() {
     _slotsDemotedToAI.clear();
     _pendingResurrectionSync = PendingResurrectionSync{};
     _pendingPartyEffectSyncs.clear();
+    _itemWidgetDefIds.clear();
     _itemWidgetScales.clear();
     _itemWidgetScaleTargets.clear();
     clearConsumedItemAnimations();
@@ -2123,10 +2136,17 @@ void GameScene::updateEnemyAndAI(float dt) {
         _audio->playSoundUnique("shield_block");
     }
 
-    // Update AI players - this is when they attack the boss AND heal teammates
-    for (auto& player : _gameState.getPlayers()) {
-        if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
-            ai->update(dt, *enemy, _itemController);
+    // Update AI players on the host so AI item decisions and effects are authoritative.
+    if (_network->isHost()) {
+        for (auto& player : _gameState.getPlayers()) {
+            if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
+                ai->update(dt, *enemy, _itemController);
+                for (float forgeChance : ai->consumePendingForgeChances()) {
+                    const int seed = makeForgeSeed();
+                    applyForgeEffect(forgeChance, seed);
+                    _network->broadcastForgeEffect(forgeChance, seed);
+                }
+            }
         }
     }
 
@@ -4091,18 +4111,22 @@ void GameScene::handleNetworkUpdates(float dt) {
             _network->broadcastWonGame();
             _status = Status::WON;
             CULog("We won!");
+            handleXPAdjustment(true);
         } else if (_gameState.didLose()) {
             _network->broadcastLostGame();
             _status = Status::LOST;
             CULog("We lost!");
+            handleXPAdjustment(false);
         }
     } else {
         if (_network->checkGameWon()) {
             _status = Status::WON;
             CULog("We won!");
+            handleXPAdjustment(true);
         } else if (_network->checkGameLost()) {
             _status = Status::LOST;
             CULog("We lost!");
+            handleXPAdjustment(false);
         }
     }
 
@@ -4377,7 +4401,7 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
         if (playerHurtEnabled && playerHealthDelta < 0.0f && _audio) {
             std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
             _audio->playSoundUnique(soundKey);
-        } else if (playerHealthDelta >= 1.0f && _audio) {
+        } else if (playerHealthDelta >= 1.0f && !player->hasRegen() && _audio) {
             _audio->playSoundUnique("player_heal");
         }
     }
@@ -5525,6 +5549,7 @@ void GameScene::removeItemWidget(ItemInstance::ItemId itemId) {
         }
         _itemWidgets.erase(widget);
     }
+    _itemWidgetDefIds.erase(itemId);
 
     auto body = _itemBodies.find(itemId);
     if (body != _itemBodies.end()) {
@@ -5603,6 +5628,9 @@ void GameScene::markItemAsUsed(ItemInstance::ItemId itemId) {
         _inventory->removeChild(widget->second);
         _itemWidgets.erase(widget);
     }
+    _itemWidgetDefIds.erase(itemId);
+    _itemWidgetScales.erase(itemId);
+    _itemWidgetScaleTargets.erase(itemId);
     
     // Remove physics body from world
     auto body = _itemBodies.find(itemId);
@@ -5837,6 +5865,7 @@ void GameScene::_spawnItemFromPosition(const ItemInstance& item, cugl::Vec2 spaw
     
     widget->setPosition(spawnPos);
     _itemWidgets.emplace(id, widget);
+    _itemWidgetDefIds[id] = item.getDefId();
     _itemWidgetScales[id] = ITEM_NORMAL_SCALE;
     _itemWidgetScaleTargets[id] = ITEM_NORMAL_SCALE;
     createItemBody(id, widget);
@@ -5918,29 +5947,54 @@ void GameScene::spawnTutorialItem(const std::string& defId, int passDirection) {
 /**
  * Refreshes existing widget textures after item instances are redefined in place.
  *
- * Forge preserves item instance IDs, so the existing inventory widgets are kept and
- * only their textures are swapped to match the new item definitions.
+ * Forge preserves item instance IDs, so changed inventory widgets are rebuilt in
+ * place to avoid inheriting stale scale or texture-native polygon dimensions.
  */
 void GameScene::refreshInventoryWidgetTextures() {
     Player* local = _gameState.getLocalPlayer();
     if (!local || !_assets) return;
 
     for (const ItemInstance& item : local->getInventory()) {
+        const ItemInstance::ItemId itemId = item.getId();
         auto widgetIt = _itemWidgets.find(item.getId());
         if (widgetIt == _itemWidgets.end() || !widgetIt->second) {
             continue;
         }
 
-        auto itemDef = _itemController.getDatabase().getDef(item.getDefId());
-        if (!itemDef) {
+        const std::string& defId = item.getDefId();
+        auto displayedDefIt = _itemWidgetDefIds.find(itemId);
+        const bool defChanged = displayedDefIt == _itemWidgetDefIds.end() ||
+                                displayedDefIt->second != defId;
+        if (!defChanged) {
             continue;
         }
 
-        auto texture = _assets->get<cugl::graphics::Texture>(itemDef->getIconKey());
-        auto polygon = std::dynamic_pointer_cast<scene2::PolygonNode>(widgetIt->second);
-        if (texture && polygon) {
-            polygon->setTexture(texture);
-            polygon->setContentSize(Size(100, 100));
+        std::shared_ptr<SceneNode> oldWidget = widgetIt->second;
+        Vec2 oldPosition = oldWidget->getPosition();
+        bool oldVisible = oldWidget->isVisible();
+        float oldScale = oldWidget->getScaleX();
+
+        auto replacement = createItemWidget(item);
+        if (!replacement) {
+            continue;
+        }
+
+        replacement->setPosition(oldPosition);
+        replacement->setVisible(oldVisible);
+
+        if (_inventory) {
+            _inventory->removeChild(oldWidget);
+        }
+        widgetIt->second = replacement;
+        _itemWidgetDefIds[itemId] = defId;
+
+        if (itemId == _draggedItemId) {
+            _draggedIcon = replacement;
+            replacement->setScale(oldScale);
+        } else {
+            _itemWidgetScales[itemId] = ITEM_NORMAL_SCALE;
+            _itemWidgetScaleTargets[itemId] = ITEM_NORMAL_SCALE;
+            replacement->setScale(ITEM_NORMAL_SCALE);
         }
     }
 }
@@ -6214,7 +6268,7 @@ void GameScene::detectDroppedPeers() {
 }
 
 /**
- * HOST ONLY. Replaces the player at the given slot with an EasyPlayerAI,
+ * HOST ONLY. Replaces the player at the given slot with an PlayerAI,
  * re-wires the neighbour ring, and restores the disconnected player's
  * health and inventory onto the new AI.
  *
@@ -6224,7 +6278,7 @@ void GameScene::demoteSlotToAI(int slot) {
     Player* player = _gameState.getPlayerBySlot(slot);
     if (!player) return;
 
-    CULog("GameScene: host demoting slot %d to EasyPlayerAI", slot);
+    CULog("GameScene: host demoting slot %d to PlayerAI", slot);
 
     // Snapshot state before overwriting
     float savedHealth    = player->getCurrentHealth();
@@ -6236,7 +6290,7 @@ void GameScene::demoteSlotToAI(int slot) {
 
     // Restore health and inventory onto the new AI
     Player* newAI = _gameState.getPlayerBySlot(slot);
-    auto* ai = dynamic_cast<EasyPlayerAI*>(newAI);
+    auto* ai = dynamic_cast<PlayerAI*>(newAI);
     if (ai) {
         ai->init(_itemController.getDatabase(), "json/playerAI.json");
     }
@@ -6244,6 +6298,15 @@ void GameScene::demoteSlotToAI(int slot) {
     newAI->setCurrentHealth(savedHealth);
     for (const ItemInstance& item : savedInventory) {
         newAI->addItem(item);
+    }
+    
+    // Re-apply difficulty after init() resets the multiplier to 0
+    const std::string& bossId = _gameState.getEnemy() ? _gameState.getEnemy()->getId(): "";
+    if (!bossId.empty()) {
+        _gameState.applyAIDifficultyForBoss(
+            bossId,
+            SavedDataManager::get().getPlayerXP()
+        );
     }
 }
 
@@ -6313,7 +6376,7 @@ void GameScene::handleDisconnectedPlayers() {
         // Skip if the slot is already AI or doesn't exist.
         if (!existing || existing->isAI()) continue;
 
-        // Step 2a: Host replaces the player object with an EasyPlayerAI.
+        // Step 2a: Host replaces the player object with an PlayerAI.
         // Clients skip this — their state is kept in sync each frame
         // via broadcastGameState / networkUpdate.
         if (_network->isHost()) {
@@ -7211,4 +7274,32 @@ void GameScene::updatePopupAnimations(float dt) {
         popupEntry->node->setColor(cugl::Color4(255, 255, 255, (uint8_t)(alpha * 255)));
         ++popupEntry;
     }
+}
+
+/**
+ * Awards or deducts XP based on the game outcome and selected boss,
+ * then persists the result to disk.
+ *
+ * On a win, the full boss XP reward is added. On a loss, half the
+ * boss XP reward is deducted (clamped to 0 by setPlayerXP).
+ *
+ * @param won  true if the players won, false if they lost.
+ */
+void GameScene::handleXPAdjustment(bool won) {
+    const std::string& bossId = _gameState.getEnemy()->getId();
+
+    int xpReward = 0;
+    if      (bossId == "circe")    xpReward = GameState::XP_CIRCE;
+    else if (bossId == "cyclops")  xpReward = GameState::XP_CYCLOPS;
+    else if (bossId == "cerberus") xpReward = GameState::XP_CERBERUS;
+    else if (bossId == "gaia")     xpReward = GameState::XP_GAIA;
+
+    if (won) {
+        SavedDataManager::get().addPlayerXP(xpReward);
+    } else {
+        SavedDataManager::get().setPlayerXP(
+            SavedDataManager::get().getPlayerXP() - 1
+        );
+    }
+    SavedDataManager::get().save();
 }
