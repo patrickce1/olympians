@@ -188,6 +188,34 @@
                             "y_offset": 0.78
                         }
                     },
+                    "timers": {
+                        "type": "Node",
+                        "format": { "type": "Anchored" },
+                        "data": {
+                            "anchor": [
+                                0,
+                                0
+                            ],
+                            "size": [
+                                42,
+                                138
+                            ],
+                            "angle": 0,
+                            "position": [
+                                8,
+                                52
+                            ],
+                            "visible": true
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "bottom",
+                            "absolute": false,
+                            "x_offset": 0.02,
+                            "y_offset": 0.13
+                        }
+                    },
                     "supportLeft": {
                         "type": "Image",
                         "data": {

@@ -328,13 +328,13 @@
                     ]
                 }
             },
-            "tide": {
+            "tsunami": {
                 "type": "Widget",
                 "format": { "type": "Anchored" },
                 "data": {
                     "key": "codexSlot",
                     "variables": {
-                        "item" : "item_poseidon_tide"
+                        "item" : "item_poseidon_tsunami"
                     }
                 },
                 "layout": {
@@ -366,13 +366,13 @@
                     ]
                 }
             },
-            "cornucopia": {
+            "harvest": {
                 "type": "Widget",
                 "format": { "type": "Anchored" },
                 "data": {
                     "key": "codexSlot",
                     "variables": {
-                        "item" : "item_demeter_abundance"
+                        "item" : "item_demeter_harvest"
                     }
                 },
                 "layout": {
@@ -391,7 +391,7 @@
                 "data": {
                     "key": "codexSlot",
                     "variables": {
-                        "item" : "item_aphrodite_beauty"
+                        "item" : "item_aphrodite_charm"
                     }
                 },
                 "layout": {

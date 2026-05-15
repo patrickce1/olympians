@@ -43,7 +43,7 @@
             "file": "textures/items/potion_r.png"
         },
         "item_poseidon_tsunami": {
-            "file": "textures/items/poseidon_tide_d.png"
+            "file": "textures/items/poseidon_tsunami_d.png"
         },
         "item_zeus_thunderstorm": {
             "file": "textures/items/zeus_thunderstorm_d.png"
@@ -55,10 +55,10 @@
             "file": "textures/items/hades_resurrection_d.png"
         },
         "item_demeter_harvest": {
-            "file": "textures/items/demeter_abundance_d.png"
+            "file": "textures/items/demeter_harvest_d.png"
         },
         "item_aphrodite_charm": {
-            "file": "textures/items/aphrodite_beauty_d.png"
+            "file": "textures/items/aphrodite_charm_d.png"
         },
         "item_athena_educate": {
             "file": "textures/items/athena_educate_d.png",
@@ -126,8 +126,8 @@
         "potion_large": {
             "file": "textures/codexScene/large/potion_large.png"
         },
-        "tide_large": {
-            "file": "textures/codexScene/large/tide_large.png"
+        "tsunami_large": {
+            "file": "textures/codexScene/large/tsunami_large.png"
         },
         "thunderstorm_large": {
             "file": "textures/codexScene/large/thunderstorm_large.png"
@@ -135,8 +135,8 @@
         "resurrection_large": {
             "file": "textures/codexScene/large/resurrection_large.png"
         },
-        "cornucopia_large": {
-            "file": "textures/codexScene/large/cornucopia_large.png"
+        "harvest_large": {
+            "file": "textures/codexScene/large/harvest_large.png"
         },
         "charm_large": {
             "file": "textures/codexScene/large/charm_large.png"
@@ -152,6 +152,42 @@
         },
         "forge_large": {
             "file": "textures/codexScene/large/forge_large.png"
+        },
+        "icon_regen": {
+            "file": "textures/items/timers/regenTimer.png"
+        },
+        "icon_stun": {
+            "file": "textures/items/timers/stunTimer.png"
+        },
+        "icon_educate": {
+            "file": "textures/items/timers/educateTimer.png"
+        },
+        "icon_charm": {
+            "file": "textures/items/timers/charmTimer.png"
+        },
+        "icon_lifesteal": {
+            "file": "textures/items/timers/lifestealTimer.png"
+        },
+        "icon_frenzy": {
+            "file": "textures/items/timers/frenzyTimer.png"
+        },
+        "icon_love": {
+            "file": "textures/items/timers/loveTimer.png"
+        },
+        "icon_resurrect": {
+            "file": "textures/items/timers/resurrectionTimer.png"
+        },
+        "icon_vulnerable": {
+            "file": "textures/items/timers/vulnerableTimer.png"
+        },
+        "icon_slow": {
+            "file": "textures/items/timers/slowTimer.png"
+        },
+        "timerFrameSelf": {
+            "file": "textures/items/timers/timerFrameSelf.png"
+        },
+        "timerFrameReceived": {
+            "file": "textures/items/timers/timerFrameReceived.png"
         }
     }
 }
