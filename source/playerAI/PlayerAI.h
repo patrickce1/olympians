@@ -102,6 +102,19 @@ protected:
     /** Maximum divine pass probability (best AI). Loaded from JSON. */
     float _divinePassChanceMax;
     
+    /**
+     * Minimum pass probability for a gaia_rock item selected during actSupport()
+     * (worst AI). At this floor the AI still passes the rock most of the time
+     * rather than harming a teammate. Loaded from JSON.
+     */
+    float _rockPassChanceMin;
+
+    /**
+     * Maximum pass probability for a gaia_rock item selected during actSupport()
+     * (best AI). Loaded from JSON.
+     */
+    float _rockPassChanceMax;
+    
     // ── Runtime interpolated values ────────────────────────────────────────
 
     /**
@@ -141,6 +154,13 @@ protected:
      * Equals _divinePassChance * _decisionMultiplier.
      */
     float _effectiveDivinePassChance = 0.0f;
+    
+    /**
+     * Current probability that the AI passes a gaia_rock instead of using it
+     * on a teammate during actSupport(). Interpolated between _rockPassChanceMin
+     * and _rockPassChanceMax by _decisionMultiplier.
+     */
+    float _effectiveRockPassChance = 0.5f;
 
     /**
      * Scales AI decision quality from 0.0 (easiest) to 1.0 (hardest).

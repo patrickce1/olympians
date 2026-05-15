@@ -1022,7 +1022,7 @@ void GameScene::setActive(bool value) {
             // Uses the current enemy ID and cached player XP so the multiplier
             // matches what was set in the lobby.
             const std::string& bossId = _gameState.getEnemy() ? _gameState.getEnemy()->getId(): "";
-            if (!bossId.empty()) {
+            if (!bossId.empty() && _network->isHost()) {
                 _gameState.applyAIDifficultyForBoss(
                     bossId,
                     SavedDataManager::get().getPlayerXP()

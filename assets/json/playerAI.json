@@ -7,6 +7,8 @@
         "rarePassChanceMin":   0.25,
         "rarePassChanceMax":   0.5,
         "divinePassChanceMin": 0.5,
-        "divinePassChanceMax": 0.9
+        "divinePassChanceMax": 0.9,
+        "rockPassChanceMin":   0.5,
+        "rockPassChanceMax":   0.85
     }
 }

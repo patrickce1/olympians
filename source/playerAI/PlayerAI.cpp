@@ -95,6 +95,20 @@ bool PlayerAI::init(const ItemDatabase& db, const std::string& path) {
         if (_debug) CULogError("PlayerAI::init — missing or invalid 'divinePassChanceMax'");
         valid = false;
     }
+    
+    if (config->has("rockPassChanceMin") && config->get("rockPassChanceMin")->isNumber()) {
+        _rockPassChanceMin = config->getFloat("rockPassChanceMin");
+    } else {
+        if (_debug) CULogError("PlayerAI::init — missing or invalid 'rockPassChanceMin'");
+        valid = false;
+    }
+
+    if (config->has("rockPassChanceMax") && config->get("rockPassChanceMax")->isNumber()) {
+        _rockPassChanceMax = config->getFloat("rockPassChanceMax");
+    } else {
+        if (_debug) CULogError("PlayerAI::init — missing or invalid 'rockPassChanceMax'");
+        valid = false;
+    }
 
     if (valid) applyDecisionMultiplier();
     return valid;
@@ -164,14 +178,16 @@ void PlayerAI::applyDecisionMultiplier() {
     // rarityWisdom: scale pass chances linearly from 0 at worst to full at best
     _effectiveRarePassChance   = _rarePassChanceMin   + _decisionMultiplier * (_rarePassChanceMax   - _rarePassChanceMin);
     _effectiveDivinePassChance = _divinePassChanceMin + _decisionMultiplier * (_divinePassChanceMax - _divinePassChanceMin);
+    _effectiveRockPassChance = _rockPassChanceMin + _decisionMultiplier * (_rockPassChanceMax - _rockPassChanceMin);
 
     CULog(
         "[PlayerAI '%s'] multiplier=%.2f → interval=%.2f heal=%.2f "
-        "atk=%.2f sup=%.2f rarePass=%.2f divinePass=%.2f",
+        "atk=%.2f sup=%.2f rarePass=%.2f divinePass=%.2f rockPass=%.2f",
         getPlayerName().c_str(), _decisionMultiplier,
         _thinkInterval, _healThreshold,
         _attackWeight, _supportWeight,
-        _effectiveRarePassChance, _effectiveDivinePassChance);
+        _effectiveRarePassChance, _effectiveDivinePassChance,
+        _effectiveRockPassChance);
 }
 
 // ---------------------------------------------------------------------------
@@ -486,6 +502,30 @@ void PlayerAI::actSupport(ItemController& items) {
     }
 
     ItemInstance::ItemId chosen = supportItems[rand() % supportItems.size()];
+    
+    // Gaia rock check — using a gaia_rock on a teammate damages them.
+    // Roll against _effectiveRockPassChance and pass it instead if triggered.
+    auto chosenDef = _db->getDef("");
+    for (const ItemInstance& inventoryItem : getInventory()) {
+        if (inventoryItem.getId() == chosen) {
+            chosenDef = _db->getDef(inventoryItem.getDefId());
+            break;
+        }
+    }
+
+    if (chosenDef && chosenDef->getId() == "gaia_rock") {
+        float rockRoll = static_cast<float>(rand()) / RAND_MAX;
+        if (rockRoll < _effectiveRockPassChance) {
+            if (_debug) CULog(
+                "[PlayerAI '%s'] actSupport — gaia_rock pass triggered (roll=%.2f chance=%.2f)",
+                getPlayerName().c_str(), rockRoll, _effectiveRockPassChance);
+            // Divert to a pass — set pending item and let actPass() handle delivery
+            _pendingPassItemId = chosen;
+            _pendingPassTarget = nullptr; // no affinity target for rocks — pass randomly
+            actPass();
+            return;
+        }
+    }
     if (_debug) CULog("[PlayerAI '%s'] actSupport — using item %llu on '%s' (ratio=%.2f)",
           getPlayerName().c_str(), (unsigned long long)chosen,
           target->getPlayerName().c_str(), lowestRatio);
