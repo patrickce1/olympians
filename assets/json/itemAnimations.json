@@ -38,6 +38,9 @@
         },
         "forge_animation": {
             "file": "textures/items/animations/forge_animation.png"
+        },
+        "charm_animation": {
+            "file": "textures/items/animations/charm_animation.png"
         }
     }
 }

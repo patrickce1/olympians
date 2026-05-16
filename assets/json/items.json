@@ -592,7 +592,18 @@
                     "type": "charm",
                     "duration": 10.0
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "charm_animation",
+                "rows": 1,
+                "cols": 11,
+                "frameCount": 11,
+                "animationDuration": 1.1,
+                "damageResolutionFrame": 4,
+                "scale": 1.0,
+                "offsetY": 0,
+                "centerOnDropLocation": true
+            }
         }
     ],
     "itemInterval": 2.5,
