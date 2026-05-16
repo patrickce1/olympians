@@ -3,6 +3,7 @@
 
 #include <cugl/cugl.h>
 #include "../SavedDataManager.h"
+#include "../AudioController.h"
 
 /**
  * A persistent overlay scene for application settings.
@@ -16,6 +17,9 @@ class SettingsScene : public cugl::scene2::Scene2 {
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+
+    /** The audio controller shared across all scenes */
+    AudioController* _audio = nullptr;
 
     /** The root scene node for this scene graph. */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
@@ -119,10 +123,11 @@ public:
      * That is why we have the method {@link #setActive}.
      *
      * @param assets    The (loaded) assets for this game mode
+     * @param audio    The audio controller used for various sounds.
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, AudioController* audio);
 
     /**
      * Retrieves and stores references to the settings scene UI elements.

@@ -29,10 +29,12 @@ static constexpr int SWIPE_HOLD_FRAMES = 4;
  * That is why we have the method {@link #setActive}.
  *
  * @param assets    The (loaded) assets for this game mode
+ * @param networkController The network controller shared across all scenes
+ * @param audio    The audio controller used for various sounds.
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -43,6 +45,7 @@ bool HostSetupScene::init(const std::shared_ptr<cugl::AssetManager>& assets, con
     // Start up asset manager, network controller, and enemy loader
     _assets = assets;
     _network = networkController;
+    _audio = audio;
     loadBosses();
     
     Size dimen = getSize();
@@ -141,6 +144,7 @@ void HostSetupScene::setupListeners() {
                 EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
                 _network->setEnemy(selectedBoss.id);
                 _network->broadcastBossSelection(selectedBoss.id);
+                if (_audio) _audio->playSoundUnique("page_turn");
                 _status = Status::START;
             }
         }
@@ -148,12 +152,14 @@ void HostSetupScene::setupListeners() {
 
     _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("page_turn");
             _status = Status::ABORT;
         }
     });
     
     _joinButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("tabswap");
             _status = Status::CLIENT;
             _joinButton->setDown(false);
         }
@@ -168,7 +174,10 @@ void HostSetupScene::setupListeners() {
     });
     
     _settingsButton->addListener([this](const std::string& name, bool down) {
-        if (!down) _pendingSettings = true;
+        if (!down){
+            if (_audio) _audio->playSoundUnique("tabswap");
+            _pendingSettings = true;
+        }
     });
 }
 
@@ -189,6 +198,7 @@ void HostSetupScene::dispose() {
         _active = false;
     }
     _network = nullptr;
+    _audio = nullptr;
 }
 
 /**
@@ -372,6 +382,7 @@ void HostSetupScene::configureStartButton() {
 void HostSetupScene::slideTo(int newIndex) {
     if (_isAnimating) return;
     if (newIndex < 0 || newIndex >= _bossCards.size()) return;
+    if (_audio) _audio->playSoundUnique("small_click");
 
     _isAnimating = true;
 
@@ -484,6 +495,7 @@ void HostSetupScene::showHostDisconnectedError() {
         auto label = std::dynamic_pointer_cast<scene2::Label>(
             _errorPopup->getChildByName("errorLabel"));
         if (label) {
+            if (_audio) _audio->playSoundUnique("client_error");
             label->setText("Host disconnected.\nReturning to Quest Select");
         }
         _errorPopup->setVisible(true);
@@ -617,6 +629,7 @@ void HostSetupScene::snapToNearestBoss(float releaseContainerX) {
         }
     }
 
+    bool indexChanged = (nearestIndex != _currentIndex);
     _currentIndex   = nearestIndex;
     _isAnimating    = true;
     Vec2 currentPos = _bossSelectionCardContainer->getPosition();
@@ -630,6 +643,7 @@ void HostSetupScene::snapToNearestBoss(float releaseContainerX) {
         if (glow) glow->setVisible(i == nearestIndex);
     }
 
+    if (_audio && indexChanged) _audio->playSoundUnique("small_click");
     updateCarouselDots(nearestIndex);
 }
 

@@ -183,8 +183,23 @@ private:
      * @param enemy points to the enemy that is being healed
      * @param event is event that was fired by the enemy AI that is meant to heal the boss
      */
-    void resolveHealEvent(const std::shared_ptr<Enemy>& enemy,
-                          const Enemy::FiredEvent& fe);
+    void resolveHealEvent(const std::shared_ptr<Enemy>& enemy, const Enemy::FiredEvent& fe);
+
+    /**
+     * Resolves a vine event fired by the enemy.
+     *
+     * Selects a target player and applies a Gaia vine bind to a randomly chosen
+     * side (left or right) using the corresponding applyVine function.
+     * If the selected side is already bound, the vine effect refreshes the timer
+     * instead of stacking.
+     *
+     * @param enemy   The enemy that fired the vine event
+     * @param players The list of active player instances
+     * @param event   The fired vine event to resolve
+     */
+    void resolveVineEvent(const std::shared_ptr<Enemy>& enemy,
+        std::vector<std::shared_ptr<Player>>& players,
+        const Enemy::FiredEvent& event);
 
     /**
      * Starts the corrosive debuff on the targeted player (Cerberus only).

@@ -461,6 +461,36 @@ protected:
     
     /** The world position when drag begins */
     Vec2 _holdAnchorPos = Vec2::ZERO;
+
+#pragma mark - Gaia Inventory Vines Animation
+    /** Vine overlay on the left pass zone blocking the local player's left pass */
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayLeft;
+    /** Vine overlay on the right pass zone blocking the local player's right pass */
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayRight;
+    /** Vine overlay peering in from the left edge representing the left neighbor's blocked right pass */
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayLeftNeighbor;
+    /** Vine overlay peering in from the right edge representing the right neighbor's blocked left pass */
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayRightNeighbor;
+
+    struct VineAnim {
+        bool currBlocked = false;   // current blocked state
+        bool previousBlocked = false;   // previous frame
+        float elapsedTime = 0.0f;
+        int currentFrame = 0;
+        bool isReversing = false;
+        const float duration = 0.5f;
+        const int totalFrames = 6;
+        
+    };
+
+    //Animation for our left vine
+    VineAnim _vineLeftAnim;
+    //Animaton for our right vine
+    VineAnim _vineRightAnim;
+    //Animation for our left neighbor's vine
+    VineAnim _vineLeftNeighborAnim;
+    //Animation for our right neighbor's vine
+    VineAnim _vineRightNeighborAnim;
     
 #pragma mark - Item Timers UI
     /** The active effect icons as defined by the ActiveEffectIcon struct. */
@@ -1523,6 +1553,19 @@ public:
       * This also broadcasts the new ordering over the network for clients to apply respectively as well
       */
     void handleGaiaScramble();
+
+    /**
+     * Toggles the vine overlays in the inventory based on which sides are blocked by Gaia's vines.
+     *
+     * The local player's overlays appear when they themselves are blocked from passing on that side.
+     * The neighbor overlays appear when a neighbor is blocked from passing toward the local player,
+     * but the local player is not themselves blocked on that side.
+     *
+     * Does nothing if the current enemy is not Gaia.
+     * 
+     * @param dt  Delta time in seconds.
+     */
+    void updateGaiaInventoryVineAnimations(float dt);
 
     /** Checks if we are in a state where
       * the house and names of the current player's neighbors should be concealed

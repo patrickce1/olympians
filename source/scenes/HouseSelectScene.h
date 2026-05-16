@@ -6,6 +6,7 @@
 #include "../InputController.h"
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
+#include "../AudioController.h"
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -46,6 +47,9 @@ protected:
     
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
+
+    /** The audio controller shared across all scenes */
+    AudioController* _audio = nullptr;
 
     /** The button for selecting a house */
     std::shared_ptr<cugl::scene2::Button> _selectButton;
@@ -213,12 +217,14 @@ public:
      * @param assets                           The loaded asset manager used to retrieve scene resources
      * @param networkController   The network controller used for multiplayer communication
      * @param gameState                     The state of the game
+     * @param audio    The audio controller used for various sounds.
      *
      * @return true if the scene was successfully initialized; false otherwise
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets,
                                 const std::shared_ptr<NetworkController>& networkController,
-                                GameState* gameState);
+                                GameState* gameState,
+                                AudioController* audio);
     
     /**
      * Retrieves and stores references to the house select UI elements.

@@ -17,10 +17,11 @@ using namespace std;
  * memory allocation.  Instead, allocation happens in this method.
  *
  * @param assets    The (loaded) assets for this game mode
+ * @param audio    The audio controller used for various sounds.
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool SettingsScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool SettingsScene::init(const std::shared_ptr<cugl::AssetManager>& assets, AudioController* audio) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -30,6 +31,7 @@ bool SettingsScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // Start up the input handler
     _assets = assets;
+    _audio = audio;
     
     Size dimen = getSize();
     
@@ -111,6 +113,7 @@ void SettingsScene::setupListeners() {
                 // Normal back behaviour — revert audio and close the scene
                 if (_onMusicVolumeChange) _onMusicVolumeChange(SavedDataManager::get().getMusicVolume());
                 if (_onSFXVolumeChange)   _onSFXVolumeChange(SavedDataManager::get().getSFXVolume());
+                if (_audio) _audio->playSoundUnique("tabswap");
                 _pendingClose = true;
             }
         }
@@ -123,6 +126,7 @@ void SettingsScene::setupListeners() {
     // Persist all current settings to disk then close the scene
     _saveButton->addListener([this](const std::string& name, bool down) {
         if (!down) {
+            if (_audio) _audio->playSoundUnique("tabswap");
             saveSettings();
             _pendingClose = true;
         }
@@ -161,6 +165,7 @@ void SettingsScene::dispose() {
         _active = false;
         _saveButton = nullptr;
     }
+    _audio = nullptr;
 }
 
 /**

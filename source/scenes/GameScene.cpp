@@ -670,11 +670,20 @@ bool GameScene::initSceneGraph() {
         
         _passLeftArea = _inventory->getChildByName("passZoneLeft");
         _passRightArea = _inventory->getChildByName("passZoneRight");
+
+        /* Gaia's vines */
+        // Local overlays
+        _vineOverlayLeft = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayLeft"));
+        _vineOverlayRight = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayRight"));
+
+        // Ally overlays
+        _vineOverlayLeftNeighbor = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayLeftNeighbor"));
+        _vineOverlayRightNeighbor = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayRightNeighbor"));
     }
     
     _tooltipNode = std::dynamic_pointer_cast<scene2::PolygonNode>(
         _assets->get<scene2::SceneNode>("gameScene.tooltip"));
-    
+
     addChild(_scene);
     return true;
 }
@@ -927,6 +936,10 @@ void GameScene::dispose() {
         _rightPlayerHouse = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
+        _vineOverlayLeft = nullptr;
+        _vineOverlayRight = nullptr;
+        _vineOverlayLeftNeighbor = nullptr;
+        _vineOverlayRightNeighbor = nullptr;
         _enemyAnimationSpriteNodes.clear();
         _currentVisibleAnimationSprite = nullptr;
         _itemWidgets.clear();
@@ -2138,13 +2151,16 @@ void GameScene::updateEnemyAndAI(float dt) {
 
     // Track player and enemy health before any updates to detect damage
     auto player = _gameState.getLocalPlayer();
-    float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
+    bool isLocalHumanPlayer = player && !dynamic_cast<PlayerAI*>(player);
+    float playerHealthBefore = isLocalHumanPlayer ? player->getCurrentHealth() : 0.0f;
+    float playerShieldHealthBefore = isLocalHumanPlayer ? player->getShieldHealth() : 0.0f;
     float enemyHealthBefore = enemy->getCurrentHealth();
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
     // Play shield block sound if local player's shield absorbed damage this update
-    if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
+    if (isLocalHumanPlayer && player->consumeShieldAbsorbedDamage() && _audio &&
+        playerShieldHealthBefore - player->getShieldHealth() > 5.0f) {
         _audio->playSoundUnique("shield_block");
     }
 
@@ -2593,8 +2609,23 @@ void GameScene::switchVisibleAnimation(const std::string& animationId) {
     
     // Apply animation-specific position and scale
     newSprite->setPosition(cugl::Vec2(_currentAnimationEntry.positionX + _currentAnimationEntry.offsetX,
-                                      _currentAnimationEntry.positionY + _currentAnimationEntry.offsetY));
-    newSprite->setScale(_currentAnimationEntry.scale);
+        _currentAnimationEntry.positionY + _currentAnimationEntry.offsetY));
+
+    float finalScale = _currentAnimationEntry.scale;
+    auto enemy = _gameState.getEnemy();
+    //for gaia, stretch her to fit the screen
+    if (enemy && enemy->getId() == "gaia") {
+        auto texture = newSprite->getTexture();
+        float frameWidth = (texture && _currentAnimationEntry.frameCount > 0)
+            ? static_cast<float>(texture->getWidth()) / _currentAnimationEntry.frameCount
+            : 0.0f;
+        if (frameWidth > 0.0f) {
+            finalScale = getSize().width * 1.15 / frameWidth;
+            finalScale = std::max(finalScale, _currentAnimationEntry.scale); //pick the biggest scale out of the default and other. It looked too small on phone otherwise
+        }
+    }
+    
+    newSprite->setScale(finalScale);
     
     // Set initial frame (direction 0, frame 0)
     newSprite->setFrame(0);
@@ -4413,7 +4444,7 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
         const float playerHealthDelta = player->getCurrentHealth() - playerHealthBefore;
         if (playerHurtEnabled && (playerHealthDelta < 0.0f)) {
             triggerDamageFrame();
-            if (_audio) {
+            if (playerHealthDelta <= 5.0f && _audio) {
                 std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
                 _audio->playSoundUnique(soundKey);
             }
@@ -4580,6 +4611,112 @@ void GameScene::handleGaiaScramble() {
     _gaiaVineAnim->currentTime = _gaiaVineAnim->duration; //duration of the original animation
 }
 
+/**
+ * Toggles the vine overlays in the inventory based on which sides are blocked by Gaia's vines.
+ *
+ * The local player's overlays appear when they themselves are blocked from passing on that side.
+ * The neighbor overlays appear when a neighbor is blocked from passing toward the local player,
+ * but the local player is not themselves blocked on that side.
+ *
+ * Does nothing if the current enemy is not Gaia.
+ * 
+ * @param dt  Delta time in seconds.
+ */
+void GameScene::updateGaiaInventoryVineAnimations(float dt) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy || enemy->getId() != "gaia") return;
+
+    auto local = _gameState.getLocalPlayer();
+    if (!local) return;
+
+    // ---- READ CURRENT STATE ----
+    _vineLeftAnim.currBlocked = local->hasLeftVine();
+    _vineRightAnim.currBlocked = local->hasRightVine();
+
+    _vineLeftNeighborAnim.currBlocked = local->getLeftPlayer()->hasRightVine();
+    _vineRightNeighborAnim.currBlocked = local->getRightPlayer()->hasLeftVine();
+
+    // ---- HELPER (inline logic per node) ----
+    auto updateAnim = [&](VineAnim& state,
+        const std::shared_ptr<cugl::scene2::SpriteNode>& node) {
+
+            if (!node) return;
+
+            const float duration = state.duration;
+            const int frameCount = state.totalFrames;
+
+            // false -> true (start forward)
+            if (state.currBlocked && !state.previousBlocked) {
+                state.elapsedTime = 0.0f;
+                state.currentFrame = 0;
+                state.isReversing = false;
+                node->setFrame(0);
+            }
+
+            // true -> false (start reverse)
+            else if (!state.currBlocked && state.previousBlocked) {
+                state.elapsedTime = duration;
+                state.currentFrame = frameCount - 1;
+                state.isReversing = true;
+            }
+
+            // ---- ANIMATION ----
+            if (state.currBlocked || state.isReversing) {
+
+                if (state.isReversing) {
+                    state.elapsedTime = std::max(state.elapsedTime - dt, 0.0f);
+                }
+                else {
+                    state.elapsedTime = std::min(state.elapsedTime + dt, duration);
+                }
+
+                float progress = state.elapsedTime / duration;
+
+                int frame = std::min(
+                    static_cast<int>(progress * frameCount),
+                    node->getCount() - 1
+                );
+
+                if (frame != state.currentFrame) {
+                    state.currentFrame = frame;
+                    node->setFrame(frame);
+                }
+
+                // reverse finished → hide
+                if (state.isReversing && state.elapsedTime <= 0.0f) {
+                    state.isReversing = false;
+                    state.elapsedTime = 0.0f;
+                }
+            }
+
+            state.previousBlocked = state.currBlocked;
+        };
+
+    // ---- UPDATE ALL 4 ANIMS (always tick) ----
+    updateAnim(_vineLeftAnim, _vineOverlayLeft);
+    updateAnim(_vineRightAnim, _vineOverlayRight);
+    updateAnim(_vineRightNeighborAnim, _vineOverlayLeftNeighbor);
+    updateAnim(_vineLeftNeighborAnim, _vineOverlayRightNeighbor);
+
+    // ---- PRIORITY (per side) ----
+
+    // LEFT SIDE
+    if (_vineOverlayLeft && _vineOverlayLeftNeighbor) {
+        bool showLocal = _vineLeftAnim.currBlocked || _vineLeftAnim.isReversing;
+        bool showNeighbor = (!_vineLeftAnim.currBlocked && (_vineLeftNeighborAnim.currBlocked || _vineLeftNeighborAnim.isReversing));
+
+        _vineOverlayLeft->setVisible(showLocal);
+        _vineOverlayLeftNeighbor->setVisible(showNeighbor);
+    }
+
+    // RIGHT SIDE
+    if (_vineOverlayRight && _vineOverlayRightNeighbor) {
+        bool showLocal = _vineRightAnim.currBlocked || _vineRightAnim.isReversing;
+        bool showNeighbor = (!_vineRightAnim.currBlocked && (_vineRightNeighborAnim.currBlocked || _vineRightNeighborAnim.isReversing));
+        _vineOverlayRight->setVisible(showLocal);
+        _vineOverlayRightNeighbor->setVisible(showNeighbor);
+    }
+}
 
 /**
  * One-shot corrosive drain handler. Only runs on the host (resolveCorrosiveEvent sets
@@ -5381,8 +5518,10 @@ void GameScene::updateDropZoneVisibility(){
         // Hide pass zones while corrosive animations are still running on this player
         int localPlayerSlot = local ? local->getPlayerNumber() : -1;
         bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
-        _passLeftArea->setVisible(!isCorrosiveActive);
-        _passRightArea->setVisible(!isCorrosiveActive);
+        bool leftVinePresent = local ? (local->hasLeftVine() || local->getLeftPlayer()->hasRightVine()) : false;
+        bool rightVinePresent = local ? (local->hasRightVine() || local->getRightPlayer()->hasLeftVine()) : false;
+        _passLeftArea->setVisible(!isCorrosiveActive && !leftVinePresent);
+        _passRightArea->setVisible(!isCorrosiveActive && !rightVinePresent);
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
@@ -5466,6 +5605,7 @@ void GameScene::update(float dt, InputController& input) {
     handleCorrosiveDrain();
     updateEnemyHealthBarEffect(dt);
     updateDropZoneVisibility();
+    updateGaiaInventoryVineAnimations(dt);
 
     // Update sliding items before physics world update
     updateSlidingItems(dt);
@@ -6325,27 +6465,18 @@ void GameScene::updateInputZones(){
     int localPlayerSlot = local ? local->getPlayerNumber() : -1;
     bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
 
-    // Dead players can only pass items or put them in inventory
-    // They cannot attack or support
-    if (local && !local->isAlive()) {
-        // If corrosive is active on this player, they can't pass either
-        if (!isCorrosiveActive) {
-            _inputZones = _passZones;
-        } else {
-            _inputZones.clear();
-        }
-        _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
-    } else {
-        // Alive players have access to all zones
+    // Alive players have access to all zones
+    if(local && local->isAlive()){
         _inputZones = _attackZones;
         _inputZones.insert(_inputZones.end(), _supportZones.begin(), _supportZones.end());
+    }
 
-        // Only add pass zones if not affected by corrosive
-        if (!isCorrosiveActive) {
-            _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
-        }
-
-        _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
+    //All players can pass as long as they're not affected by corrosive or blocked by vines
+    if(!local->hasLeftVine() && !local->getLeftPlayer()->hasRightVine() && !isCorrosiveActive){
+        _inputZones.push_back(_passZones[0]);
+    }
+    if(!local->hasRightVine() && !local->getRightPlayer()->hasLeftVine() && !isCorrosiveActive){
+        _inputZones.push_back(_passZones[1]);
     }
 }
 

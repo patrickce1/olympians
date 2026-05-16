@@ -821,6 +821,90 @@
                     "x_offset": 0,
                     "y_offset": 0.11
                 }
+            },
+            "vineOverlayLeft": {
+                "type": "Sprite",
+                "data": {
+                    "texture": "gaiaVineOverlayLeft",
+                    "anchor": [0, 0],
+                    "size": [120, 300],
+                    "scale": [0.23, 0.175],
+                    "angle": 0,
+                    "position": [0, 0],
+                    "visible": false,
+                    "rows": 1,
+                    "cols": 6
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "vineOverlayRight": {
+                "type": "Sprite",
+                "data": {
+                    "texture": "gaiaVineOverlayRight",
+                    "anchor": [1, 0],
+                    "size": [120, 300],
+                    "scale": [0.23, 0.175],
+                    "angle": 0,
+                    "position": [393, 0],
+                    "visible": false,
+                    "rows": 1,
+                    "cols": 6
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            "vineOverlayLeftNeighbor": {
+                "type": "Sprite",
+                "data": {
+                    "texture": "gaiaVineOverlayLeft",
+                    "anchor": [0, 0],
+                    "size": [120, 300],
+                    "scale": [0.23, 0.175],
+                    "angle": 0,
+                    "position": [0, 0],
+                    "visible": false,
+                    "rows": 1,
+                    "cols": 6
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": -0.005,
+                    "y_offset": 0
+                }
+            },
+            "vineOverlayRightNeighbor": {
+                "type": "Sprite",
+                "data": {
+                    "texture": "gaiaVineOverlayRight",
+                    "anchor": [1, 0],
+                    "size": [120, 300],
+                    "scale": [0.23, 0.175],
+                    "angle": 0,
+                    "position": [393, 0],
+                    "visible": false,                  
+                    "rows": 1,
+                    "cols": 6
+                },
+                "layout": {
+                    "x_anchor": "right",
+                    "y_anchor": "bottom",
+                    "absolute": false,
+                    "x_offset": 0.005,
+                    "y_offset": 0
+                }
             }
         }
     }
