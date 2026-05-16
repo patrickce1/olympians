@@ -606,7 +606,38 @@ bool GameScene::initSceneGraph() {
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
         
-        // This is the special effects node, this is where all the animated effects will go.
+        // _behindHUDEffectsLayer lives inside _gameArea, inserted after the boss sprites
+        // but before the player icon HUD nodes (leftIcon, rightIcon, etc.) so it renders
+        // above the boss and below the HUD. The HUD nodes are temporarily detached so the
+        // layer ends up at the correct position in _gameArea's child order.
+        {
+            auto hudDialogue = _gameArea->getChildByName("dialogueBox");
+            auto hudLeft     = _gameArea->getChildByName("leftIcon");
+            auto hudRight    = _gameArea->getChildByName("rightIcon");
+            auto hudSupL     = _gameArea->getChildByName("supportLeft");
+            auto hudSupR     = _gameArea->getChildByName("supportRight");
+            auto hudDeath    = _gameArea->getChildByName("playerDeath");
+            if (hudDialogue) hudDialogue->removeFromParent();
+            if (hudLeft)     hudLeft->removeFromParent();
+            if (hudRight)    hudRight->removeFromParent();
+            if (hudSupL)     hudSupL->removeFromParent();
+            if (hudSupR)     hudSupR->removeFromParent();
+            if (hudDeath)    hudDeath->removeFromParent();
+
+            _behindHUDEffectsLayer = scene2::SceneNode::allocWithBounds(_gameArea->getContentSize());
+            _behindHUDEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_BOTTOM_LEFT);
+            _behindHUDEffectsLayer->setPosition(cugl::Vec2::ZERO);
+            _gameArea->addChild(_behindHUDEffectsLayer);
+
+            if (hudDialogue) _gameArea->addChild(hudDialogue);
+            if (hudLeft)     _gameArea->addChild(hudLeft);
+            if (hudRight)    _gameArea->addChild(hudRight);
+            if (hudSupL)     _gameArea->addChild(hudSupL);
+            if (hudSupR)     _gameArea->addChild(hudSupR);
+            if (hudDeath)    _gameArea->addChild(hudDeath);
+        }
+
+        // _specialEffectsLayer is added last so it renders above everything, including the inventory.
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
         _specialEffectsLayer->setContentSize(dimen);
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
@@ -1158,6 +1189,7 @@ void GameScene::reset() {
     _activeFloatingPopups.clear();
     _pendingFloatingPopups.clear();
     _pendingStunDamagePopups.clear();
+    _pendingDelayedAnimations.clear();
     _itemController.reset();
 
     std::vector<ItemInstance::ItemId> itemIds;
@@ -4414,6 +4446,15 @@ void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forge
  * @param seed    Deterministic base seed used to derive per-player forge rolls.
  */
 void GameScene::applyForgeEffect(float chance, int seed) {
+    std::unordered_map<ItemInstance::ItemId, std::string> corrodingDefIds;
+    if (Player* local = _gameState.getLocalPlayer()) {
+        for (const ItemInstance& item : local->getInventory()) {
+            if (_corrodingItemIds.find(item.getId()) != _corrodingItemIds.end()) {
+                corrodingDefIds[item.getId()] = item.getDefId();
+            }
+        }
+    }
+
     const std::uint32_t baseSeed = static_cast<std::uint32_t>(seed);
     for (const auto& player : _gameState.getPlayers()) {
         if (!player) {
@@ -4422,7 +4463,79 @@ void GameScene::applyForgeEffect(float chance, int seed) {
         const std::uint32_t playerSeed = baseSeed ^ (0x9e3779b9u + static_cast<std::uint32_t>(player->getPlayerNumber()));
         _itemController.applyForgeEffect(player.get(), chance, playerSeed);
     }
+    freeForgedCorrodingItems(corrodingDefIds);
     refreshInventoryWidgetTextures();
+}
+
+/**
+ * Cancels corrosion animations for local items that were redefined by forge.
+ *
+ * Corrosion completion removes by stable item ID, while forge preserves that ID.
+ * Without clearing the animation, an upgraded item can still be finalized and
+ * deleted after the old corrosion timer finishes.
+ *
+ * @param previousDefIds  Definition IDs captured before forge for corroding local items.
+ */
+void GameScene::freeForgedCorrodingItems(const std::unordered_map<ItemInstance::ItemId, std::string>& previousDefIds) {
+    if (previousDefIds.empty()) {
+        return;
+    }
+
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) {
+        return;
+    }
+
+    std::unordered_set<ItemInstance::ItemId> freedIds;
+    for (const ItemInstance& item : local->getInventory()) {
+        auto previousDefIt = previousDefIds.find(item.getId());
+        if (previousDefIt == previousDefIds.end()) {
+            continue;
+        }
+        if (previousDefIt->second != item.getDefId() &&
+            _corrodingItemIds.find(item.getId()) != _corrodingItemIds.end()) {
+            freedIds.insert(item.getId());
+        }
+    }
+
+    if (freedIds.empty()) {
+        return;
+    }
+
+    _corrodedItemAnimations.erase(
+        std::remove_if(_corrodedItemAnimations.begin(), _corrodedItemAnimations.end(),
+                       [&](const CorrodedItemAnimation& anim) {
+                           return freedIds.find(anim.itemId) != freedIds.end();
+                       }),
+        _corrodedItemAnimations.end());
+
+    for (ItemInstance::ItemId itemId : freedIds) {
+        _corrodingItemIds.erase(itemId);
+
+        auto widgetIt = _itemWidgets.find(itemId);
+        if (widgetIt != _itemWidgets.end() && widgetIt->second) {
+            auto widget = widgetIt->second;
+            cugl::Vec2 center = widget->getPosition();
+
+            auto bodyIt = _itemBodies.find(itemId);
+            if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                center = bodyIt->second->getPosition();
+            }
+
+            cugl::Size widgetSize = widget->getContentSize();
+            widget->setAnchor(cugl::Vec2::ANCHOR_BOTTOM_LEFT);
+            widget->setPosition(center - cugl::Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f));
+            widget->setScale(ITEM_NORMAL_SCALE);
+            widget->setVisible(true);
+        }
+
+        _itemWidgetScales[itemId] = ITEM_NORMAL_SCALE;
+        _itemWidgetScaleTargets[itemId] = ITEM_NORMAL_SCALE;
+    }
+
+    if (_corrodedItemAnimations.empty()) {
+        _corrosiveVisualTarget = -1;
+    }
 }
 
 /** 
@@ -4837,8 +4950,6 @@ void GameScene::applyCorrosiveDrain(int targetPlayerSlot, float fadeDuration, fl
  * players if this machine is the host. AI item spawning is host-only since
  * the host is the authoritative source for all AI state.
  * 
- * Corrosive players do not get items.
- *
  * @param dt  Delta time in seconds.
  */
 void GameScene::handleItemSpawn(float dt) {
@@ -4846,12 +4957,7 @@ void GameScene::handleItemSpawn(float dt) {
         return;
     }
 
-    // Block item spawning while corrosive animations are still running on this player
-    Player* local = _gameState.getLocalPlayer();
-    int localPlayerSlot = local ? local->getPlayerNumber() : -1;
-    bool localPlayerCorrosive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
-
-    _itemController.update(dt, _gameState.getLocalPlayer(), localPlayerCorrosive);
+    _itemController.update(dt, _gameState.getLocalPlayer());
 
     //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
     handleGaiaSpawn();
@@ -5614,6 +5720,7 @@ void GameScene::update(float dt, InputController& input) {
     detectGaiaAnimationTriggers();
     updateGaiaVineAnimation(dt);
     updateStunDamagePopups(dt);
+    updatePendingDelayedAnimations(dt);
     updatePopupAnimations(dt);
     updateHealthFrameEffects(dt);
     syncEffectIconsFromPlayerState();
@@ -6786,16 +6893,26 @@ void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, 
         position = cugl::Vec2(viewportSize.width / 2.0f, viewportSize.height * 0.55f);
     }
     
-    node->setPosition(position);
     node->setAnchor(cugl::Vec2(0.5f, 0.5f));
-    
+
     // Scale animation to fit viewport width while maintaining aspect ratio
-    // Use setScale instead of setContentSize to avoid distorting the texture
-    float scale = viewportSize.width / frameSize.width;
+    float scale = (viewportSize.width / frameSize.width) * animConfig.scale;
     node->setScale(scale);
-    
-    // Add to special effects layer
-    _specialEffectsLayer->addChild(node);
+
+    // Apply per-item offset (screen space)
+    position.x += animConfig.offsetX;
+    position.y += animConfig.offsetY;
+
+    // _specialEffectsLayer shares the scene root coordinate space.
+    // _behindHUDEffectsLayer is a child of _gameArea whose origin is offset from the
+    // scene root by _gameArea->getPosition(), so convert screen-space position to local.
+    if (animConfig.aboveInventory) {
+        node->setPosition(position);
+        _specialEffectsLayer->addChild(node);
+    } else {
+        node->setPosition(position - _gameArea->getPosition());
+        _behindHUDEffectsLayer->addChild(node);
+    }
     
     // Create and queue the animation instance
     ItemUseAnimation anim;
@@ -6904,6 +7021,17 @@ void GameScene::updateItemUseAnimations(float dt) {
                 scheduleStunDamagePopups(activeAnim.enemyEffects, activeAnim.popupPosition,
                                          activeAnim.houseAffinityMultiplier,
                                          activeAnim.upgradeMultiplier);
+
+                if (!activeAnim.itemDefID.empty()) {
+                    auto def = _itemController.getDatabase().getDef(activeAnim.itemDefID);
+                    if (def && def->hasItemUseAnimation()) {
+                        const auto& animConfig = def->getItemUseAnimation();
+                        const cugl::Vec2 animPos = animConfig.centerOnDropLocation
+                            ? activeAnim.popupPosition
+                            : cugl::Vec2::ZERO;
+                        scheduleDelayedStunAnimations(animConfig, animPos, activeAnim.enemyEffects);
+                    }
+                }
             }
 
             // Host plays enemy_hurt or enemy_block depending on whether damage landed.
@@ -7468,6 +7596,48 @@ void GameScene::updateStunDamagePopups(float dt) {
             houseDamage, finalDamage, 26.0f, 17.0f));
 
         popup = _pendingStunDamagePopups.erase(popup);
+    }
+}
+
+/**
+ * Queues a delayed replay of an item-use animation for every stun effect whose delay > 0.
+ * The first stun (delay == 0) is already covered by the animation that fires when the item
+ * is used, so only subsequent staged hits need a replay (e.g. the three later bolts of
+ * Thunderstorm at t=2, t=4, and t=6 seconds).
+ * @param animConfig  The animation config to replay.
+ * @param animPos     The position passed to startItemUseAnimation (Vec2::ZERO = center).
+ * @param enemyEffects The enemy effects produced by the item use.
+ */
+void GameScene::scheduleDelayedStunAnimations(const ItemUseAnimationConfig& animConfig,
+                                               const cugl::Vec2& animPos,
+                                               const std::vector<EnemyEffectMessage>& enemyEffects) {
+    for (const EnemyEffectMessage& effect : enemyEffects) {
+        if (effect.effectType != EnemyEffectType::Stun || effect.delay <= 0.0f) {
+            continue;
+        }
+        PendingDelayedAnimation pending;
+        pending.animConfig = animConfig;
+        pending.position   = animPos;
+        pending.delay      = effect.delay;
+        _pendingDelayedAnimations.push_back(pending);
+    }
+}
+
+/**
+ * Ticks each pending delayed animation replay and fires startItemUseAnimation for any
+ * whose countdown has reached zero.
+ *
+ * @param dt Delta time in seconds.
+ */
+void GameScene::updatePendingDelayedAnimations(float dt) {
+    for (auto it = _pendingDelayedAnimations.begin(); it != _pendingDelayedAnimations.end(); ) {
+        it->delay -= dt;
+        if (it->delay <= 0.0f) {
+            startItemUseAnimation(it->animConfig, 0.0f, it->position, 0);
+            it = _pendingDelayedAnimations.erase(it);
+        } else {
+            ++it;
+        }
     }
 }
 
