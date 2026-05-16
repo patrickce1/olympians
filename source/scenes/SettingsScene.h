@@ -34,6 +34,12 @@ protected:
 
     /** The play button for playing the tutorial */
     std::shared_ptr<cugl::scene2::Button> _tutorialButton;
+    
+    /** The credits button for showing the team members */
+    std::shared_ptr<cugl::scene2::Button> _creditsButton;
+    
+    /** The credits image for showing the team members */
+    std::shared_ptr<cugl::scene2::SceneNode> _credits;
 
     /** The save button to save the data and close the settings scene */
     std::shared_ptr<cugl::scene2::Button> _saveButton;
@@ -67,6 +73,12 @@ protected:
     
     /** Set to true when the user taps the tutorial replay button. */
     bool _pendingTutorial = false;
+    
+    /** Set to true when the user taps the credits button. */
+    bool _pendingCreditsOpen  = false;
+    
+    /** Set to true when the user taps out of credits. */
+    bool _pendingCreditsClose = false;
 
 public:
 #pragma mark -
@@ -236,6 +248,17 @@ private:
      * @param enabled  Whether controls should accept input
      */
     void setInputEnabled(bool enabled);
+    
+    /**
+     * Enables or disables all interactive input controls.
+     *
+     * Called internally by setActive() to activate or deactivate
+     * every button, slider, and text field in one place.
+     *
+     * @param enabled  Whether controls should accept input
+     * @param keepBackActive Whether the back button is active
+     */
+    void setInputEnabled(bool enabled, bool keepBackActive);
 };
 
 #endif /* __SETTINGS_SCENE_H__ */

@@ -74,6 +74,12 @@ void SettingsScene::setupUI() {
     _tutorialButton = std::dynamic_pointer_cast<scene2::Button>(
         _scene->getChildByName("play"));
     
+    _creditsButton = std::dynamic_pointer_cast<scene2::Button>(
+        _scene->getChildByName("creditsBtn"));
+    
+    _credits = _scene->getChildByName("credits");
+    _credits->setVisible(false);
+    
     auto usernamePlaceholder = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("settingsScene.username.placeholder"));
     usernamePlaceholder->setText("ENTER NAME");
     
@@ -98,10 +104,20 @@ void SettingsScene::setupUI() {
 void SettingsScene::setupListeners() {
     // Back button — hide the overlay
     _backButton->addListener([this](const std::string& name, bool down) {
-        // Revert audio to last saved values without touching SavedDataManager
-        if (_onMusicVolumeChange) _onMusicVolumeChange(SavedDataManager::get().getMusicVolume());
-        if (_onSFXVolumeChange)   _onSFXVolumeChange(SavedDataManager::get().getSFXVolume());
-        if (!down) _pendingClose = true;
+        if (!down) {
+            if (_credits->isVisible()) {
+                _pendingCreditsClose = true;
+            } else {
+                // Normal back behaviour — revert audio and close the scene
+                if (_onMusicVolumeChange) _onMusicVolumeChange(SavedDataManager::get().getMusicVolume());
+                if (_onSFXVolumeChange)   _onSFXVolumeChange(SavedDataManager::get().getSFXVolume());
+                _pendingClose = true;
+            }
+        }
+    });
+
+    _creditsButton->addListener([this](const std::string& name, bool down) {
+        if (!down) _pendingCreditsOpen = true;
     });
 
     // Persist all current settings to disk then close the scene
@@ -141,6 +157,7 @@ void SettingsScene::dispose() {
         _sfxSlider = nullptr;
         _musicSlider = nullptr;
         _tutorialButton = nullptr;
+        _creditsButton = nullptr;
         _active = false;
         _saveButton = nullptr;
     }
@@ -180,6 +197,7 @@ void SettingsScene::setActive(bool value) {
             _saveButton->setDown(false);
             _backButton->setDown(false);
             _tutorialButton->setDown(false);
+            _creditsButton->setDown(false);
         }
     }
 }
@@ -193,6 +211,16 @@ void SettingsScene::setActive(bool value) {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void SettingsScene::update(float timestep) {
+    if (_pendingCreditsOpen) {
+        _pendingCreditsOpen = false;
+        _credits->setVisible(true);
+        setInputEnabled(false, true);
+    }
+    if (_pendingCreditsClose) {
+        _pendingCreditsClose = false;
+        _credits->setVisible(false);
+        setInputEnabled(true);
+    }
 }
 
 #pragma mark -
@@ -214,6 +242,7 @@ void SettingsScene::setInputEnabled(bool enabled) {
         _musicSlider->activate();
         _tutorialButton->activate();
         _saveButton->activate();
+        _creditsButton->activate();
     } else {
         _usernameField->deactivate();
         _backButton->deactivate();
@@ -221,6 +250,23 @@ void SettingsScene::setInputEnabled(bool enabled) {
         _musicSlider->deactivate();
         _tutorialButton->deactivate();
         _saveButton->deactivate();
+        _creditsButton->deactivate();
+    }
+}
+
+/**
+ * Enables or disables all interactive input controls.
+ *
+ * Called internally by setActive() to activate or deactivate
+ * every button, slider, and text field in one place.
+ *
+ * @param enabled  Whether controls should accept input
+ * @param keepBackActive Whether the back button is active
+ */
+void SettingsScene::setInputEnabled(bool enabled, bool keepBackActive) {
+    setInputEnabled(enabled);
+    if (keepBackActive) {
+        _backButton->activate();
     }
 }
 
