@@ -610,7 +610,6 @@ void GameState::networkUpdate(GameStateMessage newState) {
         // We DON'T use applyVine here because that is for logic on the host end
         _players[i]->setVineLeft(vineEffects[i][0]);
         _players[i]->setVineRight(vineEffects[i][1]);
-
         _players[i]->setMalletUseCount(newState.playerMalletUseCounts[i]);
     }
 }

@@ -4605,7 +4605,6 @@ void GameScene::handleGaiaScramble() {
  * @param dt  Delta time in seconds.
  */
 void GameScene::updateGaiaInventoryVineAnimations(float dt) {
-
     auto enemy = _gameState.getEnemy();
     if (!enemy || enemy->getId() != "gaia") return;
 
@@ -4696,7 +4695,6 @@ void GameScene::updateGaiaInventoryVineAnimations(float dt) {
     if (_vineOverlayRight && _vineOverlayRightNeighbor) {
         bool showLocal = _vineRightAnim.currBlocked || _vineRightAnim.isReversing;
         bool showNeighbor = (!_vineRightAnim.currBlocked && (_vineRightNeighborAnim.currBlocked || _vineRightNeighborAnim.isReversing));
-
         _vineOverlayRight->setVisible(showLocal);
         _vineOverlayRightNeighbor->setVisible(showNeighbor);
     }

@@ -183,8 +183,7 @@ private:
      * @param enemy points to the enemy that is being healed
      * @param event is event that was fired by the enemy AI that is meant to heal the boss
      */
-    void resolveHealEvent(const std::shared_ptr<Enemy>& enemy,
-        const Enemy::FiredEvent& fe);
+    void resolveHealEvent(const std::shared_ptr<Enemy>& enemy, const Enemy::FiredEvent& fe);
 
     /**
      * Resolves a vine event fired by the enemy.

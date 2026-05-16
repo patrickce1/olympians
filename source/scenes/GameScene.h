@@ -478,7 +478,6 @@ protected:
         float elapsedTime = 0.0f;
         int currentFrame = 0;
         bool isReversing = false;
-
         const float duration = 0.5f;
         const int totalFrames = 6;
         

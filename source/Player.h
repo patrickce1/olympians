@@ -523,7 +523,6 @@ public:
      */
     void applyVineRight(float timer, float dps);
 
-
     /**
      * Returns whether the player is currently vine bound on the left side.
      *

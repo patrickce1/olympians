@@ -30,10 +30,10 @@ public:
 
     struct EventDef {
         EventType type = EventType::UNKNOWN;
-        int target = 0;                            // relative index offset. What player to attack or what side to modify. Heal ignores this and self targets
-        float amount = 0.0f;                       // damage amount, heal amount, or multiplier change
-        float duration = 0.0f;                     // how long this effect lasts
-        float interval     = 0.0f;    // seconds between ticks (CORROSIVE only; 0 = use default)
+        int   target         = 0;     // relative index offset. What player to attack or what side to modify. Heal ignores this and self targets
+        float amount         = 0.0f;  // damage amount, heal amount, or multiplier change
+        float duration       = 0.0f;  // how long this effect lasts
+        float interval       = 0.0f;  // seconds between ticks (CORROSIVE only; 0 = use default)
         float fadeDuration   = 0.0f;  // base fade duration per item (CORROSIVE only; 0 = use default)
         float fadeVariance   = 0.0f;  // ±fraction of fadeDuration applied randomly per item (e.g. 0.3 = ±30%)
         int   maxAffected    = 0;     // max items corroded per hit (CORROSIVE only; 0 = no limit)
