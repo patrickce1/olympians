@@ -35,6 +35,9 @@
         },
         "tsunami_animation": {
             "file": "textures/items/animations/tsunami_animation.png"
+        },
+        "forge_animation": {
+            "file": "textures/items/animations/forge_animation.png"
         }
     }
 }

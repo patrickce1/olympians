@@ -72,9 +72,11 @@
             "itemUseAnimation": {
                 "spriteSheetId": "arrows_animation",
                 "rows": 1,
-                "cols": 7,
-                "frameCount": 7,
-                "animationDuration": 0.581,
+                "cols": 8,
+                "frameCount": 8,
+                "animationDuration": 0.8,
+                "scale": 1.05,
+                "offsetY": -25,
                 "damageResolutionFrame": 5
             }
         },
@@ -267,10 +269,12 @@
             "itemUseAnimation": {
                 "spriteSheetId": "spear_animation",
                 "rows": 1,
-                "cols": 9,
-                "frameCount": 9,
-                "animationDuration": 0.747,
-                "damageResolutionFrame": 4
+                "cols": 8,
+                "frameCount": 8,
+                "animationDuration": 0.8,
+                "damageResolutionFrame": 3,
+                "offsetY": 30,
+                "aboveInventory": false
             }
         },
         {
@@ -479,7 +483,17 @@
                     "type": "forge",
                     "chance": 0.1
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "forge_animation",
+                "rows": 1,
+                "cols": 14,
+                "frameCount": 14,
+                "animationDuration": 1.4,
+                "damageResolutionFrame": 10,
+                "scale": 1.0,
+                "centerOnDropLocation": true
+            }
         },
         {
             "id": "educate",
