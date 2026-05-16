@@ -857,24 +857,60 @@
             "stream": false,
             "volume": 0.75
         },
-	"zeus_thunderstrike" : {
-	    "type": "sample",
-	    "file": "sounds/zeus_thunderstorm.wav",
-	    "stream": false,
-	    "volume": 0.65
-	},
-	"hephaestus_forge" : {
-	    "type": "sample",
-	    "file": "sounds/hephaestus_forge.wav",
-	    "stream": false,
-	    "volume": 0.65
-	},
-	"aphrodite_charm" : {
-	    "type": "sample",
-	    "file": "sounds/aphrodite_charm.wav",
-	    "stream": false,
-	    "volume": 0.65
-	},
+        "zeus_thunderstrike" : {
+            "type": "sample",
+            "file": "sounds/zeus_thunderstorm.wav",
+            "stream": false,
+            "volume": 0.65
+        },
+        "hephaestus_forge" : {
+            "type": "sample",
+            "file": "sounds/hephaestus_forge.wav",
+            "stream": false,
+            "volume": 0.65
+        },
+        "aphrodite_charm" : {
+            "type": "sample",
+            "file": "sounds/aphrodite_charm.wav",
+            "stream": false,
+            "volume": 0.65
+        },
+        "ares_rage" : {
+            "type": "sample",
+            "file": "sounds/ares_rage.wav",
+            "stream": false,
+            "volume": 0.65
+        },
+            "demeter_harvest" : {
+            "type": "sample",
+            "file": "sounds/demeter_harvest.wav",
+            "stream": false,
+            "volume": 0.65
+        },
+        "athena_educate" : {
+            "type": "sample",
+            "file": "sounds/athena_educate.wav",
+            "stream": false,
+            "volume": 0.65
+        },
+            "hades_ressurect" : {
+            "type": "sample",
+            "file": "sounds/hades_ressurect.wav",
+            "stream": false,
+            "volume": 0.65
+        },
+        "hermes_treasure" : {
+            "type": "sample",
+            "file": "sounds/hermes_treasure.wav",
+            "stream": false,
+            "volume": 0.65
+        },
+        "poseidon_wave" : {
+            "type": "sample",
+            "file": "sounds/poseidon_wave.wav",
+            "stream": false,
+            "volume": 0.65
+        },
         "battle": {
             "type": "sample",
             "file": "sounds/battle.ogg",
