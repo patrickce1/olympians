@@ -34,7 +34,7 @@ static constexpr int SWIPE_HOLD_FRAMES = 4;
  *
  * @return true if the scene was successfully initialized; false otherwise
  */
-bool BossSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool BossSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -45,6 +45,7 @@ bool BossSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets, co
     // Start up asset manager, network controller, and enemy loader
     _assets = assets;
     _network = networkController;
+    _audio = audio;
     loadBosses();
     
     Size dimen = getSize();
@@ -127,6 +128,7 @@ void BossSelectScene::setupListeners() {
     
     _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("page_turn");
             _status = Status::ABORT;
         }
     });
@@ -142,10 +144,12 @@ void BossSelectScene::setupListeners() {
     });
 
     _leftButton->addListener([this](const std::string& name, bool down){
+        if (_audio) _audio->playSoundUnique("small_click");
         if (!down) slideTo(_currentIndex - 1);
     });
 
     _rightButton->addListener([this](const std::string& name, bool down){
+        if (_audio) _audio->playSoundUnique("small_click");
         if (!down) slideTo(_currentIndex + 1);
     });
 }
@@ -165,6 +169,7 @@ void BossSelectScene::dispose() {
         _active = false;
     }
     _network = nullptr;
+    _audio = nullptr;
 }
 
 /**

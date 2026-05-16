@@ -15,7 +15,7 @@ using namespace cugl::scene2;
  *
  * @return true if initialization succeeds; false otherwise.
  */
-bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets, AudioController* audio) {
     if (assets == nullptr) {
         return false;
     }
@@ -25,6 +25,7 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
 
     // Retrieve menuScene.json
     _assets = assets;
+    _audio = audio;
     _scene = _assets->get<scene2::SceneNode>("menuScene");
     if (!_scene) {
         CULog("MenuScene: missing scene2 asset 'menuScene'");
@@ -50,6 +51,7 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     }
 
     _settingsButton->addListener([this](const std::string&, bool down) {
+        if (_audio) _audio->playSoundUnique("gear");
         if (!down) {
             CULog("MenuScene: Settings pressed (placeholder)");
             _status = Status::OPEN_SETTINGS;

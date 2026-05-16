@@ -35,7 +35,8 @@ static constexpr int SWIPE_HOLD_FRAMES = 4;
  */
 bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
                             const std::shared_ptr<NetworkController>& networkController,
-                            GameState* gameState) {
+                            GameState* gameState,
+                            AudioController* audio) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -46,6 +47,7 @@ bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
     _gameState = gameState;
     _assets = assets;
     _network = networkController;
+    _audio = audio;
     loadHouses();
     
     Size dimen = getSize();
@@ -192,15 +194,18 @@ void HouseSelectScene::setupListeners() {
 
     _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("page_turn");
             _status = Status::ABORT;
         }
     });
 
     _leftButton->addListener([this](const std::string& name, bool down){
+        if (_audio) _audio->playSoundUnique("small_click");
         if (!down) slideTo(_currentIndex - 1);
     });
 
     _rightButton->addListener([this](const std::string& name, bool down){
+        if (_audio) _audio->playSoundUnique("small_click");
         if (!down) slideTo(_currentIndex + 1);
     });
 }
@@ -226,6 +231,7 @@ void HouseSelectScene::dispose() {
     // Full wipe — clear all persisted slot states
     _slotStates.clear();
     _network = nullptr;
+    _audio = nullptr;
 }
 
 /**

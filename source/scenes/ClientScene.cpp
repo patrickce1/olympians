@@ -33,7 +33,7 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -44,6 +44,7 @@ bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const 
     // Start up the input handler
     _assets = assets;
     _network = networkController;
+    _audio = audio;
     
     Size dimen = getSize();
     
@@ -118,6 +119,7 @@ void ClientScene::initKeypad() {
         auto button = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.keypad.key" + std::to_string(i)));
         
         button->addListener([this, i](const std::string& name, bool down) {
+            if (_audio) _audio->playSoundUnique("numpad");
             if (down) appendDigit(i);
         });
         
@@ -126,6 +128,7 @@ void ClientScene::initKeypad() {
 
     auto backspace = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.keypad.backspace"));
     backspace->addListener([this](const std::string& name, bool down) {
+        if (_audio) _audio->playSoundUnique("numpad");
         if (down) removeLastChar();
     });
     
@@ -167,6 +170,7 @@ void ClientScene::setupListeners() {
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
+        if (_audio) _audio->playSoundUnique("page_turn");
         if (down) {
             // If we were in the middle of a join attempt, cancel it cleanly.
             if (_status == Status::JOINING) {
@@ -184,6 +188,7 @@ void ClientScene::setupListeners() {
     });
     
     _settingsButton->addListener([this](const std::string& name, bool down) {
+        if (_audio) _audio->playSoundUnique("gear");
         if (!down) _pendingSettings = true;
     });
 }
@@ -344,6 +349,7 @@ void ClientScene::update(float timestep) {
             }
             
             _network->setPlayerName(SavedDataManager::get().getPlayerName());
+            if (_audio) _audio->playSoundUnique("lobby_join");
             _status = Status::START;
         }
     }
