@@ -81,14 +81,14 @@
                         1
                     ],
                     "size": [
-                        716,
-                        224
+                        954,
+                        300
                     ],
                     "angle": 0,
                     "visible": true,
-                    "font": "bossDescriptionLabel",
+                    "font": "mainFont",
                     "text": "",
-                    "foreground": "#FFF7ECff",
+                    "foreground": "#FFE3C0ff",
                     "background": "#00000000",
                     "padding": [
                         0,
@@ -96,9 +96,9 @@
                         0,
                         0
                     ],
-                    "valign": "top",
+                    "valign": "middle",
                     "halign": "center",
-                    "scale": 0.25,
+                    "scale": 0.185,
                     "wrap" : true
                 },
                 "children": {},
@@ -107,7 +107,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.76
+                    "y_offset": -0.74
                 }
             },
             "title": {

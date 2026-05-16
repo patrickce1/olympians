@@ -73,8 +73,9 @@
                     "layout" : {
                         "x_anchor" : "center",
                         "y_anchor" : "middle",
+                        "x_offset" : 0,
                         "y_offset" : 0,
-                        "absolute" : true
+                        "absolute" : false
                     }
                 },
                 "logo"  : {
@@ -90,8 +91,9 @@
                     "layout" : {
                         "x_anchor" : "center",
                         "y_anchor" : "middle",
+                        "x_offset" : 0,
                         "y_offset" : 0,
-                        "absolute" : true
+                        "absolute" : false
                     }
                 },
                 "loadingScene": {
