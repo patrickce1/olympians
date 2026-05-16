@@ -102,7 +102,7 @@
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.25,
+                "defenseLikelihood": 0.1,
                 "attackWeights": {
                     "attack_1": 4.0,
                     "attack_2": 2.0,
