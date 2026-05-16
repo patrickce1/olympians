@@ -2621,8 +2621,10 @@ void GameScene::switchVisibleAnimation(const std::string& animationId) {
             : 0.0f;
         if (frameWidth > 0.0f) {
             finalScale = getSize().width * 1.1 / frameWidth;
+            finalScale = std::max(finalScale, _currentAnimationEntry.scale); //pick the biggest scale out of the default and other. It looked too small on phone otherwise
         }
     }
+    
     newSprite->setScale(finalScale);
     
     // Set initial frame (direction 0, frame 0)
