@@ -7201,6 +7201,9 @@ void GameScene::updateStunDamagePopups(float dt) {
  * The first stun (delay == 0) is already covered by the animation that fires when the item
  * is used, so only subsequent staged hits need a replay (e.g. the three later bolts of
  * Thunderstorm at t=2, t=4, and t=6 seconds).
+ * @param animConfig  The animation config to replay.
+ * @param animPos     The position passed to startItemUseAnimation (Vec2::ZERO = center).
+ * @param enemyEffects The enemy effects produced by the item use.
  */
 void GameScene::scheduleDelayedStunAnimations(const ItemUseAnimationConfig& animConfig,
                                                const cugl::Vec2& animPos,
