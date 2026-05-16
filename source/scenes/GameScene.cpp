@@ -2609,8 +2609,21 @@ void GameScene::switchVisibleAnimation(const std::string& animationId) {
     
     // Apply animation-specific position and scale
     newSprite->setPosition(cugl::Vec2(_currentAnimationEntry.positionX + _currentAnimationEntry.offsetX,
-                                      _currentAnimationEntry.positionY + _currentAnimationEntry.offsetY));
-    newSprite->setScale(_currentAnimationEntry.scale);
+        _currentAnimationEntry.positionY + _currentAnimationEntry.offsetY));
+
+    float finalScale = _currentAnimationEntry.scale;
+    auto enemy = _gameState.getEnemy();
+    //for gaia, stretch her to fit the screen
+    if (enemy && enemy->getId() == "gaia") {
+        auto texture = newSprite->getTexture();
+        float frameWidth = (texture && _currentAnimationEntry.frameCount > 0)
+            ? static_cast<float>(texture->getWidth()) / _currentAnimationEntry.frameCount
+            : 0.0f;
+        if (frameWidth > 0.0f) {
+            finalScale = getSize().width * 1.5 / frameWidth;
+        }
+    }
+    newSprite->setScale(finalScale);
     
     // Set initial frame (direction 0, frame 0)
     newSprite->setFrame(0);
