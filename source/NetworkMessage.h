@@ -82,6 +82,7 @@ struct SupportEffectMessage {
     float duration;
     float secondaryMagnitude = 0.0f;
     bool applyToAllPlayers = false;
+    std::string senderHouseID;
 };
 
 /** Message sent to request or apply a party-wide forge inventory transformation. */
