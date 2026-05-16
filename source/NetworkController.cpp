@@ -924,7 +924,6 @@ void NetworkController::broadcastWonGame() {
 	_serializer.writeSint32(MessageType::GAME_WON);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
-    broadcastStatsMap();
 }
 
 /**
@@ -934,7 +933,6 @@ void NetworkController::broadcastLostGame() {
 	_serializer.writeSint32(MessageType::GAME_LOST);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
-    broadcastStatsMap(); 
 }
 
 /**

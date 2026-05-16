@@ -5752,6 +5752,7 @@ void GameScene::update(float dt, InputController& input) {
     
     if (_network->isHost()) {
         _network->broadcastHostsCurrentScene(1);
+        _network->broadcastStatsMap(); 
     }
     
     if (_tutorialController.isActive()){

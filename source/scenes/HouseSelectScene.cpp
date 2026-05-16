@@ -203,12 +203,10 @@ void HouseSelectScene::setupListeners() {
     });
 
     _leftButton->addListener([this](const std::string& name, bool down){
-        if (_audio) _audio->playSoundUnique("small_click");
         if (!down) slideTo(_currentIndex - 1);
     });
 
     _rightButton->addListener([this](const std::string& name, bool down){
-        if (_audio) _audio->playSoundUnique("small_click");
         if (!down) slideTo(_currentIndex + 1);
     });
 }
@@ -925,7 +923,8 @@ void HouseSelectScene::snapToNearestHouse(float releaseContainerX) {
             nearestIndex = index;
         }
     }
-
+    
+    bool indexChanged = (nearestIndex != _currentIndex);
     _currentIndex   = nearestIndex;
     _isAnimating    = true;
     Vec2 currentPos = _houseSelectionCardContainer->getPosition();
@@ -939,7 +938,7 @@ void HouseSelectScene::snapToNearestHouse(float releaseContainerX) {
         if (glow) glow->setVisible(i == nearestIndex);
     }
 
-    if (_audio) _audio->playSoundUnique("small_click");
+    if (_audio && indexChanged) _audio->playSoundUnique("small_click");
 
     updateCarouselDots(nearestIndex);
     updateSelectedIcon(nearestIndex);
