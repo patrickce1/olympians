@@ -294,4 +294,3 @@ public:
 };
 
 #endif /* __APP_LOADING_SCENE_H__ */
-
