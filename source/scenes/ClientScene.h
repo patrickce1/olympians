@@ -4,6 +4,7 @@
 #include <cugl/cugl.h>
 #include "../NetworkController.h"
 #include "../SavedDataManager.h"
+#include "../AudioController.h"
 
 /**
  * This class provides the interface to join an existing game.
@@ -84,6 +85,8 @@ protected:
     bool _isSpinning = false;
     /** Set to true when the user taps the settings button */
     bool _pendingSettings = false;
+    /** The audio controller shared across all scenes */
+    AudioController* _audio = nullptr;
     
 public:
 #pragma mark -
@@ -124,7 +127,7 @@ public:
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio);
     
     /**
      * Retrieves and stores references to the client scene UI elements.

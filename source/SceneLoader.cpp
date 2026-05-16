@@ -286,7 +286,7 @@ void SceneLoader::update(float dt) {
             CULog("SceneLoader: SavedDataManager loaded, playerName='%s'",
                   SavedDataManager::get().getPlayerName().c_str());
 
-            if (_menuScene.init(_assets)){
+            if (_menuScene.init(_assets, &_audio)){
                 _menuScene.setSpriteBatch(_batch);
                 _menuScene.setActive(true);
                 _loadingScene->setActive(false);
@@ -295,13 +295,13 @@ void SceneLoader::update(float dt) {
                 CULog("Failed to initialize MenuScene");
             }
 
-            if (_hostSetupScene.init(_assets, _network)){
+            if (_hostSetupScene.init(_assets, _network, &_audio)){
                 _hostSetupScene.setSpriteBatch(_batch);
             } else{
                 CULog("Failed to initialize HostSetupScene");
             }
 
-            if (_clientScene.init(_assets, _network)){
+            if (_clientScene.init(_assets, _network, &_audio)){
                 _clientScene.setSpriteBatch(_batch);
             } else{
                 CULog("Failed to initialize ClientScene");
@@ -313,19 +313,19 @@ void SceneLoader::update(float dt) {
                 CULog("Failed to initialize GameScene");
             }
 
-            if (_lobbyScene.init(_assets, _network, &_gameScene.getGameState(), &_gameScene.getItemController())){
+            if (_lobbyScene.init(_assets, _network, &_gameScene.getGameState(), &_gameScene.getItemController(), &_audio)){
                 _lobbyScene.setSpriteBatch(_batch);
             } else{
                 CULog("Failed to initialize LobbyScene");
             }
 
-            if (_houseSelectScene.init(_assets, _network, &_gameScene.getGameState())){
+            if (_houseSelectScene.init(_assets, _network, &_gameScene.getGameState(), &_audio)){
                 _houseSelectScene.setSpriteBatch(_batch);
             } else{
                 CULog("Failed to initialize HouseSelectScene");
             }
 
-            if (_bossSelectScene.init(_assets, _network)){
+            if (_bossSelectScene.init(_assets, _network, &_audio)){
                 _bossSelectScene.setSpriteBatch(_batch);
             } else{
                 CULog("Failed to initialize BossSelectScene");

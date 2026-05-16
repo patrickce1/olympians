@@ -9,6 +9,7 @@
 #include "../InputController.h"
 #include "../NetworkController.h"
 #include "../SavedDataManager.h"
+#include "../AudioController.h"
 
 /**
  * This class provides the interface to make a new game.
@@ -41,6 +42,9 @@ protected:
 
     /** The network controller shared across all scenes*/
     std::shared_ptr<NetworkController> _network;
+
+    /** The audio controller shared across all scenes */
+    AudioController* _audio = nullptr;
 
     /** The menu button for starting a game */
     std::shared_ptr<cugl::scene2::Button> _startGame;
@@ -171,7 +175,7 @@ public:
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio);
     
     /**
      * Retrieves and stores references to the host setup UI elements.
