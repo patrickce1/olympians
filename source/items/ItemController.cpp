@@ -174,6 +174,11 @@ void ItemController::giveRandomItem(Player* player) {
         CULog("[ItemController] Player is null");
         return;
     }
+    
+    if (!player->isAlive()) {
+        CULog("[ItemController] Player is dead");
+        return;
+    }
 
     // Check if player has too many items, unless frenzy is overriding spawn rules.
     if (!hasFrenzy() && player->getInventory().size() >= _maxInventorySpawnItems) {
