@@ -119,8 +119,8 @@ void ClientScene::initKeypad() {
         auto button = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.keypad.key" + std::to_string(i)));
         
         button->addListener([this, i](const std::string& name, bool down) {
-            if (_audio) _audio->playSoundUnique("numpad");
             if (down) appendDigit(i);
+            if (!down && _audio) _audio->playSoundUnique("numpad");
         });
         
         _keypadButtons.push_back(button);
@@ -128,8 +128,8 @@ void ClientScene::initKeypad() {
 
     auto backspace = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.keypad.backspace"));
     backspace->addListener([this](const std::string& name, bool down) {
-        if (_audio) _audio->playSoundUnique("numpad");
         if (down) removeLastChar();
+        if (!down && _audio) _audio->playSoundUnique("numpad");
     });
     
     _keypadButtons.push_back(backspace);
@@ -182,14 +182,17 @@ void ClientScene::setupListeners() {
     
     _hostButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("tabswap");
             _status = Status::HOST;
             _hostButton->setDown(false);
         }
     });
     
     _settingsButton->addListener([this](const std::string& name, bool down) {
-        if (_audio) _audio->playSoundUnique("gear");
-        if (!down) _pendingSettings = true;
+        if (!down){
+            if (_audio) _audio->playSoundUnique("tabswap");
+            _pendingSettings = true;
+        } 
     });
 }
 
@@ -420,6 +423,7 @@ void ClientScene::showError(const std::string& message) {
             label->setText(message);
         }
         _errorPopup->setVisible(true);
+        if (_audio) _audio->playSoundUnique("client_error");
     }
 
     _errorTimer = 0.0f;
