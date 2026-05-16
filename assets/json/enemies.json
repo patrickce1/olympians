@@ -369,24 +369,48 @@
             "spritesheetPath": "textures/gaia.png",
             "ai": {
                 "retargetLikelihood": 0.9,
-                "defenseLikelihood": 0.5
+                "defenseLikelihood": 0.0
             },
             "customData": {
                 "spawnCooldownConstant": 5.0
             },
             "states": {
                 "idle": {
-                    "name": "idle"
+                    "name": "idle",
+                    "animationKey": "gaia_idle_animation"
                 },
                 "attack_1": {
                     "name": "Earth's Tremors",
                     "buildUpTime": 4.0,
                     "cooldownTime": 0.0,
+                    "animationKey": "gaia_idle_animation",
+                    "entryEvents": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 0.5
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 0.5
+                        }
+                    ],
                     "events": [
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 45.0
+                            "amount": 30.0
                         }
                     ],
                     "nextState": "idle"
@@ -395,11 +419,40 @@
                     "name": "Poisonous Hedge",
                     "buildUpTime": 3.0,
                     "cooldownTime": 1.0,
+                    "animationKey": "gaia_idle_animation",
+                    "entryEvents": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 0.5
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 0.5
+                        }
+                    ],
                     "events": [
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 45.0
+                            "amount": 0.0
+                        },
+                        {
+                            "type": "VINE",
+                            "target": 0,
+                            "amount": 2.0,
+                            "duration": 5.0
                         }
                     ],
                     "nextState": "idle"
@@ -408,26 +461,49 @@
                     "name": "Shift the Ground",
                     "buildUpTime": 1.0,
                     "cooldownTime": 2.0,
+                    "animationKey": "gaia_idle_animation",
+                    "entryEvents": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 0.5
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 0.5
+                        }
+                    ],
                     "events": [
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 20.0
+                            "amount": 15.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 1,
-                            "amount": 20.0
+                            "amount": 15.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 2,
-                            "amount": 20.0
+                            "amount": 15.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 3,
-                            "amount": 20.0
+                            "amount": 15.0
                         },
                         {
                             "type": "PLAYER_SCRAMBLE"
@@ -439,18 +515,8 @@
                     "name": "Wall of Stone",
                     "buildUpTime": 4.0,
                     "cooldownTime": 5.0,
-                    "events": [
-			            {
-                            "type": "SIDE_MODIFIER",
-                            "target": 1,
-                            "amount": 0.2
-                        },
-			            {
-                            "type": "SIDE_MODIFIER",
-                            "target": 3,
-                            "amount": 0.2
-                        }
-                    ],
+                    "animationKey": "gaia_idle_animation",
+                    "events": [],
                     "nextState": "idle"
                 }
             }
