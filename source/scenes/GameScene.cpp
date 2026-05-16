@@ -5626,8 +5626,8 @@ void GameScene::updateDropZoneVisibility(){
         bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
         bool leftVinePresent = local ? (local->hasLeftVine() || local->getLeftPlayer()->hasRightVine()) : false;
         bool rightVinePresent = local ? (local->hasRightVine() || local->getRightPlayer()->hasLeftVine()) : false;
-        _passLeftArea->setVisible(!isCorrosiveActive && !leftVinePresent);
-        _passRightArea->setVisible(!isCorrosiveActive && !rightVinePresent);
+        _passLeftArea->setVisible(!leftVinePresent);
+        _passRightArea->setVisible(!rightVinePresent);
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
@@ -6579,10 +6579,10 @@ void GameScene::updateInputZones(){
     }
 
     //All players can pass as long as they're not affected by corrosive or blocked by vines
-    if(!local->hasLeftVine() && !local->getLeftPlayer()->hasRightVine() && !isCorrosiveActive){
+    if(!local->hasLeftVine() && !local->getLeftPlayer()->hasRightVine()){
         _inputZones.push_back(_passZones[0]);
     }
-    if(!local->hasRightVine() && !local->getRightPlayer()->hasLeftVine() && !isCorrosiveActive){
+    if(!local->hasRightVine() && !local->getRightPlayer()->hasLeftVine()){
         _inputZones.push_back(_passZones[1]);
     }
 }
