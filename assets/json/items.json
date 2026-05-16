@@ -1,8 +1,8 @@
 {
     "rarityWeights": {
-        "common": 0,
-        "rare": 0,
-        "divine": 100,
+        "common": 70,
+        "rare": 25,
+        "divine": 5,
         "special": 0
     },
     "items": [
