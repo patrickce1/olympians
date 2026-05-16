@@ -137,6 +137,145 @@
                     "y_offset": 0.085
                 }
             },
+            "infoLabel": {
+                "type": "Label",
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        500,
+                        76.8
+                    ],
+                    "position": [
+                        473.6,
+                        258
+                    ],
+                    "angle": 0,
+                    "visible": true,
+                    "font": "mainFont",
+                    "text": "INFORMATION",
+                    "foreground": "#f6b561ff",
+                    "background": "#00000000",
+                    "padding": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ],
+                    "valign": "top",
+                    "halign": "center",
+                    "scale": 0.3125
+                },
+                "children": {},
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.67
+                }
+            },
+            "creditsBtn": {
+                "type": "Button",
+                "format": {
+                    "type": "Anchored"
+                },
+                "data": {
+                    "anchor": [
+                        0.5,
+                        1
+                    ],
+                    "size": [
+                        258,
+                        35
+                    ],
+                    "angle": 0,
+                    "position": [
+                        71,
+                        206
+                    ],
+                    "visible": true,
+                    "upnode": "creditsButton"
+                },
+                "children": {
+                    "creditsButton": {
+                        "type": "Image",
+                        "data": {
+                            "texture": "tutorialButton",
+                            "anchor": [
+                                0,
+                                1
+                            ],
+                            "size": [
+                                258,
+                                35
+                            ],
+                            "angle": 0,
+                            "position": [
+                                0,
+                                0
+                            ],
+                            "visible": true
+                        },
+                        "layout": {
+                            "x_anchor": "left",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": 0
+                        }
+                    },
+                    "CREDITS": {
+                        "type": "Label",
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                1
+                            ],
+                            "size": [
+                                272,
+                                76
+                            ],
+                            "position": [
+                                110,
+                                7.5
+                            ],
+                            "angle": 0,
+                            "visible": true,
+                            "font": "mainFont",
+                            "text": "CREDITS",
+                            "foreground": "#ffd9a9ff",
+                            "background": "#00000000",
+                            "padding": [
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "valign": "middle",
+                            "halign": "center",
+                            "scale": 0.25
+                        },
+                        "children": {},
+                        "layout": {
+                            "x_anchor": "center",
+                            "y_anchor": "top",
+                            "absolute": false,
+                            "x_offset": 0,
+                            "y_offset": -0.24
+                        }
+                    }
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": -0.72
+                }
+            },
             "tutorialLabel": {
                 "type": "Label",
                 "data": {
@@ -174,7 +313,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.67
+                    "y_offset": -0.55
                 }
             },
             "play": {
@@ -273,7 +412,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.72
+                    "y_offset": -0.60
                 }
             },
             "musicSlider": {
@@ -363,7 +502,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0.01,
-                    "y_offset": -0.59
+                    "y_offset": -0.48
                 }
             },
             "musicLabel": {
@@ -403,7 +542,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0.42,
-                    "y_offset": -0.55
+                    "y_offset": -0.45
                 }
             },
             "audioSlider": {
@@ -493,7 +632,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0.02,
-                    "y_offset": -0.46
+                    "y_offset": -0.38
                 }
             },
             "sfxLabel": {
@@ -533,7 +672,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.43
+                    "y_offset": -0.34
                 }
             },
             "username": {
@@ -549,7 +688,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.33
+                    "y_offset": -0.27
                 }
             },
             "usernameHeader": {
@@ -589,7 +728,7 @@
                     "y_anchor": "top",
                     "absolute": false,
                     "x_offset": 0,
-                    "y_offset": -0.24
+                    "y_offset": -0.20
                 }
             },
             "header": {
@@ -690,6 +829,30 @@
                     "y_offset": -0.13
                 }
             },
+            "credits": {
+                "type": "Image",
+                "data": {
+                    "texture": "credits",
+                    "anchor": [
+                        0.5,
+                        0.5
+                    ],
+                    "size": [
+                        393,
+                        852
+                    ],
+                    "angle": 0,
+                    "visible": false
+                },
+                "layout": {
+                    "x_anchor": "center",
+                    "y_anchor": "middle",
+                    "absolute": false,
+                    "x_offset": 0,
+                    "y_offset": 0
+                }
+            },
+            
             "back": {
                 "type": "Button",
                 "format": {
