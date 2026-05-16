@@ -155,8 +155,6 @@ void ItemController::update(float dt, Player* player) {
     float& itemTimer = it->second;
     itemTimer += dt;
 
-//    if (blockSpawn) return;
-
     while (itemTimer >= itemInterval) {
         itemTimer -= itemInterval;
         giveRandomItem(player);
