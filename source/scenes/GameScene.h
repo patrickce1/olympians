@@ -334,6 +334,24 @@ protected:
      *  item spawning remain blocked for the full visual duration. */
     int _corrosiveVisualTarget = -1;
 
+    /** Host-side corrosive drain awaiting acknowledgement from its target client. */
+    struct PendingCorrosiveDrain {
+        CorrosiveDrainMessage message;
+        float resendTimer = 0.0f;
+    };
+
+    /** Next host-generated drain ID for reliable Cerberus corrosion delivery. */
+    int _nextCorrosiveDrainId = 1;
+
+    /** Remote human drains the host will resend until the target client acknowledges them. */
+    std::unordered_map<int, PendingCorrosiveDrain> _pendingCorrosiveDrains;
+
+    /** Client-side drain IDs that have already been applied, used to ignore resends. */
+    std::unordered_set<int> _processedCorrosiveDrainIds;
+
+    /** Client-side drains waiting for the local inventory/player state to be ready. */
+    std::vector<CorrosiveDrainMessage> _queuedCorrosiveDrains;
+
     /** Current visual scale for each inventory item widget (for smooth pickup/release animation). */
     std::unordered_map<ItemInstance::ItemId, float> _itemWidgetScales;
 
@@ -1563,6 +1581,36 @@ public:
      * Host handles this authoritative logic; clients receive updates via game state broadcasts.
      */
     void handleCorrosiveDrain();
+
+    /**
+     * HOST ONLY. Removes acknowledged corrosive drains from the resend queue.
+     */
+    void processCorrosiveDrainAcks();
+
+    /**
+     * HOST ONLY. Resends unacknowledged corrosive drains to their target clients.
+     *
+     * @param dt  Elapsed time in seconds since the previous frame.
+     */
+    void resendPendingCorrosiveDrains(float dt);
+
+    /**
+     * CLIENT ONLY. Applies incoming corrosive drains exactly once and acknowledges them.
+     */
+    void processIncomingCorrosiveDrains();
+
+    /**
+     * CLIENT ONLY. Retries queued drains that arrived before local state was ready.
+     */
+    void processQueuedCorrosiveDrains();
+
+    /**
+     * Applies one corrosive drain message locally.
+     *
+     * @param drain  The corrosive drain payload received from the host.
+     * @return       True if the message is fully handled; false if local state is not ready yet.
+     */
+    bool tryApplyCorrosiveDrainMessage(const CorrosiveDrainMessage& drain);
 
     /** HOST ONLY. Custom method used by Gaia. This creates a new ordering for the players.
       * This new ordering is sent to the GameState to be applied to the local machine.

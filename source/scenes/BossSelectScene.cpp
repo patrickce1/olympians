@@ -145,12 +145,10 @@ void BossSelectScene::setupListeners() {
     });
 
     _leftButton->addListener([this](const std::string& name, bool down){
-        if (_audio) _audio->playSoundUnique("small_click");
         if (!down) slideTo(_currentIndex - 1);
     });
 
     _rightButton->addListener([this](const std::string& name, bool down){
-        if (_audio) _audio->playSoundUnique("small_click");
         if (!down) slideTo(_currentIndex + 1);
     });
 }
@@ -307,6 +305,8 @@ void BossSelectScene::configureLockButton() {
 void BossSelectScene::slideTo(int newIndex) {
     if (_isAnimating) return;
     if (newIndex < 0 || newIndex >= _bossCards.size()) return;
+    if (_audio) _audio->playSoundUnique("small_click");
+
 
     _isAnimating = true;
 
@@ -507,6 +507,7 @@ void BossSelectScene::snapToNearestBoss(float releaseContainerX) {
         }
     }
 
+    bool indexChanged = (nearestIndex != _currentIndex);
     _currentIndex   = nearestIndex;
     _isAnimating    = true;
     Vec2 currentPos = _bossSelectionCardContainer->getPosition();
@@ -520,5 +521,7 @@ void BossSelectScene::snapToNearestBoss(float releaseContainerX) {
         if (glow) glow->setVisible(i == nearestIndex);
     }
 
+    if (_audio && indexChanged) _audio->playSoundUnique("small_click");
+    
     updateCarouselDots(nearestIndex);
 }

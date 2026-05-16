@@ -10,7 +10,7 @@
         "divinePassChanceMax": 0.9,
         "rockPassChanceMin":   0.5,
         "rockPassChanceMax":   0.85,
-        "divineObedienceMin":  0.10,
+        "divineObedienceMin":  0.30,
         "divineObedienceMax":  0.85
     }
 }

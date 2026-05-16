@@ -174,10 +174,9 @@ void ItemController::giveRandomItem(Player* player) {
         CULog("[ItemController] Player is null");
         return;
     }
-
-    // Check if player is alive
+    
     if (!player->isAlive()) {
-        CULog("[ItemController] Player is not alive");
+        CULog("[ItemController] Player is dead");
         return;
     }
 

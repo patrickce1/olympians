@@ -42,6 +42,8 @@ constexpr float ITEM_CONSUME_ANIMATION_DURATION = 0.12f;
 constexpr float ITEM_CONSUME_END_SCALE = 0.15f;
 //Defines how small corroded items shrink (smaller than consumed items)
 constexpr float ITEM_CORRODE_END_SCALE = 0.05f;
+//How often the host resends unacknowledged corrosive drains to remote clients.
+constexpr float CORROSIVE_DRAIN_RESEND_INTERVAL = 0.25f;
 //Defines the gap between the item and its tooltip
 constexpr float ITEM_TOOLTIP_GAP = 6.0f;
 /** Full opacity used when a local heal/damage screen frame is triggered. */
@@ -4169,6 +4171,8 @@ void GameScene::handleNetworkUpdates(float dt) {
     float enemyHealthBefore = _gameState.getEnemy()->getCurrentHealth();
 
     if (_network->isHost()) {
+        processCorrosiveDrainAcks();
+
         // handle incoming attack/heal messages from clients
         const auto& supportEffects = _network->getSupportEffectUpdates();
         
@@ -4202,6 +4206,7 @@ void GameScene::handleNetworkUpdates(float dt) {
 
         // broadcast authoritative state to all clients
         _network->broadcastGameState(_gameState, _itemController.getFrenzyItemInterval(), _itemController.getFrenzyDuration());
+        resendPendingCorrosiveDrains(dt);
     }
     else {
         // clients just apply the latest state from host
@@ -4216,25 +4221,7 @@ void GameScene::handleNetworkUpdates(float dt) {
         _gameState.networkUpdate(stateUpdate);
         syncFrenzyEffect(stateUpdate.frenzyItemInterval, stateUpdate.frenzyDuration);
         processForgeEffects(_network->getForgeEffectUpdates());
-        for (const auto& drain : _network->getCorrosiveDrainUpdates()) {
-            int localSlot = _network->getLocalPlayerNumber();
-            if (drain.targetPlayerSlot == localSlot && localSlot >= 0) {
-                Player* localPlayer = _gameState.getPlayerBySlot(localSlot);
-                if (localPlayer) {
-                    const auto& inv = localPlayer->getInventory();
-                    int count = (drain.maxAffected > 0)
-                        ? std::min(drain.maxAffected, (int)inv.size())
-                        : (int)inv.size();
-                    std::vector<uint64_t> localIds;
-                    localIds.reserve(count);
-                    for (int ii = 0; ii < count; ii++) {
-                        localIds.push_back(static_cast<uint64_t>(inv[ii].getId()));
-                    }
-                    applyCorrosiveDrain(localSlot, drain.fadeDuration,
-                                       drain.fadeVariance, localIds);
-                }
-            }
-        }
+        processIncomingCorrosiveDrains();
         applyPendingResurrectionSync();
         applyPendingPartyEffectSyncs();
         refreshTeammateNameLabels();
@@ -4247,11 +4234,13 @@ void GameScene::handleNetworkUpdates(float dt) {
     // Check if we won or lost (common to both host and client)
     if (_network->isHost()) {
         if (_gameState.didWin()) {
+            _network->broadcastStatsMap();
             _network->broadcastWonGame();
             _status = Status::WON;
             CULog("We won!");
             handleXPAdjustment(true);
         } else if (_gameState.didLose()) {
+            _network->broadcastStatsMap();
             _network->broadcastLostGame();
             _status = Status::LOST;
             CULog("We lost!");
@@ -4916,6 +4905,28 @@ void GameScene::handleCorrosiveDrain() {
     float fadeVariance = cerberus->getCorrosiveFadeVariance();
     int maxAffected    = cerberus->getCorrosiveMaxAffected();
 
+    bool isAITarget = (dynamic_cast<PlayerAI*>(victim) != nullptr);
+    int localSlot   = _network->getLocalPlayerNumber();
+    bool isRemoteHumanTarget = !isAITarget && targetIndex != localSlot;
+
+    if (isRemoteHumanTarget) {
+        CorrosiveDrainMessage drain;
+        drain.drainId = _nextCorrosiveDrainId++;
+        drain.targetPlayerSlot = targetIndex;
+        drain.fadeDuration = fadeDuration;
+        drain.fadeVariance = fadeVariance;
+        drain.maxAffected = maxAffected;
+
+        _network->broadcastCorrosiveDrain(drain.drainId, drain.targetPlayerSlot,
+                                          drain.fadeDuration, drain.fadeVariance,
+                                          drain.maxAffected);
+        _pendingCorrosiveDrains[drain.drainId] = { drain, CORROSIVE_DRAIN_RESEND_INTERVAL };
+
+        if (_debugMode) CULog("Corrosive drain (remote): queued reliable drain %d for player %d",
+                              drain.drainId, targetIndex);
+        return;
+    }
+
     const auto& inventory = victim->getInventory();
     if (inventory.empty()) return;
 
@@ -4934,9 +4945,6 @@ void GameScene::handleCorrosiveDrain() {
     selectedIds.reserve(indices.size());
     for (int idx : indices) selectedIds.push_back(inventory[idx].getId());
 
-    bool isAITarget = (dynamic_cast<PlayerAI*>(victim) != nullptr);
-    int localSlot   = _network->getLocalPlayerNumber();
-
     if (isAITarget) {
         // AI player: remove items from model immediately (no animation device for AI).
         for (uint64_t id : selectedIds)
@@ -4944,14 +4952,131 @@ void GameScene::handleCorrosiveDrain() {
     } else if (targetIndex == localSlot) {
         // Host is also the victim: run fade animations locally.
         applyCorrosiveDrain(targetIndex, fadeDuration, fadeVariance, selectedIds);
-    } else {
-        // Remote human player: broadcast so their device runs the fade animation.
-        _network->broadcastCorrosiveDrain(targetIndex, fadeDuration, fadeVariance, maxAffected);
     }
 
     if (_debugMode) CULog("Corrosive drain (%s): %d items for player %d",
                           isAITarget ? "AI" : (targetIndex == localSlot ? "local-host" : "remote"),
                           (int)selectedIds.size(), targetIndex);
+}
+
+/**
+ * HOST ONLY. Removes acknowledged corrosive drains from the resend queue.
+ *
+ * Called after the network pull cycle so any `CORROSIVE_DRAIN_ACK` messages
+ * received this frame stop future resend attempts for the matching drain ID.
+ */
+void GameScene::processCorrosiveDrainAcks() {
+    if (!_network || !_network->isHost()) return;
+
+    for (const CorrosiveDrainAckMessage& ack : _network->getCorrosiveDrainAckUpdates()) {
+        _pendingCorrosiveDrains.erase(ack.drainId);
+    }
+}
+
+/**
+ * HOST ONLY. Resends unacknowledged corrosive drains to their target clients.
+ *
+ * Each pending drain has its own resend timer. When that timer expires, the
+ * same drain ID and payload are sent again so packet loss cannot permanently
+ * prevent the target client from applying the corrosion.
+ *
+ * @param dt  Elapsed time in seconds since the previous frame.
+ */
+void GameScene::resendPendingCorrosiveDrains(float dt) {
+    if (!_network || !_network->isHost()) return;
+
+    for (auto& entry : _pendingCorrosiveDrains) {
+        PendingCorrosiveDrain& pending = entry.second;
+        pending.resendTimer -= dt;
+        if (pending.resendTimer > 0.0f) continue;
+
+        const CorrosiveDrainMessage& drain = pending.message;
+        _network->broadcastCorrosiveDrain(drain.drainId, drain.targetPlayerSlot,
+                                          drain.fadeDuration, drain.fadeVariance,
+                                          drain.maxAffected);
+        pending.resendTimer = CORROSIVE_DRAIN_RESEND_INTERVAL;
+    }
+}
+
+/**
+ * CLIENT ONLY. Applies incoming corrosive drains exactly once and acknowledges them.
+ *
+ * Duplicate drain IDs are not re-applied, but are acknowledged again so the host
+ * can stop resending even if an earlier ACK was lost. Drains that arrive before
+ * local player state is ready are queued for retry.
+ */
+void GameScene::processIncomingCorrosiveDrains() {
+    if (!_network || _network->isHost()) return;
+
+    int localSlot = _network->getLocalPlayerNumber();
+    for (const CorrosiveDrainMessage& drain : _network->getCorrosiveDrainUpdates()) {
+        if (drain.targetPlayerSlot != localSlot || localSlot < 0) continue;
+
+        if (_processedCorrosiveDrainIds.count(drain.drainId)) {
+            _network->acknowledgeCorrosiveDrain(drain.drainId);
+            continue;
+        }
+
+        if (!tryApplyCorrosiveDrainMessage(drain)) {
+            bool alreadyQueued = std::any_of(_queuedCorrosiveDrains.begin(), _queuedCorrosiveDrains.end(),
+                                             [&](const CorrosiveDrainMessage& queued) {
+                                                 return queued.drainId == drain.drainId;
+                                             });
+            if (!alreadyQueued) _queuedCorrosiveDrains.push_back(drain);
+        }
+    }
+}
+
+/**
+ * CLIENT ONLY. Retries queued corrosive drains that could not be applied earlier.
+ *
+ * This runs after inventory widgets are synchronized, giving delayed item UI
+ * creation a chance to catch up before the drain is applied.
+ */
+void GameScene::processQueuedCorrosiveDrains() {
+    if (!_network || _network->isHost() || _queuedCorrosiveDrains.empty()) return;
+
+    _queuedCorrosiveDrains.erase(
+        std::remove_if(_queuedCorrosiveDrains.begin(), _queuedCorrosiveDrains.end(),
+                       [this](const CorrosiveDrainMessage& drain) {
+                           if (_processedCorrosiveDrainIds.count(drain.drainId)) return true;
+                           return tryApplyCorrosiveDrainMessage(drain);
+                       }),
+        _queuedCorrosiveDrains.end());
+}
+
+/**
+ * Applies one corrosive drain message locally.
+ *
+ * The client selects affected item instance IDs from its own inventory, starts
+ * corrosion animations when possible, removes items even if visuals are missing,
+ * records the drain ID as processed, and acknowledges completion to the host.
+ *
+ * @param drain  The corrosive drain payload received from the host.
+ * @return       True if the message is fully handled; false if local state is not ready yet.
+ */
+bool GameScene::tryApplyCorrosiveDrainMessage(const CorrosiveDrainMessage& drain) {
+    int localSlot = _network ? _network->getLocalPlayerNumber() : -1;
+    if (drain.targetPlayerSlot != localSlot || localSlot < 0) return true;
+
+    Player* localPlayer = _gameState.getPlayerBySlot(localSlot);
+    if (!localPlayer) return false;
+
+    const auto& inv = localPlayer->getInventory();
+    int count = (drain.maxAffected > 0)
+        ? std::min(drain.maxAffected, (int)inv.size())
+        : (int)inv.size();
+
+    std::vector<uint64_t> localIds;
+    localIds.reserve(count);
+    for (int ii = 0; ii < count; ii++) {
+        localIds.push_back(static_cast<uint64_t>(inv[ii].getId()));
+    }
+
+    applyCorrosiveDrain(localSlot, drain.fadeDuration, drain.fadeVariance, localIds);
+    _processedCorrosiveDrainIds.insert(drain.drainId);
+    if (_network) _network->acknowledgeCorrosiveDrain(drain.drainId);
+    return true;
 }
 
 /**
@@ -4966,14 +5091,23 @@ void GameScene::handleCorrosiveDrain() {
  */
 void GameScene::applyCorrosiveDrain(int targetPlayerSlot, float fadeDuration, float fadeVariance,
                                     const std::vector<uint64_t>& itemIds) {
+    _corrosiveVisualTarget = targetPlayerSlot;
+    bool startedAnimation = false;
+
     for (uint64_t rawId : itemIds) {
         ItemInstance::ItemId itemId = static_cast<ItemInstance::ItemId>(rawId);
 
         if (_corrodingItemIds.count(itemId)) continue;
-        if (_draggedItemId == itemId) continue;
+        if (_draggedItemId == itemId) {
+            finalizeCorrodedItem(itemId);
+            continue;
+        }
 
         auto widgetIt = _itemWidgets.find(itemId);
-        if (widgetIt == _itemWidgets.end() || !widgetIt->second) continue;
+        if (widgetIt == _itemWidgets.end() || !widgetIt->second) {
+            finalizeCorrodedItem(itemId);
+            continue;
+        }
 
         auto widget = widgetIt->second;
         _corrodingItemIds.insert(itemId);
@@ -5002,9 +5136,10 @@ void GameScene::applyCorrosiveDrain(int targetPlayerSlot, float fadeDuration, fl
         anim.endScale    = ITEM_CORRODE_END_SCALE;
         anim.itemId      = itemId;
         _corrodedItemAnimations.push_back(anim);
+        startedAnimation = true;
     }
 
-    _corrosiveVisualTarget = targetPlayerSlot;
+    if (!startedAnimation) _corrosiveVisualTarget = -1;
     if (_debugMode) CULog("applyCorrosiveDrain: started animations for player %d", targetPlayerSlot);
 }
 
@@ -5690,8 +5825,8 @@ void GameScene::updateDropZoneVisibility(){
         bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
         bool leftVinePresent = local ? (local->hasLeftVine() || local->getLeftPlayer()->hasRightVine()) : false;
         bool rightVinePresent = local ? (local->hasRightVine() || local->getRightPlayer()->hasLeftVine()) : false;
-        _passLeftArea->setVisible(!isCorrosiveActive && !leftVinePresent);
-        _passRightArea->setVisible(!isCorrosiveActive && !rightVinePresent);
+        _passLeftArea->setVisible(!leftVinePresent);
+        _passRightArea->setVisible(!rightVinePresent);
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
@@ -5803,6 +5938,7 @@ void GameScene::update(float dt, InputController& input) {
     processZoneInteractionsForSlidingItems();
     
     syncInventoryWidgets();
+    processQueuedCorrosiveDrains();
     updateItemWidgetScales(dt);
     updateConsumedItemAnimations(dt);
     updateCorrodedItemAnimations(dt);
@@ -6643,10 +6779,10 @@ void GameScene::updateInputZones(){
     }
 
     //All players can pass as long as they're not affected by corrosive or blocked by vines
-    if(!local->hasLeftVine() && !local->getLeftPlayer()->hasRightVine() && !isCorrosiveActive){
+    if(!local->hasLeftVine() && !local->getLeftPlayer()->hasRightVine()){
         _inputZones.push_back(_passZones[0]);
     }
-    if(!local->hasRightVine() && !local->getRightPlayer()->hasLeftVine() && !isCorrosiveActive){
+    if(!local->hasRightVine() && !local->getRightPlayer()->hasLeftVine()){
         _inputZones.push_back(_passZones[1]);
     }
 }

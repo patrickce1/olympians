@@ -1,8 +1,8 @@
 {
     "rarityWeights": {
-        "common": 70,
+        "common": 73,
         "rare": 25,
-        "divine": 5,
+        "divine": 2,
         "special": 0
     },
     "items": [
@@ -90,7 +90,7 @@
             "rarity": "common",
             "houseAffinity": "none",
             "baseValue": 0.0,
-            "weight": 2.0,
+            "weight": 3.0,
             "effects": [
                 {
                     "type": "shield",
@@ -189,7 +189,7 @@
             "rarity": "rare",
             "houseAffinity": "demeter",
             "baseValue": 25.0,
-            "weight": 10.0,
+            "weight": 13.0,
             "effects": [
                 {
                     "type": "regen",
@@ -236,7 +236,7 @@
             "rarity": "rare",
             "houseAffinity": "athena",
             "baseValue": 10.0,
-            "weight": 6.0,
+            "weight": 9.0,
             "effects": [
                 {
                     "type": "barrier",
@@ -256,7 +256,7 @@
             "rarity": "rare",
             "houseAffinity": "ares",
             "baseValue": 27.0,
-            "weight": 12.0,
+            "weight": 13.0,
             "effects": [
                 {
                     "type": "vulnerable",
@@ -288,7 +288,7 @@
             "rarity": "rare",
             "houseAffinity": "hermes",
             "baseValue": 10.0,
-            "weight": 7.0,
+            "weight": 9.0,
             "effects": [
                 {
                     "type": "slow",
@@ -314,7 +314,7 @@
             "rarity": "rare",
             "houseAffinity": "aphrodite",
             "baseValue": 10.0,
-            "weight": 11.0,
+            "weight": 7.0,
             "effects": [
                 {
                     "type": "love",
