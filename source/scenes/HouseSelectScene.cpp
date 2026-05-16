@@ -30,6 +30,7 @@ static constexpr int SWIPE_HOLD_FRAMES = 4;
  * @param assets                           The loaded asset manager used to retrieve scene resources
  * @param networkController   The network controller used for multiplayer communication
  * @param gameState                     The state of the game
+ * @param audio    The audio controller used for various sounds.
  *
  * @return true if the scene was successfully initialized; false otherwise
  */

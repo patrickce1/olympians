@@ -208,6 +208,7 @@ public:
      *
      * @param assets    The (loaded) assets for this game mode
      * @param networkController The network controller shared across all scenes
+     * @param audio    The audio controller used for various sounds.
      *
      * @return true if the controller is initialized properly, false otherwise.
      */

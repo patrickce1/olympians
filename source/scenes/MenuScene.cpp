@@ -12,6 +12,7 @@ using namespace cugl::scene2;
  * buttons `play`, `settings`, and `items` under a `menu` node.
  *
  * @param assets    The loaded asset manager
+ * @param audio    The audio controller used for various sounds.
  *
  * @return true if initialization succeeds; false otherwise.
  */

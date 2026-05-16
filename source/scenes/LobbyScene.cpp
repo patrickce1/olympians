@@ -33,6 +33,7 @@ constexpr int LOBBY_DRAG_HOLD_FRAMES = 8;
  * @param gameState          The state of the game
  * @param itemController     The item controller needed to init AI players
  *                           when assignMissingHousesForAI() runs at game start
+ * @param audio    The audio controller used for various sounds.
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
