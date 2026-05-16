@@ -7,7 +7,7 @@
             "spritesheetPath": "textures/circe.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 1.0
+                "defenseLikelihood": 0.2
             },
             "customData": {
             },
@@ -83,7 +83,7 @@
                 "defensive_move" : {
                     "name": "Magic Guard",
                     "animationKey": "circe_defense_animation",
-                    "buildUpTime": 0.0,
+                    "buildUpTime": 3.0,
                     "cooldownTime": 3.0,
                     "entryEvents": [
                         {
