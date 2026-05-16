@@ -4,6 +4,7 @@
 #include "scenes/GameScene.h"
 #include "scenes/ClientScene.h"
 #include "scenes/HostSetupScene.h"
+#include "scenes/LoadingScene.h"
 #include "scenes/MenuScene.h"
 #include "scenes/LobbyScene.h"
 #include "scenes/HouseSelectScene.h"
@@ -74,7 +75,7 @@ protected:
 
     /* All the scenes in the game*/
     /*The opening scene players see while the game loads*/
-    std::shared_ptr<cugl::scene2::LoadingScene> _loadingScene;
+    std::shared_ptr<AppLoadingScene> _loadingScene;
 
     /*The main menu screen*/
     MenuScene _menuScene;

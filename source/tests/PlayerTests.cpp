@@ -16,7 +16,7 @@
 #include "../Player.h"
 #include "../Enemy.h"
 #include "../EnemyLoader.h"
-#include "../playerAI/EasyPlayerAI.h"
+#include "../playerAI/PlayerAI.h"
 #include "../items/ItemDatabase.h"
 #include "../items/ItemDef.h"
 #include "../items/ItemInstance.h"
@@ -613,8 +613,8 @@ static void testAIIdleWithEmptyInventory(const HouseLoader& loader,
                                           const std::string& aiConfigPath) {
     auto players = makeFourPlayers(loader, houseId);
 
-    // players[1] is an EasyPlayerAI — construct it directly as one
-    auto ai = std::make_shared<EasyPlayerAI>(houseId, 2, "Player 2", loader);
+    // players[1] is an PlayerAI — construct it directly as one
+    auto ai = std::make_shared<PlayerAI>(houseId, 2, "Player 2", loader);
     if (!ai->init(db, aiConfigPath)) return;
 
     ItemController items;
@@ -636,7 +636,7 @@ static void testAIActsOnAttackItem(const HouseLoader& loader,
                                     const std::string& attackDefId) {
     auto players = makeFourPlayers(loader, houseId);
 
-    auto ai = std::make_shared<EasyPlayerAI>(houseId, 2, "Player 2", loader);
+    auto ai = std::make_shared<PlayerAI>(houseId, 2, "Player 2", loader);
     ai->setLeftPlayer (players[0].get());
     ai->setRightPlayer(players[2].get());
     if (!ai->init(db, aiConfigPath)) return;
@@ -663,7 +663,7 @@ static void testAIHealsInjuredNeighbor(const HouseLoader& loader,
                                         const std::string& supportDefId) {
     auto players = makeFourPlayers(loader, houseId);
 
-    auto ai = std::make_shared<EasyPlayerAI>(houseId, 2, "Player 2", loader);
+    auto ai = std::make_shared<PlayerAI>(houseId, 2, "Player 2", loader);
     ai->setLeftPlayer (players[0].get());
     ai->setRightPlayer(players[2].get());
     if (!ai->init(db, aiConfigPath)) return;
@@ -693,7 +693,7 @@ static void testAIPassesWhenNoHealTarget(const HouseLoader& loader,
                                           const std::string& supportDefId) {
     auto players = makeFourPlayers(loader, houseId);
 
-    auto ai = std::make_shared<EasyPlayerAI>(houseId, 2, "Player 2", loader);
+    auto ai = std::make_shared<PlayerAI>(houseId, 2, "Player 2", loader);
     ai->setLeftPlayer (players[0].get());
     ai->setRightPlayer(players[2].get());
     if (!ai->init(db, aiConfigPath)) return;
@@ -739,7 +739,7 @@ static void testDeadAICanOnlyPassOrIdle(const HouseLoader& loader,
                                    const std::string& supportDefId) {
     auto players = makeFourPlayers(loader, houseId);
 
-    auto ai = std::make_shared<EasyPlayerAI>(houseId, 2, "Player 2", loader);
+    auto ai = std::make_shared<PlayerAI>(houseId, 2, "Player 2", loader);
     ai->setLeftPlayer (players[0].get());
     ai->setRightPlayer(players[2].get());
     if (!ai->init(db, aiConfigPath)) return;
