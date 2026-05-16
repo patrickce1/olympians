@@ -143,16 +143,43 @@ void EnemyController::handleIdleEntryIfNeeded(EnemyLoader::State prevState, Enem
 /** Chooses the next state tagged with "attack" for the enemy to enter. */
 EnemyLoader::State EnemyController::chooseNextAttackState(const std::shared_ptr<Enemy>& enemy) {
     std::vector<EnemyLoader::State> attacks;
+    std::vector<float> weights;
 
-    attacks.push_back(EnemyLoader::State::ATTACK_1);
-    attacks.push_back(EnemyLoader::State::ATTACK_2);
-    attacks.push_back(EnemyLoader::State::ATTACK_3);
+    const std::array<EnemyLoader::State, 3> attackStates = {
+        EnemyLoader::State::ATTACK_1,
+        EnemyLoader::State::ATTACK_2,
+        EnemyLoader::State::ATTACK_3
+    };
+    const std::array<float, 3>& attackWeights = enemy->getAttackWeights();
+    const auto& states = enemy->getStates();
+
+    float totalWeight = 0.0f;
+    for (size_t i = 0; i < attackStates.size(); i++) {
+        if (states.count(attackStates[i]) == 0) continue;
+
+        float weight = std::max(0.0f, attackWeights[i]);
+        attacks.push_back(attackStates[i]);
+        weights.push_back(weight);
+        totalWeight += weight;
+    }
 
     if (attacks.empty()) { if (_debug) CULog("[EnemyController] Attack: No attack states available"); return EnemyLoader::State::IDLE; }
 
-    int idx = (int)(_rng.getUint32() % (Uint32)attacks.size());
-    EnemyLoader::State selectedAttack = attacks[idx];
-    return selectedAttack;
+    if (totalWeight <= 0.0f) {
+        int idx = (int)(_rng.getUint32() % (Uint32)attacks.size());
+        return attacks[idx];
+    }
+
+    float roll = (float)_rng.getFloat() * totalWeight;
+    float cumulativeWeight = 0.0f;
+    for (size_t i = 0; i < attacks.size(); i++) {
+        cumulativeWeight += weights[i];
+        if (roll < cumulativeWeight) {
+            return attacks[i];
+        }
+    }
+
+    return attacks.back();
 }
 
 /**

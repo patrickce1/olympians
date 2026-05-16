@@ -1,4 +1,9 @@
 {
+    "attackWeights": {
+        "attack_1": 1.0,
+        "attack_2": 1.0,
+        "attack_3": 1.0
+    },
     "enemies": [
         {
             "id": "circe",

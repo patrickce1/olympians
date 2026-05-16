@@ -2,6 +2,8 @@
 #define __ENEMY_LOADER_H__
 
 #include <cugl/cugl.h>
+#include <algorithm>
+#include <array>
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -62,6 +64,7 @@ public:
     struct AIConfig {
         float retargetLikelihood = 0.0f;
         float defenseLikelihood = 0.0f;
+        std::array<float, 3> attackWeights = { 1.0f, 1.0f, 1.0f };
     };
 
     AIConfig ai;
@@ -181,6 +184,14 @@ public:
         auto json = reader->readJson();
         if (!json) return false;
 
+        AIConfig defaultAI;
+        auto attackWeightsObj = json->get("attackWeights");
+        if (attackWeightsObj && attackWeightsObj->isObject()) {
+            defaultAI.attackWeights[0] = std::max(0.0f, attackWeightsObj->getFloat("attack_1", 1.0f));
+            defaultAI.attackWeights[1] = std::max(0.0f, attackWeightsObj->getFloat("attack_2", 1.0f));
+            defaultAI.attackWeights[2] = std::max(0.0f, attackWeightsObj->getFloat("attack_3", 1.0f));
+        }
+
         auto enemyArray = json->get("enemies");
         if (!enemyArray || !enemyArray->isArray()) return false;
 
@@ -189,6 +200,7 @@ public:
             if (!entry) continue;
 
             EnemyDef def;
+            def.ai = defaultAI;
             def.id = entry->getString("id");
             def.name = parseBoss(entry->getString("name"));
             def.maxHealth = entry->getFloat("maxHealth");
