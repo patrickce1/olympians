@@ -720,7 +720,7 @@
         "lineSm": {
             "file": "textures/statsScreen/lineSm.png"
         },
-        "empty": {
+        "emptyStars": {
             "file": "textures/statsScreen/empty.png"
         },
         "mvp": {
@@ -732,8 +732,35 @@
         "regularStatBG": {
             "file": "textures/statsScreen/regularStatBG.png"
         },
-        "fill": {
+        "fillStars": {
             "file": "textures/statsScreen/fill.png"
+        },
+        "poseidonTeamStats": {
+            "file": "textures/statsScreen/poseidonTeamStats.png"
+        },
+        "aresTeamStats": {
+            "file": "textures/statsScreen/aresTeamStats.png"
+        },
+        "hephaestusTeamStats": {
+            "file": "textures/statsScreen/hephaestusTeamStats.png"
+        },
+        "hadesTeamStats": {
+            "file": "textures/statsScreen/hadesTeamStats.png"
+        },
+        "zeusTeamStats": {
+            "file": "textures/statsScreen/zeusTeamStats.png"
+        },
+        "hermesTeamStats": {
+            "file": "textures/statsScreen/hermesTeamStats.png"
+        },
+        "aphroditeTeamStats": {
+            "file": "textures/statsScreen/aphroditeTeamStats.png"
+        },
+        "demeterTeamStats": {
+            "file": "textures/statsScreen/demeterTeamStats.png"
+        },
+        "athenaTeamStats": {
+            "file": "textures/statsScreen/athenaTeamStats.png"
         }
     },
     "fonts": {

@@ -186,37 +186,292 @@
                         }
                     },
                     "utility": {
-                        "type": "Label",
+                        "type": "Node",
+                        "format": {
+                            "type": "Float",
+                            "x_alignment": "left",
+                            "y_alignment": "middle",
+                            "orientation": "horizontal"
+                        },
                         "data": {
                             "anchor": [
                                 0.5,
                                 0.5
                             ],
                             "size": [
-                                188,
-                                76
-                            ],
-                            "position": [
-                                167.5,
-                                9.5
+                                54.5,
+                                15
                             ],
                             "angle": 0,
-                            "visible": true,
-                            "font": "mainFont",
-                            "text": "00,000",
-                            "foreground": "#ffd9a9ff",
-                            "background": "#00000000",
-                            "padding": [
-                                0,
-                                0,
-                                0,
-                                0
+                            "position": [
+                                171.25,
+                                9.5
                             ],
-                            "valign": "top",
-                            "halign": "center",
-                            "scale": 0.25
+                            "visible": true
                         },
-                        "children": {},
+                        "children": {
+                            "star0": {
+                                "type": "Node",
+                                "format": {
+                                    "type": "Anchored"
+                                },
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        15.5,
+                                        15
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        7.75,
+                                        7.5
+                                    ],
+                                    "visible": true
+                                },
+                                "children": {
+                                    "empty": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "emptyStars",
+                                            "anchor": [
+                                                0,
+                                                1
+                                            ],
+                                            "size": [
+                                                15.5,
+                                                15
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                0,
+                                                0
+                                            ],
+                                            "visible": true
+                                        },
+                                        "layout": {
+                                            "x_anchor": "left",
+                                            "y_anchor": "top",
+                                            "absolute": false,
+                                            "x_offset": 0,
+                                            "y_offset": 0
+                                        }
+                                    },
+                                    "fill": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "fillStars",
+                                            "anchor": [
+                                                0,
+                                                1
+                                            ],
+                                            "size": [
+                                                15.5,
+                                                15
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                0,
+                                                0
+                                            ],
+                                            "visible": true
+                                        },
+                                        "layout": {
+                                            "x_anchor": "left",
+                                            "y_anchor": "top",
+                                            "absolute": false,
+                                            "x_offset": 0,
+                                            "y_offset": 0
+                                        }
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 0,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        4,
+                                        0
+                                    ]
+                                }
+                            },
+                            "star1": {
+                                "type": "Node",
+                                "format": {
+                                    "type": "Anchored"
+                                },
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        15.5,
+                                        15
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        27.25,
+                                        7.5
+                                    ],
+                                    "visible": true
+                                },
+                                "children": {
+                                    "empty": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "emptyStars",
+                                            "anchor": [
+                                                0,
+                                                1
+                                            ],
+                                            "size": [
+                                                15.5,
+                                                15
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                0,
+                                                0
+                                            ],
+                                            "visible": true
+                                        },
+                                        "layout": {
+                                            "x_anchor": "left",
+                                            "y_anchor": "top",
+                                            "absolute": false,
+                                            "x_offset": 0,
+                                            "y_offset": 0
+                                        }
+                                    },
+                                    "fill": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "fillStars",
+                                            "anchor": [
+                                                0,
+                                                1
+                                            ],
+                                            "size": [
+                                                15.5,
+                                                15
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                0,
+                                                0
+                                            ],
+                                            "visible": true
+                                        },
+                                        "layout": {
+                                            "x_anchor": "left",
+                                            "y_anchor": "top",
+                                            "absolute": false,
+                                            "x_offset": 0,
+                                            "y_offset": 0
+                                        }
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 1,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        4,
+                                        0
+                                    ]
+                                }
+                            },
+                            "star2": {
+                                "type": "Node",
+                                "format": {
+                                    "type": "Anchored"
+                                },
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "size": [
+                                        15.5,
+                                        15
+                                    ],
+                                    "angle": 0,
+                                    "position": [
+                                        46.75,
+                                        7.5
+                                    ],
+                                    "visible": true
+                                },
+                                "children": {
+                                    "empty": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "emptyStars",
+                                            "anchor": [
+                                                0,
+                                                1
+                                            ],
+                                            "size": [
+                                                15.5,
+                                                15
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                0,
+                                                0
+                                            ],
+                                            "visible": true
+                                        },
+                                        "layout": {
+                                            "x_anchor": "left",
+                                            "y_anchor": "top",
+                                            "absolute": false,
+                                            "x_offset": 0,
+                                            "y_offset": 0
+                                        }
+                                    },
+                                    "fill": {
+                                        "type": "Image",
+                                        "data": {
+                                            "texture": "fillStars",
+                                            "anchor": [
+                                                0,
+                                                1
+                                            ],
+                                            "size": [
+                                                15.5,
+                                                15
+                                            ],
+                                            "angle": 0,
+                                            "position": [
+                                                0,
+                                                0
+                                            ],
+                                            "visible": true
+                                        },
+                                        "layout": {
+                                            "x_anchor": "left",
+                                            "y_anchor": "top",
+                                            "absolute": false,
+                                            "x_offset": 0,
+                                            "y_offset": 0
+                                        }
+                                    }
+                                },
+                                "layout": {
+                                    "priority": 2,
+                                    "padding": [
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                }
+                            }
+                        },
                         "layout": {
                             "priority": 2,
                             "padding": [

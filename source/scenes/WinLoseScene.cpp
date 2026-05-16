@@ -79,6 +79,8 @@ void WinLoseScene::setupUI() {
         _assets->get<scene2::SceneNode>("winLoseScene.return"));
     
     _teamStats    = _assets->get<scene2::SceneNode>("winLoseScene.teamStats");
+    _teamStatsBG = std::dynamic_pointer_cast<scene2::PolygonNode>(
+        _assets->get<scene2::SceneNode>("winLoseScene.teamStats.teamStatsBG"));
     _statsHeader  = _assets->get<scene2::SceneNode>("winLoseScene.statsHeader");
     _indivStats   = _assets->get<scene2::SceneNode>("winLoseScene.indivStats");
     _successLabel = std::dynamic_pointer_cast<scene2::PolygonNode>(
@@ -110,8 +112,11 @@ void WinLoseScene::setupStatsUI() {
             _assets->get<scene2::SceneNode>(base + ".values.damage"));
         _summaryTableHeal[i] = std::dynamic_pointer_cast<scene2::Label>(
             _assets->get<scene2::SceneNode>(base + ".values.heal"));
-        _summaryTableUtil[i] = std::dynamic_pointer_cast<scene2::Label>(
-            _assets->get<scene2::SceneNode>(base + ".values.utility"));
+
+        for (int j = 0; j < 3; j++) {
+            std::string starPath = base + ".values.utility.stars.star" + std::to_string(j);
+            _summaryTableUtil[i][j] = _assets->get<scene2::SceneNode>(starPath);
+        }
     }
 }
 
@@ -274,7 +279,9 @@ void WinLoseScene::setStats(const PlayerStats players[4]) {
         _summaryTableNames[i]->setText(players[i].displayName);
         _summaryTableDmg[i]->setText(formatNumber(players[i].damage));
         _summaryTableHeal[i]->setText(formatNumber(players[i].heals));
-        _summaryTableUtil[i]->setText(formatNumber(players[i].utility));
+        for (int j = 0; j < 3; j++) {
+            _summaryTableUtil[i][j]->getChildByName("fill")->setVisible(j < players[i].utility);
+        }
     }
 
     _teamTotalDmg->setText(formatNumber(totalDamage));

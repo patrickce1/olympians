@@ -51,6 +51,9 @@ protected:
 
     /** Root node for the team-wide stat panel */
     std::shared_ptr<cugl::scene2::SceneNode> _teamStats;
+    
+    /** Root node for the team-wide stat panel */
+    std::shared_ptr<cugl::scene2::PolygonNode> _teamStatsBG;
 
     /** Header banner displayed above the stats panels */
     std::shared_ptr<cugl::scene2::SceneNode> _statsHeader;
@@ -77,7 +80,7 @@ protected:
     std::shared_ptr<cugl::scene2::Label> _summaryTableHeal[4];
 
     /** Per-player utility labels, indexed 0–3 */
-    std::shared_ptr<cugl::scene2::Label> _summaryTableUtil[4];
+    std::shared_ptr<cugl::scene2::SceneNode> _summaryTableUtil[4][3];
 
     /** Per-player display name labels, indexed 0–3 */
     std::shared_ptr<cugl::scene2::Label> _summaryTableNames[4];
@@ -95,7 +98,7 @@ protected:
         int damage;
         /** Total healing done by this player */
         int heals;
-        /** Total utility actions performed by this player */
+        /** Star rating from 0 (no stars) to 3 (all stars) */
         int utility;
     };
 
