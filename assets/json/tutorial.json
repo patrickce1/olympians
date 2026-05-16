@@ -129,6 +129,41 @@
     },
     {
       "type": "show_message",
+      "text": "Tutorial: House Affinity",
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "Each hero has special items that match their house.",
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
+      "text": "When you use your house item, it becomes enhanced!",
+      "delay": 6.0
+    },
+    {
+      "type": "spawn_item",
+      "defId": "rage",
+      "passDirection": 0
+    },
+    {
+      "type": "wait_for_action",
+      "action": "HOLD_FOR_TOOLTIP",
+      "text": "Read the tooltip for Rage. It matches your house!"
+    },
+    {
+      "type": "wait_for_action",
+      "action": "DROP_BOSS",
+      "text": "Use Rage on Circe. Notice the massive damage multiplier!"
+    },
+    {
+      "type": "show_message",
+      "text": "The yellow multiplier shows your house multiplier!",
+      "delay": 6.0
+    },
+    {
+      "type": "show_message",
       "text": "DEFEAT CIRCE",
       "delay": 4.0
     },

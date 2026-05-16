@@ -240,6 +240,38 @@ public:
      * @param value  true to mark the tutorial as completed; false to reset it.
      */
     void setTutorialCompleted(bool value) { _tutorialCompleted = value; }
+    
+    // ── Player XP ──────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the player's accumulated XP across all completed runs.
+     *
+     * XP is awarded on game completion: 1 for Circe, 3 for Cyclops,
+     * 5 for Cerberus, 10 for Gaia. Defaults to 0 if load() has not
+     * yet been called or the key was absent from the save file.
+     *
+     * @return the total accumulated player XP.
+     */
+    int getPlayerXP() const { return _playerXP; }
+
+    /**
+     * Sets the player XP in memory.
+     *
+     * Does not write to disk. Call save() afterwards to persist the
+     * change across sessions. Value is clamped to >= 0.
+     *
+     * @param xp  The new XP value to store.
+     */
+    void setPlayerXP(int xp) { _playerXP = std::max(0, xp); }
+
+    /**
+     * Adds XP to the player's total in memory.
+     *
+     * Does not write to disk. Call save() afterwards to persist.
+     *
+     * @param amount  The amount of XP to add. Negative values are ignored.
+     */
+    void addPlayerXP(int amount) { if (amount > 0) _playerXP += amount; }
 
 private:
     SavedDataManager() = default;
@@ -282,6 +314,13 @@ private:
      * unlocked until it is finished.
      */
     bool _tutorialCompleted = false;
+    
+    /**
+     * Total XP accumulated across all completed runs.
+     * Used to scale AI decision quality based on player experience.
+     * Defaults to 0 for new players.
+     */
+    int _playerXP = 0;
 };
 
 #endif /* __SAVE_DATA_MANAGER_H__ */

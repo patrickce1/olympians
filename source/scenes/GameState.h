@@ -10,10 +10,11 @@
 #include "../HouseLoader.h"
 #include "../items/ItemController.h"
 #include "../playerAI/PlayerAI.h"
-#include "../playerAI/EasyPlayerAI.h"
 #include "../NetworkMessage.h"
 #include "../bosses/Cyclops.h"
 #include "../bosses/Gaia.h"
+#include "../bosses/Cerberus.h"
+
 
 /**
  * Pure data model for the game world.
@@ -52,6 +53,31 @@ public:
     GameState& operator=(const GameState&) = delete;
 
 #pragma mark - Lifecycle
+    
+    /**
+     * XP awarded to the player on completing a run against each boss.
+     * Used by GameScene to update SavedDataManager after a win.
+     */
+    static constexpr int XP_CIRCE    = 1;
+    static constexpr int XP_CYCLOPS  = 3;
+    static constexpr int XP_CERBERUS = 5;
+    static constexpr int XP_GAIA     = 10;
+
+    /**
+     * XP cap imposed by each boss — the maximum XP that counts toward
+     * scaling AI difficulty when this boss is selected. XP above the cap
+     * is ignored so the AI never exceeds the difficulty the boss allows.
+     */
+    static constexpr int XP_CAP_CIRCE    = 0;   // Always easiest — no prior XP counts
+    static constexpr int XP_CAP_CYCLOPS  = 10;
+    static constexpr int XP_CAP_CERBERUS = 20;
+    static constexpr int XP_CAP_GAIA     = 30; // Effectively uncapped
+
+    /**
+     * Maximum XP considered when computing the decision multiplier.
+     * XP at or above this value produces a multiplier of 1.0.
+     */
+    static constexpr int XP_MAX = 30;
 
     /**
      * Loads house definitions from JSON into the house loader.
@@ -75,7 +101,7 @@ public:
      * Assigns a unique house to every slot that does not yet have one.
      * Skips any slot that already has a house. For empty slots, builds a pool
      * of houses not yet claimed by any other slot, picks one at random, and
-     * reconstructs the slot as an EasyPlayerAI with that house so AI behavior
+     * reconstructs the slot as an PlayerAI with that house so AI behavior
      * is preserved. The pool is rebuilt each iteration so previously assigned
      * houses are excluded.
      *
@@ -166,8 +192,6 @@ public:
     /**
      * Applies all queued boss heal messages to the enemy's current health.
      * Called by the host each frame after processing incoming network messages.
-     * Currently used exclusively for Gaia's rock item, which heals the boss
-     * instead of dealing damage.
      *
      * @param bossHeals  The queued boss heal updates to apply this frame.
      */
@@ -186,6 +210,23 @@ public:
      * @param enemyEffects  The queued enemy-effect updates to apply this frame.
      */
     void enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects);
+    
+    /**
+     * Computes and applies a decision multiplier to all AI players based on
+     * the player's accumulated XP and the selected boss's XP cap.
+     *
+     * XP is clamped to the boss cap before scaling, so the AI can never
+     * exceed the difficulty ceiling the chosen boss allows. The resulting
+     * multiplier is in [0, 1] and is applied to every PlayerAI in _players.
+     *
+     * Call this from LobbyScene whenever the boss selection changes, and
+     * once during init after the boss is set.
+     *
+     * @param bossId  The ID string of the selected boss ("circe", "cyclops",
+     *                "cerberus", or "gaia").
+     * @param playerXP  The player's current total XP from SavedDataManager.
+     */
+    void applyAIDifficultyForBoss(const std::string& bossId, int playerXP);
     
 #pragma mark - Player Access
 
@@ -270,7 +311,7 @@ public:
     bool didLose();
     
     /**
-     * Replaces the player at the given slot with an EasyPlayerAI, optionally
+     * Replaces the player at the given slot with an PlayerAI, optionally
      * preserving their house. Re-wires the neighbour ring and updates the
      * player ID map. Note: caller must call ai->init() after this to set _db.
      *

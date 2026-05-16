@@ -141,7 +141,7 @@ void LobbyScene::setupListeners() {
         
         // Assign unique houses to any AI slots that don't have one.
         // ItemController is needed to reinitialize AI behavior after
-        // reconstructing slots as EasyPlayerAI with their new house.
+        // reconstructing slots as PlayerAI with their new house.
         _gameState->assignMissingHousesForAI(*_itemController);
 
         // Broadcast each AI house to clients.
@@ -247,6 +247,7 @@ void LobbyScene::setActive(bool value) {
                 showDisconnectBanner(_disconnectBanner);
                 _disconnectBanner = "";
             }
+            CULog("[LobbyScene] Cached player XP: %d", SavedDataManager::get().getPlayerXP());
         } else {
             if (_pendingDisconnect) {
                 _network->disconnect();
@@ -450,14 +451,14 @@ void LobbyScene::update(float timestep, InputController& input) {
     }
     
     if (_network->getEnemy() == "circe" && _network->isHost() && (!SavedDataManager::get().getTutorialCompleted() || _forceTutorial)) {
-        _network->setLocalHouse("athena");
+        _network->setLocalHouse("ares");
         _forceTutorial = false;
 
         // Sync the house to GameState before starting the game so AI doesn't pick Athena
         int localIndex = _network->getLocalPlayerNumber();
         Player* localPlayer = _gameState->getPlayerBySlot(localIndex);
         if (localPlayer) {
-            _gameState->setRealPlayer(localIndex, localPlayer->getPlayerName(), "athena");
+            _gameState->setRealPlayer(localIndex, localPlayer->getPlayerName(), "ares");
         }
 
         //Start game and set the bots' houses

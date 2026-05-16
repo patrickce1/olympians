@@ -115,6 +115,12 @@
         "heal": {
             "file": "textures/gameScene/heal.png"
         },
+        "damageFrame": {
+            "file": "textures/gameScene/damageFrame.png"
+        },
+        "healFrame": {
+            "file": "textures/gameScene/healFrame.png"
+        },
         "debugReset": {
             "file": "textures/attack.png"
         },
@@ -854,6 +860,12 @@
             "stream": false,
             "volume": 0.4
         },
+        "enemy_block": {
+            "type": "sample",
+            "file": "sounds/enemy_block.wav",
+            "stream": false,
+            "volume": 0.4
+        },
         "cyclops_boulder": {
             "type": "sample",
             "file": "sounds/cyclops_boulder.wav",
@@ -871,6 +883,30 @@
             "file": "sounds/cyclops_scream.wav",
             "stream": false,
             "volume": 0.5
+        },
+        "cerberus_bite": {
+            "type": "sample",
+            "file": "sounds/cerberus_bite.wav",
+            "stream": false,
+            "volume": 0.45
+        },
+        "cerberus_spit": {
+            "type": "sample",
+            "file": "sounds/cerberus_spit.wav",
+            "stream": false,
+            "volume": 0.5
+        },
+        "cerberus_defense": {
+            "type": "sample",
+            "file": "sounds/cerberus_defense.wav",
+            "stream": false,
+            "volume": 0.5
+        },
+        "cerberus_head_knock": {
+            "type": "sample",
+            "file": "sounds/cerberus_head_knock.wav",
+            "stream": false,
+            "volume": 0.6
         },
         "shield_block": {
             "type": "sample",
