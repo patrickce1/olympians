@@ -881,7 +881,7 @@
             "stream": false,
             "volume": 0.65
         },
-            "demeter_harvest" : {
+        "demeter_harvest" : {
             "type": "sample",
             "file": "sounds/demeter_harvest.wav",
             "stream": false,
@@ -891,7 +891,7 @@
             "type": "sample",
             "file": "sounds/athena_educate.wav",
             "stream": false,
-            "volume": 0.65
+            "volume": 0.9
         },
             "hades_ressurect" : {
             "type": "sample",

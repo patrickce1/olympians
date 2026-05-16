@@ -373,6 +373,7 @@
             "description": " ",
             "icon": "item_poseidon_tsunami",
             "tooltip": "tooltip_poseidon_tsunami",
+            "itemUseSound": "poseidon_wave",
             "type": "attack",
             "attackTarget": "all_allies",
             "rarity": "divine",
