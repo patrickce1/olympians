@@ -97,20 +97,20 @@ void WinLoseScene::setupStatsUI() {
     // Utility rating stars
     for (int i = 0; i < 3; i++) {
         std::string path = "winLoseScene.teamStats.stats.utilRating.stars.star" + std::to_string(i);
-        _utilStar[i] = _assets->get<scene2::SceneNode>(path);
+        _teamUtilStar[i] = _assets->get<scene2::SceneNode>(path);
     }
 
     // Individual player rows
     std::string rowKeys[4] = {"1", "2", "3", "4"};
     for (int i = 0; i < 4; i++) {
         std::string base = "winLoseScene.indivStats." + rowKeys[i];
-        _playerName[i] = std::dynamic_pointer_cast<scene2::Label>(
+        _summaryTableNames[i] = std::dynamic_pointer_cast<scene2::Label>(
             _assets->get<scene2::SceneNode>(base + ".name"));
-        _playerDmg[i] = std::dynamic_pointer_cast<scene2::Label>(
+        _summaryTableDmg[i] = std::dynamic_pointer_cast<scene2::Label>(
             _assets->get<scene2::SceneNode>(base + ".values.damage"));
-        _playerHeal[i] = std::dynamic_pointer_cast<scene2::Label>(
+        _summaryTableHeal[i] = std::dynamic_pointer_cast<scene2::Label>(
             _assets->get<scene2::SceneNode>(base + ".values.heal"));
-        _playerUtility[i] = std::dynamic_pointer_cast<scene2::Label>(
+        _summaryTableUtil[i] = std::dynamic_pointer_cast<scene2::Label>(
             _assets->get<scene2::SceneNode>(base + ".values.utility"));
     }
 }
@@ -260,10 +260,10 @@ void WinLoseScene::setStats(const PlayerStats players[4]) {
         totalHeals   += players[i].heals;
         totalUtility += players[i].utility;
 
-        _playerName[i]->setText(players[i].displayName);
-        _playerDmg[i]->setText(formatNumber(players[i].damage));
-        _playerHeal[i]->setText(formatNumber(players[i].heals));
-        _playerUtility[i]->setText(formatNumber(players[i].utility));
+        _summaryTableNames[i]->setText(players[i].displayName);
+        _summaryTableDmg[i]->setText(formatNumber(players[i].damage));
+        _summaryTableHeal[i]->setText(formatNumber(players[i].heals));
+        _summaryTableUtil[i]->setText(formatNumber(players[i].utility));
     }
 
     _teamTotalDmg->setText(formatNumber(totalDamage));
@@ -272,7 +272,7 @@ void WinLoseScene::setStats(const PlayerStats players[4]) {
     // Utility stars (hardcoded to 3 for now)
     int stars = 3;
     for (int i = 0; i < 3; i++) {
-        _utilStar[i]->getChildByName("fill")->setVisible(i < stars);
+        _teamUtilStar[i]->getChildByName("fill")->setVisible(i < stars);
     }
 }
 
@@ -382,7 +382,7 @@ void WinLoseScene::resetPhase2Visuals() {
     _teamTotalDmg->setColor(Color4(255, 255, 255, 0));
     _teamTotalHeal->setColor(Color4(255, 255, 255, 0));
     for (int i = 0; i < 3; i++) {
-        _utilStar[i]->setColor(Color4(255, 255, 255, 0));
+        _teamUtilStar[i]->setColor(Color4(255, 255, 255, 0));
     }
 
     // indivStats parent is fully visible — rows control their own position
@@ -472,7 +472,7 @@ void WinLoseScene::fadeInStar(int i) {
     std::string starKey = "starFade" + std::to_string(i);
  
     _timeline->add(starKey,
-                   cugl::scene2::FadeTo::alloc(1.0f)->attach(_utilStar[i]), 0.40f);
+                   cugl::scene2::FadeTo::alloc(1.0f)->attach(_teamUtilStar[i]), 0.40f);
  
     _timeline->addCompletionListener(starKey,
         [this, i](const std::string& key, float time, float actual) {

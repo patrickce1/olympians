@@ -68,22 +68,27 @@ protected:
     std::shared_ptr<cugl::scene2::Label> _teamTotalHeal;
 
     /** Utility rating stars; each node has an empty/fill child toggled by star count */
-    std::shared_ptr<cugl::scene2::SceneNode> _utilStar[3];
+    std::shared_ptr<cugl::scene2::SceneNode> _teamUtilStar[3];
 
     /** Per-player damage labels, indexed 0–3 */
-    std::shared_ptr<cugl::scene2::Label> _playerDmg[4];
+    std::shared_ptr<cugl::scene2::Label> _summaryTableDmg[4];
 
     /** Per-player healing labels, indexed 0–3 */
-    std::shared_ptr<cugl::scene2::Label> _playerHeal[4];
+    std::shared_ptr<cugl::scene2::Label> _summaryTableHeal[4];
 
     /** Per-player utility labels, indexed 0–3 */
-    std::shared_ptr<cugl::scene2::Label> _playerUtility[4];
+    std::shared_ptr<cugl::scene2::Label> _summaryTableUtil[4];
 
     /** Per-player display name labels, indexed 0–3 */
-    std::shared_ptr<cugl::scene2::Label> _playerName[4];
+    std::shared_ptr<cugl::scene2::Label> _summaryTableNames[4];
+    
+    /** Per-player display name labels, indexed 0–3 */
+    std::shared_ptr<cugl::scene2::PolygonNode> _summaryTableIcons[4];
 
     /** End-of-match stats for a single player */
     struct PlayerStats {
+        /** House id of the player in the display  */
+        std::string houseId;
         /** Display name shown in the stats table, e.g. "ATHENA | help_me123" */
         std::string displayName;
         /** Total damage dealt by this player */
