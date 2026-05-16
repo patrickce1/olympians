@@ -451,14 +451,14 @@ void LobbyScene::update(float timestep, InputController& input) {
     }
     
     if (_network->getEnemy() == "circe" && _network->isHost() && (!SavedDataManager::get().getTutorialCompleted() || _forceTutorial)) {
-        _network->setLocalHouse("athena");
+        _network->setLocalHouse("ares");
         _forceTutorial = false;
 
         // Sync the house to GameState before starting the game so AI doesn't pick Athena
         int localIndex = _network->getLocalPlayerNumber();
         Player* localPlayer = _gameState->getPlayerBySlot(localIndex);
         if (localPlayer) {
-            _gameState->setRealPlayer(localIndex, localPlayer->getPlayerName(), "athena");
+            _gameState->setRealPlayer(localIndex, localPlayer->getPlayerName(), "ares");
         }
 
         //Start game and set the bots' houses
