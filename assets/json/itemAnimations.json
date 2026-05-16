@@ -47,6 +47,6 @@
         },
         "harvest_animation": {
             "file": "textures/items/animations/harvest_animation.png"
-        },
+        }
     }
 }
