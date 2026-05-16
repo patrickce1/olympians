@@ -4246,6 +4246,7 @@ void GameScene::handleNetworkUpdates(float dt) {
 
     // Check if we won or lost (common to both host and client)
     if (_network->isHost()) {
+        _network->broadcastStatsMap();
         if (_gameState.didWin()) {
             _network->broadcastWonGame();
             _status = Status::WON;
@@ -5752,7 +5753,6 @@ void GameScene::update(float dt, InputController& input) {
     
     if (_network->isHost()) {
         _network->broadcastHostsCurrentScene(1);
-        _network->broadcastStatsMap(); 
     }
     
     if (_tutorialController.isActive()){
