@@ -161,6 +161,18 @@
             "scale": 0.68,
             "offsetX": 0,
             "offsetY": 0
+        },        
+        {
+            "id": "gaia_idle_animation",
+            "texture": "textures/gameScene/gaia/gaia_idle_animation.png",
+            "frameCount": 5,
+            "frameDuration": 0.20,
+            "frameRows": 4,
+            "loopStartFrame": 0,
+            "loopEndFrame": 3,
+            "positionX": 190.0,
+            "positionY": 200.0,
+            "scale": 0.68
         },
         {
             "id": "circe_idle_animation",

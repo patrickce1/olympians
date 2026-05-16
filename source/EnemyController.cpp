@@ -253,6 +253,8 @@ void EnemyController::resolveEnemyEvents(const std::shared_ptr<Enemy>& enemy, st
             case EnemyLoader::EventType::PLAYER_SCRAMBLE:
                 _scrambleFired = true;
                 break;
+            case EnemyLoader::EventType::VINE:
+                resolveVineEvent(enemy, players, event);
             default:
                 if (_debug) CULog("[EnemyController] Event: Unhandled event type in state '%s' for enemy '%s'", enemy->getStates().at(event.state).name.c_str(), enemy->getId().c_str());
                 break;
@@ -377,6 +379,51 @@ void EnemyController::resolveHealEvent(const std::shared_ptr<Enemy>& enemy, cons
 }
 
 /**
+ * Resolves a vine event fired by the enemy.
+ *
+ * Selects a target player and applies a Gaia vine bind to a randomly chosen
+ * side (left or right) using the corresponding applyVine function.
+ * If the selected side is already bound, the vine effect refreshes the timer
+ * instead of stacking.
+ *
+ * @param enemy   The enemy that fired the vine event
+ * @param players The list of active player instances
+ * @param event   The fired vine event to resolve
+ */
+void EnemyController::resolveVineEvent(const std::shared_ptr<Enemy>& enemy, std::vector<std::shared_ptr<Player>>& players, const Enemy::FiredEvent& event) {
+    int n = (int)players.size();
+    if (n <= 0) {
+        if (_debug) CULog("[EnemyController] Event: VINE fired but players list is empty");
+        return;
+    }
+
+    int offset = event.def.target; // int offset from JSON
+    int targetIndex = wrapIndex(enemy->getTargetIndex() + offset, n);
+
+    auto& target = players[targetIndex];
+    if (!target || !target->isAlive()) {
+        if (_debug) CULog("[EnemyController] Event: VINE fired but Player[%d] is dead or null",
+            targetIndex);
+        return;
+    }
+
+    float duration = event.def.duration;
+    float dps = event.def.amount;
+    // Randomly choose left or right vine
+    bool applyLeft = (_rng.getUint32() % 2) == 0;
+    if (applyLeft) {
+        target->applyVineLeft(duration, dps);
+        if (_debug) CULog("[EnemyController] Event: VINE applied to Player[%d] LEFT for %.2f seconds",
+            targetIndex, duration);
+    }
+    else {
+        target->applyVineRight(duration, dps);
+        if (_debug) CULog("[EnemyController] Event: VINE applied to Player[%d] RIGHT for %.2f seconds",
+            targetIndex, duration);
+    }
+}
+
+/** 
  * Determines whether the boss should enter a defensive state.
  * Returns true if a random chance roll succeeds, or if the enemy's defensive condition is met.
  * @param enemy the enemy used to evaluate whether the defense condition applies
