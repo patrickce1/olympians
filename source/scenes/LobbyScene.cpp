@@ -33,13 +33,15 @@ constexpr int LOBBY_DRAG_HOLD_FRAMES = 8;
  * @param gameState          The state of the game
  * @param itemController     The item controller needed to init AI players
  *                           when assignMissingHousesForAI() runs at game start
+ * @param audio    The audio controller used for various sounds.
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
 bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
           const std::shared_ptr<NetworkController>& networkController,
           GameState* gameState,
-          ItemController* itemController){
+          ItemController* itemController,
+          AudioController* audio){
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -48,7 +50,8 @@ bool LobbyScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
     }
     
     _gameState = gameState;
-    
+    _audio = audio;
+
     // Start up the input handler
     _assets = assets;
     _network = networkController;
@@ -159,11 +162,14 @@ void LobbyScene::setupListeners() {
         // Confirm all players have house according to network.
         if (!_network->allPlayersSelectedHouse()) return;
 
+        if (_audio) _audio->playSoundUnique("start_sound");
+
         _status = Status::PRE_GAME_START;
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("page_turn");
             if (_network->isHost()) {
                 _network->broadcastSessionTerminated();
                 _pendingDisconnect = true;
@@ -176,12 +182,14 @@ void LobbyScene::setupListeners() {
 
     _bossLobbyButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("small_click");
             _status = Status::BOSSSELECT;
         }
     });
 
     _itemsButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("page_turn");
             _status = Status::CODEX;
         }
     });
@@ -234,6 +242,7 @@ void LobbyScene::setActive(bool value) {
         if (value) {
             _status = IDLE;
             _currentBoss = "";
+            _prevPlayerCount = (int)_network->getNetworkedPlayers().size();
             _enterGame->deactivate();
             _backButton->activate();
             _bossLobbyButton->activate();
@@ -367,6 +376,11 @@ void LobbyScene::updateNetworkOrder() {
             _gameState->demoteToAI(i, _network->getAIHouse(i));
         }
     }
+    int currentCount = (int)slotToPlayer.size();
+    if (currentCount > _prevPlayerCount) {
+        if (_audio) _audio->playSoundUnique("lobby_join");
+    }
+    _prevPlayerCount = currentCount;
 }
 
 /**
@@ -601,6 +615,7 @@ void LobbyScene::showDisconnectBanner(const std::string& message) {
         _errorPopup->getChildByName("errorLabel"));
     if (label) label->setText(message);
     _errorPopup->setVisible(true);
+    if (_audio) _audio->playSoundUnique("client_error");
     _errorTimer = 0.0f;
 }
 
@@ -734,6 +749,7 @@ void LobbyScene::handleLobbySlotPressRelease(InputController& input) {
         if (isLocalSlot) {
             // Tapped own slot — open own house select
             CULog("[PressRelease] TAP on local slot — opening own house select");
+            if (_audio) _audio->playSoundUnique("small_click");
             _pendingSlotToBeOpened = -1;
             _status = Status::SELECT;
         } else {
@@ -743,6 +759,7 @@ void LobbyScene::handleLobbySlotPressRelease(InputController& input) {
                   _dragSourceDisplaySlot, gameSlot, isReal);
             if (!isReal) {
                 CULog("[PressRelease] AI slot — opening house select for game slot %d", gameSlot);
+                if (_network->isHost() && _audio) _audio->playSoundUnique("small_click");
                 _pendingSlotToBeOpened = gameSlot;
                 _status = Status::SELECT;
             } else {
