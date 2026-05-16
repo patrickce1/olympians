@@ -35,7 +35,11 @@
             "file": "textures/player.png"
         },
         "indicator": {
-            "file": "textures/indicator.png"
+            "file": "textures/indicator.png",
+            "minfilter": "nearest",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "back 1": {
             "file": "textures/back 1.png"
