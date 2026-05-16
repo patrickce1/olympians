@@ -41,6 +41,9 @@
         },
         "charm_animation": {
             "file": "textures/items/animations/charm_animation.png"
+        },
+        "treasure_animation": {
+            "file": "textures/items/animations/treasure_animation.png"
         }
     }
 }
