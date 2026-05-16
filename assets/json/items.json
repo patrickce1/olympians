@@ -328,6 +328,7 @@
             "attackTarget": "enemy",
             "rarity": "divine",
             "houseAffinity": "zeus",
+            "itemUseSound": "attack_slash",
             "baseValue": 0.0,
             "weight": 10.0,
             "effects": [
