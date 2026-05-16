@@ -161,6 +161,8 @@ void LobbyScene::setupListeners() {
         // Confirm all players have house according to network.
         if (!_network->allPlayersSelectedHouse()) return;
 
+        if (_audio) _audio->playSoundUnique("start_sound");
+
         _status = Status::PRE_GAME_START;
     });
 
@@ -179,6 +181,7 @@ void LobbyScene::setupListeners() {
 
     _bossLobbyButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("small_click");
             _status = Status::BOSSSELECT;
         }
     });
@@ -238,6 +241,7 @@ void LobbyScene::setActive(bool value) {
         if (value) {
             _status = IDLE;
             _currentBoss = "";
+            _prevPlayerCount = (int)_network->getNetworkedPlayers().size();
             _enterGame->deactivate();
             _backButton->activate();
             _bossLobbyButton->activate();
@@ -610,6 +614,7 @@ void LobbyScene::showDisconnectBanner(const std::string& message) {
         _errorPopup->getChildByName("errorLabel"));
     if (label) label->setText(message);
     _errorPopup->setVisible(true);
+    if (_audio) _audio->playSoundUnique("client_error");
     _errorTimer = 0.0f;
 }
 
@@ -743,6 +748,7 @@ void LobbyScene::handleLobbySlotPressRelease(InputController& input) {
         if (isLocalSlot) {
             // Tapped own slot — open own house select
             CULog("[PressRelease] TAP on local slot — opening own house select");
+            if (_audio) _audio->playSoundUnique("small_click");
             _pendingSlotToBeOpened = -1;
             _status = Status::SELECT;
         } else {
@@ -752,6 +758,7 @@ void LobbyScene::handleLobbySlotPressRelease(InputController& input) {
                   _dragSourceDisplaySlot, gameSlot, isReal);
             if (!isReal) {
                 CULog("[PressRelease] AI slot — opening house select for game slot %d", gameSlot);
+                if (_network->isHost() && _audio) _audio->playSoundUnique("small_click");
                 _pendingSlotToBeOpened = gameSlot;
                 _status = Status::SELECT;
             } else {
