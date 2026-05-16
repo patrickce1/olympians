@@ -63,14 +63,10 @@ bool AppLoadingScene::init(
         return false;
     }
     _blackOverlay = assets->get<scene2::SceneNode>("load.blackOverlay");
-
-    _logo = assets->get<scene2::SceneNode>("load.logo");
-
+    _logo         = assets->get<scene2::SceneNode>("load.logo");
     _loadingScene = assets->get<scene2::SceneNode>("load.loadingScene");
-    
-    _loadingText = std::dynamic_pointer_cast<scene2::Label>(
+    _loadingText  = std::dynamic_pointer_cast<scene2::Label>(
             assets->get<scene2::SceneNode>("load.loadingScene.label"));
-
     _bar = std::dynamic_pointer_cast<scene2::ProgressBar>(
             assets->get<scene2::SceneNode>("load.loadingScene.bar.fill"));
 
@@ -78,7 +74,6 @@ bool AppLoadingScene::init(
         CUAssertLog(false,"Missing loading bar");
         return false;
     }
-
 
     if (layer->getJSON()->has("size")) {
 
@@ -92,19 +87,16 @@ bool AppLoadingScene::init(
 
     layer->setContentSize(_size);
     layer->doLayout();
-
     addChild(layer);
-
     _loadingScene->setVisible(false);
     _bar->setVisible(false);
 
     // Initial alpha setup
     Color4 opacity;
-
     opacity = _logo->getColor();
     opacity.a = 0;
     _logo->setColor(opacity);
-
+    
     opacity = _loadingScene->getColor();
     opacity.a = 0;
     _loadingScene->setColor(opacity);
@@ -129,25 +121,19 @@ bool AppLoadingScene::init(
  * Disposes of all (non-static) resources allocated to this mode.
  */
 void AppLoadingScene::dispose() {
-    _assets = nullptr;
-
-    _blackOverlay = nullptr;
-    _logo = nullptr;
-    _loadingScene = nullptr;
-
-    _bar = nullptr;
-
-    _progress = 0.0f;
+    _assets          = nullptr;
+    _blackOverlay    = nullptr;
+    _logo            = nullptr;
+    _loadingScene    = nullptr;
+    _bar             = nullptr;
+    _progress        = 0.0f;
     _displayProgress = 0.0f;
-
-    _logoAlpha = 0.0f;
-    _sceneAlpha = 0.0f;
-    _barAlpha = 0.0f;
-
-    _phaseTimer = 0.0f;
-
-    _started = false;
-    _completed = false;
+    _logoAlpha       = 0.0f;
+    _sceneAlpha      = 0.0f;
+    _barAlpha        = 0.0f;
+    _phaseTimer      = 0.0f;
+    _started         = false;
+    _completed       = false;
 }
 
 /**
@@ -168,7 +154,6 @@ void AppLoadingScene::start() {
  * @param timestep  The amount of time (in seconds) since the last frame
  */
 void AppLoadingScene::update(float dt) {
-
     if (!_started) {
         return;
     }
@@ -176,7 +161,6 @@ void AppLoadingScene::update(float dt) {
     _phaseTimer += dt;
 
     switch (_phase) {
-
         // Fade logo in
         case LoadPhase::LOGO_FADE_IN: {
 
@@ -192,9 +176,7 @@ void AppLoadingScene::update(float dt) {
             _logo->setColor(opacity);
 
             // Small pulse effect
-            float scale =
-                1.0f + 0.02f * sin(_phaseTimer * 2.0f);
-
+            float scale = 1.0f + 0.02f * sin(_phaseTimer * 2.0f);
             _logo->setScale(scale);
 
             if (_logoAlpha >= 1.0f) {
@@ -227,7 +209,6 @@ void AppLoadingScene::update(float dt) {
             if (_logoAlpha <= 0.0f) {
                 _loadingScene->setVisible(true);
                 _assets->loadDirectoryAsync(_directory,nullptr);
-
                 _phase = LoadPhase::LOADING_SCENE_FADE_IN;
                 _phaseTimer = 0.0f;
             }
@@ -235,7 +216,6 @@ void AppLoadingScene::update(float dt) {
             break;
         }
         case LoadPhase::LOADING_SCENE_FADE_IN: {
-
             _sceneAlpha += dt;
 
             if (_sceneAlpha > 1.0f) {
@@ -244,7 +224,6 @@ void AppLoadingScene::update(float dt) {
 
             Color4 color = _loadingScene->getColor();
             color.a = (Uint8)(_sceneAlpha * 255);
-
             _loadingScene->setColor(color);
 
             if (_sceneAlpha >= 1.0f) {
@@ -254,10 +233,8 @@ void AppLoadingScene::update(float dt) {
             break;
         }
         case LoadPhase::BAR_FADE_IN: {
-
             _bar->setVisible(true);
             _loadingText->setVisible(true);
-
             _barAlpha += dt * 2.0f;
 
             if (_barAlpha > 1.0f) {
@@ -266,7 +243,6 @@ void AppLoadingScene::update(float dt) {
 
             Color4 color = _bar->getColor();
             color.a = (Uint8)(_barAlpha * 255);
-
             _bar->setColor(color);
             _loadingText->setColor(color);
 
@@ -292,17 +268,12 @@ void AppLoadingScene::update(float dt) {
             
             // Actual loading
             _progress = _assets->progress();
-            
-            _displayProgress +=
-                (_progress - _displayProgress) * 0.1f;
-
+            _displayProgress += (_progress - _displayProgress) * 0.1f;
             _bar->setProgress(_displayProgress);
 
             if (_progress >= 1.0f &&
                 _displayProgress >= 0.99f) {
-
                 _bar->setProgress(1.0f);
-
                 _phase = LoadPhase::FINISHED;
                 _phaseTimer = 0.0f;
             }

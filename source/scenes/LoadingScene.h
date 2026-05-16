@@ -60,38 +60,55 @@ public:
 protected:
     /** The asset manager for loading. */
     std::shared_ptr<cugl::AssetManager> _assets;
+    
     /** The asset directory reference */
     std::string _directory;
+    
     /** The scene during loading */
     std::shared_ptr<cugl::scene2::SceneNode>  _loadingScene;
+    
     /** The animated progress bar */
     std::shared_ptr<cugl::scene2::ProgressBar>  _bar;
+    
     /** The black overlay for transitioning in the loading scene */
     std::shared_ptr<cugl::scene2::SceneNode> _blackOverlay;
+    
     /** The studio logo */
     std::shared_ptr<cugl::scene2::SceneNode> _logo;
+    
     /** The label above the loading bar */
     std::shared_ptr<cugl::scene2::Label> _loadingText;
+    
     /** The progress displayed on the screen */
     float _progress = 0.0f;
+    
     /** The artificial progress*/
     float _displayProgress = 0.0f;
+    
     /** Whether or not the player has pressed play to continue */
     bool  _completed = false;
+    
     /** Whether or not the asset loader has started loading */
     bool  _started = false;
+    
     /** How quickly the dots in 'Loading..." appear */
     float _dotTimer = 0.0f;
+    
     /** The number of dots after 'Loading' currently */
     int _dotCount = 0;
+    
     /** The current phase of the animated loading sequence */
     LoadPhase _phase;
+    
     /** Tracks elapsed time within the current loading phase */
     float _phaseTimer = 0.0f;
+    
     /** Current alpha value used for fading the logo in and out */
     float _logoAlpha = 0.0f;
+    
     /** Current alpha value used for fading in the loading scene */
     float _sceneAlpha = 0.0f;
+    
     /** Current alpha value used for fading in the loading bar and text */
     float _barAlpha = 0.0f;
 
@@ -275,7 +292,6 @@ public:
     /** Resizes the scene as needed. */
     void resize();
 };
-
 
 #endif /* __APP_LOADING_SCENE_H__ */
 
