@@ -591,6 +591,13 @@ void GameState::networkUpdate(GameStateMessage newState) {
                              newState.player4LifestealMultiplier, newState.player4LifestealDuration}
     };
 
+    std::vector<std::array<bool, 2>> vineEffects = {
+        std::array<bool, 2>{newState.playerRuntimeEffects[0].hasLeftVine, newState.playerRuntimeEffects[0].hasRightVine},
+        std::array<bool, 2>{newState.playerRuntimeEffects[1].hasLeftVine, newState.playerRuntimeEffects[1].hasRightVine},
+        std::array<bool, 2>{newState.playerRuntimeEffects[2].hasLeftVine, newState.playerRuntimeEffects[2].hasRightVine},
+        std::array<bool, 2>{newState.playerRuntimeEffects[3].hasLeftVine, newState.playerRuntimeEffects[3].hasRightVine},
+    };
+
     for (int i = 0; i < _players.size(); i++) {
         _players[i]->setCurrentHealth(healths[i]);
         _players[i]->syncRuntimeEffects(runtimeEffects[i][0], runtimeEffects[i][1],
@@ -598,6 +605,11 @@ void GameState::networkUpdate(GameStateMessage newState) {
                                         runtimeEffects[i][4], runtimeEffects[i][5],
                                         runtimeEffects[i][6], runtimeEffects[i][7],
                                         runtimeEffects[i][8], runtimeEffects[i][9]);
+
+        // Sync the vine effects for all players with the host
+        // We DON'T use applyVine here because that is for logic on the host end
+        _players[i]->setVineLeft(vineEffects[i][0]);
+        _players[i]->setVineRight(vineEffects[i][1]);
         _players[i]->setMalletUseCount(newState.playerMalletUseCounts[i]);
     }
 }
