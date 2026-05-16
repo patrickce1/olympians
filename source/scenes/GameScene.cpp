@@ -4700,8 +4700,6 @@ void GameScene::applyCorrosiveDrain(int targetPlayerSlot, float fadeDuration, fl
  * players if this machine is the host. AI item spawning is host-only since
  * the host is the authoritative source for all AI state.
  * 
- * Corrosive players do not get items.
- *
  * @param dt  Delta time in seconds.
  */
 void GameScene::handleItemSpawn(float dt) {
@@ -4709,12 +4707,7 @@ void GameScene::handleItemSpawn(float dt) {
         return;
     }
 
-    // Block item spawning while corrosive animations are still running on this player
-    Player* local = _gameState.getLocalPlayer();
-    int localPlayerSlot = local ? local->getPlayerNumber() : -1;
-    bool localPlayerCorrosive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
-
-    _itemController.update(dt, _gameState.getLocalPlayer(), localPlayerCorrosive);
+    _itemController.update(dt, _gameState.getLocalPlayer());
 
     //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
     handleGaiaSpawn();
