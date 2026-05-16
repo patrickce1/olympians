@@ -849,7 +849,7 @@ void SceneLoader::updateGameScene(float dt)
  */
 void SceneLoader::selectBossTheme(GameScene& gameScene) {
     if (gameScene.getGameState().getEnemy()) {
-        std::string enemyName = gameScene.getGameState().getEnemy().getId();
+        std::string enemyName = gameScene.getGameState().getEnemy()->getId();
     }
     else {
         _audio.playMusic("cyclops_theme");
