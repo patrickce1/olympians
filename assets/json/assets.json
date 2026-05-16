@@ -804,6 +804,18 @@
             "stream": false,
             "volume": 0.75
         },
+	"zeus_thunderstrike" : {
+	    "type": "sample",
+	    "file": "sounds/zeus_thunderstorm.wav",
+	    "stream": false,
+	    "volume": 0.65
+	},
+	"hephaestus_forge" : {
+	    "type": "sample",
+	    "file": "hephaestus_forge.wav",
+	    "stream": false,
+	    "volume": 0.65
+	},
         "battle": {
             "type": "sample",
             "file": "sounds/battle.ogg",
