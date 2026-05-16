@@ -2126,6 +2126,13 @@ public:
     void applyForgeEffect(float chance, int seed);
 
     /**
+     * Cancels corrosion animations for local items whose definitions changed during forge.
+     *
+     * @param previousDefIds  Definition IDs captured before forge for corroding local items.
+     */
+    void freeForgedCorrodingItems(const std::unordered_map<ItemInstance::ItemId, std::string>& previousDefIds);
+
+    /**
      * Plays the item's defined use sound, or the generic "support" sound if none is set.
      *
      * @param def  The item definition.
