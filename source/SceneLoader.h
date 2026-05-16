@@ -200,6 +200,18 @@ public:
 
     /*Individual update method for game scene*/
     void updateGameScene(float dt);
+
+    /**
+     * Selects and applies the appropriate boss theme music for the given game scene.
+     *
+     * This function determines which boss is active in the provided GameScene
+     * and triggers the corresponding audio track using the AudioController.
+     * It should be called whenever a boss is chosen or when entering gameplay
+     * to ensure the correct theme is playing.
+     *
+     * @param scene    The GameScene instance containing the current boss context
+     */
+    void selectBossTheme(GameScene& scene);
 };
 
 #endif /* __SCENE_LOADER_H__ */
