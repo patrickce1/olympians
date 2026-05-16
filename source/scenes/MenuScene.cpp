@@ -51,8 +51,8 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets, AudioCon
     }
 
     _settingsButton->addListener([this](const std::string&, bool down) {
-        if (_audio) _audio->playSoundUnique("gear");
         if (!down) {
+            if (_audio) _audio->playSoundUnique("tabswap");
             CULog("MenuScene: Settings pressed (placeholder)");
             _status = Status::OPEN_SETTINGS;
         }
@@ -94,6 +94,8 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets, AudioCon
                     // Require a non-empty name before proceeding
                     if (name.empty()) return;
 
+                    if (_audio) _audio->playSoundUnique("page_turn");
+
                     // Persist immediately — safe, no UI changes here
                     SavedDataManager::get().setPlayerName(name);
                     SavedDataManager::get().save();
@@ -118,6 +120,7 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets, AudioCon
     _playButton->addListener([this](const std::string&, bool down) {
         if (!down) {
             if (SavedDataManager::get().hasPlayerName()) {
+                if (_audio) _audio->playSoundUnique("page_turn");
                 _status = Status::START_GAME;
             } else {
                 _status = Status::PENDING_ONBOARDING;
@@ -214,6 +217,13 @@ void MenuScene::setActive(bool value) {
  */
 void MenuScene::update(float dt) {
     if (!_active) return;
+
+    if (_status == Status::OPEN_SETTINGS) {
+        if (_settingsButton) {
+            _settingsButton->deactivate();
+            _settingsButton->setDown(false);
+        }
+    }
 
     if (_status == Status::PENDING_ONBOARDING) {
         if (!_namePopup || !_nameField || !_nameSaveButton) {
