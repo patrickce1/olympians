@@ -252,16 +252,30 @@ public:
     const std::vector<CorrosiveDrainMessage>& getCorrosiveDrainUpdates() const { return corrosiveDrains; }
 
     /**
-     * HOST ONLY. Broadcasts a Cerberus corrosive drain event to all clients.
-     * The host also applies the drain locally via applyCorrosiveDrain.
+     * Returns all corrosive drain acknowledgements received after calling getNetworkUpdate().
      *
+     * @return Const reference to the queued corrosive drain acknowledgement messages.
+     */
+    const std::vector<CorrosiveDrainAckMessage>& getCorrosiveDrainAckUpdates() const { return corrosiveDrainAcks; }
+
+    /**
+     * HOST ONLY. Sends a reliable Cerberus corrosive drain event to the target client.
+     *
+     * @param drainId           Host-generated unique ID used for ACK/resend handling.
      * @param targetPlayerSlot  Slot index of the player whose items are drained.
      * @param fadeDuration      Base fade-out duration per item for the animation.
      * @param fadeVariance      ±fraction applied randomly to fadeDuration per item.
      * @param maxAffected       Number of items that were drained (clients select locally).
      */
-    void broadcastCorrosiveDrain(int targetPlayerSlot, float fadeDuration, float fadeVariance,
-                                 int maxAffected);
+    void broadcastCorrosiveDrain(int drainId, int targetPlayerSlot, float fadeDuration,
+                                 float fadeVariance, int maxAffected);
+
+    /**
+     * CLIENT ONLY. Acknowledges that a corrosive drain has been applied locally.
+     *
+     * @param drainId  Host-generated unique ID of the drain being acknowledged.
+     */
+    void acknowledgeCorrosiveDrain(int drainId);
 
     /** Returns the number of Gaia item spawn messages we received after calling getNetworkUpdate() */
     int getNumGaiaSpawns() const { return gaiaSpawns; }
@@ -674,7 +688,8 @@ protected:
         FORGE_EFFECT = 19,
         MID_GAME_SCRAMBLE = 20,
         CORROSIVE_DRAIN = 21,
-        STATS_BROADCAST = 22 
+        STATS_BROADCAST = 22,
+        CORROSIVE_DRAIN_ACK = 23
     };
 
     /** Our network connection */
@@ -703,6 +718,7 @@ private:
     std::vector<EnemyEffectMessage> enemyEffects;
     std::vector<ForgeEffectMessage> forgeEffects;
     std::vector<CorrosiveDrainMessage> corrosiveDrains;
+    std::vector<CorrosiveDrainAckMessage> corrosiveDrainAcks;
 
     /** Integer that keeps track of how many messages a client received to spawn in Gaia rocks */
     int gaiaSpawns;

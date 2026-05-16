@@ -117,10 +117,16 @@ struct EnemyEffectMessage {
  * not shared across the network, so they cannot be sent).
  */
 struct CorrosiveDrainMessage {
+    int drainId = 0;
     int targetPlayerSlot = -1;
     float fadeDuration   = 0.9f;
     float fadeVariance   = 0.3f;
     int maxAffected      = 0;
+};
+
+/** Message sent by the target client after it has applied a corrosive drain. */
+struct CorrosiveDrainAckMessage {
+    int drainId = 0;
 };
 
 /** Message sent by client to indicate passing an item.

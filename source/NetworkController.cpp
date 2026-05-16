@@ -625,11 +625,19 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
         }
         case MessageType::CORROSIVE_DRAIN: {
             CorrosiveDrainMessage drainMsg;
+            drainMsg.drainId          = _deserializer.readSint32();
             drainMsg.targetPlayerSlot = _deserializer.readSint32();
             drainMsg.fadeDuration     = _deserializer.readFloat();
             drainMsg.fadeVariance     = _deserializer.readFloat();
             drainMsg.maxAffected      = _deserializer.readSint32();
             corrosiveDrains.push_back(drainMsg);
+            break;
+        }
+
+        case MessageType::CORROSIVE_DRAIN_ACK: {
+            CorrosiveDrainAckMessage ackMsg;
+            ackMsg.drainId = _deserializer.readSint32();
+            corrosiveDrainAcks.push_back(ackMsg);
             break;
         }
         
@@ -677,6 +685,7 @@ void NetworkController::clearQueues() {
 	enemyEffects.clear();
     forgeEffects.clear();
     corrosiveDrains.clear();
+    corrosiveDrainAcks.clear();
 	passes.clear();
     bossHeals.clear();
     gaiaSpawns = 0;
@@ -828,18 +837,47 @@ void NetworkController::broadcastForgeEffect(float chance, int seed) {
 }
 
 /**
- * HOST ONLY. Broadcasts a Cerberus corrosive drain event to all clients.
- * Sends only the count of drained items; each client selects items from
- * its own local inventory (item instance IDs are not shared across devices).
+ * HOST ONLY. Sends a reliable Cerberus corrosive drain event to the target client.
+ *
+ * The payload includes a host-generated drain ID so the target can acknowledge
+ * the event and ignore duplicate resend packets. Sends only the count of
+ * drained items; each client selects items from its own local inventory because
+ * item instance IDs are not shared across devices.
+ *
+ * @param drainId           Host-generated unique ID used for ACK/resend handling.
+ * @param targetPlayerSlot  Slot index of the player whose items are drained.
+ * @param fadeDuration      Base fade-out duration per item for the animation.
+ * @param fadeVariance      ±fraction applied randomly to fadeDuration per item.
+ * @param maxAffected       Number of items to drain; 0 means all local items.
  */
-void NetworkController::broadcastCorrosiveDrain(int targetPlayerSlot, float fadeDuration,
+void NetworkController::broadcastCorrosiveDrain(int drainId, int targetPlayerSlot, float fadeDuration,
                                                 float fadeVariance, int maxAffected) {
     _serializer.writeSint32(MessageType::CORROSIVE_DRAIN);
+    _serializer.writeSint32(drainId);
     _serializer.writeSint32(targetPlayerSlot);
     _serializer.writeFloat(fadeDuration);
     _serializer.writeFloat(fadeVariance);
     _serializer.writeSint32(maxAffected);
-    _network->broadcast(_serializer.serialize());
+    if (checkRealPlayer(targetPlayerSlot)) {
+        _network->sendTo(_slotToPlayer.at(targetPlayerSlot).networkID, _serializer.serialize());
+    } else {
+        _network->broadcast(_serializer.serialize());
+    }
+    _serializer.reset();
+}
+
+/**
+ * CLIENT ONLY. Sends a corrosive drain acknowledgement to the host.
+ *
+ * The host removes the matching pending drain from its resend queue when this
+ * ACK is received.
+ *
+ * @param drainId  Host-generated unique ID of the drain being acknowledged.
+ */
+void NetworkController::acknowledgeCorrosiveDrain(int drainId) {
+    _serializer.writeSint32(MessageType::CORROSIVE_DRAIN_ACK);
+    _serializer.writeSint32(drainId);
+    _network->sendToHost(_serializer.serialize());
     _serializer.reset();
 }
 
