@@ -72,9 +72,11 @@
             "itemUseAnimation": {
                 "spriteSheetId": "arrows_animation",
                 "rows": 1,
-                "cols": 7,
-                "frameCount": 7,
-                "animationDuration": 0.581,
+                "cols": 8,
+                "frameCount": 8,
+                "animationDuration": 0.8,
+                "scale": 1.05,
+                "offsetY": -25,
                 "damageResolutionFrame": 5
             }
         },
@@ -267,10 +269,12 @@
             "itemUseAnimation": {
                 "spriteSheetId": "spear_animation",
                 "rows": 1,
-                "cols": 9,
-                "frameCount": 9,
-                "animationDuration": 0.747,
-                "damageResolutionFrame": 4
+                "cols": 8,
+                "frameCount": 8,
+                "animationDuration": 0.8,
+                "damageResolutionFrame": 3,
+                "offsetY": 30,
+                "aboveInventory": false
             }
         },
         {
@@ -360,11 +364,14 @@
             "itemUseAnimation": {
                 "spriteSheetId": "storm_animation",
                 "rows": 1,
-                "cols": 8,
-                "frameCount": 8,
-                "animationDuration": 0.664,
-                "damageResolutionFrame": 6,
-                "centerOnDropLocation": true
+                "cols": 17,
+                "frameCount": 17,
+                "animationDuration": 1.5,
+                "damageResolutionFrame": 4,
+                "scale": 1.1,
+                "offsetY": 65,
+                "aboveInventory": false,
+                "centerOnDropLocation": false
             }
         },
         {
@@ -390,10 +397,14 @@
             "itemUseAnimation": {
                 "spriteSheetId": "tsunami_animation",
                 "rows": 1,
-                "cols": 9,
-                "frameCount": 9,
-                "animationDuration": 0.747,
-                "damageResolutionFrame": 7
+                "cols": 13,
+                "frameCount": 13,
+                "animationDuration": 1.2,
+                "damageResolutionFrame": 5,
+                "scale": 1.05,
+                "offsetY": 100,
+                "aboveInventory": false,
+                "centerOnDropLocation": false
             }
         },
         {
@@ -430,7 +441,17 @@
                     "amount": 25.0,
                     "duration": 5.0
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "resurrection_animation",
+                "rows": 1,
+                "cols": 16,
+                "frameCount": 16,
+                "animationDuration": 1.1,
+                "damageResolutionFrame": 10,
+                "scale": 1.25,
+                "centerOnDropLocation": false
+            }
         },
         {
             "id": "harvest",
@@ -451,7 +472,18 @@
                     "amount": 350.0,
                     "duration": 7.0
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "harvest_animation",
+                "rows": 1,
+                "cols": 14,
+                "frameCount": 14,
+                "animationDuration": 1.1,
+                "damageResolutionFrame": 5,
+                "scale": 0.95,
+                "offsetY": -25,
+                "centerOnDropLocation": false
+            }
         },
         {
             "id": "forge",
@@ -471,7 +503,17 @@
                     "type": "forge",
                     "chance": 0.1
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "forge_animation",
+                "rows": 1,
+                "cols": 14,
+                "frameCount": 14,
+                "animationDuration": 1.4,
+                "damageResolutionFrame": 10,
+                "scale": 1.0,
+                "centerOnDropLocation": false
+            }
         },
         {
             "id": "educate",
@@ -491,7 +533,16 @@
                     "type": "educate",
                     "duration": 10.0
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "educate_animation",
+                "rows": 1,
+                "cols": 19,
+                "frameCount": 19,
+                "animationDuration": 1.2,
+                "damageResolutionFrame": 4,
+                "centerOnDropLocation": false
+            }
         },
         {
             "id": "rage",
@@ -513,7 +564,18 @@
                     "duration": 6.0,
                     "applyToAllSides": true
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "rage_animation",
+                "rows": 1,
+                "cols": 7,
+                "frameCount": 7,
+                "animationDuration": 0.5,
+                "damageResolutionFrame": 4,
+                "scale": 1.1,
+                "offsetY": -40,
+                "centerOnDropLocation": false
+            }
         },
         {
             "id": "treasure",
@@ -534,7 +596,18 @@
                     "amount": 1.0,
                     "duration": 12.0
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "treasure_animation",
+                "rows": 1,
+                "cols": 9,
+                "frameCount": 9,
+                "animationDuration": 0.9,
+                "damageResolutionFrame": 4,
+                "scale": 0.95,
+                "offsetY": 0,
+                "centerOnDropLocation": false
+            }
         },
         {
             "id": "charm",
@@ -554,7 +627,18 @@
                     "type": "charm",
                     "duration": 10.0
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "charm_animation",
+                "rows": 1,
+                "cols": 11,
+                "frameCount": 11,
+                "animationDuration": 1.1,
+                "damageResolutionFrame": 4,
+                "scale": 1.0,
+                "offsetY": 0,
+                "centerOnDropLocation": false
+            }
         }
     ],
     "itemInterval": 2.5,
