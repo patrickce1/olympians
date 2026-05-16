@@ -141,7 +141,7 @@ void LobbyScene::setupListeners() {
         
         // Assign unique houses to any AI slots that don't have one.
         // ItemController is needed to reinitialize AI behavior after
-        // reconstructing slots as EasyPlayerAI with their new house.
+        // reconstructing slots as PlayerAI with their new house.
         _gameState->assignMissingHousesForAI(*_itemController);
 
         // Broadcast each AI house to clients.
@@ -247,6 +247,7 @@ void LobbyScene::setActive(bool value) {
                 showDisconnectBanner(_disconnectBanner);
                 _disconnectBanner = "";
             }
+            CULog("[LobbyScene] Cached player XP: %d", SavedDataManager::get().getPlayerXP());
         } else {
             if (_pendingDisconnect) {
                 _network->disconnect();
