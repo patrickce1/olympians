@@ -2,6 +2,8 @@
 #define __ENEMY_LOADER_H__
 
 #include <cugl/cugl.h>
+#include <algorithm>
+#include <array>
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -62,6 +64,7 @@ public:
     struct AIConfig {
         float retargetLikelihood = 0.0f;
         float defenseLikelihood = 0.0f;
+        std::array<float, 3> attackWeights = { 1.0f, 1.0f, 1.0f };
     };
 
     AIConfig ai;
@@ -195,6 +198,20 @@ public:
             def.spritesheetPath = entry->getString("spritesheetPath");
             def.customData = entry->get("customData");
 
+            auto aiObj = entry->get("ai");
+            if (aiObj && aiObj->isObject()) {
+                def.ai.retargetLikelihood =
+                    aiObj->getFloat("retargetLikelihood", 0.0f);
+                def.ai.defenseLikelihood = aiObj->getFloat("defenseLikelihood", 0.05f);
+
+                auto attackWeightsObj = aiObj->get("attackWeights");
+                if (attackWeightsObj && attackWeightsObj->isObject()) {
+                    def.ai.attackWeights[0] = std::max(0.0f, attackWeightsObj->getFloat("attack_1", 1.0f));
+                    def.ai.attackWeights[1] = std::max(0.0f, attackWeightsObj->getFloat("attack_2", 1.0f));
+                    def.ai.attackWeights[2] = std::max(0.0f, attackWeightsObj->getFloat("attack_3", 1.0f));
+                }
+            }
+
             auto statesObj = entry->get("states");
             CUAssertLog(statesObj && statesObj->isObject(),
                         "Enemy '%s' missing object 'states'", def.id.c_str());
@@ -268,13 +285,6 @@ public:
                 if (jsonLoopEndFrame >= -1)   stateDef.loopEndFrame     = jsonLoopEndFrame;  // -2 = not specified, -1 = no loop (valid)
                 if (jsonFrameDuration > 0.0f) stateDef.frameDuration    = jsonFrameDuration;
 
-                auto aiObj = entry->get("ai");
-                if (aiObj && aiObj->isObject()) {
-                    def.ai.retargetLikelihood =
-                        aiObj->getFloat("retargetLikelihood", 0.0f);
-                    def.ai.defenseLikelihood = aiObj->getFloat("defenseLikelihood", 0.05f);
-                }
-                
                 // Shared parser for both entryEvents and events arrays
                 auto parseEventArray = [](const std::shared_ptr<cugl::JsonValue>& arr, std::vector<EventDef>& out) {
                     if (!arr || !arr->isArray()) return;
