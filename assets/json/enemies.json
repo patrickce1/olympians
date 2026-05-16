@@ -402,14 +402,14 @@
         {
             "id": "gaia",
             "name": "gaia",
-            "maxHealth": 10000.0,
+            "maxHealth": 15000.0,
             "spritesheetPath": "textures/gaia.png",
             "ai": {
                 "retargetLikelihood": 0.9,
                 "defenseLikelihood": 0.0,
                 "attackWeights": {
                     "attack_1": 10.0,
-                    "attack_2": 6.0,
+                    "attack_2": 7.0,
                     "attack_3": 1.0
                 }
             },
@@ -424,7 +424,7 @@
                 "attack_1": {
                     "name": "Earth's Tremors",
                     "buildUpTime": 0.72,
-                    "cooldownTime": 2.0,
+                    "cooldownTime": 1.0,
                     "animationKey": "gaia_rock_attack_animation",
                     "entryEvents": [
                         {
@@ -452,7 +452,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 30.0
+                            "amount": 40.0
                         }
                     ],
                     "nextState": "idle"
@@ -488,7 +488,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 0.0
+                            "amount": 20.0
                         },
                         {
                             "type": "VINE",
@@ -530,22 +530,22 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 15.0
+                            "amount": 20.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 1,
-                            "amount": 15.0
+                            "amount": 20.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 2,
-                            "amount": 15.0
+                            "amount": 20.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 3,
-                            "amount": 15.0
+                            "amount": 20.0
                         },
                         {
                             "type": "PLAYER_SCRAMBLE"
