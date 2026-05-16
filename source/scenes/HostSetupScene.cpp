@@ -156,8 +156,8 @@ void HostSetupScene::setupListeners() {
     });
     
     _joinButton->addListener([this](const std::string& name, bool down) {
-        if (_audio) _audio->playSoundUnique("tabswap");
         if (down) {
+            if (_audio) _audio->playSoundUnique("tabswap");
             _status = Status::CLIENT;
             _joinButton->setDown(false);
         }
