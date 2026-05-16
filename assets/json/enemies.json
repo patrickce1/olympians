@@ -146,12 +146,12 @@
                     "name": "club",
                     "animationKey": "cyclops_slash_animation",
                     "buildUpTime": 1.0,
-                    "cooldownTime": 3.0,
+                    "cooldownTime": 2.0,
                     "events": [
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 45.0
+                            "amount": 25.0
                         }
                     ],
                     "nextState": "idle"
@@ -216,7 +216,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 60.0
+                            "amount": 70.0
                         }
                     ],
                     "nextState": "idle"
