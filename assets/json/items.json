@@ -363,11 +363,14 @@
             "itemUseAnimation": {
                 "spriteSheetId": "storm_animation",
                 "rows": 1,
-                "cols": 8,
-                "frameCount": 8,
-                "animationDuration": 0.664,
-                "damageResolutionFrame": 6,
-                "centerOnDropLocation": true
+                "cols": 17,
+                "frameCount": 17,
+                "animationDuration": 1.5,
+                "damageResolutionFrame": 4,
+                "scale": 1.1,
+                "offsetY": 65,
+                "aboveInventory": false,
+                "centerOnDropLocation": false
             }
         },
         {
@@ -398,7 +401,8 @@
                 "damageResolutionFrame": 5,
                 "scale": 1.05,
                 "offsetY": 100,
-                "aboveInventory": false
+                "aboveInventory": false,
+                "centerOnDropLocation": false
             }
         },
         {
@@ -443,7 +447,7 @@
                 "animationDuration": 1.1,
                 "damageResolutionFrame": 10,
                 "scale": 1.25,
-                "centerOnDropLocation": true
+                "centerOnDropLocation": false
             }
         },
         {
@@ -474,7 +478,7 @@
                 "damageResolutionFrame": 5,
                 "scale": 0.95,
                 "offsetY": -25,
-                "centerOnDropLocation": true
+                "centerOnDropLocation": false
             }
         },
         {
@@ -503,7 +507,7 @@
                 "animationDuration": 1.4,
                 "damageResolutionFrame": 10,
                 "scale": 1.0,
-                "centerOnDropLocation": true
+                "centerOnDropLocation": false
             }
         },
         {
@@ -531,7 +535,7 @@
                 "frameCount": 19,
                 "animationDuration": 1.2,
                 "damageResolutionFrame": 4,
-                "centerOnDropLocation": true
+                "centerOnDropLocation": false
             }
         },
         {
@@ -563,7 +567,7 @@
                 "damageResolutionFrame": 4,
                 "scale": 1.1,
                 "offsetY": -40,
-                "centerOnDropLocation": true
+                "centerOnDropLocation": false
             }
         },
         {
@@ -594,7 +598,7 @@
                 "damageResolutionFrame": 4,
                 "scale": 0.95,
                 "offsetY": 0,
-                "centerOnDropLocation": true
+                "centerOnDropLocation": false
             }
         },
         {
@@ -624,7 +628,7 @@
                 "damageResolutionFrame": 4,
                 "scale": 1.0,
                 "offsetY": 0,
-                "centerOnDropLocation": true
+                "centerOnDropLocation": false
             }
         }
     ],

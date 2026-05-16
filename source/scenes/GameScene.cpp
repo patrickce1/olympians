@@ -1155,6 +1155,7 @@ void GameScene::reset() {
     _activeFloatingPopups.clear();
     _pendingFloatingPopups.clear();
     _pendingStunDamagePopups.clear();
+    _pendingDelayedAnimations.clear();
     _itemController.reset();
 
     std::vector<ItemInstance::ItemId> itemIds;
@@ -5353,6 +5354,7 @@ void GameScene::update(float dt, InputController& input) {
     detectGaiaAnimationTriggers();
     updateGaiaVineAnimation(dt);
     updateStunDamagePopups(dt);
+    updatePendingDelayedAnimations(dt);
     updatePopupAnimations(dt);
     syncEffectIconsFromPlayerState();
     updateEffectTimerIcons(dt);
@@ -6616,6 +6618,17 @@ void GameScene::updateItemUseAnimations(float dt) {
                 scheduleStunDamagePopups(activeAnim.enemyEffects, activeAnim.popupPosition,
                                          activeAnim.houseAffinityMultiplier,
                                          activeAnim.upgradeMultiplier);
+
+                if (!activeAnim.itemDefID.empty()) {
+                    auto def = _itemController.getDatabase().getDef(activeAnim.itemDefID);
+                    if (def && def->hasItemUseAnimation()) {
+                        const auto& animConfig = def->getItemUseAnimation();
+                        const cugl::Vec2 animPos = animConfig.centerOnDropLocation
+                            ? activeAnim.popupPosition
+                            : cugl::Vec2::ZERO;
+                        scheduleDelayedStunAnimations(animConfig, animPos, activeAnim.enemyEffects);
+                    }
+                }
             }
 
             // Host plays enemy_hurt or enemy_block depending on whether damage landed.
@@ -7180,6 +7193,45 @@ void GameScene::updateStunDamagePopups(float dt) {
             houseDamage, finalDamage, 26.0f, 17.0f));
 
         popup = _pendingStunDamagePopups.erase(popup);
+    }
+}
+
+/**
+ * Queues a delayed replay of an item-use animation for every stun effect whose delay > 0.
+ * The first stun (delay == 0) is already covered by the animation that fires when the item
+ * is used, so only subsequent staged hits need a replay (e.g. the three later bolts of
+ * Thunderstorm at t=2, t=4, and t=6 seconds).
+ */
+void GameScene::scheduleDelayedStunAnimations(const ItemUseAnimationConfig& animConfig,
+                                               const cugl::Vec2& animPos,
+                                               const std::vector<EnemyEffectMessage>& enemyEffects) {
+    for (const EnemyEffectMessage& effect : enemyEffects) {
+        if (effect.effectType != EnemyEffectType::Stun || effect.delay <= 0.0f) {
+            continue;
+        }
+        PendingDelayedAnimation pending;
+        pending.animConfig = animConfig;
+        pending.position   = animPos;
+        pending.delay      = effect.delay;
+        _pendingDelayedAnimations.push_back(pending);
+    }
+}
+
+/**
+ * Ticks each pending delayed animation replay and fires startItemUseAnimation for any
+ * whose countdown has reached zero.
+ *
+ * @param dt Delta time in seconds.
+ */
+void GameScene::updatePendingDelayedAnimations(float dt) {
+    for (auto it = _pendingDelayedAnimations.begin(); it != _pendingDelayedAnimations.end(); ) {
+        it->delay -= dt;
+        if (it->delay <= 0.0f) {
+            startItemUseAnimation(it->animConfig, 0.0f, it->position, 0);
+            it = _pendingDelayedAnimations.erase(it);
+        } else {
+            ++it;
+        }
     }
 }
 

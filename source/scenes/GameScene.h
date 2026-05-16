@@ -591,6 +591,19 @@ protected:
     /** Vector of stun damage popups waiting for their stun delay to elapse. */
     std::vector<PendingStunDamagePopup> _pendingStunDamagePopups;
 
+    /** A delayed replay of an item-use animation, fired when its countdown reaches zero. */
+    struct PendingDelayedAnimation {
+        /** Full animation config to pass to startItemUseAnimation. */
+        ItemUseAnimationConfig animConfig;
+        /** Position passed to startItemUseAnimation (Vec2::ZERO = default viewport center). */
+        cugl::Vec2 position = cugl::Vec2::ZERO;
+        /** Remaining seconds before the animation fires. */
+        float delay = 0.0f;
+    };
+
+    /** Delayed animation replays queued by items with staged stun effects (e.g. thunderstorm). */
+    std::vector<PendingDelayedAnimation> _pendingDelayedAnimations;
+
 #pragma mark - Tutorial Dialogue
     /** The root node of the dialogue UI, used for animations and visibility. Specific to tutorial */
     std::shared_ptr<cugl::scene2::SceneNode> _tutorialDialogueBox;
@@ -1889,6 +1902,26 @@ public:
      * @param dt Delta time in seconds.
      */
     void updateStunDamagePopups(float dt);
+
+    /**
+     * Queues a replay of an item-use animation for each stun effect whose delay > 0.
+     * Called after the initial animation's damage-resolution frame fires so that
+     * items like Thunderstorm show the visual for every subsequent staged hit.
+     *
+     * @param animConfig  The animation config to replay.
+     * @param animPos     The position passed to startItemUseAnimation (Vec2::ZERO = center).
+     * @param enemyEffects The enemy effects produced by the item use.
+     */
+    void scheduleDelayedStunAnimations(const ItemUseAnimationConfig& animConfig,
+                                       const cugl::Vec2& animPos,
+                                       const std::vector<EnemyEffectMessage>& enemyEffects);
+
+    /**
+     * Ticks all pending delayed animation replays and fires any whose delay has elapsed.
+     *
+     * @param dt Delta time in seconds.
+     */
+    void updatePendingDelayedAnimations(float dt);
 
     /**
      * Returns the screen-space drop position of the given item's physics body.
