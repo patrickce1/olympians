@@ -105,7 +105,7 @@
                 "defenseLikelihood": 0.1,
                 "attackWeights": {
                     "attack_1": 4.0,
-                    "attack_2": 2.0,
+                    "attack_2": 3.0,
                     "attack_3": 1.0
                 }
             },
@@ -151,7 +151,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 25.0
+                            "amount": 20.0
                         }
                     ],
                     "nextState": "idle"
@@ -216,7 +216,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 70.0
+                            "amount": 60.0
                         }
                     ],
                     "nextState": "idle"
