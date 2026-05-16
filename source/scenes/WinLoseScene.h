@@ -30,69 +30,98 @@ public:
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
-    
+
     /** The scene node defined by the JSON */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
 
     /** The network controller shared across all scenes */
     std::shared_ptr<NetworkController> _network;
-    
-    /** The return button for the boss select scene */
+
+    /** Button that returns the player to the main lobby */
     std::shared_ptr<cugl::scene2::Button> _returnButton;
-    
-    /** The base images for showing victory */
+
+    /** Overlay image displayed on victory */
     std::shared_ptr<cugl::scene2::SceneNode> _victoryImage;
-    
-    /** The base images for showing defeat */
+
+    /** Overlay image displayed on defeat */
     std::shared_ptr<cugl::scene2::SceneNode> _defeatImage;
-    
-    std::shared_ptr<cugl::scene2::Button>    _continueButton;   // phase 1
+
+    /** Button shown in phase 1 that advances to the stats screen */
+    std::shared_ptr<cugl::scene2::Button> _continueButton;
+
+    /** Root node for the team-wide stat panel */
     std::shared_ptr<cugl::scene2::SceneNode> _teamStats;
+
+    /** Header banner displayed above the stats panels */
     std::shared_ptr<cugl::scene2::SceneNode> _statsHeader;
+
+    /** Root node containing the four individual player stat rows */
     std::shared_ptr<cugl::scene2::SceneNode> _indivStats;
+
+    /** Win/lose label whose texture swaps based on match outcome */
     std::shared_ptr<cugl::scene2::PolygonNode> _successLabel;
-    
-    // Team stats values
+
+    /** Label showing the team's total damage dealt */
     std::shared_ptr<cugl::scene2::Label> _teamTotalDmg;
+
+    /** Label showing the team's total healing done */
     std::shared_ptr<cugl::scene2::Label> _teamTotalHeal;
 
-    // Utility stars (each star has an empty/fill child to toggle)
+    /** Utility rating stars; each node has an empty/fill child toggled by star count */
     std::shared_ptr<cugl::scene2::SceneNode> _utilStar[3];
 
-    // Individual player rows (indexed 0–3)
+    /** Per-player damage labels, indexed 0–3 */
     std::shared_ptr<cugl::scene2::Label> _playerDmg[4];
+
+    /** Per-player healing labels, indexed 0–3 */
     std::shared_ptr<cugl::scene2::Label> _playerHeal[4];
+
+    /** Per-player utility labels, indexed 0–3 */
     std::shared_ptr<cugl::scene2::Label> _playerUtility[4];
+
+    /** Per-player display name labels, indexed 0–3 */
     std::shared_ptr<cugl::scene2::Label> _playerName[4];
-    
+
+    /** End-of-match stats for a single player */
     struct PlayerStats {
-        std::string displayName;  // e.g. "ATHENA | help_me123"
+        /** Display name shown in the stats table, e.g. "ATHENA | help_me123" */
+        std::string displayName;
+        /** Total damage dealt by this player */
         int damage;
+        /** Total healing done by this player */
         int heals;
+        /** Total utility actions performed by this player */
         int utility;
     };
-    
-    // Timeline
+
+    /** Timeline that drives all phase animations */
     std::shared_ptr<cugl::ActionTimeline> _timeline;
 
-    // Track if timeline is running
+    /** True while an animation sequence is actively running */
     bool _animating = false;
-    
+
+    /** Which UI phase is currently displayed (1 = result reveal, 2 = stats) */
     int _phase = 1;
+
+    /** True when the continue button was pressed and phase 2 should begin next update */
     bool _pendingPhase2 = false;
-    
-    /** The current status */
+
+    /** The current status of this scene, used to signal transitions to the app */
     Status _status;
-    
-    /** Whether we did win or lose*/
+
+    /** True if the local player's team won the match */
     bool _didWin;
-    
+
+    /** True while waiting for the phase 1 fade-out to complete before revealing phase 2 */
     bool _transitioningToPhase2 = false;
-    
+
+    /** Countdown in seconds until the phase 2 content is revealed after the fade-out */
     float _phase2Timer = 0.0f;
-    
+
+    /** Resting positions of each player row, saved before they are pushed off-screen */
     cugl::Vec2 _rowOriginalPos[4];
 
+    
 public:
 #pragma mark -
 #pragma mark Constructors
@@ -185,14 +214,39 @@ public:
     
 
 private:
+    
+    /**
+     * Toggles visibility and activation state for the two UI phases.
+     *
+     * Phase 1 — result reveal:
+     *   Visible:  win/lose image + continue button.
+     *   Hidden:   stats panels + return button.
+     *
+     * Phase 2 — post-game stats:
+     *   Visible:  stats panels + return button.
+     *   Hidden:   win/lose image + continue button.
+     *
+     * @param phase  1 for the result-reveal screen, 2 for the stats screen.
+     */
     void showPhase(int phase);
     
+    /**
+     * Sets the player stats displayed on the phase 2 screen.
+     *
+     * @param players   The stats of every player as defined by the struct
+     */
     void setStats(const PlayerStats players[4]);
     
+    /**
+     * Formats an integer as "20,780" style
+     *
+     * @param value   The number to be formatted
+     */
     std::string formatNumber(int value);
     
     /**
-     * Resets all phase 1 visual states before intro animation.
+     * Resets all nodes to their initial hidden state for phase 1.
+     * The win/lose overlay fades in; everything else starts invisible.
      */
     void resetPhase1Visuals();
     

@@ -247,6 +247,8 @@ void WinLoseScene::showPhase(int phase) {
 
 /**
  * Sets the player stats displayed on the phase 2 screen.
+ *
+ * @param players   The stats of every player as defined by the struct
  */
 void WinLoseScene::setStats(const PlayerStats players[4]) {
     int totalDamage  = 0;
@@ -274,7 +276,11 @@ void WinLoseScene::setStats(const PlayerStats players[4]) {
     }
 }
 
-// Formats an integer as "20,780" style
+/**
+ * Formats an integer as "20,780" style
+ *
+ * @param value   The number to be formatted
+ */
 std::string WinLoseScene::formatNumber(int value) {
     std::string s = std::to_string(value);
     int insertPos = (int)s.size() - 3;
