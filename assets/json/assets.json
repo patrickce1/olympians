@@ -699,6 +699,9 @@
         "successLabelS": {
             "file": "textures/statsScreen/successLabelS.png"
         },
+        "defeatLabelS": {
+            "file": "textures/statsScreen/defeatLabelS.png"
+        },
         "teamStatsBG": {
             "file": "textures/statsScreen/teamStatsBG.png"
         },

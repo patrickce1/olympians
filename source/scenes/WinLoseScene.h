@@ -50,7 +50,7 @@ protected:
     std::shared_ptr<cugl::scene2::SceneNode> _teamStats;
     std::shared_ptr<cugl::scene2::SceneNode> _statsHeader;
     std::shared_ptr<cugl::scene2::SceneNode> _indivStats;
-    std::shared_ptr<cugl::scene2::SceneNode> _successLabel;
+    std::shared_ptr<cugl::scene2::PolygonNode> _successLabel;
     
     // Team stats values
     std::shared_ptr<cugl::scene2::Label> _teamTotalDmg;
@@ -86,6 +86,12 @@ protected:
     
     /** Whether we did win or lose*/
     bool _didWin;
+    
+    bool _transitioningToPhase2 = false;
+    
+    float _phase2Timer = 0.0f;
+    
+    cugl::Vec2 _rowOriginalPos[4];
 
 public:
 #pragma mark -
@@ -185,13 +191,57 @@ private:
     
     std::string formatNumber(int value);
     
+    /**
+     * Resets all phase 1 visual states before intro animation.
+     */
+    void resetPhase1Visuals();
+    
+    /**
+     * Animates phase 1: win/lose overlay fades and scales in, then the
+     * continue button fades in.
+     */
     void runPhase1Intro();
-    
+
+    /**
+     * Fades out phase 1 nodes, then starts the timer that triggers the
+     * phase 2 reveal once the fade completes.
+     */
     void transitionToPhase2();
-    
+
+    /**
+     * Resets all phase 2 nodes to their pre-animation state:
+     *   - Backgrounds and labels start at alpha 0.
+     *   - Each player row is pushed fully off-screen to the left.
+     *   - Original row positions are saved so the reset is safe on re-entry.
+     */
+    void resetPhase2Visuals();
+
+    /**
+     * Runs the phase 2 intro sequence using chained completion listeners:
+     *
+     *   Beat 1 (immediate):  successLabel + teamStats background fade in (0.40s)
+     *   Beat 2 (on beat 1):  teamStats content labels/stars fade in     (0.40s)
+     *   Beat 3 (on beat 2):  player rows slide in one at a time         (0.35-0.45s)
+     *   Beat 4 (after rows): return button fades in                     (0.25s)
+     */
     void runPhase2Intro();
     
-    void resetVisualState();
+    /**
+     * Slides player row i in from off-screen left, then chains to row i+1.
+     * After all 4 rows have slid in the return button fades in.
+     *
+     * @param i  Index of the row to animate (0-3).
+     */
+    void slideInRow(int i);
+    
+    /**
+     * Fades in utility star i, then chains to star i+1.
+     * After all 3 stars have faded in, starts the row slide sequence.
+     *
+     * @param i  Index of the star to animate (0-2).
+     */
+    void fadeInStar(int i);
+
 };
 
 #endif /* __WIN_LOSE_SCENE_H__ */

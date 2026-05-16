@@ -218,7 +218,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        172,
+                                        208,
                                         76
                                     ],
                                     "position": [
@@ -228,7 +228,7 @@
                                     "angle": 0,
                                     "visible": true,
                                     "font": "mainFont",
-                                    "text": "20,780",
+                                    "text": "000,000",
                                     "foreground": "#ffd9a9ff",
                                     "background": "#00000000",
                                     "padding": [
@@ -367,7 +367,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        172,
+                                        208,
                                         76
                                     ],
                                     "position": [
@@ -377,7 +377,7 @@
                                     "angle": 0,
                                     "visible": true,
                                     "font": "mainFont",
-                                    "text": "20,780",
+                                    "text": "000,000",
                                     "foreground": "#ffd9a9ff",
                                     "background": "#00000000",
                                     "padding": [
