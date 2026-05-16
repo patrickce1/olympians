@@ -393,7 +393,19 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			attackMsg.damage = damage;
 			attackMsg.damageDirection = playerIndex;
 			attackMsg.itemDefID = _deserializer.readString();
-				attacks.push_back(attackMsg);
+            attacks.push_back(attackMsg);
+            
+            // HOST ONLY: accumulate damage against the sender's house
+            if (isHost()) {
+                auto slotIt = _uuidToSlot.find(senderID);
+                if (slotIt != _uuidToSlot.end()) {
+                    auto playerIt = _slotToPlayer.find(slotIt->second);
+                    if (playerIt != _slotToPlayer.end()) {
+                        accumulateDamage(playerIt->second.houseID,
+                                         static_cast<int>(damage));
+                    }
+                }
+            }
 			break;
 		}
         case MessageType::PLAYER_HEAL: {
@@ -403,6 +415,18 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
 			healMsg.heal = heal;
 			healMsg.playerID = healRecieverID;
             heals.push_back(healMsg);
+            
+            // HOST ONLY: accumulate heals against the sender's house
+            if (isHost()) {
+                auto slotIt = _uuidToSlot.find(senderID);
+                if (slotIt != _uuidToSlot.end()) {
+                    auto playerIt = _slotToPlayer.find(slotIt->second);
+                    if (playerIt != _slotToPlayer.end()) {
+                        accumulateHeal(playerIt->second.houseID,
+                                       static_cast<int>(heal));
+                    }
+                }
+            }
             break;
         }
         case MessageType::PLAYER_SUPPORT_EFFECT: {
@@ -413,6 +437,18 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             effectMsg.duration = _deserializer.readFloat();
             effectMsg.secondaryMagnitude = _deserializer.readFloat();
             effectMsg.applyToAllPlayers = _deserializer.readBool();
+            
+            // Resolve sender's house from UUID and store on message for stat accumulation
+            if (isHost()) {
+                auto slotIt = _uuidToSlot.find(senderID);
+                if (slotIt != _uuidToSlot.end()) {
+                    auto playerIt = _slotToPlayer.find(slotIt->second);
+                    if (playerIt != _slotToPlayer.end()) {
+                        effectMsg.senderHouseID = playerIt->second.houseID;
+                        accumulateUtility(playerIt->second.houseID);
+                    }
+                }
+            }
             supportEffects.push_back(effectMsg);
             break;
         }
@@ -596,7 +632,21 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             corrosiveDrains.push_back(drainMsg);
             break;
         }
-
+        
+        case MessageType::STATS_BROADCAST: {
+            // Clients receive the host's authoritative stats map and replace
+            // their local copy entirely so captureStats() has correct data.
+            int count = _deserializer.readSint32();
+            _statsMap.clear();
+            for (int i = 0; i < count; i++) {
+                std::string houseID = _deserializer.readString();
+                int damage          = _deserializer.readSint32();
+                int heals           = _deserializer.readSint32();
+                int utilityCount    = _deserializer.readSint32();
+                _statsMap[houseID]  = { damage, heals, utilityCount };
+            }
+            break;
+        }
 	}
 }
 
@@ -874,6 +924,7 @@ void NetworkController::broadcastWonGame() {
 	_serializer.writeSint32(MessageType::GAME_WON);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
+    broadcastStatsMap();
 }
 
 /**
@@ -883,6 +934,7 @@ void NetworkController::broadcastLostGame() {
 	_serializer.writeSint32(MessageType::GAME_LOST);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
+    broadcastStatsMap(); 
 }
 
 /**
@@ -1295,6 +1347,36 @@ void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& newMap
 }
 
 /**
+ * HOST ONLY. Broadcasts the full authoritative stats map to all clients
+ * as a STATS_BROADCAST message. Called automatically by broadcastWonGame()
+ * and broadcastLostGame() so clients have complete stats before captureStats()
+ * runs on their device.
+ *
+ * Serialized layout:
+ *   Sint32          MessageType::STATS_BROADCAST
+ *   Sint32          number of entries N
+ *   [N times]:
+ *     String        houseID
+ *     Sint32        damage
+ *     Sint32        heals
+ *     Sint32        utilityCount
+ */
+void NetworkController::broadcastStatsMap() {
+    if (!isHost()) return;
+
+    _serializer.writeSint32(MessageType::STATS_BROADCAST);
+    _serializer.writeSint32(static_cast<int>(_statsMap.size()));
+    for (const auto& pair : _statsMap) {
+        _serializer.writeString(pair.first);
+        _serializer.writeSint32(pair.second[0]);
+        _serializer.writeSint32(pair.second[1]);
+        _serializer.writeSint32(pair.second[2]);
+    }
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
+}
+
+/**
 * Applies a complete slot remapping in one atomic operation.
 * Rebuilds the internal _slotToPlayer and _uuidToSlot maps using the
 * provided old-slot -> new-slot mapping.
@@ -1334,4 +1416,172 @@ bool NetworkController::checkMidGameScramble() {
     bool value = _midGameScramblePending;
     _midGameScramblePending = false;
     return value;
+}
+
+// ============================================================================
+// End-of-match statistics
+// ============================================================================
+
+/**
+ * Adds damageAmount to the damage total for houseID in _statsMap.
+ *
+ * @param houseID       House ID of the attacking player. Ignored if empty.
+ * @param damageAmount  Resolved damage value to add. May be 0; negative
+ *                      values are accepted but not expected.
+ */
+void NetworkController::accumulateDamage(const std::string& houseID, int damageAmount) {
+    if (houseID.empty()) return;
+    _statsMap[houseID][0] += damageAmount;
+}
+
+/**
+ * Adds healAmount to the healing total for houseID in _statsMap.
+ *
+ * @param houseID    House ID of the healing player. Ignored if empty.
+ * @param healAmount Resolved heal value to add. May be 0; negative
+ *                   values are accepted but not expected.
+ */
+void NetworkController::accumulateHeal(const std::string& houseID, int healAmount) {
+    if (houseID.empty()) return;
+    _statsMap[houseID][1] += healAmount;
+}
+
+/**
+ * Increments the utility trigger count for houseID in _statsMap by 1.
+ *
+ * @param houseID  House ID whose utility count should increase. Ignored if empty.
+ */
+void NetworkController::accumulateUtility(const std::string& houseID) {
+    if (houseID.empty()) return;
+    _statsMap[houseID][2] += 1;
+}
+
+/**
+ * Builds a new map of houseID -> weighted utility value by multiplying each
+ * house's raw trigger count by its entry in kHouseUtilityRatings.
+ *
+ * Houses absent from kHouseUtilityRatings are assigned a multiplier of 1.0.
+ *
+ * @return  A new unordered_map<string, float> where each value is:
+ *            rawUtilityCount * houseMultiplier
+ *          Returns an empty map if _statsMap is empty.
+ */
+std::unordered_map<std::string, float> NetworkController::computeWeightedUtility() const {
+    std::unordered_map<std::string, float> result;
+    for (const auto& pair : _statsMap) {
+        float multiplier = 1.0f;
+        auto houseIt = _houseUtilityRatings.find(pair.first);
+        if (houseIt != _houseUtilityRatings.end()) multiplier = houseIt->second;
+        result[pair.first] = static_cast<float>(pair.second[2]) * multiplier;
+    }
+    return result;
+}
+
+/**
+ * Computes team utility stars (1-3) by comparing total weighted utility
+ * against the larger of total team damage and total team heals.
+ *
+ * Stars are assigned as follows:
+ *   ratio = totalWeightedUtility / max(totalDamage, totalHeals)
+ *   ratio >= 0.50  →  3 stars
+ *   ratio >= 0.20  →  2 stars
+ *   otherwise      →  1 star
+ *
+ * @return  An integer in [1, 3] representing the team utility star rating.
+ *          Returns 1 if max(totalDamage, totalHeals) is zero to avoid
+ *          division by zero.
+ */
+int NetworkController::computeTeamUtilityStars() const {
+    int totalDamage = 0, totalHeals = 0;
+    float totalWeightedUtil = 0.0f;
+    auto weightedUtil = computeWeightedUtility();
+
+    for (const auto& pair : _statsMap) {
+        totalDamage       += pair.second[0];
+        totalHeals        += pair.second[1];
+        totalWeightedUtil += weightedUtil[pair.first];
+    }
+
+    float reference = static_cast<float>(std::min(totalDamage, totalHeals));
+
+    CULog("=== computeTeamUtilityStars ===");
+    CULog("  totalDamage=%d  totalHeals=%d  totalWeightedUtil=%.2f", totalDamage, totalHeals, totalWeightedUtil);
+
+    if (reference <= 0.0f) {
+        return 1;
+    }
+
+    float ratio = totalWeightedUtil / reference;
+
+    if (ratio >= 0.10f) { CULog("  → 3 stars"); return 3; }
+    if (ratio >= 0.05f) { CULog("  → 2 stars"); return 2; }
+    
+    return 1;
+}
+
+/**
+ * Computes utility stars (1-3) for a single player house based on their
+ * share of the total weighted utility used by the entire team.
+ *
+ * Stars are assigned as follows:
+ *   share = weightedUtility[houseID] / sum(all weighted utilities)
+ *   share >= 0.70  →  3 stars
+ *   share >= 0.45  →  2 stars
+ *   otherwise      →  1 star
+ *
+ * @param houseID  The house to evaluate (e.g. "poseidon"). If houseID is not
+ *                 found in the weighted utility map, its contribution is 0.
+ * @return         An integer in [1, 3] representing the player's utility star
+ *                 rating. Returns 1 if total weighted utility is zero.
+ */
+int NetworkController::computePlayerUtilityStars(const std::string& houseID) const {
+    auto weightedUtil = computeWeightedUtility();
+    float totalWeightedUtil = 0.0f;
+    for (const auto& pair : weightedUtil) totalWeightedUtil += pair.second;
+    if (totalWeightedUtil <= 0.0f) return 1;
+    float playerUtil = 0.0f;
+    auto utilIt = weightedUtil.find(houseID);
+    if (utilIt != weightedUtil.end()) playerUtil = utilIt->second;
+    float share = playerUtil / totalWeightedUtil;
+    if (share >= 0.40f) return 3;
+    if (share >= 0.25f) return 2;
+    return 1;
+}
+
+/**
+ * Parses the "houses" array from houses.json and stores each house's
+ * "utility" float field into _houseUtilityRatings, keyed by "id".
+ *
+ * Expected JSON structure per entry:
+ * {
+ *     "id":      "athena",
+ *     "utility": 0.7,
+ *     ...
+ * }
+ *
+ * Entries missing either "id" or "utility" are skipped silently.
+ * Existing entries in _houseUtilityRatings are overwritten on reload.
+ *
+ * @param assets  The loaded asset manager. If null, this method returns
+ *                immediately without modifying _houseUtilityRatings.
+ */
+void NetworkController::loadHouseUtilityRatings(const std::shared_ptr<cugl::AssetManager>& assets) {
+    if (!assets) return;
+
+    auto json = assets->get<cugl::JsonValue>("houses");
+    if (!json) return;
+
+    auto housesArray = json->get("houses");
+    if (!housesArray) return;
+
+    _houseUtilityRatings.clear();
+    for (int i = 0; i < (int)housesArray->size(); i++) {
+        auto entry = housesArray->get(i);
+        if (!entry) continue;
+        if (!entry->has("id") || !entry->has("utility")) continue;
+
+        std::string id  = entry->getString("id");
+        float utility   = entry->getFloat("utility");
+        _houseUtilityRatings[id] = utility;
+    }
 }

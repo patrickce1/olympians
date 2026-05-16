@@ -714,8 +714,67 @@
         },
         "exampleTooltip": {
             "file": "textures/items/tooltips/exampleTooltip.png"
+        },
+        "successLabelS": {
+            "file": "textures/statsScreen/successLabelS.png"
+        },
+        "defeatLabelS": {
+            "file": "textures/statsScreen/defeatLabelS.png"
+        },
+        "teamStatsBG": {
+            "file": "textures/statsScreen/teamStatsBG.png"
+        },
+        "lineMed": {
+            "file": "textures/statsScreen/lineMed.png"
+        },
+        "lineLg": {
+            "file": "textures/statsScreen/lineLg.png"
+        },
+        "lineSm": {
+            "file": "textures/statsScreen/lineSm.png"
+        },
+        "emptyStars": {
+            "file": "textures/statsScreen/empty.png"
+        },
+        "mvp": {
+            "file": "textures/statsScreen/mvp.png"
+        },
+        "mvpBG": {
+            "file": "textures/statsScreen/mvpBG.png"
+        },
+        "regularStatBG": {
+            "file": "textures/statsScreen/regularStatBG.png"
+        },
+        "fillStars": {
+            "file": "textures/statsScreen/fill.png"
+        },
+        "poseidonTeamStats": {
+            "file": "textures/statsScreen/poseidonTeamStats.png"
+        },
+        "aresTeamStats": {
+            "file": "textures/statsScreen/aresTeamStats.png"
+        },
+        "hephaestusTeamStats": {
+            "file": "textures/statsScreen/hephaestusTeamStats.png"
+        },
+        "hadesTeamStats": {
+            "file": "textures/statsScreen/hadesTeamStats.png"
+        },
+        "zeusTeamStats": {
+            "file": "textures/statsScreen/zeusTeamStats.png"
+        },
+        "hermesTeamStats": {
+            "file": "textures/statsScreen/hermesTeamStats.png"
+        },
+        "aphroditeTeamStats": {
+            "file": "textures/statsScreen/aphroditeTeamStats.png"
+        },
+        "demeterTeamStats": {
+            "file": "textures/statsScreen/demeterTeamStats.png"
+        },
+        "athenaTeamStats": {
+            "file": "textures/statsScreen/athenaTeamStats.png"
         }
-        
     },
     "fonts": {
         "felt": {
@@ -990,6 +1049,9 @@
         "buttonSmall": "widgets/elements/buttonSmall.json",
         "textfield": "widgets/elements/textfield.json",
         "keypad": "widgets/elements/keypad.json",
+        "teamStats": "widgets/stats/teamStats.json",
+        "indivStats": "widgets/stats/indivStats.json",
+        "regularStatsBlock": "widgets/stats/regularStatsBlock.json",
         "settingsScene": "json/scenes/settingsScene.json"
     },
     "scene2s": {

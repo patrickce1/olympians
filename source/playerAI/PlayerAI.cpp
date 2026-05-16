@@ -36,6 +36,8 @@ bool PlayerAI::init(const ItemDatabase& db, const std::string& path) {
     _db = &db;
     _thinkTimer = 0.0f;
     _pendingForgeChances.clear();
+    _pendingUtilityCount = 0;
+    _pendingHealAmount   = 0.0f;
     bool valid = true;
 
     if (config->has("thinkIntervalMin") && config->get("thinkIntervalMin")->isNumber()) {
@@ -624,7 +626,17 @@ void PlayerAI::actSupport(ItemController& items) {
     if (_debug) CULog("[PlayerAI '%s'] actSupport — using item %llu on '%s' (ratio=%.2f)",
           getPlayerName().c_str(), (unsigned long long)chosen,
           target->getPlayerName().c_str(), lowestRatio);
+    
+    // Stats for AI heals
+    const float targetHealthBefore = target->getCurrentHealth();
     useItemById(chosen, *target, *_db);
+    const float healApplied = target->getCurrentHealth() - targetHealthBefore;
+    if (healApplied > 0.0f) {
+        _pendingHealAmount += healApplied;
+    }
+    if (chosenDef && !chosenDef->getEffects().empty()) {
+        _pendingUtilityCount++;
+    }
 }
 
 /**
@@ -1012,6 +1024,10 @@ float PlayerAI::useAttackItemById(ItemInstance::ItemId itemId, Enemy& enemy, Ite
     }
 
     const float resolvedMagnitude = useItemById(itemId, enemy, *_db);
+    // Accumulate utility if this attack item carries any effects beyond raw damage
+    if (!def->getEffects().empty()) {
+        _pendingUtilityCount++;
+    }
     if (resolvedMagnitude >= 0.0f && def && def->getAttackTarget() == ItemDef::AttackTarget::AllAllies) {
         std::vector<float> forgeChances = collectAIForgeChances(*this, *def);
         _pendingForgeChances.insert(_pendingForgeChances.end(), forgeChances.begin(), forgeChances.end());
