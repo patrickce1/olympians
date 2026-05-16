@@ -168,6 +168,7 @@ void HouseSelectScene::setupListeners() {
             updateText(_selectButton, "SELECT");
             updateSelectedIcon(_currentIndex);
             commitHouseUnlock();
+            if (_audio) _audio->playSoundUnique("small_click");
             return;
         }
 
@@ -188,6 +189,7 @@ void HouseSelectScene::setupListeners() {
         _selectedHouse = true;
         updateSelectedIcon(_currentIndex, false);
         _playerIconGlow->setVisible(true);
+        if (_audio) _audio->playSoundUnique("page_turn");
         _status = Status::ABORT;
         commitHouseLock(currentHouse);
     });
@@ -392,6 +394,7 @@ void HouseSelectScene::update(float timestep, InputController& input) {
 void HouseSelectScene::slideTo(int newIndex) {
     if (_isAnimating) return;
     if (newIndex < 0 || newIndex >= _houseCards.size()) return;
+    if (_audio) _audio->playSoundUnique("small_click");
 
     _isAnimating = true;
 
@@ -934,6 +937,8 @@ void HouseSelectScene::snapToNearestHouse(float releaseContainerX) {
         auto glow = _houseCards[i]->getChildByName("glowOverlayHero");
         if (glow) glow->setVisible(i == nearestIndex);
     }
+
+    if (_audio) _audio->playSoundUnique("small_click");
 
     updateCarouselDots(nearestIndex);
     updateSelectedIcon(nearestIndex);
