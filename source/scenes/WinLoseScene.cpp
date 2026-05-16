@@ -79,6 +79,8 @@ void WinLoseScene::setupUI() {
         _assets->get<scene2::SceneNode>("winLoseScene.return"));
     
     _teamStats    = _assets->get<scene2::SceneNode>("winLoseScene.teamStats");
+    _teamStatsBG = std::dynamic_pointer_cast<scene2::PolygonNode>(
+        _assets->get<scene2::SceneNode>("winLoseScene.teamStats.teamStatsBG"));
     _statsHeader  = _assets->get<scene2::SceneNode>("winLoseScene.statsHeader");
     _indivStats   = _assets->get<scene2::SceneNode>("winLoseScene.indivStats");
     _successLabel = std::dynamic_pointer_cast<scene2::PolygonNode>(

@@ -51,6 +51,9 @@ protected:
 
     /** Root node for the team-wide stat panel */
     std::shared_ptr<cugl::scene2::SceneNode> _teamStats;
+    
+    /** Root node for the team-wide stat panel */
+    std::shared_ptr<cugl::scene2::PolygonNode> _teamStatsBG;
 
     /** Header banner displayed above the stats panels */
     std::shared_ptr<cugl::scene2::SceneNode> _statsHeader;
