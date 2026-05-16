@@ -154,7 +154,7 @@
                             "amount": 45.0
                         }
                     ],
-                    "nextState": "attack_2"
+                    "nextState": "idle"
                 },
                 "attack_2": {
                     "name": "scream",
