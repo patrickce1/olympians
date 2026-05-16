@@ -632,6 +632,21 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             corrosiveDrains.push_back(drainMsg);
             break;
         }
+        
+        case MessageType::STATS_BROADCAST: {
+            // Clients receive the host's authoritative stats map and replace
+            // their local copy entirely so captureStats() has correct data.
+            int count = _deserializer.readSint32();
+            _statsMap.clear();
+            for (int i = 0; i < count; i++) {
+                std::string houseID = _deserializer.readString();
+                int damage          = _deserializer.readSint32();
+                int heals           = _deserializer.readSint32();
+                int utilityCount    = _deserializer.readSint32();
+                _statsMap[houseID]  = { damage, heals, utilityCount };
+            }
+            break;
+        }
 	}
 }
 
@@ -909,6 +924,7 @@ void NetworkController::broadcastWonGame() {
 	_serializer.writeSint32(MessageType::GAME_WON);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
+    broadcastStatsMap();
 }
 
 /**
@@ -918,6 +934,7 @@ void NetworkController::broadcastLostGame() {
 	_serializer.writeSint32(MessageType::GAME_LOST);
 	_network->broadcast(_serializer.serialize());
 	_serializer.reset();
+    broadcastStatsMap(); 
 }
 
 /**
@@ -1325,6 +1342,36 @@ void NetworkController::broadcastPlayerScramble(const std::array<int, 4>& newMap
         _serializer.writeSint32(newMapping[i]);
     }
 
+    _network->broadcast(_serializer.serialize());
+    _serializer.reset();
+}
+
+/**
+ * HOST ONLY. Broadcasts the full authoritative stats map to all clients
+ * as a STATS_BROADCAST message. Called automatically by broadcastWonGame()
+ * and broadcastLostGame() so clients have complete stats before captureStats()
+ * runs on their device.
+ *
+ * Serialized layout:
+ *   Sint32          MessageType::STATS_BROADCAST
+ *   Sint32          number of entries N
+ *   [N times]:
+ *     String        houseID
+ *     Sint32        damage
+ *     Sint32        heals
+ *     Sint32        utilityCount
+ */
+void NetworkController::broadcastStatsMap() {
+    if (!isHost()) return;
+
+    _serializer.writeSint32(MessageType::STATS_BROADCAST);
+    _serializer.writeSint32(static_cast<int>(_statsMap.size()));
+    for (const auto& pair : _statsMap) {
+        _serializer.writeString(pair.first);
+        _serializer.writeSint32(pair.second[0]);
+        _serializer.writeSint32(pair.second[1]);
+        _serializer.writeSint32(pair.second[2]);
+    }
     _network->broadcast(_serializer.serialize());
     _serializer.reset();
 }

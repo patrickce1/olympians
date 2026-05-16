@@ -402,6 +402,14 @@ public:
     void broadcastAIHouseSelection(int slotIndex, const std::string& houseID);
     
     /**
+     * HOST ONLY. Serializes and broadcasts the full _statsMap to all clients.
+     * Called automatically by broadcastWonGame() and broadcastLostGame().
+     * Clients store the received map in their own _statsMap so captureStats()
+     * works correctly on every device.
+     */
+    void broadcastStatsMap();
+    
+    /**
      * Clears the host's AI house assignment for the given slot.
      * Called when a real player joins a slot that was previously
      * configured as AI, so the assignment does not bleed back
@@ -665,7 +673,8 @@ protected:
         GAIA_SPAWN = 18,
         FORGE_EFFECT = 19,
         MID_GAME_SCRAMBLE = 20,
-        CORROSIVE_DRAIN = 21
+        CORROSIVE_DRAIN = 21,
+        STATS_BROADCAST = 22 
     };
 
     /** Our network connection */
