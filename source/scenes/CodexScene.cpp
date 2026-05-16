@@ -34,7 +34,7 @@ static constexpr float SWIPE_THRESHOLD = 40.0f;
  *
  * @return true if the scene was successfully initialized; false otherwise
  */
-bool CodexScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool CodexScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -45,6 +45,7 @@ bool CodexScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const s
     // Start up asset manager, network controller, and enemy loader
     _assets = assets;
     _network = networkController;
+    _audio = audio;
     
     Size dimen = getSize();
     
@@ -107,6 +108,7 @@ void CodexScene::initItemButtons() {
         for (auto& button : row) {
             auto key = button->addListener([this, index](const std::string& name, bool down) {
                 if (!down || !_active) return;
+                if (_audio) _audio->playSoundUnique("page_turn");
                 if (_selectedIndex == -1) {
                     _selectedIndex = index;
                     showDetailPanel(_items[index]);
@@ -204,6 +206,7 @@ void CodexScene::setupUI() {
 void CodexScene::setupListeners() {
     _backButton->addListener([this](const std::string& name, bool down) {
         if (!down || !_active) return;
+        if (_audio) _audio->playSoundUnique("page_turn");
         if (down) {
             if (_status == Status::INFO) {
                 _pendingHideDetail = true;
@@ -277,6 +280,7 @@ void CodexScene::dispose() {
         _active = false;
     }
     _network = nullptr;
+    _audio = nullptr;
 }
 
 /**
