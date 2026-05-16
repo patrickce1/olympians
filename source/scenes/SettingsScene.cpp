@@ -20,7 +20,7 @@ using namespace std;
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool SettingsScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
+bool SettingsScene::init(const std::shared_ptr<cugl::AssetManager>& assets, AudioController* audio) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -30,6 +30,7 @@ bool SettingsScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     
     // Start up the input handler
     _assets = assets;
+    _audio = audio;
     
     Size dimen = getSize();
     
@@ -98,15 +99,19 @@ void SettingsScene::setupUI() {
 void SettingsScene::setupListeners() {
     // Back button — hide the overlay
     _backButton->addListener([this](const std::string& name, bool down) {
-        // Revert audio to last saved values without touching SavedDataManager
-        if (_onMusicVolumeChange) _onMusicVolumeChange(SavedDataManager::get().getMusicVolume());
-        if (_onSFXVolumeChange)   _onSFXVolumeChange(SavedDataManager::get().getSFXVolume());
-        if (!down) _pendingClose = true;
+        if (!down) {
+            // Revert audio to last saved values without touching SavedDataManager
+            if (_onMusicVolumeChange) _onMusicVolumeChange(SavedDataManager::get().getMusicVolume());
+            if (_onSFXVolumeChange)   _onSFXVolumeChange(SavedDataManager::get().getSFXVolume());
+            if (_audio) _audio->playSoundUnique("tabswap");
+            _pendingClose = true;
+        }
     });
 
     // Persist all current settings to disk then close the scene
     _saveButton->addListener([this](const std::string& name, bool down) {
         if (!down) {
+            if (_audio) _audio->playSoundUnique("tabswap");
             saveSettings();
             _pendingClose = true;
         }
@@ -144,6 +149,7 @@ void SettingsScene::dispose() {
         _active = false;
         _saveButton = nullptr;
     }
+    _audio = nullptr;
 }
 
 /**
