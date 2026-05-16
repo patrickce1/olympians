@@ -464,7 +464,17 @@
                     "amount": 350.0,
                     "duration": 7.0
                 }
-            ]
+            ],
+            "itemUseAnimation": {
+                "spriteSheetId": "harvest_animation",
+                "rows": 1,
+                "cols": 14,
+                "frameCount": 14,
+                "animationDuration": 1.1,
+                "damageResolutionFrame": 5,
+                "scale": 1.3,
+                "centerOnDropLocation": true
+            }
         },
         {
             "id": "forge",
