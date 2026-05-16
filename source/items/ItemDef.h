@@ -32,6 +32,18 @@ struct ItemUseAnimationConfig {
 
     /** If true, animation plays at the item drop position. If false (default), plays at the viewport center. */
     bool centerOnDropLocation = false;
+
+    /** Multiplier applied on top of the auto-calculated viewport scale (1.0 = use auto scale). */
+    float scale = 1.0f;
+
+    /** X offset in screen pixels applied to the final position after centerOnDropLocation is resolved. */
+    float offsetX = 0.0f;
+
+    /** Y offset in screen pixels applied to the final position after centerOnDropLocation is resolved. */
+    float offsetY = 0.0f;
+
+    /** If true (default), animation renders in front of the inventory. If false, renders behind it. */
+    bool aboveInventory = true;
 };
 
 /**
