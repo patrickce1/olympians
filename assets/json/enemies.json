@@ -7,7 +7,12 @@
             "spritesheetPath": "textures/circe.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.0
+                "defenseLikelihood": 0.0,
+                "attackWeights": {
+                    "attack_1": 1.0,
+                    "attack_2": 2.0,
+                    "attack_3": 2.0
+                }
             },
             "customData": {
             },
@@ -93,11 +98,16 @@
         {
             "id": "cyclops",
             "name": "cyclops",
-            "maxHealth": 17000.0,
+            "maxHealth": 15000.0,
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.25
+                "defenseLikelihood": 0.1,
+                "attackWeights": {
+                    "attack_1": 4.0,
+                    "attack_2": 3.0,
+                    "attack_3": 1.0
+                }
             },
             "customData": {
                 "frantic1Threshold": 0.66,
@@ -136,21 +146,21 @@
                     "name": "club",
                     "animationKey": "cyclops_slash_animation",
                     "buildUpTime": 1.0,
-                    "cooldownTime": 0.0,
+                    "cooldownTime": 2.0,
                     "events": [
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 45.0
+                            "amount": 20.0
                         }
                     ],
-                    "nextState": "attack_2"
+                    "nextState": "idle"
                 },
                 "attack_2": {
                     "name": "scream",
                     "animationKey": "cyclops_scream_animation",
                     "buildUpTime": 0.0,
-                    "cooldownTime": 5.0,
+                    "cooldownTime": 3.0,
                     "entryEvents": [
                         {
                             "type": "SIDE_MODIFIER",
@@ -250,7 +260,12 @@
             "spritesheetPath": "textures/cerberus.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.2
+                "defenseLikelihood": 0.2,
+                "attackWeights": {
+                    "attack_1": 1.0,
+                    "attack_2": 3.0,
+                    "attack_3": 5.0
+                }
             },
             "customData": {
                 "knockedThreshold": 100.0,
@@ -369,7 +384,12 @@
             "spritesheetPath": "textures/gaia.png",
             "ai": {
                 "retargetLikelihood": 0.9,
-                "defenseLikelihood": 0.0
+                "defenseLikelihood": 0.0,
+                "attackWeights": {
+                    "attack_1": 10.0,
+                    "attack_2": 6.0,
+                    "attack_3": 1.0
+                }
             },
             "customData": {
                 "spawnCooldownConstant": 5.0
