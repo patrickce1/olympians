@@ -72,7 +72,7 @@
                             "y_offset": 0
                         }
                     },
-                    "CONTINUE": {
+                    "label": {
                         "type": "Label",
                         "data": {
                             "anchor": [
@@ -341,7 +341,7 @@
                             "y_offset": 0
                         }
                     },
-                    "BACK TO LOBBY": {
+                    "label": {
                         "type": "Label",
                         "data": {
                             "anchor": [

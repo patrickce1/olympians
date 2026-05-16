@@ -169,6 +169,7 @@ void WinLoseScene::setActive(bool value) {
     if (isActive() != value) {
         Scene2::setActive(value);
         if (value) {
+            _timeline = ActionTimeline::alloc();
             _pendingPhase2        = false;
             _transitioningToPhase2 = false;
             _status = IDLE;
@@ -286,6 +287,7 @@ void WinLoseScene::setStats(const PlayerStats players[4]) {
             _summaryTableUtil[i][j]->getChildByName("fill")->setVisible(j < players[i].utility);
         }
         _summaryTableIcons[i]->setTexture(_assets->get<cugl::graphics::Texture>(players[i].houseId + "Regular"));
+        _summaryTableIcons[i]->setContentSize(70,70);
     }
 
     _teamTotalDmg->setText(formatNumber(totalDamage));
