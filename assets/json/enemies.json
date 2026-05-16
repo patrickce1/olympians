@@ -381,9 +381,9 @@
                 },
                 "attack_1": {
                     "name": "Earth's Tremors",
-                    "buildUpTime": 4.0,
-                    "cooldownTime": 0.0,
-                    "animationKey": "gaia_idle_animation",
+                    "buildUpTime": 0.72,
+                    "cooldownTime": 2.0,
+                    "animationKey": "gaia_rock_attack_animation",
                     "entryEvents": [
                         {
                             "type": "SIDE_MODIFIER",

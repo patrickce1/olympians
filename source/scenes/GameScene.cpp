@@ -2620,7 +2620,7 @@ void GameScene::switchVisibleAnimation(const std::string& animationId) {
             ? static_cast<float>(texture->getWidth()) / _currentAnimationEntry.frameCount
             : 0.0f;
         if (frameWidth > 0.0f) {
-            finalScale = getSize().width * 1.1 / frameWidth;
+            finalScale = getSize().width * 1.15 / frameWidth;
             finalScale = std::max(finalScale, _currentAnimationEntry.scale); //pick the biggest scale out of the default and other. It looked too small on phone otherwise
         }
     }
