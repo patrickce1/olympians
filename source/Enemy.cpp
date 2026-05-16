@@ -156,6 +156,7 @@ bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
     }
 
     _defenseLikelihood = def.ai.defenseLikelihood;
+    _attackWeights = def.ai.attackWeights;
 
     return true;
 }

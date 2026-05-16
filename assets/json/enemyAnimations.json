@@ -161,6 +161,31 @@
             "scale": 0.68,
             "offsetX": 0,
             "offsetY": 0
+        },        
+        {
+            "id": "gaia_idle_animation",
+            "texture": "textures/gameScene/gaia/gaia_idle_animation.png",
+            "frameCount": 6,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "loopStartFrame": 0,
+            "loopEndFrame": 5,
+            "positionX": 190.0,
+            "positionY": 145.0,
+            "scale": 0.50
+        },
+        {
+            "id": "gaia_rock_attack_animation",
+            "texture": "textures/gameScene/gaia/gaia_rock_attack.png",
+            "frameCount": 11,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "loopStartFrame": 0,
+            "loopEndFrame": 5,
+            "damageFrame": 10,
+            "positionX": 190.0,
+            "positionY": 150.0,
+            "scale": 0.50
         },
         {
             "id": "circe_idle_animation",
@@ -184,6 +209,20 @@
             "frameRows": 4,
             "damageFrame": 10,
             "sound": "",
+            "positionX": 196.5,
+            "positionY": 250.0,
+            "scale": 0.48,
+            "offsetX": 0,
+            "offsetY": 0
+        },
+        {
+            "id": "circe_defense_animation",
+            "texture": "textures/gameScene/circe/circe_defense.png",
+            "frameCount": 10,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "loopStartFrame": 5,
+            "loopEndFrame": 9,
             "positionX": 196.5,
             "positionY": 250.0,
             "scale": 0.48,

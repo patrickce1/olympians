@@ -606,7 +606,38 @@ bool GameScene::initSceneGraph() {
         // This is the boss animation sprite container from the JSON, positioned exactly like the static sprite
         _bossSprite = std::dynamic_pointer_cast<scene2::SceneNode>((_gameArea->getChildByName("bossAnimationSpace")));
         
-        // This is the special effects node, this is where all the animated effects will go.
+        // _behindHUDEffectsLayer lives inside _gameArea, inserted after the boss sprites
+        // but before the player icon HUD nodes (leftIcon, rightIcon, etc.) so it renders
+        // above the boss and below the HUD. The HUD nodes are temporarily detached so the
+        // layer ends up at the correct position in _gameArea's child order.
+        {
+            auto hudDialogue = _gameArea->getChildByName("dialogueBox");
+            auto hudLeft     = _gameArea->getChildByName("leftIcon");
+            auto hudRight    = _gameArea->getChildByName("rightIcon");
+            auto hudSupL     = _gameArea->getChildByName("supportLeft");
+            auto hudSupR     = _gameArea->getChildByName("supportRight");
+            auto hudDeath    = _gameArea->getChildByName("playerDeath");
+            if (hudDialogue) hudDialogue->removeFromParent();
+            if (hudLeft)     hudLeft->removeFromParent();
+            if (hudRight)    hudRight->removeFromParent();
+            if (hudSupL)     hudSupL->removeFromParent();
+            if (hudSupR)     hudSupR->removeFromParent();
+            if (hudDeath)    hudDeath->removeFromParent();
+
+            _behindHUDEffectsLayer = scene2::SceneNode::allocWithBounds(_gameArea->getContentSize());
+            _behindHUDEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_BOTTOM_LEFT);
+            _behindHUDEffectsLayer->setPosition(cugl::Vec2::ZERO);
+            _gameArea->addChild(_behindHUDEffectsLayer);
+
+            if (hudDialogue) _gameArea->addChild(hudDialogue);
+            if (hudLeft)     _gameArea->addChild(hudLeft);
+            if (hudRight)    _gameArea->addChild(hudRight);
+            if (hudSupL)     _gameArea->addChild(hudSupL);
+            if (hudSupR)     _gameArea->addChild(hudSupR);
+            if (hudDeath)    _gameArea->addChild(hudDeath);
+        }
+
+        // _specialEffectsLayer is added last so it renders above everything, including the inventory.
         _specialEffectsLayer = scene2::SceneNode::allocWithBounds(dimen);
         _specialEffectsLayer->setContentSize(dimen);
         _specialEffectsLayer->setAnchor(cugl::Vec2::ANCHOR_CENTER);
@@ -670,11 +701,20 @@ bool GameScene::initSceneGraph() {
         
         _passLeftArea = _inventory->getChildByName("passZoneLeft");
         _passRightArea = _inventory->getChildByName("passZoneRight");
+
+        /* Gaia's vines */
+        // Local overlays
+        _vineOverlayLeft = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayLeft"));
+        _vineOverlayRight = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayRight"));
+
+        // Ally overlays
+        _vineOverlayLeftNeighbor = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayLeftNeighbor"));
+        _vineOverlayRightNeighbor = std::dynamic_pointer_cast<cugl::scene2::SpriteNode>(_inventory->getChildByName("vineOverlayRightNeighbor"));
     }
     
     _tooltipNode = std::dynamic_pointer_cast<scene2::PolygonNode>(
         _assets->get<scene2::SceneNode>("gameScene.tooltip"));
-    
+
     addChild(_scene);
     return true;
 }
@@ -927,6 +967,10 @@ void GameScene::dispose() {
         _rightPlayerHouse = nullptr;
         _network = nullptr;
         _draggedIcon = nullptr;
+        _vineOverlayLeft = nullptr;
+        _vineOverlayRight = nullptr;
+        _vineOverlayLeftNeighbor = nullptr;
+        _vineOverlayRightNeighbor = nullptr;
         _enemyAnimationSpriteNodes.clear();
         _currentVisibleAnimationSprite = nullptr;
         _itemWidgets.clear();
@@ -1155,6 +1199,7 @@ void GameScene::reset() {
     _activeFloatingPopups.clear();
     _pendingFloatingPopups.clear();
     _pendingStunDamagePopups.clear();
+    _pendingDelayedAnimations.clear();
     _itemController.reset();
 
     std::vector<ItemInstance::ItemId> itemIds;
@@ -2168,13 +2213,16 @@ void GameScene::updateEnemyAndAI(float dt) {
 
     // Track player and enemy health before any updates to detect damage
     auto player = _gameState.getLocalPlayer();
-    float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
+    bool isLocalHumanPlayer = player && !dynamic_cast<PlayerAI*>(player);
+    float playerHealthBefore = isLocalHumanPlayer ? player->getCurrentHealth() : 0.0f;
+    float playerShieldHealthBefore = isLocalHumanPlayer ? player->getShieldHealth() : 0.0f;
     float enemyHealthBefore = enemy->getCurrentHealth();
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
     // Play shield block sound if local player's shield absorbed damage this update
-    if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
+    if (isLocalHumanPlayer && player->consumeShieldAbsorbedDamage() && _audio &&
+        playerShieldHealthBefore - player->getShieldHealth() > 5.0f) {
         _audio->playSoundUnique("shield_block");
     }
 
@@ -2644,8 +2692,23 @@ void GameScene::switchVisibleAnimation(const std::string& animationId) {
     
     // Apply animation-specific position and scale
     newSprite->setPosition(cugl::Vec2(_currentAnimationEntry.positionX + _currentAnimationEntry.offsetX,
-                                      _currentAnimationEntry.positionY + _currentAnimationEntry.offsetY));
-    newSprite->setScale(_currentAnimationEntry.scale);
+        _currentAnimationEntry.positionY + _currentAnimationEntry.offsetY));
+
+    float finalScale = _currentAnimationEntry.scale;
+    auto enemy = _gameState.getEnemy();
+    //for gaia, stretch her to fit the screen
+    if (enemy && enemy->getId() == "gaia") {
+        auto texture = newSprite->getTexture();
+        float frameWidth = (texture && _currentAnimationEntry.frameCount > 0)
+            ? static_cast<float>(texture->getWidth()) / _currentAnimationEntry.frameCount
+            : 0.0f;
+        if (frameWidth > 0.0f) {
+            finalScale = getSize().width * 1.15 / frameWidth;
+            finalScale = std::max(finalScale, _currentAnimationEntry.scale); //pick the biggest scale out of the default and other. It looked too small on phone otherwise
+        }
+    }
+    
+    newSprite->setScale(finalScale);
     
     // Set initial frame (direction 0, frame 0)
     newSprite->setFrame(0);
@@ -4447,6 +4510,15 @@ void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forge
  * @param seed    Deterministic base seed used to derive per-player forge rolls.
  */
 void GameScene::applyForgeEffect(float chance, int seed) {
+    std::unordered_map<ItemInstance::ItemId, std::string> corrodingDefIds;
+    if (Player* local = _gameState.getLocalPlayer()) {
+        for (const ItemInstance& item : local->getInventory()) {
+            if (_corrodingItemIds.find(item.getId()) != _corrodingItemIds.end()) {
+                corrodingDefIds[item.getId()] = item.getDefId();
+            }
+        }
+    }
+
     const std::uint32_t baseSeed = static_cast<std::uint32_t>(seed);
     for (const auto& player : _gameState.getPlayers()) {
         if (!player) {
@@ -4455,7 +4527,79 @@ void GameScene::applyForgeEffect(float chance, int seed) {
         const std::uint32_t playerSeed = baseSeed ^ (0x9e3779b9u + static_cast<std::uint32_t>(player->getPlayerNumber()));
         _itemController.applyForgeEffect(player.get(), chance, playerSeed);
     }
+    freeForgedCorrodingItems(corrodingDefIds);
     refreshInventoryWidgetTextures();
+}
+
+/**
+ * Cancels corrosion animations for local items that were redefined by forge.
+ *
+ * Corrosion completion removes by stable item ID, while forge preserves that ID.
+ * Without clearing the animation, an upgraded item can still be finalized and
+ * deleted after the old corrosion timer finishes.
+ *
+ * @param previousDefIds  Definition IDs captured before forge for corroding local items.
+ */
+void GameScene::freeForgedCorrodingItems(const std::unordered_map<ItemInstance::ItemId, std::string>& previousDefIds) {
+    if (previousDefIds.empty()) {
+        return;
+    }
+
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) {
+        return;
+    }
+
+    std::unordered_set<ItemInstance::ItemId> freedIds;
+    for (const ItemInstance& item : local->getInventory()) {
+        auto previousDefIt = previousDefIds.find(item.getId());
+        if (previousDefIt == previousDefIds.end()) {
+            continue;
+        }
+        if (previousDefIt->second != item.getDefId() &&
+            _corrodingItemIds.find(item.getId()) != _corrodingItemIds.end()) {
+            freedIds.insert(item.getId());
+        }
+    }
+
+    if (freedIds.empty()) {
+        return;
+    }
+
+    _corrodedItemAnimations.erase(
+        std::remove_if(_corrodedItemAnimations.begin(), _corrodedItemAnimations.end(),
+                       [&](const CorrodedItemAnimation& anim) {
+                           return freedIds.find(anim.itemId) != freedIds.end();
+                       }),
+        _corrodedItemAnimations.end());
+
+    for (ItemInstance::ItemId itemId : freedIds) {
+        _corrodingItemIds.erase(itemId);
+
+        auto widgetIt = _itemWidgets.find(itemId);
+        if (widgetIt != _itemWidgets.end() && widgetIt->second) {
+            auto widget = widgetIt->second;
+            cugl::Vec2 center = widget->getPosition();
+
+            auto bodyIt = _itemBodies.find(itemId);
+            if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                center = bodyIt->second->getPosition();
+            }
+
+            cugl::Size widgetSize = widget->getContentSize();
+            widget->setAnchor(cugl::Vec2::ANCHOR_BOTTOM_LEFT);
+            widget->setPosition(center - cugl::Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f));
+            widget->setScale(ITEM_NORMAL_SCALE);
+            widget->setVisible(true);
+        }
+
+        _itemWidgetScales[itemId] = ITEM_NORMAL_SCALE;
+        _itemWidgetScaleTargets[itemId] = ITEM_NORMAL_SCALE;
+    }
+
+    if (_corrodedItemAnimations.empty()) {
+        _corrosiveVisualTarget = -1;
+    }
 }
 
 /** 
@@ -4477,7 +4621,7 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
         const float playerHealthDelta = player->getCurrentHealth() - playerHealthBefore;
         if (playerHurtEnabled && (playerHealthDelta < 0.0f)) {
             triggerDamageFrame();
-            if (_audio) {
+            if (playerHealthDelta <= 5.0f && _audio) {
                 std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
                 _audio->playSoundUnique(soundKey);
             }
@@ -4644,6 +4788,112 @@ void GameScene::handleGaiaScramble() {
     _gaiaVineAnim->currentTime = _gaiaVineAnim->duration; //duration of the original animation
 }
 
+/**
+ * Toggles the vine overlays in the inventory based on which sides are blocked by Gaia's vines.
+ *
+ * The local player's overlays appear when they themselves are blocked from passing on that side.
+ * The neighbor overlays appear when a neighbor is blocked from passing toward the local player,
+ * but the local player is not themselves blocked on that side.
+ *
+ * Does nothing if the current enemy is not Gaia.
+ * 
+ * @param dt  Delta time in seconds.
+ */
+void GameScene::updateGaiaInventoryVineAnimations(float dt) {
+    auto enemy = _gameState.getEnemy();
+    if (!enemy || enemy->getId() != "gaia") return;
+
+    auto local = _gameState.getLocalPlayer();
+    if (!local) return;
+
+    // ---- READ CURRENT STATE ----
+    _vineLeftAnim.currBlocked = local->hasLeftVine();
+    _vineRightAnim.currBlocked = local->hasRightVine();
+
+    _vineLeftNeighborAnim.currBlocked = local->getLeftPlayer()->hasRightVine();
+    _vineRightNeighborAnim.currBlocked = local->getRightPlayer()->hasLeftVine();
+
+    // ---- HELPER (inline logic per node) ----
+    auto updateAnim = [&](VineAnim& state,
+        const std::shared_ptr<cugl::scene2::SpriteNode>& node) {
+
+            if (!node) return;
+
+            const float duration = state.duration;
+            const int frameCount = state.totalFrames;
+
+            // false -> true (start forward)
+            if (state.currBlocked && !state.previousBlocked) {
+                state.elapsedTime = 0.0f;
+                state.currentFrame = 0;
+                state.isReversing = false;
+                node->setFrame(0);
+            }
+
+            // true -> false (start reverse)
+            else if (!state.currBlocked && state.previousBlocked) {
+                state.elapsedTime = duration;
+                state.currentFrame = frameCount - 1;
+                state.isReversing = true;
+            }
+
+            // ---- ANIMATION ----
+            if (state.currBlocked || state.isReversing) {
+
+                if (state.isReversing) {
+                    state.elapsedTime = std::max(state.elapsedTime - dt, 0.0f);
+                }
+                else {
+                    state.elapsedTime = std::min(state.elapsedTime + dt, duration);
+                }
+
+                float progress = state.elapsedTime / duration;
+
+                int frame = std::min(
+                    static_cast<int>(progress * frameCount),
+                    node->getCount() - 1
+                );
+
+                if (frame != state.currentFrame) {
+                    state.currentFrame = frame;
+                    node->setFrame(frame);
+                }
+
+                // reverse finished → hide
+                if (state.isReversing && state.elapsedTime <= 0.0f) {
+                    state.isReversing = false;
+                    state.elapsedTime = 0.0f;
+                }
+            }
+
+            state.previousBlocked = state.currBlocked;
+        };
+
+    // ---- UPDATE ALL 4 ANIMS (always tick) ----
+    updateAnim(_vineLeftAnim, _vineOverlayLeft);
+    updateAnim(_vineRightAnim, _vineOverlayRight);
+    updateAnim(_vineRightNeighborAnim, _vineOverlayLeftNeighbor);
+    updateAnim(_vineLeftNeighborAnim, _vineOverlayRightNeighbor);
+
+    // ---- PRIORITY (per side) ----
+
+    // LEFT SIDE
+    if (_vineOverlayLeft && _vineOverlayLeftNeighbor) {
+        bool showLocal = _vineLeftAnim.currBlocked || _vineLeftAnim.isReversing;
+        bool showNeighbor = (!_vineLeftAnim.currBlocked && (_vineLeftNeighborAnim.currBlocked || _vineLeftNeighborAnim.isReversing));
+
+        _vineOverlayLeft->setVisible(showLocal);
+        _vineOverlayLeftNeighbor->setVisible(showNeighbor);
+    }
+
+    // RIGHT SIDE
+    if (_vineOverlayRight && _vineOverlayRightNeighbor) {
+        bool showLocal = _vineRightAnim.currBlocked || _vineRightAnim.isReversing;
+        bool showNeighbor = (!_vineRightAnim.currBlocked && (_vineRightNeighborAnim.currBlocked || _vineRightNeighborAnim.isReversing));
+        _vineOverlayRight->setVisible(showLocal);
+        _vineOverlayRightNeighbor->setVisible(showNeighbor);
+    }
+}
 
 /**
  * One-shot corrosive drain handler. Only runs on the host (resolveCorrosiveEvent sets
@@ -4764,8 +5014,6 @@ void GameScene::applyCorrosiveDrain(int targetPlayerSlot, float fadeDuration, fl
  * players if this machine is the host. AI item spawning is host-only since
  * the host is the authoritative source for all AI state.
  * 
- * Corrosive players do not get items.
- *
  * @param dt  Delta time in seconds.
  */
 void GameScene::handleItemSpawn(float dt) {
@@ -4773,12 +5021,7 @@ void GameScene::handleItemSpawn(float dt) {
         return;
     }
 
-    // Block item spawning while corrosive animations are still running on this player
-    Player* local = _gameState.getLocalPlayer();
-    int localPlayerSlot = local ? local->getPlayerNumber() : -1;
-    bool localPlayerCorrosive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
-
-    _itemController.update(dt, _gameState.getLocalPlayer(), localPlayerCorrosive);
+    _itemController.update(dt, _gameState.getLocalPlayer());
 
     //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
     handleGaiaSpawn();
@@ -5445,8 +5688,10 @@ void GameScene::updateDropZoneVisibility(){
         // Hide pass zones while corrosive animations are still running on this player
         int localPlayerSlot = local ? local->getPlayerNumber() : -1;
         bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
-        _passLeftArea->setVisible(!isCorrosiveActive);
-        _passRightArea->setVisible(!isCorrosiveActive);
+        bool leftVinePresent = local ? (local->hasLeftVine() || local->getLeftPlayer()->hasRightVine()) : false;
+        bool rightVinePresent = local ? (local->hasRightVine() || local->getRightPlayer()->hasLeftVine()) : false;
+        _passLeftArea->setVisible(!isCorrosiveActive && !leftVinePresent);
+        _passRightArea->setVisible(!isCorrosiveActive && !rightVinePresent);
         _attackArea->setVisible(false);
         _supportLeftArea->setVisible(false);
         _supportRightArea->setVisible(false);
@@ -5530,6 +5775,7 @@ void GameScene::update(float dt, InputController& input) {
     handleCorrosiveDrain();
     updateEnemyHealthBarEffect(dt);
     updateDropZoneVisibility();
+    updateGaiaInventoryVineAnimations(dt);
 
     // Update sliding items before physics world update
     updateSlidingItems(dt);
@@ -5538,6 +5784,7 @@ void GameScene::update(float dt, InputController& input) {
     detectGaiaAnimationTriggers();
     updateGaiaVineAnimation(dt);
     updateStunDamagePopups(dt);
+    updatePendingDelayedAnimations(dt);
     updatePopupAnimations(dt);
     updateHealthFrameEffects(dt);
     syncEffectIconsFromPlayerState();
@@ -6389,27 +6636,18 @@ void GameScene::updateInputZones(){
     int localPlayerSlot = local ? local->getPlayerNumber() : -1;
     bool isCorrosiveActive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
 
-    // Dead players can only pass items or put them in inventory
-    // They cannot attack or support
-    if (local && !local->isAlive()) {
-        // If corrosive is active on this player, they can't pass either
-        if (!isCorrosiveActive) {
-            _inputZones = _passZones;
-        } else {
-            _inputZones.clear();
-        }
-        _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
-    } else {
-        // Alive players have access to all zones
+    // Alive players have access to all zones
+    if(local && local->isAlive()){
         _inputZones = _attackZones;
         _inputZones.insert(_inputZones.end(), _supportZones.begin(), _supportZones.end());
+    }
 
-        // Only add pass zones if not affected by corrosive
-        if (!isCorrosiveActive) {
-            _inputZones.insert(_inputZones.end(), _passZones.begin(), _passZones.end());
-        }
-
-        _inputZones.insert(_inputZones.end(), _inventoryZones.begin(), _inventoryZones.end());
+    //All players can pass as long as they're not affected by corrosive or blocked by vines
+    if(!local->hasLeftVine() && !local->getLeftPlayer()->hasRightVine() && !isCorrosiveActive){
+        _inputZones.push_back(_passZones[0]);
+    }
+    if(!local->hasRightVine() && !local->getRightPlayer()->hasLeftVine() && !isCorrosiveActive){
+        _inputZones.push_back(_passZones[1]);
     }
 }
 
@@ -6719,16 +6957,26 @@ void GameScene::startItemUseAnimation(const ItemUseAnimationConfig& animConfig, 
         position = cugl::Vec2(viewportSize.width / 2.0f, viewportSize.height * 0.55f);
     }
     
-    node->setPosition(position);
     node->setAnchor(cugl::Vec2(0.5f, 0.5f));
-    
+
     // Scale animation to fit viewport width while maintaining aspect ratio
-    // Use setScale instead of setContentSize to avoid distorting the texture
-    float scale = viewportSize.width / frameSize.width;
+    float scale = (viewportSize.width / frameSize.width) * animConfig.scale;
     node->setScale(scale);
-    
-    // Add to special effects layer
-    _specialEffectsLayer->addChild(node);
+
+    // Apply per-item offset (screen space)
+    position.x += animConfig.offsetX;
+    position.y += animConfig.offsetY;
+
+    // _specialEffectsLayer shares the scene root coordinate space.
+    // _behindHUDEffectsLayer is a child of _gameArea whose origin is offset from the
+    // scene root by _gameArea->getPosition(), so convert screen-space position to local.
+    if (animConfig.aboveInventory) {
+        node->setPosition(position);
+        _specialEffectsLayer->addChild(node);
+    } else {
+        node->setPosition(position - _gameArea->getPosition());
+        _behindHUDEffectsLayer->addChild(node);
+    }
     
     // Create and queue the animation instance
     ItemUseAnimation anim;
@@ -6849,6 +7097,17 @@ void GameScene::updateItemUseAnimations(float dt) {
                 scheduleStunDamagePopups(activeAnim.enemyEffects, activeAnim.popupPosition,
                                          activeAnim.houseAffinityMultiplier,
                                          activeAnim.upgradeMultiplier);
+
+                if (!activeAnim.itemDefID.empty()) {
+                    auto def = _itemController.getDatabase().getDef(activeAnim.itemDefID);
+                    if (def && def->hasItemUseAnimation()) {
+                        const auto& animConfig = def->getItemUseAnimation();
+                        const cugl::Vec2 animPos = animConfig.centerOnDropLocation
+                            ? activeAnim.popupPosition
+                            : cugl::Vec2::ZERO;
+                        scheduleDelayedStunAnimations(animConfig, animPos, activeAnim.enemyEffects);
+                    }
+                }
             }
 
             // Host plays enemy_hurt or enemy_block depending on whether damage landed.
@@ -7413,6 +7672,48 @@ void GameScene::updateStunDamagePopups(float dt) {
             houseDamage, finalDamage, 26.0f, 17.0f));
 
         popup = _pendingStunDamagePopups.erase(popup);
+    }
+}
+
+/**
+ * Queues a delayed replay of an item-use animation for every stun effect whose delay > 0.
+ * The first stun (delay == 0) is already covered by the animation that fires when the item
+ * is used, so only subsequent staged hits need a replay (e.g. the three later bolts of
+ * Thunderstorm at t=2, t=4, and t=6 seconds).
+ * @param animConfig  The animation config to replay.
+ * @param animPos     The position passed to startItemUseAnimation (Vec2::ZERO = center).
+ * @param enemyEffects The enemy effects produced by the item use.
+ */
+void GameScene::scheduleDelayedStunAnimations(const ItemUseAnimationConfig& animConfig,
+                                               const cugl::Vec2& animPos,
+                                               const std::vector<EnemyEffectMessage>& enemyEffects) {
+    for (const EnemyEffectMessage& effect : enemyEffects) {
+        if (effect.effectType != EnemyEffectType::Stun || effect.delay <= 0.0f) {
+            continue;
+        }
+        PendingDelayedAnimation pending;
+        pending.animConfig = animConfig;
+        pending.position   = animPos;
+        pending.delay      = effect.delay;
+        _pendingDelayedAnimations.push_back(pending);
+    }
+}
+
+/**
+ * Ticks each pending delayed animation replay and fires startItemUseAnimation for any
+ * whose countdown has reached zero.
+ *
+ * @param dt Delta time in seconds.
+ */
+void GameScene::updatePendingDelayedAnimations(float dt) {
+    for (auto it = _pendingDelayedAnimations.begin(); it != _pendingDelayedAnimations.end(); ) {
+        it->delay -= dt;
+        if (it->delay <= 0.0f) {
+            startItemUseAnimation(it->animConfig, 0.0f, it->position, 0);
+            it = _pendingDelayedAnimations.erase(it);
+        } else {
+            ++it;
+        }
     }
 }
 

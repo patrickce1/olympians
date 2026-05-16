@@ -415,6 +415,10 @@ void ItemDef::parseItemUseAnimation(const std::shared_ptr<JsonValue>& json) {
         animConfig.animationDuration = animData->getFloat("animationDuration");
         animConfig.damageResolutionFrame = animData->getInt("damageResolutionFrame");
         animConfig.centerOnDropLocation = animData->getBool("centerOnDropLocation", false);
+        animConfig.scale = animData->getFloat("scale", 1.0f);
+        animConfig.offsetX = animData->getFloat("offsetX", 0.0f);
+        animConfig.offsetY = animData->getFloat("offsetY", 0.0f);
+        animConfig.aboveInventory = animData->getBool("aboveInventory", true);
 
         CULog("DEBUG: Parsed animation config: rows=%d, cols=%d, frames=%d, duration=%.3f, resFrame=%d, centerOnDropLocation=%d",
               animConfig.rows, animConfig.cols, animConfig.frameCount, animConfig.animationDuration, animConfig.damageResolutionFrame, (int)animConfig.centerOnDropLocation);

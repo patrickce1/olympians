@@ -23,6 +23,30 @@
         },
         "sword_animation": {
             "file": "textures/items/animations/sword_animation.png"
+        },
+        "educate_animation": {
+            "file": "textures/items/animations/educate_animation.png"
+        },
+        "resurrection_animation": {
+            "file": "textures/items/animations/resurrection_animation.png"
+        },
+        "rage_animation": {
+            "file": "textures/items/animations/rage_animation.png"
+        },
+        "tsunami_animation": {
+            "file": "textures/items/animations/tsunami_animation.png"
+        },
+        "forge_animation": {
+            "file": "textures/items/animations/forge_animation.png"
+        },
+        "charm_animation": {
+            "file": "textures/items/animations/charm_animation.png"
+        },
+        "treasure_animation": {
+            "file": "textures/items/animations/treasure_animation.png"
+        },
+        "harvest_animation": {
+            "file": "textures/items/animations/harvest_animation.png"
         }
     }
 }
