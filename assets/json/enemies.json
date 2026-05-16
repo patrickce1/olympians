@@ -10,8 +10,8 @@
                 "defenseLikelihood": 0.0,
                 "attackWeights": {
                     "attack_1": 1.0,
-                    "attack_2": 1.0,
-                    "attack_3": 1.0
+                    "attack_2": 2.0,
+                    "attack_3": 2.0
                 }
             },
             "customData": {
@@ -104,8 +104,8 @@
                 "retargetLikelihood": 0.5,
                 "defenseLikelihood": 0.25,
                 "attackWeights": {
-                    "attack_1": 1.0,
-                    "attack_2": 1.0,
+                    "attack_1": 4.0,
+                    "attack_2": 2.0,
                     "attack_3": 1.0
                 }
             },
@@ -263,8 +263,8 @@
                 "defenseLikelihood": 0.2,
                 "attackWeights": {
                     "attack_1": 1.0,
-                    "attack_2": 1.0,
-                    "attack_3": 1.0
+                    "attack_2": 3.0,
+                    "attack_3": 5.0
                 }
             },
             "customData": {
@@ -386,8 +386,8 @@
                 "retargetLikelihood": 0.9,
                 "defenseLikelihood": 0.0,
                 "attackWeights": {
-                    "attack_1": 1.0,
-                    "attack_2": 1.0,
+                    "attack_1": 10.0,
+                    "attack_2": 6.0,
                     "attack_3": 1.0
                 }
             },
