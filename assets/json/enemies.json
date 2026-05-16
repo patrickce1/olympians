@@ -146,7 +146,7 @@
                     "name": "club",
                     "animationKey": "cyclops_slash_animation",
                     "buildUpTime": 1.0,
-                    "cooldownTime": 0.0,
+                    "cooldownTime": 3.0,
                     "events": [
                         {
                             "type": "DAMAGE",
@@ -160,7 +160,7 @@
                     "name": "scream",
                     "animationKey": "cyclops_scream_animation",
                     "buildUpTime": 0.0,
-                    "cooldownTime": 5.0,
+                    "cooldownTime": 3.0,
                     "entryEvents": [
                         {
                             "type": "SIDE_MODIFIER",
@@ -402,7 +402,7 @@
                 "attack_1": {
                     "name": "Earth's Tremors",
                     "buildUpTime": 4.0,
-                    "cooldownTime": 0.0,
+                    "cooldownTime": 1.0,
                     "animationKey": "gaia_idle_animation",
                     "entryEvents": [
                         {
