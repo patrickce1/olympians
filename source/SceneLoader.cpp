@@ -836,3 +836,22 @@ void SceneLoader::updateGameScene(float dt)
     _gameScene.update(dt, _input);
     // scene switching logic goes here
 }
+
+/**
+ * Selects and applies the appropriate boss theme music for the given game scene.
+ *
+ * This function determines which boss is active in the provided GameScene
+ * and triggers the corresponding audio track using the AudioController.
+ * It should be called whenever a boss is chosen or when entering gameplay
+ * to ensure the correct theme is playing.
+ *
+ * @param scene    The GameScene instance containing the current boss context
+ */
+void SceneLoader::selectBossTheme(GameScene& gameScene) {
+    if (gameScene.getGameState().getEnemy()) {
+
+    }
+    else {
+        _audio.playMusic("cyclops_theme");
+    }
+}

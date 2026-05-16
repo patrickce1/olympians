@@ -911,9 +911,21 @@
             "stream": false,
             "volume": 0.65
         },
-        "battle": {
+        "cyclops_themes": {
             "type": "sample",
             "file": "sounds/battle.ogg",
+            "stream": true,
+            "volume": 0.4
+        },
+        "cerberus_theme" : {
+            "type": "sample",
+            "file": "sounds/cerberus_theme.ogg",
+            "stream": true,
+            "volume": 0.4
+        },
+        "gaia_theme" : {
+            "type": "sample",
+            "file": "sounds/gaia_theme.ogg",
             "stream": true,
             "volume": 0.4
         },
