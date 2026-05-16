@@ -89,6 +89,23 @@ void WinLoseScene::setupUI() {
     setupStatsUI();
 }
 
+/**
+ * Retrieves and stores references to all phase 2 stats UI elements from the
+ * scene graph. Must be called once during init() after the scene JSON has
+ * been loaded.
+ *
+ * Populates the following members:
+ *   - _teamTotalDmg / _teamTotalHeal: team aggregate stat labels
+ *   - _teamUtilStar[0..2]: team utility star nodes, each with an empty/fill child
+ *   - _summaryTableNames[0..3]: per-player house and username labels
+ *   - _summaryTableDmg[0..3]: per-player damage labels
+ *   - _summaryTableHeal[0..3]: per-player heal labels
+ *   - _summaryTableIcons[0..3]: per-player house portrait icons
+ *   - _summaryTableUtil[0..3][0..2]: per-player utility star nodes
+ *
+ * Any node that cannot be found in the asset manager is left null and
+ * guarded against in setStats().
+ */
 void WinLoseScene::setupStatsUI() {
     // Team stat number labels
     _teamTotalDmg = std::dynamic_pointer_cast<scene2::Label>(
