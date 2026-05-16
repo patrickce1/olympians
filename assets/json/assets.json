@@ -911,7 +911,7 @@
             "stream": false,
             "volume": 0.65
         },
-        "cyclops_themes": {
+        "cyclops_theme": {
             "type": "sample",
             "file": "sounds/battle.ogg",
             "stream": true,

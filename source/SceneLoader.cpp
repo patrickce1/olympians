@@ -473,8 +473,7 @@ void SceneLoader::update(float dt) {
         case LobbyScene::Status::GAME_START:
             CULog("Transitioning directly to GameScene from Lobby — host already in game...");
             _gameScene.setActive(true);
-            _audio.playMusic("battle");
-            selectBossTheme(_gameScene);
+            _audio.playMusic("cyclops_theme");
             _lobbyScene.setActive(false);
             _currentScene = State::GAME;
             break;
