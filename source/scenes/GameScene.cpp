@@ -2620,7 +2620,7 @@ void GameScene::switchVisibleAnimation(const std::string& animationId) {
             ? static_cast<float>(texture->getWidth()) / _currentAnimationEntry.frameCount
             : 0.0f;
         if (frameWidth > 0.0f) {
-            finalScale = getSize().width * 1.3 / frameWidth;
+            finalScale = getSize().width * 1.1 / frameWidth;
         }
     }
     newSprite->setScale(finalScale);
