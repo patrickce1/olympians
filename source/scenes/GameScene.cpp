@@ -4426,7 +4426,7 @@ void GameScene::playHealthAndDamageSounds(float playerHealthBefore, float enemyH
         const float playerHealthDelta = player->getCurrentHealth() - playerHealthBefore;
         if (playerHurtEnabled && (playerHealthDelta < 0.0f)) {
             triggerDamageFrame();
-            if (_audio) {
+            if (playerHealthDelta <= 5.0f && _audio) {
                 std::string soundKey = player->isFemaleHouse() ? "player_hurt" : "player_hurt_deep";
                 _audio->playSoundUnique(soundKey);
             }
