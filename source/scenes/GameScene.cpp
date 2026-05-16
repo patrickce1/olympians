@@ -2151,13 +2151,16 @@ void GameScene::updateEnemyAndAI(float dt) {
 
     // Track player and enemy health before any updates to detect damage
     auto player = _gameState.getLocalPlayer();
-    float playerHealthBefore = (player && !dynamic_cast<PlayerAI*>(player)) ? player->getCurrentHealth() : 0.0f;
+    bool isLocalHumanPlayer = player && !dynamic_cast<PlayerAI*>(player);
+    float playerHealthBefore = isLocalHumanPlayer ? player->getCurrentHealth() : 0.0f;
+    float playerShieldHealthBefore = isLocalHumanPlayer ? player->getShieldHealth() : 0.0f;
     float enemyHealthBefore = enemy->getCurrentHealth();
 
     _enemyController.update(dt, enemy, _gameState.getPlayers());
 
     // Play shield block sound if local player's shield absorbed damage this update
-    if (player && !dynamic_cast<PlayerAI*>(player) && player->consumeShieldAbsorbedDamage() && _audio) {
+    if (isLocalHumanPlayer && player->consumeShieldAbsorbedDamage() && _audio &&
+        playerShieldHealthBefore - player->getShieldHealth() > 5.0f) {
         _audio->playSoundUnique("shield_block");
     }
 
