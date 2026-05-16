@@ -7,7 +7,7 @@
             "spritesheetPath": "textures/circe.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.0,
+                "defenseLikelihood": 0.2,
                 "attackWeights": {
                     "attack_1": 1.0,
                     "attack_2": 2.0,
@@ -19,7 +19,29 @@
             "states": {
                 "idle": {
                     "name": "idle",
-                    "animationKey": "circe_idle_animation"
+                    "animationKey": "circe_idle_animation",
+                    "entryEvents": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 1.0
+                        }
+                    ]
                 },
                 "attack_1": {
                     "name": "attack_1",
@@ -65,9 +87,9 @@
                 },
                 "defensive_move" : {
                     "name": "Magic Guard",
-                    "animationKey": "circe_idle_animation",
-                    "buildUpTime": 5.0,
-                    "cooldownTime": 5.0,
+                    "animationKey": "circe_defense_animation",
+                    "buildUpTime": 3.0,
+                    "cooldownTime": 3.0,
                     "entryEvents": [
                         {
                             "type": "SIDE_MODIFIER",
