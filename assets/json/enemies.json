@@ -13,7 +13,29 @@
             },
             "states": {
                 "idle": {
-                    "name": "idle"
+                    "name": "idle",
+                    "entryEvents": [
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 0,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 1,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 2,
+                            "amount": 1.0
+                        },
+                        {
+                            "type": "SIDE_MODIFIER",
+                            "target": 3,
+                            "amount": 1.0
+                        }
+                    ]
                 },
                 "attack_1": {
                     "name": "attack_1",
