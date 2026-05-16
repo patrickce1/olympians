@@ -3,6 +3,7 @@
 
 #include <cugl/cugl.h>
 #include "../SavedDataManager.h"
+#include "../AudioController.h"
 
 /**
  * A persistent overlay scene for application settings.
@@ -16,6 +17,9 @@ class SettingsScene : public cugl::scene2::Scene2 {
 protected:
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+
+    /** The audio controller shared across all scenes */
+    AudioController* _audio = nullptr;
 
     /** The root scene node for this scene graph. */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
@@ -34,6 +38,12 @@ protected:
 
     /** The play button for playing the tutorial */
     std::shared_ptr<cugl::scene2::Button> _tutorialButton;
+    
+    /** The credits button for showing the team members */
+    std::shared_ptr<cugl::scene2::Button> _creditsButton;
+    
+    /** The credits image for showing the team members */
+    std::shared_ptr<cugl::scene2::SceneNode> _credits;
 
     /** The save button to save the data and close the settings scene */
     std::shared_ptr<cugl::scene2::Button> _saveButton;
@@ -67,6 +77,12 @@ protected:
     
     /** Set to true when the user taps the tutorial replay button. */
     bool _pendingTutorial = false;
+    
+    /** Set to true when the user taps the credits button. */
+    bool _pendingCreditsOpen  = false;
+    
+    /** Set to true when the user taps out of credits. */
+    bool _pendingCreditsClose = false;
 
 public:
 #pragma mark -
@@ -107,10 +123,11 @@ public:
      * That is why we have the method {@link #setActive}.
      *
      * @param assets    The (loaded) assets for this game mode
+     * @param audio    The audio controller used for various sounds.
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, AudioController* audio);
 
     /**
      * Retrieves and stores references to the settings scene UI elements.
@@ -236,6 +253,17 @@ private:
      * @param enabled  Whether controls should accept input
      */
     void setInputEnabled(bool enabled);
+    
+    /**
+     * Enables or disables all interactive input controls.
+     *
+     * Called internally by setActive() to activate or deactivate
+     * every button, slider, and text field in one place.
+     *
+     * @param enabled  Whether controls should accept input
+     * @param keepBackActive Whether the back button is active
+     */
+    void setInputEnabled(bool enabled, bool keepBackActive);
 };
 
 #endif /* __SETTINGS_SCENE_H__ */

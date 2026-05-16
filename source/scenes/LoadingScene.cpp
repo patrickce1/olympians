@@ -9,6 +9,9 @@ using namespace cugl;
 using namespace cugl::scene2;
 using namespace cugl::graphics;
 
+/** Regardless of logo, lock the height to this */
+#define SCENE_HEIGHT  852
+
 /**
  * Initializes a loading scene with the given scene and directory.
  *
@@ -75,17 +78,14 @@ bool AppLoadingScene::init(
         return false;
     }
 
-    if (layer->getJSON()->has("size")) {
-
-        if (!Scene2::initWithHint(layer->getContentSize())) {
-            return false;
-        }
-
-    } else if (!Scene2::init()) {
+    if (assets == nullptr) {
+        return false;
+    } else if (!Scene2::initWithHint(Size(0,SCENE_HEIGHT))) {
         return false;
     }
 
-    layer->setContentSize(_size);
+    Size dimen = getSize();
+    layer->setContentSize(dimen);
     layer->doLayout();
     addChild(layer);
     _loadingScene->setVisible(false);

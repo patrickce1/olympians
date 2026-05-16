@@ -650,8 +650,8 @@ void PlayerAI::actPass() {
     }
 
     std::vector<Player*> targets;
-    if (getLeftPlayer()  && getLeftPlayer()->isAlive())  targets.push_back(getLeftPlayer());
-    if (getRightPlayer() && getRightPlayer()->isAlive()) targets.push_back(getRightPlayer());
+    if (getLeftPlayer()  && getLeftPlayer()->isAlive() && !hasLeftVine() && !getLeftPlayer()->hasRightVine())  targets.push_back(getLeftPlayer());
+    if (getRightPlayer() && getRightPlayer()->isAlive() && !hasRightVine() && !getRightPlayer()->hasLeftVine()) targets.push_back(getRightPlayer());
 
     if (targets.empty()) {
         if (_debug) CULog("[PlayerAI '%s'] actPass — no alive neighbours, aborting", getPlayerName().c_str());

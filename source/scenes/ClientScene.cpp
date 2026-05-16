@@ -30,10 +30,12 @@ using namespace std;
  * memory allocation.  Instead, allocation happens in this method.
  *
  * @param assets    The (loaded) assets for this game mode
+ * @param networkController The network controller shared across all scenes
+ * @param audio    The audio controller used for various sounds.
  *
  * @return true if the controller is initialized properly, false otherwise.
  */
-bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController) {
+bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const std::shared_ptr<NetworkController>& networkController, AudioController* audio) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -44,6 +46,7 @@ bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets, const 
     // Start up the input handler
     _assets = assets;
     _network = networkController;
+    _audio = audio;
     
     Size dimen = getSize();
     
@@ -119,6 +122,7 @@ void ClientScene::initKeypad() {
         
         button->addListener([this, i](const std::string& name, bool down) {
             if (down) appendDigit(i);
+            if (!down && _audio) _audio->playSoundUnique("numpad");
         });
         
         _keypadButtons.push_back(button);
@@ -127,6 +131,7 @@ void ClientScene::initKeypad() {
     auto backspace = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.keypad.backspace"));
     backspace->addListener([this](const std::string& name, bool down) {
         if (down) removeLastChar();
+        if (!down && _audio) _audio->playSoundUnique("numpad");
     });
     
     _keypadButtons.push_back(backspace);
@@ -167,6 +172,7 @@ void ClientScene::setupListeners() {
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
+        if (_audio) _audio->playSoundUnique("page_turn");
         if (down) {
             // If we were in the middle of a join attempt, cancel it cleanly.
             if (_status == Status::JOINING) {
@@ -178,13 +184,17 @@ void ClientScene::setupListeners() {
     
     _hostButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("tabswap");
             _status = Status::HOST;
             _hostButton->setDown(false);
         }
     });
     
     _settingsButton->addListener([this](const std::string& name, bool down) {
-        if (!down) _pendingSettings = true;
+        if (!down){
+            if (_audio) _audio->playSoundUnique("tabswap");
+            _pendingSettings = true;
+        } 
     });
 }
 
@@ -344,6 +354,7 @@ void ClientScene::update(float timestep) {
             }
             
             _network->setPlayerName(SavedDataManager::get().getPlayerName());
+            if (_audio) _audio->playSoundUnique("lobby_join");
             _status = Status::START;
         }
     }
@@ -414,6 +425,7 @@ void ClientScene::showError(const std::string& message) {
             label->setText(message);
         }
         _errorPopup->setVisible(true);
+        if (_audio) _audio->playSoundUnique("client_error");
     }
 
     _errorTimer = 0.0f;
