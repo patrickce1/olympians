@@ -1,9 +1,4 @@
 {
-    "attackWeights": {
-        "attack_1": 1.0,
-        "attack_2": 1.0,
-        "attack_3": 1.0
-    },
     "enemies": [
         {
             "id": "circe",
@@ -12,7 +7,12 @@
             "spritesheetPath": "textures/circe.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.0
+                "defenseLikelihood": 0.0,
+                "attackWeights": {
+                    "attack_1": 1.0,
+                    "attack_2": 1.0,
+                    "attack_3": 1.0
+                }
             },
             "customData": {
             },
@@ -102,7 +102,12 @@
             "spritesheetPath": "textures/cyclops.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.25
+                "defenseLikelihood": 0.25,
+                "attackWeights": {
+                    "attack_1": 1.0,
+                    "attack_2": 1.0,
+                    "attack_3": 1.0
+                }
             },
             "customData": {
                 "frantic1Threshold": 0.66,
@@ -255,7 +260,12 @@
             "spritesheetPath": "textures/cerberus.png",
             "ai": {
                 "retargetLikelihood": 0.5,
-                "defenseLikelihood": 0.2
+                "defenseLikelihood": 0.2,
+                "attackWeights": {
+                    "attack_1": 1.0,
+                    "attack_2": 1.0,
+                    "attack_3": 1.0
+                }
             },
             "customData": {
                 "knockedThreshold": 100.0,
@@ -374,7 +384,12 @@
             "spritesheetPath": "textures/gaia.png",
             "ai": {
                 "retargetLikelihood": 0.9,
-                "defenseLikelihood": 0.0
+                "defenseLikelihood": 0.0,
+                "attackWeights": {
+                    "attack_1": 1.0,
+                    "attack_2": 1.0,
+                    "attack_3": 1.0
+                }
             },
             "customData": {
                 "spawnCooldownConstant": 5.0
