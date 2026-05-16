@@ -493,6 +493,150 @@ public:
     */
     void applyPlayerScramble(const std::array<int, 4>& newMapping);
 
+    // -----------------------------------------------------------------------
+    // End-of-match statistics
+    // -----------------------------------------------------------------------
+
+    /**
+     * Per-house utility ratings loaded from houses.json at initialisation.
+     * Maps house ID (e.g. "athena") to that house's "utility" field value.
+     * Populated once by loadHouseUtilityRatings() and read-only thereafter.
+     * Houses absent from this map default to a multiplier of 1.0 inside
+     * computeWeightedUtility().
+     */
+    std::unordered_map<std::string, float> _houseUtilityRatings;
+    
+    /**
+     * Parses houses.json via the asset manager and populates _houseUtilityRatings
+     * with each house's "utility" field value, keyed by house ID.
+     *
+     * Should be called once during initialisation, after assets have finished
+     * loading and before any game stats are accumulated. Safe to call again to
+     * reload if the asset manager is reloaded.
+     *
+     * Does nothing if the "houses" key is missing from the JSON or if the
+     * asset manager is null.
+     *
+     * @param assets  The loaded asset manager used to retrieve houses.json.
+     */
+    void loadHouseUtilityRatings(const std::shared_ptr<cugl::AssetManager>& assets);
+
+    /**
+     * Adds damageAmount to the damage total for the given house in _statsMap.
+     *
+     * Should be called on the host each time an AttackMessage is processed and
+     * authoritative damage has been resolved. Safe to call with any house ID;
+     * a missing entry is created on first call.
+     *
+     * Does nothing if houseID is empty.
+     *
+     * @param houseID       The house ID of the attacking player (e.g. "athena").
+     * @param damageAmount  The resolved damage value to add to the running total.
+     */
+    void accumulateDamage(const std::string& houseID, int damageAmount);
+
+    /**
+     * Adds healAmount to the healing total for the given house in _statsMap.
+     *
+     * Should be called on the host each time a HealMessage is processed.
+     * Safe to call with any house ID; a missing entry is created on first call.
+     *
+     * Does nothing if houseID is empty.
+     *
+     * @param houseID    The house ID of the healing player (e.g. "aphrodite").
+     * @param healAmount The resolved heal value to add to the running total.
+     */
+    void accumulateHeal(const std::string& houseID, int healAmount);
+
+    /**
+     * Increments the utility trigger count for the given house in _statsMap by 1.
+     *
+     * Should be called wherever a house-affinity effect fires and is successfully
+     * applied (i.e. the effect has the correct house affinity and took effect).
+     * Safe to call with any house ID; a missing entry is created on first call.
+     *
+     * Does nothing if houseID is empty.
+     *
+     * @param houseID  The house ID whose utility count should be incremented
+     *                 (e.g. "hephaestus").
+     */
+    void accumulateUtility(const std::string& houseID);
+
+    /**
+     * Returns a read-only reference to the raw per-house stats map.
+     *
+     * Each entry maps a house ID to a three-element array:
+     *   [0] = total damage dealt
+     *   [1] = total healing done
+     *   [2] = raw utility trigger count (before weighting)
+     *
+     * On the host this is the merged total from all players after all
+     * StatsUpdateMessages have been processed. On clients it holds only
+     * that client's own contributions accumulated since the last resetStats().
+     *
+     * @return  Const reference to _statsMap.
+     */
+    const std::unordered_map<std::string, std::array<int, 3>>& getStatsMap() const {
+        return _statsMap;
+    }
+
+    /**
+     * Converts each house's raw utility trigger count into a weighted float
+     * value by multiplying by that house's entry in kHouseUtilityRatings.
+     *
+     * Houses not found in kHouseUtilityRatings are assigned a multiplier of
+     * 1.0, so their weighted value equals their raw count.
+     *
+     * This result is used by computeTeamUtilityStars(), computePlayerUtilityStars(),
+     * and populateStatsFromNetwork() (for the UTL display column).
+     *
+     * @return  A new map of houseID -> weighted utility value (float).
+     *          An empty map is returned if no stats have been accumulated.
+     */
+    std::unordered_map<std::string, float> computeWeightedUtility() const;
+
+    /**
+     * Computes the number of team utility stars (1–3) for display in the
+     * Team Statistics panel of the WinLoseScene.
+     *
+     * The weighted utility total (sum of all houses' weighted utility values)
+     * is compared against the larger of total team damage and total team heals:
+     *
+     *   ratio = totalWeightedUtility / max(totalDamage, totalHeals)
+     *   ratio >= 0.50  →  3 stars
+     *   ratio >= 0.20  →  2 stars
+     *   otherwise      →  1 star
+     *
+     * Returns 1 star if no damage or heal data exists (avoids division by zero).
+     *
+     * @return  Star count in the range [1, 3].
+     */
+    int computeTeamUtilityStars() const;
+
+    /**
+     * Computes the number of utility stars (1–3) for a single player house,
+     * based on that house's share of the total weighted utility across all houses.
+     *
+     * playerShare = weightedUtility[houseID] / sum(all weighted utilities)
+     *   playerShare >= 0.70  →  3 stars
+     *   playerShare >= 0.45  →  2 stars
+     *   otherwise            →  1 star
+     *
+     * Returns 1 star if total weighted utility is zero (no utility was used).
+     *
+     * @param houseID  The house ID to evaluate (e.g. "poseidon").
+     * @return         Star count in the range [1, 3].
+     */
+    int computePlayerUtilityStars(const std::string& houseID) const;
+
+    /**
+     * Clears the stats map, resetting all per-house accumulated values to zero.
+     *
+     * Should be called at the start of each new game, before any accumulate
+     * calls are made, to ensure stale data from a previous match does not
+     * carry over.
+     */
+    void resetStats() { _statsMap.clear(); }
 
 protected:
     // This enum is used internally by this class to figure out how to decode the data received over the network
@@ -591,6 +735,12 @@ private:
 
     /** Boolean flag that keeps track of if a mid game scramble was applied */
     bool _midGameScramblePending = false;
+    
+    /**
+     * Authoritative per-house stats accumulated during the match.
+     * Key = houseID; value = {totalDamage, totalHeals, utilityCount}.
+     */
+    std::unordered_map<std::string, std::array<int, 3>> _statsMap;
 };
 
 #endif /* __NETWORKING_CONTROLLER__ */

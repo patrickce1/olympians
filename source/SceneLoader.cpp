@@ -267,6 +267,7 @@ void SceneLoader::update(float dt) {
 
             // NETWORK
             _network->init(_assets); // assets loaded, load network controller
+            _network->loadHouseUtilityRatings(_assets);
                 
             // Load persisted player data before any scene is initialized so
             // MenuScene can check hasPlayerName() on first activation
@@ -744,6 +745,7 @@ void SceneLoader::update(float dt) {
         case GameScene::Status::LOST:
             _audio.playMusic("lobby");
             _winLoseScene.setDidWin(false);
+            _winLoseScene.captureStats();
             _winLoseScene.setActive(true);
             _gameScene.setActive(false);
             _currentScene = State::WINLOSE;
@@ -752,6 +754,7 @@ void SceneLoader::update(float dt) {
         case GameScene::Status::WON:
             _audio.playMusic("lobby");
             _winLoseScene.setDidWin(true);
+            _winLoseScene.captureStats();
             _winLoseScene.setActive(true);
             _gameScene.setActive(false);
             _currentScene = State::WINLOSE;

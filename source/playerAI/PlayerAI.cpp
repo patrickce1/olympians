@@ -625,6 +625,9 @@ void PlayerAI::actSupport(ItemController& items) {
           getPlayerName().c_str(), (unsigned long long)chosen,
           target->getPlayerName().c_str(), lowestRatio);
     useItemById(chosen, *target, *_db);
+    if (chosenDef && !chosenDef->getEffects().empty()) {
+        _pendingUtilityCount++;
+    }
 }
 
 /**
@@ -1012,6 +1015,10 @@ float PlayerAI::useAttackItemById(ItemInstance::ItemId itemId, Enemy& enemy, Ite
     }
 
     const float resolvedMagnitude = useItemById(itemId, enemy, *_db);
+    // Accumulate utility if this attack item carries any effects beyond raw damage
+    if (!def->getEffects().empty()) {
+        _pendingUtilityCount++;
+    }
     if (resolvedMagnitude >= 0.0f && def && def->getAttackTarget() == ItemDef::AttackTarget::AllAllies) {
         std::vector<float> forgeChances = collectAIForgeChances(*this, *def);
         _pendingForgeChances.insert(_pendingForgeChances.end(), forgeChances.begin(), forgeChances.end());

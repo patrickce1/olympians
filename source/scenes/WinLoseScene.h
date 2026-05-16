@@ -125,8 +125,10 @@ protected:
 
     /** Resting positions of each player row, saved before they are pushed off-screen */
     cugl::Vec2 _rowOriginalPos[4];
-
     
+    /** Snapshot of player stats captured at game end, populated by captureStats(). */
+    PlayerStats _capturedStats[4];
+
 public:
 #pragma mark -
 #pragma mark Constructors
@@ -217,7 +219,35 @@ public:
      */
     void setDidWin(bool value) { _didWin = value; }
     
-
+    /**
+     * Populates all phase 2 UI labels and star ratings from a PlayerStats array.
+     *
+     * For each player row (0–3):
+     *   - Sets the name label to players[i].displayName.
+     *   - Sets the DMG label to players[i].damage, formatted with commas.
+     *   - Sets the HEAL label to players[i].heals, formatted with commas.
+     *   - Sets the UTL label to players[i].utility, formatted with commas.
+     *
+     * For team statistics:
+     *   - Sets the Total Damage label to the sum of all players' damage.
+     *   - Sets the Total Heals label to the sum of all players' heals.
+     *   - Toggles the fill child of each _teamUtilStar node based on the
+     *     star count returned by _network->computeTeamUtilityStars().
+     *
+     * @param players  Array of exactly 4 PlayerStats structs, one per player slot
+     *                 in circle order (slot 0 = index 0, etc.). The caller is
+     *                 responsible for ensuring all four entries are populated.
+     */
+    void setStats(const PlayerStats players[4]);
+    
+    /**
+     * Captures the current stats from the NetworkController into a local
+     * snapshot. Must be called immediately when the game ends, before any
+     * network state is cleared or lobby updates arrive.
+     * setActive(true) will then display from this snapshot.
+     */
+    void captureStats();
+    
 private:
     
     /**
@@ -234,13 +264,6 @@ private:
      * @param phase  1 for the result-reveal screen, 2 for the stats screen.
      */
     void showPhase(int phase);
-    
-    /**
-     * Sets the player stats displayed on the phase 2 screen.
-     *
-     * @param players   The stats of every player as defined by the struct
-     */
-    void setStats(const PlayerStats players[4]);
     
     /**
      * Formats an integer as "20,780" style

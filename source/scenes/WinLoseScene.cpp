@@ -246,19 +246,30 @@ void WinLoseScene::showPhase(int phase) {
 }
 
 /**
- * Sets the player stats displayed on the phase 2 screen.
+ * Populates all phase 2 UI labels and star ratings from a PlayerStats array.
  *
- * @param players   The stats of every player as defined by the struct
+ * For each player row (0–3):
+ *   - Sets the name label to players[i].displayName.
+ *   - Sets the DMG label to players[i].damage, formatted with commas.
+ *   - Sets the HEAL label to players[i].heals, formatted with commas.
+ *   - Sets the UTL label to players[i].utility, formatted with commas.
+ *
+ * For team statistics:
+ *   - Sets the Total Damage label to the sum of all players' damage.
+ *   - Sets the Total Heals label to the sum of all players' heals.
+ *   - Toggles the fill child of each _teamUtilStar node based on the
+ *     star count returned by _network->computeTeamUtilityStars().
+ *
+ * @param players  Array of exactly 4 PlayerStats structs, one per player slot
+ *                 in circle order (slot 0 = index 0, etc.). The caller is
+ *                 responsible for ensuring all four entries are populated.
  */
 void WinLoseScene::setStats(const PlayerStats players[4]) {
-    int totalDamage  = 0;
-    int totalHeals   = 0;
-    int totalUtility = 0;
+    int totalDamage = 0, totalHeals = 0;
 
     for (int i = 0; i < 4; i++) {
-        totalDamage  += players[i].damage;
-        totalHeals   += players[i].heals;
-        totalUtility += players[i].utility;
+        totalDamage += players[i].damage;
+        totalHeals  += players[i].heals;
 
         _summaryTableNames[i]->setText(players[i].displayName);
         _summaryTableDmg[i]->setText(formatNumber(players[i].damage));
@@ -269,11 +280,23 @@ void WinLoseScene::setStats(const PlayerStats players[4]) {
     _teamTotalDmg->setText(formatNumber(totalDamage));
     _teamTotalHeal->setText(formatNumber(totalHeals));
 
-    // Utility stars (hardcoded to 3 for now)
-    int stars = 3;
+    // Show filled stars up to the computed team utility rating
+    int teamStars = _network->computeTeamUtilityStars();
     for (int i = 0; i < 3; i++) {
-        _teamUtilStar[i]->getChildByName("fill")->setVisible(i < stars);
+        _teamUtilStar[i]->getChildByName("fill")->setVisible(i < teamStars);
     }
+    // ── DEBUG: confirm what was written to UI ────────────────────────────────
+        CULog("=== WinLoseScene::setStats ===");
+        for (int i = 0; i < 4; i++) {
+            CULog("  Row %d: name='%s'  dmg=%d  heal=%d  util=%d",
+                  i,
+                  players[i].displayName.c_str(),
+                  players[i].damage,
+                  players[i].heals,
+                  players[i].utility);
+        }
+        CULog("  Team stars: %d", _network->computeTeamUtilityStars());
+        // ── END DEBUG ────────────────────────────────────────────────────────────
 }
 
 /**
@@ -478,4 +501,65 @@ void WinLoseScene::fadeInStar(int i) {
         [this, i](const std::string& key, float time, float actual) {
             fadeInStar(i + 1);
         });
+}
+
+/**
+ * Reads player slot data and accumulated stats from the NetworkController
+ * and calls setStats() to populate the phase 2 UI.
+ *
+ * For each slot 0–3:
+ *   - Looks up the NetworkedPlayer in _network->getNetworkedPlayers().
+ *   - Formats the display name as "UPPERCASE_HOUSE | username".
+ *   - Reads damage and heals directly from the raw stats map.
+ *   - Computes the weighted utility value via computeWeightedUtility() and
+ *     rounds it to the nearest integer for the UTL column.
+ *   - Falls back to "PLAYER N" and zero stats for any slot with no entry.
+ */
+void WinLoseScene::captureStats() {
+    const auto& statsMap     = _network->getStatsMap();
+    const auto& slotToPlayer = _network->getNetworkedPlayers();
+
+    CULog("=== WinLoseScene::captureStats ===");
+    CULog("Stats map has %zu entries:", statsMap.size());
+    for (const auto& pair : statsMap) {
+        CULog("  House '%s': damage=%d  heals=%d  utilityCount=%d",
+              pair.first.c_str(), pair.second[0], pair.second[1], pair.second[2]);
+    }
+    CULog("Networked players (%zu slots):", slotToPlayer.size());
+    for (const auto& pair : slotToPlayer) {
+        CULog("  Slot %d: networkID='%s'  username='%s'  houseID='%s'",
+              pair.first, pair.second.networkID.c_str(),
+              pair.second.username.c_str(), pair.second.houseID.c_str());
+    }
+
+    for (int slot = 0; slot < 4; ++slot) {
+        _capturedStats[slot] = { "", "PLAYER " + std::to_string(slot + 1), 0, 0, 0 };
+
+        std::string houseID;
+        std::string displayName;
+
+        auto playerIt = slotToPlayer.find(slot);
+        if (playerIt != slotToPlayer.end()) {
+            houseID = playerIt->second.houseID;
+            std::string upperHouse = houseID;
+            std::transform(upperHouse.begin(), upperHouse.end(),
+                           upperHouse.begin(), ::toupper);
+            displayName = upperHouse + " | " + playerIt->second.username;
+        } else {
+            houseID = _network->getAIHouse(slot);
+            if (!houseID.empty()) {
+                std::string upperHouse = houseID;
+                std::transform(upperHouse.begin(), upperHouse.end(),
+                               upperHouse.begin(), ::toupper);
+                displayName = upperHouse + " | AI";
+            }
+        }
+
+        if (houseID.empty()) continue;
+
+        _capturedStats[slot].houseId     = houseID;
+        _capturedStats[slot].displayName = displayName;
+        _capturedStats[slot].utility     = _network->computePlayerUtilityStars(houseID);
+    }
+    setStats(_capturedStats);
 }

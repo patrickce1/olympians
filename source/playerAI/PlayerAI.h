@@ -73,6 +73,9 @@ protected:
      * resolves, or at the start of the next evaluate() cycle.
      */
     bool _rulesetDeferDivine = false;
+    
+    /** Count of utility-effect items used since the last consumePendingUtilityCount() call. */
+    int _pendingUtilityCount = 0;
 
     // ── Raw JSON floor/ceiling values ──────────────────────────────────────
 
@@ -326,6 +329,18 @@ public:
 
     /** Returns true — this player is always AI-controlled. */
     bool isAI() const override { return true; }
+    
+    /**
+     * Returns the number of utility-effect items the AI used since the last
+     * call, then resets the counter to zero. Mirrors consumePendingForgeChances().
+     *
+     * @return  Count of utility actions taken since the last call.
+     */
+    int consumePendingUtilityCount() {
+        int count = _pendingUtilityCount;
+        _pendingUtilityCount = 0;
+        return count;
+    }
 
 private:
 

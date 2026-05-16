@@ -2154,7 +2154,22 @@ void GameScene::updateEnemyAndAI(float dt) {
     if (_network->isHost()) {
         for (auto& player : _gameState.getPlayers()) {
             if (auto* ai = dynamic_cast<PlayerAI*>(player.get())) {
+                const float enemyHealthBefore = enemy->getCurrentHealth();
+
                 ai->update(dt, *enemy, _itemController);
+
+                // Accumulate damage from the health the AI caused the enemy to lose
+                const float damageDealt = enemyHealthBefore - enemy->getCurrentHealth();
+                if (damageDealt > 0.0f) {
+                    _network->accumulateDamage(ai->getHouseName(), static_cast<int>(damageDealt));
+                }
+
+                // Accumulate utility for each effect-bearing item the AI used this frame
+                int utilityCount = ai->consumePendingUtilityCount();
+                for (int i = 0; i < utilityCount; ++i) {
+                    _network->accumulateUtility(ai->getHouseName());
+                }
+
                 for (float forgeChance : ai->consumePendingForgeChances()) {
                     const int seed = makeForgeSeed();
                     applyForgeEffect(forgeChance, seed);
@@ -4059,6 +4074,17 @@ void GameScene::handleNetworkUpdates(float dt) {
     if (_network->isHost()) {
         // handle incoming attack/heal messages from clients
         const auto& supportEffects = _network->getSupportEffectUpdates();
+        // Handle Stats Updates
+        for (const auto& msg : _network->getAttackUpdates()) {
+            auto def = _itemController.getDatabase().getDef(msg.itemDefID);
+            if (def && !def->getEffects().empty()) {
+                // damageDirection is the attacker's slot
+                auto playerIt = _network->getNetworkedPlayers().find(msg.damageDirection);
+                if (playerIt != _network->getNetworkedPlayers().end()) {
+                    _network->accumulateUtility(playerIt->second.houseID);
+                }
+            }
+        }
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         _gameState.bossHealUpdates(_network->getBossHealUpdates());
