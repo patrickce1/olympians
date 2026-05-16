@@ -4247,11 +4247,13 @@ void GameScene::handleNetworkUpdates(float dt) {
     // Check if we won or lost (common to both host and client)
     if (_network->isHost()) {
         if (_gameState.didWin()) {
+            _network->broadcastStatsMap();
             _network->broadcastWonGame();
             _status = Status::WON;
             CULog("We won!");
             handleXPAdjustment(true);
         } else if (_gameState.didLose()) {
+            _network->broadcastStatsMap();
             _network->broadcastLostGame();
             _status = Status::LOST;
             CULog("We lost!");
