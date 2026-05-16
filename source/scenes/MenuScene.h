@@ -2,6 +2,7 @@
 #define __MENU_SCENE_H__
 
 #include <cugl/cugl.h>
+#include "../AudioController.h"
 #include "../SavedDataManager.h"
 
 /**
@@ -31,6 +32,9 @@ protected:
     
     /** The asset manager for this scene. */
     std::shared_ptr<cugl::AssetManager> _assets;
+
+    /** The audio controller shared across all scenes */
+    AudioController* _audio = nullptr;
     
     /** The root scene node for this scene graph. */
     std::shared_ptr<cugl::scene2::SceneNode> _scene;
@@ -97,7 +101,7 @@ public:
      *
      * @return true if initialization succeeds; false otherwise.
      */
-    bool init(const std::shared_ptr<cugl::AssetManager>& assets);
+    bool init(const std::shared_ptr<cugl::AssetManager>& assets, AudioController* audio);
 
     /**
      * Sets whether this scene is currently active.
