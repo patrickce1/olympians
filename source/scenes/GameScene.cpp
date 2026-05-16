@@ -4446,6 +4446,15 @@ void GameScene::processForgeEffects(const std::vector<ForgeEffectMessage>& forge
  * @param seed    Deterministic base seed used to derive per-player forge rolls.
  */
 void GameScene::applyForgeEffect(float chance, int seed) {
+    std::unordered_map<ItemInstance::ItemId, std::string> corrodingDefIds;
+    if (Player* local = _gameState.getLocalPlayer()) {
+        for (const ItemInstance& item : local->getInventory()) {
+            if (_corrodingItemIds.find(item.getId()) != _corrodingItemIds.end()) {
+                corrodingDefIds[item.getId()] = item.getDefId();
+            }
+        }
+    }
+
     const std::uint32_t baseSeed = static_cast<std::uint32_t>(seed);
     for (const auto& player : _gameState.getPlayers()) {
         if (!player) {
@@ -4454,7 +4463,79 @@ void GameScene::applyForgeEffect(float chance, int seed) {
         const std::uint32_t playerSeed = baseSeed ^ (0x9e3779b9u + static_cast<std::uint32_t>(player->getPlayerNumber()));
         _itemController.applyForgeEffect(player.get(), chance, playerSeed);
     }
+    freeForgedCorrodingItems(corrodingDefIds);
     refreshInventoryWidgetTextures();
+}
+
+/**
+ * Cancels corrosion animations for local items that were redefined by forge.
+ *
+ * Corrosion completion removes by stable item ID, while forge preserves that ID.
+ * Without clearing the animation, an upgraded item can still be finalized and
+ * deleted after the old corrosion timer finishes.
+ *
+ * @param previousDefIds  Definition IDs captured before forge for corroding local items.
+ */
+void GameScene::freeForgedCorrodingItems(const std::unordered_map<ItemInstance::ItemId, std::string>& previousDefIds) {
+    if (previousDefIds.empty()) {
+        return;
+    }
+
+    Player* local = _gameState.getLocalPlayer();
+    if (!local) {
+        return;
+    }
+
+    std::unordered_set<ItemInstance::ItemId> freedIds;
+    for (const ItemInstance& item : local->getInventory()) {
+        auto previousDefIt = previousDefIds.find(item.getId());
+        if (previousDefIt == previousDefIds.end()) {
+            continue;
+        }
+        if (previousDefIt->second != item.getDefId() &&
+            _corrodingItemIds.find(item.getId()) != _corrodingItemIds.end()) {
+            freedIds.insert(item.getId());
+        }
+    }
+
+    if (freedIds.empty()) {
+        return;
+    }
+
+    _corrodedItemAnimations.erase(
+        std::remove_if(_corrodedItemAnimations.begin(), _corrodedItemAnimations.end(),
+                       [&](const CorrodedItemAnimation& anim) {
+                           return freedIds.find(anim.itemId) != freedIds.end();
+                       }),
+        _corrodedItemAnimations.end());
+
+    for (ItemInstance::ItemId itemId : freedIds) {
+        _corrodingItemIds.erase(itemId);
+
+        auto widgetIt = _itemWidgets.find(itemId);
+        if (widgetIt != _itemWidgets.end() && widgetIt->second) {
+            auto widget = widgetIt->second;
+            cugl::Vec2 center = widget->getPosition();
+
+            auto bodyIt = _itemBodies.find(itemId);
+            if (bodyIt != _itemBodies.end() && bodyIt->second) {
+                center = bodyIt->second->getPosition();
+            }
+
+            cugl::Size widgetSize = widget->getContentSize();
+            widget->setAnchor(cugl::Vec2::ANCHOR_BOTTOM_LEFT);
+            widget->setPosition(center - cugl::Vec2(widgetSize.width * 0.5f, widgetSize.height * 0.5f));
+            widget->setScale(ITEM_NORMAL_SCALE);
+            widget->setVisible(true);
+        }
+
+        _itemWidgetScales[itemId] = ITEM_NORMAL_SCALE;
+        _itemWidgetScaleTargets[itemId] = ITEM_NORMAL_SCALE;
+    }
+
+    if (_corrodedItemAnimations.empty()) {
+        _corrosiveVisualTarget = -1;
+    }
 }
 
 /** 
@@ -4869,8 +4950,6 @@ void GameScene::applyCorrosiveDrain(int targetPlayerSlot, float fadeDuration, fl
  * players if this machine is the host. AI item spawning is host-only since
  * the host is the authoritative source for all AI state.
  * 
- * Corrosive players do not get items.
- *
  * @param dt  Delta time in seconds.
  */
 void GameScene::handleItemSpawn(float dt) {
@@ -4878,12 +4957,7 @@ void GameScene::handleItemSpawn(float dt) {
         return;
     }
 
-    // Block item spawning while corrosive animations are still running on this player
-    Player* local = _gameState.getLocalPlayer();
-    int localPlayerSlot = local ? local->getPlayerNumber() : -1;
-    bool localPlayerCorrosive = (_corrosiveVisualTarget == localPlayerSlot && localPlayerSlot >= 0);
-
-    _itemController.update(dt, _gameState.getLocalPlayer(), localPlayerCorrosive);
+    _itemController.update(dt, _gameState.getLocalPlayer());
 
     //handle gaia spawning, the method checks if the enemy is actually Gaia and spawns items as needed
     handleGaiaSpawn();
