@@ -812,7 +812,7 @@
 	},
 	"hephaestus_forge" : {
 	    "type": "sample",
-	    "file": "hephaestus_forge.wav",
+	    "file": "sounds/hephaestus_forge.wav",
 	    "stream": false,
 	    "volume": 0.65
 	},
