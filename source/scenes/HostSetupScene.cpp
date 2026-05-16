@@ -142,6 +142,7 @@ void HostSetupScene::setupListeners() {
                 EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
                 _network->setEnemy(selectedBoss.id);
                 _network->broadcastBossSelection(selectedBoss.id);
+                if (_audio) _audio->playSoundUnique("page_turn");
                 _status = Status::START;
             }
         }
@@ -155,6 +156,7 @@ void HostSetupScene::setupListeners() {
     });
     
     _joinButton->addListener([this](const std::string& name, bool down) {
+        if (_audio) _audio->playSoundUnique("tabswap");
         if (down) {
             _status = Status::CLIENT;
             _joinButton->setDown(false);
@@ -170,8 +172,10 @@ void HostSetupScene::setupListeners() {
     });
     
     _settingsButton->addListener([this](const std::string& name, bool down) {
-        if (_audio) _audio->playSoundUnique("gear");
-        if (!down) _pendingSettings = true;
+        if (!down){
+            if (_audio) _audio->playSoundUnique("tabswap");
+            _pendingSettings = true;
+        }
     });
 }
 
