@@ -6852,9 +6852,11 @@ void GameScene::updateItemUseAnimations(float dt) {
                     // Apply pre-calculated damage before any item effects update enemy side multipliers.
                     const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
+                    const float actualDamageDealt = enemyHealthBefore - enemy->getCurrentHealth();
+
                     if (localPlayer) {
                         const float localHealthBefore = localPlayer->getCurrentHealth();
-                        localPlayer->applyLifestealHeal(std::max(0.0f, enemyHealthBefore - enemy->getCurrentHealth()));
+                        localPlayer->applyLifestealHeal(std::max(0.0f, actualDamageDealt));
                         if (localPlayer->getCurrentHealth() > localHealthBefore) {
                             triggerHealFrame();
                         }
