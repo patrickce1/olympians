@@ -84,7 +84,7 @@ void WinLoseScene::setupUI() {
     _statsHeader  = _assets->get<scene2::SceneNode>("winLoseScene.statsHeader");
     _indivStats   = _assets->get<scene2::SceneNode>("winLoseScene.indivStats");
     _successLabel = std::dynamic_pointer_cast<scene2::PolygonNode>(
-        _assets->get<scene2::SceneNode>("winLoseScene.winLoseLabelS"));
+        _assets->get<scene2::SceneNode>("winLoseScene.teamStats.winLoseLabelS"));
     
     setupStatsUI();
 }
@@ -112,9 +112,11 @@ void WinLoseScene::setupStatsUI() {
             _assets->get<scene2::SceneNode>(base + ".values.damage"));
         _summaryTableHeal[i] = std::dynamic_pointer_cast<scene2::Label>(
             _assets->get<scene2::SceneNode>(base + ".values.heal"));
+        _summaryTableIcons[i] = std::dynamic_pointer_cast<scene2::PolygonNode>(
+            _assets->get<scene2::SceneNode>(base + ".playerIcon"));
 
         for (int j = 0; j < 3; j++) {
-            std::string starPath = base + ".values.utility.stars.star" + std::to_string(j);
+            std::string starPath = base + ".values.utility.star" + std::to_string(j);
             _summaryTableUtil[i][j] = _assets->get<scene2::SceneNode>(starPath);
         }
     }
@@ -191,6 +193,7 @@ void WinLoseScene::update(float timestep) {
     if (_pendingPhase2) {
         _pendingPhase2 = false;
         showPhase(2);
+        
     }
 
     // Delayed phase 2 content reveal — waits for phase 1 fade-out to finish
@@ -282,28 +285,19 @@ void WinLoseScene::setStats(const PlayerStats players[4]) {
         for (int j = 0; j < 3; j++) {
             _summaryTableUtil[i][j]->getChildByName("fill")->setVisible(j < players[i].utility);
         }
+        _summaryTableIcons[i]->setTexture(_assets->get<cugl::graphics::Texture>(players[i].houseId + "Regular"));
     }
 
     _teamTotalDmg->setText(formatNumber(totalDamage));
     _teamTotalHeal->setText(formatNumber(totalHeals));
+    // Team stats background
+    _teamStatsBG->setTexture(_assets->get<cugl::graphics::Texture>(players[0].houseId + "TeamStats"));
 
     // Show filled stars up to the computed team utility rating
     int teamStars = _network->computeTeamUtilityStars();
     for (int i = 0; i < 3; i++) {
         _teamUtilStar[i]->getChildByName("fill")->setVisible(i < teamStars);
     }
-    // ── DEBUG: confirm what was written to UI ────────────────────────────────
-        CULog("=== WinLoseScene::setStats ===");
-        for (int i = 0; i < 4; i++) {
-            CULog("  Row %d: name='%s'  dmg=%d  heal=%d  util=%d",
-                  i,
-                  players[i].displayName.c_str(),
-                  players[i].damage,
-                  players[i].heals,
-                  players[i].utility);
-        }
-        CULog("  Team stars: %d", _network->computeTeamUtilityStars());
-        // ── END DEBUG ────────────────────────────────────────────────────────────
 }
 
 /**
@@ -320,6 +314,16 @@ std::string WinLoseScene::formatNumber(int value) {
     }
     return s;
 }
+
+/**
+ * Formats the house name and player username in the form HOUSE | username
+ *
+ * @param house   The player's house to be formatted
+ * @param username   The player's username to be formatted
+ */
+std::string WinLoseScene::formatPlayerLabel(std::string house, std::string username) {
+    return "";
+};
 
 #pragma mark -
 #pragma mark Phase 1 Animation
@@ -526,19 +530,6 @@ void WinLoseScene::captureStats() {
     const auto& statsMap     = _network->getStatsMap();
     const auto& slotToPlayer = _network->getNetworkedPlayers();
 
-    CULog("=== WinLoseScene::captureStats ===");
-    CULog("Stats map has %zu entries:", statsMap.size());
-    for (const auto& pair : statsMap) {
-        CULog("  House '%s': damage=%d  heals=%d  utilityCount=%d",
-              pair.first.c_str(), pair.second[0], pair.second[1], pair.second[2]);
-    }
-    CULog("Networked players (%zu slots):", slotToPlayer.size());
-    for (const auto& pair : slotToPlayer) {
-        CULog("  Slot %d: networkID='%s'  username='%s'  houseID='%s'",
-              pair.first, pair.second.networkID.c_str(),
-              pair.second.username.c_str(), pair.second.houseID.c_str());
-    }
-
     for (int slot = 0; slot < 4; ++slot) {
         _capturedStats[slot] = { "", "PLAYER " + std::to_string(slot + 1), 0, 0, 0 };
 
@@ -558,7 +549,7 @@ void WinLoseScene::captureStats() {
                 std::string upperHouse = houseID;
                 std::transform(upperHouse.begin(), upperHouse.end(),
                                upperHouse.begin(), ::toupper);
-                displayName = upperHouse + " | AI";
+                displayName = upperHouse + " | AI Player " + std::to_string(slot);
             }
         }
 
@@ -566,7 +557,72 @@ void WinLoseScene::captureStats() {
 
         _capturedStats[slot].houseId     = houseID;
         _capturedStats[slot].displayName = displayName;
+        _capturedStats[slot].damage      = statsMap.find(houseID)->second[0];
+        _capturedStats[slot].heals       = statsMap.find(houseID)->second[1];
         _capturedStats[slot].utility     = _network->computePlayerUtilityStars(houseID);
     }
+    reorderForMVP();
     setStats(_capturedStats);
+}
+
+/**
+ * Computes which slot in the captured stats array has the highest combined
+ * score (damage + heals + weighted utility), moves that entry to index 0,
+ * and shifts everyone else down by one. Sets _mvpOriginalSlot to the
+ * original slot index of the MVP before reordering.
+ * Must be called after all four _capturedStats entries are populated and
+ * before setStats() is called.
+ */
+void WinLoseScene::reorderForMVP() {
+    auto weightedUtil = _network->computeWeightedUtility();
+
+    // Compute team totals for ratio-based scoring
+    int totalDamage  = 0;
+    int totalHeals   = 0;
+    float totalUtil  = 0.0f;
+
+    for (int i = 0; i < 4; i++) {
+        if (_capturedStats[i].houseId.empty()) continue;
+        totalDamage += _capturedStats[i].damage;
+        totalHeals  += _capturedStats[i].heals;
+        auto it = weightedUtil.find(_capturedStats[i].houseId);
+        if (it != weightedUtil.end()) totalUtil += it->second;
+    }
+
+    // Floor at 1 to avoid division by zero
+    if (totalDamage == 0) totalDamage = 1;
+    if (totalHeals  == 0) totalHeals  = 1;
+    if (totalUtil  <= 0.0f) totalUtil = 1.0f;
+
+    // Compute score for each slot: damage/total + heals/total + util/total
+    float scores[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    for (int i = 0; i < 4; i++) {
+        if (_capturedStats[i].houseId.empty()) continue;
+        float utilValue = 0.0f;
+        auto it = weightedUtil.find(_capturedStats[i].houseId);
+        if (it != weightedUtil.end()) utilValue = it->second;
+
+        scores[i] = (static_cast<float>(_capturedStats[i].damage) / totalDamage)
+                  + (static_cast<float>(_capturedStats[i].heals)  / totalHeals)
+                  + (utilValue                                     / totalUtil);
+    }
+
+    // Insertion sort _capturedStats by descending score
+    // Empty slots (houseId empty) always sort to the bottom
+    for (int i = 1; i < 4; i++) {
+        PlayerStats currentStat  = _capturedStats[i];
+        float       currentScore = scores[i];
+        int j = i - 1;
+        while (j >= 0 && (scores[j] < currentScore ||
+               (_capturedStats[j].houseId.empty() && !currentStat.houseId.empty()))) {
+            _capturedStats[j + 1] = _capturedStats[j];
+            scores[j + 1]         = scores[j];
+            j--;
+        }
+        _capturedStats[j + 1] = currentStat;
+        scores[j + 1]         = currentScore;
+    }
+
+    // MVP is always slot 0 after sorting
+    _mvpOriginalSlot = 0;
 }

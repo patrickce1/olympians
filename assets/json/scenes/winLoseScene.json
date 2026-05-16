@@ -390,33 +390,6 @@
                     "y_offset": 0.05
                 }
             },
-            "winLoseLabelS": {
-                "type": "Image",
-                "data": {
-                    "texture": "successLabelS",
-                    "anchor": [
-                        0,
-                        1
-                    ],
-                    "size": [
-                        247,
-                        79
-                    ],
-                    "angle": 0,
-                    "position": [
-                        34,
-                        738.5
-                    ],
-                    "visible": true
-                },
-                "layout": {
-                    "x_anchor": "left",
-                    "y_anchor": "top",
-                    "absolute": false,
-                    "x_offset": 0.11,
-                    "y_offset": -0.08
-                }
-            },
             "teamStats": {
                 "type": "Widget",
                 "format": { "type": "Anchored" },

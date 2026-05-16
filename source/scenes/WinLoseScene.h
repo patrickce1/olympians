@@ -131,6 +131,9 @@ protected:
     
     /** Snapshot of player stats captured at game end, populated by captureStats(). */
     PlayerStats _capturedStats[4];
+    
+    /** Slot index of the MVP player after reordering, always 0 after captureStats(). */
+    int _mvpOriginalSlot = -1;
 
 public:
 #pragma mark -
@@ -250,6 +253,16 @@ public:
      * setActive(true) will then display from this snapshot.
      */
     void captureStats();
+
+    /**
+     * Computes which slot in the captured stats array has the highest combined
+     * score (damage + heals + weighted utility), moves that entry to index 0,
+     * and shifts everyone else down by one. Sets _mvpOriginalSlot to the
+     * original slot index of the MVP before reordering.
+     * Must be called after all four _capturedStats entries are populated and
+     * before setStats() is called.
+     */
+    void reorderForMVP();
     
 private:
     
@@ -274,6 +287,14 @@ private:
      * @param value   The number to be formatted
      */
     std::string formatNumber(int value);
+    
+    /**
+     * Formats the house name and player username in the form HOUSE | username
+     *
+     * @param house   The player's house to be formatted
+     * @param username   The player's username to be formatted
+     */
+    std::string formatPlayerLabel(std::string house, std::string username);
     
     /**
      * Resets all nodes to their initial hidden state for phase 1.

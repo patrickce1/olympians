@@ -1040,6 +1040,16 @@ void GameScene::setActive(bool value) {
             // Without this, _db is null and the AI crashes on first update.
             _gameState.initAI(_itemController);
             
+            // HOST ONLY: reset stats map and seed every player slot with a zero entry
+            // so players who contribute nothing still appear in the stats table.
+            if (_network->isHost()) {
+                _network->resetStats();
+                for (const auto& player : _gameState.getPlayers()) {
+                    if (!player || player->getHouseName().empty()) continue;
+                    _network->accumulateDamage(player->getHouseName(), 0);
+                }
+            }
+            
             // Re-apply AI difficulty after initAI() resets all multipliers to 0.
             // Uses the current enemy ID and cached player XP so the multiplier
             // matches what was set in the lobby.
@@ -1592,6 +1602,15 @@ bool GameScene::handleSupportLeft(ItemInstance::ItemId itemId) {
         if (resolvedMagnitude < 0.0f) return false;
         
         spawnEffectIcons(local->getEffectEvents());
+        
+        //Handle Host heal update
+        if (_network->isHost() && resolvedMagnitude > 0.0f && def->getId() != "gaia_rock") {
+            _network->accumulateHeal(local->getHouseName(),
+                                     static_cast<int>(resolvedMagnitude));
+            if (!def->getEffects().empty()) {
+                _network->accumulateUtility(local->getHouseName());
+            }
+        }
 
         if (!_network->isHost()) {
             if (def->getId() == "gaia_rock") {
@@ -1646,6 +1665,15 @@ bool GameScene::handleSupportRight(ItemInstance::ItemId itemId) {
         if (resolvedMagnitude < 0.0f) return false;
         
         spawnEffectIcons(local->getEffectEvents());
+        
+        //Handle Host heal update
+        if (_network->isHost() && resolvedMagnitude > 0.0f && def->getId() != "gaia_rock") {
+            _network->accumulateHeal(local->getHouseName(),
+                                     static_cast<int>(resolvedMagnitude));
+            if (!def->getEffects().empty()) {
+                _network->accumulateUtility(local->getHouseName());
+            }
+        }
 
         if (!_network->isHost()) {
             if (def->getId() == "gaia_rock") {
@@ -6766,6 +6794,12 @@ void GameScene::updateItemUseAnimations(float dt) {
                     const float enemyHealthBefore = enemy->getCurrentHealth();
                     enemy->takeDamage(activeAnim.damageAmount, playerNum);
                     const float actualDamageDealt = enemyHealthBefore - enemy->getCurrentHealth();
+                    
+                    //Apply Host damage
+                    if (_network->isHost() && localPlayer && actualDamageDealt > 0.0f) {
+                        _network->accumulateDamage(localPlayer->getHouseName(),
+                                                   static_cast<int>(actualDamageDealt));
+                    }
 
                     if (localPlayer) {
                         const float localHealthBefore = localPlayer->getCurrentHealth();
@@ -6797,6 +6831,12 @@ void GameScene::updateItemUseAnimations(float dt) {
                     broadcastEnemyEffects(*_network, activeAnim.enemyEffects);
                 } else if (_network && _network->isHost()) {
                     _gameState.enemyEffectUpdates(activeAnim.enemyEffects);
+                    if (!activeAnim.itemDefID.empty()) {
+                        auto def = _itemController.getDatabase().getDef(activeAnim.itemDefID);
+                        if (def && !def->getEffects().empty() && localPlayer) {
+                            _network->accumulateUtility(localPlayer->getHouseName());
+                        }
+                    }
                 }
                 scheduleStunDamagePopups(activeAnim.enemyEffects, activeAnim.popupPosition,
                                          activeAnim.houseAffinityMultiplier,

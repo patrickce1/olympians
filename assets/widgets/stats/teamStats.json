@@ -27,7 +27,7 @@
                 "data": {
                     "texture": "teamStatsBG",
                     "anchor": [
-                        1,
+                        0.5,
                         0.5
                     ],
                     "size": [
@@ -42,11 +42,38 @@
                     "visible": true
                 },
                 "layout": {
-                    "x_anchor": "right",
+                    "x_anchor": "center",
                     "y_anchor": "middle",
                     "absolute": false,
                     "x_offset": 0,
                     "y_offset": 0
+                }
+            },
+            "winLoseLabelS": {
+                "type": "Image",
+                "data": {
+                    "texture": "successLabelS",
+                    "anchor": [
+                        0,
+                        1
+                    ],
+                    "size": [
+                        247,
+                        79
+                    ],
+                    "angle": 0,
+                    "position": [
+                        34,
+                        738.5
+                    ],
+                    "visible": true
+                },
+                "layout": {
+                    "x_anchor": "left",
+                    "y_anchor": "top",
+                    "absolute": false,
+                    "x_offset": 0.06,
+                    "y_offset": -0.2
                 }
             },
             "header": {
