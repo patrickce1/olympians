@@ -190,7 +190,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        19,
+                                        10,
                                         1
                                     ],
                                     "angle": 0,
@@ -218,7 +218,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        208,
+                                        230,
                                         76
                                     ],
                                     "position": [
@@ -339,7 +339,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        36,
+                                        27,
                                         1
                                     ],
                                     "angle": 0,
@@ -367,7 +367,7 @@
                                         0.5
                                     ],
                                     "size": [
-                                        208,
+                                        230,
                                         76
                                     ],
                                     "position": [
@@ -558,7 +558,7 @@
                                             "empty": {
                                                 "type": "Image",
                                                 "data": {
-                                                    "texture": "empty",
+                                                    "texture": "emptyStars",
                                                     "anchor": [
                                                         0,
                                                         1
@@ -585,7 +585,7 @@
                                             "fill": {
                                                 "type": "Image",
                                                 "data": {
-                                                    "texture": "fill",
+                                                    "texture": "fillStars",
                                                     "anchor": [
                                                         0,
                                                         1
@@ -645,7 +645,7 @@
                                             "empty": {
                                                 "type": "Image",
                                                 "data": {
-                                                    "texture": "empty",
+                                                    "texture": "emptyStars",
                                                     "anchor": [
                                                         0,
                                                         1
@@ -672,7 +672,7 @@
                                             "fill": {
                                                 "type": "Image",
                                                 "data": {
-                                                    "texture": "fill",
+                                                    "texture": "fillStars",
                                                     "anchor": [
                                                         0,
                                                         1
@@ -732,7 +732,7 @@
                                             "empty": {
                                                 "type": "Image",
                                                 "data": {
-                                                    "texture": "empty",
+                                                    "texture": "emptyStars",
                                                     "anchor": [
                                                         0,
                                                         1
@@ -759,7 +759,7 @@
                                             "fill": {
                                                 "type": "Image",
                                                 "data": {
-                                                    "texture": "fill",
+                                                    "texture": "fillStars",
                                                     "anchor": [
                                                         0,
                                                         1
