@@ -328,17 +328,17 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 30.0
+                            "amount": 20.0
                         },
                         {
                             "type": "DAMAGE",
                             "target": 1,
-                            "amount": 30.0
+                            "amount": 20.0
                         },
                         {
                             "type": "DAMAGE",
                             "target": 3,
-                            "amount": 30.0
+                            "amount": 20.0
                         }
                     ],
                     "nextState": "idle"
@@ -354,7 +354,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 50.0
+                            "amount": 40.0
                         },
                         {
                             "type": "CORROSIVE",
@@ -378,7 +378,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 50.0
+                            "amount": 25.0
                         }
                     ],
                     "nextState": "idle"
