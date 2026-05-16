@@ -2192,6 +2192,12 @@ void GameScene::updateEnemyAndAI(float dt) {
                     _network->accumulateDamage(ai->getHouseName(), static_cast<int>(damageDealt));
                 }
 
+                // Accumulate heals the AI used this frame
+                const float healApplied = ai->consumePendingHealAmount();
+                if (healApplied > 0.0f) {
+                    _network->accumulateHeal(ai->getHouseName(), static_cast<int>(healApplied));
+                }
+                
                 // Accumulate utility for each effect-bearing item the AI used this frame
                 int utilityCount = ai->consumePendingUtilityCount();
                 for (int i = 0; i < utilityCount; ++i) {
@@ -4102,7 +4108,8 @@ void GameScene::handleNetworkUpdates(float dt) {
     if (_network->isHost()) {
         // handle incoming attack/heal messages from clients
         const auto& supportEffects = _network->getSupportEffectUpdates();
-        // Handle Stats Updates
+        
+        // Handle Attack Stats Updates
         for (const auto& msg : _network->getAttackUpdates()) {
             auto def = _itemController.getDatabase().getDef(msg.itemDefID);
             if (def && !def->getEffects().empty()) {
@@ -4113,6 +4120,7 @@ void GameScene::handleNetworkUpdates(float dt) {
                 }
             }
         }
+
         _gameState.attackUpdates(_network->getAttackUpdates());
         _gameState.healUpdates(_network->getHealUpdates());
         _gameState.bossHealUpdates(_network->getBossHealUpdates());

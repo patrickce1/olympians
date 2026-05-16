@@ -76,6 +76,9 @@ protected:
     
     /** Count of utility-effect items used since the last consumePendingUtilityCount() call. */
     int _pendingUtilityCount = 0;
+    
+    /** Total heal amount applied since the last consumePendingHealAmount() call. */
+    float _pendingHealAmount = 0.0f;
 
     // ── Raw JSON floor/ceiling values ──────────────────────────────────────
 
@@ -340,6 +343,18 @@ public:
         int count = _pendingUtilityCount;
         _pendingUtilityCount = 0;
         return count;
+    }
+    
+    /**
+     * Returns the total heal amount the AI applied since the last call,
+     * then resets the counter to zero. Mirrors consumePendingUtilityCount().
+     *
+     * @return  Total healing applied since the last call.
+     */
+    float consumePendingHealAmount() {
+        float amount = _pendingHealAmount;
+        _pendingHealAmount = 0.0f;
+        return amount;
     }
 
 private:

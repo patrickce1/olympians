@@ -1442,16 +1442,27 @@ int NetworkController::computeTeamUtilityStars() const {
     int totalDamage = 0, totalHeals = 0;
     float totalWeightedUtil = 0.0f;
     auto weightedUtil = computeWeightedUtility();
+
     for (const auto& pair : _statsMap) {
-        totalDamage += pair.second[0];
-        totalHeals  += pair.second[1];
+        totalDamage       += pair.second[0];
+        totalHeals        += pair.second[1];
         totalWeightedUtil += weightedUtil[pair.first];
     }
-    float reference = static_cast<float>(std::max(totalDamage, totalHeals));
-    if (reference <= 0.0f) return 1;
+
+    float reference = static_cast<float>(std::min(totalDamage, totalHeals));
+
+    CULog("=== computeTeamUtilityStars ===");
+    CULog("  totalDamage=%d  totalHeals=%d  totalWeightedUtil=%.2f", totalDamage, totalHeals, totalWeightedUtil);
+
+    if (reference <= 0.0f) {
+        return 1;
+    }
+
     float ratio = totalWeightedUtil / reference;
-    if (ratio >= 0.50f) return 3;
-    if (ratio >= 0.20f) return 2;
+
+    if (ratio >= 0.10f) { CULog("  → 3 stars"); return 3; }
+    if (ratio >= 0.05f) { CULog("  → 2 stars"); return 2; }
+    
     return 1;
 }
 
@@ -1479,8 +1490,8 @@ int NetworkController::computePlayerUtilityStars(const std::string& houseID) con
     auto utilIt = weightedUtil.find(houseID);
     if (utilIt != weightedUtil.end()) playerUtil = utilIt->second;
     float share = playerUtil / totalWeightedUtil;
-    if (share >= 0.70f) return 3;
-    if (share >= 0.45f) return 2;
+    if (share >= 0.40f) return 3;
+    if (share >= 0.25f) return 2;
     return 1;
 }
 
