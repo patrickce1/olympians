@@ -165,14 +165,27 @@
         {
             "id": "gaia_idle_animation",
             "texture": "textures/gameScene/gaia/gaia_idle_animation.png",
-            "frameCount": 5,
-            "frameDuration": 0.20,
+            "frameCount": 6,
+            "frameDuration": 0.12,
             "frameRows": 4,
             "loopStartFrame": 0,
-            "loopEndFrame": 3,
+            "loopEndFrame": 5,
             "positionX": 190.0,
-            "positionY": 200.0,
-            "scale": 0.68
+            "positionY": 150.0,
+            "scale": 0.50
+        },
+        {
+            "id": "gaia_rock_attack_animation",
+            "texture": "textures/gameScene/gaia/gaia_rock_attack.png",
+            "frameCount": 11,
+            "frameDuration": 0.12,
+            "frameRows": 4,
+            "loopStartFrame": 0,
+            "loopEndFrame": 5,
+            "damageFrame": 10,
+            "positionX": 190.0,
+            "positionY": 150.0,
+            "scale": 0.50
         },
         {
             "id": "circe_idle_animation",
