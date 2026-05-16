@@ -465,15 +465,16 @@ void SceneLoader::update(float dt) {
         {
         case LobbyScene::Status::PRE_GAME_START:
             CULog("Transitioning to PreGameEntryScene...");
-            _audio.playMusic("battle");
+            _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _lobbyScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
             break;
         case LobbyScene::Status::GAME_START:
             CULog("Transitioning directly to GameScene from Lobby — host already in game...");
-            _audio.playMusic("battle");
             _gameScene.setActive(true);
+            _audio.playMusic("battle");
+            selectBossTheme(_gameScene);
             _lobbyScene.setActive(false);
             _currentScene = State::GAME;
             break;
@@ -546,7 +547,7 @@ void SceneLoader::update(float dt) {
         {
         case HouseSelectScene::Status::PRE_GAMESCENE_START:
             CULog("Transitioning to PreGameScene from HouseSelect...");
-            _audio.playMusic("battle");
+            _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _houseSelectScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
@@ -587,7 +588,7 @@ void SceneLoader::update(float dt) {
         {
         case BossSelectScene::Status::PRE_GAMESCENE_START:
             CULog("Transitioning to PreGameScene from BossSelect...");
-            _audio.playMusic("battle");
+            _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _bossSelectScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
@@ -634,7 +635,7 @@ void SceneLoader::update(float dt) {
             break;
         case WinLoseScene::Status::PRE_GAMESCENE_START:
             CULog("Transitioning to PreGameScene from WinLoseScene...");
-            _audio.playMusic("battle");
+            _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _winLoseScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
@@ -650,7 +651,7 @@ void SceneLoader::update(float dt) {
         {
         case CodexScene::Status::PRE_GAMESCENE_START:
             CULog("Transitioning to PreGameScene from CodexScene...");
-            _audio.playMusic("battle");
+            _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _codexScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
@@ -683,8 +684,8 @@ void SceneLoader::update(float dt) {
         {
         case PreGameEntryScene::Status::START:
             CULog("Transitioning to GameScene from PreGameEntryScene...");
-            _audio.playMusic("battle");
             _gameScene.setActive(true);
+            selectBossTheme(_gameScene);
             _preGameEntryScene.setActive(false);
             _currentScene = State::GAME;
             break;
@@ -850,8 +851,16 @@ void SceneLoader::updateGameScene(float dt)
 void SceneLoader::selectBossTheme(GameScene& gameScene) {
     if (gameScene.getGameState().getEnemy()) {
         std::string enemyName = gameScene.getGameState().getEnemy()->getId();
-    }
-    else {
+        if (enemyName == "gaia") {
+            _audio.playMusic("gaia_theme");
+        }
+        else if (enemyName == "cyclops" || enemyName == "circe") {
+            _audio.playMusic("cyclops_theme");
+        }
+        else if (enemyName == "cerberus") {
+            _audio.playMusic("cerberus_theme");
+        }
+    } else {
         _audio.playMusic("cyclops_theme");
     }
 }
