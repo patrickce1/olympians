@@ -792,7 +792,7 @@
         "lobby_join": {
         "type": "sample",
         "file": "sounds/lobby_join.wav",
-        "volume": 0.7
+        "volume": 1.0
         },
         "client_error": {
         "type": "sample",

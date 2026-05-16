@@ -493,6 +493,7 @@ void HostSetupScene::showHostDisconnectedError() {
         auto label = std::dynamic_pointer_cast<scene2::Label>(
             _errorPopup->getChildByName("errorLabel"));
         if (label) {
+            if (_audio) _audio->playSoundUnique("client_error");
             label->setText("Host disconnected.\nReturning to Quest Select");
         }
         _errorPopup->setVisible(true);
