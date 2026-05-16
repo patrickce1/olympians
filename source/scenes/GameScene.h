@@ -323,6 +323,9 @@ protected:
     /** Maps ItemId to the on-screen widget node representing that item. */
     std::unordered_map<ItemInstance::ItemId, std::shared_ptr<cugl::scene2::SceneNode>> _itemWidgets;
 
+    /** Maps ItemId to the item definition currently displayed by its widget. */
+    std::unordered_map<ItemInstance::ItemId, std::string> _itemWidgetDefIds;
+
     /** Set of ItemIds currently corroding (prevents scale updates during corrosion animation). */
     std::unordered_set<ItemInstance::ItemId> _corrodingItemIds;
 
@@ -432,6 +435,12 @@ protected:
 
     /** Full-screen effects layer rendered above everything, including the inventory. */
     std::shared_ptr<cugl::scene2::SceneNode> _specialEffectsLayer;
+
+    /** Full-screen red frame shown when the local player takes damage. */
+    std::shared_ptr<cugl::scene2::NinePatch> _damageFrame;
+
+    /** Full-screen green frame shown when the local player heals. */
+    std::shared_ptr<cugl::scene2::NinePatch> _healFrame;
     
     /** The Current zone to highlight*/
     std::string _tutorialHighlightZone = "none";
@@ -455,6 +464,36 @@ protected:
     
     /** The world position when drag begins */
     Vec2 _holdAnchorPos = Vec2::ZERO;
+
+#pragma mark - Gaia Inventory Vines Animation
+    /** Vine overlay on the left pass zone blocking the local player's left pass */
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayLeft;
+    /** Vine overlay on the right pass zone blocking the local player's right pass */
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayRight;
+    /** Vine overlay peering in from the left edge representing the left neighbor's blocked right pass */
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayLeftNeighbor;
+    /** Vine overlay peering in from the right edge representing the right neighbor's blocked left pass */
+    std::shared_ptr<cugl::scene2::SpriteNode> _vineOverlayRightNeighbor;
+
+    struct VineAnim {
+        bool currBlocked = false;   // current blocked state
+        bool previousBlocked = false;   // previous frame
+        float elapsedTime = 0.0f;
+        int currentFrame = 0;
+        bool isReversing = false;
+        const float duration = 0.5f;
+        const int totalFrames = 6;
+        
+    };
+
+    //Animation for our left vine
+    VineAnim _vineLeftAnim;
+    //Animaton for our right vine
+    VineAnim _vineRightAnim;
+    //Animation for our left neighbor's vine
+    VineAnim _vineLeftNeighborAnim;
+    //Animation for our right neighbor's vine
+    VineAnim _vineRightNeighborAnim;
     
 #pragma mark - Item Timers UI
     /** The active effect icons as defined by the ActiveEffectIcon struct. */
@@ -694,6 +733,15 @@ protected:
 
     /** Blink cadence used for teammate flashes. */
     float _blinkInterval = 0.12f;
+
+    /** Seconds remaining before the local damage frame fully fades out. */
+    float _damageFrameTimer = 0.0f;
+
+    /** Seconds remaining before the local heal frame fully fades out. */
+    float _healFrameTimer = 0.0f;
+
+    /** Duration of the local full-screen heal/damage frame fade. */
+    float _frameFadeDuration = 0.55f;
 
 #pragma mark - Debug State
     
@@ -1326,7 +1374,9 @@ public:
     /**
      * Plays health and damage indicator sounds based on health changes.
      * Called after game state updates to detect and play appropriate audio feedback
-     * for player damage, healing, and enemy damage. 
+     * for player damage, healing, and enemy damage.
+     *
+     * Also responsible for triggering heal/damage frames for local player.
      *
      * Only plays player hurt/heal sounds for non-AI local player. Also plays enemy hurt
      * sounds. Uses the player's house to determine which hurt sound variant to play.
@@ -1336,6 +1386,28 @@ public:
      * @param playerHurtEnabled   If false, suppresses player hurt/heal sounds (e.g. during tutorial sequences)
      */
     void playHealthAndDamageSounds(float playerHealthBefore, float enemyHealthBefore, bool playerHurtEnabled = true);
+
+    /** Creates the full-screen heal and damage frame overlays. */
+    void initHealthFrameEffects();
+
+    /** Resizes full-screen heal and damage frames to match the current scene. */
+    void layoutHealthFrameEffects();
+
+    /** Starts or refreshes the full-screen damage frame fade. */
+    void triggerDamageFrame();
+
+    /** Starts or refreshes the full-screen heal frame fade. */
+    void triggerHealFrame();
+
+    /** Clears active full-screen heal and damage frame effects. */
+    void resetHealthFrameEffects();
+
+    /**
+     * Updates the opacity of active full-screen heal and damage frame effects.
+     *
+     * @param dt Delta time in seconds.
+     */
+    void updateHealthFrameEffects(float dt);
     
     /**
      * Checks if the current enemy attack animation has finished playing (both buildup and attack phases).
@@ -1497,6 +1569,19 @@ public:
       * This also broadcasts the new ordering over the network for clients to apply respectively as well
       */
     void handleGaiaScramble();
+
+    /**
+     * Toggles the vine overlays in the inventory based on which sides are blocked by Gaia's vines.
+     *
+     * The local player's overlays appear when they themselves are blocked from passing on that side.
+     * The neighbor overlays appear when a neighbor is blocked from passing toward the local player,
+     * but the local player is not themselves blocked on that side.
+     *
+     * Does nothing if the current enemy is not Gaia.
+     * 
+     * @param dt  Delta time in seconds.
+     */
+    void updateGaiaInventoryVineAnimations(float dt);
 
     /** Checks if we are in a state where
       * the house and names of the current player's neighbors should be concealed
@@ -1831,7 +1916,7 @@ public:
     void detectDroppedPeers();
 
     /**
-     * HOST ONLY. Replaces the player at the given slot with an EasyPlayerAI,
+     * HOST ONLY. Replaces the player at the given slot with an PlayerAI,
      * re-wires the neighbour ring, and restores the disconnected player's
      * health and inventory onto the new AI.
      *
@@ -2329,6 +2414,17 @@ public:
      * Must only be called while _draggedIcon and _tooltipNode are valid.
      */
     void updateTooltipPosition();
+    
+    /**
+     * Awards or deducts XP based on the game outcome and selected boss,
+     * then persists the result to disk.
+     *
+     * On a win, the full boss XP reward is added. On a loss, half the
+     * boss XP reward is deducted (clamped to 0 by setPlayerXP).
+     *
+     * @param won  true if the players won, false if they lost.
+     */
+    void handleXPAdjustment(bool won);
 
 #pragma mark -
 #pragma mark Tutorial

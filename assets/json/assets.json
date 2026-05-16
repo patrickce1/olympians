@@ -35,7 +35,11 @@
             "file": "textures/player.png"
         },
         "indicator": {
-            "file": "textures/indicator.png"
+            "file": "textures/indicator.png",
+            "minfilter": "nearest",
+            "magfilter": "linear",
+            "wrapS": "clamp",
+            "wrapT": "clamp"
         },
         "back 1": {
             "file": "textures/back 1.png"
@@ -85,6 +89,12 @@
         "gaiaVine": {
             "file": "textures/gameScene/gaia/vine_animation.png"
         },
+	"gaiaVineOverlayLeft": {
+            "file": "textures/gameScene/gaia/vine_left_side.png"
+        },
+	"gaiaVineOverlayRight": {
+            "file": "textures/gameScene/gaia/vine_right_side.png"
+        },
         "healthFrame": {
             "file": "textures/gameScene/healthFrame.png"
         },
@@ -115,8 +125,17 @@
         "heal": {
             "file": "textures/gameScene/heal.png"
         },
+        "damageFrame": {
+            "file": "textures/gameScene/damageFrame.png"
+        },
+        "healFrame": {
+            "file": "textures/gameScene/healFrame.png"
+        },
         "debugReset": {
             "file": "textures/attack.png"
+        },
+        "credits": {
+            "file": "textures/credits.png"
         },
         "buttonBG": {
             "file": "textures/elements/buttonBG.png"
@@ -767,6 +786,46 @@
             "file": "sounds/deselect.wav",
             "stream": false,
             "volume": 0.5
+        },
+        "page_turn": {
+        "type": "sample",
+        "file": "sounds/page_turn.wav",
+        "volume": 0.3
+        },
+        "page_turn_2": {
+        "type": "sample",
+        "file": "sounds/page_turn.wav",
+        "volume": 0.3
+        },
+        "small_click": {
+        "type": "sample",
+        "file": "sounds/small_click.wav",
+        "volume": 0.5
+        },
+        "lobby_join": {
+        "type": "sample",
+        "file": "sounds/lobby_join.wav",
+        "volume": 1.0
+        },
+        "client_error": {
+        "type": "sample",
+        "file": "sounds/client_error.wav",
+        "volume": 0.5
+        },
+        "numpad": {
+        "type": "sample",
+        "file": "sounds/numpad.wav",
+        "volume": 0.7
+        },
+        "tabswap": {
+        "type": "sample",
+        "file": "sounds/tabswap.wav",
+        "volume": 0.1
+        },
+        "start_sound": {
+        "type": "sample",
+        "file": "sounds/start_sound.wav",
+        "volume": 0.5
         },
         "whoosh": {
             "type": "sample",

@@ -30,12 +30,14 @@ static constexpr int SWIPE_HOLD_FRAMES = 4;
  * @param assets                           The loaded asset manager used to retrieve scene resources
  * @param networkController   The network controller used for multiplayer communication
  * @param gameState                     The state of the game
+ * @param audio    The audio controller used for various sounds.
  *
  * @return true if the scene was successfully initialized; false otherwise
  */
 bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
                             const std::shared_ptr<NetworkController>& networkController,
-                            GameState* gameState) {
+                            GameState* gameState,
+                            AudioController* audio) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
@@ -46,6 +48,7 @@ bool HouseSelectScene::init(const std::shared_ptr<cugl::AssetManager>& assets,
     _gameState = gameState;
     _assets = assets;
     _network = networkController;
+    _audio = audio;
     loadHouses();
     
     Size dimen = getSize();
@@ -166,6 +169,7 @@ void HouseSelectScene::setupListeners() {
             updateText(_selectButton, "SELECT");
             updateSelectedIcon(_currentIndex);
             commitHouseUnlock();
+            if (_audio) _audio->playSoundUnique("small_click");
             return;
         }
 
@@ -186,21 +190,25 @@ void HouseSelectScene::setupListeners() {
         _selectedHouse = true;
         updateSelectedIcon(_currentIndex, false);
         _playerIconGlow->setVisible(true);
+        if (_audio) _audio->playSoundUnique("page_turn");
         _status = Status::ABORT;
         commitHouseLock(currentHouse);
     });
 
     _backButton->addListener([this](const std::string& name, bool down) {
         if (down) {
+            if (_audio) _audio->playSoundUnique("page_turn");
             _status = Status::ABORT;
         }
     });
 
     _leftButton->addListener([this](const std::string& name, bool down){
+        if (_audio) _audio->playSoundUnique("small_click");
         if (!down) slideTo(_currentIndex - 1);
     });
 
     _rightButton->addListener([this](const std::string& name, bool down){
+        if (_audio) _audio->playSoundUnique("small_click");
         if (!down) slideTo(_currentIndex + 1);
     });
 }
@@ -226,6 +234,7 @@ void HouseSelectScene::dispose() {
     // Full wipe — clear all persisted slot states
     _slotStates.clear();
     _network = nullptr;
+    _audio = nullptr;
 }
 
 /**
@@ -386,6 +395,7 @@ void HouseSelectScene::update(float timestep, InputController& input) {
 void HouseSelectScene::slideTo(int newIndex) {
     if (_isAnimating) return;
     if (newIndex < 0 || newIndex >= _houseCards.size()) return;
+    if (_audio) _audio->playSoundUnique("small_click");
 
     _isAnimating = true;
 
@@ -928,6 +938,8 @@ void HouseSelectScene::snapToNearestHouse(float releaseContainerX) {
         auto glow = _houseCards[i]->getChildByName("glowOverlayHero");
         if (glow) glow->setVisible(i == nearestIndex);
     }
+
+    if (_audio) _audio->playSoundUnique("small_click");
 
     updateCarouselDots(nearestIndex);
     updateSelectedIcon(nearestIndex);

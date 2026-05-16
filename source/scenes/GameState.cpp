@@ -31,7 +31,7 @@ void GameState::initPlayers() {
     _players.push_back(humanPlayer);
 
     for (int i = 1; i <= 3; i++) {
-       auto aiPlayer = std::make_shared<EasyPlayerAI>(
+       auto aiPlayer = std::make_shared<PlayerAI>(
             "", i,
             "AI Player " + std::to_string(i),
             _houseLoader
@@ -352,8 +352,6 @@ void GameState::healUpdates(std::vector<HealMessage> heals) {
 /**
  * Applies all queued boss heal messages to the enemy's current health.
  * Called by the host each frame after processing incoming network messages.
- * Currently used exclusively for Gaia's rock item, which heals the boss
- * instead of dealing damage.
  *
  * @param bossHeals  The queued boss heal updates to apply this frame.
  */
@@ -593,6 +591,13 @@ void GameState::networkUpdate(GameStateMessage newState) {
                              newState.player4LifestealMultiplier, newState.player4LifestealDuration}
     };
 
+    std::vector<std::array<bool, 2>> vineEffects = {
+        std::array<bool, 2>{newState.playerRuntimeEffects[0].hasLeftVine, newState.playerRuntimeEffects[0].hasRightVine},
+        std::array<bool, 2>{newState.playerRuntimeEffects[1].hasLeftVine, newState.playerRuntimeEffects[1].hasRightVine},
+        std::array<bool, 2>{newState.playerRuntimeEffects[2].hasLeftVine, newState.playerRuntimeEffects[2].hasRightVine},
+        std::array<bool, 2>{newState.playerRuntimeEffects[3].hasLeftVine, newState.playerRuntimeEffects[3].hasRightVine},
+    };
+
     for (int i = 0; i < _players.size(); i++) {
         _players[i]->setCurrentHealth(healths[i]);
         _players[i]->syncRuntimeEffects(runtimeEffects[i][0], runtimeEffects[i][1],
@@ -600,6 +605,11 @@ void GameState::networkUpdate(GameStateMessage newState) {
                                         runtimeEffects[i][4], runtimeEffects[i][5],
                                         runtimeEffects[i][6], runtimeEffects[i][7],
                                         runtimeEffects[i][8], runtimeEffects[i][9]);
+
+        // Sync the vine effects for all players with the host
+        // We DON'T use applyVine here because that is for logic on the host end
+        _players[i]->setVineLeft(vineEffects[i][0]);
+        _players[i]->setVineRight(vineEffects[i][1]);
         _players[i]->setMalletUseCount(newState.playerMalletUseCounts[i]);
     }
 }
@@ -625,7 +635,7 @@ bool GameState::didLose() {
  * Assigns a unique house to every slot that does not yet have one.
  * Skips any slot that already has a house. For empty slots, builds a pool
  * of houses not yet claimed by any other slot, picks one at random, and
- * reconstructs the slot as an EasyPlayerAI with that house so AI behavior
+ * reconstructs the slot as an PlayerAI with that house so AI behavior
  * is preserved. The pool is rebuilt each iteration so previously assigned
  * houses are excluded.
  *
@@ -665,7 +675,7 @@ void GameState::assignMissingHousesForAI(ItemController& itemController) {
 
         std::string chosenHouse = availableHouses[rand() % availableHouses.size()];
 
-        auto ai = std::make_shared<EasyPlayerAI>(chosenHouse, i, _players[i]->getPlayerName(), _houseLoader);
+        auto ai = std::make_shared<PlayerAI>(chosenHouse, i, _players[i]->getPlayerName(), _houseLoader);
         ai->init(itemController.getDatabase(), "json/playerAI.json");
         _players[i] = ai;
         _playerIdMap[i] = ai.get();
@@ -679,7 +689,7 @@ void GameState::assignMissingHousesForAI(ItemController& itemController) {
 }
 
 /**
- * Replaces the player at the given slot with an EasyPlayerAI, optionally
+ * Replaces the player at the given slot with an PlayerAI, optionally
  * preserving their house. Re-wires the neighbour ring and updates the
  * player ID map. Note: caller must call ai->init() after this to set _db.
  *
@@ -691,7 +701,7 @@ void GameState::demoteToAI(int slot, const std::string& house) {
 
     const bool replacedLocalPlayer = (_localPlayer == _players[slot].get());
 
-    _players[slot] = std::make_shared<EasyPlayerAI>(
+    _players[slot] = std::make_shared<PlayerAI>(
         house,   // preserve house instead of always passing ""
         slot,
         "AI Player " + std::to_string(slot),
@@ -791,4 +801,36 @@ void GameState::applyPlayerScramble(const std::array<int, 4>& newMapping) {
     // Set local player
     int newSlot = newMapping[originalLocalPlayerNumber];
     _localPlayer = _players[newSlot].get();
+}
+
+/**
+ * Computes and applies a decision multiplier to all AI players based on
+ * the player's accumulated XP clamped to the boss's XP cap.
+ *
+ * The multiplier is computed as:
+ *   clampedXP = min(playerXP, bossCap)
+ *   multiplier = clampedXP / XP_MAX   (clamped to [0, 1])
+ *
+ * @param bossId    The selected boss ID string.
+ * @param playerXP  The player's current total XP.
+ */
+void GameState::applyAIDifficultyForBoss(const std::string& bossId, int playerXP) {
+    int cap = XP_CAP_GAIA; // default: uncapped
+    if      (bossId == "circe")    cap = XP_CAP_CIRCE;
+    else if (bossId == "cyclops")  cap = XP_CAP_CYCLOPS;
+    else if (bossId == "cerberus") cap = XP_CAP_CERBERUS;
+    else if (bossId == "gaia")     cap = XP_CAP_GAIA;
+
+    int clampedXP = std::min(playerXP, cap);
+    float multiplier = (XP_MAX > 0)
+        ? std::min(1.0f, static_cast<float>(clampedXP) / static_cast<float>(XP_MAX))
+        : 0.0f;
+
+    CULog("GameState: boss='%s' playerXP=%d clampedXP=%d multiplier=%.2f",
+          bossId.c_str(), playerXP, clampedXP, multiplier);
+
+    for (auto& player : _players) {
+        auto* ai = dynamic_cast<PlayerAI*>(player.get());
+        if (ai) ai->setDecisionMultiplier(multiplier);
+    }
 }

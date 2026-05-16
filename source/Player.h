@@ -91,6 +91,18 @@ private:
     /** Vector storing all the effect events that occur when an item with a timed effect is used. */
     std::vector<EffectEvent> _effectEvents;
 
+    /* GAIA EFFECT TRACKERS */
+    /** Keeps track of whether or not the player has a Gaia vine on their left side */
+    bool _hasLeftVine = false;
+    /** Keeps track of whether or not the player has a Gaia vine on their left side */
+    bool _hasRightVine = false;
+    /** Remaining duration (in seconds) of the left-side vine bind */
+    float _leftVineDuration = 0.0f;
+    /** Remaining duration (in seconds) of the right-side vine bind */
+    float _rightVineDuration = 0.0f;
+    /** Keeps track of the damage per second being vine bound should do to the player */
+    float _vineDPS = 0;
+
 public:
     /**
      *Creates a player instance given a house ID
@@ -361,6 +373,8 @@ public:
      * inactive, any remaining flat damage absorption is cleared, and an expiration log is
      * emitted. When a barrier timer reaches zero, the barrier is marked inactive and its
      * damage multiplier is restored to the neutral `1.0f` value.
+     * 
+     * This method also reduces the duration of the vine bounded effect and applies any damage over time for it
      *
      * @param dt  The elapsed time since the previous frame, in seconds.
      */
@@ -481,6 +495,65 @@ public:
      * @param number  The new zero-based slot index to assign.
      */
     void setPlayerNumber(int number) { _playerNumber = number; }
+
+    /* GAIA METHODS */
+    /**
+     * HOST ONLY -> used for starting vine tracking logic
+     * 
+     * Applies a Gaia vine bind to the player's left side.
+     * Sets the left vine flag and initializes the timer.
+     * If the left vine is already active, the timer is RESET to the new value.
+     * It also stores the dps value associated with the vine
+     *
+     * @param timer     Duration (in seconds) for the left vine bind. If player already bound, replaces duration
+     * @param dps       How much damage per second being vine bound does. Overwrites the last DPS value for BOTH left and right
+     */
+    void applyVineLeft(float timer, float dps);
+
+    /**
+     * HOST ONLY -> used for starting vine tracking logic
+     * 
+     * Applies a Gaia vine bind to the player's left side.
+     * Sets the left vine flag and initializes the timer.
+     * If the left vine is already active, the timer is RESET to the new value.
+     * It also stores the dps value associated with the vine
+     *
+     * @param timer     Duration (in seconds) for the left vine bind
+     * @param dps       How much damage per second being vine bound does. Overwrites the last DPS value for BOTH left and right
+     */
+    void applyVineRight(float timer, float dps);
+
+    /**
+     * Returns whether the player is currently vine bound on the left side.
+     *
+     * @return   True if a left-side Gaia vine bind is active
+     */
+    bool hasLeftVine() const { return _hasLeftVine; }
+
+    /**
+     * Returns whether the player is currently vine bound on the right side.
+     *
+     * @return   True if a right-side Gaia vine bind is active
+     */
+    bool hasRightVine() const { return _hasRightVine; }
+
+    /**
+      * CLIENT ONLY -> used for tracking vine logic
+      * 
+      * Marks a player's left side as having or not having a vine
+      * 
+      * @param applied   if true, the player should have a left vine. If false, they should not
+      */
+    void setVineLeft(bool applied) { _hasLeftVine = applied; }
+
+    /**
+      * CLIENT ONLY -> used for tracking vine logic
+      *
+      * Marks a player's right side as having or not having a vine
+      *
+      * @param applied   if true, the player should have a right vine. If false, they should not
+      */
+    void setVineRight(bool applied) { _hasRightVine = applied; }
     
     /** Returns the current list of effect events */
     std::vector<EffectEvent> getEffectEvents() {

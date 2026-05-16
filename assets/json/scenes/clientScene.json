@@ -145,42 +145,11 @@
                     "fill": {
                         "type": "Solid",
                         "data": {
-                            "polygon": [
-                                110,
-                                1,
-                                0,
-                                1,
-                                0,
-                                0,
-                                110,
-                                0
+                            "texture": "indicator",
+                            "size": [
+                                104,
+                                6.25
                             ],
-                            "color": "#f6b561ff",
-                            "anchor": [
-                                0.5,
-                                0.5
-                            ],
-                            "position": [
-                                0,
-                                0
-                            ],
-                            "visible": true
-                        },
-                        "layout": {
-                            "x_anchor": "center",
-                            "y_anchor": "middle"
-                        }
-                    },
-                    "stroke": {
-                        "type": "Path",
-                        "data": {
-                            "color": "#f6b561ff",
-                            "path": {
-                                "vertices": [],
-                                "closed": true
-                            },
-                            "stroke": 1,
-                            "joint": "square",
                             "anchor": [
                                 0.5,
                                 0.5
@@ -201,7 +170,7 @@
                     "x_anchor": "left",
                     "y_anchor": "top",
                     "absolute": false,
-                    "x_offset": 0.21,
+                    "x_offset": 0.201,
                     "y_offset": -0.095
                 }
             },

@@ -4,6 +4,7 @@
 #include <cugl/cugl.h>
 #include <iostream>
 #include <sstream>
+#include "../AudioController.h"
 #include "../InputController.h"
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
@@ -99,9 +100,15 @@ protected:
     
     /** The game slot the player intends to open in house select (for AI host control) */
     int _pendingSlotToBeOpened = -1;
+
+    /** The previous player count in the lobby */
+    int _prevPlayerCount = 0;
     
     /** Needed to init AI players when assigning missing houses at game start. */
     ItemController* _itemController = nullptr;
+
+    /** The audio controller for playing sound effects. */
+    AudioController* _audio = nullptr;
     
     /** Message to display as a disconnect banner when the lobby re-activates.
      *  Set by SceneLoader when returning from PreGameEntryScene after a
@@ -196,13 +203,15 @@ public:
      * @param gameState          The state of the game
      * @param itemController     The item controller needed to init AI players
      *                           when assignMissingHousesForAI() runs at game start
+     * @param audio    The audio controller used for various sounds.
      *
      * @return true if the controller is initialized properly, false otherwise.
      */
     bool init(const std::shared_ptr<cugl::AssetManager>& assets,
               const std::shared_ptr<NetworkController>& networkController,
               GameState* gameState,
-              ItemController* itemController);
+              ItemController* itemController,
+              AudioController* audio);
     
     /**
      * Retrieves and stores references to the lobby UI elements.

@@ -1,14 +1,16 @@
 {
-    "easyPlayerAI": {
-        "thinkInterval": 2.0,
-        "aggressionWeight": 0.4,
-        "supportWeight": 0.6,
-        "healThreshold": 0.7
-    },
-    "mediumPlayerAI": {
-        "thinkInterval": 1.5,
-        "aggressionWeight": 0.5,
-        "supportWeight": 0.5,
-        "healThreshold": 0.6
+    "playerAI": {
+        "thinkIntervalMin":    1.0,
+        "thinkIntervalMax":    3.0,
+        "healThresholdMin":    0.5,
+        "healThresholdMax":    0.7,
+        "rarePassChanceMin":   0.25,
+        "rarePassChanceMax":   0.5,
+        "divinePassChanceMin": 0.5,
+        "divinePassChanceMax": 0.9,
+        "rockPassChanceMin":   0.5,
+        "rockPassChanceMax":   0.85,
+        "divineObedienceMin":  0.10,
+        "divineObedienceMax":  0.85
     }
 }

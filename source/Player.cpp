@@ -341,6 +341,24 @@ void Player::updateEffects(float dt) {
             }
         }
     }
+
+    /* Apply damage from the vines */
+    if (hasLeftVine() || hasRightVine()) updateHealth(-_vineDPS * dt);
+    
+    /* Tick down Gaia timers */
+    if (_leftVineDuration > 0.0f) {
+        _leftVineDuration = std::max(0.0f, _leftVineDuration - dt);
+        if (_leftVineDuration <= 0.0f) {
+            _hasLeftVine = false;
+        }
+    }
+
+    if (_rightVineDuration > 0.0f) {
+        _rightVineDuration = std::max(0.0f, _rightVineDuration - dt);
+        if (_rightVineDuration <= 0.0f) {
+            _hasRightVine = false;
+        }
+    }
 }
 
 /** Clears runtime-only combat effects. */
@@ -686,7 +704,10 @@ float Player::useItemById(ItemInstance::ItemId itemId, Player& target, const Ite
         const float resolvedMagnitude = resolveItemMagnitude(*def, db);
         const bool shouldApplyEffects = canApplyItemEffects(*this, *def);
         float returnedMagnitude = 0.0f;
-        if (def->getType() == ItemDef::Type::Support) {
+        if (def->getId() == "gaia_rock") {
+            target.updateHealth(-1 * def->getBaseValue());
+            returnedMagnitude = def->getBaseValue();
+        } else if (def->getType() == ItemDef::Type::Support) {
             target.updateHealth(resolvedMagnitude);
             returnedMagnitude = resolvedMagnitude;
             if (shouldApplyEffects) {
@@ -758,10 +779,7 @@ float Player::useItemById(ItemInstance::ItemId itemId, Enemy& target, const Item
         const float resolvedMagnitude = resolveItemMagnitude(*def, db);
         const bool shouldApplyEffects = canApplyItemEffects(*this, *def);
         float returnedMagnitude = 0.0f;
-        if (def->getId() == "gaia_rock") {
-            target.updateHealth(resolvedMagnitude);
-            returnedMagnitude = resolvedMagnitude;
-        } else if (def->getType() == ItemDef::Type::Attack) {
+        if (def->getType() == ItemDef::Type::Attack) {
             const bool targetsAllAllies = def->getAttackTarget() == ItemDef::AttackTarget::AllAllies;
             const bool appliesToEnemy = !targetsAllAllies;
 
@@ -845,4 +863,34 @@ void Player::addItem(const ItemInstance& item) {
  */
 bool Player::isAlive() const {
     return _currentHealth > 0.0f;
+}
+
+/**
+* Applies a Gaia vine bind to the player's left side.
+* Sets the left vine flag and initializes the timer.
+* If the left vine is already active, the timer is RESET to the new value.
+* It also stores the dps value associated with the vine
+*
+* @param timer     Duration (in seconds) for the left vine bind. If player already bound, replaces duration
+* @param dps       How much damage per second being vine bound does. Overwrites the last DPS value for BOTH left and right
+*/
+void Player::applyVineLeft(float timer, float dps) {
+    _hasLeftVine = true;
+    _leftVineDuration = timer;
+    _vineDPS = dps;
+}
+
+/**
+ * Applies a Gaia vine bind to the player's left side.
+ * Sets the left vine flag and initializes the timer.
+ * If the left vine is already active, the timer is RESET to the new value.
+ * It also stores the dps value associated with the vine
+ *
+ * @param timer     Duration (in seconds) for the left vine bind
+ * @param dps       How much damage per second being vine bound does. Overwrites the last DPS value for BOTH left and right
+ */
+void Player::applyVineRight(float timer, float dps) {
+    _hasRightVine = true;
+    _rightVineDuration = timer;
+    _vineDPS = dps;
 }

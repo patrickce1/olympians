@@ -118,6 +118,9 @@ protected:
     /** Probability the enemy will use their defensive move (0.0 to 1.0) */
     float _defenseLikelihood = 0.0f;
 
+    /** Relative weights used when choosing between attack_1, attack_2, and attack_3. */
+    std::array<float, 3> _attackWeights = { 1.0f, 1.0f, 1.0f };
+
     /** Queue of events fired this update cycle, returned by takeFiredEvents() */
     std::vector<FiredEvent> _firedEvents;
 
@@ -399,6 +402,9 @@ public:
 
     /** Returns the likelihood that the enemy will use a defensive move */
     float getDefenseLikelihood() const { return _defenseLikelihood; }
+
+    /** Returns the relative weights for attack_1, attack_2, and attack_3. */
+    const std::array<float, 3>& getAttackWeights() const { return _attackWeights; }
 
     /** Sets the likelihood that the enemy will retarget on idle entry */
     void setRetargetLikelihood(float v);

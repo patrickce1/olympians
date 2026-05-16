@@ -411,11 +411,11 @@
             "description": " ",
             "icon": "item_gaia_rock",
             "tooltip": "tooltip_gaia_rock",
-            "type": "attack",
+            "type": "support",
             "attackTarget": "enemy",
             "rarity": "special",
             "houseAffinity": "none",
-            "baseValue": 30.0,
+            "baseValue": 10.0,
             "effects": []
         },
         {
