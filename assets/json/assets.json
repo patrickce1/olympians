@@ -816,6 +816,12 @@
 	    "stream": false,
 	    "volume": 0.65
 	},
+	"aphrodite_charm" : {
+	    "type": "sample",
+	    "file": "sounds/aphrodite_charm.wav",
+	    "stream": false,
+	    "volume": 0.65
+	},
         "battle": {
             "type": "sample",
             "file": "sounds/battle.ogg",

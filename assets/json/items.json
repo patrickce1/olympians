@@ -536,6 +536,7 @@
             "description": " ",
             "icon": "item_aphrodite_charm",
             "tooltip": "tooltip_aphrodite_charm",
+	    "itemUseSound": "hephaestus_forge",
             "type": "attack",
             "attackTarget": "all_allies",
             "rarity": "divine",
