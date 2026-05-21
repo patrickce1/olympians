@@ -7,18 +7,18 @@
  * Cyclops boss subclass.
  *
  * Adds two behaviours on top of the base Enemy:
- *   - Frantic mode: once health drops below configurable thresholds, IDLE cooldowns
+ *   - Frantic mode: once hit count reaches configurable thresholds, IDLE cooldowns
  *     shorten so the Cyclops attacks more frequently. Both thresholds stack.
  *   - Boulder-toss interaction: taking damage during ATTACK_3 wind-up retargets the
  *     Cyclops and accelerates (or resets) the buildup timer.
  */
 class Cyclops : public Enemy {
 private:
-	/** Absolute HP below which the first frantic tier activates */
-	float _frantic1Threshold;
+	/** Hit count at which the first frantic tier activates */
+	int _frantic1Threshold;
 
-	/** Absolute HP below which the second frantic tier activates (stacks with first) */
-	float _frantic2Threshold;
+	/** Hit count at which the second frantic tier activates (stacks with first) */
+	int _frantic2Threshold;
 
 	/** Multiplier applied to dt during IDLE when a frantic tier is active.
 	 *  Each active tier adds one copy of (dt * _franticRate) to the idle timer. */
@@ -52,7 +52,7 @@ public:
 
 	/**
 	 * Per-frame update. Applies frantic cooldown acceleration during IDLE when
-	 * health thresholds are met; attack and defense durations are unaffected.
+	 * hit-count thresholds are met; attack and defense durations are unaffected.
 	 *
 	 * @param dt  Elapsed time in seconds since the last update
 	 */

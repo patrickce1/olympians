@@ -256,6 +256,7 @@ void GameState::reset() {
         player->setCurrentHealth(player->getMaxHealth());
     }
     _enemy->setCurrentHealth(_enemy->getMaxHealth());
+    _enemy->setHitCount(0);
 }
 
 /**
@@ -537,6 +538,7 @@ void GameState::enemyEffectUpdates(std::vector<EnemyEffectMessage> enemyEffects)
 void GameState::networkUpdate(GameStateMessage newState) {
     // update boss health
     _enemy->setCurrentHealth(newState.bossHealth);
+    _enemy->setHitCount(newState.bossHitCount);
     
     //ensure state is synced
     _enemy->enterState((EnemyLoader::State) newState.bossState);

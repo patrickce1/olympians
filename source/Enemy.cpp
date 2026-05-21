@@ -122,6 +122,7 @@ bool Enemy::initializeFromDef(const EnemyLoader::EnemyDef& def) {
     _spritesheetPath = def.spritesheetPath;
     _maxHealth = def.maxHealth;
     _currentHealth = def.maxHealth;
+    _hitCount = 0;
     _states = def.states;
     _customData = def.customData;
     
@@ -920,6 +921,7 @@ void Enemy::clearRuntimeEffects() {
     _loveDuration = 0.0f;
     _slowDuration = 0.0f;
     _slowMultiplier = 1.0f;
+    _hitCount = 0;
 
     for (int side = 0; side < NUM_PLAYERS; side++) {
         _vulnerableDurations[side] = 0.0f;
@@ -958,6 +960,7 @@ void Enemy::takeDamage(float damage, int playerIndex) {
     }
 
     updateHealth(-(damage * multiplier));
+    _hitCount++;
 }
 
 /** Lets you change the multipler value on the side equal to relativeIndex

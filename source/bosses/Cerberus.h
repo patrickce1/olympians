@@ -13,7 +13,7 @@
  *     from that side. It recovers with a full threshold reset after knockedDuration seconds.
  *   - Corrosive spit: the Venom Spit attack (attack_2) corrodes items in the targeted
  *     player's inventory in one shot; each corroded item fades out and is removed.
- *   - Frantic mode: once health falls below configurable thresholds, IDLE cooldowns
+ *   - Frantic mode: once hit count reaches configurable thresholds, IDLE cooldowns
  *     shorten and idle animations speed up so Cerberus attacks more frequently.
  *     Both thresholds stack independently.
  */
@@ -50,12 +50,11 @@ private:
      *  Loaded from customData "knockedThresholdRegen". */
     float _knockedThresholdRegen = 10.0f;
 
-    /** Absolute HP below which the first frantic tier activates.
-     *  Computed as maxHealth × frantic1Threshold fraction from customData. */
-    float _frantic1Threshold = 0.0f;
+    /** Hit count at which the first frantic tier activates. */
+    int _frantic1Threshold = 0;
 
-    /** Absolute HP below which the second frantic tier activates. Stacks with the first tier. */
-    float _frantic2Threshold = 0.0f;
+    /** Hit count at which the second frantic tier activates. Stacks with the first tier. */
+    int _frantic2Threshold = 0;
 
     /** Additional idle-time multiplier contributed by each active frantic tier.
      *  Loaded from customData "franticRate". */
@@ -236,8 +235,8 @@ public:
      */
     float getFranticSpeedMultiplier() const {
         float speedMultiplier = 1.0f;
-        if (getCurrentHealth() < _frantic1Threshold) speedMultiplier += _franticRate;
-        if (getCurrentHealth() < _frantic2Threshold) speedMultiplier += _franticRate;
+        if (_frantic1Threshold > 0 && getHitCount() >= _frantic1Threshold) speedMultiplier += _franticRate;
+        if (_frantic2Threshold > 0 && getHitCount() >= _frantic2Threshold) speedMultiplier += _franticRate;
         return speedMultiplier;
     }
 

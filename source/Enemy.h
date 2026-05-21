@@ -2,6 +2,7 @@
 #ifndef __ENEMY_H__
 #define __ENEMY_H__
 
+#include <algorithm>
 #include <array>
 #include <string>
 #include <unordered_map>
@@ -66,6 +67,9 @@ protected:
     
     /** Current health for this enemy */
     float _currentHealth = 0.0f;
+
+    /** Number of hits this enemy has taken this round. */
+    int _hitCount = 0;
 
     /** Maps game states to their state definitions (buildup, cooldown, events, etc.) */
     std::unordered_map<EnemyLoader::State, EnemyLoader::StateDef> _states;
@@ -173,11 +177,17 @@ public:
     /** Returns the current health of this enemy */
     float getCurrentHealth() const { return _currentHealth; }
 
+    /** Returns the number of hits this enemy has taken this round. */
+    int getHitCount() const { return _hitCount; }
+
     /** Returns true if the enemy is alive */
     bool isAlive() const { return _currentHealth > 0.0f; }
 
     /** Sets the current health of this enemy */
     void setCurrentHealth(float health) { _currentHealth = health; }
+
+    /** Sets the authoritative hit count for this enemy. */
+    void setHitCount(int hitCount) { _hitCount = std::max(0, hitCount); }
 
     /** Returns the index of the player this enemy is currently targeting */
     int getTargetIndex() const { return _targetIndex; }

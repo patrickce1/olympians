@@ -545,6 +545,7 @@ void NetworkController::handleMessage(const std::string& senderID, const std::ve
             stateMsg.bossTarget = _deserializer.readSint32();
             stateMsg.bossState = _deserializer.readSint32();
             stateMsg.stateTime = _deserializer.readFloat();
+            stateMsg.bossHitCount = _deserializer.readSint32();
             readEnemyRuntimeState(_deserializer, stateMsg);
             stateMsg.frenzyItemInterval = _deserializer.readFloat();
             stateMsg.frenzyDuration = _deserializer.readFloat();
@@ -946,6 +947,7 @@ void NetworkController::broadcastGameState(const GameState& state, float frenzyI
 	_serializer.writeSint32(state.getEnemy()->getTargetIndex());
 	_serializer.writeSint32(state.getEnemy()->getCurrentState());
 	_serializer.writeFloat(state.getEnemy()->getStateTime());
+    _serializer.writeSint32(state.getEnemy()->getHitCount());
     writeEnemyRuntimeState(_serializer, state.getEnemy());
     _serializer.writeFloat(frenzyItemInterval);
     _serializer.writeFloat(frenzyDuration);

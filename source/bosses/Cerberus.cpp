@@ -8,8 +8,8 @@ void Cerberus::loadCustomData() {
     _maxKnockedThreshold   = _customData->getFloat("knockedThreshold", 100.0f);
     _knockedDuration       = _customData->getFloat("knockedDuration", 4.0f);
     _knockedThresholdRegen = _customData->getFloat("knockedThresholdRegen", 10.0f);
-    _frantic1Threshold     = getMaxHealth() * _customData->getFloat("frantic1Threshold", 1.0f);
-    _frantic2Threshold     = getMaxHealth() * _customData->getFloat("frantic2Threshold", 1.0f);
+    _frantic1Threshold     = _customData->getInt("frantic1Threshold", 0);
+    _frantic2Threshold     = _customData->getInt("frantic2Threshold", 0);
     _franticRate           = _customData->getFloat("franticRate", 0.0f);
     for (int headIndex = 0; headIndex < 3; headIndex++) {
         _heads[headIndex].knockedThreshold = _maxKnockedThreshold;
@@ -54,15 +54,15 @@ bool Cerberus::init(const std::string& enemyId, const std::string& jsonPath, con
 /**
  * Per-frame update. Ticks knocked timers (recovering heads when expired), regenerates
  * knock thresholds for active heads, triggers corrosive on spit attack entry, ticks the
- * corrosive debuff, and accelerates the IDLE state cooldown when frantic thresholds are crossed.
+ * corrosive debuff, and accelerates the IDLE state cooldown when frantic hit thresholds are reached.
  *
  * @param dt  Elapsed time in seconds since the last update.
  */
 void Cerberus::update(float dt) {
     // Accumulate extra idle time for each active frantic tier before updating base state
     float franticExtraTime = 0.0f;
-    if (getCurrentHealth() < _frantic1Threshold) franticExtraTime += dt * _franticRate;
-    if (getCurrentHealth() < _frantic2Threshold) franticExtraTime += dt * _franticRate;
+    if (_frantic1Threshold > 0 && getHitCount() >= _frantic1Threshold) franticExtraTime += dt * _franticRate;
+    if (_frantic2Threshold > 0 && getHitCount() >= _frantic2Threshold) franticExtraTime += dt * _franticRate;
 
     for (int headIndex = 0; headIndex < 3; headIndex++) {
         if (_heads[headIndex].knocked) {

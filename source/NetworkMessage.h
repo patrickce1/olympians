@@ -182,6 +182,9 @@ struct GameStateMessage {
     
     // how long the boss has been in this phase for
     float stateTime;
+
+    /** Authoritative number of hits taken by the boss this round. */
+    int bossHitCount = 0;
     
     // We might need to send side multiplier data over network
     // based on how we decide to indicate it

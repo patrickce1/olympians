@@ -2,7 +2,7 @@
 
 /**
  * Initializes the Cyclops without asset manager support.
- * Reads frantic and boulder-toss parameters from customData in enemies.json.
+ * Reads frantic hit thresholds and boulder-toss parameters from customData in enemies.json.
  *
  * @param enemyId   The unique enemy ID (should be "cyclops")
  * @param jsonPath  Path to enemies.json
@@ -10,18 +10,18 @@
  */
 bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
 	bool success = Enemy::init("cyclops", jsonPath);
-	_frantic1Threshold        = Enemy::getMaxHealth() * _customData->getFloat("frantic1Threshold", 1.0f);
-	_frantic2Threshold        = Enemy::getMaxHealth() * _customData->getFloat("frantic2Threshold", 1.0f);
+	_frantic1Threshold        = _customData->getInt("frantic1Threshold", 0);
+	_frantic2Threshold        = _customData->getInt("frantic2Threshold", 0);
 	_franticRate              = _customData->getFloat("franticRate", 1.0f);
 	_boulderTossReductionAmount = _customData->getFloat("boulderTossReductionAmount", 1.0f);
-	if (_debug) CULog("[Cyclops]: franticRate=%.2f frantic1=%.0f frantic2=%.0f",
+	if (_debug) CULog("[Cyclops]: franticRate=%.2f frantic1=%d frantic2=%d",
 	                  _franticRate, _frantic1Threshold, _frantic2Threshold);
 	return success;
 }
 
 /**
  * Initializes the Cyclops with animation metadata from the AssetManager.
- * Reads frantic and boulder-toss parameters from customData in enemies.json.
+ * Reads frantic hit thresholds and boulder-toss parameters from customData in enemies.json.
  *
  * @param enemyId   The unique enemy ID (should be "cyclops")
  * @param jsonPath  Path to enemies.json
@@ -30,17 +30,17 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath) {
  */
 bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath, const std::shared_ptr<cugl::AssetManager>& assets) {
 	bool success = Enemy::init("cyclops", jsonPath, assets);
-	_frantic1Threshold        = Enemy::getMaxHealth() * _customData->getFloat("frantic1Threshold", 1.0f);
-	_frantic2Threshold        = Enemy::getMaxHealth() * _customData->getFloat("frantic2Threshold", 1.0f);
+	_frantic1Threshold        = _customData->getInt("frantic1Threshold", 0);
+	_frantic2Threshold        = _customData->getInt("frantic2Threshold", 0);
 	_franticRate              = _customData->getFloat("franticRate", 1.0f);
 	_boulderTossReductionAmount = _customData->getFloat("boulderTossReductionAmount", 1.0f);
-	if (_debug) CULog("[Cyclops]: franticRate=%.2f frantic1=%.0f frantic2=%.0f",
+	if (_debug) CULog("[Cyclops]: franticRate=%.2f frantic1=%d frantic2=%d",
 	                  _franticRate, _frantic1Threshold, _frantic2Threshold);
 	return success;
 }
 
 /**
- * Updates the Cyclops each frame, applying frantic behavior when health thresholds are crossed.
+ * Updates the Cyclops each frame, applying frantic behavior when hit-count thresholds are reached.
  *
  * Each frantic threshold adds one extra tick of time during IDLE so cooldowns between
  * attacks shorten — but attack wind-ups and defense duration are unaffected.
@@ -50,10 +50,10 @@ bool Cyclops::init(const std::string& enemyId, const std::string& jsonPath, cons
  */
 void Cyclops::update(float dt) {
 	float franticDt = 0.0f;
-	if (Enemy::getCurrentHealth() < _frantic1Threshold) {
+	if (_frantic1Threshold > 0 && Enemy::getHitCount() >= _frantic1Threshold) {
 		franticDt += dt * _franticRate;
 	}
-	if (Enemy::getCurrentHealth() < _frantic2Threshold) {
+	if (_frantic2Threshold > 0 && Enemy::getHitCount() >= _frantic2Threshold) {
 		franticDt += dt * _franticRate;
 	}
 
