@@ -2283,8 +2283,11 @@ void GameScene::updateEnemyAndAI(float dt) {
 void GameScene::updateEnemyHealthBarEffect(float dt) {
     auto enemy = _gameState.getEnemy();
     if (!enemy || !enemy->isAlive()) return;
+    Player* localPlayer = _gameState.getLocalPlayer();
+    const bool isVulnerableFacingLocalPlayer =
+        localPlayer && enemy->getSideMultiplier(localPlayer->getPlayerNumber()) > 1.0f;
     
-    if (enemy->isVulnerable()) {
+    if (isVulnerableFacingLocalPlayer) {
         _bossHealthBarGlow->setVisible(true);
     } else {
         _bossHealthBarGlow->setVisible(false);
