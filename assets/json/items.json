@@ -94,7 +94,7 @@
             "effects": [
                 {
                     "type": "shield",
-                    "mitigation": 20.0,
+                    "mitigation": 100.0,
                     "duration": 5.0
                 }
             ]

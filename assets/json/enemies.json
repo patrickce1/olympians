@@ -54,7 +54,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 51.0
+                            "amount": 128.0
                         }
                     ],
                     "nextState": "idle"
@@ -68,7 +68,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 26.0
+                            "amount": 65.0
                         }
                     ],
                     "nextState": "idle"
@@ -82,7 +82,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 15.0
+                            "amount": 38.0
                         }
                     ],
                     "nextState": "idle"
@@ -175,7 +175,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 20.0
+                            "amount": 50.0
                         }
                     ],
                     "nextState": "idle"
@@ -211,22 +211,22 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 20.0
+                            "amount": 50.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 1,
-                            "amount": 20.0
+                            "amount": 50.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 2,
-                            "amount": 20.0
+                            "amount": 50.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 3,
-                            "amount": 20.0
+                            "amount": 50.0
                         }
                     ],
                     "nextState": "idle"
@@ -240,7 +240,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 60.0
+                            "amount": 150.0
                         }
                     ],
                     "nextState": "idle"
@@ -330,17 +330,17 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 30.0
+                            "amount": 90.0
                         },
                         {
                             "type": "DAMAGE",
                             "target": 1,
-                            "amount": 30.0
+                            "amount": 90.0
                         },
                         {
                             "type": "DAMAGE",
                             "target": 3,
-                            "amount": 30.0
+                            "amount": 90.0
                         }
                     ],
                     "nextState": "idle"
@@ -356,7 +356,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 40.0
+                            "amount": 100.0
                         },
                         {
                             "type": "CORROSIVE",
@@ -380,7 +380,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 40.0
+                            "amount": 75.0
                         }
                     ],
                     "nextState": "idle"
@@ -456,7 +456,7 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 40.0
+                            "amount": 100.0
                         }
                     ],
                     "nextState": "idle"
@@ -534,22 +534,22 @@
                         {
                             "type": "DAMAGE",
                             "target": 0,
-                            "amount": 20.0
+                            "amount": 50.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 1,
-                            "amount": 20.0
+                            "amount": 50.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 2,
-                            "amount": 20.0
+                            "amount": 50.0
                         },
 			            {
                             "type": "DAMAGE",
                             "target": 3,
-                            "amount": 20.0
+                            "amount": 50.0
                         },
                         {
                             "type": "PLAYER_SCRAMBLE"
