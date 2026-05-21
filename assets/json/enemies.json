@@ -15,8 +15,8 @@
                 }
             },
             "customData": {
-                "frantic1Threshold": 50,
-                "frantic2Threshold": 100
+                "frantic1Threshold": 60,
+                "frantic2Threshold": 120
             },
             "states": {
                 "idle": {
@@ -134,8 +134,8 @@
                 }
             },
             "customData": {
-                "frantic1Threshold": 50,
-                "frantic2Threshold": 100,
+                "frantic1Threshold": 60,
+                "frantic2Threshold": 120,
                 "boulderTossReductionAmount": 1.0,
                 "franticRate": 0.75
             },
@@ -295,8 +295,8 @@
                 "knockedThreshold": 100.0,
                 "knockedDuration": 10.0,
                 "knockedThresholdRegen": 3.0,
-                "frantic1Threshold": 50,
-                "frantic2Threshold": 100,
+                "frantic1Threshold": 60,
+                "frantic2Threshold": 120,
                 "franticRate": 0.75,
                 "headAnimationId": "cerberus_head_idle_animation",
                 "heads": {
@@ -417,8 +417,8 @@
             },
             "customData": {
                 "spawnCooldownConstant": 5.0,
-                "frantic1Threshold": 50,
-                "frantic2Threshold": 100
+                "frantic1Threshold": 60,
+                "frantic2Threshold": 120
             },
             "states": {
                 "idle": {
