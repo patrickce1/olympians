@@ -305,7 +305,7 @@ bool PlayerAI::hasSupportItem() const {
 
 /**
  * Returns whether the AI has a support item AND at least one neighbor is
- * alive and below _healThreshold. Used only by actSupport() to find a target.
+ * alive and missing any health.
  *
  * @return true if a support item exists and a valid heal target is available.
  */
@@ -314,7 +314,7 @@ bool PlayerAI::canSupport() const {
 
     auto needsHeal = [&](Player* player) {
         return player && player->isAlive() &&
-               player->getCurrentHealth() < 100;
+               player->getCurrentHealth() < player->getMaxHealth();
     };
     return needsHeal(getLeftPlayer()) || needsHeal(getRightPlayer());
 }
@@ -327,7 +327,7 @@ bool PlayerAI::canSupport() const {
  * Evaluates game context and returns the state the AI should transition to.
  *
  * Priority order:
- *   1. Support check — heal a teammate below _healThreshold immediately.
+ *   1. Support check — heal a teammate missing any health immediately.
  *   2. Rarity-pass check — pass unowned rare/divine non-attack items to
  *      affinity-matched neighbors. See evaluateRarityPass().
  *   3. Weighted action roll — divine ruleset check then house-weighted roll
@@ -347,11 +347,11 @@ PlayerAI::State PlayerAI::evaluate(const Enemy& enemy) {
     if (hasSupportItem()) {
         auto needsHeal = [&](Player* player) {
             return player && player->isAlive() &&
-                   player->getCurrentHealth() / player->getMaxHealth() < _healThreshold;
+                   player->getCurrentHealth() < player->getMaxHealth();
         };
         if (needsHeal(getLeftPlayer()) || needsHeal(getRightPlayer())) {
-            if (_debug) CULog("[PlayerAI '%s'] evaluate — support priority (teammate below %.0f%%)",
-                  getPlayerName().c_str(), _healThreshold * 100.0f);
+            if (_debug) CULog("[PlayerAI '%s'] evaluate — support priority (teammate missing health)",
+                  getPlayerName().c_str());
             return State::SUPPORT;
         }
     }
@@ -563,25 +563,26 @@ void PlayerAI::actAttack(Enemy& enemy, ItemController& items) {
 }
 
 /**
- * Finds the most injured neighbor and uses a random
+ * Finds the damaged neighbor with the lowest current health and uses a random
  * support item on them. Does nothing if no valid target or support item exists.
  *
  * @param items  The ItemController used to resolve the item action.
  */
 void PlayerAI::actSupport(ItemController& items) {
     Player* target = nullptr;
-    float lowestRatio = 1.0f;
+    float lowestHealth = std::numeric_limits<float>::max();
 
     auto check = [&](Player* p) {
         if (!p || !p->isAlive()) return;
-        float ratio = p->getCurrentHealth() / p->getMaxHealth();
-        if (ratio < lowestRatio) { lowestRatio = ratio; target = p; }
+        float currentHealth = p->getCurrentHealth();
+        if (currentHealth >= p->getMaxHealth()) return;
+        if (currentHealth < lowestHealth) { lowestHealth = currentHealth; target = p; }
     };
     check(getLeftPlayer());
     check(getRightPlayer());
 
     if (!target) {
-        if (_debug) CULog("[PlayerAI '%s'] actSupport — no alive neighbour, aborting",
+        if (_debug) CULog("[PlayerAI '%s'] actSupport — no damaged alive neighbour, aborting",
                 getPlayerName().c_str());
         return;
     }
@@ -623,9 +624,9 @@ void PlayerAI::actSupport(ItemController& items) {
             return;
         }
     }
-    if (_debug) CULog("[PlayerAI '%s'] actSupport — using item %llu on '%s' (ratio=%.2f)",
+    if (_debug) CULog("[PlayerAI '%s'] actSupport — using item %llu on '%s' (health=%.1f)",
           getPlayerName().c_str(), (unsigned long long)chosen,
-          target->getPlayerName().c_str(), lowestRatio);
+          target->getPlayerName().c_str(), lowestHealth);
     
     // Stats for AI heals
     const float targetHealthBefore = target->getCurrentHealth();
