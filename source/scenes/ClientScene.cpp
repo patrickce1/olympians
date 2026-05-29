@@ -119,19 +119,19 @@ void ClientScene::setupUI() {
 void ClientScene::initKeypad() {
     for (int i = 0; i <= 9; i++) {
         auto button = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.keypad.key" + std::to_string(i)));
-        
-        button->addListener([this, i](const std::string& name, bool down) {
-            if (down) appendDigit(i);
-            if (!down && _audio) _audio->playSoundUnique("numpad");
+
+        ButtonHelpers::addTapListener(button, [this, i] {
+            appendDigit(i);
+            if (_audio) _audio->playSoundUnique("numpad");
         });
-        
+
         _keypadButtons.push_back(button);
     }
 
     auto backspace = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("clientScene.keypad.backspace"));
-    backspace->addListener([this](const std::string& name, bool down) {
-        if (down) removeLastChar();
-        if (!down && _audio) _audio->playSoundUnique("numpad");
+    ButtonHelpers::addTapListener(backspace, [this] {
+        removeLastChar();
+        if (_audio) _audio->playSoundUnique("numpad");
     });
     
     _keypadButtons.push_back(backspace);
@@ -148,53 +148,45 @@ void ClientScene::initKeypad() {
  */
 void ClientScene::setupListeners() {
 
-    _enterGame->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            if (_status == Status::JOINING) return;  // already attempting, ignore
-            
-            // Read the saved name from SavedDataManager instead of a UI text field.
-            // If no name is saved (edge case — MenuScene onboarding should always
-            // ensure one exists) show a clear error directing the player to Settings.
-            const std::string savedName = SavedDataManager::get().getPlayerName();
-            if (!_gameId->getText().empty() && !savedName.empty()) {
-                _network->joinRoom(_gameId->getText());
-                _joinTimer = 0.0f;
-                _status    = Status::JOINING;
-                _pendingInputDisable = true;
+    ButtonHelpers::addTapListener(_enterGame, [this] {
+        if (_status == Status::JOINING) return;  // already attempting, ignore
+
+        // Read the saved name from SavedDataManager instead of a UI text field.
+        // If no name is saved (edge case — MenuScene onboarding should always
+        // ensure one exists) show a clear error directing the player to Settings.
+        const std::string savedName = SavedDataManager::get().getPlayerName();
+        if (!_gameId->getText().empty() && !savedName.empty()) {
+            _network->joinRoom(_gameId->getText());
+            _joinTimer = 0.0f;
+            _status    = Status::JOINING;
+            _pendingInputDisable = true;
+        } else {
+            if (savedName.empty()) {
+                showError("Please set your name in Settings.");
             } else {
-                if (savedName.empty()) {
-                    showError("Please set your name in Settings.");
-                } else {
-                    _enterGame->setDown(true);
-                }
+                _enterGame->setDown(true);
             }
         }
     });
 
-    _backButton->addListener([this](const std::string& name, bool down) {
+    ButtonHelpers::addTapListener(_backButton, [this] {
         if (_audio) _audio->playSoundUnique("page_turn");
-        if (down) {
-            // If we were in the middle of a join attempt, cancel it cleanly.
-            if (_status == Status::JOINING) {
-                _network->disconnect();
-            }
-            _status = Status::ABORT;
+        // If we were in the middle of a join attempt, cancel it cleanly.
+        if (_status == Status::JOINING) {
+            _network->disconnect();
         }
+        _status = Status::ABORT;
     });
-    
-    _hostButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            if (_audio) _audio->playSoundUnique("tabswap");
-            _status = Status::HOST;
-            _hostButton->setDown(false);
-        }
+
+    ButtonHelpers::addTapListener(_hostButton, [this] {
+        if (_audio) _audio->playSoundUnique("tabswap");
+        _status = Status::HOST;
+        _hostButton->setDown(false);
     });
-    
-    _settingsButton->addListener([this](const std::string& name, bool down) {
-        if (!down){
-            if (_audio) _audio->playSoundUnique("tabswap");
-            _pendingSettings = true;
-        } 
+
+    ButtonHelpers::addTapListener(_settingsButton, [this] {
+        if (_audio) _audio->playSoundUnique("tabswap");
+        _pendingSettings = true;
     });
 }
 
