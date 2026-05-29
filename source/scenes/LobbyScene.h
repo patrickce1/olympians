@@ -399,6 +399,22 @@ private:
     void handleLobbySlotPressTracking(InputController& input);
 
     /**
+     * HOST and TUTORIAL ONLY. Begins the quest immediately for the Circe tutorial flow.
+     *
+     * Performs the same work the Begin Quest button listener would do. This locks
+     * the host into the Ares house, syncs that selection to GameState so the
+     * AI house assignment does not overwrite it, assigns houses to any AI
+     * slots, broadcasts those selections to clients, and advances the scene
+     * to PRE_GAME_START. Calls do not route through the button system so they
+     * do not depend on a synthetic press firing the tap listener.
+     *
+     * Caller is responsible for confirming the tutorial preconditions
+     * (current enemy is Circe, local player is host, tutorial not yet
+     * completed or _forceTutorial is set) before invoking.
+     */
+    void beginTutorialQuestAutomatically();
+
+    /**
      * HOST ONLY. Resolves a touch release as either a tap or a drag based
      * on _dragHoldFrames relative to LOBBY_DRAG_HOLD_FRAMES.
      *
