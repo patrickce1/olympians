@@ -107,16 +107,14 @@ void CodexScene::initItemButtons() {
     int index = 0;
     for (auto& row : _itemNodes) {
         for (auto& button : row) {
-            auto key = button->addListener([this, index](const std::string& name, bool down) {
-                if (!down || !_active) return;
+            ButtonHelpers::addTapListener(button, [this, index] {
+                if (!_active) return;
                 if (_audio) _audio->playSoundUnique("page_turn");
                 if (_selectedIndex == -1) {
                     _selectedIndex = index;
                     showDetailPanel(_items[index]);
                 }
             });
-
-            _itemListenerKeys.push_back(key);
             index++;
         }
     }
@@ -205,15 +203,13 @@ void CodexScene::setupUI() {
  * Attaches input listeners to the codex buttons.
  */
 void CodexScene::setupListeners() {
-    _backButton->addListener([this](const std::string& name, bool down) {
-        if (!down || !_active) return;
+    ButtonHelpers::addTapListener(_backButton, [this] {
+        if (!_active) return;
         if (_audio) _audio->playSoundUnique("page_turn");
-        if (down) {
-            if (_status == Status::INFO) {
-                _pendingHideDetail = true;
-            } else {
-                _status = Status::ABORT;
-            }
+        if (_status == Status::INFO) {
+            _pendingHideDetail = true;
+        } else {
+            _status = Status::ABORT;
         }
     });
 
@@ -232,12 +228,10 @@ void CodexScene::setupListeners() {
     _scrollUp->setVisible(false);
     _scrollDown->setVisible(false);
     
-    _darkOverlay->addListener([this](const std::string& name, bool down) {
-        if (!down || !_active) return;
-        if (down) {
-            if (_status == Status::INFO) {
-                _pendingHideDetail = true;
-            }
+    ButtonHelpers::addTapListener(_darkOverlay, [this] {
+        if (!_active) return;
+        if (_status == Status::INFO) {
+            _pendingHideDetail = true;
         }
     });
 }
@@ -248,15 +242,6 @@ void CodexScene::setupListeners() {
 void CodexScene::dispose() {
     if (_active) {
         removeAllChildren();
-        int keyIndex = 0;
-        for (auto& row : _itemNodes) {
-            for (auto& button : row) {
-                if (button != nullptr && keyIndex < _itemListenerKeys.size()) {
-                    button->removeListener(_itemListenerKeys[keyIndex]);
-                }
-                keyIndex++;
-            }
-        }
         _backButton->clearListeners();
         _scrollUp->clearListeners();
         _scrollDown->clearListeners();
