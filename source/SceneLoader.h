@@ -61,6 +61,7 @@ protected:
     {
         NONE,
         FADE_OUT,
+        BLACK_HOLD,
         FADE_IN
     };
 

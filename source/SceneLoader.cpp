@@ -906,12 +906,19 @@ void SceneLoader::updateTransition(float dt)
         _fadeAlpha += step;
         if (_fadeAlpha >= 1.0f) {
             _fadeAlpha = 1.0f;
-            if (_pendingSwitch) {
-                _pendingSwitch();
-                _pendingSwitch = nullptr;
-            }
-            _transitionPhase = TransitionPhase::FADE_IN;
+            // Defer the scene swap by one frame so draw() can present a
+            // fully-black frame first. Otherwise the synchronous swap blocks
+            // before the black frame ever reaches the display, and the user
+            // stares at the previous scene tinted to whatever alpha the last
+            // drawn frame happened to land on (looks like a faded freeze).
+            _transitionPhase = TransitionPhase::BLACK_HOLD;
         }
+    } else if (_transitionPhase == TransitionPhase::BLACK_HOLD) {
+        if (_pendingSwitch) {
+            _pendingSwitch();
+            _pendingSwitch = nullptr;
+        }
+        _transitionPhase = TransitionPhase::FADE_IN;
     } else {
         _fadeAlpha -= step;
         if (_fadeAlpha <= 0.0f) {
