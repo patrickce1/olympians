@@ -979,7 +979,7 @@ void SceneLoader::draw()
         _batch->setPerspective(Mat4::IDENTITY);
         _batch->begin();
         _batch->setTexture(nullptr);
-        _batch->setColor(Color4::BLACK);
+        _batch->setColor(Color4(0, 0, 0, std::clamp(_fadeAlpha, 0.0f, 1.0f) * 255));
         _batch->fill(Rect(-1.0f, -1.0f, 2.0f, 2.0f));
         _batch->end();
         
