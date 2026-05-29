@@ -4,6 +4,7 @@
 #include <cugl/cugl.h>
 #include "../SavedDataManager.h"
 #include "../AudioController.h"
+#include "../ButtonHelpers.h"
 
 /**
  * A persistent overlay scene for application settings.

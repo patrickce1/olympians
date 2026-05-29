@@ -105,31 +105,27 @@ void SettingsScene::setupUI() {
  */
 void SettingsScene::setupListeners() {
     // Back button — hide the overlay
-    _backButton->addListener([this](const std::string& name, bool down) {
-        if (!down) {
-            if (_credits->isVisible()) {
-                _pendingCreditsClose = true;
-            } else {
-                // Normal back behaviour — revert audio and close the scene
-                if (_onMusicVolumeChange) _onMusicVolumeChange(SavedDataManager::get().getMusicVolume());
-                if (_onSFXVolumeChange)   _onSFXVolumeChange(SavedDataManager::get().getSFXVolume());
-                if (_audio) _audio->playSoundUnique("tabswap");
-                _pendingClose = true;
-            }
+    ButtonHelpers::addTapListener(_backButton, [this] {
+        if (_credits->isVisible()) {
+            _pendingCreditsClose = true;
+        } else {
+            // Normal back behaviour — revert audio and close the scene
+            if (_onMusicVolumeChange) _onMusicVolumeChange(SavedDataManager::get().getMusicVolume());
+            if (_onSFXVolumeChange)   _onSFXVolumeChange(SavedDataManager::get().getSFXVolume());
+            if (_audio) _audio->playSoundUnique("tabswap");
+            _pendingClose = true;
         }
     });
 
-    _creditsButton->addListener([this](const std::string& name, bool down) {
-        if (!down) _pendingCreditsOpen = true;
+    ButtonHelpers::addTapListener(_creditsButton, [this] {
+        _pendingCreditsOpen = true;
     });
 
     // Persist all current settings to disk then close the scene
-    _saveButton->addListener([this](const std::string& name, bool down) {
-        if (!down) {
-            if (_audio) _audio->playSoundUnique("tabswap");
-            saveSettings();
-            _pendingClose = true;
-        }
+    ButtonHelpers::addTapListener(_saveButton, [this] {
+        if (_audio) _audio->playSoundUnique("tabswap");
+        saveSettings();
+        _pendingClose = true;
     });
 
     _sfxSlider->addListener([this](const std::string& name, float value) {
@@ -142,11 +138,9 @@ void SettingsScene::setupListeners() {
         if (_onMusicVolumeChange) _onMusicVolumeChange(value);
     });
     
-    _tutorialButton->addListener([this](const std::string& name, bool down) {
-        if (!down) {
-            _pendingTutorial = true;
-            _pendingClose = true;
-        }
+    ButtonHelpers::addTapListener(_tutorialButton, [this] {
+        _pendingTutorial = true;
+        _pendingClose = true;
     });
 }
 
