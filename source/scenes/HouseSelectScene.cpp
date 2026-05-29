@@ -1,5 +1,4 @@
 #include "HouseSelectScene.h"
-#include "../ButtonHelpers.h"
 
 using namespace cugl;
 using namespace std;

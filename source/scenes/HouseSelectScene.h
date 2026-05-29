@@ -7,6 +7,7 @@
 #include "../NetworkController.h"
 #include "../NetworkMessage.h"
 #include "../AudioController.h"
+#include "../ButtonHelpers.h"
 #include <iostream>
 #include <sstream>
 #include <vector>

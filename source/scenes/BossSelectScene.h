@@ -10,6 +10,7 @@
 #include "../EnemyLoader.h"
 #include "../NetworkController.h"
 #include "../AudioController.h"
+#include "../ButtonHelpers.h"
 
 /**
  * This class provides the interface to make the boss select scene.
