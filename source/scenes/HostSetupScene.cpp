@@ -1,4 +1,5 @@
 #include "HostSetupScene.h"
+#include "../ButtonHelpers.h"
 
 using namespace cugl;
 using namespace cugl::netcode;
@@ -135,49 +136,41 @@ void HostSetupScene::setupUI() {
  * previous menu, and navigating the role selection carousel.
  */
 void HostSetupScene::setupListeners() {
-    _startGame->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            const std::string savedName = SavedDataManager::get().getPlayerName();
-            if (!savedName.empty()) {
-                _network->hostRoom();
-                _network->setPlayerName(savedName);
-                EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
-                _network->setEnemy(selectedBoss.id);
-                _network->broadcastBossSelection(selectedBoss.id);
-                if (_audio) _audio->playSoundUnique("page_turn");
-                _status = Status::START;
-            }
-        }
-    });
-
-    _backButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
+    ButtonHelpers::addTapListener(_startGame, [this] {
+        const std::string savedName = SavedDataManager::get().getPlayerName();
+        if (!savedName.empty()) {
+            _network->hostRoom();
+            _network->setPlayerName(savedName);
+            EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
+            _network->setEnemy(selectedBoss.id);
+            _network->broadcastBossSelection(selectedBoss.id);
             if (_audio) _audio->playSoundUnique("page_turn");
-            _status = Status::ABORT;
-        }
-    });
-    
-    _joinButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            if (_audio) _audio->playSoundUnique("tabswap");
-            _status = Status::CLIENT;
-            _joinButton->setDown(false);
+            _status = Status::START;
         }
     });
 
-    _leftButton->addListener([this](const std::string& name, bool down){
-        if (!down) slideTo(_currentIndex - 1);
+    ButtonHelpers::addTapListener(_backButton, [this] {
+        if (_audio) _audio->playSoundUnique("page_turn");
+        _status = Status::ABORT;
     });
 
-    _rightButton->addListener([this](const std::string& name, bool down){
-        if (!down) slideTo(_currentIndex + 1);
+    ButtonHelpers::addTapListener(_joinButton, [this] {
+        if (_audio) _audio->playSoundUnique("tabswap");
+        _status = Status::CLIENT;
+        _joinButton->setDown(false);
     });
-    
-    _settingsButton->addListener([this](const std::string& name, bool down) {
-        if (!down){
-            if (_audio) _audio->playSoundUnique("tabswap");
-            _pendingSettings = true;
-        }
+
+    ButtonHelpers::addTapListener(_leftButton, [this] {
+        slideTo(_currentIndex - 1);
+    });
+
+    ButtonHelpers::addTapListener(_rightButton, [this] {
+        slideTo(_currentIndex + 1);
+    });
+
+    ButtonHelpers::addTapListener(_settingsButton, [this] {
+        if (_audio) _audio->playSoundUnique("tabswap");
+        _pendingSettings = true;
     });
 }
 
@@ -434,9 +427,9 @@ void HostSetupScene::updateCarouselDots(int currentIndex) {
         auto fill   = node->getChildByName("fill");
         
         if (i == currentIndex) {
-            fill->setColor(Color4("#4c3214ff"));
-        } else {
             fill->setColor(Color4("#9d7137ff"));
+        } else {
+            fill->setColor(Color4("#4c3214ff"));
         }
     }
 }

@@ -406,9 +406,10 @@ private:
      * index is out of bounds. Otherwise computes the target container
      * position and stores it in `_slideTarget`.
      *
-     * @param newIndex The index of the item to slide to.
+     * @param newIndex  The index of the item to slide to.
+     * @param playSound Whether to play the carousel click sound.
      */
-    void slideTo(int index);
+    void slideTo(int index, bool playSound = true);
     
     /**
      * Updates the circular carousel indicators at the bottom of what card in the carousel

@@ -1,4 +1,5 @@
 #include "HouseSelectScene.h"
+#include "../ButtonHelpers.h"
 
 using namespace cugl;
 using namespace std;
@@ -157,9 +158,7 @@ void HouseSelectScene::setupUI() {
  */
 void HouseSelectScene::setupListeners() {
     
-    _selectButton->addListener([this](const std::string& name, bool down) {
-        if (!down) return;
-
+    ButtonHelpers::addTapListener(_selectButton, [this] {
         HouseLoader::HouseDef currentHouse = _houseLoader.getAllOrdered()[_currentIndex];
 
         // If a house is selected and we're facing it, clear the selection
@@ -195,19 +194,17 @@ void HouseSelectScene::setupListeners() {
         commitHouseLock(currentHouse);
     });
 
-    _backButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            if (_audio) _audio->playSoundUnique("page_turn");
-            _status = Status::ABORT;
-        }
+    ButtonHelpers::addTapListener(_backButton, [this] {
+        if (_audio) _audio->playSoundUnique("page_turn");
+        _status = Status::ABORT;
     });
 
-    _leftButton->addListener([this](const std::string& name, bool down){
-        if (!down) slideTo(_currentIndex - 1);
+    ButtonHelpers::addTapListener(_leftButton, [this] {
+        slideTo(_currentIndex - 1);
     });
 
-    _rightButton->addListener([this](const std::string& name, bool down){
-        if (!down) slideTo(_currentIndex + 1);
+    ButtonHelpers::addTapListener(_rightButton, [this] {
+        slideTo(_currentIndex + 1);
     });
 }
 
@@ -279,7 +276,7 @@ void HouseSelectScene::setActive(bool value) {
             refreshLocalPlayerIcon();
             _rightButton->setVisible(true);
             _leftButton->setVisible(true);
-            slideTo(getInitialCarouselIndex(_targetSlot));
+            slideTo(getInitialCarouselIndex(_targetSlot), false);
             updateTeammateIcons();
 
             _selectButton->activate();
@@ -390,10 +387,10 @@ void HouseSelectScene::update(float timestep, InputController& input) {
  *
  * @param newIndex The index of the item to slide to.
  */
-void HouseSelectScene::slideTo(int newIndex) {
+void HouseSelectScene::slideTo(int newIndex, bool playSound) {
     if (_isAnimating) return;
     if (newIndex < 0 || newIndex >= _houseCards.size()) return;
-    if (_audio) _audio->playSoundUnique("small_click");
+    if (playSound && _audio) _audio->playSoundUnique("small_click");
 
     _isAnimating = true;
 
@@ -446,9 +443,9 @@ void HouseSelectScene::updateCarouselDots(int currentIndex) {
         auto fill   = node->getChildByName("fill");
         
         if (i == currentIndex) {
-            fill->setColor(Color4("#4c3214ff"));
-        } else {
             fill->setColor(Color4("#9d7137ff"));
+        } else {
+            fill->setColor(Color4("#4c3214ff"));
         }
     }
 }
