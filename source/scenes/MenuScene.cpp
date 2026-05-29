@@ -51,12 +51,10 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets, AudioCon
         return false;
     }
 
-    _settingsButton->addListener([this](const std::string&, bool down) {
-        if (!down) {
-            if (_audio) _audio->playSoundUnique("tabswap");
-            CULog("MenuScene: Settings pressed (placeholder)");
-            _status = Status::OPEN_SETTINGS;
-        }
+    ButtonHelpers::addTapListener(_settingsButton, [this] {
+        if (_audio) _audio->playSoundUnique("tabswap");
+        CULog("MenuScene: Settings pressed (placeholder)");
+        _status = Status::OPEN_SETTINGS;
     });
     
     // Enter name pop up
@@ -88,24 +86,22 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets, AudioCon
         _nameSaveButton = std::dynamic_pointer_cast<scene2::Button>(contents ? contents->getChildByName("save") : nullptr);
 
         if (_nameSaveButton) {
-            _nameSaveButton->addListener([this](const std::string&, bool down) {
-                if (!down) {
-                    std::string name = _nameField ? _nameField->getText() : "";
+            ButtonHelpers::addTapListener(_nameSaveButton, [this] {
+                std::string name = _nameField ? _nameField->getText() : "";
 
-                    // Require a non-empty name before proceeding
-                    if (name.empty()) return;
+                // Require a non-empty name before proceeding
+                if (name.empty()) return;
 
-                    if (_audio) _audio->playSoundUnique("page_turn");
+                if (_audio) _audio->playSoundUnique("page_turn");
 
-                    // Persist immediately — safe, no UI changes here
-                    SavedDataManager::get().setPlayerName(name);
-                    SavedDataManager::get().save();
+                // Persist immediately — safe, no UI changes here
+                SavedDataManager::get().setPlayerName(name);
+                SavedDataManager::get().save();
 
-                    // Defer all UI deactivation to update() via PENDING_SAVE.
-                    // Calling deactivate() here corrupts the mouse release listener
-                    // iterator we are currently inside, causing EXC_BAD_ACCESS.
-                    _status = Status::PENDING_SAVE;
-                }
+                // Defer all UI deactivation to update() via PENDING_SAVE.
+                // Calling deactivate() here corrupts the mouse release listener
+                // iterator we are currently inside, causing EXC_BAD_ACCESS.
+                _status = Status::PENDING_SAVE;
             });
         }
     }
@@ -118,14 +114,12 @@ bool MenuScene::init(const std::shared_ptr<cugl::AssetManager>& assets, AudioCon
         _confirmPopup->setVisible(false);
     }
     
-    _playButton->addListener([this](const std::string&, bool down) {
-        if (!down) {
-            if (SavedDataManager::get().hasPlayerName()) {
-                if (_audio) _audio->playSoundUnique("page_turn");
-                _status = Status::START_GAME;
-            } else {
-                _status = Status::PENDING_ONBOARDING;
-            }
+    ButtonHelpers::addTapListener(_playButton, [this] {
+        if (SavedDataManager::get().hasPlayerName()) {
+            if (_audio) _audio->playSoundUnique("page_turn");
+            _status = Status::START_GAME;
+        } else {
+            _status = Status::PENDING_ONBOARDING;
         }
     });
 

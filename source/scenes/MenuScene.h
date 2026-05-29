@@ -4,6 +4,7 @@
 #include <cugl/cugl.h>
 #include "../AudioController.h"
 #include "../SavedDataManager.h"
+#include "../ButtonHelpers.h"
 
 /**
  * Main menu scene shown after loading completes.
