@@ -182,6 +182,11 @@ void LobbyScene::setupListeners() {
         if (_audio) _audio->playSoundUnique("small_click");
         _status = Status::BOSSSELECT;
     });
+
+    ButtonHelpers::addTapListener(_itemsButton, [this] {
+        if (_audio) _audio->playSoundUnique("small_click");
+        _status = Status::CODEX;
+    });
     
     for (int i =0; i < 4; i++){
         ButtonHelpers::addTapListener(_playerImages[i], [this] {
