@@ -20,6 +20,7 @@
 #include "tests/ItemTests.h"
 #include "NetworkController.h"
 #include <algorithm>
+#include <functional>
 #include <cugl/core/CUBase.h>
 #include <cugl/core/util/CULogger.h>
 
@@ -54,6 +55,23 @@ protected:
 
     /** The current scene */
     State _currentScene;
+
+    /** The phases of a fade transition between two scenes. */
+    enum class TransitionPhase
+    {
+        NONE,
+        FADE_OUT,
+        FADE_IN
+    };
+
+    /** The current phase of the scene-to-scene fade transition. */
+    TransitionPhase _transitionPhase = TransitionPhase::NONE;
+
+    /** Opacity of the black fade overlay (0 = clear, 1 = fully black). */
+    float _fadeAlpha = 0.0f;
+
+    /** The scene swap to run once the screen is fully black. */
+    std::function<void()> _pendingSwitch;
 
     /** The loaders to (synchronously) load in assets */
     std::shared_ptr<cugl::AssetManager> _assets;
@@ -212,6 +230,25 @@ public:
      * @param scene    The GameScene instance containing the current boss context
      */
     void selectBossTheme(GameScene& scene);
+
+    /**
+     * Begins a fade transition into another scene.
+     *
+     * The screen fades to black, then `applySwitch` performs the actual scene
+     * swap while hidden, then the new scene fades back in. Any call made while
+     * a transition is already running is ignored, so it is safe to invoke this
+     * every frame that a scene keeps reporting the same status.
+     *
+     * @param applySwitch  The scene-swap logic to run while the screen is black
+     */
+    void requestTransition(std::function<void()> applySwitch);
+
+    /**
+    * Advances the active fade transition. Will fade out visually if the current _transitionPhase is TransitionPhase::FADE_OUT and will fade in if  TransitionPhase::FADE_IN
+    *
+    * @param dt The time (in seconds) since the last frame
+    */
+    void updateTransition(float dt);
 };
 
 #endif /* __SCENE_LOADER_H__ */
