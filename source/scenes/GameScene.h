@@ -879,6 +879,15 @@ protected:
     /** When true, forces the tutorial to run this session regardless of saved state. */
     bool _forceTutorial = false;
 
+    /** Boss whose dynamic animation sprites have already been created. */
+    std::string _preloadedEnemyId;
+
+    /** Incremental pre-game animation preload state. */
+    std::string _preloadingEnemyId;
+    std::vector<std::string> _pendingPreloadAnimations;
+    size_t _preloadAnimationIndex = 0;
+    size_t _preloadAnimationTotal = 0;
+
  #pragma mark - Gaia Variables
     /* RNG for host - authoritative slot shuffling during gameplay. **/
     std::mt19937 _rng;
@@ -977,6 +986,16 @@ public:
      * @param value  true to activate, false to deactivate.
      */
     virtual void setActive(bool value) override;
+
+    /**
+     * Creates dynamic animation textures and sprite nodes for the selected
+     * boss without touching gameplay state.  Safe to call while the pre-game
+     * scene is still updating the shared GameState.
+     */
+    float preloadEnemyAnimations();
+
+    /** Discards animation resources preloaded while the pre-game scene was shown. */
+    void discardPreloadedEnemyAnimations();
 
     /**
      * Resets the scene to its start-of-round state.
@@ -1234,6 +1253,9 @@ public:
      * @return true if all animations were successfully initialized, false on error
      */
     bool initializeEnemyAnimations(const std::string& enemyId);
+
+    /** Creates the node for a single ordinary (non-Cerberus-head) animation. */
+    bool createEnemyAnimationSprite(const AnimationEntry& animationEntry);
 
     /**
      * Collects all animation keys whose names start with "cerberus_head_" from the registry

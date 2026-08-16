@@ -66,6 +66,10 @@ protected:
     /** Progress fo the loading bar */
     float _loadingProgress = 0.0f;
 
+    /** Real progress reported by incremental game-resource preparation. */
+    float _loadingTarget = 0.0f;
+    bool _loadingComplete = false;
+
     /** The state of the game */
     GameState* _gameState = nullptr;
     
@@ -149,6 +153,18 @@ public:
      *
      */
     Status getStatus() const { return _status; }
+
+    /**
+     * Returns true once the entry animation has settled and it is safe to do
+     * the synchronous game-scene preparation behind this scene.
+     */
+    bool isReadyToLoadGame() const {
+        return _status == Status::IDLE && _timeline &&
+               !_timeline->isActive("bottom_clouds");
+    }
+
+    /** Updates the real asset-loading percentage reported by GameScene. */
+    void setLoadingProgress(float progress);
     
     /**
      * The method called to update the scene.
@@ -227,4 +243,3 @@ private:
 };
 
 #endif /* __PRE_GAME_ENTRY_SCENE_H__ */
-

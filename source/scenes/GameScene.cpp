@@ -1112,8 +1112,11 @@ void GameScene::setActive(bool value) {
 
             // Destroy previous enemy's sprites and load only the selected enemy's animations.
             auto enemy = _gameState.getEnemy();
-            destroyEnemyAnimations();
-            if (enemy) initializeEnemyAnimations(enemy->getId());
+            if (enemy && _preloadedEnemyId != enemy->getId()) {
+                destroyEnemyAnimations();
+                initializeEnemyAnimations(enemy->getId());
+                _preloadedEnemyId = enemy->getId();
+            }
 
             // Cerberus: load head config from customData and reset animation state
             if (enemy && enemy->getId() == "cerberus") {
@@ -1153,8 +1156,66 @@ void GameScene::setActive(bool value) {
             }
         } else {
             destroyEnemyAnimations();
+            _preloadedEnemyId.clear();
+            _preloadingEnemyId.clear();
+            _pendingPreloadAnimations.clear();
+            _preloadAnimationIndex = _preloadAnimationTotal = 0;
         }
     }
+}
+
+float GameScene::preloadEnemyAnimations() {
+    if (!_network) return 0.0f;
+
+    const std::string& enemyId = _network->getEnemy();
+    if (enemyId.empty()) return 0.0f;
+    if (_preloadedEnemyId == enemyId) return 1.0f;
+
+    if (_preloadingEnemyId != enemyId) {
+        destroyEnemyAnimations();
+        _preloadedEnemyId.clear();
+        _preloadingEnemyId = enemyId;
+        _pendingPreloadAnimations.clear();
+        _preloadAnimationIndex = 0;
+
+        for (const auto& [animationId, entry] : _animationRegistry) {
+            if (animationId.rfind(enemyId + "_", 0) != 0 ||
+                animationId.rfind("cerberus_head_", 0) == 0) continue;
+            _pendingPreloadAnimations.push_back(animationId);
+        }
+        std::sort(_pendingPreloadAnimations.begin(), _pendingPreloadAnimations.end());
+        _preloadAnimationTotal = _pendingPreloadAnimations.size() +
+            (enemyId == "cerberus" ? 1 : 0);
+    }
+
+    if (_preloadAnimationIndex < _pendingPreloadAnimations.size()) {
+        const auto& key = _pendingPreloadAnimations[_preloadAnimationIndex++];
+        auto entry = _animationRegistry.find(key);
+        if (entry != _animationRegistry.end()) createEnemyAnimationSprite(entry->second);
+    } else if (enemyId == "cerberus" &&
+               _preloadAnimationIndex < _preloadAnimationTotal) {
+        // The head sets need the body sprite created above, so they form the
+        // final real loading step for Cerberus.
+        initializeCerberusAnimationSprites(enemyId);
+        ++_preloadAnimationIndex;
+    }
+
+    if (_preloadAnimationIndex >= _preloadAnimationTotal) {
+        _bossSprite->setVisible(true);
+        _preloadedEnemyId = enemyId;
+        return 1.0f;
+    }
+    return static_cast<float>(_preloadAnimationIndex) /
+           static_cast<float>(_preloadAnimationTotal);
+}
+
+void GameScene::discardPreloadedEnemyAnimations() {
+    if (_active) return;
+    destroyEnemyAnimations();
+    _preloadedEnemyId.clear();
+    _preloadingEnemyId.clear();
+    _pendingPreloadAnimations.clear();
+    _preloadAnimationIndex = _preloadAnimationTotal = 0;
 }
 
 /**
@@ -2455,6 +2516,34 @@ void GameScene::destroyEnemyAnimations() {
     _cerberusBodySpriteTop   = nullptr;
     _currentVisibleAnimationSprite = nullptr;
     _currentAnimationId      = "";
+}
+
+bool GameScene::createEnemyAnimationSprite(const AnimationEntry& animationEntry) {
+    if (!_bossSprite) return false;
+
+    auto texture = cugl::graphics::Texture::allocWithFile(animationEntry.texture);
+    if (!texture) {
+        CULogError("Failed to allocate texture: %s", animationEntry.texture.c_str());
+        return false;
+    }
+    auto spriteNode = cugl::scene2::SpriteNode::allocWithSheet(
+        texture, animationEntry.frameRows, animationEntry.frameCount,
+        animationEntry.frameCount * animationEntry.frameRows);
+    if (!spriteNode) return false;
+
+    cugl::Size viewportSize = getSize();
+    float scale = 0.90f + (viewportSize.height - 800.0f) * 0.00005f;
+    scale = std::clamp(scale, 0.80f, 0.95f);
+    spriteNode->setScale(scale);
+    spriteNode->setContentSize(cugl::Size(
+        texture->getWidth() / animationEntry.frameCount,
+        texture->getHeight() / animationEntry.frameRows));
+    spriteNode->setAnchor(cugl::Vec2(0.5f, 0.5f));
+    spriteNode->setPosition(cugl::Vec2(196.5f, 120.0f));
+    spriteNode->setVisible(false);
+    _bossSprite->addChild(spriteNode);
+    _enemyAnimationSpriteNodes[animationEntry.id] = spriteNode;
+    return true;
 }
 
 /**

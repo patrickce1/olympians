@@ -9,8 +9,6 @@ using namespace std;
 
 /** Regardless of logo, lock the height to this */
 #define SCENE_HEIGHT  852
-/** Loading Bar Timer */
-#define LOADING_TIMER  5.0f
 /** How long (seconds) to show the error popup before auto-dismissing */
 #define ERROR_DISPLAY_TIME  2.0f
 
@@ -149,6 +147,8 @@ void PreGameEntryScene::setActive(bool value) {
         if (value) {
             _status = IDLE;
             _loadingProgress = 0.0f;
+            _loadingTarget = 0.0f;
+            _loadingComplete = false;
             _disconnectMessage = "";
 
             if (_loadingBar) {
@@ -207,19 +207,16 @@ void PreGameEntryScene::update(float timestep) {
     }
 
 
-    // Increase progress based on time
+    // Ease the displayed bar toward the real progress reported by GameScene.
     if (!_timeline->isActive("bottom_clouds") && _status != Status::ERROR_DISPLAY){
-        _loadingProgress += timestep / LOADING_TIMER;
-        
-        if (_loadingProgress > 1.0f) {
-            _loadingProgress = 1.0f;
-        }
-        
+        _loadingProgress += (_loadingTarget - _loadingProgress) * std::min(1.0f, timestep * 8.0f);
         _loadingBar->setProgress(_loadingProgress);
     }
 
-    // When done loading
-    if (_loadingProgress >= 1.0f) {
+    // Do not transition until both the real work and the displayed bar finish.
+    if (_loadingComplete && _loadingProgress >= 0.995f) {
+        _loadingProgress = 1.0f;
+        _loadingBar->setProgress(1.0f);
         _status = Status::START;
     }
     
@@ -235,6 +232,11 @@ void PreGameEntryScene::update(float timestep) {
             dismissError();
         }
     }
+}
+
+void PreGameEntryScene::setLoadingProgress(float progress) {
+    _loadingTarget = std::clamp(progress, 0.0f, 1.0f);
+    _loadingComplete = (_loadingTarget >= 1.0f);
 }
 
 /**

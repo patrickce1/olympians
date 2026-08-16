@@ -741,6 +741,13 @@ void SceneLoader::update(float dt) {
             
     case State::PREGAMEENTRY:
         _preGameEntryScene.update(dt);
+        // Build the selected boss's dynamic textures and sprites while the
+        // pre-game screen is visible.  These CUGL calls must run on the main
+        // thread, but moving them here prevents a load hitch at game entry.
+        if (_preGameEntryScene.isReadyToLoadGame()) {
+            _preGameEntryScene.setLoadingProgress(
+                _gameScene.preloadEnemyAnimations());
+        }
         switch (_preGameEntryScene.getStatus())
         {
         case PreGameEntryScene::Status::START:
@@ -755,6 +762,7 @@ void SceneLoader::update(float dt) {
         case PreGameEntryScene::Status::PLAYER_DISCONNECTED:
             requestTransition([this]() {
             CULog("Player disconnected in PreGameEntry — returning to LobbyScene...");
+            _gameScene.discardPreloadedEnemyAnimations();
             _audio.playMusic("lobby");
             _lobbyScene.setDisconnectBanner(
                 _preGameEntryScene.getDisconnectMessage());
@@ -766,6 +774,7 @@ void SceneLoader::update(float dt) {
         case PreGameEntryScene::Status::ABORT:
             requestTransition([this]() {
             CULog("Transitioning to LobbyScene from PreGameEntryScene...");
+            _gameScene.discardPreloadedEnemyAnimations();
             _lobbyScene.setActive(true);
             _preGameEntryScene.setActive(false);
             _currentScene = State::LOBBY;
@@ -775,6 +784,7 @@ void SceneLoader::update(float dt) {
             requestTransition([this]() {
             CULog("Host disconnected in PreGameEntry — returning client to HostSetupScene...");
             _audio.playMusic("lobby");
+            _gameScene.discardPreloadedEnemyAnimations();
             _gameScene.resetGameState();
             _houseSelectScene.setPendingReset(true);
             _preGameEntryScene.setActive(false);
