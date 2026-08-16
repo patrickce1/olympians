@@ -7,6 +7,7 @@
 #include <vector>
 #include "../EnemyLoader.h"
 #include "../NetworkController.h"
+#include "../ButtonHelpers.h"
 
 /**
  * This class provides the interface to make the win lose scene.

@@ -127,29 +127,25 @@ void BossSelectScene::setupUI() {
  */
 void BossSelectScene::setupListeners() {
     
-    _backButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            if (_audio) _audio->playSoundUnique("page_turn");
-            _status = Status::ABORT;
-        }
-    });
-    
-    _lockButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
-            _network->setEnemy(selectedBoss.id);
-            _network->broadcastBossSelection(selectedBoss.id);
-            
-            _status = Status::ABORT;
-        }
+    ButtonHelpers::addTapListener(_backButton, [this] {
+        if (_audio) _audio->playSoundUnique("page_turn");
+        _status = Status::ABORT;
     });
 
-    _leftButton->addListener([this](const std::string& name, bool down){
-        if (!down) slideTo(_currentIndex - 1);
+    ButtonHelpers::addTapListener(_lockButton, [this] {
+        EnemyLoader::EnemyDef selectedBoss = _enemyLoader.getAllOrdered()[_currentIndex];
+        _network->setEnemy(selectedBoss.id);
+        _network->broadcastBossSelection(selectedBoss.id);
+
+        _status = Status::ABORT;
     });
 
-    _rightButton->addListener([this](const std::string& name, bool down){
-        if (!down) slideTo(_currentIndex + 1);
+    ButtonHelpers::addTapListener(_leftButton, [this] {
+        slideTo(_currentIndex - 1);
+    });
+
+    ButtonHelpers::addTapListener(_rightButton, [this] {
+        slideTo(_currentIndex + 1);
     });
 }
 
@@ -358,9 +354,9 @@ void BossSelectScene::updateCarouselDots(int currentIndex) {
         auto fill   = node->getChildByName("fill");
         
         if (i == currentIndex) {
-            fill->setColor(Color4("#4c3214ff"));
-        } else {
             fill->setColor(Color4("#9d7137ff"));
+        } else {
+            fill->setColor(Color4("#4c3214ff"));
         }
     }
 }

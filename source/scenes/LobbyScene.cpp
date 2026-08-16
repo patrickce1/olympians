@@ -139,9 +139,9 @@ void LobbyScene::setupUI() {
  * when the user presses the start or back buttons.
  */
 void LobbyScene::setupListeners() {
-    _enterGame->addListener([this](const std::string& name, bool down) {
-        if (!down || !_network->isHost()) return;
-        
+    ButtonHelpers::addTapListener(_enterGame, [this] {
+        if (!_network->isHost()) return;
+
         // Assign unique houses to any AI slots that don't have one.
         // ItemController is needed to reinitialize AI behavior after
         // reconstructing slots as PlayerAI with their new house.
@@ -167,43 +167,94 @@ void LobbyScene::setupListeners() {
         _status = Status::PRE_GAME_START;
     });
 
-    _backButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            if (_audio) _audio->playSoundUnique("page_turn");
-            if (_network->isHost()) {
-                _network->broadcastSessionTerminated();
-                _pendingDisconnect = true;
-            } else {
-                _pendingDisconnect = true;
-            }
-            _status = Status::ABORT;
+    ButtonHelpers::addTapListener(_backButton, [this] {
+        if (_audio) _audio->playSoundUnique("page_turn");
+        if (_network->isHost()) {
+            _network->broadcastSessionTerminated();
+            _pendingDisconnect = true;
+        } else {
+            _pendingDisconnect = true;
         }
+        _status = Status::ABORT;
     });
 
-    _bossLobbyButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            if (_audio) _audio->playSoundUnique("small_click");
-            _status = Status::BOSSSELECT;
-        }
+    ButtonHelpers::addTapListener(_bossLobbyButton, [this] {
+        if (_audio) _audio->playSoundUnique("small_click");
+        _status = Status::BOSSSELECT;
     });
 
-    _itemsButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            if (_audio) _audio->playSoundUnique("page_turn");
-            _status = Status::CODEX;
-        }
+    ButtonHelpers::addTapListener(_itemsButton, [this] {
+        if (_audio) _audio->playSoundUnique("small_click");
+        _status = Status::CODEX;
     });
+    
+    for (int i =0; i < 4; i++){
+        ButtonHelpers::addTapListener(_playerImages[i], [this] {
+            if (_audio && _network->isHost()) _audio->playSoundUnique("small_click");
+        });
+    }
 
+    
     // Wire the local slot (index 3) for all players.
     // For non-hosts this is the only interaction they have.
     // For the host, the press system handles everything including this slot,
     // so the listener is a no-op for hosts to avoid double-firing.
-    _playerImages[3]->addListener([this](const std::string& name, bool down) {
-        if (!down) return;
-        if (_network->isHost()) return; // host handled entirely by press system
-        _pendingSlotToBeOpened = -1;
-        _status = Status::SELECT;
-    });
+//    _playerImages[3]->addListener([this](const std::string& name, bool down) {
+//        if (!down) return;
+//        if (_network->isHost()) return; // host handled entirely by press system
+//        _pendingSlotToBeOpened = -1;
+//        _status = Status::SELECT;
+//    });
+
+}
+
+/**
+ * HOST and TUTORIAL ONLY. Begins the quest immediately for the Circe tutorial flow.
+ *
+ * Performs the same work the Begin Quest button listener would do. This locks
+ * the host into the Ares house, syncs that selection to GameState so the
+ * AI house assignment does not overwrite it, assigns houses to any AI
+ * slots, broadcasts those selections to clients, and advances the scene
+ * to PRE_GAME_START. Calls do not route through the button system so they
+ * do not depend on a synthetic press firing the tap listener.
+ *
+ * Caller is responsible for confirming the tutorial preconditions
+ * (current enemy is Circe, local player is host, tutorial not yet
+ * completed or _forceTutorial is set) before invoking.
+ */
+void LobbyScene::beginTutorialQuestAutomatically() {
+    _network->setLocalHouse("ares");
+    _forceTutorial = false;
+
+    // Sync the house to GameState before starting the game so AI doesn't pick Athena
+    int localIndex = _network->getLocalPlayerNumber();
+    Player* localPlayer = _gameState->getPlayerBySlot(localIndex);
+    if (localPlayer) {
+        _gameState->setRealPlayer(localIndex, localPlayer->getPlayerName(), "ares");
+    }
+
+    // Assign unique houses to any AI slots that don't have one.
+    // ItemController is needed to reinitialize AI behavior after
+    // reconstructing slots as PlayerAI with their new house.
+    _gameState->assignMissingHousesForAI(*_itemController);
+
+    // Broadcast each AI house to clients.
+    const auto& players = _gameState->getPlayers();
+    int totalSlots = (int)players.size();
+    for (int i = 0; i < totalSlots; i++) {
+        if (!_network->checkRealPlayer(i)) {
+            const std::string& house = players[i]->getHouseName();
+            if (!house.empty()) {
+                _network->broadcastAIHouseSelection(i, house);
+            }
+        }
+    }
+
+    if (!_network->allPlayersSelectedHouse()) return;
+
+    if (_audio) _audio->playSoundUnique("start_sound");
+
+    _status = Status::PRE_GAME_START;
 }
 
 /**
@@ -465,19 +516,7 @@ void LobbyScene::update(float timestep, InputController& input) {
     }
     
     if (_network->getEnemy() == "circe" && _network->isHost() && (!SavedDataManager::get().getTutorialCompleted() || _forceTutorial)) {
-        _network->setLocalHouse("ares");
-        _forceTutorial = false;
-
-        // Sync the house to GameState before starting the game so AI doesn't pick Athena
-        int localIndex = _network->getLocalPlayerNumber();
-        Player* localPlayer = _gameState->getPlayerBySlot(localIndex);
-        if (localPlayer) {
-            _gameState->setRealPlayer(localIndex, localPlayer->getPlayerName(), "ares");
-        }
-
-        //Start game and set the bots' houses
-        _enterGame->setDown(true);
-        _enterGame->setDown(false);
+        beginTutorialQuestAutomatically();
         return;
     }
     
@@ -749,7 +788,6 @@ void LobbyScene::handleLobbySlotPressRelease(InputController& input) {
         if (isLocalSlot) {
             // Tapped own slot — open own house select
             CULog("[PressRelease] TAP on local slot — opening own house select");
-            if (_audio) _audio->playSoundUnique("small_click");
             _pendingSlotToBeOpened = -1;
             _status = Status::SELECT;
         } else {
@@ -759,7 +797,6 @@ void LobbyScene::handleLobbySlotPressRelease(InputController& input) {
                   _dragSourceDisplaySlot, gameSlot, isReal);
             if (!isReal) {
                 CULog("[PressRelease] AI slot — opening house select for game slot %d", gameSlot);
-                if (_network->isHost() && _audio) _audio->playSoundUnique("small_click");
                 _pendingSlotToBeOpened = gameSlot;
                 _status = Status::SELECT;
             } else {

@@ -143,16 +143,12 @@ void WinLoseScene::setupStatsUI() {
  * Attaches input listeners to the buttons.
  */
 void WinLoseScene::setupListeners() {
-    _continueButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            _pendingPhase2 = true;
-        }
+    ButtonHelpers::addTapListener(_continueButton, [this] {
+        _pendingPhase2 = true;
     });
-    
-    _returnButton->addListener([this](const std::string& name, bool down) {
-        if (down) {
-            _status = Status::ABORT;
-        }
+
+    ButtonHelpers::addTapListener(_returnButton, [this] {
+        _status = Status::ABORT;
     });
 }
 

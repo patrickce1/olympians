@@ -8,6 +8,7 @@
 #include "../NetworkController.h"
 #include "../InputController.h"
 #include "../AudioController.h"
+#include "../ButtonHelpers.h"
 
 /**
  * Represents a single entry in the codex (item encyclopedia).
@@ -112,9 +113,6 @@ protected:
     /** Displays full item description */
     std::shared_ptr<cugl::scene2::Label> _descriptionLabel;
     
-    /** Listener keys for item button callbacks */
-    std::vector<unsigned int> _itemListenerKeys;
-
     /** Height of a single grid row (used for scrolling calculations) */
     float _rowHeight = 80.0f;
 

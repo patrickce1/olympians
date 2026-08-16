@@ -10,6 +10,7 @@
 #include "../NetworkController.h"
 #include "../SavedDataManager.h"
 #include "../AudioController.h"
+#include "../ButtonHelpers.h"
 
 /**
  * This class provides the interface to make a new game.

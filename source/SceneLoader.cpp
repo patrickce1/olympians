@@ -13,6 +13,9 @@ CU_ROOTCLASS(SceneLoader)
 #define GAME_WIDTH 393
 #define GAME_HEIGHT 852
 
+/** Duration (in seconds) of each half (fade-out and fade-in) of a scene transition */
+#define FADE_DURATION 0.22f
+
 /**
  * Creates, but does not initialize, a new application.
  *
@@ -228,6 +231,13 @@ void SceneLoader::onResize()
  * Otherwise, it should maintain the current scene.
  */
 void SceneLoader::update(float dt) {
+    updateTransition(dt);
+
+    if (_transitionPhase != TransitionPhase::NONE) {
+        _input.resetAction();
+        return;
+    }
+
     // Settings overlay always gets updated when active
     if (_settingsScene.isActive()) {
         _settingsScene.update(dt);
@@ -267,6 +277,7 @@ void SceneLoader::update(float dt) {
             _loadingScene->update(dt);
             if (_loadingScene->isComplete())
             {
+                requestTransition([this]() {
                 CULog("Assets finished loading. Initializing MenuScene...");
 
             // NETWORK
@@ -374,17 +385,20 @@ void SceneLoader::update(float dt) {
                 SavedDataManager::get().getSFXVolume()
             );
             _audio.playMusic("lobby");
+                });
         }
         break;
     case State::MENU:
         _menuScene.update(dt);
         switch (_menuScene.getStatus()) {
             case MenuScene::Status::START_GAME:
+                requestTransition([this]() {
                 CULog("Transitioning to HostSetupScene...");
                 _hostSetupScene.setActive(true);
                 _menuScene.setActive(false);
                 _menuScene.resetStatus();
                 _currentScene = State::HOSTSETUP;
+                });
                 break;
             case MenuScene::Status::OPEN_SETTINGS:
                 CULog("MenuScene: opening settings");
@@ -409,23 +423,29 @@ void SceneLoader::update(float dt) {
         }
         switch (_clientScene.getStatus()){
             case ClientScene::Status::START:
+                requestTransition([this]() {
                 CULog("Transitioning to LobbyScene...");
                 _audio.playMusic("lobby");
                 _lobbyScene.setActive(true);
                 _clientScene.setActive(false);
                 _currentScene = State::LOBBY;
+                });
                 break;
             case ClientScene::Status::HOST:
+                requestTransition([this]() {
                 CULog("Transitioning to HostSetupScene...");
                 _hostSetupScene.setActive(true);
                 _clientScene.setActive(false);
                 _currentScene = State::HOSTSETUP;
+                });
                 break;
             case ClientScene::Status::ABORT:
+                requestTransition([this]() {
                 CULog("Transitioning to MenuScene...");
                 _menuScene.setActive(true);
                 _clientScene.setActive(false);
                 _currentScene = State::MENU;
+                });
                 break;
             default:
                 break;
@@ -439,23 +459,29 @@ void SceneLoader::update(float dt) {
         }
         switch (_hostSetupScene.getStatus()) {
             case HostSetupScene::Status::START:
+                requestTransition([this]() {
                 CULog("Transitioning to LobbyScene...");
                 _audio.playMusic("lobby");
                 _lobbyScene.setActive(true);
                 _hostSetupScene.setActive(false);
                 _currentScene = State::LOBBY;
+                });
                 break;
             case HostSetupScene::Status::CLIENT:
+                requestTransition([this]() {
                 CULog("Transitioning to ClientScene...");
                 _clientScene.setActive(true);
                 _hostSetupScene.setActive(false);
                 _currentScene = State::CLIENT;
+                });
                 break;
             case HostSetupScene::Status::ABORT:
+                requestTransition([this]() {
                 CULog("Transitioning to MenuScene...");
                 _menuScene.setActive(true);
                 _hostSetupScene.setActive(false);
                 _currentScene = State::MENU;
+                });
                 break;
             default:
                 break;
@@ -466,39 +492,50 @@ void SceneLoader::update(float dt) {
         switch (_lobbyScene.getStatus())
         {
         case LobbyScene::Status::PRE_GAME_START:
+            requestTransition([this]() {
             CULog("Transitioning to PreGameEntryScene...");
             _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _lobbyScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
+            });
             break;
         case LobbyScene::Status::GAME_START:
+            requestTransition([this]() {
             CULog("Transitioning directly to GameScene from Lobby — host already in game...");
             _gameScene.setActive(true);
             _audio.playMusic("cyclops_theme");
             _lobbyScene.setActive(false);
             _currentScene = State::GAME;
+            });
             break;
         case LobbyScene::Status::SELECT:
+            requestTransition([this]() {
             CULog("Transitioning to HouseSelectScene...");
             _houseSelectScene.setTargetSlot(_lobbyScene.getPendingSlotToBeOpened());
             _houseSelectScene.setActive(true);
             _lobbyScene.setActive(false);
             _currentScene = State::HOUSESELECT;
+            });
             break;
         case LobbyScene::Status::BOSSSELECT:
+            requestTransition([this]() {
             CULog("Transitioning to BossSelectScene...");
             _bossSelectScene.setActive(true);
             _lobbyScene.setActive(false);
             _currentScene = State::BOSSSELECT;
+            });
             break;
         case LobbyScene::Status::CODEX:
+            requestTransition([this]() {
             CULog("Transitioning to CodexScene...");
             _codexScene.setActive(true);
             _lobbyScene.setActive(false);
             _currentScene = State::CODEX;
+            });
             break;
         case LobbyScene::Status::ABORT:
+            requestTransition([this]() {
             _gameScene.resetGameState();
             _houseSelectScene.setPendingReset(true);
             if (_network->isHost())
@@ -516,9 +553,11 @@ void SceneLoader::update(float dt) {
                 _lobbyScene.setActive(false);
                 _currentScene = State::CLIENT;
             }
+            });
             break;
         // Host broadcast SESSION_TERMINATED
         case LobbyScene::Status::HOST_LEFT:
+            requestTransition([this]() {
             CULog("Host left lobby — returning client to HostSetupScene...");
             _gameScene.resetGameState();
             _houseSelectScene.setPendingReset(true);
@@ -526,9 +565,11 @@ void SceneLoader::update(float dt) {
             _hostSetupScene.setActive(true);
             _hostSetupScene.showHostDisconnectedError();
             _currentScene = State::HOSTSETUP;
+            });
             break;
         // Host unexpectedly disconnected
         case LobbyScene::Status::HOST_DISCONNECTED:
+            requestTransition([this]() {
             CULog("Host disconnected in lobby — returning client to HostSetupScene...");
             _gameScene.resetGameState();
             _houseSelectScene.setPendingReset(true);
@@ -536,6 +577,7 @@ void SceneLoader::update(float dt) {
             _hostSetupScene.setActive(true);
             _hostSetupScene.showHostDisconnectedError();
             _currentScene = State::HOSTSETUP;
+            });
             break;
         default:
             break;
@@ -547,13 +589,16 @@ void SceneLoader::update(float dt) {
         switch (_houseSelectScene.getStatus())
         {
         case HouseSelectScene::Status::PRE_GAMESCENE_START:
+            requestTransition([this]() {
             CULog("Transitioning to PreGameScene from HouseSelect...");
             _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _houseSelectScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
+            });
             break;
         case HouseSelectScene::Status::ABORT:
+            requestTransition([this]() {
             if (_network->checkConnection() != NetworkController::Status::CONNECTED)
             {
                 _gameScene.resetGameState();
@@ -569,8 +614,10 @@ void SceneLoader::update(float dt) {
                 _houseSelectScene.setActive(false);
                 _currentScene = State::LOBBY;
             }
+            });
             break;
         case HouseSelectScene::Status::HOST_DISCONNECTED:
+            requestTransition([this]() {
             CULog("Host disconnected in HouseSelect — returning to HostSetupScene...");
             _gameScene.resetGameState();
             _houseSelectScene.setPendingReset(true);
@@ -578,6 +625,7 @@ void SceneLoader::update(float dt) {
             _hostSetupScene.setActive(true);
             _hostSetupScene.showHostDisconnectedError();
             _currentScene = State::HOSTSETUP;
+            });
             break;
         default:
             break;
@@ -588,13 +636,16 @@ void SceneLoader::update(float dt) {
         switch (_bossSelectScene.getStatus())
         {
         case BossSelectScene::Status::PRE_GAMESCENE_START:
+            requestTransition([this]() {
             CULog("Transitioning to PreGameScene from BossSelect...");
             _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _bossSelectScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
+            });
             break;
         case BossSelectScene::Status::ABORT:
+            requestTransition([this]() {
             if (_network->checkConnection() != NetworkController::Status::CONNECTED)
             {
                 _gameScene.resetGameState();
@@ -610,6 +661,7 @@ void SceneLoader::update(float dt) {
                 _bossSelectScene.setActive(false);
                 _currentScene = State::LOBBY;
             }
+            });
             break;
         default:
             break;
@@ -620,6 +672,7 @@ void SceneLoader::update(float dt) {
         switch (_winLoseScene.getStatus())
         {
         case WinLoseScene::Status::ABORT:
+            requestTransition([this]() {
             _audio.playMusic("lobby");
             if (_network->getEnemy() == "circe" && !SavedDataManager::get().getTutorialCompleted()) { //Tutorial should go back to the setup screen.
                 _network->disconnect();
@@ -633,13 +686,16 @@ void SceneLoader::update(float dt) {
                 _currentScene = State::LOBBY;
             }
             _winLoseScene.setActive(false);
+            });
             break;
         case WinLoseScene::Status::PRE_GAMESCENE_START:
+            requestTransition([this]() {
             CULog("Transitioning to PreGameScene from WinLoseScene...");
             _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _winLoseScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
+            });
             break;
         default:
             break;
@@ -651,13 +707,16 @@ void SceneLoader::update(float dt) {
         switch (_codexScene.getStatus())
         {
         case CodexScene::Status::PRE_GAMESCENE_START:
+            requestTransition([this]() {
             CULog("Transitioning to PreGameScene from CodexScene...");
             _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _codexScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
+            });
             break;
         case CodexScene::Status::ABORT:
+            requestTransition([this]() {
             if (_network->checkConnection() != NetworkController::Status::CONNECTED)
             {
                 _gameScene.resetGameState();
@@ -673,6 +732,7 @@ void SceneLoader::update(float dt) {
                 _codexScene.setActive(false);
                 _currentScene = State::LOBBY;
             }
+            });
             break;
         default:
             break;
@@ -684,13 +744,16 @@ void SceneLoader::update(float dt) {
         switch (_preGameEntryScene.getStatus())
         {
         case PreGameEntryScene::Status::START:
+            requestTransition([this]() {
             CULog("Transitioning to GameScene from PreGameEntryScene...");
             _gameScene.setActive(true);
             selectBossTheme(_gameScene);
             _preGameEntryScene.setActive(false);
             _currentScene = State::GAME;
+            });
             break;
         case PreGameEntryScene::Status::PLAYER_DISCONNECTED:
+            requestTransition([this]() {
             CULog("Player disconnected in PreGameEntry — returning to LobbyScene...");
             _audio.playMusic("lobby");
             _lobbyScene.setDisconnectBanner(
@@ -698,14 +761,18 @@ void SceneLoader::update(float dt) {
             _lobbyScene.setActive(true);
             _preGameEntryScene.setActive(false);
             _currentScene = State::LOBBY;
+            });
             break;
         case PreGameEntryScene::Status::ABORT:
+            requestTransition([this]() {
             CULog("Transitioning to LobbyScene from PreGameEntryScene...");
             _lobbyScene.setActive(true);
             _preGameEntryScene.setActive(false);
             _currentScene = State::LOBBY;
+            });
             break;
         case PreGameEntryScene::Status::HOST_DISCONNECTED:
+            requestTransition([this]() {
             CULog("Host disconnected in PreGameEntry — returning client to HostSetupScene...");
             _audio.playMusic("lobby");
             _gameScene.resetGameState();
@@ -714,6 +781,7 @@ void SceneLoader::update(float dt) {
             _hostSetupScene.setActive(true);
             _hostSetupScene.showHostDisconnectedError();
             _currentScene = State::HOSTSETUP;
+            });
             break;
         default:
             break;
@@ -747,6 +815,7 @@ void SceneLoader::update(float dt) {
         switch (_gameScene.getStatus())
         {
         case GameScene::Status::LOST:
+            requestTransition([this]() {
             _audio.playMusic("lobby");
             _winLoseScene.setDidWin(false);
             _winLoseScene.captureStats();
@@ -754,8 +823,10 @@ void SceneLoader::update(float dt) {
             _gameScene.setActive(false);
             _currentScene = State::WINLOSE;
             _gameScene.reset();
+            });
             break;
         case GameScene::Status::WON:
+            requestTransition([this]() {
             _audio.playMusic("lobby");
             _winLoseScene.setDidWin(true);
             _winLoseScene.captureStats();
@@ -763,10 +834,12 @@ void SceneLoader::update(float dt) {
             _gameScene.setActive(false);
             _currentScene = State::WINLOSE;
             _gameScene.reset();
+            });
             break;
         case GameScene::Status::PLAYING:
             break;
         case GameScene::Status::HOST_DISCONNECTED:
+            requestTransition([this]() {
             CULog("Host disconnected in game — returning client to HostSetupScene...");
             _audio.playMusic("lobby");
             _gameScene.setActive(false);
@@ -774,11 +847,85 @@ void SceneLoader::update(float dt) {
             _hostSetupScene.setActive(true);
             _hostSetupScene.showHostDisconnectedError();
             _currentScene = State::HOSTSETUP;
+            });
             break;
         }
         break;
     }
     _input.resetAction();
+}
+
+/**
+ * Begins a fade transition into another scene.
+ *
+ * The screen fades to black, then `applySwitch` performs the actual scene
+ * swap while hidden, then the new scene fades back in. Any call made while
+ * a transition is already running is ignored, so it is safe to invoke this
+ * every frame that a scene keeps reporting the same status.
+ *
+ * @param applySwitch  The scene-swap logic to run while the screen is black
+ */
+void SceneLoader::requestTransition(std::function<void()> applySwitch)
+{
+    if (_transitionPhase != TransitionPhase::NONE) {
+        return;
+    }
+    _pendingSwitch = applySwitch;
+    _transitionPhase = TransitionPhase::FADE_OUT;
+}
+
+/**
+* Advances the active fade transition. Will fade out visually if the current _transitionPhase is TransitionPhase::FADE_OUT and will fade in if  TransitionPhase::FADE_IN
+*
+* @param dt The time (in seconds) since the last frame
+*/
+void SceneLoader::updateTransition(float dt)
+{
+    if (_transitionPhase == TransitionPhase::NONE) {
+        return;
+    }
+
+    // Cap the per-frame fade step at the equivalent of one 30 FPS frame.
+    //
+    // The scene swap runs synchronously inside _pendingSwitch() the moment
+    // the screen is fully black. Some swaps (LOAD -> MENU, PREGAME -> GAME)
+    // do hundreds of ms of work: initializing every scene, loading enemy
+    // animations, etc. CUGL feeds real wall-clock
+    // dt into update(), so the frame *after* a
+    // heavy swap arrives with a dt that includes all that blocking work.
+    //
+    // Without a cap, that single inflated dt makes step >= 1.0 and the
+    // fade-in collapses to one frame and so the user sees an instant cut
+    // instead of a fade. Clamping the effective dt to 1/30s means the
+    // fade advances at most by ~15% per frame no matter how long the
+    // previous frame stalled, so the fade-in stays visible.
+    //
+
+    float step = std::min(dt, 1.0f / 30.0f) / FADE_DURATION;
+    if (_transitionPhase == TransitionPhase::FADE_OUT) {
+        _fadeAlpha += step;
+        if (_fadeAlpha >= 1.0f) {
+            _fadeAlpha = 1.0f;
+            // Defer the scene swap by one frame so draw() can present a
+            // fully-black frame first. Otherwise the synchronous swap blocks
+            // before the black frame ever reaches the display, and the user
+            // stares at the previous scene tinted to whatever alpha the last
+            // drawn frame happened to land on (looks like a faded freeze).
+            _transitionPhase = TransitionPhase::BLACK_HOLD;
+        }
+    } else if (_transitionPhase == TransitionPhase::BLACK_HOLD) {
+        if (_pendingSwitch) {
+            _pendingSwitch();
+            _pendingSwitch = nullptr;
+        }
+        _transitionPhase = TransitionPhase::FADE_IN;
+    } else {
+        _fadeAlpha -= step;
+        if (_fadeAlpha <= 0.0f) {
+            _fadeAlpha = 0.0f;
+            _transitionPhase = TransitionPhase::NONE;
+        }
+    }
 }
 
 /**
@@ -832,6 +979,20 @@ void SceneLoader::draw()
     }
     if (_settingsScene.isActive()) {
         _settingsScene.render();
+    }
+
+    // Draw the black fade overlay on top of everything during a transition
+    if (_transitionPhase != TransitionPhase::NONE) {
+        _batch->setPerspective(Mat4::IDENTITY);
+        _batch->begin();
+        _batch->setTexture(nullptr);
+        _batch->setColor(Color4(0, 0, 0, std::clamp(_fadeAlpha, 0.0f, 1.0f) * 255));
+        _batch->fill(Rect(-1.0f, -1.0f, 2.0f, 2.0f));
+        _batch->end();
+        
+        // Color is left as the fade tint after end(), so reset
+        // it to the default white so subsequent scene renders are unaffected.
+        _batch->setColor(Color4::WHITE);
     }
 }
 
