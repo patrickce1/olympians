@@ -432,12 +432,10 @@ void SceneLoader::update(float dt) {
                 });
                 break;
             case ClientScene::Status::HOST:
-                requestTransition([this]() {
                 CULog("Transitioning to HostSetupScene...");
                 _hostSetupScene.setActive(true);
                 _clientScene.setActive(false);
                 _currentScene = State::HOSTSETUP;
-                });
                 break;
             case ClientScene::Status::ABORT:
                 requestTransition([this]() {
@@ -468,12 +466,10 @@ void SceneLoader::update(float dt) {
                 });
                 break;
             case HostSetupScene::Status::CLIENT:
-                requestTransition([this]() {
                 CULog("Transitioning to ClientScene...");
                 _clientScene.setActive(true);
                 _hostSetupScene.setActive(false);
                 _currentScene = State::CLIENT;
-                });
                 break;
             case HostSetupScene::Status::ABORT:
                 requestTransition([this]() {
@@ -492,13 +488,11 @@ void SceneLoader::update(float dt) {
         switch (_lobbyScene.getStatus())
         {
         case LobbyScene::Status::PRE_GAME_START:
-            requestTransition([this]() {
             CULog("Transitioning to PreGameEntryScene...");
             _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _lobbyScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
-            });
             break;
         case LobbyScene::Status::GAME_START:
             requestTransition([this]() {
@@ -589,13 +583,11 @@ void SceneLoader::update(float dt) {
         switch (_houseSelectScene.getStatus())
         {
         case HouseSelectScene::Status::PRE_GAMESCENE_START:
-            requestTransition([this]() {
             CULog("Transitioning to PreGameScene from HouseSelect...");
             _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _houseSelectScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
-            });
             break;
         case HouseSelectScene::Status::ABORT:
             requestTransition([this]() {
@@ -636,13 +628,11 @@ void SceneLoader::update(float dt) {
         switch (_bossSelectScene.getStatus())
         {
         case BossSelectScene::Status::PRE_GAMESCENE_START:
-            requestTransition([this]() {
             CULog("Transitioning to PreGameScene from BossSelect...");
             _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _bossSelectScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
-            });
             break;
         case BossSelectScene::Status::ABORT:
             requestTransition([this]() {
@@ -689,13 +679,11 @@ void SceneLoader::update(float dt) {
             });
             break;
         case WinLoseScene::Status::PRE_GAMESCENE_START:
-            requestTransition([this]() {
             CULog("Transitioning to PreGameScene from WinLoseScene...");
             _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _winLoseScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
-            });
             break;
         default:
             break;
@@ -707,13 +695,11 @@ void SceneLoader::update(float dt) {
         switch (_codexScene.getStatus())
         {
         case CodexScene::Status::PRE_GAMESCENE_START:
-            requestTransition([this]() {
             CULog("Transitioning to PreGameScene from CodexScene...");
             _audio.playMusic("cyclops_theme");
             _preGameEntryScene.setActive(true);
             _codexScene.setActive(false);
             _currentScene = State::PREGAMEENTRY;
-            });
             break;
         case CodexScene::Status::ABORT:
             requestTransition([this]() {
